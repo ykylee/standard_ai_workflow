@@ -373,6 +373,8 @@ def test_registries_are_derived_not_copied() -> None:
 
 def test_dispatcher_registers_doctor() -> None:
     """`wk doctor` 로 실제 도달하는가 — 모듈만 있고 등록이 빠지면 기능이 없는 것과 같다."""
+    child_env = os.environ.copy()
+    child_env.update({"PYTHONPATH": str(SOURCE_ROOT), "PATH": "", "HOME": str(REPO_ROOT)})
     proc = subprocess.run(
         [
             sys.executable,
@@ -386,7 +388,7 @@ def test_dispatcher_registers_doctor() -> None:
         capture_output=True,
         text=True,
         cwd=str(SOURCE_ROOT),
-        env={"PYTHONPATH": str(SOURCE_ROOT), "PATH": "/usr/bin:/bin", "HOME": str(REPO_ROOT)},
+        env=child_env,
     )
     ok = proc.returncode == 0
     payload: dict[str, object] = {}
@@ -419,7 +421,7 @@ def _seed_cache(home: Path, harness: str) -> Path:
             continue
         target = root / rel
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(body, encoding="utf-8")
+        target.write_bytes(body.encode("utf-8"))
     return root
 
 
@@ -457,7 +459,7 @@ def test_content_drift_catches_same_version_stale_payload() -> None:
         ok = (
             cache["in_sync"] is False
             and content["out_of_sync"] == ["codex"]
-            and str(victim.relative_to(root)) in paths
+            and victim.relative_to(root).as_posix() in paths
             and cache["installed_version"] == INSTALLED_VERSION
             and any("codex" in f for f in content["findings"])
         )
@@ -992,7 +994,12 @@ def test_content_drift_reads_which_copy_is_installed() -> None:
         problems.append(f"설치본을 못 골랐다: {[c.get('installed_version') for c in active]!r}")
     if active and "installPath" not in str(active[0].get("active_source")):
         problems.append(f"무엇을 근거로 골랐는지 안 남겼다: {active[0].get('active_source')!r}")
-    if str(old_root) not in json.dumps(content.get("superseded"), ensure_ascii=False):
+    superseded_paths = [
+        Path(str(item.get("path"))).resolve()
+        for item in content.get("superseded") or []
+        if item.get("path")
+    ]
+    if old_root.resolve() not in superseded_paths:
         problems.append("옛 사본 경로를 숨겼다 — 사람이 정리할 수 없다")
     if str(new_root) == str(old_root):
         problems.append("fixture 가 사본 둘을 안 만들었다")
@@ -1759,10 +1766,7 @@ def test_mcp_child_probe_ignores_pythonpath() -> None:
     _record("test_mcp_child_probe_ignores_pythonpath", not problems, "; ".join(problems))
 
 
-#: cmd.exe 가 배치 shim(`python3.CMD`)의 명령행을 다시 해석하며 **첫 개행 뒤를 버리는**
-#: 동작의 모형. cmd.exe 자체가 아니다 — 이 저장소에는 Windows 호스트가 없다. 재는 것은
-#: '인자에 실린 개행 뒤가 자식에 닿지 않는다' 한 가지이고, 그 모형이 결함을 실제로
-#: 재현하는지는 같은 case 의 첫 행이 따로 잰다.
+#: POSIX 에서는 cmd.exe 의 argv 개행 절단 동작을 흉내 내는 executable shim.
 _TRUNCATING_SHIM = """#!{python}
 import os, sys
 args = []
@@ -1785,9 +1789,16 @@ def test_mcp_child_probe_survives_newline_truncating_shim() -> None:
 
     problems: list[str] = []
     with tempfile.TemporaryDirectory(prefix="doctor-mcp-shim-") as tmpdir:
-        shim = Path(tmpdir) / "python3"
-        shim.write_text(_TRUNCATING_SHIM.format(python=sys.executable), encoding="utf-8")
-        shim.chmod(0o755)
+        if os.name == "nt":
+            # Exercise cmd.exe's real batch-file argument handling on Windows.
+            shim = Path(tmpdir) / "python3.cmd"
+            shim.write_text(
+                f'@echo off\r\n"{sys.executable}" %*\r\n', encoding="ascii"
+            )
+        else:
+            shim = Path(tmpdir) / "python3"
+            shim.write_text(_TRUNCATING_SHIM.format(python=sys.executable), encoding="utf-8")
+            shim.chmod(0o755)
         cwd = Path(tmpdir) / "cwd"
         cwd.mkdir()
         # 모형이 결함을 재현하는가 — 이것이 없으면 아래 green 은 아무것도 증명하지 않는다.
@@ -1819,7 +1830,17 @@ def test_symlinked_home_reports_real_paths_once() -> None:
         real = Path(tmpdir).resolve() / "real"
         real.mkdir()
         link = Path(tmpdir).resolve() / "link"
-        link.symlink_to(real, target_is_directory=True)
+        if os.name == "nt":
+            junction = subprocess.run(
+                ["cmd.exe", "/c", "mklink", "/J", str(link), str(real)],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            if junction.returncode != 0:
+                raise AssertionError(f"directory junction 생성 실패: {junction.stderr or junction.stdout}")
+        else:
+            link.symlink_to(real, target_is_directory=True)
         home, cache_root, served_root = _seed_claude_marketplace(
             link, source_type="directory", pollute_served=True)
         if str(home).startswith(str(real)) or not str(cache_root).startswith(str(link)):

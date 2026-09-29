@@ -256,9 +256,16 @@ def check_existing_project_mode() -> None:
             ]
         )
         target_backlog = Path(str(payload["target_backlog_path"]))
-        if "/ai-workflow/memory/" not in str(target_backlog) or "/backlog/" not in str(target_backlog):
+        backlog_parts = target_backlog.parts
+        if not any(
+            backlog_parts[index : index + 3] == ("ai-workflow", "memory", "active")
+            for index in range(len(backlog_parts) - 2)
+        ) or "backlog" not in backlog_parts:
             raise AssertionError(f"Workflow backlog writes should stay under ai-workflow/memory/.../backlog. Got: {target_backlog}")
-        if "/ai-workflow/memory/docs/" in str(target_backlog):
+        if any(
+            backlog_parts[index : index + 3] == ("ai-workflow", "memory", "docs")
+            for index in range(len(backlog_parts) - 2)
+        ):
             raise AssertionError("Workflow backlog writes should not resolve project docs paths under ai-workflow/memory.")
 
 
@@ -507,7 +514,9 @@ def check_enable_mcp_emission() -> None:
         for key, suffix in expected_keys.items():
             if key not in harness_files:
                 raise AssertionError(f"--enable-mcp did not emit {key}")
-            if not str(harness_files[key]).endswith(suffix):
+            actual_parts = Path(str(harness_files[key])).parts
+            expected_parts = Path(suffix).parts
+            if actual_parts[-len(expected_parts) :] != expected_parts:
                 raise AssertionError(f"{key} should land at {suffix}, got {harness_files[key]}")
             if not Path(str(harness_files[key])).exists():
                 raise AssertionError(f"{key} file missing on disk: {harness_files[key]}")
@@ -587,7 +596,7 @@ def check_multi_stack_detection() -> None:
 
 def check_enable_wiki_emission() -> None:
     """Verify ``--enable-wiki`` writes the wiki/ skeleton (SCHEMA·index·log·.gitignore)."""
-    target_root = Path("/tmp/test-wiki-bootstrap")
+    target_root = Path(tempfile.gettempdir()) / "test-wiki-bootstrap"
     if target_root.exists():
         import shutil
 

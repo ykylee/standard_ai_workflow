@@ -34,18 +34,20 @@ Cross-ref: `core/workflow_deployment_idempotency.md` §2 · §5 · §7,
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
 import shutil
-import hashlib
 import subprocess
 import sys
+import tempfile
 import time
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Sequence
+from typing import Any
 
 from workflow_kit.bootstrap_lib.harnesses import HARNESS_SPECS
 from workflow_kit.common.python_launcher import python_launcher
@@ -1128,9 +1130,27 @@ def _declared_install_roots_grok(home: Path) -> tuple[list[str], set[str], str |
 #:
 #: 휘발 판정은 **경로 규칙**으로 한다 — 지금 존재하는지만 보면 비워지기 전에는
 #: 늘 통과다. 있으나 곧 없어질 자리를 '있음' 으로 세지 않는다.
-VOLATILE_PATH_PREFIXES: tuple[str, ...] = (
-    "/tmp/", "/private/tmp/", "/var/folders/", "/private/var/folders/",
-)
+def _volatile_path_prefixes() -> tuple[str, ...]:
+    """Return host temporary roots that can disappear independently of a plugin install."""
+    prefixes = ["/tmp/", "/private/tmp/", "/var/folders/", "/private/var/folders/"]
+    if os.name == "nt":
+        # Windows' user temp directory is the counterpart of POSIX /tmp. The
+        # configured marketplace may exist now and still disappear at cleanup.
+        prefixes.append(str(Path(tempfile.gettempdir()).resolve()) + os.sep)
+    return tuple(prefixes)
+
+
+VOLATILE_PATH_PREFIXES: tuple[str, ...] = _volatile_path_prefixes()
+
+
+def _is_volatile_path(path: str) -> bool:
+    candidate = os.path.normcase(os.path.abspath(path))
+    for prefix in VOLATILE_PATH_PREFIXES:
+        normalized = os.path.normcase(os.path.abspath(prefix))
+        normalized = normalized.rstrip("\\/") + os.sep
+        if candidate.startswith(normalized):
+            return True
+    return False
 
 
 def _codex_marketplace_sources(home: Path) -> list[dict[str, object]]:
@@ -1183,7 +1203,7 @@ def _codex_marketplace_sources(home: Path) -> list[dict[str, object]]:
             "volatile": bool(
                 source
                 and not inside_home
-                and any(source.startswith(p) for p in VOLATILE_PATH_PREFIXES)
+                and _is_volatile_path(source)
             ),
         })
     return out
@@ -2464,7 +2484,7 @@ def _probe_plugin_enabled(
         sources.append(
             {
                 "scope": scope,
-                "path": str(Path("~") / rel) if scope == "user" else rel,
+                "path": (Path("~") / rel).as_posix() if scope == "user" else rel,
                 "exists": path.is_file(),
                 "has_enabled_plugins": has_key,
                 "mapping": mapping,

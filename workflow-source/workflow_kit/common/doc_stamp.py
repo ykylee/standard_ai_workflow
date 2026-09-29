@@ -254,7 +254,42 @@ def _commit_is_stamp_only(sha: str, rel: str, *, repo_root: Path) -> bool:
 
 #: 변경된 줄이 스탬프 줄인지. `release_pipeline.DOC_HEADER_DATE_RE` 와 같은 모양을
 #: 보지만 이쪽은 **diff 한 줄**을 받으므로 앵커가 다르다.
-_STAMP_LINE_RE = re.compile(r"^\s*-\s*최종\s*수정일:\s*\d{4}-\d{2}-\d{2}\s*$")
+#:
+#: 날짜 뒤 주석(`2026-07-16 (v0.14.0 …)`)도 스탬프 줄로 센다
+#: (TASK-2026-09-29-main-007). 주석은 형식 위반이라 `stamp_format_violation` 이
+#: 따로 잡는다 — 여기서 그것을 내용 줄로 세면 **주석을 지우는 정규화 자체가 내용
+#: 변경**이 되어, 정규화한 문서가 사실이 아닌 '오늘' 스탬프를 요구받는다.
+_STAMP_LINE_RE = re.compile(r"^\s*-\s*최종\s*수정일:\s*\d{4}-\d{2}-\d{2}(\s.*)?$")
+
+#: 스탬프 **필드** 줄 — 값의 형식을 묻지 않고 필드가 있는지만 본다.
+_STAMP_FIELD_RE = re.compile(r"^\s*-\s*최종\s*수정일:(.*)$", re.MULTILINE)
+#: 판정 가능한 값: 날짜 하나, 뒤에 공백만.
+_STAMP_VALUE_RE = re.compile(r"^\s*\d{4}-\d{2}-\d{2}\s*$")
+#: 템플릿의 자리표시자 — 채워질 자리라 판정 대상이 아니다.
+STAMP_PLACEHOLDER = "YYYY-MM-DD"
+
+
+def stamp_format_violation(text: str) -> str | None:
+    """스탬프 필드가 있는데 **판정할 수 없는 형식**이면 그 설명, 아니면 ``None``.
+
+    TASK-2026-09-29-main-007. 전수 검사(`check_doc_stamp_rule` case 10)와
+    `doc-headers-update` 는 날짜 뒤가 줄 끝인 줄만 읽는다. 그래서 날짜 뒤에 주석을
+    단 스탬프(`2026-07-16 (v0.14.0 신규 layout 정합)`)는 **판정 없이 건너뛰어졌다** —
+    살아있는 문서 5건, 그중 3건은 실제로 뒤처져 있었다. 건너뜀은 통과가 아니므로
+    필드가 있으면 형식부터 요구한다.
+
+    필드가 없는 문서는 ``None`` — 스탬프를 안 다는 문서가 정상적으로 있다.
+    """
+    match = _STAMP_FIELD_RE.search(text)
+    if match is None:
+        return None
+    value = match.group(1).strip()
+    if value == STAMP_PLACEHOLDER or _STAMP_VALUE_RE.match(value):
+        return None
+    return (
+        f"`- 최종 수정일:` 값이 날짜 하나가 아니다: {value!r} — 판정할 수 없다. "
+        "날짜만 남기고 주석은 본문이나 커밋 메시지로 옮긴다."
+    )
 
 
 def _minus_days(iso: str, days: int) -> str:

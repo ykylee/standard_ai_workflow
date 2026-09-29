@@ -40,5 +40,11 @@ _spec.loader.exec_module(_mod)
 GRACE_DAYS = _mod.GRACE_DAYS
 check_frontmatter_stamp = _mod.check_frontmatter_stamp
 last_content_change_date = _mod.last_content_change_date
+stamp_format_violation = _mod.stamp_format_violation
 
-__all__ = ["GRACE_DAYS", "check_frontmatter_stamp", "last_content_change_date"]
+__all__ = [
+    "GRACE_DAYS",
+    "check_frontmatter_stamp",
+    "last_content_change_date",
+    "stamp_format_violation",
+]

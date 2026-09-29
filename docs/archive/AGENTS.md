@@ -8,7 +8,7 @@
 - 범위: 세션 복원, workflow state docs 참조 순서, 사용자 보고 언어, 기본 실행/검증 명령
 - 대상 독자 (역사적): Codex, 저장소 관리자, workflow 설계자
 - 상태: **deprecated** (2026-06-09)
-- 최종 수정일: 2026-04-30 (원본) / 2026-06-09 (deprecation banner 추가)
+- 최종 수정일: 2026-06-09
 - 관련 문서 (역사적): `ai-workflow/WORKFLOW_INDEX.md`, `ai-workflow/memory/codex/phase6/state.json`, `ai-workflow/memory/codex/phase6/session_handoff.md`, `ai-workflow/memory/work_backlog.md`, `docs/PROJECT_PROFILE.md`
 
 ## 목적

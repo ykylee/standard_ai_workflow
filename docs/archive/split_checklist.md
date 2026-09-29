@@ -6,7 +6,7 @@
 - 범위: 디렉터리 구성, 링크 점검, 문서 self-contained 여부, 구현/미구현 경계, 배포 전 검증 항목
 - 대상 독자 (역사적): 개발자, 운영자, 프로젝트 분리 담당자
 - 상태: **deprecated** (2026-06-09)
-- 최종 수정일: 2026-04-18 (원본) / 2026-06-09 (deprecation banner 추가)
+- 최종 수정일: 2026-06-09
 - 관련 문서 (역사적): `README.md`, `core/global_workflow_standard.md`, `core/workflow_skill_catalog.md`, `core/workflow_mcp_candidate_catalog.md`, `core/workflow_agent_topology.md`
 
 ## 1. 분리 전 체크

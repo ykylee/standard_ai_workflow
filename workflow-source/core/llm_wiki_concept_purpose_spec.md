@@ -4,7 +4,7 @@
 - 범위: 1차 출처 추출, 4-element concept 정형화, 우리 흡수 위치 (PURPOSE.md 분리), LLM context read pattern, suggest-update trigger
 - 대상 독자: workflow_kit consumer, 저장소 maintainer, AI workflow 설계자
 - 상태: draft (cycle 7 / v0.9.2 chapter 6, v0.9.4 chapter 8 part 1, v0.9.5 chapter 9 part 2, v0.9.6 chapter 10 part 3)
-- 최종 수정일: 2026-06-26 (v0.11.0 cycle 3 follow-up 추가)
+- 최종 수정일: 2026-06-26
 - 관련 문서: [`./v0_9_0_deprecation_policy_spec.md`](./v0_9_0_deprecation_policy_spec.md), [`./workflow_kit_roadmap.md`](./workflow_kit_roadmap.md), [`./global_workflow_standard.md`](./global_workflow_standard.md), [`./v0_8_0_stable_api_spec.md`](./v0_8_0_stable_api_spec.md)
 - 1차 출처:
   - Karpathy `llm-wiki.md`: <https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f>

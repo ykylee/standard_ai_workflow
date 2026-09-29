@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""`_doc_stamp` 의 스탬프 판정 규칙을 **격리 git 저장소**에서 고정한다 (6 cases).
+"""`_doc_stamp` 의 스탬프 판정 규칙을 **격리 git 저장소**에서 고정한다 (12 cases — 7~10 은 각 함수 docstring).
 
 ## 왜 이 검사가 있나 (TASK-2026-09-01-main-002)
 
@@ -25,6 +25,8 @@
   4) 워킹 트리가 더러우면 유예 0 — 어제 스탬프 → FAIL
   5) 워킹 트리가 더러워도 오늘 스탬프면 → PASS
   6) git 이 모르는 파일 → 판정 불가로 **loud FAIL** (조용한 통과 금지)
+  11) 날짜 뒤 주석 달린 스탬프 → 형식 위반 (case 10 이 건너뛰지 않는다)
+  12) 주석만 지운 변경 → 스탬프 전용 (정규화가 '오늘' 을 요구하지 않는다)
 """
 
 from __future__ import annotations
@@ -57,7 +59,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 #: 저장소 루트 — case 10 이 실 저장소 전수를 훑는다.
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-from _doc_stamp import check_frontmatter_stamp  # noqa: E402
+from _doc_stamp import check_frontmatter_stamp, stamp_format_violation  # noqa: E402
 
 FAILURES: list[str] = []
 
@@ -226,6 +228,49 @@ def case_9_dirty_content_still_demands_today() -> None:
         _expect("case_9_dirty_content_still_demands_today", ok, False, detail)
 
 
+def case_11_annotated_stamp_is_a_format_violation() -> None:
+    """**날짜 뒤 주석은 판정 불가다** (TASK-2026-09-29-main-007).
+
+    case 10 의 전수 판정은 날짜 뒤가 줄 끝인 줄만 읽는다. 주석 달린 스탬프를
+    형식 위반으로 내지 않으면 그 문서는 판정 없이 통과한다 — 2026-09-29 실측
+    살아있는 문서 5건, 그중 3건이 실제로 뒤처져 있었다. 반대쪽(날짜만 · 템플릿
+    자리표시자 · 필드 없음)은 위반이 아니어야 한다.
+    """
+    table = (
+        ("주석", "- 최종 수정일: 2026-07-16 (v0.14.0 신규 layout 정합)\n", True),
+        ("두 날짜", "- 최종 수정일: 2026-04-30 (원본) / 2026-06-09 (배너)\n", True),
+        ("빈 값", "- 최종 수정일:\n", True),
+        ("날짜만", "- 최종 수정일: 2026-07-16\n", False),
+        ("뒤 공백", "- 최종 수정일: 2026-07-16   \n", False),
+        ("자리표시자", "- 최종 수정일: YYYY-MM-DD\n", False),
+        ("필드 없음", "- 상태: beta\n", False),
+    )
+    wrong = [
+        label for label, text, want in table
+        if (stamp_format_violation(f"# 제목\n\n{text}") is not None) is not want
+    ]
+    _expect(
+        "case_11_annotated_stamp_is_a_format_violation",
+        not wrong, True,
+        f"형식 판정 {len(table)}행 일치" if not wrong else f"어긋난 행: {wrong}",
+    )
+
+
+def case_12_dropping_annotation_is_stamp_only() -> None:
+    """**주석만 지운 변경은 스탬프 전용이다** (main-007).
+
+    case 11 이 주석을 위반으로 만들었으니 고치는 길이 있어야 한다. 주석 달린 줄을
+    내용 줄로 세면, 주석을 지우는 정규화가 '지금 내용을 고치는 중' 이 되어 **오늘**
+    스탬프를 요구한다 — 사실이 아닌 날짜를 찍어야 green 이 되는 판정이다.
+    배치: 30일 전 커밋의 스탬프에 주석이 달렸고, 워킹 트리는 주석만 지웠다.
+    """
+    with tempfile.TemporaryDirectory(prefix="doc-stamp-annot-") as td:
+        repo, doc = _make_repo(Path(td), stamp=f"{_shift(-30)} (옛 주석)", commit_days_ago=30)
+        _write_doc(doc, _shift(-30))
+        ok, detail = check_frontmatter_stamp(doc, repo_root=repo, actual=_shift(-30))
+        _expect("case_12_dropping_annotation_is_stamp_only", ok, True, detail)
+
+
 def case_6_untracked_is_loud_failure() -> None:
     with tempfile.TemporaryDirectory(prefix="doc-stamp-") as td:
         repo, _doc = _make_repo(Path(td), stamp=_shift(0), commit_days_ago=0)
@@ -273,11 +318,18 @@ def case_10_repo_wide_stamps_are_current() -> None:
 
     dirty = dirty_paths(REPO_ROOT)
     stale: list[str] = []
+    judged = 0
     for doc in docs:
         text = doc.read_text(encoding="utf-8")
         match = rp.DOC_HEADER_DATE_RE.search(text)
         if match is None:
+            # 건너뜀은 통과가 아니다 (main-007) — 필드가 있는데 형식이 틀리면
+            # 판정 불가를 loud 로 낸다. 필드 자체가 없는 문서만 조용히 넘긴다.
+            violation = stamp_format_violation(text)
+            if violation is not None:
+                stale.append(f"{doc.relative_to(REPO_ROOT)}: {violation}")
             continue
+        judged += 1
         ok, why = check_frontmatter_stamp(
             doc, repo_root=REPO_ROOT, actual=match.group(2), dirty=dirty
         )
@@ -287,7 +339,8 @@ def case_10_repo_wide_stamps_are_current() -> None:
         "case_10_repo_wide_stamps_are_current",
         not stale,
         True,
-        f"살아있는 문서 {len(docs)}건 전부 정합"
+        f"살아있는 문서 {len(docs)}건 중 스탬프 판정 {judged}건 전부 정합 "
+        f"(스탬프 필드 없음·자리표시자 {len(docs) - judged}건)"
         if not stale
         else f"{len(stale)}건 뒤처짐 — {'; '.join(stale[:3])}",
     )
@@ -306,6 +359,8 @@ def main() -> int:
         case_8_stamp_only_worktree_change_keeps_history_baseline,
         case_9_dirty_content_still_demands_today,
         case_10_repo_wide_stamps_are_current,
+        case_11_annotated_stamp_is_a_format_violation,
+        case_12_dropping_annotation_is_stamp_only,
     )
     for fn in cases:
         try:

@@ -58,3 +58,20 @@ opencode 까지 적용으로 만들었다. 같은 규칙이 `wk ensure-entrypoin
   pi-dev 의 선언은 `AGENTS.md` 하나라 복구할 것도 없다.
 - MiniMax Code CLI 가 프로젝트 로컬에서 어느 대소문자 경로를 읽는지는 여전히 미실측이다.
 - **Windows 는 현재 미측정이다** (`TASK-2026-08-25-main-017` blocked).
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-09-29T02:46:25Z)_
+
+- total wiki pages: **96**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

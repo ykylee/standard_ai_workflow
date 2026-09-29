@@ -1,7 +1,7 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-09-29T02:21:59Z`
-- tool_version: `1.14.1`
+- generated_at: `2026-09-29T02:46:25Z`
+- tool_version: `1.14.2`
 - workspace_root: `/home/yklee/repos/standard_ai_workflow`
 
 ## Panel 1 — Drift Prevention Status
@@ -14,7 +14,7 @@
 - harness_supported_count: `10`
 - head_commit_date: `2026-09-29`
 - last_updated_delta_days: `0`
-- silent_failing_cycles_count: `0` (측정 cycle 24건)
+- silent_failing_cycles_count: `0` (측정 cycle 25건)
 
 ## Panel 2 — Maturity Distribution
 
@@ -84,11 +84,11 @@
 
 | version | pass | total |
 |---|---|---|
+| Beta-v1.14.2 | 296 | 296 |
 | Beta-v1.14.1 | 296 | 296 |
 | Beta-v1.14.0 | 296 | 296 |
 | Beta-v1.13.0 | 296 | 296 |
 | Beta-v1.12.0 | 296 | 296 |
-| Beta-v1.11.0 | 292 | 292 |
 
 ## Panel 5 — Recent Release Cycle
 
@@ -98,16 +98,16 @@
 
 ### Timeline (preview, first 120 char)
 
-- [0] TASK-2026-09-29-main-002 — minimax-code 하네스 경로 대소문자 불일치로 session-start 가 매 세션 빈 bootstrap task 를 만든다 (GitHub #29)  `[fresh]`
-- [1] TASK-2026-09-29-main-001 — backlog-update update 가 날짜 경계를 넘으면 새 daily index 에 kind 를 generic 으로 적는다  `[fresh]`
-- [2] TASK-2026-09-28-main-021 — v1.14.0 발행 — antigravity MCP 도구 이름 수리 + doctor plugin_enabled 4채널  `[fresh]`
-- [3] TASK-2026-09-28-main-020 — antigravity 에서 플러그인 MCP 도구 11개가 전부 거부된다 — 합성 도구 이름이 64자 제한 초과  `[fresh]`
-- [4] TASK-2026-09-28-main-019 — wk doctor plugin_enabled 미실측 2건 실측 — grok 목록 부재 시 로드 · antigravity 워크스페이스 exclude  `[fresh]`
-- [5] TASK-2026-09-28-main-018 — wk doctor plugin_enabled 절을 4채널로 — codex·grok-build·antigravity 의 활성 선언 자리 실측  `[fresh]`
-- [6] TASK-2026-09-28-main-017 — wk doctor 가 claude-code 플러그인의 enabled 여부를 재지 않는다 — 설치됐는데 꺼진 상태(enabledPlugins 부재)를 못 잡아 스킬이 조…  `[fresh]`
-- [7] TASK-2026-09-28-main-016 — v1.13.0 발행 — 은퇴 shim 제거 + check_self_application telemetry 오염 수리  `[fresh]`
-- [8] TASK-2026-09-28-main-015 — v1.12.0 은퇴 shim 2종 제거 — verify_required_ci · REQUIRED_CI_WORKFLOWS (v1.13.0)  `[fresh]`
-- [9] TASK-2026-09-28-main-014 — v1.12.0 발행 준비 — 삭제된 공개 API 에 deprecation shim 복원 + 버전 bump  `[fresh]`
+- [0] TASK-2026-09-29-main-004 — 공유 AGENTS.md 마커 때문에 opencode 가 적용된 하네스로 판정돼 session-start 가 opencode 오버레이를 만든다  `[fresh]`
+- [1] TASK-2026-09-29-main-003 — v1.14.1 발행 — minimax-code 경로 불일치(#29) + backlog-update 이월 kind 수리  `[fresh]`
+- [2] TASK-2026-09-29-main-002 — minimax-code 하네스 경로 대소문자 불일치로 session-start 가 매 세션 빈 bootstrap task 를 만든다 (GitHub #29)  `[fresh]`
+- [3] TASK-2026-09-29-main-001 — backlog-update update 가 날짜 경계를 넘으면 새 daily index 에 kind 를 generic 으로 적는다  `[fresh]`
+- [4] TASK-2026-09-28-main-021 — v1.14.0 발행 — antigravity MCP 도구 이름 수리 + doctor plugin_enabled 4채널  `[fresh]`
+- [5] TASK-2026-09-28-main-020 — antigravity 에서 플러그인 MCP 도구 11개가 전부 거부된다 — 합성 도구 이름이 64자 제한 초과  `[fresh]`
+- [6] TASK-2026-09-28-main-019 — wk doctor plugin_enabled 미실측 2건 실측 — grok 목록 부재 시 로드 · antigravity 워크스페이스 exclude  `[fresh]`
+- [7] TASK-2026-09-28-main-018 — wk doctor plugin_enabled 절을 4채널로 — codex·grok-build·antigravity 의 활성 선언 자리 실측  `[fresh]`
+- [8] TASK-2026-09-28-main-017 — wk doctor 가 claude-code 플러그인의 enabled 여부를 재지 않는다 — 설치됐는데 꺼진 상태(enabledPlugins 부재)를 못 잡아 스킬이 조…  `[fresh]`
+- [9] TASK-2026-09-28-main-016 — v1.13.0 발행 — 은퇴 shim 제거 + check_self_application telemetry 오염 수리  `[fresh]`
 
 ## Panel 6 — Multi-Agent Concurrent Write Conflict
 
@@ -137,10 +137,10 @@
 
 - phase_15_north_star: `utilization_3tuple (query_diversity / entries_new_30d / distinct_entries_retrieved — ADR-006 W-4; hit_rate 는 보조)`
 - entries_total: `30`
-- telemetry_events_total: `2955`
-- telemetry_total_queries: `2955`
-- telemetry_hit_count: `1203`
-- telemetry_hit_rate: `0.4071`
+- telemetry_events_total: `2960`
+- telemetry_total_queries: `2960`
+- telemetry_hit_count: `1208`
+- telemetry_hit_rate: `0.4081`
 
 ### Entries by merge_state
 
@@ -152,7 +152,7 @@
 
 | source | events |
 |---|---|
-| `backlog-update` | 473 |
+| `backlog-update` | 478 |
 | `dispatcher` | 13 |
 | `doc-sync` | 2 |
 | `session-start` | 2467 |

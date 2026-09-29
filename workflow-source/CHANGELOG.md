@@ -84,6 +84,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- fix(ensure-entrypoints,doctor): 공유 AGENTS.md 마커로 opencode 가 적용 판정돼 오버레이를 만들던 것 (09-29-main-004) (bd78a2ad)
 - fix(bootstrap): minimax-code 경로 대소문자 불일치로 session-start 가 매 세션 빈 task 를 만들던 것 (#29, 09-29-main-002) (9e4660ba)
 - fix(backlog-update): 날짜 경계 이월이 새 daily index 에 [generic] 을 적던 것 + 98차 세션 종료 (09-29-main-001) (6fd6af7c)
 - fix(plugin): antigravity MCP 도구 11개가 전부 거부되던 것 — 사본 별칭을 ro 로 + grok 목록 부재 위양성 (09-28-main-019·020) (0a232c99)
@@ -113,13 +114,19 @@ All notable changes to this project will be documented in this file.
 - fix(doctor): 설치 시각 폴백을 트리 최신 mtime 으로 (main-003) (625d0ee2)
 - fix(ci): digest 마커를 본문으로 — gh issue comment 에 없는 플래그였다 (main-001) (105f0043)
 - fix(tests): case 3 의 전제가 호스트 의존이었다 + 81차 세션 종료 (e2d6b0d3)
-- fix(docs): smoke 수 판정 범위를 포함 목록에서 전수 파생으로 (main-004) (d882b42a)
-- ... (178 more)
+- ... (179 more)
+
+## [1.14.2] - 2026-09-29
+
+### Changed
+
+- release(v1.14.2): 발행 준비 — 공유 AGENTS.md 마커로 opencode 오버레이가 생기던 것 수리 (92c43b19)
 
 ## [1.14.1] - 2026-09-29
 
 ### Changed
 
+- release(v1.14.1): 발행 완료 — 태그 push + GitHub Release(asset 4종) + wheel 격리 실측 + §2.8 + #29 close (151fa7ac)
 - release(v1.14.1): 발행 준비 — minimax-code 경로 불일치(#29) + backlog-update 이월 kind 수리 (9e5ccadf)
 
 ## [1.14.0] - 2026-09-29

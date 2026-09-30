@@ -27,15 +27,14 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "claude/session-start-e6eb83 워크스페이스 seed (2026-09-30). 아직 작업 전이다.",
+    "current_baseline": "**110차 세션 (2026-09-30, macOS 호스트, Claude Code worktree `claude/session-start-e6eb83`)** — ①§2.8 재적용: codex·grok-build·antigravity 1.14.4→1.16.0, claude-code 설치 기록 1.16.0, `wk doctor` behind=[] disabled=[]; homebrew python3 MCP 해석기 1.16.0 설치는 Codex(main-012, 미커밋)가 수행. ②TASK-…-002 close (6118db3d): worktree·detached HEAD 에서 상태 경로를 못 찾던 것 → session-start 자동 seed · CI 밖 detached HEAD=기본 브랜치 · 비 git workspace=main(계약 3 변경) · roadmap 슬래시 브랜치 수집. 이 네임스페이스 자체가 자동 seed 로 만들어졌다.",
     "current_axis": "main` 에서 분기한 worktree — 작업 축은 첫 backlog-update 로 등록하는 task 가 정한다. 분기 시점 기준선은 `active/main/session_handoff.md",
-    "current_focus": "TASK-2026-09-30-claude-session-start-e6eb83-002 worktree·detached HEAD 에서 브랜치 상태 경로를 못 찾는다 — 자동 seed · 로컬 detached HEAD = 기본 브랜치",
-    "in_progress_items": [
-      "TASK-2026-09-30-claude-session-start-e6eb83-002 worktree·detached HEAD 에서 브랜치 상태 경로를 못 찾는다 — 자동 seed · 로컬 detached HEAD = 기본 브랜치"
-    ],
+    "current_focus": null,
+    "in_progress_items": [],
     "blocked_items": [],
     "planned_items": [],
     "recent_done_items": [
+      "TASK-2026-09-30-claude-session-start-e6eb83-002 — worktree·detached HEAD 에서 브랜치 상태 경로를 못 찾는다 — 자동 seed · 로컬 detached HEAD = 기본 브랜치",
       "TASK-2026-09-30-claude-session-start-e6eb83-001 — 브랜치 네임스페이스 자동 seed — `main` 에서 분기한 worktree"
     ],
     "unknown_status_items": [],
@@ -44,12 +43,11 @@
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/claude/session-start-e6eb83/backlog/2026-09-30.md",
     "task_count": 2,
-    "in_progress_items": [
-      "TASK-2026-09-30-claude-session-start-e6eb83-002 — worktree·detached HEAD 에서 브랜치 상태 경로를 못 찾는다 — 자동 seed · 로컬 detached HEAD = 기본 브랜치"
-    ],
+    "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
-      "TASK-2026-09-30-claude-session-start-e6eb83-001 — 브랜치 네임스페이스 자동 seed — `main` 에서 분기한 worktree"
+      "TASK-2026-09-30-claude-session-start-e6eb83-001 — 브랜치 네임스페이스 자동 seed — `main` 에서 분기한 worktree",
+      "TASK-2026-09-30-claude-session-start-e6eb83-002 — worktree·detached HEAD 에서 브랜치 상태 경로를 못 찾는다 — 자동 seed · 로컬 detached HEAD = 기본 브랜치"
     ]
   },
   "next_documents": [

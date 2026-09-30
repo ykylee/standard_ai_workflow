@@ -36,11 +36,11 @@
     ],
     "planned_items": [
       "TASK-2026-09-30-main-001",
-      "TASK-2026-09-30-main-012",
       "TASK-2026-09-30-main-013"
     ],
     "recent_done_items": [
       "TASK-2026-09-30-main-014 — macOS Codex v1.16.0 적용·신뢰·재시작·compact 왕복 검증",
+      "TASK-2026-09-30-main-012 — 로드맵 WBS 링크 수집기가 슬래시 포함 브랜치(task 가 2단계 깊이)에 닿지 않는다",
       "TASK-2026-09-30-main-011 — v1.16.0 발행 — Codex compact 중계 hook 탑재 + 출력 수리 (codex-json)",
       "TASK-2026-09-30-main-010 — Codex compact 중계 hook 출력 형식 수리 — [ 머리말이 JSON 으로 오판돼 hook failed · 재주입 0",
       "TASK-2026-09-30-main-009 — Codex 인증 압축 왕복 실측 — PostCompact · SessionStart(compact) 발화와 순서",
@@ -48,8 +48,7 @@
       "TASK-2026-09-30-main-007 — v1.15.0 발행 — compact 중계 (wk compact-checkpoint · 스킬 compact-relay · hook 3종)",
       "TASK-2026-09-30-main-006 — compact 중계 구현 — wk compact-checkpoint · hook 3종 · 스킬 compact-relay · 검사",
       "TASK-2026-09-30-main-005 — compact 중계 design — ADR-030 + compact_relay_spec",
-      "TASK-2026-09-30-main-004 — compact 중계 requirements — 명령 계약 · checkpoint 형식 · 재주입 예산 · 누락 판정",
-      "TASK-2026-09-30-main-003 — compact 중계 concept 검토 — 하네스별 compact 표면 실측과 checkpoint 설계 선택지"
+      "TASK-2026-09-30-main-004 — compact 중계 requirements — 명령 계약 · checkpoint 형식 · 재주입 예산 · 누락 판정"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
@@ -70,6 +69,7 @@
       "TASK-2026-09-30-main-009 — Codex 인증 압축 왕복 실측 — PostCompact · SessionStart(compact) 발화와 순서",
       "TASK-2026-09-30-main-010 — Codex compact 중계 hook 출력 형식 수리 — [ 머리말이 JSON 으로 오판돼 hook failed · 재주입 0",
       "TASK-2026-09-30-main-011 — v1.16.0 발행 — Codex compact 중계 hook 탑재 + 출력 수리 (codex-json)",
+      "TASK-2026-09-30-main-012 — 로드맵 WBS 링크 수집기가 슬래시 포함 브랜치(task 가 2단계 깊이)에 닿지 않는다",
       "TASK-2026-09-30-main-014 — macOS Codex v1.16.0 적용·신뢰·재시작·compact 왕복 검증"
     ]
   },
@@ -88,6 +88,7 @@
     "workflow-source/MEMORY_GOVERNANCE.md",
     "ai-workflow/memory/active/main/sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md",
     "ai-workflow/memory/active/main/sessions/adr006_retrospective_and_calibration_2026-08-10.md",
+    "ai-workflow/memory/active/claude/session-start-e6eb83/session_handoff.md",
     "ai-workflow/memory/active/main/lessons.md",
     "ai-workflow/memory/active/roadmap/roadmap_state.json",
     "docs/planning/workflow-assessment-2026-09.md",

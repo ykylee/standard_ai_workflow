@@ -782,6 +782,13 @@
   "current_milestone_id": "M-007",
   "exempt_tasks": [
     {
+      "task_id": "TASK-2026-09-30-claude-exciting-ardinghelli-a0680d-001",
+      "task_status": "done",
+      "wbs_ref": "exempt",
+      "exempt_reason": "게이트 간헐 red 를 내는 단일 검사 격리 수정 (로드맵 밖 유지보수)",
+      "source_path": "ai-workflow/memory/active/claude/exciting-ardinghelli-a0680d/backlog/tasks/TASK-2026-09-30-claude-exciting-ardinghelli-a0680d-001.md"
+    },
+    {
       "task_id": "TASK-2026-08-25-main-010",
       "task_status": "done",
       "wbs_ref": "exempt",

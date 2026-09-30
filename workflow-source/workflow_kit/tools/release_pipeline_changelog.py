@@ -244,7 +244,8 @@ def draft_changelog(commits: list[dict], unreleased_label: str = "Unreleased") -
     return "\n".join(lines).rstrip() + "\n"
 
 
-def _resolve_notes_file(version: str, template: str, *, dry_run: bool = False) -> dict:
+def _resolve_notes_file(version: str, template: str, *, dry_run: bool = False,
+                        releases_dir: Path | None = None) -> dict:
     """v0.7.24+ --notes-template flag 의 release notes file 결정.
 
     Templates:
@@ -254,19 +255,24 @@ def _resolve_notes_file(version: str, template: str, *, dry_run: bool = False) -
         - changelog: `CHANGELOG.md` (Keep-a-Changelog 1.1.0 형식, v0.7.14 의 changelog-gen 의 output)
         - custom:<path>: 임의 path
 
+    `releases_dir` 는 default / detailed / simple 이 읽고 쓰는 디렉터리다 (기본
+    `RELEASES_DIR`). 검사가 저장소 `releases/` 대신 임시 디렉터리를 주입하는 자리다 —
+    simple 은 파일을 **쓴다** (TASK-2026-09-30-claude-exciting-ardinghelli-a0680d-001).
+
     Returns:
         {"notes_file": Path, "source": str, "error": str | None}
     """
+    releases_dir = RELEASES_DIR if releases_dir is None else releases_dir
     template = (template or "default").strip()
     if template == "default" or template == "detailed":
-        notes_file = RELEASES_DIR / f"Beta-v{version}.md"
+        notes_file = releases_dir / f"Beta-v{version}.md"
         return {"notes_file": notes_file, "source": template, "error": None}
     elif template == "simple":
-        notes_file = RELEASES_DIR / f"Beta-v{version}-simple.md"
+        notes_file = releases_dir / f"Beta-v{version}-simple.md"
         if not notes_file.exists() and not dry_run:
             # simple: default notes 의 1st # 헤더 + 1st ## 헤더 + 1st paragraph 만 자동 generate
             # 본문 추출: 1st # + 1st ## + (1st blank skip) + 본문 line + 2nd blank (paragraph 끝)
-            default_notes = RELEASES_DIR / f"Beta-v{version}.md"
+            default_notes = releases_dir / f"Beta-v{version}.md"
             if default_notes.exists():
                 content = default_notes.read_text(encoding="utf-8")
                 lines = content.split("\n")

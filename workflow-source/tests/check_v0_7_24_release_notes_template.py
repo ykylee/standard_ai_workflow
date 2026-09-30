@@ -58,43 +58,59 @@ def test_notes_template_default_argparse() -> None:
 # --- Test 2: simple template 자동 generate ---
 
 
+def _repo_releases_snapshot(mod) -> set[str]:
+    """저장소 releases/ 의 파일 이름 집합 — 검사가 저장소를 건드리지 않았는지 재는 기준."""
+    # `_resolve_notes_file` 은 release_pipeline_changelog 에 정의돼 있어 그 모듈의
+    # RELEASES_DIR 을 본다 (release_pipeline 은 `import *` 로 재-export 만 한다).
+    releases = sys.modules["release_pipeline_changelog"].RELEASES_DIR
+    assert releases == mod.RELEASES_DIR, f"두 RELEASES_DIR 이 갈라졌다: {releases} != {mod.RELEASES_DIR}"
+    return {p.name for p in releases.iterdir()} if releases.is_dir() else set()
+
+
 def test_notes_template_simple() -> None:
-    """simple template 가 default notes 의 1st paragraph 자동 generate."""
+    """simple template 가 default notes 의 1st paragraph 자동 generate.
+
+    simple 은 파일을 **쓴다**. 예전에는 저장소 `workflow-source/releases/` 에
+    `Beta-v9.9.9-test*.md` 를 썼다 지워, 게이트의 저장소 접촉 탐지기가 간헐로 잡았다
+    (2026-09-30). 지금은 임시 디렉터리를 `releases_dir` 로 주입하고, 저장소 releases/
+    가 전후로 같은지 단언한다 — 주입이 무시되면 simple 파일이 임시 디렉터리에 생기지
+    않아 실패하고, 저장소에 쓰면 스냅샷 비교가 실패한다.
+    """
+    import tempfile
+
     mod = _import_tool()
-    # 테스트용 default notes 생성
+    before = _repo_releases_snapshot(mod)
     test_version = "9.9.9-test"
-    test_notes = mod.RELEASES_DIR / f"Beta-v{test_version}.md"
-    test_notes.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        test_notes.write_text(
+    with tempfile.TemporaryDirectory(prefix="notes-template-") as td:
+        releases = Path(td) / "releases"
+        releases.mkdir()
+        (releases / f"Beta-v{test_version}.md").write_text(
             "# Beta v9.9.9-test — Test Release\n\n"
             "## 핵심 추가\n\n"
             "이것은 본 release 의 *1st paragraph* 입니다.\n\n"
             "## 다음 섹션\n\n"
-            "이건 안 포함.\n"
+            "이건 안 포함.\n",
+            encoding="utf-8",
         )
-        # simple template 호출
-        result = mod._resolve_notes_file(test_version, "simple")
-        assert "error" not in result or result.get("error") is None
-        notes_file = result["notes_file"]
+        result = mod._resolve_notes_file(test_version, "simple", releases_dir=releases)
+        assert result.get("error") is None, result
         assert result["source"] == "simple"
-        # simple file 이 default notes 의 *1st # + 1st ## + 1st paragraph* 포함
-        if notes_file.exists():
-            content = notes_file.read_text(encoding="utf-8")
-            # 1st # 헤더 + 1st ## 헤더 + 1st paragraph 본문 포함
-            assert "Beta v9.9.9-test" in content
-            assert "핵심 추가" in content
-            assert "1st paragraph" in content
-            # 2nd ## 헤더 ("다음 섹션") 와 그 paragraph 는 포함 안 됨
-            assert "다음 섹션" not in content
-            assert "이건 안 포함" not in content
-    finally:
-        # cleanup
-        if test_notes.exists():
-            test_notes.unlink()
-        simple_file = mod.RELEASES_DIR / f"Beta-v{test_version}-simple.md"
-        if simple_file.exists():
-            simple_file.unlink()
+        notes_file = result["notes_file"]
+        assert notes_file == releases / f"Beta-v{test_version}-simple.md", (
+            f"releases_dir 주입이 무시됐다: {notes_file}"
+        )
+        assert notes_file.is_file(), f"simple notes 가 생성되지 않았다: {notes_file}"
+        content = notes_file.read_text(encoding="utf-8")
+        # 1st # 헤더 + 1st ## 헤더 + 1st paragraph 본문 포함
+        assert "Beta v9.9.9-test" in content
+        assert "핵심 추가" in content
+        assert "1st paragraph" in content
+        # 2nd ## 헤더 ("다음 섹션") 와 그 paragraph 는 포함 안 됨
+        assert "다음 섹션" not in content
+        assert "이건 안 포함" not in content
+
+    after = _repo_releases_snapshot(mod)
+    assert after == before, f"검사가 저장소 releases/ 를 건드렸다: +{sorted(after - before)} -{sorted(before - after)}"
 
 
 # --- Test 3: changelog template ---

@@ -48,6 +48,32 @@ OPEN_TASK_STATES: frozenset[str] = frozenset({"in_progress", "blocked"})
 
 HEADER_TAG = "[compact-checkpoint]"
 
+#: hook 출력 형식 (스펙 §6). ``text`` 는 평문 stdout — Claude Code 실측 경로.
+#: ``codex-json`` 은 Codex 의 hook 출력 wire 형식이다: Codex 는 앞 공백을 걷은 stdout 이 ``{`` 나 ``[`` 로
+#: 시작하면 JSON 으로 파싱하므로(``codex-rs/hooks/src/engine/output_parser.rs`` ``looks_like_json``),
+#: 머리말 ``[compact-checkpoint]`` 평문은 세 hook 모두 ``failed`` 가 되고 재주입이 모델에 닿지 않았다
+#: (codex-cli 0.159.2 실측, TASK-2026-09-30-main-009).
+OUTPUT_TEXT = "text"
+OUTPUT_CODEX_JSON = "codex-json"
+OUTPUT_FORMATS: tuple[str, ...] = (OUTPUT_TEXT, OUTPUT_CODEX_JSON)
+
+
+def codex_system_message(text: str) -> str:
+    """Codex ``PreCompact`` · ``PostCompact`` · ``SessionStart`` 공통 — 사용자에게 보이는 경고 한 줄.
+
+    압축 hook 의 평문 stdout 은 Codex 가 버리므로(``events/compact.rs``) 대조 결과가 사람에게 닿는 길은
+    ``systemMessage`` 뿐이다. 출력 wire 는 ``additionalProperties: false`` — 다른 필드를 넣지 않는다.
+    """
+    return json.dumps({"systemMessage": text.strip()}, ensure_ascii=False)
+
+
+def codex_additional_context(text: str) -> str:
+    """Codex ``SessionStart`` — 모델 컨텍스트로 주입될 본문 (``hookSpecificOutput.additionalContext``)."""
+    return json.dumps(
+        {"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": text}},
+        ensure_ascii=False,
+    )
+
 # 스펙 §5 — 대조하는 식별자형 토큰. 자연어는 대조하지 않는다.
 _TASK_ID_RE = re.compile(TASK_ID_PATTERN)
 _MILESTONE_RE = re.compile(r"\bM-\d{3}\b")

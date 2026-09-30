@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""compact 중계 — `wk compact-checkpoint` 모드 계약 · 재주입 예산 · 요약 대조 · hook 파생 (14 cases, ADR-030).
+"""compact 중계 — `wk compact-checkpoint` 모드 계약 · 재주입 예산 · 요약 대조 · hook 파생 (15 cases, ADR-030).
 
 정본은 `workflow_kit/common/compact_relay.py`, 계약은 `core/compact_relay_spec.md`.
 
-14 cases:
+15 cases:
   1) 워크플로우 밖 · 브랜치 디렉터리 없는 workspace 에서 hook 3모드는 출력도 파일도 없이 exit 0
   2) `.compact/` 는 스스로를 git 에서 무시한다 — `git status` 에 안 잡히고 `check-ignore` 가 맞다
   3) `--note` 는 판단 층을 **대체**하고 `pending` 으로 둔다 · 항목 없는 `--note` · 모르는 인자는 exit 2 ·
@@ -22,8 +22,10 @@
  12) 예산 레코드 `compact_reinjection` 은 checkpoint 가 있으면 재고, 없으면 `measured=False` 다
  13) 하네스가 요약 원문을 주지 않으면(Codex `PostCompact`) 대조하지 않고 '대조 불가' 로 말한다 — 빈 요약과
      대조해 식별자 전부를 '누락' 으로 날조하지 않는다 · 이전 압축의 `summary.md` 를 남기지 않는다
- 14) Codex hook 사본은 compact 중계 3종만이고 Claude Code 와 같은 명령이다 · manifest `hooks` 가 그 파일을
+ 14) Codex hook 사본은 compact 중계 3종만이고 Claude Code 와 같은 명령이다(출력 형식 인자만 다르다) · manifest `hooks` 가 그 파일을
      가리킨다 · Codex 배포 zip 에 실린다 · 저장된 사본이 렌더와 같다
+ 15) Codex 사본의 hook 명령을 그대로 돌린 stdout 이 Codex wire JSON 이다 — 현재 kit · 구버전 kit 안내 ·
+     깨진 stdin · 내부 예외 모두. 재주입 본문은 평문 경로와 같은 글자다
 
 임시 workspace 는 실물 배치를 닮는다 — `git init -b main` · `docs/PROJECT_PROFILE.md` ·
 `ai-workflow/memory/active/main/backlog/tasks/`. CLI 는 **좁힌 환경**의 subprocess 로 부른다 — 상속된
@@ -44,6 +46,7 @@ WATCHES = (
 
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -479,10 +482,21 @@ def case_14_codex_hooks_carry_relay_only() -> None:
     claude = json.loads(render_claude_code_hooks(rules))["hooks"]
     if sorted(codex) != ["PostCompact", "PreCompact", "SessionStart"]:
         problems.append(f"Codex 이벤트 {sorted(codex)} — 중계 3종만이어야 한다 (SessionEnd 는 Codex 에 없다)")
+    suffix = f" --output-format {relay.OUTPUT_CODEX_JSON}"
+
+    def core(cmd: str) -> str:  # 출력 형식 인자와 실패 안내 본문을 걷은 명령 골격
+        return re.sub(r"echo '[^']*'", "echo '…'", cmd.replace(suffix, ""))
+
     for event, groups in codex.items():
         want = [g for g in claude.get(event, []) if event != "SessionStart" or g.get("matcher") == "compact"]
-        if groups != want:
-            problems.append(f"{event}: Claude Code 사본과 다르다 — {groups}")
+        got_cmds = [h["command"] for g in groups for h in g["hooks"]]
+        want_cmds = [h["command"] for g in want for h in g["hooks"]]
+        if [g.get("matcher") for g in groups] != [g.get("matcher") for g in want]:
+            problems.append(f"{event}: matcher 가 Claude Code 사본과 다르다 — {groups}")
+        elif [core(c) for c in got_cmds] != [core(c) for c in want_cmds]:
+            problems.append(f"{event}: 출력 형식 밖에서 Claude Code 사본과 다르다 — {got_cmds}")
+        elif not all(suffix in c for c in got_cmds):
+            problems.append(f"{event}: Codex 사본에 `{suffix.strip()}` 가 없다 — 평문 `[` 머리말은 Codex 가 JSON 으로 오판한다")
     if "CLAUDE_PLUGIN_ROOT" in json.dumps(codex):
         problems.append("규칙 주입이 딸려 왔다 — Codex 는 AGENTS.md 를 스스로 읽는다 (이중 주입)")
     payload = render_agent_plugin()
@@ -494,6 +508,111 @@ def case_14_codex_hooks_carry_relay_only() -> None:
     if (REPO_ROOT / "plugin" / CODEX_HOOKS_RELPATH).read_text(encoding="utf-8") != payload[CODEX_HOOKS_RELPATH]:
         problems.append(f"{CODEX_HOOKS_RELPATH} 가 렌더와 다르다 — `python3 -m workflow_kit.plugin_payload --apply`")
     _record("case 14 Codex hook = 중계 3종 · manifest · 배포 zip", problems)
+
+
+#: Codex hook 출력 wire (``codex-rs/hooks/schema/generated/{pre,post}-compact.command.output.schema.json`` ·
+#: ``session-start.command.output.schema.json`` — 전부 ``additionalProperties: false``).
+_CODEX_UNIVERSAL_KEYS = frozenset({"continue", "stopReason", "suppressOutput", "systemMessage"})
+
+
+def _codex_wire_problem(event: str, stdout: str) -> str | None:
+    """Codex 가 이 stdout 을 받아들이는가 — 비었거나, 한 JSON 객체이고 선언된 필드만 있어야 한다.
+
+    Codex 는 앞 공백을 걷은 stdout 이 ``{`` · ``[`` 로 시작하면 JSON 으로 파싱하고, 실패하면 hook 을 ``failed``
+    로 버린다 (``output_parser.rs`` ``looks_like_json``). 평문이면 압축 hook 은 출력을 버린다.
+    """
+    if not stdout.strip():
+        return None
+    try:
+        data = json.loads(stdout)
+    except ValueError:
+        return f"JSON 이 아니다: {stdout[:120]!r}"
+    if not isinstance(data, dict):
+        return f"객체가 아니다: {stdout[:120]!r}"
+    allowed = _CODEX_UNIVERSAL_KEYS | ({"hookSpecificOutput"} if event == "SessionStart" else set())
+    if extra := set(data) - allowed:
+        return f"{event} wire 에 없는 필드 {sorted(extra)}"
+    hso = data.get("hookSpecificOutput")
+    if hso is not None and (hso.get("hookEventName") != "SessionStart"
+                            or set(hso) - {"hookEventName", "additionalContext"}):
+        return f"hookSpecificOutput 형식: {hso}"
+    return None
+
+
+def case_15_codex_hook_stdout_is_wire_json() -> None:
+    """Codex 사본의 hook 명령을 **그대로** bash 로 돌려 stdout 이 Codex wire 인지 본다 (TASK-2026-09-30-main-010).
+
+    fake ``wk`` 두 벌 — 현재 kit(이 저장소 CLI 로 위임) · 구버전 kit(모르는 인자에 exit 2). 판정은 렌더러가 아니라
+    Codex 스키마를 옮긴 :func:`_codex_wire_problem` 이 한다.
+    """
+    from workflow_kit.common.standard_rules import load_standard_rules
+    from workflow_kit.plugin_payload import render_codex_hooks
+
+    problems: list[str] = []
+    hooks = json.loads(render_codex_hooks(load_standard_rules()))["hooks"]
+    cmd = {e: g[0]["hooks"][0]["command"] for e, g in hooks.items()}
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        ws = _workspace(root)
+        kits = {"current": root / "kit-current", "old": root / "kit-old"}
+        for name, body in (("current", f'shift\nexec "{sys.executable}" -m workflow_kit.tools.compact_checkpoint --now {NOW} "$@"\n'),
+                           ("old", 'echo "usage: wk compact-checkpoint: unrecognized arguments" >&2\nexit 2\n')):
+            kits[name].mkdir()
+            (kits[name] / "wk").write_text("#!/bin/sh\n" + body, encoding="utf-8")
+            (kits[name] / "wk").chmod(0o755)
+
+        def run(kit: str, event: str, stdin: str) -> str:
+            env = _env()
+            env["PATH"] = f"{kits[kit]}:{env['PATH']}"
+            proc = subprocess.run(["bash", "-c", cmd[event]], input=stdin, capture_output=True, text=True,
+                                  encoding="utf-8", cwd=str(ws), env=env, check=False)
+            if proc.returncode != 0:
+                problems.append(f"{kit}/{event}: rc={proc.returncode} — 압축을 막을 수 있다")
+            return proc.stdout
+
+        _cli(ws, "--note", "--unverified", "`check_x.py` 가 abc1234f 에서 red 인지")
+        steps = [("PreCompact", _payload(ws)),
+                 ("PostCompact", _payload(ws, hook_event_name="PostCompact", trigger="manual")),
+                 ("SessionStart", _payload(ws, source="compact"))]
+        outs: dict[str, str] = {}
+        for event, stdin in steps:
+            outs[event] = run("current", event, stdin)
+            if (why := _codex_wire_problem(event, outs[event])) or not outs[event].strip():
+                problems.append(f"current/{event}: {why or '출력이 없다'}")
+        # 재주입 본문은 평문 경로와 같은 글자여야 한다 — 싸기만 하고 바꾸지 않는다
+        text_body = _cli(ws, "--restore", stdin=_payload(ws)).stdout
+        try:
+            ctx = json.loads(outs["SessionStart"])["hookSpecificOutput"]["additionalContext"]
+        except (ValueError, KeyError, TypeError):
+            ctx = None
+        if not text_body or ctx != text_body:
+            problems.append(f"재주입 본문이 평문 경로와 다르다: {str(ctx)[:80]!r} vs {text_body[:80]!r}")
+        try:
+            post_msg = json.loads(outs["PostCompact"] or "{}").get("systemMessage", "")
+        except (ValueError, AttributeError):
+            post_msg = ""
+        if "대조 불가" not in post_msg:
+            problems.append(f"post 대조 결과가 systemMessage 로 가지 않는다: {outs['PostCompact']!r}")
+        # 구버전 kit — 안내도 wire JSON 이어야 한다 (평문 `[standard-ai-workflow]` 는 오판된다)
+        for event, stdin in steps:
+            out = run("old", event, stdin)
+            if (why := _codex_wire_problem(event, out)) or "failed" not in out:
+                problems.append(f"old/{event}: {why or '구버전 kit 을 말하지 않는다'} {out[:120]!r}")
+        # 깨진 stdin · 내부 예외도 wire JSON
+        out = _cli(ws, "--hook", "pre", "--output-format", relay.OUTPUT_CODEX_JSON, stdin="not json").stdout
+        if why := _codex_wire_problem("PreCompact", out):
+            problems.append(f"깨진 stdin: {why}")
+        (_compact_dir(ws) / "checkpoint.json").unlink()
+        (_compact_dir(ws) / "checkpoint.json").mkdir()
+        # 쓰기에서 예외가 나는 것은 pre 다 (restore 는 읽기 실패를 checkpoint 부재로 본다 — case 7·10)
+        out = _cli(ws, "--hook", "pre", "--output-format", relay.OUTPUT_CODEX_JSON, stdin=_payload(ws)).stdout
+        if (why := _codex_wire_problem("PreCompact", out)) or "실패" not in out:
+            problems.append(f"예외 PreCompact: {why or '예외를 말하지 않았다'} {out[:120]!r}")
+        # hook 밖 모드에는 의미가 없다 — 조용히 무시하지 않는다
+        proc = _cli(ws, "--note", "--next", "n", "--output-format", relay.OUTPUT_CODEX_JSON)
+        if proc.returncode != 2:
+            problems.append(f"--note 에 --output-format 을 받았다: rc={proc.returncode}")
+    _record("case 15 Codex hook stdout = Codex wire JSON (현재·구버전 kit · 예외)", problems)
 
 
 CASES = [
@@ -511,6 +630,7 @@ CASES = [
     case_12_budget_record_measures,
     case_13_absent_summary_is_not_all_missing,
     case_14_codex_hooks_carry_relay_only,
+    case_15_codex_hook_stdout_is_wire_json,
 ]
 
 

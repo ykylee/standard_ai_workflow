@@ -16,6 +16,9 @@
 - ``--clear``       세션 종료 — checkpoint · 요약 삭제
 
 hook 모드와 ``--restore`` 는 **항상 exit 0** 이다 — 실패는 한 줄로 말하고 세션을 막지 않는다.
+``--output-format codex-json`` 은 그 출력을 Codex hook wire JSON 으로 싼다 (재주입 본문 =
+``hookSpecificOutput.additionalContext``, 그 밖 = ``systemMessage``) — Codex 는 ``[`` 로 시작하는 평문을
+JSON 으로 오판해 hook 을 ``failed`` 로 버린다 (TASK-2026-09-30-main-009 실측).
 워크플로우 메모리가 없는 workspace 에서는 출력도 파일도 없다.
 """
 
@@ -78,7 +81,25 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--project-profile-path", type=Path, default=None)
     ap.add_argument("--now", default=None, help="시각 고정 (ISO 8601 — 검사·재현용)")
     ap.add_argument("--json", action="store_true", dest="as_json", help="--note / --clear 결과를 JSON 으로")
+    ap.add_argument(
+        "--output-format",
+        choices=relay.OUTPUT_FORMATS,
+        default=relay.OUTPUT_TEXT,
+        help="hook 모드 stdout 형식 — codex-json 은 Codex hook 출력 wire (스펙 §6)",
+    )
     return ap
+
+
+def _emit(args: argparse.Namespace, text: str, *, context: bool = False) -> None:
+    """hook 모드 출력 한 곳. ``context`` 는 재주입 본문(모델에게) — 그 밖은 알림 한 줄(사람에게)."""
+    if not text:
+        return
+    if args.output_format == relay.OUTPUT_CODEX_JSON:
+        print(relay.codex_additional_context(text) if context else relay.codex_system_message(text))
+    elif context:
+        sys.stdout.write(text)
+    else:
+        print(text)
 
 
 def _run_hook_mode(args: argparse.Namespace) -> int:
@@ -89,16 +110,16 @@ def _run_hook_mode(args: argparse.Namespace) -> int:
         if loc is None:
             return 0
         if payload_error:
-            print(f"{relay.HEADER_TAG} {payload_error} — 건너뜀")
+            _emit(args, f"{relay.HEADER_TAG} {payload_error} — 건너뜀")
             return 0
         if args.hook == "pre":
             data = relay.hook_pre(loc, payload, now=relay.now_iso(now))
             layers = "기계 층" + (" + 판단 층" if data.get("judgment") else "")
-            print(f"{relay.HEADER_TAG} 기록: {layers} → {loc.rel(loc.checkpoint_path)}")
+            _emit(args, f"{relay.HEADER_TAG} 기록: {layers} → {loc.rel(loc.checkpoint_path)}")
         elif args.hook == "post":
             data = relay.hook_post(loc, payload, now=relay.now_iso(now))
             if data is not None:
-                print(relay.render_post_report(data))
+                _emit(args, relay.render_post_report(data))
         else:
             text = relay.render_restore(
                 loc,
@@ -107,10 +128,9 @@ def _run_hook_mode(args: argparse.Namespace) -> int:
                 head=relay.current_head(loc.workspace_root),
                 now=now,
             )
-            if text:
-                sys.stdout.write(text)
+            _emit(args, text or "", context=True)
     except Exception as exc:  # noqa: BLE001 — hook 은 세션을 막지 않는다 (스펙 §1-4)
-        print(f"{relay.HEADER_TAG} 실패 ({type(exc).__name__}: {exc}) — 세션은 계속된다")
+        _emit(args, f"{relay.HEADER_TAG} 실패 ({type(exc).__name__}: {exc}) — 세션은 계속된다")
     return 0
 
 
@@ -118,6 +138,9 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.hook or args.restore:
         return _run_hook_mode(args)
+    if args.output_format != relay.OUTPUT_TEXT:
+        print("[error] --output-format 은 --hook / --restore 에서만 쓴다 (--note / --clear 는 --json).", file=sys.stderr)
+        return 2
     has_items = any((args.next_steps, args.unverified, args.verified, args.rejected))
     if args.clear and has_items:
         print("[error] --clear 는 --next / --unverified / --verified / --rejected 를 받지 않는다.", file=sys.stderr)

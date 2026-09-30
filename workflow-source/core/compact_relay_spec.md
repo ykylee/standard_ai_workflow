@@ -98,7 +98,7 @@ matcher 없는 기존 SessionStart hook(규칙 블록 3.0KB)도 압축 뒤 함�
   판단 층 항목 안의 백틱 토큰 · `\b[0-9a-f]{7,40}\b`.
 - 누락 = `compact_summary` 에 부분 문자열로 없는 토큰. 자연어 항목은 대조하지 않는다.
 - `checked_count = 0` 은 "대조 대상 없음" 이다 — `missing_count = 0` 과 구분한다.
-- 입력에 `compact_summary` 가 **없으면** (Codex 0.143.0 — `PostCompact` 입력 스키마에 필드 자체가 없다) 대조하지
+- 입력에 `compact_summary` 가 **없으면** (Codex 0.143.0 · 0.159.2 — `PostCompact` 입력 스키마에 필드 자체가 없다) 대조하지
   않는다: `relay.summary_available = false`, `missing_count = null`, 이전 `summary.md` 는 지운다. post 출력과 재주입
   머리말은 "대조 불가" 라고 말한다 — 빈 요약과 대조하면 식별자 전부가 '누락' 으로 날조된다.
 
@@ -122,13 +122,19 @@ matcher 없는 기존 SessionStart hook(규칙 블록 3.0KB)도 압축 뒤 함�
 | `PostCompact` | 없음 | `… --hook post …` |
 | `SessionStart` | `compact` | `… --restore …` |
 
+**Codex 사본의 출력 형식** — 같은 명령에 `--output-format codex-json` 을 붙인다. Codex 는 `{` · `[` 로 시작하는
+stdout 을 JSON 으로 파싱하므로 평문 머리말 `[compact-checkpoint]` 는 hook 을 `failed` 로 만든다 (§7). 재주입 본문은
+`{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":…}}`, 그 밖(기록 · 대조 결과 · 실패)은
+`{"systemMessage":…}` 한 줄 — Codex 출력 wire 는 `additionalProperties: false` 다. 구버전 kit 실패 안내도 같은 JSON 이다.
+이 인자는 hook 모드 밖(`--note` · `--clear`)에서 exit 2. 기본값 `text` 는 Claude Code 실측 경로 그대로다.
+
 ## 7. 하네스 지원 선언
 
 | 하네스 | 스킬 | 기록 hook | 재주입 | 근거 |
 |---|---|---|---|---|
 | Claude Code | ✅ | ✅ | ✅ | 실측 2026-09-30 (플러그인 배포 hook 포함) |
 | Grok Build | ✅ | 수동적 — 무해 | ❌ SessionStart stdout 무시 | 공식 문서 (같은 `hooks/hooks.json` 사본) |
-| Codex | ✅ | ✅ 사용자가 신뢰한 뒤 · 요약 대조 불가 | ⚠️ 경로 실측, 압축 왕복 미실측 | 실측 2026-09-30 (아래) |
+| Codex | ✅ | ✅ 사용자가 신뢰한 뒤 · 요약 대조 불가 | ✅ 다음 turn 시작 시 (`codex-json` 출력) | 실측 2026-09-30 (아래) |
 | Antigravity | ✅ | ❌ 압축 이벤트 없음 | ❌ | 공식 문서 |
 
 재주입이 없는 하네스에서는 스킬 절차 1–2 가 전부다 — 압축 뒤 모델이 checkpoint 파일을 직접 읽어야 한다.
@@ -143,14 +149,29 @@ matcher 없는 기존 SessionStart hook(규칙 블록 3.0KB)도 압축 뒤 함�
 - 실제 배포 zip 을 설치·신뢰한 뒤 이 저장소에서 압축을 걸자 `PreCompact` 가 원격 압축 호출 **전에** 돌아
   checkpoint 를 썼다 (session_id = Codex thread id, `trigger=manual`). stdin 필드는 Claude Code 와 같고 cwd 는 프로젝트다.
 - `SessionStart` 의 평문 stdout 과 `additionalContext` 는 둘 다 developer 메시지로 주입된다 (`source=startup` 으로 측정).
-- 미실측: 인증된 압축 왕복에서의 `PostCompact` · `SessionStart(compact)` 발화와 순서 (이 호스트의 Codex 는 미인증).
+- **인증 압축 왕복** (codex-cli **0.159.2**, 격리 `CODEX_HOME` + HEAD 로 만든 zip, hook 3종 신뢰, app-server
+  `turn/start` → `thread/compact/start` → `turn/start`, TASK-2026-09-30-main-009): 발화 순서는 `PreCompact` →
+  원격 압축(`contextCompaction` item) → `PostCompact` → (압축 turn 종료) → **다음 turn 시작 시** `SessionStart(compact)`.
+  Claude Code 와 달리 재주입이 대조보다 **뒤**다. `PostCompact` 입력에는 여전히 `compact_summary` 가 없다.
+- **세 hook 모두 `failed`** — `hook returned invalid PreCompact / PostCompact hook JSON output` · `invalid session start
+  JSON output`. Codex 는 앞 공백을 걷은 stdout 이 `{` 나 `[` 로 시작하면 JSON 으로 본다
+  (`codex-rs/hooks/src/engine/output_parser.rs` `looks_like_json`) — 출력 머리말 `[compact-checkpoint]` 가 거기 걸린다.
+  부수 효과(checkpoint 기록 · post 의 `summary_available=false` 갱신)는 일어나지만, 재주입 본문은 rollout 에
+  developer 메시지로 **들어가지 않았다**. 압축/시작 hook 의 평문(JSON 아닌) stdout 은 `PreCompact`·`PostCompact` 에선
+  버려지고(소스: `events/compact.rs`), `SessionStart` 에선 모델 컨텍스트가 된다 — 즉 Codex 에서 post 대조 결과를
+  사용자에게 보이는 길은 JSON `systemMessage` 뿐이다.
+- **수리 후 재실측** (같은 조건, TASK-2026-09-30-main-010 — Codex 사본에 `--output-format codex-json`): 세 hook 모두
+  `completed`. pre · post 는 `systemMessage` 가 `warning` entry 로(기록 줄 · "요약 대조 불가 … 식별자 5개 미대조"),
+  `SessionStart(compact)` 는 `context` entry 로 떴고 재주입 본문이 rollout 에 **developer 메시지**로 들어갔다.
+  명령이 바뀌어 신뢰는 `modified` 로 풀렸다 — 업그레이드한 사용자는 다시 신뢰해야 한다.
 
 ## 8. 검증
 
-`tests/check_compact_relay.py` (14 cases) — case 마다 결함 되주입으로 red 확인:
+`tests/check_compact_relay.py` (15 cases) — case 마다 결함 되주입으로 red 확인:
 워크플로우 밖 무동작 · 자기 무시 `.gitignore` (`git check-ignore`) · `--note` 대체 + `pending` · pre 인수 /
 타 세션 새 시작 · 재주입 우선순위와 4,096 절단 · 세션 불일치 무본문 · checkpoint 부재 무출력 · 누락 대조
 (0 누락 ≠ 대상 없음) · handoff/`state.json` 바이트 불변 · hook 모드 exit 0 (깨진 stdin 포함) · hook JSON 이 §11.1 파생 ·
-예산 레코드 측정 · 요약 원문 부재 → 대조 불가 · Codex 사본 = 중계 3종 + manifest + 배포 zip.
+예산 레코드 측정 · 요약 원문 부재 → 대조 불가 · Codex 사본 = 중계 3종 + manifest + 배포 zip (출력 형식 인자만 다르다) · Codex 사본 명령을 그대로 돌린 stdout 이
+Codex wire JSON (현재 kit · 구버전 kit 안내 · 깨진 stdin · 내부 예외, 재주입 본문은 평문 경로와 같은 글자).
 
-실제 하네스 왕복은 게이트 밖이다 (인증·비용). 남은 실측: 자동 압축(`trigger: auto`) 경로 · Codex 인증 압축 왕복(`PostCompact` · 재주입).
+실제 하네스 왕복은 게이트 밖이다 (인증·비용). 남은 실측: 자동 압축(`trigger: auto`) 경로.

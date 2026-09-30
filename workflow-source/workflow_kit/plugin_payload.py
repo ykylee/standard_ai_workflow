@@ -74,6 +74,7 @@ import sys
 from pathlib import Path
 from typing import Any, Callable, NamedTuple, Sequence
 
+from workflow_kit.common.compact_relay import OUTPUT_CODEX_JSON, codex_system_message
 from workflow_kit.common.standard_rules import (
     StandardRules,
     find_memory_command,
@@ -854,8 +855,12 @@ def render_claude_code_rules(rules: StandardRules) -> str:
 _INSTALL_GUIDE = "docs/INSTALLATION_AND_USAGE.md §3"
 
 
-def _relay_hooks(rules: StandardRules) -> dict[str, list[dict[str, Any]]]:
+def _relay_hooks(rules: StandardRules, *, codex: bool = False) -> dict[str, list[dict[str, Any]]]:
     """compact 중계 hook 3종 (ADR-030) — Claude Code 와 Codex 가 같은 정의를 쓴다.
+
+    ``codex=True`` 는 출력만 Codex hook wire JSON 으로 바꾼다 (``--output-format codex-json`` + 실패 안내도
+    ``systemMessage`` JSON). Codex 는 ``[`` 로 시작하는 평문을 JSON 으로 오판해 hook 을 ``failed`` 로 버린다
+    (codex-cli 0.159.2 실측, TASK-2026-09-30-main-009) — 평문 안내 ``[standard-ai-workflow] …`` 도 같다.
 
     `wk` 가 없으면 **조용히** 끝난다 (부재 안내는 Claude Code 의 SessionStart ① 몫).
     `wk` 가 있는데 명령이 실패하면(플러그인보다 오래된 kit — 명령 자체가 없다) 조용히 넘기지 않고
@@ -868,12 +873,17 @@ def _relay_hooks(rules: StandardRules) -> dict[str, list[dict[str, Any]]]:
         f"Upgrade: {_INSTALL_GUIDE}"
     )
 
+    suffix = f" --output-format {OUTPUT_CODEX_JSON}" if codex else ""
+    notice = codex_system_message(relay_failed_notice) if codex else relay_failed_notice
+    if "'" in notice:  # 작은따옴표 안에 싣는다
+        raise ValueError(f"relay 실패 안내에 작은따옴표가 있다: {notice!r}")
+
     def relay(mode: str) -> dict[str, str]:
         return {
             "type": "command",
             "command": (
                 f"command -v {binary} >/dev/null 2>&1 && "
-                f"{{ {relay_cmd} {mode} || echo '{relay_failed_notice}'; }} || true"
+                f"{{ {relay_cmd} {mode}{suffix} || echo '{notice}'; }} || true"
             ),
         }
 
@@ -902,12 +912,16 @@ def render_codex_hooks(rules: StandardRules) -> str:
     - ``PostCompact`` 입력 스키마에 ``compact_summary`` 가 **없다** (``additionalProperties: false``)
       → 요약 대조는 "대조 불가" 로 보고된다 (:func:`workflow_kit.common.compact_relay.hook_post`).
 
-    미실측: 인증된 압축 왕복에서 ``PostCompact`` · ``SessionStart(compact)`` 발화와 순서.
+    **인증 압축 왕복** (TASK-2026-09-30-main-009, codex-cli 0.159.2): ``PreCompact`` → 원격 압축 →
+    ``PostCompact`` → 다음 turn 시작 시 ``SessionStart(compact)``. 평문 출력 머리말 ``[compact-checkpoint]``
+    가 ``looks_like_json`` 에 걸려 세 hook 모두 ``failed`` 였고 재주입이 rollout 에 없었다 → 이 사본만
+    ``--output-format codex-json`` 을 붙인다 (재주입 = ``hookSpecificOutput.additionalContext``, 그 밖 =
+    ``systemMessage`` — 압축 hook 의 평문 stdout 은 Codex 가 버린다).
 
     규칙 주입과 ``wk`` 부재 안내는 싣지 않는다 — Codex 는 ``AGENTS.md`` 를 스스로 읽고, 신뢰할
     hook 이 늘수록 사용자가 검토할 것도 는다.
     """
-    return json.dumps({"hooks": _relay_hooks(rules)}, ensure_ascii=False, indent=2) + "\n"
+    return json.dumps({"hooks": _relay_hooks(rules, codex=True)}, ensure_ascii=False, indent=2) + "\n"
 
 
 def render_claude_code_hooks(rules: StandardRules) -> str:

@@ -4,7 +4,7 @@
 - 범위: 의존성 설치, 패키지 임포트, 스모크 테스트 실행, bootstrap/demo/MCP 실행, 핵심 워크플로우 호출 예시
 - 대상 독자: 워크플로우를 직접 수정·검증하려는 개발자, 패키지 인테그레이션을 시도하는 통합 담당자
 - 상태: stable (v1.14.4 기준; 일부 본문 예시는 v0.5.10 시점 baseline 으로 표기, 동작 자체는 v1.1.6 과 정합)
-- 최종 수정일: 2026-09-29
+- 최종 수정일: 2026-09-30
 - 관련 문서: [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [QUICKSTART.md](https://github.com/ykylee/standard_ai_workflow/blob/main/QUICKSTART.md), [./DOCUMENT_INDEX.md](./DOCUMENT_INDEX.md), [./CODE_INDEX.md](./CODE_INDEX.md), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md)
 
 > [!NOTE]
@@ -16,7 +16,7 @@
 - 저장소를 clone한 뒤 `workflow-source/` 를 editable mode로 설치하는 방법
 - 의존성 (`pydantic`, `anyio`, `mcp[cli]`) 설치
 - `workflow_kit` (하위: `workflow_kit.bootstrap_lib`) 임포트와 기본 사용 예
-- 297개 스모크 테스트 (`workflow-source/tests/check_*.py`) 실행 방법 (v1.1.6+ 정합)
+- 298개 스모크 테스트 (`workflow-source/tests/check_*.py`) 실행 방법 (v1.1.6+ 정합)
 - `bootstrap_workflow_kit.py` 와 `generate_workflow_state.py` 실행
 - MCP 서버 (jsonrpc-bridge / stdio-sdk) 실행
 - 자주 만나는 문제 해결
@@ -273,8 +273,12 @@ print('all critical imports OK')
 
 소비 프로젝트가 워크플로우를 얻는 **권장 경로**다 (소유자 판정 2026-08-13,
 근거: [`planning/plugin-transition-plan-2026-08.md`](./planning/plugin-transition-plan-2026-08.md)
-§3-P5). 스킬 4종 (session-start / backlog-update / doc-sync / session-end) +
-read-only MCP 번들 + 세션 경계 hook 2종이 설치 1명령으로 들어온다.
+§3-P5). 스킬 5종 (session-start / backlog-update / doc-sync / session-end / compact-relay) +
+read-only MCP 번들 + 세션 경계 hook 2종 + compact 중계 hook 3종이 설치 1명령으로 들어온다.
+compact 중계(압축 전 작업 상태 기록 → 압축 뒤 재주입)는 hook 이 `wk compact-checkpoint` 를 부르므로
+**설치된 kit 이 플러그인과 같은 버전이어야** 한다 — 옛 kit 이면 압축 때 한 줄 안내가 뜨고 중계는 건너뛴다.
+재주입은 Claude Code 에서만 실측됐다 (Grok 은 SessionStart 출력을 무시, Codex 는 hook 미탑재 —
+[`compact_relay_spec.md`](../workflow-source/core/compact_relay_spec.md) §7).
 
 ```bash
 # Codex — GitHub Release의 Codex ZIP을 푼 뒤 marketplace로 등록하고 설치

@@ -28,6 +28,7 @@ Close a session in the order **update memory → commit → push**. Do not split
 - Roll off handoff §1 baselines when over cap: `wk rollover-baselines`
 - Roll off handoff §5 accumulated notes when over budget: `wk rollover-handoff-notes`
 - Propose memory_index promotion candidates at close (advisory, no write): `wk suggest-memory-entries`
+- Relay working state across a context compaction (skill + hooks): `wk compact-checkpoint`
 
 - When the handoff's `in_progress` / `blocked` lists are empty, leave an **empty bullet `-`**. Prose there is parsed as a work item.
 - Entries in the handoff's recently-completed list start with `TASK-` and never exceed 10.

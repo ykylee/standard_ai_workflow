@@ -8,7 +8,7 @@
 - 범위: 세션 복원, workflow state docs 참조 순서, 작업 원칙, 세션 종료 순서
 - 대상 독자: Claude Code, 저장소 관리자, workflow 설계자
 - 상태: beta
-- 최종 수정일: 2026-09-28
+- 최종 수정일: 2026-09-30
 - 관련 문서: `ai-workflow/memory/active/<branch>/state.json`, `docs/PROJECT_PROFILE.md`
 
 > **이 저장소만의 차이**: 상태 문서가 브랜치별(`ai-workflow/memory/active/<branch>/`)로
@@ -85,6 +85,7 @@ Close a session in the order **update memory → commit → push**. Do not split
 - Roll off handoff §1 baselines when over cap: `wk rollover-baselines`
 - Roll off handoff §5 accumulated notes when over budget: `wk rollover-handoff-notes`
 - Propose memory_index promotion candidates at close (advisory, no write): `wk suggest-memory-entries`
+- Relay working state across a context compaction (skill + hooks): `wk compact-checkpoint`
 
 - When the handoff's `in_progress` / `blocked` lists are empty, leave an **empty bullet `-`**. Prose there is parsed as a work item.
 - Entries in the handoff's recently-completed list start with `TASK-` and never exceed 10.

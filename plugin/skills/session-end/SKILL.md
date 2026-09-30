@@ -18,6 +18,9 @@ Close a session in the order **update memory → commit → push**. Do not split
 ## Procedure
 
 1. Update `session_handoff.md` — current baseline, in-progress / blocked / recently-done lists.
+   If a compaction checkpoint exists (`.compact/checkpoint.json` in the branch memory directory),
+   carry over the lines worth keeping, then remove it with `wk compact-checkpoint --clear` — the
+   checkpoint is session-local and never committed.
 2. Bring the task statuses in today's backlog in line with the actual results (`planned` / `in_progress` / `blocked` / `done`).
 3. **Regenerate** `state.json` (never hand-edit it — see the §11 contract below).
 4. Make sure the updates from 1–3 land in the **same commit**, then push.
@@ -43,6 +46,7 @@ never regenerated diverges from its input documents.
 - Roll off handoff §1 baselines when over cap: `wk rollover-baselines`
 - Roll off handoff §5 accumulated notes when over budget: `wk rollover-handoff-notes`
 - Propose memory_index promotion candidates at close (advisory, no write): `wk suggest-memory-entries`
+- Relay working state across a context compaction (skill + hooks): `wk compact-checkpoint`
 
 - When the handoff's `in_progress` / `blocked` lists are empty, leave an **empty bullet `-`**. Prose there is parsed as a work item.
 - Entries in the handoff's recently-completed list start with `TASK-` and never exceed 10.

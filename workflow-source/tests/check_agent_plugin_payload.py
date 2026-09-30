@@ -471,8 +471,10 @@ def test_claude_code_adapter() -> None:
         problems.append(f"{CLAUDE_CODE_MCP_RELPATH} 와 mcp.json 의 내용이 다르다 — 같은 렌더러 파생이어야 한다")
 
     hooks = json.loads(payload[CLAUDE_CODE_HOOKS_RELPATH]).get("hooks", {})
-    if set(hooks) != {"SessionStart", "SessionEnd"}:
-        problems.append(f"hook 이벤트 {sorted(hooks)} != SessionStart/SessionEnd")
+    # 세션 경계 2종 + compact 중계 2종 (ADR-030 — PreCompact / PostCompact, 재주입은
+    # SessionStart 의 matcher=compact 그룹). 중계 hook 의 파생은 check_compact_relay case 11 이 잰다.
+    if set(hooks) != {"SessionStart", "SessionEnd", "PreCompact", "PostCompact"}:
+        problems.append(f"hook 이벤트 {sorted(hooks)} != SessionStart/SessionEnd/PreCompact/PostCompact")
     rules = load_standard_rules(SOURCE_ROOT)
     # 표의 **마지막 행**을 재생성 명령으로 가정하던 자리 (2026-08-14 실측: §11.1 에
     # 행을 하나 추가하자 깨졌다). 위치가 아니라 **목적**으로 찾는다 — 렌더러가

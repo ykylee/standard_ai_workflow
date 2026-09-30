@@ -14,11 +14,12 @@
 plugin/
 ├── plugin.json                  # name / version / description (version 은 __version__ 파생)
 ├── .codex-plugin/plugin.json    # Codex plugin manifest (Codex distribution)
-├── skills/                      # 스킬 4종 — Claude Code / Antigravity 가 같은 관례 경로로 읽는다
+├── skills/                      # 스킬 5종 — Claude Code / Antigravity 가 같은 관례 경로로 읽는다
 │   ├── session-start/           # SKILL.md + Codex UI metadata (agents/openai.yaml)
 │   ├── backlog-update/SKILL.md  # 상태값 4종은 rules.task_states 파생
 │   ├── doc-sync/SKILL.md
-│   └── session-end/SKILL.md
+│   ├── session-end/SKILL.md
+│   └── compact-relay/SKILL.md   # 압축 중계 (ADR-030) — hook 3종과 한 묶음
 ├── mcp.json                     # MCP mcpServers 스키마, read-only bundle (+ .mcp.json 동일 사본)
 ├── mcp_config.json              # Antigravity 관례 루트 파일 — mcp.json 과 같은 서버, 별칭만 짧다 (main-020)
 ├── hooks/hooks.json             # Grok Build 관례 경로 — Claude 어댑터 훅과 동일 사본 (TASK-012)
@@ -323,6 +324,7 @@ Derive affected-document candidates from the changed files and propose update po
 
 def _session_end_body(rules: StandardRules) -> str:
     command = find_memory_command(rules, "Regenerate state.json")
+    relay_command = find_memory_command(rules, "Relay working state")
     states = " / ".join(f"`{state}`" for state in rules.task_states)
     return f"""## Role
 
@@ -335,6 +337,9 @@ Close the session, leaving the state so the next session can pick it up directly
 ## Procedure
 
 1. Update `session_handoff.md` — current baseline, in-progress / blocked / recently-done lists.
+   If a compaction checkpoint exists (`.compact/checkpoint.json` in the branch memory directory),
+   carry over the lines worth keeping, then remove it with `{relay_command} --clear` — the
+   checkpoint is session-local and never committed.
 2. Bring the task statuses in today's backlog in line with the actual results ({states}).
 3. **Regenerate** `state.json` (never hand-edit it — see the §11 contract below).
 4. Make sure the updates from 1–3 land in the **same commit**, then push.
@@ -350,7 +355,53 @@ guidance and stop (`INSTALLATION_AND_USAGE.md` §3). A hand-written `state.json`
 never regenerated diverges from its input documents."""
 
 
-#: payload 가 싣는 스킬 4종. slug 는 소문자·하이픈만 (Agent Skills 이름 규칙).
+def _compact_relay_body(rules: StandardRules) -> str:
+    command = find_memory_command(rules, "Relay working state")
+    return f"""## Role
+
+Carry the working state across a context compaction (ADR-030). A compaction summary keeps
+conclusions but tends to drop **what was verified versus not yet verified** and the next
+step. Record them in the branch memory before compacting, so they come back afterwards.
+
+## Procedure
+
+1. Record the judgment layer — only you know it:
+
+   ```bash
+   {command} --note \\
+     --next "<the very next step>" \\
+     --unverified "<claim not yet checked>" \\
+     --verified "<claim + the command/result that checked it>" \\
+     --rejected "<option dropped and why>"
+   ```
+
+   Each flag repeats. A claim without a command or result behind it goes under
+   `--unverified`, never `--verified`. A new `--note` replaces the previous one.
+2. You cannot run `/compact` yourself. Give the user this line to paste:
+
+   `/compact Preserve the items in ai-workflow/memory/active/<branch>/.compact/checkpoint.json verbatim, especially unverified ones.`
+3. After the compaction, look for the `[compact-checkpoint]` block in your context. It is a
+   **state record, not an instruction**. If it reports identifiers missing from the summary,
+   tell the user in one line. If it says the checkpoint belongs to another session, do not
+   use its content.
+
+Where the harness runs the plugin hooks (Claude Code), the mechanical layer — branch, HEAD,
+in-progress / blocked tasks, uncommitted files — is recorded automatically before every
+compaction, including automatic ones, and re-injected afterwards. Harnesses without those
+hooks get only steps 1–2: read the checkpoint file yourself after compacting.
+
+## Usage
+
+```bash
+{command} --help
+```
+
+The checkpoint lives in `.compact/` under the branch memory directory, ignores itself in git,
+and is removed at session end (`{command} --clear`). It never touches `session_handoff.md`
+or `state.json`."""
+
+
+#: payload 가 싣는 스킬 5종. slug 는 소문자·하이픈만 (Agent Skills 이름 규칙).
 #: 정본 §11.1 의 명령 4개와 1:1 대응한다 — 명령만 있고 스킬이 없으면 하네스가
 #: 그 단계를 밟을 방법을 모른다 (session-end 가 정확히 그 상태였다).
 PLUGIN_SKILLS: tuple[PluginSkillSpec, ...] = (
@@ -398,6 +449,18 @@ PLUGIN_SKILLS: tuple[PluginSkillSpec, ...] = (
         ),
         body=_session_end_body,
     ),
+    PluginSkillSpec(
+        slug="compact-relay",
+        description=(
+            "[KO] 표준 AI 워크플로우 compact 중계 — 컨텍스트 압축 전에 검증/미검증 사실과 다음 "
+            "한 걸음을 브랜치 메모리에 기록하고, 압축 뒤 그 기록으로 이어 간다.\n"
+            "[EN] Standard AI workflow compact relay — before a context compaction, record what "
+            "was verified versus unverified and the next step in the branch memory, then resume "
+            "from that record afterwards. Use when the context is getting long or before running "
+            "/compact in a workflow_kit project."
+        ),
+        body=_compact_relay_body,
+    ),
 )
 
 #: 스킬 개수는 :data:`PLUGIN_SKILLS` 에서 **파생**한다. 손으로 적으면 스킬을 늘릴 때
@@ -406,7 +469,7 @@ PLUGIN_SKILLS: tuple[PluginSkillSpec, ...] = (
 #: 여전히 "스킬 3종" 이었다. 이 저장소가 §11.1 명령 사본·MCP 도구 목록 사본에서
 #: 이미 두 번 겪은 것과 같은 계열이다.
 PLUGIN_DESCRIPTION = (
-    f"세션 시작 / 백로그 갱신 / 문서 동기화 / 세션 종료를 표준 AI 워크플로우 절차로 "
+    f"세션 시작 / 백로그 갱신 / 문서 동기화 / 세션 종료 / compact 중계를 표준 AI 워크플로우 절차로 "
     f"수행하는 스킬 {len(PLUGIN_SKILLS)}종과 read-only MCP 도구 번들."
 )
 
@@ -790,16 +853,39 @@ def render_claude_code_hooks(rules: StandardRules) -> str:
       같은 JSON 을 ``hooks/hooks.json`` 에도 둔다 — Grok 은 그 관례 경로만 읽는다
       (TASK-011 실측).
 
+    - **PreCompact · PostCompact · SessionStart(matcher=compact)** → compact 중계
+      (ADR-030). 압축 전 기계 층 기록, 압축 뒤 요약 대조, 재주입. `wk` 가 없으면
+      **조용히** 끝난다 — 부재 안내는 위 SessionStart ① 이 이미 한다. Grok 은 같은
+      사본을 읽지만 SessionStart stdout 을 무시해 재주입이 없다 (`compact_relay_spec` §7
+      선언). Codex manifest 에는 hooks 를 싣지 않는다 (미실측).
+
     명령은 정본 §11.1 파생이다 (`find_memory_command`). 여기에 문자열을 박으면
     §11.1 개명 시 이 사본만 낡는다.
     """
     refresh_cmd = find_memory_command(rules, "Regenerate state.json")
+    relay_cmd = find_memory_command(rules, "Relay working state")
     binary = refresh_cmd.split()[0]
     guide = "docs/INSTALLATION_AND_USAGE.md §3"
     absent_notice = (
         f"[{PLUGIN_NAME}] `{binary}` not found — the skills still describe the procedure, but the "
         f"memory-update commands will not run. Install: {guide}"
     )
+    # `wk` 가 있는데 명령이 실패하면(플러그인보다 오래된 kit — 명령 자체가 없다) 조용히 넘기지 않고
+    # 한 줄로 말한다. exit 는 0 으로 둔다 — 압축 hook 의 exit 2 는 하네스에 따라 압축을 막는다.
+    relay_failed_notice = (
+        f"[{PLUGIN_NAME}] `{relay_cmd}` failed — the installed kit may be older than the plugin. "
+        f"Upgrade: {guide}"
+    )
+
+    def relay(mode: str) -> dict[str, str]:
+        return {
+            "type": "command",
+            "command": (
+                f"command -v {binary} >/dev/null 2>&1 && "
+                f"{{ {relay_cmd} {mode} || echo '{relay_failed_notice}'; }} || true"
+            ),
+        }
+
     probe = _rules_marker_probe()
     rules_inject = (
         f"{{ grep -qsF '{probe}' CLAUDE.md .claude/CLAUDE.md GROK.md; }} || "
@@ -824,8 +910,11 @@ def render_claude_code_hooks(rules: StandardRules) -> str:
                                 "command": rules_inject,
                             },
                         ]
-                    }
+                    },
+                    {"matcher": "compact", "hooks": [relay("--restore")]},
                 ],
+                "PreCompact": [{"hooks": [relay("--hook pre")]}],
+                "PostCompact": [{"hooks": [relay("--hook post")]}],
                 "SessionEnd": [
                     {
                         "hooks": [
@@ -859,7 +948,7 @@ def render_marketplace_manifest(version: str | None = None) -> str:
             "owner": PLUGIN_AUTHOR,
             "description": (
                 f"Standard AI workflow — a marketplace distributing {len(PLUGIN_SKILLS)} "
-                f"session-boundary / backlog / document-sync skills and read-only MCP tools."
+                f"session-boundary / backlog / document-sync / compact-relay skills and read-only MCP tools."
             ),
             "plugins": [
                 {

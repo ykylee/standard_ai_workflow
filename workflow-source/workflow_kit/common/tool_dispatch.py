@@ -50,6 +50,8 @@ TOOL_MODULES: Final[dict[str, str]] = {
     "check-packaging": "workflow_kit.tools.check_packaging",
     "check-quickstart-stale-links": "workflow_kit.tools.check_quickstart_stale_links",
     "claim-workspace": "workflow_kit.tools.claim_workspace",
+    # TASK-2026-09-30-main-006 (ADR-030) — compact 중계. hook 3종과 스킬 compact-relay 가 부른다.
+    "compact-checkpoint": "workflow_kit.tools.compact_checkpoint",
     "consumer-metrics": "workflow_kit.tools.consumer_metrics",
     "create-environment-record-stub": "workflow_kit.tools.create_environment_record_stub",
     "detect-scope-drift": "workflow_kit.tools.detect_scope_drift",

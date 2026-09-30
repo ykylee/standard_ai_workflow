@@ -107,6 +107,7 @@ def main() -> int:
             handoff_path=workflow_handoff_path(project_profile_path),
             state_path=state_path,
             claude_md_path=workspace_root / "CLAUDE.md",
+            project_profile_path=project_profile_path,
         )
         print(json.dumps({
             "status": "ok" if refresh_result["status"] == "refreshed" else "warning",

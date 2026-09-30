@@ -4,7 +4,7 @@
 - 범위: 로드맵·마일스톤·WBS 기능 자체의 구현 로드맵 (스펙 §10 의 자기 적용)
 - 대상 독자: AI agent (session-start / backlog-update), 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-09-28
+- 최종 수정일: 2026-09-30
 - 관련 문서: [`roadmap_milestone_wbs_spec.md`](../../../../workflow-source/core/roadmap_milestone_wbs_spec.md), [`roadmap_state.json`](./roadmap_state.json)
 
 > 이 목록의 **순서가 곧 SDLC 순서 선언**이다 (스펙 §3.1). status 는 선언이고,
@@ -47,3 +47,11 @@
   - path: [`./M-016-session-context-budget-design.md`](./M-016-session-context-budget-design.md)
 - **M-017** [implementation] 세션 시작 컨텍스트 예산 — implementation (출구 먼저, red 나중) — status: done
   - path: [`./M-017-session-context-budget-implementation.md`](./M-017-session-context-budget-implementation.md)
+- **M-018** [concept] compact 중계 — 컨텍스트 압축을 워크플로우 메모리로 건너뛴다 — status: done
+  - path: [`./M-018-compact-relay.md`](./M-018-compact-relay.md)
+- **M-019** [requirements] compact 중계 — requirements (안 B: 스킬 + hook 3종 + 요약 대조) — status: done
+  - path: [`./M-019-compact-relay-requirements.md`](./M-019-compact-relay-requirements.md)
+- **M-020** [design] compact 중계 — design (ADR-030 + core 스펙) — status: done
+  - path: [`./M-020-compact-relay-design.md`](./M-020-compact-relay-design.md)
+- **M-021** [implementation] compact 중계 — implementation (명령 · hook · 스킬 · 검사) — status: in_progress
+  - path: [`./M-021-compact-relay-implementation.md`](./M-021-compact-relay-implementation.md)

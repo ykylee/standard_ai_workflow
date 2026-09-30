@@ -3,7 +3,7 @@
 - 문서 목적: 모든 저장소에서 공통으로 적용되는 AI 에이전트 협업 표준을 정의한다.
 - 범위: 문서 구조, 세션 핸드오프, 작업 분류 및 모드(Task Modes) 기준
 - 상태: stable
-- 최종 수정일: 2026-09-28
+- 최종 수정일: 2026-09-30
 - 관련 문서: `../templates/project_workflow_profile_template.md`, `../templates/session_handoff_template.md`, `../templates/work_backlog_template.md`, **외부 contract: [`./orchestrator_subagent_contract_v1.md`](./orchestrator_subagent_contract_v1.md)**, [`./workflow_agent_topology.md`](./workflow_agent_topology.md)
 
 ## 1. Core Principles
@@ -238,6 +238,7 @@ Measured (2026-08-11): prose such as "(none ...)" left in an empty handoff list 
 | Roll off handoff §1 baselines when over cap | `wk rollover-baselines` |
 | Roll off handoff §5 accumulated notes when over budget | `wk rollover-handoff-notes` |
 | Propose memory_index promotion candidates at close (advisory, no write) | `wk suggest-memory-entries` |
+| Relay working state across a context compaction (skill + hooks) | `wk compact-checkpoint` |
 
 **11.2 Parsing contract** — holds even when writing by hand instead of using the tools
 

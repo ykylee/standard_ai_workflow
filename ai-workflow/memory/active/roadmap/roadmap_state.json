@@ -673,6 +673,102 @@
           "children": []
         }
       ]
+    },
+    {
+      "id": "M-018",
+      "title": "compact 중계 — 컨텍스트 압축을 워크플로우 메모리로 건너뛴다",
+      "sdlc_phase": "concept",
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
+      "total_leaves": 1,
+      "done_leaves": 1,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-18.1",
+          "title": "concept 검토 — 하네스별 compact 표면(명령 · hook · 재주입 경로) 실측,",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-09-30-main-003"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "M-019",
+      "title": "compact 중계 — requirements (안 B: 스킬 + hook 3종 + 요약 대조)",
+      "sdlc_phase": "requirements",
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
+      "total_leaves": 1,
+      "done_leaves": 1,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-19.1",
+          "title": "requirements 확정 — 명령 계약 · checkpoint 형식 · 재주입 예산 · 누락 판정 ·",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-09-30-main-004"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "M-020",
+      "title": "compact 중계 — design (ADR-030 + core 스펙)",
+      "sdlc_phase": "design",
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
+      "total_leaves": 1,
+      "done_leaves": 1,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-20.1",
+          "title": "design 확정 — ADR-030 + `compact_relay_spec.md` — 산출물:",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-09-30-main-005"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "M-021",
+      "title": "compact 중계 — implementation (명령 · hook · 스킬 · 검사)",
+      "sdlc_phase": "implementation",
+      "declared_status": "in_progress",
+      "derived_status": "in_progress",
+      "progress": 0.0,
+      "total_leaves": 1,
+      "done_leaves": 0,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-21.1",
+          "title": "구현 — `compact_relay` 모듈 + `wk compact-checkpoint` + 예산 레코드 + §11.1 한 줄 +",
+          "derived_status": "in_progress",
+          "linked_task_ids": [
+            "TASK-2026-09-30-main-006"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        }
+      ]
     }
   ],
   "current_milestone_id": "M-007",

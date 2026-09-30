@@ -68,6 +68,16 @@ BUDGETS: tuple[Budget, ...] = (
         severity="red",
         exit="운영 산문을 docs/LOCAL_GATE.md 로 옮기고 CLAUDE.md 에는 명령·규칙·링크만 남긴다",
     ),
+    # ADR-030 결정 6 — 압축 뒤 SessionStart(compact) 로 넣는 재주입. 렌더러가 이 값에서 자르므로
+    # 초과는 절단 로직의 회귀다. Claude Code hook 출력 인라인 상한(≈10,000자, 2026-09-30 실측)
+    # 과 규칙 블록(≈3KB)을 합쳐도 상한 아래에 남도록 잡은 값이다.
+    Budget(
+        key="compact_reinjection",
+        target="compact 재주입 출력 (wk compact-checkpoint --restore)",
+        limit_bytes=4 * 1024,
+        severity="red",
+        exit="compact_relay.render_restore 의 절단을 고친다 — checkpoint 는 줄이지 않는다 (전체는 파일에 남는다)",
+    ),
 )
 
 BUDGETS_BY_KEY: dict[str, Budget] = {b.key: b for b in BUDGETS}
@@ -184,6 +194,7 @@ def measure(
     handoff_path: Path | None,
     state_path: Path | None,
     claude_md_path: Path | None,
+    project_profile_path: Path | None = None,
 ) -> list[Measurement]:
     """`BUDGETS` 전부를 잰다. 파일이 없으면 그 예산은 `measured=False` (모름 ≠ 통과)."""
     handoff_text = ""
@@ -211,6 +222,14 @@ def measure(
         elif b.key == "claude_md":
             ok, size = _file_size(claude_md_path)
             out.append(Measurement(b, ok, size, "" if ok else "CLAUDE.md 없음"))
+        elif b.key == "compact_reinjection":
+            if project_profile_path is None:
+                out.append(Measurement(b, False, 0, "profile 미지정"))
+                continue
+            from workflow_kit.common.compact_relay import measure_restore_bytes  # 순환 import 회피
+
+            ok, size, detail = measure_restore_bytes(project_profile_path)
+            out.append(Measurement(b, ok, size, detail))
         else:  # pragma: no cover — 새 예산을 추가하고 측정을 빠뜨린 경우
             raise ValueError(f"측정이 정의되지 않은 예산: {b.key}")
     return out

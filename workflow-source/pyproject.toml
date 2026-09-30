@@ -129,6 +129,7 @@ workflow-check-branch-protection = "workflow_kit.tools.check_branch_protection:m
 workflow-check-packaging = "workflow_kit.tools.check_packaging:main"
 workflow-check-quickstart-stale-links = "workflow_kit.tools.check_quickstart_stale_links:main"
 workflow-claim-workspace = "workflow_kit.tools.claim_workspace:main"
+workflow-compact-checkpoint = "workflow_kit.tools.compact_checkpoint:main"
 workflow-consumer-metrics = "workflow_kit.tools.consumer_metrics:main"
 workflow-create-environment-record-stub = "workflow_kit.tools.create_environment_record_stub:main"
 workflow-detect-scope-drift = "workflow_kit.tools.detect_scope_drift:main"

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Compact Relay"
+  short_description: "[KO] 표준 AI 워크플로우 compact 중계 — 컨텍스트 압축 전에 검증/미검증 사실과 다음 한 걸음을 브랜치 메모리에 기록하고, 압축 뒤 그 기록으로 이어 간다.\n[EN] Standard AI workflow compact relay — before a context compaction, record what was verified versus unverified and the next step in the branch memory, then resume from that record afterwards. Use when the context is getting long or before running /compact in a workflow_kit project."
+  default_prompt: "Use $compact-relay to follow the standard AI workflow."
+policy:
+  allow_implicit_invocation: true

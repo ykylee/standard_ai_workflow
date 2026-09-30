@@ -134,19 +134,21 @@ HARNESS_SPECS: dict[str, HarnessSpec] = {
     ),
     "claude-code": HarnessSpec(
         name="claude-code",
-        description="Claude Code용 overlay. CLAUDE.md 진입점 (root) + .claude/commands/workflow-{session-start,backlog-update,doc-sync,session-end}.md 4개 slash command + .claude/skills/standard-ai-workflow/SKILL.md.",
+        description="Claude Code용 overlay. CLAUDE.md 진입점 (root) + .claude/commands/workflow-{session-start,backlog-update,doc-sync,session-end,compact-relay}.md 5개 slash command + .claude/skills/standard-ai-workflow/SKILL.md.",
         entry_files=("CLAUDE.md",),
         extra_files=(
             ".claude/commands/workflow-session-start.md",
             ".claude/commands/workflow-backlog-update.md",
             ".claude/commands/workflow-doc-sync.md",
             ".claude/commands/workflow-session-end.md",
+            ".claude/commands/workflow-compact-relay.md",
             ".claude/skills/standard-ai-workflow/SKILL.md",
         ),
         long_description=(
             "Claude Code 환경용 오버레이. CLAUDE.md 를 root 진입점 (자동 read) 으로 emit + "
-            ".claude/commands/ 아래 4개 slash command (`/workflow-session-start`, "
-            "`/workflow-backlog-update`, `/workflow-doc-sync`, `/workflow-session-end`) 를 "
+            ".claude/commands/ 아래 5개 slash command (`/workflow-session-start`, "
+            "`/workflow-backlog-update`, `/workflow-doc-sync`, `/workflow-session-end`, "
+            "`/workflow-compact-relay`) 를 "
             "*additive tool* 로 emit + "
             ".claude/skills/standard-ai-workflow/SKILL.md 를 *모델 호출* 진입점으로 emit "
             "(v1.0.4+; command 는 사용자가 이름을 알아야 부르지만 skill 은 모델이 "

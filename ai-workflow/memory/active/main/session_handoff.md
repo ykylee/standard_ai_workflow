@@ -4,7 +4,7 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-09-30 (107차 세션 — Linux 호스트. 새 기능 축 compact 중계 M-018~M-021 concept→implementation 완주: `wk compact-checkpoint` + 플러그인 스킬 `compact-relay` · hook 3종, ADR-030 → **v1.15.0 발행**)
+- 최종 수정일: 2026-09-30 (107차 세션 **종료** — Linux 호스트. 새 기능 축 compact 중계 M-018~M-021 concept→implementation 완주: `wk compact-checkpoint` + 플러그인 스킬 `compact-relay` · hook 3종, ADR-030 → **v1.15.0 발행**)
 - 이전 수정일: 2026-09-30 (106차 세션 **종료** — Linux 호스트. main-002 close: `python_floor` 하한 해석기 호출을 stdin 으로(배치 shim `-c` 개행 절단, main-013 후속) + main-001 minimax 패키지 형식 조사(공식 mcode 명세 vs 105차 기록 불일치 → macOS 채취 대기))
 - 이전 수정일: 2026-09-30 (105차 세션 **종료** — macOS 호스트. minimax-code 플러그인 채널 갭 실측·등록 + MiniMax Plugin V1 배포 + `~/.mavis` 호환 링크 제거. 저장소 코드 변경은 없음)
 - 이전 수정일: 2026-09-29 (104차 세션 **종료** — macOS 호스트. main-017 · 018 close + 08-25-main-017 Windows 실측 칸 신설: Windows 커밋이 `roadmap_state.json` source_path 를 역슬래시로 남겨 교차 호스트 diff 가 나던 것 → `as_posix()`, 후속으로 `wk doctor` 가 Windows 에서 정본 파일을 extra 로 오판하던 것)

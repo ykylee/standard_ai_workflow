@@ -57,7 +57,7 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
-- TASK-2026-09-30-main-011 v1.16.0 발행 — Codex compact 중계 hook 탑재 + 출력 수리 (codex-json)
+-
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:
@@ -65,6 +65,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-09-30-main-011 v1.16.0 발행 — Codex compact 중계 hook 탑재 + 출력 수리 (codex-json)
 - TASK-2026-09-30-main-010 Codex compact 중계 hook 출력 형식 수리 — [ 머리말이 JSON 으로 오판돼 hook failed · 재주입 0
 - TASK-2026-09-30-main-009 Codex 인증 압축 왕복 실측 — PostCompact · SessionStart(compact) 발화와 순서
 - TASK-2026-09-30-main-008 Codex 플러그인 hook 적재 — compact 중계 기록·재주입을 Codex 에서
@@ -74,7 +75,6 @@
 - TASK-2026-09-30-main-004 compact 중계 requirements — 명령 계약 · checkpoint 형식 · 재주입 예산 · 누락 판정
 - TASK-2026-09-30-main-003 compact 중계 concept 검토 — 하네스별 compact 표면 실측과 checkpoint 설계 선택지
 - TASK-2026-09-30-main-002 python_floor 하한 해석기 호출을 stdin 으로 — Windows .CMD/.bat shim 에서 -c 다줄 스크립트가 첫 개행에서 잘린다 (main-013 후속)
-- TASK-2026-09-29-main-018 str(relative_to) 잔여 사이트 점검 — wk doctor 가 Windows 에서 정본 파일을 extra 로 오판
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

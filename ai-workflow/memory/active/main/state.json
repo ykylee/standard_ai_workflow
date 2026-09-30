@@ -29,10 +29,8 @@
   "session": {
     "current_baseline": "**108차 세션 (2026-09-30, Linux 호스트) — task 1건 close (TASK-2026-09-30-main-008, M-007/WBS-7.2) + 후속 main-009 등록.** compact 중계의 Codex 칸을 실측으로 채웠다. codex-cli 0.143.0 을 격리 `CODEX_HOME` + app-server(`hooks/list` · `thread/compact/start`)로 잼: ①manifest `hooks` 경로를 읽고, 그 필드가 있으면 기본 `hooks/hooks.json` 은 **읽히지 않는다**(번들 field guide 는 '보탠다' — 불일치) · 모르는 이벤트(`SessionEnd`)는 경고 없이 버림 ②플러그인 hook 은 설치 직후 `untrusted` 이고 **그 상태로는 안 돈다** — handler 별 신뢰 해시, 명령이 바뀌면 `modified` (TUI 'Hooks need review' 는 바이너리 문자열 근거) ③`PreCompact` 는 원격 압축 호출 **전에** 발화 — 실배포 zip 설치·신뢰 후 이 저장소에서 `wk compact-checkpoint --hook pre` 가 checkpoint 기록(session_id = Codex thread id), stdin 은 Claude Code 와 같은 필드 ④SessionStart 평문 stdout·`additionalContext` 둘 다 developer 메시지로 주입(startup 으로 측정) ⑤**`PostCompact` 입력에 `compact_summary` 가 없다.** 구현: 전용 `plugin/adapters/codex/hooks.json`(중계 3종만, `_relay_hooks` 를 Claude Code 와 공유 — Grok 사본은 규칙 주입이 AGENTS.md 와 이중) + manifest `hooks` + Codex zip 포함. **기존 결함 수리**: `hook_post` 가 요약 원문이 없으면 빈 문자열과 대조해 식별자 전부를 '누락' 으로 날조 → `summary_available=false` · `missing_count=null` · '대조 불가'. check_compact_relay 12→14 cases(되주입 7건 각 해당 case red), 게이트 298×2 통과 `0baeb787` push. 이 호스트 Codex 는 미인증(`~/.codex/auth.json` 0B, 07-20 부터) → 인증 왕복은 main-009.",
     "current_axis": "**로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · ~~[TASK-2026-08-13-main-004] mypy flake 관찰~~ ✅ (66차 close — 33/33 표본, mypy 실패 0).",
-    "current_focus": "TASK-2026-09-30-main-011 v1.16.0 발행 — Codex compact 중계 hook 탑재 + 출력 수리 (codex-json)",
-    "in_progress_items": [
-      "TASK-2026-09-30-main-011 v1.16.0 발행 — Codex compact 중계 hook 탑재 + 출력 수리 (codex-json)"
-    ],
+    "current_focus": "TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다",
+    "in_progress_items": [],
     "blocked_items": [
       "TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다"
     ],
@@ -40,6 +38,7 @@
       "TASK-2026-09-30-main-001"
     ],
     "recent_done_items": [
+      "TASK-2026-09-30-main-011 — v1.16.0 발행 — Codex compact 중계 hook 탑재 + 출력 수리 (codex-json)",
       "TASK-2026-09-30-main-010 — Codex compact 중계 hook 출력 형식 수리 — [ 머리말이 JSON 으로 오판돼 hook failed · 재주입 0",
       "TASK-2026-09-30-main-009 — Codex 인증 압축 왕복 실측 — PostCompact · SessionStart(compact) 발화와 순서",
       "TASK-2026-09-30-main-008 — Codex 플러그인 hook 적재 — compact 중계 기록·재주입을 Codex 에서",
@@ -48,8 +47,7 @@
       "TASK-2026-09-30-main-005 — compact 중계 design — ADR-030 + compact_relay_spec",
       "TASK-2026-09-30-main-004 — compact 중계 requirements — 명령 계약 · checkpoint 형식 · 재주입 예산 · 누락 판정",
       "TASK-2026-09-30-main-003 — compact 중계 concept 검토 — 하네스별 compact 표면 실측과 checkpoint 설계 선택지",
-      "TASK-2026-09-30-main-002 — python_floor 하한 해석기 호출을 stdin 으로 — Windows .CMD/.bat shim 에서 -c 다줄 스크립트가 첫 개행에서 잘린다 (main-013 후속)",
-      "TASK-2026-09-29-main-018 — str(relative_to) 잔여 사이트 점검 — wk doctor 가 Windows 에서 정본 파일을 extra 로 오판"
+      "TASK-2026-09-30-main-002 — python_floor 하한 해석기 호출을 stdin 으로 — Windows .CMD/.bat shim 에서 -c 다줄 스크립트가 첫 개행에서 잘린다 (main-013 후속)"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
@@ -57,9 +55,7 @@
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-09-30.md",
     "task_count": 11,
-    "in_progress_items": [
-      "TASK-2026-09-30-main-011 — v1.16.0 발행 — Codex compact 중계 hook 탑재 + 출력 수리 (codex-json)"
-    ],
+    "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
       "TASK-2026-09-30-main-002 — python_floor 하한 해석기 호출을 stdin 으로 — Windows .CMD/.bat shim 에서 -c 다줄 스크립트가 첫 개행에서 잘린다 (main-013 후속)",
@@ -70,7 +66,8 @@
       "TASK-2026-09-30-main-007 — v1.15.0 발행 — compact 중계 (wk compact-checkpoint · 스킬 compact-relay · hook 3종)",
       "TASK-2026-09-30-main-008 — Codex 플러그인 hook 적재 — compact 중계 기록·재주입을 Codex 에서",
       "TASK-2026-09-30-main-009 — Codex 인증 압축 왕복 실측 — PostCompact · SessionStart(compact) 발화와 순서",
-      "TASK-2026-09-30-main-010 — Codex compact 중계 hook 출력 형식 수리 — [ 머리말이 JSON 으로 오판돼 hook failed · 재주입 0"
+      "TASK-2026-09-30-main-010 — Codex compact 중계 hook 출력 형식 수리 — [ 머리말이 JSON 으로 오판돼 hook failed · 재주입 0",
+      "TASK-2026-09-30-main-011 — v1.16.0 발행 — Codex compact 중계 hook 탑재 + 출력 수리 (codex-json)"
     ]
   },
   "next_documents": [

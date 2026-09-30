@@ -1,7 +1,7 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-09-30T03:11:37Z`
-- tool_version: `1.15.0`
+- generated_at: `2026-09-30T05:55:44Z`
+- tool_version: `1.16.0`
 - workspace_root: `/home/yklee/repos/standard_ai_workflow`
 
 ## Panel 1 — Drift Prevention Status
@@ -9,12 +9,12 @@
 - guard_status: `pass`
 - guard_cases: `7 / 7`
 - maturity_last_updated: `2026-09-30`
-- maturity_surface_changed_at: `2026-09-29`
+- maturity_surface_changed_at: `2026-09-30`
 - maturity_stale: `False` (source: `maturity_surface_commit`)
 - harness_supported_count: `10`
 - head_commit_date: `2026-09-30`
 - last_updated_delta_days: `0`
-- silent_failing_cycles_count: `0` (측정 cycle 28건)
+- silent_failing_cycles_count: `0` (측정 cycle 29건)
 
 ## Panel 2 — Maturity Distribution
 
@@ -84,11 +84,11 @@
 
 | version | pass | total |
 |---|---|---|
+| Beta-v1.16.0 | 298 | 298 |
 | Beta-v1.15.0 | 298 | 298 |
 | Beta-v1.14.4 | 296 | 296 |
 | Beta-v1.14.3 | 296 | 296 |
 | Beta-v1.14.2 | 296 | 296 |
-| Beta-v1.14.1 | 296 | 296 |
 
 ## Panel 5 — Recent Release Cycle
 
@@ -98,16 +98,16 @@
 
 ### Timeline (preview, first 120 char)
 
-- [0] TASK-2026-09-30-main-006 — compact 중계 구현 — wk compact-checkpoint · hook 3종 · 스킬 compact-relay · 검사  `[fresh]`
-- [1] TASK-2026-09-30-main-005 — compact 중계 design — ADR-030 + compact_relay_spec  `[fresh]`
-- [2] TASK-2026-09-30-main-004 — compact 중계 requirements — 명령 계약 · checkpoint 형식 · 재주입 예산 · 누락 판정  `[fresh]`
-- [3] TASK-2026-09-30-main-003 — compact 중계 concept 검토 — 하네스별 compact 표면 실측과 checkpoint 설계 선택지  `[fresh]`
-- [4] TASK-2026-09-30-main-002 — python_floor 하한 해석기 호출을 stdin 으로 — Windows .CMD/.bat shim 에서 -c 다줄 스크립트가 첫 개행에서 잘린다 (main-013…  `[fresh]`
-- [5] TASK-2026-09-29-main-018 — str(relative_to) 잔여 사이트 점검 — wk doctor 가 Windows 에서 정본 파일을 extra 로 오판  `[fresh]`
-- [6] TASK-2026-09-29-main-017 — roadmap_state.json source_path 호스트 독립(POSIX) 고정  `[fresh]`
-- [7] TASK-2026-09-29-main-016 — Codex 세션 내 wk 미인식 — editable 재설치 및 PATH 비교  `[fresh]`
-- [8] TASK-2026-09-29-main-015 — Windows 환경 워크플로우 editable 설치 및 emit/doctor 이슈 재현  `[fresh]`
-- [9] TASK-2026-09-29-main-014 — v1.14.4 발행 — Windows doctor MCP 탐침 shim 절단 + wiki 스탬프 판정 수리  `[fresh]`
+- [0] TASK-2026-09-30-main-010 — Codex compact 중계 hook 출력 형식 수리 — [ 머리말이 JSON 으로 오판돼 hook failed · 재주입 0  `[fresh]`
+- [1] TASK-2026-09-30-main-009 — Codex 인증 압축 왕복 실측 — PostCompact · SessionStart(compact) 발화와 순서  `[fresh]`
+- [2] TASK-2026-09-30-main-008 — Codex 플러그인 hook 적재 — compact 중계 기록·재주입을 Codex 에서  `[fresh]`
+- [3] TASK-2026-09-30-main-007 — v1.15.0 발행 — compact 중계 (wk compact-checkpoint · 스킬 compact-relay · hook 3종)  `[fresh]`
+- [4] TASK-2026-09-30-main-006 — compact 중계 구현 — wk compact-checkpoint · hook 3종 · 스킬 compact-relay · 검사  `[fresh]`
+- [5] TASK-2026-09-30-main-005 — compact 중계 design — ADR-030 + compact_relay_spec  `[fresh]`
+- [6] TASK-2026-09-30-main-004 — compact 중계 requirements — 명령 계약 · checkpoint 형식 · 재주입 예산 · 누락 판정  `[fresh]`
+- [7] TASK-2026-09-30-main-003 — compact 중계 concept 검토 — 하네스별 compact 표면 실측과 checkpoint 설계 선택지  `[fresh]`
+- [8] TASK-2026-09-30-main-002 — python_floor 하한 해석기 호출을 stdin 으로 — Windows .CMD/.bat shim 에서 -c 다줄 스크립트가 첫 개행에서 잘린다 (main-013…  `[fresh]`
+- [9] TASK-2026-09-29-main-018 — str(relative_to) 잔여 사이트 점검 — wk doctor 가 Windows 에서 정본 파일을 extra 로 오판  `[fresh]`
 
 ## Panel 6 — Multi-Agent Concurrent Write Conflict
 
@@ -137,10 +137,10 @@
 
 - phase_15_north_star: `utilization_3tuple (query_diversity / entries_new_30d / distinct_entries_retrieved — ADR-006 W-4; hit_rate 는 보조)`
 - entries_total: `30`
-- telemetry_events_total: `3000`
-- telemetry_total_queries: `3000`
-- telemetry_hit_count: `1244`
-- telemetry_hit_rate: `0.4147`
+- telemetry_events_total: `3014`
+- telemetry_total_queries: `3014`
+- telemetry_hit_count: `1258`
+- telemetry_hit_rate: `0.4174`
 
 ### Entries by merge_state
 
@@ -152,8 +152,8 @@
 
 | source | events |
 |---|---|
-| `backlog-update` | 511 |
+| `backlog-update` | 523 |
 | `dispatcher` | 13 |
 | `doc-sync` | 2 |
-| `session-start` | 2474 |
+| `session-start` | 2476 |
 

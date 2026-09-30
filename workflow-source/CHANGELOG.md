@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- feat(compact-relay): Codex 플러그인에 압축 중계 hook 탑재 + 요약 부재 시 '대조 불가' (main-008) (0baeb787)
 - feat(compact-relay): 압축 경계를 워크플로우 메모리로 중계 — wk compact-checkpoint · hook 3종 · 스킬 compact-relay (M-018~M-021, ADR-030) (5a3c9db4)
 - feat(doctor): plugin_enabled 절을 4채널로 — codex·grok-build·antigravity 활성 선언 실측 (09-28-main-018) (90e3d52a)
 - feat(doctor): plugin_enabled 절 신설 — 설치됐는데 꺼진 플러그인을 발견으로 (09-28-main-017) (880f8327)
@@ -45,11 +46,12 @@ All notable changes to this project will be documented in this file.
 - feat(runner): M-011 — meta-watch 구현 (ADR-028) + 좁은 선언 7건 소탕 (11eb02d2)
 - feat(design): M-010 완결 — ADR-028 + test_impact_tiering_spec (실측 3건 기반) (07b61f88)
 - feat(roadmap): requirements sign-off — M-009 close + M-010 [design] 선언 (e3ac7a27)
-- feat(roadmap): C안 채택 — M-008 close + M-009 [requirements] 진행 (requirements 초안) (12bb8d70)
-- ... (154 more)
+- ... (155 more)
 
 ### Changed
 
+- chore(session): 108차 세션 종료 — main-008 close (Codex compact 중계 hook) · main-009 등록 · handoff · state.json 갱신 (bdfe4b31)
+- chore(session): 107차 세션 종료 — compact 중계 M-018~M-021 완주 · v1.15.0 발행 · handoff · state.json 갱신 (8378809e)
 - chore(memory): 107차 — compact 중계 M-021 close (main-006) · handoff 기준선 · state.json 재생성 (6067f865)
 - chore(session): 106차 세션 종료 — main-002 close · main-001 minimax 형식 조사 기록 · handoff · state.json 갱신 (6b8d11e8)
 - chore(state): 105차 state.json 재생성 — active/main/ 기준선에 minimax-code 갭 반영 (7b85854b)
@@ -78,12 +80,11 @@ All notable changes to this project will be documented in this file.
 - perf(gate): 병렬 구간 LPT 제출 + --jobs auto=코어 수, wiki_score 도구 실행 3→2회 (5b96ebb6)
 - chore(memory): 90차 세션 종료 — M-014 concept 종결(① 안) · 3.14 환경 복구 · PURPOSE.md 개정 (dbf0287f)
 - chore(memory): 89차 세션 종료 — CI 폐지 뒷정리 · push 게이트 · force 차단 hook 수리 (455d27c0)
-- chore(memory): main-021 실측 종료 + main-019 범위를 로컬 게이트 처리량으로 (69a4648c)
-- test(doctor): symlink 홈에서 경로 대조가 갈리던 검사 수리 (09-25-main-001) (b15d1dfe)
-- ... (427 more)
+- ... (429 more)
 
 ### Fixed
 
+- fix(compact-relay): Codex hook 출력을 Codex wire JSON 으로 — `[` 머리말 오판으로 3종 failed · 재주입 0 이던 것 (main-009 · main-010) (8a35197b)
 - fix(python-floor): 하한 해석기 호출을 stdin 으로 — Windows 배치 shim 에서 -c 다줄 스크립트가 첫 개행에서 잘리던 것 (09-30-main-002) (a86614aa)
 - fix(doctor): wk doctor 가 Windows 에서 정본 파일을 extra 로 오판하던 것 — str(relative_to) 잔여 5곳을 as_posix() 로 (09-29-main-018) (b836d83d)
 - fix(roadmap): roadmap_state.json source_path 를 호스트 독립(POSIX)으로 — Windows 커밋이 역슬래시를 남겨 교차 호스트 diff 가 나던 것 (09-29-main-017) (71c718a1)
@@ -113,13 +114,19 @@ All notable changes to this project will be documented in this file.
 - fix(memory): 검색이 자기가 집은 것을 돌려주게 (main-005) (70a97a5d)
 - fix(tests): case 6 이 index 락을 잡아 병렬에서 터지던 것을 읽기 전용으로 (main-002) (f3ac2d13)
 - fix(memory): 승격 후보 판정을 어휘 겹침에서 선언으로 (main-003) (a5961bd2)
-- fix(tests): 하한 측정 모드를 요약 줄에 — green 이 승격의 증거가 아니었다 (main-007) (79b5ffd9)
-- ... (188 more)
+- ... (189 more)
+
+## [1.16.0] - 2026-09-30
+
+### Changed
+
+- release(v1.16.0): 발행 준비 — Codex 플러그인 compact 중계 hook 탑재 + Codex wire JSON 출력 수리 (13314eaa)
 
 ## [1.15.0] - 2026-09-30
 
 ### Changed
 
+- release(v1.15.0): 발행 완료 — 태그 push + GitHub Release(asset 4종) + 발행 wheel 격리 실측 + §2.8 (672fa400)
 - release(v1.15.0): 발행 준비 — compact 중계 (wk compact-checkpoint · 스킬 compact-relay · hook 3종) + Windows 호스트 수리 4건 (e7835694)
 
 ## [1.14.4] - 2026-09-29

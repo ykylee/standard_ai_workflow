@@ -71,3 +71,20 @@ Codex 는 앞 공백을 걷은 stdout 이 `{` · `[` 로 시작하면 JSON 으�
 - **자동 압축(`trigger: auto`) 경로는 두 하네스 모두 미실측**이다.
 - `TASK-2026-08-25-main-017` (MCP emit command 가 항상 `python3`) 는 blocked 그대로다.
 - minimax-code 플러그인 채널(`TASK-2026-09-30-main-001`)은 형식 미확정으로 planned 그대로다.
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-09-30T05:55:44Z)_
+
+- total wiki pages: **97**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

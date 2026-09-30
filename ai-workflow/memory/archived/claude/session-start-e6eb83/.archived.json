@@ -1,0 +1,12 @@
+{
+  "branch": "claude/session-start-e6eb83",
+  "archived_at": "2026-09-30",
+  "merge_commit": null,
+  "task_ids": [
+    "TASK-2026-09-30-claude-session-start-e6eb83-001",
+    "TASK-2026-09-30-claude-session-start-e6eb83-002"
+  ],
+  "task_count": 2,
+  "open_task_ids": [],
+  "note": "종료된 브랜치의 메모리. 과거 이력 조회 대상 (읽기 전용)."
+}

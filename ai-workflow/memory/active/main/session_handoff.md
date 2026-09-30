@@ -80,7 +80,7 @@
 
 ## 5. 다음 세션 시작 포인트
 
-- (110차 Claude Code worktree 합류) **worktree 브랜치는 이제 자기 네임스페이스로 자동 seed 된다** — `session-start` 가 `active/<branch>/` 부재 시 `main` 기준으로 seed, CI 밖 detached HEAD = 기본 브랜치, 비 git workspace = main (TASK-2026-09-30-claude-session-start-e6eb83-002, 6118db3d). 그 세션의 기준선·잔여 리스크는 [`active/claude/session-start-e6eb83/session_handoff.md`](../claude/session-start-e6eb83/session_handoff.md) — 브랜치를 지운 뒤 `wk archive-branch-memory --apply`. main-012 는 같은 수리로 close.
+- (110차 Claude Code worktree 합류) **worktree 브랜치는 이제 자기 네임스페이스로 자동 seed 된다** — `session-start` 가 `active/<branch>/` 부재 시 `main` 기준으로 seed, CI 밖 detached HEAD = 기본 브랜치, 비 git workspace = main (TASK-2026-09-30-claude-session-start-e6eb83-002, 6118db3d). 그 세션의 기준선·잔여 리스크는 [`archived/claude/session-start-e6eb83/session_handoff.md`](../../archived/claude/session-start-e6eb83/session_handoff.md) (브랜치 삭제 뒤 아카이브 완료). main-012 · main-013 은 같은 세션이 close.
 - (compact 중계 후속, M-007) 대화형 Claude Code 세션에서 **자동 압축(`trigger: auto`) 1회 실측** — 기계 층만 기록되고 재주입 머리말이 '판단 층 없음' 을 말하는지. **v1.16.0 발행됨** — macOS Codex 적용·사용자 hook 신뢰·재시작·실제 압축 왕복은 main-014에서 검증 완료. Claude Code 자동 압축 실측은 별도 환경에서 진행한다. 측정 방법(격리 CODEX_HOME + app-server 드라이버)은 저장소에 없다 — 다음에 필요하면 compact_relay_spec §7 기술로 재구성.
 - (macOS 호스트) TASK-2026-09-30-main-001 착수 전 105차 배포본 채취: `find ~/.minimax/plugins/standard-ai-workflow -maxdepth 3 | sort` + 매니페스트 원문 + 제품(Desktop / CLI `mcode`)·버전. 공식 mcode 0.4+ 명세와 105차 기록이 우선순위가 반대라, 채취본을 정본 fixture 로 삼아 렌더러 → §2.8 → `deploy_doctor` 순. claude-code 매니페스트(hooks 경로 문자열)를 그대로 재사용하지 말 것.
 - (Windows 호스트) main-002 실측: `check_python_floor_syntax` case 6 이 실제 `.cmd` shim 으로 PASS 하는지.

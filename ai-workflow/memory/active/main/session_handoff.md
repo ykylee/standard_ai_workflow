@@ -57,7 +57,7 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
--
+- TASK-2026-09-30-main-011 v1.16.0 발행 — Codex compact 중계 hook 탑재 + 출력 수리 (codex-json)
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:

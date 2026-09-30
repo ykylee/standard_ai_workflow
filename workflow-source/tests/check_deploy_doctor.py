@@ -20,6 +20,8 @@ WATCHES = (
     "workflow-source/core/*",
     "workflow-source/pyproject.toml",
     "workflow-source/workflow_kit/*",
+    # 개행 절단 shim 모형 — check_python_floor_syntax 와 같은 모형 (TASK-2026-09-30-main-002).
+    "workflow-source/tests/_newline_shim.py",
 )
 
 import contextlib
@@ -1766,48 +1768,23 @@ def test_mcp_child_probe_ignores_pythonpath() -> None:
     _record("test_mcp_child_probe_ignores_pythonpath", not problems, "; ".join(problems))
 
 
-#: POSIX 에서는 cmd.exe 의 argv 개행 절단 동작을 흉내 내는 executable shim.
-_TRUNCATING_SHIM = """#!{python}
-import os, sys
-args = []
-for arg in sys.argv[1:]:
-    if "\\n" in arg:
-        args.append(arg.split("\\n", 1)[0])
-        break
-    args.append(arg)
-os.execv({python!r}, [{python!r}, *args])
-"""
-
-
 def test_mcp_child_probe_survives_newline_truncating_shim() -> None:
     """탐침이 **개행을 자르는 shim** 을 지나도 결과를 낸다 (TASK-2026-09-29-main-013).
 
     Windows 에서 `which("python3")` 가 `python3.CMD` 를 돌려주면 cmd.exe 가 `-c` 의
     다줄 스크립트를 첫 개행에서 잘라, 탐침은 첫 줄만 돌고 아무것도 찍지 않았다.
     """
+    from _newline_shim import make_truncating_shim, truncates
     from workflow_kit.deploy_doctor import _MCP_CHILD_PROBE, _run_mcp_child_probe
 
     problems: list[str] = []
     with tempfile.TemporaryDirectory(prefix="doctor-mcp-shim-") as tmpdir:
-        if os.name == "nt":
-            # Exercise cmd.exe's real batch-file argument handling on Windows.
-            shim = Path(tmpdir) / "python3.cmd"
-            shim.write_text(
-                f'@echo off\r\n"{sys.executable}" %*\r\n', encoding="ascii"
-            )
-        else:
-            shim = Path(tmpdir) / "python3"
-            shim.write_text(_TRUNCATING_SHIM.format(python=sys.executable), encoding="utf-8")
-            shim.chmod(0o755)
+        shim = make_truncating_shim(Path(tmpdir))
         cwd = Path(tmpdir) / "cwd"
         cwd.mkdir()
         # 모형이 결함을 재현하는가 — 이것이 없으면 아래 green 은 아무것도 증명하지 않는다.
-        seen = subprocess.run(
-            [str(shim), "-c", "print('first')\nprint('second')"],
-            capture_output=True, text=True, timeout=30,
-        ).stdout.split()
-        if seen != ["first"]:
-            problems.append(f"shim 이 개행 뒤를 자르지 않는다 (모형 무효): {seen}")
+        if not truncates(shim):
+            problems.append("shim 이 개행 뒤를 자르지 않는다 (모형 무효)")
         data = _run_mcp_child_probe(str(shim), cwd)
     if data.get("probe_error"):
         problems.append(f"shim 경유 탐침 실패: {data['probe_error']}")

@@ -186,7 +186,7 @@ def find_interpreter(floor: tuple[int, int]) -> str | None:
 #: `py_compile` 을 쓰면 `__pycache__` 가 소스 옆에 생겨 저장소를 오염시킨다.
 _COMPILE_SCRIPT = r"""
 import json, sys
-paths = json.load(sys.stdin)
+paths = json.loads(PATHS_JSON)
 failures = []
 for p in paths:
     try:
@@ -197,8 +197,50 @@ for p in paths:
         failures.append([p, "%s (line %s)" % (exc.msg, exc.lineno)])
     except OSError as exc:
         failures.append([p, "read error: %s" % exc])
-json.dump({"compiled": len(paths) - len(failures), "failures": failures}, sys.stdout)
+json.dump({"version": "%d.%d.%d" % sys.version_info[:3],
+           "compiled": len(paths) - len(failures), "failures": failures}, sys.stdout)
 """
+
+
+def compile_payload(paths: list[str]) -> str:
+    """하한 해석기의 stdin 으로 넘길 **스크립트 + 데이터 한 덩어리** (ASCII).
+
+    TASK-2026-09-30-main-002. 스크립트를 `-c` 인자로 넘기면, Windows 에서 해석기가
+    `python3.10.bat` 같은 배치 shim(pyenv-win 등)일 때 cmd.exe 가 명령행을 다시 해석하며
+    **첫 개행 뒤를 버린다** — `deploy_doctor` 탐침이 같은 자리에서 깨졌다
+    (TASK-2026-09-29-main-013). 그래서 해석기에는 개행 없는 `-` 하나만 넘기고 전부
+    stdin 으로 보낸다. 경로 목록도 원래 stdin 으로 가던 데이터라 스크립트 안의
+    리터럴로 합친다.
+
+    **ASCII 여야 한다.** Windows 는 stdin 을 로캘 인코딩(cp949 등)으로 쓰고 자식
+    python 은 소스를 UTF-8 로 읽는다 — 경로에 한글이 있으면 둘이 갈라진다.
+    `json.dumps` 의 기본 `ensure_ascii` 가 경로를 `\\uXXXX` 로 바꾸고, `repr` 이
+    그것을 ASCII 문자열 리터럴로 감싼다.
+    """
+    return f"PATHS_JSON = {json.dumps(paths)!r}\n{_COMPILE_SCRIPT}"
+
+
+def run_compile(interpreter: str, paths: list[str]) -> tuple[str | None, int, list[tuple[str, str]], str | None]:
+    """`interpreter` 로 `paths` 를 컴파일한다 → (해석기 버전, 컴파일 수, 실패, 미측정 사유).
+
+    해석기 탐색(`find_interpreter`)과 떼어 둔 것은 검사가 shim 경유를 직접 재기 위해서다.
+    결과 JSON 을 못 읽으면 통과가 아니라 **미측정**이다 — 잘린 스크립트는 아무것도 안
+    찍고 exit 0 으로 끝난다.
+    """
+    try:
+        proc = subprocess.run([interpreter, "-"], input=compile_payload(paths),
+                              capture_output=True, text=True, timeout=600)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return None, 0, [], f"하한 해석기 실행 실패: {exc}"
+    if proc.returncode != 0:
+        return None, 0, [], f"하한 해석기가 exit {proc.returncode}: {proc.stderr[-200:]}"
+    try:
+        data = json.loads(proc.stdout)
+    except ValueError:
+        return None, 0, [], (f"하한 해석기가 결과를 내지 않았다 (stdout {proc.stdout[-200:]!r}) — "
+                             "통과가 아니라 미측정이다")
+    return (str(data["version"]), int(data["compiled"]),
+            [(f[0], f[1]) for f in data["failures"]], None)
 
 
 def probe(source_root: Path, pyproject: Path) -> FloorProbe:
@@ -221,27 +263,15 @@ def probe(source_root: Path, pyproject: Path) -> FloorProbe:
             f"(PATH 에도 없고 uv 로도 못 얻었다) — 통과가 아니라 미측정이다",
         )
 
-    try:
-        ver = subprocess.run([interpreter, "-c", "import sys;print('%d.%d.%d'%sys.version_info[:3])"],
-                             capture_output=True, text=True, timeout=60).stdout.strip()
-        proc = subprocess.run([interpreter, "-c", _COMPILE_SCRIPT], input=json.dumps(paths),
-                              capture_output=True, text=True, timeout=600)
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        return FloorProbe(floor, str(pyproject), interpreter, None, 0, [],
-                          f"하한 해석기 실행 실패: {exc}")
-    if proc.returncode != 0:
-        return FloorProbe(floor, str(pyproject), interpreter, ver, 0, [],
-                          f"하한 해석기가 exit {proc.returncode}: {proc.stderr[-200:]}")
-
-    data = json.loads(proc.stdout)
+    ver, compiled, failures, unmeasured = run_compile(interpreter, paths)
     return FloorProbe(
         floor=floor,
         floor_source=str(pyproject),
         interpreter=interpreter,
         interpreter_version=ver,
-        compiled=int(data["compiled"]),
-        failures=[(f[0], f[1]) for f in data["failures"]],
-        unmeasured_reason=None,
+        compiled=compiled,
+        failures=failures,
+        unmeasured_reason=unmeasured,
     )
 
 

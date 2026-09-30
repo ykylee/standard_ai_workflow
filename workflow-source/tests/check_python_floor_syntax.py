@@ -296,13 +296,54 @@ def case_5_floor_comes_from_the_packaged_declaration() -> None:
     )
 
 
+def case_6_probe_survives_newline_truncating_shim() -> None:
+    """하한 해석기가 **개행을 자르는 배치 shim** 이어도 컴파일 결과를 낸다.
+
+    TASK-2026-09-30-main-002. `find_interpreter` 는 `shutil.which("python3.10")` 를
+    먼저 본다 — Windows 에서 그것이 pyenv-win 같은 배치 shim 이면 cmd.exe 가 `-c`
+    다줄 스크립트를 첫 개행에서 잘랐다. 탐색과 떼어 둔 `run_compile` 을 shim 에
+    직접 물린다. 기대값은 해석기가 아니라 **표본**에서 나온다: 정상 1 · 문법 오류 1.
+    경로에 한글을 넣어 stdin 페이로드의 ASCII 계약도 같이 잰다.
+    """
+    import tempfile
+
+    from _newline_shim import make_truncating_shim, truncates
+    from workflow_kit.common.python_floor import compile_payload, run_compile
+
+    problems: list[str] = []
+    with tempfile.TemporaryDirectory(prefix="floor-shim-") as tmpdir:
+        tmp = Path(tmpdir)
+        good = tmp / "정상.py"
+        good.write_text("x = 1\n", encoding="utf-8")
+        bad = tmp / "bad.py"
+        bad.write_text("def f(:\n", encoding="utf-8")
+        paths = [str(good), str(bad)]
+        shim = make_truncating_shim(tmp, "python3.10")
+        # 모형이 결함을 재현하는가 — 이것이 없으면 아래 green 은 아무것도 증명하지 않는다.
+        if not truncates(shim):
+            problems.append("shim 이 개행 뒤를 자르지 않는다 (모형 무효)")
+        if not compile_payload(paths).isascii():
+            problems.append("stdin 페이로드에 ASCII 밖 문자가 있다 — Windows stdin 인코딩에서 깨진다")
+        ver, compiled, failures, unmeasured = run_compile(str(shim), paths)
+    if unmeasured:
+        problems.append(f"shim 경유 미측정: {unmeasured}")
+    else:
+        if (compiled, [f[0] for f in failures]) != (1, [str(bad)]):
+            problems.append(f"표본 판정이 틀렸다: compiled={compiled}, failures={failures}")
+        if not ver:
+            problems.append("해석기 버전을 받지 못했다")
+    _record("case 6 (개행 절단 shim 경유로도 하한 컴파일이 결과를 낸다)", not problems,
+            "; ".join(problems) or f"shim 경유 {ver}: 정상 1 · 문법 오류 1 판정")
+
+
 def main() -> int:
     print("=== 선언 하한 Python 문법 호환 (TASK-2026-09-21-main-005) ===")
     for fn in (case_1_floor_comes_from_the_declaration,
                case_2_real_interpreter_compiled_everything,
                case_3_feature_version_cannot_replace_it,
                case_4_scope_is_derived_not_a_hand_list,
-               case_5_floor_comes_from_the_packaged_declaration):
+               case_5_floor_comes_from_the_packaged_declaration,
+               case_6_probe_survives_newline_truncating_shim):
         fn()
     total = len(_passes) + len(_failures)
     mode = f" · 하한 측정 {_MODE[0]}" if _MODE else ""

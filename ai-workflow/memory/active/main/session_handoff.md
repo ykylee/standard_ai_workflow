@@ -56,7 +56,7 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
--
+- TASK-2026-09-30-main-007 v1.15.0 발행 — compact 중계 (wk compact-checkpoint · 스킬 compact-relay · hook 3종)
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:

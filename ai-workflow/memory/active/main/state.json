@@ -35,7 +35,9 @@
       "TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다"
     ],
     "planned_items": [
-      "TASK-2026-09-30-main-001"
+      "TASK-2026-09-30-main-001",
+      "TASK-2026-09-30-main-012",
+      "TASK-2026-09-30-main-013"
     ],
     "recent_done_items": [
       "TASK-2026-09-30-main-011 — v1.16.0 발행 — Codex compact 중계 hook 탑재 + 출력 수리 (codex-json)",
@@ -54,7 +56,7 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-09-30.md",
-    "task_count": 11,
+    "task_count": 13,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [

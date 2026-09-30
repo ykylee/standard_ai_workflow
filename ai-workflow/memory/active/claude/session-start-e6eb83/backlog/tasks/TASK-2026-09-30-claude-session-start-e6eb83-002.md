@@ -51,6 +51,7 @@ wbs: M-007/WBS-7.4
 ## ✅ Outcome
 
 - Result: 6118db3d: session-start 자동 seed · CI 밖 detached HEAD=기본 브랜치 · 비 git workspace=main(계약 3 변경) · seed task_status/wbs exempt/§5 작업 후보 · roadmap 슬래시 브랜치 수집. 이 worktree 자체가 자동 seed 로 시작했다.
+- Result: main 병합 시 확인: 다른 세션이 main 에 등록한 TASK-2026-09-30-main-012(roadmap glob 1단계 결함)는 이 task 의 roadmap._branch_task_files 로 해소된다 — 완료 기준 4(형제 디렉터리 오인 없음)를 case 8 decoy 3종으로 추가 검증(되주입 red).
 - Verification: check_branch_memory_auto_seed 8/8 (되주입 3건 각 red) · F-7 6/6 · check_branch_resolver_agreement · check_self_application 8/8 · 게이트 --branch-context=all native 299/299 · slash 299/299 (6118db3d 통과 기록; 첫 시도는 호스트 부하 load 22 로 check_entry_points·check_wiki_trend 60s 타임아웃, 단독 30s·3s 통과)
 - Follow-up: 브랜치 네임스페이스가 main 에 합류해도 active/main/session_handoff.md 에는 이 작업이 실리지 않는다 — 다음 세션이 main 기준선만 읽으면 못 본다 (orchestration §5A.4 C. 합류 단계의 reconcile 이 수동)
 - Follow-up: check_entry_points 단독 30s(부하 중 측정) — CHECK_TIMEOUT_S 선언 필요 여부를 부하 없는 호스트에서 재측정

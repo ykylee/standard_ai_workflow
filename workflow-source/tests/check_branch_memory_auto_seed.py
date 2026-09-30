@@ -30,7 +30,8 @@ r"""브랜치 네임스페이스가 없는 worktree 에서 session-start 가 스
   7) CI 밖 detached HEAD 는 기본 브랜치 네임스페이스로 바로 시작한다 — sha dir 이 생기지 않는다
   8) 로드맵 선언 수집이 슬래시 브랜치(`active/claude/<name>/`)의 task 도 센다 — 한 단계
      glob 이던 때는 자동 seed task 의 `wbs: exempt` 가 안 보여 '선언 사슬이 끊긴 완료
-     항목' 경고가 매 세션 났다
+     항목' 경고가 매 세션 났다. 형제 공유 디렉터리(roadmap · memory_index · environments)의
+     task 모양 파일은 링크로 오인하지 않는다 (main-012 완료 기준 4)
 """
 
 from __future__ import annotations
@@ -206,11 +207,24 @@ def main() -> int:
                 f"---\nid: {task_id}\nstatus: done\nwbs: {wbs}\n"
                 + ("wbs_exempt_reason: probe\n" if wbs == "exempt" else "")
                 + f"---\n\n# {task_id} — probe\n", encoding="utf-8")
+        # 형제 공유 디렉터리(roadmap / memory_index / environments)에 task 모양 파일이
+        # 있어도 링크로 오인하지 않는다 — `**` 는 `backlog/tasks/` 바로 아래만 잡는다.
+        active = ws / "ai-workflow" / "memory" / "active"
+        decoys = {
+            "roadmap": "TASK-2026-09-30-decoy-001",
+            "memory_index/entries": "TASK-2026-09-30-decoy-002",
+            "environments": "TASK-2026-09-30-decoy-003",
+        }
+        for rel, decoy_id in decoys.items():
+            (active / rel).mkdir(parents=True, exist_ok=True)
+            (active / rel / f"{decoy_id}.md").write_text(
+                f"---\nid: {decoy_id}\nstatus: done\nwbs: M-001/WBS-1.1\n---\n", encoding="utf-8")
         resolution = resolve_task_goals(ws)
         linked = {link.task_id for link in collect_task_wbs_links(ws)}
         _record("test_slash_branch_tasks_are_collected",
                 "TASK-2026-09-30-claude-probe-001" in resolution.exempt_tasks
-                and {"TASK-2026-09-30-main-001", "TASK-2026-09-30-claude-probe-001"} <= linked,
+                and {"TASK-2026-09-30-main-001", "TASK-2026-09-30-claude-probe-001"} <= linked
+                and not linked & set(decoys.values()),
                 f"exempt={resolution.exempt_tasks} linked={sorted(linked)}")
 
     print()

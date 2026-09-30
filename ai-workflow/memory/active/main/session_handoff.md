@@ -66,6 +66,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-09-30-main-013 meta-watch 좁은 선언이 worktree 중첩 경로를 덮지 못해 게이트가 구조적으로 red 다
 - TASK-2026-09-30-main-012 로드맵 WBS 링크 수집기가 슬래시 포함 브랜치(task 가 2단계 깊이)에 닿지 않는다
 - TASK-2026-09-30-main-014 macOS Codex v1.16.0 적용·신뢰·재시작·compact 왕복 검증
 - TASK-2026-09-30-main-011 v1.16.0 발행 — Codex compact 중계 hook 탑재 + 출력 수리 (codex-json)
@@ -75,7 +76,6 @@
 - TASK-2026-09-30-main-007 v1.15.0 발행 — compact 중계 (wk compact-checkpoint · 스킬 compact-relay · hook 3종)
 - TASK-2026-09-30-main-006 compact 중계 구현 — wk compact-checkpoint · hook 3종 · 스킬 compact-relay · 검사
 - TASK-2026-09-30-main-005 compact 중계 design — ADR-030 + compact_relay_spec
-- TASK-2026-09-30-main-004 compact 중계 requirements — 명령 계약 · checkpoint 형식 · 재주입 예산 · 누락 판정
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

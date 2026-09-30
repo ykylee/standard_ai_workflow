@@ -106,6 +106,30 @@ def load_accesses(out_path: Path) -> set[str]:
     return {line.strip() for line in text.splitlines() if line.strip()}
 
 
+def nested_checkout_prefix(rel: str, repo_root: Path, cache: dict[str, bool] | None = None) -> str | None:
+    """``rel`` 이 저장소 안에 **중첩된 다른 체크아웃**(git worktree · 하위 clone) 안이면 그 접두.
+
+    중첩 체크아웃은 자기 `.git`(worktree 는 파일, clone 은 디렉터리)을 갖는다. 그 아래
+    파일은 이 체크아웃의 입력 표면이 아니라 **다른 작업 트리**다 — 대시보드가
+    `git worktree list` 로 찾아 합산하는 state.json 이 그 예다. 저장소 **밖** worktree
+    (`~/.codex/worktrees/…`)는 채취 접두에 안 걸려 조용한데, 저장소 **안**
+    (`.claude/worktrees/*`, `.worktrees/*`)에 있으면 같은 읽기가 좁은 선언 red 가 됐다
+    (TASK-2026-09-30-main-013) — 판정이 호스트에 어떤 worktree 가 있는지에 달렸다.
+    """
+    parts = rel.split("/")[:-1]
+    for i in range(1, len(parts) + 1):
+        prefix = "/".join(parts[:i])
+        if cache is not None and prefix in cache:
+            hit = cache[prefix]
+        else:
+            hit = (repo_root / prefix / ".git").exists()
+            if cache is not None:
+                cache[prefix] = hit
+        if hit:
+            return prefix
+    return None
+
+
 def judge(
     accessed: set[str],
     globs: tuple[str, ...],
@@ -118,11 +142,16 @@ def judge(
     존재하지 않는 후보 경로를 대량으로 stat 하고, 디렉터리 나열은 그 안 파일
     읽기가 따라올 때만 표면이 된다. 실재하지 않는 경로에의 의존(부재 검사)은
     이 판정의 범위 밖으로 문서화한다.
+
+    **중첩 체크아웃 안의 경로도 범위 밖이다** (`nested_checkout_prefix`).
     """
     uncovered: list[str] = []
     hit_globs: set[str] = set()
+    nested_cache: dict[str, bool] = {}
     for rel in sorted(accessed):
         if rel == own_rel:
+            continue
+        if nested_checkout_prefix(rel, repo_root, nested_cache) is not None:
             continue
         full = repo_root / rel
         if not full.is_file():

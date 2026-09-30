@@ -4,7 +4,7 @@
 - 범위: 실행 계층 계약, 검사 분류 선언 어휘, 선택 실행 계약, 메타 검증 계약, 소비 프로젝트 적용, 구현 단계, 요구 강제 선언(`ENFORCES`)
 - 대상 독자: workflow 설계자, 검사 저작자, AI agent, kit 소비 프로젝트
 - 상태: draft (ADR-028 accepted, M-011·M-012 구현 완료 — 보급은 M-007 운영 축)
-- 최종 수정일: 2026-09-25
+- 최종 수정일: 2026-09-30
 - 관련 문서: `../../ai-workflow/wiki/decisions/adr-028-test-impact-meta-validation.md`, `../../docs/planning/test-impact-tiering-requirements-2026-08.md`, `./global_workflow_standard.md`
 
 > **결정 근거는 ADR-028 에 있다** (2026-08-28: 채취 = audit hook · 판정 =
@@ -78,6 +78,10 @@ run_all_checks.py --meta-watch-dump <DIR>   # 판정 불변 — 정리 직전 �
 - **채취**: 러너가 검사 spawn 시 audit hook 을 주입한다 (sitecustomize +
   env). python 자식 프로세스까지 전파되고, 비-python 자식은 범위 밖(한계
   명시). `.git`/`.venv*`/`__pycache__`/temp 는 인프라 — 표면이 아니다.
+  저장소 안에 **중첩된 다른 체크아웃**(자기 `.git` 을 가진 git worktree · clone —
+  `.claude/worktrees/*`, `.worktrees/*`)의 파일도 표면이 아니다: 이 체크아웃이
+  아니라 호스트에 어떤 worktree 가 있느냐에 달린 경로라, 판정에 넣으면 같은 커밋이
+  호스트마다 다른 답을 낸다 (TASK-2026-09-30-main-013).
 - **판정 시점**: 게이트 실행이 채취를 겸한다 (별도 재실행 없음 — 오버헤드
   실측 <1%). 게이트 벽시계 +5% 초과가 2회 연속 실측되면 표본 순환으로
   강등 (N주기 안에 전 선언 검사 1회 보장).

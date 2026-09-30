@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""meta-watch (WATCHES 선언 메타 검증, ADR-028) 의 계약을 고정한다 (8 cases).
+"""meta-watch (WATCHES 선언 메타 검증, ADR-028) 의 계약을 고정한다 (9 cases).
 
 ## 왜 필요한가
 
@@ -167,6 +167,26 @@ def case_8_pyc_access_maps_to_source(root: Path) -> None:
     assert not any(".pyc" in a for a in accessed), f"pyc 경로가 그대로 남았다: {sorted(accessed)}"
 
 
+def case_9_nested_checkout_is_out_of_scope(root: Path) -> None:
+    """저장소 안 중첩 체크아웃(worktree · clone) 의 파일은 판정 대상이 아니다 (main-013).
+
+    되주입 방향을 같이 잰다: `.git` 이 **없는** 형제 디렉터리는 여전히 red —
+    제외가 "경로 깊이" 나 "이름" 이 아니라 **다른 체크아웃이라는 사실** 에 달렸음을 고정한다.
+    """
+    _write(root / ".claude" / "worktrees" / "w1" / ".git", "gitdir: /elsewhere\n")  # worktree = 파일
+    _write(root / ".claude" / "worktrees" / "w1" / "ai-workflow" / "memory" / "state.json", "{}")
+    (root / ".worktrees" / "w2" / ".git").mkdir(parents=True)                         # clone = 디렉터리
+    _write(root / ".worktrees" / "w2" / "ai-workflow" / "memory" / "state.json", "{}")
+    _write(root / ".worktrees" / "plain" / "ai-workflow" / "memory" / "state.json", "{}")
+    uncovered, _ = MW.judge(
+        {".claude/worktrees/w1/ai-workflow/memory/state.json",
+         ".worktrees/w2/ai-workflow/memory/state.json",
+         ".worktrees/plain/ai-workflow/memory/state.json"},
+        ("ai-workflow/memory/*",), "", root)
+    assert uncovered == [".worktrees/plain/ai-workflow/memory/state.json"], (
+        f"중첩 체크아웃 제외가 틀렸다 (기대: .git 없는 plain 만 red): {uncovered}")
+
+
 def _run(fn) -> None:
     try:
         with tempfile.TemporaryDirectory(prefix="check-meta-watch-") as tmp:
@@ -186,12 +206,13 @@ def main() -> int:
                case_5_judge_ignores_nonexistent_and_dirs,
                case_6_unused_glob_is_warn_not_red,
                case_7_all_reason_vocabulary,
-               case_8_pyc_access_maps_to_source):
+               case_8_pyc_access_maps_to_source,
+               case_9_nested_checkout_is_out_of_scope):
         _run(fn)
     if FAILURES:
         print(f"\n{len(FAILURES)} fail: {FAILURES}")
         return 1
-    print("\n8/8 PASS")
+    print("\n9/9 PASS")
     return 0
 
 

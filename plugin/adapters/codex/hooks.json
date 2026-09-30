@@ -1,0 +1,35 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v wk >/dev/null 2>&1 && { wk compact-checkpoint --restore || echo '[standard-ai-workflow] `wk compact-checkpoint` failed — the installed kit may be older than the plugin. Upgrade: docs/INSTALLATION_AND_USAGE.md §3'; } || true"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v wk >/dev/null 2>&1 && { wk compact-checkpoint --hook pre || echo '[standard-ai-workflow] `wk compact-checkpoint` failed — the installed kit may be older than the plugin. Upgrade: docs/INSTALLATION_AND_USAGE.md §3'; } || true"
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v wk >/dev/null 2>&1 && { wk compact-checkpoint --hook post || echo '[standard-ai-workflow] `wk compact-checkpoint` failed — the installed kit may be older than the plugin. Upgrade: docs/INSTALLATION_AND_USAGE.md §3'; } || true"
+          }
+        ]
+      }
+    ]
+  }
+}

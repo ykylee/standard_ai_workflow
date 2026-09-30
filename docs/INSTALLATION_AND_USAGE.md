@@ -277,8 +277,10 @@ print('all critical imports OK')
 read-only MCP 번들 + 세션 경계 hook 2종 + compact 중계 hook 3종이 설치 1명령으로 들어온다.
 compact 중계(압축 전 작업 상태 기록 → 압축 뒤 재주입)는 hook 이 `wk compact-checkpoint` 를 부르므로
 **설치된 kit 이 플러그인과 같은 버전이어야** 한다 — 옛 kit 이면 압축 때 한 줄 안내가 뜨고 중계는 건너뛴다.
-재주입은 Claude Code 에서만 실측됐다 (Grok 은 SessionStart 출력을 무시, Codex 는 hook 미탑재 —
+재주입은 Claude Code 에서만 실측됐다 (Grok 은 SessionStart 출력을 무시, Codex 는 기록 hook 까지 실측 —
 [`compact_relay_spec.md`](../workflow-source/core/compact_relay_spec.md) §7).
+**Codex 는 플러그인 hook 을 신뢰하기 전에는 돌리지 않는다** — 설치 뒤 처음 여는 TUI 의 "Hooks need review" 에서
+신뢰한다. kit 업그레이드로 hook 명령이 바뀌면 다시 묻는다.
 
 ```bash
 # Codex — GitHub Release의 Codex ZIP을 푼 뒤 marketplace로 등록하고 설치

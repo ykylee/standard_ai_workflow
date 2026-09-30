@@ -334,18 +334,37 @@ def checkpoint_identifiers(data: dict[str, Any]) -> list[str]:
 
 
 def hook_post(loc: RelayLocation, payload: dict[str, Any], *, now: str) -> dict[str, Any] | None:
-    """요약 원문을 보관하고 누락 식별자를 센다. checkpoint 가 없으면 ``None``."""
+    """요약 원문을 보관하고 누락 식별자를 센다. checkpoint 가 없으면 ``None``.
+
+    하네스가 요약 원문(``compact_summary``)을 주지 않으면 대조하지 않는다 — 빈 문자열과 대조하면
+    식별자 전부가 '누락' 으로 날조된다. Codex 0.143.0 의 ``PostCompact`` 입력 스키마에는 이 필드가
+    없다 (TASK-2026-09-30-main-008 실측). 그때 ``relay`` 는 ``summary_available: false`` 이고
+    ``missing_count`` 는 ``None`` 이다 — 0 누락과 구분한다.
+    """
     data = load_checkpoint(loc)
     if data is None:
         return None
     summary = payload.get("compact_summary")
+    ids = checkpoint_identifiers(data)
     if not isinstance(summary, str):
-        summary = ""
+        if loc.summary_path.is_file():
+            loc.summary_path.unlink()  # 이전 압축의 요약이 이번 것으로 읽히지 않게
+        data["relay"] = {
+            "summary_available": False,
+            "summary_path": None,
+            "summary_bytes": 0,
+            "checked_count": len(ids),
+            "missing_count": None,
+            "missing": [],
+        }
+        data["updated"] = now
+        save_checkpoint(loc, data)
+        return data
     ensure_compact_dir(loc)
     loc.summary_path.write_text(summary, encoding="utf-8")
-    ids = checkpoint_identifiers(data)
     missing = [t for t in ids if t not in summary]
     data["relay"] = {
+        "summary_available": True,
         "summary_path": loc.rel(loc.summary_path),
         "summary_bytes": _utf8_len(summary),
         "checked_count": len(ids),
@@ -368,6 +387,8 @@ def render_post_report(data: dict[str, Any]) -> str:
     **먼저** 돈다. 재주입 본문은 대조 결과를 볼 수 없으므로, 모델에게 닿는 대조 결과는 이 줄이다.
     """
     r = data.get("relay") or {}
+    if r.get("summary_available") is False:
+        return f"{HEADER_TAG} 요약 대조 불가 — 하네스가 요약 원문을 주지 않았다 (식별자 {r.get('checked_count', 0)}개 미대조)"
     if not r.get("checked_count"):
         return f"{HEADER_TAG} 요약 대조 대상 없음 (checkpoint 에 식별자가 없다)"
     head = f"{HEADER_TAG} 요약 대조: 누락 {r['missing_count']}/{r['checked_count']}"
@@ -453,7 +474,9 @@ def render_restore(
     if not judgment:
         meta.append("판단 층 없음 — 자동 압축이거나 기록 전 압축")
     if relay:
-        if relay.get("checked_count"):
+        if relay.get("summary_available") is False:
+            meta.append("요약 대조 불가 (하네스가 요약 원문을 주지 않음)")
+        elif relay.get("checked_count"):
             meta.append(f"요약 누락 {relay.get('missing_count', 0)}/{relay['checked_count']}")
         else:
             meta.append("요약 대조 대상 없음")

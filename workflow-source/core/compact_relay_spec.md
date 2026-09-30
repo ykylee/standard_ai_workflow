@@ -26,7 +26,7 @@
 |---|---|---|---|---|
 | `--note` | 스킬 | `--next` · `--unverified` · `--verified` · `--rejected` (반복 가능, 1개 이상) | 판단 층을 **대체**해 쓰고 `pending: true` | 인자 오류 2 |
 | `--hook pre` | `PreCompact` | stdin JSON | 기계 층 수집 · 대기 판단 층 인수 · 입력 필드 기록 | 항상 0 |
-| `--hook post` | `PostCompact` | stdin JSON | `compact_summary` → `summary.md`, 누락 대조, **누락 식별자를 stdout 한 줄로** (≤600B) | 항상 0 |
+| `--hook post` | `PostCompact` | stdin JSON | `compact_summary` → `summary.md`, 누락 대조, **누락 식별자를 stdout 한 줄로** (≤600B). 필드가 없으면 대조 불가 (§5) | 항상 0 |
 | `--restore` | `SessionStart(compact)` | stdin JSON (없으면 세션 대조 생략) | 재주입 본문을 stdout 으로 | 항상 0 |
 | `--clear` | `session-end` 스킬 | — | `.compact/` 의 checkpoint · summary 삭제 (`.gitignore` 는 남김) | 0 |
 
@@ -98,6 +98,9 @@ matcher 없는 기존 SessionStart hook(규칙 블록 3.0KB)도 압축 뒤 함�
   판단 층 항목 안의 백틱 토큰 · `\b[0-9a-f]{7,40}\b`.
 - 누락 = `compact_summary` 에 부분 문자열로 없는 토큰. 자연어 항목은 대조하지 않는다.
 - `checked_count = 0` 은 "대조 대상 없음" 이다 — `missing_count = 0` 과 구분한다.
+- 입력에 `compact_summary` 가 **없으면** (Codex 0.143.0 — `PostCompact` 입력 스키마에 필드 자체가 없다) 대조하지
+  않는다: `relay.summary_available = false`, `missing_count = null`, 이전 `summary.md` 는 지운다. post 출력과 재주입
+  머리말은 "대조 불가" 라고 말한다 — 빈 요약과 대조하면 식별자 전부가 '누락' 으로 날조된다.
 
 ## 6. 플러그인
 
@@ -111,7 +114,7 @@ matcher 없는 기존 SessionStart hook(규칙 블록 3.0KB)도 압축 뒤 함�
 
 **`session-end` 스킬** — 종료 순서 앞에 한 단계: checkpoint 가 있으면 남길 줄을 handoff 로 옮기고 `--clear`.
 
-**hook** (`render_claude_code_hooks`, 명령은 §11.1 파생):
+**hook** (`render_claude_code_hooks`, 명령은 §11.1 파생 — Codex 는 같은 3종만 `render_codex_hooks` 로, §7):
 
 | 이벤트 | matcher | 명령 |
 |---|---|---|
@@ -125,17 +128,29 @@ matcher 없는 기존 SessionStart hook(규칙 블록 3.0KB)도 압축 뒤 함�
 |---|---|---|---|---|
 | Claude Code | ✅ | ✅ | ✅ | 실측 2026-09-30 (플러그인 배포 hook 포함) |
 | Grok Build | ✅ | 수동적 — 무해 | ❌ SessionStart stdout 무시 | 공식 문서 (같은 `hooks/hooks.json` 사본) |
-| Codex | ✅ | ❌ manifest 에 hooks 없음 | ❌ | 미실측 — 별도 leaf |
+| Codex | ✅ | ✅ 사용자가 신뢰한 뒤 · 요약 대조 불가 | ⚠️ 경로 실측, 압축 왕복 미실측 | 실측 2026-09-30 (아래) |
 | Antigravity | ✅ | ❌ 압축 이벤트 없음 | ❌ | 공식 문서 |
 
 재주입이 없는 하네스에서는 스킬 절차 1–2 가 전부다 — 압축 뒤 모델이 checkpoint 파일을 직접 읽어야 한다.
 
+**Codex** (codex-cli 0.143.0, 격리 `CODEX_HOME` + app-server `hooks/list` · `thread/compact/start`, TASK-2026-09-30-main-008):
+전용 사본 `adapters/codex/hooks.json` 에 중계 hook 3종만 싣고 manifest `hooks` 가 그것을 가리킨다 — 기본 경로
+`hooks/hooks.json` 은 Grok 사본이라 규칙 주입(Codex 는 `AGENTS.md` 를 스스로 읽는다)과 Codex 에 없는 `SessionEnd`
+가 딸려 온다. manifest 경로가 있으면 기본 경로는 읽히지 않았다.
+
+- 플러그인 hook 은 설치 직후 `untrusted` 이고 **그 상태로는 돌지 않는다** — 사용자가 TUI 시작 시 "Hooks need review"
+  에서 신뢰해야 한다 (이 문구는 바이너리 문자열 근거, 대화형 TUI 는 미실측). 신뢰는 handler 별 해시라 명령이 바뀌면 `modified` 로 풀린다.
+- 실제 배포 zip 을 설치·신뢰한 뒤 이 저장소에서 압축을 걸자 `PreCompact` 가 원격 압축 호출 **전에** 돌아
+  checkpoint 를 썼다 (session_id = Codex thread id, `trigger=manual`). stdin 필드는 Claude Code 와 같고 cwd 는 프로젝트다.
+- `SessionStart` 의 평문 stdout 과 `additionalContext` 는 둘 다 developer 메시지로 주입된다 (`source=startup` 으로 측정).
+- 미실측: 인증된 압축 왕복에서의 `PostCompact` · `SessionStart(compact)` 발화와 순서 (이 호스트의 Codex 는 미인증).
+
 ## 8. 검증
 
-`tests/check_compact_relay.py` — case 마다 결함 되주입으로 red 확인:
+`tests/check_compact_relay.py` (14 cases) — case 마다 결함 되주입으로 red 확인:
 워크플로우 밖 무동작 · 자기 무시 `.gitignore` (`git check-ignore`) · `--note` 대체 + `pending` · pre 인수 /
 타 세션 새 시작 · 재주입 우선순위와 4,096 절단 · 세션 불일치 무본문 · checkpoint 부재 무출력 · 누락 대조
 (0 누락 ≠ 대상 없음) · handoff/`state.json` 바이트 불변 · hook 모드 exit 0 (깨진 stdin 포함) · hook JSON 이 §11.1 파생 ·
-예산 레코드 측정.
+예산 레코드 측정 · 요약 원문 부재 → 대조 불가 · Codex 사본 = 중계 3종 + manifest + 배포 zip.
 
-실제 하네스 왕복은 게이트 밖이다 (인증·비용). 남은 실측: 자동 압축(`trigger: auto`) 경로 · Codex 플러그인 hook.
+실제 하네스 왕복은 게이트 밖이다 (인증·비용). 남은 실측: 자동 압축(`trigger: auto`) 경로 · Codex 인증 압축 왕복(`PostCompact` · 재주입).

@@ -26,6 +26,7 @@ plugin/
 └── adapters/
     ├── claude-code/hooks.json   # 세션 경계 hook (P2) + 조건부 규칙 주입 (TASK-003)
     ├── claude-code/rules.md     # SessionStart 조건부 주입 규칙 블록 — render_entrypoint_rules 파생
+    ├── codex/hooks.json         # Codex 압축 중계 hook 3종 — Codex manifest 의 `hooks` 가 가리킨다 (ADR-030)
     ├── goose/config-snippet.yaml      # goose extensions 병합 snippet (P3)
     └── opencode/opencode-snippet.json # OpenCode MCP 등록 snippet (P3)
 ```
@@ -86,6 +87,7 @@ __all__ = [
     "PLUGIN_NAME",
     "PLUGIN_DESCRIPTION",
     "PLUGIN_SKILLS",
+    "CODEX_HOOKS_RELPATH",
     "GROK_HOOKS_RELPATH",
     "MARKETPLACE_RELPATH",
     "PluginSkillSpec",
@@ -95,6 +97,7 @@ __all__ = [
     "render_agent_plugin",
     "render_claude_code_hooks",
     "render_claude_code_manifest",
+    "render_codex_hooks",
     "render_codex_manifest",
     "render_claude_code_rules",
     "render_goose_config_snippet",
@@ -157,6 +160,14 @@ CLAUDE_CODE_MCP_RELPATH = ".mcp.json"
 #: Codex plugin manifest. Codex 배포물은 이 파일과 ``skills/``를 최소 단위로
 #: 묶으며, Claude Code manifest와 같은 payload를 공유하되 설치 surface는 분리한다.
 CODEX_MANIFEST_RELPATH = ".codex-plugin/plugin.json"
+
+#: Codex 가 읽는 hook 설정 — manifest 의 ``hooks`` 필드가 이 경로를 가리킨다
+#: (TASK-2026-09-30-main-008, codex-cli 0.143.0 격리 ``CODEX_HOME`` 실측). 필드가 없어도
+#: Codex 는 ``hooks/hooks.json`` 을 기본 경로로 발견하는데 그 자리는 Grok 사본이다 —
+#: 규칙 주입(`AGENTS.md` 를 스스로 읽는 Codex 에서는 이중 주입)과 Codex 에 없는
+#: ``SessionEnd`` 까지 딸려 온다. 그래서 전용 파일을 따로 두고 명시한다. 실측으로는 manifest
+#: 경로가 있으면 기본 경로는 **읽히지 않았다** (번들 field guide 는 "보탠다" 고 적었다).
+CODEX_HOOKS_RELPATH = "adapters/codex/hooks.json"
 
 #: Antigravity 어댑터 (2026-08-29 이 호스트 실측, agy CLI). Antigravity 는
 #: **payload 루트의 관례 파일**을 읽는다: `agy plugin validate` 가 `skills/` 4종과
@@ -385,10 +396,11 @@ step. Record them in the branch memory before compacting, so they come back afte
    tell the user in one line. If it says the checkpoint belongs to another session, do not
    use its content.
 
-Where the harness runs the plugin hooks (Claude Code), the mechanical layer — branch, HEAD,
-in-progress / blocked tasks, uncommitted files — is recorded automatically before every
-compaction, including automatic ones, and re-injected afterwards. Harnesses without those
-hooks get only steps 1–2: read the checkpoint file yourself after compacting.
+Where the harness runs the plugin hooks (Claude Code; Codex once the user has trusted them
+at the "Hooks need review" prompt), the mechanical layer — branch, HEAD, in-progress /
+blocked tasks, uncommitted files — is recorded automatically before every compaction,
+including automatic ones, and re-injected afterwards. Harnesses without those hooks get only
+steps 1–2: read the checkpoint file yourself after compacting.
 
 ## Usage
 
@@ -629,6 +641,11 @@ def render_codex_manifest(version: str | None = None) -> str:
     번들이 ``enabled`` 로 잡힌다. 즉 ``skills`` / ``mcpServers`` 는 실제로 읽힌다.
     ``interface`` 블록은 UI 표면이라 이 경로로는 관측되지 않았다 — 스펙 원문
     근거로만 싣는다.
+
+    ``hooks`` 는 field guide 에 있는 필드다 (``hooks`` (`string`): Hook config path).
+    같은 문서의 scaffold 절이 "검증기가 hooks 같은 미지원 필드를 거부한다" 고 적었지만 그
+    검증기는 0.143.0 번들에 없고, 런타임은 이 필드를 읽는다 — 실측은
+    :func:`render_codex_hooks` docstring.
     """
     return json.dumps(
         {
@@ -644,6 +661,7 @@ def render_codex_manifest(version: str | None = None) -> str:
             "license": current_kit_license(),
             "keywords": ["workflow", "codex", "agent-skills"],
             "skills": "./skills/",
+            "hooks": f"./{CODEX_HOOKS_RELPATH}",
             "mcpServers": f"./{CLAUDE_CODE_MCP_RELPATH}",
             "interface": {
                 "displayName": "Standard AI Workflow",
@@ -833,6 +851,65 @@ def render_claude_code_rules(rules: StandardRules) -> str:
     )
 
 
+_INSTALL_GUIDE = "docs/INSTALLATION_AND_USAGE.md §3"
+
+
+def _relay_hooks(rules: StandardRules) -> dict[str, list[dict[str, Any]]]:
+    """compact 중계 hook 3종 (ADR-030) — Claude Code 와 Codex 가 같은 정의를 쓴다.
+
+    `wk` 가 없으면 **조용히** 끝난다 (부재 안내는 Claude Code 의 SessionStart ① 몫).
+    `wk` 가 있는데 명령이 실패하면(플러그인보다 오래된 kit — 명령 자체가 없다) 조용히 넘기지 않고
+    한 줄로 말한다. exit 는 0 으로 둔다 — 압축 hook 의 exit 2 는 하네스에 따라 압축을 막는다.
+    """
+    relay_cmd = find_memory_command(rules, "Relay working state")
+    binary = relay_cmd.split()[0]
+    relay_failed_notice = (
+        f"[{PLUGIN_NAME}] `{relay_cmd}` failed — the installed kit may be older than the plugin. "
+        f"Upgrade: {_INSTALL_GUIDE}"
+    )
+
+    def relay(mode: str) -> dict[str, str]:
+        return {
+            "type": "command",
+            "command": (
+                f"command -v {binary} >/dev/null 2>&1 && "
+                f"{{ {relay_cmd} {mode} || echo '{relay_failed_notice}'; }} || true"
+            ),
+        }
+
+    return {
+        "SessionStart": [{"matcher": "compact", "hooks": [relay("--restore")]}],
+        "PreCompact": [{"hooks": [relay("--hook pre")]}],
+        "PostCompact": [{"hooks": [relay("--hook post")]}],
+    }
+
+
+def render_codex_hooks(rules: StandardRules) -> str:
+    """``plugin/adapters/codex/hooks.json`` — Codex 의 compact 중계 hook 3종만.
+
+    **실측** (TASK-2026-09-30-main-008, codex-cli 0.143.0, 격리 ``CODEX_HOME`` + app-server
+    ``hooks/list`` · ``thread/compact/start``):
+
+    - manifest ``hooks`` 경로를 읽는다 (source=plugin). 모르는 이벤트(``SessionEnd``)는 경고 없이 버린다.
+    - 플러그인 hook 은 설치 직후 **untrusted** 이고 그 상태로는 돌지 않는다 — 같은 압축에서
+      신뢰한 플러그인의 ``PreCompact`` 만 발화했다. 신뢰는 handler 별 해시라 명령이 바뀌면
+      ``modified`` 로 풀린다. 사용자는 TUI 시작 시 "Hooks need review" 에서 신뢰한다.
+    - ``PreCompact`` 는 원격 압축 호출 **전에** 돈다. stdin 은 Claude Code 와 같은 필드
+      (``session_id`` · ``transcript_path`` · ``cwd`` · ``trigger``), cwd 는 프로젝트,
+      ``CLAUDE_PLUGIN_ROOT`` 는 설치 캐시 루트.
+    - ``SessionStart`` 의 평문 stdout 과 ``additionalContext`` 는 둘 다 developer 메시지로
+      주입된다 (``source=startup`` 으로 측정 — rollout 기록).
+    - ``PostCompact`` 입력 스키마에 ``compact_summary`` 가 **없다** (``additionalProperties: false``)
+      → 요약 대조는 "대조 불가" 로 보고된다 (:func:`workflow_kit.common.compact_relay.hook_post`).
+
+    미실측: 인증된 압축 왕복에서 ``PostCompact`` · ``SessionStart(compact)`` 발화와 순서.
+
+    규칙 주입과 ``wk`` 부재 안내는 싣지 않는다 — Codex 는 ``AGENTS.md`` 를 스스로 읽고, 신뢰할
+    hook 이 늘수록 사용자가 검토할 것도 는다.
+    """
+    return json.dumps({"hooks": _relay_hooks(rules)}, ensure_ascii=False, indent=2) + "\n"
+
+
 def render_claude_code_hooks(rules: StandardRules) -> str:
     """``plugin/adapters/claude-code/hooks.json`` — 세션 경계 자동화.
 
@@ -857,35 +934,18 @@ def render_claude_code_hooks(rules: StandardRules) -> str:
       (ADR-030). 압축 전 기계 층 기록, 압축 뒤 요약 대조, 재주입. `wk` 가 없으면
       **조용히** 끝난다 — 부재 안내는 위 SessionStart ① 이 이미 한다. Grok 은 같은
       사본을 읽지만 SessionStart stdout 을 무시해 재주입이 없다 (`compact_relay_spec` §7
-      선언). Codex manifest 에는 hooks 를 싣지 않는다 (미실측).
+      선언). Codex 는 같은 세 hook 을 전용 파일로 받는다 (:func:`render_codex_hooks`).
 
     명령은 정본 §11.1 파생이다 (`find_memory_command`). 여기에 문자열을 박으면
     §11.1 개명 시 이 사본만 낡는다.
     """
     refresh_cmd = find_memory_command(rules, "Regenerate state.json")
-    relay_cmd = find_memory_command(rules, "Relay working state")
     binary = refresh_cmd.split()[0]
-    guide = "docs/INSTALLATION_AND_USAGE.md §3"
     absent_notice = (
         f"[{PLUGIN_NAME}] `{binary}` not found — the skills still describe the procedure, but the "
-        f"memory-update commands will not run. Install: {guide}"
+        f"memory-update commands will not run. Install: {_INSTALL_GUIDE}"
     )
-    # `wk` 가 있는데 명령이 실패하면(플러그인보다 오래된 kit — 명령 자체가 없다) 조용히 넘기지 않고
-    # 한 줄로 말한다. exit 는 0 으로 둔다 — 압축 hook 의 exit 2 는 하네스에 따라 압축을 막는다.
-    relay_failed_notice = (
-        f"[{PLUGIN_NAME}] `{relay_cmd}` failed — the installed kit may be older than the plugin. "
-        f"Upgrade: {guide}"
-    )
-
-    def relay(mode: str) -> dict[str, str]:
-        return {
-            "type": "command",
-            "command": (
-                f"command -v {binary} >/dev/null 2>&1 && "
-                f"{{ {relay_cmd} {mode} || echo '{relay_failed_notice}'; }} || true"
-            ),
-        }
-
+    relay = _relay_hooks(rules)
     probe = _rules_marker_probe()
     rules_inject = (
         f"{{ grep -qsF '{probe}' CLAUDE.md .claude/CLAUDE.md GROK.md; }} || "
@@ -911,10 +971,10 @@ def render_claude_code_hooks(rules: StandardRules) -> str:
                             },
                         ]
                     },
-                    {"matcher": "compact", "hooks": [relay("--restore")]},
+                    *relay["SessionStart"],
                 ],
-                "PreCompact": [{"hooks": [relay("--hook pre")]}],
-                "PostCompact": [{"hooks": [relay("--hook post")]}],
+                "PreCompact": relay["PreCompact"],
+                "PostCompact": relay["PostCompact"],
                 "SessionEnd": [
                     {
                         "hooks": [
@@ -1038,6 +1098,7 @@ def render_agent_plugin(
         CLAUDE_CODE_MANIFEST_RELPATH: render_claude_code_manifest(version),
         CLAUDE_CODE_HOOKS_RELPATH: hooks_config,
         GROK_HOOKS_RELPATH: hooks_config,
+        CODEX_HOOKS_RELPATH: render_codex_hooks(resolved),
         CLAUDE_CODE_RULES_RELPATH: render_claude_code_rules(resolved),
         # Antigravity 관례 루트 파일 — 같은 렌더러, 서버 별칭만 짧다 (도구 이름 64자 제한,
         # main-020). 별칭 외 동일성과 이름 길이는 검사 case 가 강제한다.

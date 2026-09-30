@@ -64,6 +64,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-09-30-main-008 Codex 플러그인 hook 적재 — compact 중계 기록·재주입을 Codex 에서
 - TASK-2026-09-30-main-007 v1.15.0 발행 — compact 중계 (wk compact-checkpoint · 스킬 compact-relay · hook 3종)
 - TASK-2026-09-30-main-006 compact 중계 구현 — wk compact-checkpoint · hook 3종 · 스킬 compact-relay · 검사
 - TASK-2026-09-30-main-005 compact 중계 design — ADR-030 + compact_relay_spec
@@ -73,12 +74,11 @@
 - TASK-2026-09-29-main-018 str(relative_to) 잔여 사이트 점검 — wk doctor 가 Windows 에서 정본 파일을 extra 로 오판
 - TASK-2026-09-29-main-017 roadmap_state.json source_path 호스트 독립(POSIX) 고정
 - TASK-2026-09-29-main-016 Codex 세션 내 wk 미인식 — editable 재설치 및 PATH 비교
-- TASK-2026-09-29-main-015 Windows 환경 워크플로우 editable 설치 및 emit/doctor 이슈 재현
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
 
-- (compact 중계 후속, M-007) 대화형 Claude Code 세션에서 **자동 압축(`trigger: auto`) 1회 실측** — 기계 층만 기록되고 재주입 머리말이 '판단 층 없음' 을 말하는지. v1.15.0 발행됨 — claude-code 는 **재시작해야** 새 hook 이 돈다(runtime_load stale), macOS 호스트는 §2.8 재적용(→1.15.0) 필요. 플러그인과 kit 버전이 다르면 hook 이 한 줄 안내만 낸다. Codex 플러그인 hook 적재는 별도 leaf.
+- (compact 중계 후속, M-007) 대화형 Claude Code 세션에서 **자동 압축(`trigger: auto`) 1회 실측** — 기계 층만 기록되고 재주입 머리말이 '판단 층 없음' 을 말하는지. v1.15.0 발행됨 — claude-code 는 **재시작해야** 새 hook 이 돈다(runtime_load stale), macOS 호스트는 §2.8 재적용(→1.15.0) 필요. 플러그인과 kit 버전이 다르면 hook 이 한 줄 안내만 낸다. Codex 플러그인 hook 은 108차 main-008 로 탑재(기록 hook 실측, 사용자 신뢰 필요) — 인증 압축 왕복은 TASK-2026-09-30-main-009 (`codex login` 필요, 이 Linux 호스트는 미인증).
 - (macOS 호스트) TASK-2026-09-30-main-001 착수 전 105차 배포본 채취: `find ~/.minimax/plugins/standard-ai-workflow -maxdepth 3 | sort` + 매니페스트 원문 + 제품(Desktop / CLI `mcode`)·버전. 공식 mcode 0.4+ 명세와 105차 기록이 우선순위가 반대라, 채취본을 정본 fixture 로 삼아 렌더러 → §2.8 → `deploy_doctor` 순. claude-code 매니페스트(hooks 경로 문자열)를 그대로 재사용하지 말 것.
 - (Windows 호스트) main-002 실측: `check_python_floor_syntax` case 6 이 실제 `.cmd` shim 으로 PASS 하는지.
 - Codex 데스크톱을 완전히 재시작한 뒤 새 셸에서 `Get-Command wk`, `wk session-start`, `gh`, `unzip`, `python3 --version`, `wk doctor --json` 을 확인한다. 재시작 후에도 `wk` 가 빠져 있으면 사용자 PATH 가 데스크톱에 전달되는지 다시 진단한다. Codex CLI 실행 파일이 계속 PATH 에 없으면 `codex` 채널의 `installable=false` 는 별도 CLI 미설치 상태로 기록한다.

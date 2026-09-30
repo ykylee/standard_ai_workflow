@@ -35,9 +35,11 @@
       "TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다"
     ],
     "planned_items": [
-      "TASK-2026-09-30-main-001"
+      "TASK-2026-09-30-main-001",
+      "TASK-2026-09-30-main-009"
     ],
     "recent_done_items": [
+      "TASK-2026-09-30-main-008 — Codex 플러그인 hook 적재 — compact 중계 기록·재주입을 Codex 에서",
       "TASK-2026-09-30-main-007 — v1.15.0 발행 — compact 중계 (wk compact-checkpoint · 스킬 compact-relay · hook 3종)",
       "TASK-2026-09-30-main-006 — compact 중계 구현 — wk compact-checkpoint · hook 3종 · 스킬 compact-relay · 검사",
       "TASK-2026-09-30-main-005 — compact 중계 design — ADR-030 + compact_relay_spec",
@@ -46,15 +48,14 @@
       "TASK-2026-09-30-main-002 — python_floor 하한 해석기 호출을 stdin 으로 — Windows .CMD/.bat shim 에서 -c 다줄 스크립트가 첫 개행에서 잘린다 (main-013 후속)",
       "TASK-2026-09-29-main-018 — str(relative_to) 잔여 사이트 점검 — wk doctor 가 Windows 에서 정본 파일을 extra 로 오판",
       "TASK-2026-09-29-main-017 — roadmap_state.json source_path 호스트 독립(POSIX) 고정",
-      "TASK-2026-09-29-main-016 — Codex 세션 내 wk 미인식 — editable 재설치 및 PATH 비교",
-      "TASK-2026-09-29-main-015 — Windows 환경 워크플로우 editable 설치 및 emit/doctor 이슈 재현"
+      "TASK-2026-09-29-main-016 — Codex 세션 내 wk 미인식 — editable 재설치 및 PATH 비교"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-09-30.md",
-    "task_count": 7,
+    "task_count": 9,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
@@ -63,7 +64,8 @@
       "TASK-2026-09-30-main-004 — compact 중계 requirements — 명령 계약 · checkpoint 형식 · 재주입 예산 · 누락 판정",
       "TASK-2026-09-30-main-005 — compact 중계 design — ADR-030 + compact_relay_spec",
       "TASK-2026-09-30-main-006 — compact 중계 구현 — wk compact-checkpoint · hook 3종 · 스킬 compact-relay · 검사",
-      "TASK-2026-09-30-main-007 — v1.15.0 발행 — compact 중계 (wk compact-checkpoint · 스킬 compact-relay · hook 3종)"
+      "TASK-2026-09-30-main-007 — v1.15.0 발행 — compact 중계 (wk compact-checkpoint · 스킬 compact-relay · hook 3종)",
+      "TASK-2026-09-30-main-008 — Codex 플러그인 hook 적재 — compact 중계 기록·재주입을 Codex 에서"
     ]
   },
   "next_documents": [

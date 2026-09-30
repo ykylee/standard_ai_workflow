@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""compact 중계 — `wk compact-checkpoint` 모드 계약 · 재주입 예산 · 요약 대조 · hook 파생 (12 cases, ADR-030).
+"""compact 중계 — `wk compact-checkpoint` 모드 계약 · 재주입 예산 · 요약 대조 · hook 파생 (14 cases, ADR-030).
 
 정본은 `workflow_kit/common/compact_relay.py`, 계약은 `core/compact_relay_spec.md`.
 
-12 cases:
+14 cases:
   1) 워크플로우 밖 · 브랜치 디렉터리 없는 workspace 에서 hook 3모드는 출력도 파일도 없이 exit 0
   2) `.compact/` 는 스스로를 git 에서 무시한다 — `git status` 에 안 잡히고 `check-ignore` 가 맞다
   3) `--note` 는 판단 층을 **대체**하고 `pending` 으로 둔다 · 항목 없는 `--note` · 모르는 인자는 exit 2 ·
@@ -20,6 +20,10 @@
  11) 플러그인 hook 3종은 정본 §11.1 명령에서 파생되고, `wk` 부재에 조용하되 명령 실패(구버전 kit)는 말한다 ·
      저장된 사본이 렌더와 같다
  12) 예산 레코드 `compact_reinjection` 은 checkpoint 가 있으면 재고, 없으면 `measured=False` 다
+ 13) 하네스가 요약 원문을 주지 않으면(Codex `PostCompact`) 대조하지 않고 '대조 불가' 로 말한다 — 빈 요약과
+     대조해 식별자 전부를 '누락' 으로 날조하지 않는다 · 이전 압축의 `summary.md` 를 남기지 않는다
+ 14) Codex hook 사본은 compact 중계 3종만이고 Claude Code 와 같은 명령이다 · manifest `hooks` 가 그 파일을
+     가리킨다 · Codex 배포 zip 에 실린다 · 저장된 사본이 렌더와 같다
 
 임시 workspace 는 실물 배치를 닮는다 — `git init -b main` · `docs/PROJECT_PROFILE.md` ·
 `ai-workflow/memory/active/main/backlog/tasks/`. CLI 는 **좁힌 환경**의 subprocess 로 부른다 — 상속된
@@ -433,6 +437,65 @@ def case_12_budget_record_measures() -> None:
     _record("case 12 예산 레코드 측정", problems)
 
 
+def case_13_absent_summary_is_not_all_missing() -> None:
+    problems: list[str] = []
+    with tempfile.TemporaryDirectory() as tmp:
+        ws = _workspace(Path(tmp))
+        _cli(ws, "--note", "--unverified", "`check_x.py` 가 abc1234f 에서 red 인지")
+        _cli(ws, "--hook", "pre", stdin=_payload(ws))
+        _cli(ws, "--hook", "post", stdin=_payload(ws, compact_summary="이전 압축의 요약"))
+        if not (_compact_dir(ws) / "summary.md").is_file():
+            problems.append("전제: 첫 post 가 요약을 보관하지 않았다")
+        # Codex 0.143.0 PostCompact 입력 — compact_summary 필드가 없다 (TASK-2026-09-30-main-008 실측)
+        post = _cli(ws, "--hook", "post", stdin=_payload(ws, hook_event_name="PostCompact", trigger="manual"))
+        r = _checkpoint(ws)["relay"]
+        if r.get("summary_available") is not False or r.get("missing_count") is not None or r.get("missing"):
+            problems.append(f"요약 부재인데 대조했다: {r}")
+        if "대조 불가" not in post.stdout or "누락" in post.stdout:
+            problems.append(f"post 출력: {post.stdout!r}")
+        if (_compact_dir(ws) / "summary.md").exists():
+            problems.append("이전 압축의 summary.md 가 남아 이번 요약처럼 읽힌다")
+        out = _cli(ws, "--restore", stdin=_payload(ws)).stdout
+        head = out.splitlines()[1] if len(out.splitlines()) > 1 else out
+        if "대조 불가" not in head or "누락" in head:
+            problems.append(f"재주입 머리말: {head!r}")
+    _record("case 13 요약 원문 부재 → 대조 불가 (전부 누락으로 날조하지 않음)", problems)
+
+
+def case_14_codex_hooks_carry_relay_only() -> None:
+    from workflow_kit.common.standard_rules import load_standard_rules
+    from workflow_kit.plugin_distribution import PLUGIN_HARNESS_SPECS, _included
+    from workflow_kit.plugin_payload import (
+        CODEX_HOOKS_RELPATH,
+        CODEX_MANIFEST_RELPATH,
+        render_agent_plugin,
+        render_claude_code_hooks,
+        render_codex_hooks,
+    )
+
+    problems: list[str] = []
+    rules = load_standard_rules()
+    codex = json.loads(render_codex_hooks(rules))["hooks"]
+    claude = json.loads(render_claude_code_hooks(rules))["hooks"]
+    if sorted(codex) != ["PostCompact", "PreCompact", "SessionStart"]:
+        problems.append(f"Codex 이벤트 {sorted(codex)} — 중계 3종만이어야 한다 (SessionEnd 는 Codex 에 없다)")
+    for event, groups in codex.items():
+        want = [g for g in claude.get(event, []) if event != "SessionStart" or g.get("matcher") == "compact"]
+        if groups != want:
+            problems.append(f"{event}: Claude Code 사본과 다르다 — {groups}")
+    if "CLAUDE_PLUGIN_ROOT" in json.dumps(codex):
+        problems.append("규칙 주입이 딸려 왔다 — Codex 는 AGENTS.md 를 스스로 읽는다 (이중 주입)")
+    payload = render_agent_plugin()
+    manifest = json.loads(payload[CODEX_MANIFEST_RELPATH])
+    if manifest.get("hooks") != f"./{CODEX_HOOKS_RELPATH}" or CODEX_HOOKS_RELPATH not in payload:
+        problems.append(f"manifest hooks={manifest.get('hooks')!r} — payload 의 {CODEX_HOOKS_RELPATH} 를 가리키지 않는다")
+    if not _included(CODEX_HOOKS_RELPATH, PLUGIN_HARNESS_SPECS["codex"]):
+        problems.append("Codex 배포 zip 에 hook 파일이 빠진다 — manifest 가 없는 파일을 가리킨다")
+    if (REPO_ROOT / "plugin" / CODEX_HOOKS_RELPATH).read_text(encoding="utf-8") != payload[CODEX_HOOKS_RELPATH]:
+        problems.append(f"{CODEX_HOOKS_RELPATH} 가 렌더와 다르다 — `python3 -m workflow_kit.plugin_payload --apply`")
+    _record("case 14 Codex hook = 중계 3종 · manifest · 배포 zip", problems)
+
+
 CASES = [
     case_1_outside_workflow_is_silent,
     case_2_compact_dir_ignores_itself,
@@ -446,6 +509,8 @@ CASES = [
     case_10_hook_never_fails,
     case_11_plugin_hooks_derive_from_standard,
     case_12_budget_record_measures,
+    case_13_absent_summary_is_not_all_missing,
+    case_14_codex_hooks_carry_relay_only,
 ]
 
 

@@ -15,6 +15,7 @@
     "agent-skills"
   ],
   "skills": "./skills/",
+  "hooks": "./adapters/codex/hooks.json",
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Standard AI Workflow",

@@ -35,10 +35,11 @@ step. Record them in the branch memory before compacting, so they come back afte
    tell the user in one line. If it says the checkpoint belongs to another session, do not
    use its content.
 
-Where the harness runs the plugin hooks (Claude Code), the mechanical layer — branch, HEAD,
-in-progress / blocked tasks, uncommitted files — is recorded automatically before every
-compaction, including automatic ones, and re-injected afterwards. Harnesses without those
-hooks get only steps 1–2: read the checkpoint file yourself after compacting.
+Where the harness runs the plugin hooks (Claude Code; Codex once the user has trusted them
+at the "Hooks need review" prompt), the mechanical layer — branch, HEAD, in-progress /
+blocked tasks, uncommitted files — is recorded automatically before every compaction,
+including automatic ones, and re-injected afterwards. Harnesses without those hooks get only
+steps 1–2: read the checkpoint file yourself after compacting.
 
 ## Usage
 

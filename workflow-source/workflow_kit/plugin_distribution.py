@@ -18,6 +18,7 @@ from pathlib import Path
 from workflow_kit.plugin_payload import (
     CLAUDE_CODE_MANIFEST_RELPATH,
     CLAUDE_CODE_MCP_RELPATH,
+    CODEX_HOOKS_RELPATH,
     CODEX_MANIFEST_RELPATH,
     PAYLOAD_DIRNAME,
     PLUGIN_NAME,
@@ -39,7 +40,7 @@ PLUGIN_HARNESS_SPECS: dict[str, PluginHarnessSpec] = {
     "codex": PluginHarnessSpec(
         slug="codex",
         manifest_relpath=CODEX_MANIFEST_RELPATH,
-        include_prefixes=(CODEX_MANIFEST_RELPATH, CLAUDE_CODE_MCP_RELPATH, "skills/"),
+        include_prefixes=(CODEX_MANIFEST_RELPATH, CLAUDE_CODE_MCP_RELPATH, "skills/", CODEX_HOOKS_RELPATH),
         marketplace_name=PLUGIN_NAME,
     ),
     "claude-code": PluginHarnessSpec(

@@ -53,5 +53,5 @@
   - path: [`./M-019-compact-relay-requirements.md`](./M-019-compact-relay-requirements.md)
 - **M-020** [design] compact 중계 — design (ADR-030 + core 스펙) — status: done
   - path: [`./M-020-compact-relay-design.md`](./M-020-compact-relay-design.md)
-- **M-021** [implementation] compact 중계 — implementation (명령 · hook · 스킬 · 검사) — status: in_progress
+- **M-021** [implementation] compact 중계 — implementation (명령 · hook · 스킬 · 검사) — status: done
   - path: [`./M-021-compact-relay-implementation.md`](./M-021-compact-relay-implementation.md)

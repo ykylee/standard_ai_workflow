@@ -750,22 +750,22 @@
       "id": "M-021",
       "title": "compact 중계 — implementation (명령 · hook · 스킬 · 검사)",
       "sdlc_phase": "implementation",
-      "declared_status": "in_progress",
-      "derived_status": "in_progress",
-      "progress": 0.0,
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
       "total_leaves": 1,
-      "done_leaves": 0,
+      "done_leaves": 1,
       "deliverables_missing": [],
       "wbs": [
         {
           "id": "WBS-21.1",
           "title": "구현 — `compact_relay` 모듈 + `wk compact-checkpoint` + 예산 레코드 + §11.1 한 줄 +",
-          "derived_status": "in_progress",
+          "derived_status": "done",
           "linked_task_ids": [
             "TASK-2026-09-30-main-006"
           ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         }
       ]

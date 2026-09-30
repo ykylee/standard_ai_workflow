@@ -1,20 +1,20 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-09-29T05:15:02Z`
-- tool_version: `1.14.4`
+- generated_at: `2026-09-30T03:11:37Z`
+- tool_version: `1.15.0`
 - workspace_root: `/home/yklee/repos/standard_ai_workflow`
 
 ## Panel 1 — Drift Prevention Status
 
 - guard_status: `pass`
 - guard_cases: `7 / 7`
-- maturity_last_updated: `2026-09-29`
+- maturity_last_updated: `2026-09-30`
 - maturity_surface_changed_at: `2026-09-29`
 - maturity_stale: `False` (source: `maturity_surface_commit`)
 - harness_supported_count: `10`
-- head_commit_date: `2026-09-29`
+- head_commit_date: `2026-09-30`
 - last_updated_delta_days: `0`
-- silent_failing_cycles_count: `0` (측정 cycle 27건)
+- silent_failing_cycles_count: `0` (측정 cycle 28건)
 
 ## Panel 2 — Maturity Distribution
 
@@ -75,20 +75,20 @@
 
 ## Panel 4 — Smoke Trend
 
-- cumulative_total: `296`
-- cumulative_pass: `296`
+- cumulative_total: `298`
+- cumulative_pass: `298`
 - cumulative_pass_rate: `1.0000`
-- smoke_files_count: `296`
+- smoke_files_count: `298`
 
 ### Recent release smoke counts
 
 | version | pass | total |
 |---|---|---|
+| Beta-v1.15.0 | 298 | 298 |
 | Beta-v1.14.4 | 296 | 296 |
 | Beta-v1.14.3 | 296 | 296 |
 | Beta-v1.14.2 | 296 | 296 |
 | Beta-v1.14.1 | 296 | 296 |
-| Beta-v1.14.0 | 296 | 296 |
 
 ## Panel 5 — Recent Release Cycle
 
@@ -98,16 +98,16 @@
 
 ### Timeline (preview, first 120 char)
 
-- [0] TASK-2026-09-29-main-013 — Windows: doctor MCP 해석기 탐침이 python3.CMD shim 경유 시 cmd.exe 가 -c 다줄 스크립트를 첫 개행에서 자른다 (소유자 전달 버그…  `[fresh]`
-- [1] TASK-2026-09-29-main-012 — wiki 스탬프 단일화 — frontmatter updated: 를 정본으로, 게이트·doc-headers-update 가 그것을 판정·갱신 (100차 후속)  `[fresh]`
-- [2] TASK-2026-09-29-main-011 — claude runtime_load 재시작 확인 (100차 후속, v1.14.3)  `[fresh]`
-- [3] TASK-2026-09-29-main-010 — 상태 헤더 없는 wiki 6건의 스탬프 판정 범위  `[fresh]`
-- [4] TASK-2026-09-29-main-009 — v1.14.3 발행 — 스탬프 형식 판정 + backlog-update kind 표식 수리  `[fresh]`
-- [5] TASK-2026-09-29-main-008 — backlog-update 가 kind 규약을 모른다 — session kind 무source 생성 허용 + update 시 daily index kind 표식 미갱신  `[fresh]`
-- [6] TASK-2026-09-29-main-007 — 스탬프 게이트가 주석 달린 스탬프 줄을 조용히 건너뛰는 것  `[fresh]`
-- [7] TASK-2026-09-29-main-006 — claude runtime_load 재시작 확인 (98차 후속)  `[fresh]`
-- [8] TASK-2026-09-29-main-005 — v1.14.2 발행 — 공유 AGENTS.md 마커로 opencode 오버레이가 생기던 것 수리  `[fresh]`
-- [9] TASK-2026-09-29-main-004 — 공유 AGENTS.md 마커 때문에 opencode 가 적용된 하네스로 판정돼 session-start 가 opencode 오버레이를 만든다  `[fresh]`
+- [0] TASK-2026-09-30-main-006 — compact 중계 구현 — wk compact-checkpoint · hook 3종 · 스킬 compact-relay · 검사  `[fresh]`
+- [1] TASK-2026-09-30-main-005 — compact 중계 design — ADR-030 + compact_relay_spec  `[fresh]`
+- [2] TASK-2026-09-30-main-004 — compact 중계 requirements — 명령 계약 · checkpoint 형식 · 재주입 예산 · 누락 판정  `[fresh]`
+- [3] TASK-2026-09-30-main-003 — compact 중계 concept 검토 — 하네스별 compact 표면 실측과 checkpoint 설계 선택지  `[fresh]`
+- [4] TASK-2026-09-30-main-002 — python_floor 하한 해석기 호출을 stdin 으로 — Windows .CMD/.bat shim 에서 -c 다줄 스크립트가 첫 개행에서 잘린다 (main-013…  `[fresh]`
+- [5] TASK-2026-09-29-main-018 — str(relative_to) 잔여 사이트 점검 — wk doctor 가 Windows 에서 정본 파일을 extra 로 오판  `[fresh]`
+- [6] TASK-2026-09-29-main-017 — roadmap_state.json source_path 호스트 독립(POSIX) 고정  `[fresh]`
+- [7] TASK-2026-09-29-main-016 — Codex 세션 내 wk 미인식 — editable 재설치 및 PATH 비교  `[fresh]`
+- [8] TASK-2026-09-29-main-015 — Windows 환경 워크플로우 editable 설치 및 emit/doctor 이슈 재현  `[fresh]`
+- [9] TASK-2026-09-29-main-014 — v1.14.4 발행 — Windows doctor MCP 탐침 shim 절단 + wiki 스탬프 판정 수리  `[fresh]`
 
 ## Panel 6 — Multi-Agent Concurrent Write Conflict
 
@@ -137,10 +137,10 @@
 
 - phase_15_north_star: `utilization_3tuple (query_diversity / entries_new_30d / distinct_entries_retrieved — ADR-006 W-4; hit_rate 는 보조)`
 - entries_total: `30`
-- telemetry_events_total: `2982`
-- telemetry_total_queries: `2982`
-- telemetry_hit_count: `1230`
-- telemetry_hit_rate: `0.4125`
+- telemetry_events_total: `3000`
+- telemetry_total_queries: `3000`
+- telemetry_hit_count: `1244`
+- telemetry_hit_rate: `0.4147`
 
 ### Entries by merge_state
 
@@ -152,8 +152,8 @@
 
 | source | events |
 |---|---|
-| `backlog-update` | 496 |
+| `backlog-update` | 511 |
 | `dispatcher` | 13 |
 | `doc-sync` | 2 |
-| `session-start` | 2471 |
+| `session-start` | 2474 |
 

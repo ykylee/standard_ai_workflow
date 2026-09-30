@@ -4,7 +4,7 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-09-30 (107차 세션 — Linux 호스트. 새 기능 축 compact 중계 M-018~M-021 concept→implementation 완주: `wk compact-checkpoint` + 플러그인 스킬 `compact-relay` · hook 3종, ADR-030)
+- 최종 수정일: 2026-09-30 (107차 세션 — Linux 호스트. 새 기능 축 compact 중계 M-018~M-021 concept→implementation 완주: `wk compact-checkpoint` + 플러그인 스킬 `compact-relay` · hook 3종, ADR-030 → **v1.15.0 발행**)
 - 이전 수정일: 2026-09-30 (106차 세션 **종료** — Linux 호스트. main-002 close: `python_floor` 하한 해석기 호출을 stdin 으로(배치 shim `-c` 개행 절단, main-013 후속) + main-001 minimax 패키지 형식 조사(공식 mcode 명세 vs 105차 기록 불일치 → macOS 채취 대기))
 - 이전 수정일: 2026-09-30 (105차 세션 **종료** — macOS 호스트. minimax-code 플러그인 채널 갭 실측·등록 + MiniMax Plugin V1 배포 + `~/.mavis` 호환 링크 제거. 저장소 코드 변경은 없음)
 - 이전 수정일: 2026-09-29 (104차 세션 **종료** — macOS 호스트. main-017 · 018 close + 08-25-main-017 Windows 실측 칸 신설: Windows 커밋이 `roadmap_state.json` source_path 를 역슬래시로 남겨 교차 호스트 diff 가 나던 것 → `as_posix()`, 후속으로 `wk doctor` 가 Windows 에서 정본 파일을 extra 로 오판하던 것)
@@ -29,7 +29,7 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **107차 세션 (2026-09-30, Linux 호스트) — 새 기능 축 compact 중계 SDLC 완주 (M-018 concept → M-019 requirements → M-020 design · ADR-030 → M-021 implementation, task main-003~006 close).** 압축 요약이 '확인했다 / 아직 안 확인했다' 와 다음 한 걸음을 잃는 문제 — 압축 전 checkpoint(스킬 `compact-relay` = 판단 층, `PreCompact` = 기계 층) → `PostCompact` 요약과 식별자 대조 → `SessionStart(compact)` 4KB 재주입. `wk compact-checkpoint` (§11.1 신설, 모드 note/hook pre·post/restore/clear), checkpoint 는 브랜치 메모리 `.compact/checkpoint.json` · 자기 무시 `.gitignore` · 비커밋, 워크플로우 밖·브랜치 디렉터리 없음이면 무출력 무파일. **실측** (Claude Code 2.1.285, `claude -p`): 플러그인 hook 3종 발화 · hook 출력 인라인 상한 ≈10,000**자**(초과 시 앞 2KB 미리보기) · **재주입이 PostCompact 보다 먼저 돈다** → 누락 목록은 post 출력이 말한다. check_compact_relay 12 cases(되주입 13건 red), E2E 2회, 게이트 통과 `5a3c9db4`. 미실측: 자동 압축 경로 · Codex 플러그인 hook(manifest 미탑재) · Grok(재주입 없음, 선언만). 발행 안 함.
+- 현재 기준선: **107차 세션 (2026-09-30, Linux 호스트) — 새 기능 축 compact 중계 SDLC 완주 (M-018 concept → M-019 requirements → M-020 design · ADR-030 → M-021 implementation, task main-003~006 close).** 압축 요약이 '확인했다 / 아직 안 확인했다' 와 다음 한 걸음을 잃는 문제 — 압축 전 checkpoint(스킬 `compact-relay` = 판단 층, `PreCompact` = 기계 층) → `PostCompact` 요약과 식별자 대조 → `SessionStart(compact)` 4KB 재주입. `wk compact-checkpoint` (§11.1 신설, 모드 note/hook pre·post/restore/clear), checkpoint 는 브랜치 메모리 `.compact/checkpoint.json` · 자기 무시 `.gitignore` · 비커밋, 워크플로우 밖·브랜치 디렉터리 없음이면 무출력 무파일. **실측** (Claude Code 2.1.285, `claude -p`): 플러그인 hook 3종 발화 · hook 출력 인라인 상한 ≈10,000**자**(초과 시 앞 2KB 미리보기) · **재주입이 PostCompact 보다 먼저 돈다** → 누락 목록은 post 출력이 말한다. check_compact_relay 12 cases(되주입 13건 red), E2E 2회, 게이트 통과 `5a3c9db4`. 미실측: 자동 압축 경로 · Codex 플러그인 hook(manifest 미탑재) · Grok(재주입 없음, 선언만). **v1.15.0 발행** (main-007, 태그 → `e7835694`, 게이트 298×2, 발행 wheel 격리 실측, §2.8 behind=[] · MCP in_sync 1.15.0).
 - 직전 기준선: **106차 세션 (2026-09-30, Linux 호스트) — task 1건 close (TASK-2026-09-30-main-002, M-007/WBS-7.1) + main-001 조사 기록.** ①**main-002** — v1.14.4 노트의 후속 '`-c` 다줄 호출 잔여 1곳': `python_floor.probe` 가 `shutil.which("python3.10")` 로 찾은 해석기에 `-c` 버전 확인 + `-c` 다줄 컴파일 스크립트를 넘겼다 — 배치 shim(pyenv-win 등)이면 cmd.exe 가 첫 개행 뒤를 버려 출력 0 → `json.loads("")` 크래시. `[interpreter, "-"]` 1회로 합치고 경로 목록은 스크립트 리터럴(`PATHS_JSON`, `ensure_ascii`+`repr`)로 넣어 **stdin 전체 ASCII**, 버전은 결과 JSON 에. 탐색과 뗀 `run_compile` 신설, 결과를 못 읽으면 미측정. fake shim 모형을 `tests/_newline_shim.py` 로 올려 `check_deploy_doctor` 와 공유(사본 제거). case 6(모형 유효성·한글 경로 ASCII·표본 정상1/오류1) — 옛 호출 되주입 red. **실제 Windows cmd.exe 실측 없음.** 나머지 `-c` 사이트(`sdk_matrix` 2 · `check_packaging` 1 · `interpreter_matrix` 한 줄 2)는 venv 실물 경로 또는 단일 줄이라 무관. ②**main-001 형식 미확정** — 이 호스트엔 `~/.minimax` 가 없다. 공식 `MiniMax-AI/MiniMax-Code-Plugins` `docs/plugin-compatibility.md`: mcode 0.4.0+ 는 `.claude-plugin/plugin.json` 만 읽고(루트 `plugin.json` 무시) hooks 는 인라인 객체, 0.3.x 는 루트 `plugin.json`(Agent Plugins 1.0). category·아이콘 필드는 공개 명세에 없어 105차 'MiniMax Plugin V1' 은 Desktop 쪽 별도 형식일 가능성 — 렌더러 착수 전에 macOS 배포본 구조 채취가 먼저. 환경: `.venv` editable 메타데이터 1.11.0 → 1.14.4 재설치(시스템 python 쪽은 1.11.0 그대로, 코드는 소스 import 라 무영향).
 - 그 이전 기준선: **105차 세션 (2026-09-30, macOS 호스트) — 저장소 코드 변경 0, 환경 작업 2건 + kit 갭 1건 등록 (TASK-2026-09-30-main-001, M-007/WBS-7.4).** ①**minimax-code 는 kit 이 모르는 플러그인 채널** — 실측에서 `~/.minimax/mcp/mcp.json` 에 read-only MCP 는 등록돼 있으나 `~/.minimax/plugins/` 는 비어 있어 스킬 4종이 미배포였다. MiniMax Code 는 marketplace + plugins 계층을 갖는데 `wk doctor` 의 `content_drift` 7건은 전부 claude-code·codex·grok-build·antigravity 이고 `plugin_enabled` 도 4채널만 잰다 — `docs/RELEASE.md` §2.8 에 재적용 절차가 없어 손으로 배포한 패키지는 `wk release-dist` 가 재생성하지 않는다(1.14.4 에 고정). **MiniMax 정본 규칙 함정**: 유효한 Agent Plugins V1 루트 `plugin.json` 이 MiniMax 매니페스트를 가리므로 저장소 `plugin/plugin.json`(grok-build 용)은 패키지에 넣으면 안 된다. 훅도 `${CLAUDE_PLUGIN_ROOT}` + bash 전용이라 이관 대상이 아니다. ②**MiniMax Plugin V1 패키지 배포** — `~/.minimax/plugins/standard-ai-workflow/` 에 스킬 4종만 싣고(`version 1.14.4`, category Productivity, productivity-2 아이콘 페어) 정본 규약 전 항목 검증 통과. **Desktop 자동 리스캔으로 실제 로드 확인** — ① 다음 turn 에 `session-end` 스킬이 배포 경로에서 로드됐다. MCP 는 글로벌 등록분이 정상이라 이중 노출을 피하려고 싣지 않았다. ③**`~/.mavis` 호환 심볼릭 링크 제거** — `~/.minimax` 로의 링크였고 4개 클래스(셸 rc PATH·`bin/`·MCP 스킬 5건·opencode 권한 16건)가 소비 중이었다. 참조 21건을 `.minimax` 로 정규화한 뒤 회귀 0 확인하고 제거했다. `mavis-trash` 가 Finder AppleScript 로 멈추므로(헤드리스 세션에서 폴백에 못 닿음) `MAVIS_TRASH_FORCE_MV=1` 경로로 트레이시 이관. **기존 결함 2건은 링크와 무관**: `bin/mavis`·`bin/minimax` 은 앱 번들에 `daemon/` 가 없어 원래 끊어진 링크였다.
 - 그 이전 기준선: **104차 세션 (2026-09-29, macOS 호스트) — task 2건 close (TASK-2026-09-29-main-017 · 018, M-007/WBS-7.1).** ②**main-018** — `str(relative_to)` 21곳을 용도별로 분류해 5곳을 `as_posix()` 로: **실결함** `deploy_doctor._compare_cache` 가 Windows 에서 하위 디렉터리 정본 파일 전부를 extra 로 보고(POSIX 키 대 역슬래시 rel), `plugin_payload` pi 정적 자산 제외도 무력 · 산출물 `refresh_wiki_memory` L1 SSOT 줄 · `okf_export`/`okf_import` 경로. 신규 `check_relpath_posix` (Windows 흉내 + 6개 모듈 정적 가드, 되돌리면 0/4). 표시용·OS 네이티브 사이트(release_pipeline 등)는 제외. ①**main-017** — 세션 시작 시 워킹 트리에 `roadmap_state.json` 미커밋 diff 15줄 — 103차 Windows 커밋이 `exempt_tasks[].source_path` 를 `\` 로 기록, Mac 재생성이 `/` 로 뒤집었다. 원인은 `common/state/roadmap.py` 의 `str(x.relative_to(root))` 2곳(task link `source_path` · `goal_source_missing` where) → `.as_posix()`. 회귀 case `test_source_paths_are_posix_on_any_host` 는 `relative_to` 를 `PureWindowsPath` 로 바꿔 Windows 를 흉내 — 수정 되돌리면 red 확인.
@@ -56,7 +56,7 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
-- TASK-2026-09-30-main-007 v1.15.0 발행 — compact 중계 (wk compact-checkpoint · 스킬 compact-relay · hook 3종)
+-
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:
@@ -64,6 +64,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-09-30-main-007 v1.15.0 발행 — compact 중계 (wk compact-checkpoint · 스킬 compact-relay · hook 3종)
 - TASK-2026-09-30-main-006 compact 중계 구현 — wk compact-checkpoint · hook 3종 · 스킬 compact-relay · 검사
 - TASK-2026-09-30-main-005 compact 중계 design — ADR-030 + compact_relay_spec
 - TASK-2026-09-30-main-004 compact 중계 requirements — 명령 계약 · checkpoint 형식 · 재주입 예산 · 누락 판정
@@ -73,12 +74,11 @@
 - TASK-2026-09-29-main-017 roadmap_state.json source_path 호스트 독립(POSIX) 고정
 - TASK-2026-09-29-main-016 Codex 세션 내 wk 미인식 — editable 재설치 및 PATH 비교
 - TASK-2026-09-29-main-015 Windows 환경 워크플로우 editable 설치 및 emit/doctor 이슈 재현
-- TASK-2026-09-29-main-014 v1.14.4 발행 — Windows doctor MCP 탐침 shim 절단 + wiki 스탬프 판정 수리
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
 
-- (compact 중계 후속, M-007) 대화형 Claude Code 세션에서 **자동 압축(`trigger: auto`) 1회 실측** — 기계 층만 기록되고 재주입 머리말이 '판단 층 없음' 을 말하는지. 플러그인 소비 채널은 kit 과 같은 버전이어야 hook 이 돈다(옛 kit 이면 한 줄 안내) — 발행 여부는 소유자 판단. Codex 플러그인 hook 적재는 별도 leaf.
+- (compact 중계 후속, M-007) 대화형 Claude Code 세션에서 **자동 압축(`trigger: auto`) 1회 실측** — 기계 층만 기록되고 재주입 머리말이 '판단 층 없음' 을 말하는지. v1.15.0 발행됨 — claude-code 는 **재시작해야** 새 hook 이 돈다(runtime_load stale), macOS 호스트는 §2.8 재적용(→1.15.0) 필요. 플러그인과 kit 버전이 다르면 hook 이 한 줄 안내만 낸다. Codex 플러그인 hook 적재는 별도 leaf.
 - (macOS 호스트) TASK-2026-09-30-main-001 착수 전 105차 배포본 채취: `find ~/.minimax/plugins/standard-ai-workflow -maxdepth 3 | sort` + 매니페스트 원문 + 제품(Desktop / CLI `mcode`)·버전. 공식 mcode 0.4+ 명세와 105차 기록이 우선순위가 반대라, 채취본을 정본 fixture 로 삼아 렌더러 → §2.8 → `deploy_doctor` 순. claude-code 매니페스트(hooks 경로 문자열)를 그대로 재사용하지 말 것.
 - (Windows 호스트) main-002 실측: `check_python_floor_syntax` case 6 이 실제 `.cmd` shim 으로 PASS 하는지.
 - Codex 데스크톱을 완전히 재시작한 뒤 새 셸에서 `Get-Command wk`, `wk session-start`, `gh`, `unzip`, `python3 --version`, `wk doctor --json` 을 확인한다. 재시작 후에도 `wk` 가 빠져 있으면 사용자 PATH 가 데스크톱에 전달되는지 다시 진단한다. Codex CLI 실행 파일이 계속 PATH 에 없으면 `codex` 채널의 `installable=false` 는 별도 CLI 미설치 상태로 기록한다.

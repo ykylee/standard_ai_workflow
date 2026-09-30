@@ -4,7 +4,7 @@
 - 범위: git log 에서 추출한 release 별 Added / Changed / Fixed 항목.
 - 대상 독자: maintainer, 릴리스 매니저, 외부 consumer
 - 상태: stable (자동 생성물)
-- 최종 수정일: 2026-09-29
+- 최종 수정일: 2026-09-30
 - 관련 문서: [`./releases/`](./releases/) (release note), [`../docs/RELEASE.md`](../docs/RELEASE.md) (릴리스 절차)
 
 All notable changes to this project will be documented in this file.
@@ -12,10 +12,11 @@ All notable changes to this project will be documented in this file.
 본 파일은 `tools/release_pipeline.py changelog-gen` 으로 자동 생성됩니다 (v0.7.14+).
 수동 편집은 다음 생성 시 덮어써진다 — 형식/metadata 변경은 생성기를 고칠 것.
 
-## [Unreleased] - 2026-09-29
+## [Unreleased] - 2026-09-30
 
 ### Added
 
+- feat(compact-relay): 압축 경계를 워크플로우 메모리로 중계 — wk compact-checkpoint · hook 3종 · 스킬 compact-relay (M-018~M-021, ADR-030) (5a3c9db4)
 - feat(doctor): plugin_enabled 절을 4채널로 — codex·grok-build·antigravity 활성 선언 실측 (09-28-main-018) (90e3d52a)
 - feat(doctor): plugin_enabled 절 신설 — 설치됐는데 꺼진 플러그인을 발견으로 (09-28-main-017) (880f8327)
 - feat(doctor): 설치본 < 정본 버전을 발견으로 + RELEASE §2.8 채널 재적용 (TASK-2026-09-23-main-014) (22653225)
@@ -45,11 +46,16 @@ All notable changes to this project will be documented in this file.
 - feat(design): M-010 완결 — ADR-028 + test_impact_tiering_spec (실측 3건 기반) (07b61f88)
 - feat(roadmap): requirements sign-off — M-009 close + M-010 [design] 선언 (e3ac7a27)
 - feat(roadmap): C안 채택 — M-008 close + M-009 [requirements] 진행 (requirements 초안) (12bb8d70)
-- feat(roadmap): M-008 선언 — 검사 입력 표면 선언 + 계층별 회귀 실행 계약 (concept) (7aac9ee3)
-- ... (153 more)
+- ... (154 more)
 
 ### Changed
 
+- chore(memory): 107차 — compact 중계 M-021 close (main-006) · handoff 기준선 · state.json 재생성 (6067f865)
+- chore(session): 106차 세션 종료 — main-002 close · main-001 minimax 형식 조사 기록 · handoff · state.json 갱신 (6b8d11e8)
+- chore(state): 105차 state.json 재생성 — active/main/ 기준선에 minimax-code 갭 반영 (7b85854b)
+- docs(memory): 105차 마감 — minimax-code 플러그인 채널 갭 등록 (M-007/WBS-7.4) (38cb7208)
+- test(mcp): roundtrip 에 --literal-command — emit 된 launcher 를 치환 없이 PATH 에서 해석해 spawn (08-25-main-017 기준 2 실측 칸) (19b04e0a)
+- docs(memory): close Windows wk PATH session (ed5b2ba9)
 - chore(session): 101차 세션 종료 — handoff · state.json 갱신 (main-011 · 012) (29f92437)
 - chore(session): 100차 세션 종료 — handoff · state.json 갱신 (main-010) (3eb769dc)
 - chore(memory): 96차 세션 종료 — main-016 발행 기록 정리 + plugin_enabled 4채널 (09-28-main-018) (f8f40e99)
@@ -74,16 +80,14 @@ All notable changes to this project will be documented in this file.
 - chore(memory): 89차 세션 종료 — CI 폐지 뒷정리 · push 게이트 · force 차단 hook 수리 (455d27c0)
 - chore(memory): main-021 실측 종료 + main-019 범위를 로컬 게이트 처리량으로 (69a4648c)
 - test(doctor): symlink 홈에서 경로 대조가 갈리던 검사 수리 (09-25-main-001) (b15d1dfe)
-- refactor(release)!: mypy CI cross-verify 인터페이스 은퇴 (main-001) (53a3e152)
-- ci!: GitHub Actions 테스트 workflow 폐지 — 발행 게이트 근거를 로컬 게이트 통과 기록으로 (main-022) (534e3a8d)
-- perf(tests): check_root_anchor_audit 의 저장소 감사를 프로세스당 1회로 (main-020) (305d12a8)
-- chore(memory): 87차 세션 종료 — 평가·로드맵 개편 반영 (0a253e83)
-- docs(planning): 워크플로우 평가 + 도출 이슈 등록 + 로드맵 M-013·M-014 개설 (07ccab06)
-- chore(memory): 87차 세션 종료 — main-010·main-011 close (f3c1d00e)
-- ... (421 more)
+- ... (427 more)
 
 ### Fixed
 
+- fix(python-floor): 하한 해석기 호출을 stdin 으로 — Windows 배치 shim 에서 -c 다줄 스크립트가 첫 개행에서 잘리던 것 (09-30-main-002) (a86614aa)
+- fix(doctor): wk doctor 가 Windows 에서 정본 파일을 extra 로 오판하던 것 — str(relative_to) 잔여 5곳을 as_posix() 로 (09-29-main-018) (b836d83d)
+- fix(roadmap): roadmap_state.json source_path 를 호스트 독립(POSIX)으로 — Windows 커밋이 역슬래시를 남겨 교차 호스트 diff 가 나던 것 (09-29-main-017) (71c718a1)
+- fix(windows): repair workflow probes and setup environment (d3bd8689)
 - fix(doctor): MCP 해석기 탐침 스크립트를 stdin 으로 — Windows python3.CMD shim 에서 cmd.exe 가 -c 다줄을 첫 개행에서 자르던 것 (09-29-main-013) (388ee750)
 - fix(doc-stamp): wiki 스탬프를 frontmatter updated: 하나로 — 게이트·doc-headers-update 가 같은 정본으로 판정·갱신 (09-29-main-012) (31fdfd64)
 - fix(doc-layers): wiki frontmatter status · 굵은 '상태' 헤더를 살아있다는 선언으로 읽는다 (09-29-main-010) (c54a3a54)
@@ -110,16 +114,19 @@ All notable changes to this project will be documented in this file.
 - fix(tests): case 6 이 index 락을 잡아 병렬에서 터지던 것을 읽기 전용으로 (main-002) (f3ac2d13)
 - fix(memory): 승격 후보 판정을 어휘 겹침에서 선언으로 (main-003) (a5961bd2)
 - fix(tests): 하한 측정 모드를 요약 줄에 — green 이 승격의 증거가 아니었다 (main-007) (79b5ffd9)
-- fix(ci): sdist 빌드 산출물 ignore + 요약에 저장소 write 축 반영 (main-008) (d3ece239)
-- fix(ci): smoke.yml 의 연속 append 를 한 블록으로 — actionlint SC2129 (main-007) (16f9dab4)
-- fix(release): 스탬프 범위를 손 목록에서 파생으로 + 뒤처진 116건 소급 교정 (main-006) (df4a3d53)
-- fix(tests): version_flag 의 dist TOCTOU 제거 + 스탬프 판정 git 호출 1+N → 1 (main-005) (bee66a67)
-- ... (184 more)
+- ... (188 more)
+
+## [1.15.0] - 2026-09-30
+
+### Changed
+
+- release(v1.15.0): 발행 준비 — compact 중계 (wk compact-checkpoint · 스킬 compact-relay · hook 3종) + Windows 호스트 수리 4건 (e7835694)
 
 ## [1.14.4] - 2026-09-29
 
 ### Changed
 
+- release(v1.14.4): 발행 완료 — 태그 push + GitHub Release(asset 4종) + wheel 격리 shim 실측 + §2.8 (5c78434f)
 - release(v1.14.4): 발행 준비 — Windows doctor MCP 탐침 shim 절단 + wiki 스탬프 판정 수리 (e25239c5)
 
 ## [1.14.3] - 2026-09-29

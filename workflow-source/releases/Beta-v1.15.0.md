@@ -82,3 +82,20 @@ hook 출력 인라인 상한 ≈10,000 **자**(초과 시 앞 2KB 미리보기�
 - Windows 수리 4건 중 cmd.exe 실측은 여전히 소유자 환경에 맡긴다 (fake shim · `PureWindowsPath` 모형으로 검증).
 - `TASK-2026-08-25-main-017` (MCP emit command 가 항상 `python3`) 는 blocked 그대로다.
 - minimax-code 플러그인 채널(`TASK-2026-09-30-main-001`)은 형식 미확정으로 planned 그대로다.
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-09-30T03:11:37Z)_
+
+- total wiki pages: **97**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

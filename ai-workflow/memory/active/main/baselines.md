@@ -11,6 +11,10 @@
 
 ## 롤오프 2026-09-30
 
+- **104차 세션 (2026-09-29, macOS 호스트) — task 2건 close (TASK-2026-09-29-main-017 · 018, M-007/WBS-7.1).** ②**main-018** — `str(relative_to)` 21곳을 용도별로 분류해 5곳을 `as_posix()` 로: **실결함** `deploy_doctor._compare_cache` 가 Windows 에서 하위 디렉터리 정본 파일 전부를 extra 로 보고(POSIX 키 대 역슬래시 rel), `plugin_payload` pi 정적 자산 제외도 무력 · 산출물 `refresh_wiki_memory` L1 SSOT 줄 · `okf_export`/`okf_import` 경로. 신규 `check_relpath_posix` (Windows 흉내 + 6개 모듈 정적 가드, 되돌리면 0/4). 표시용·OS 네이티브 사이트(release_pipeline 등)는 제외. ①**main-017** — 세션 시작 시 워킹 트리에 `roadmap_state.json` 미커밋 diff 15줄 — 103차 Windows 커밋이 `exempt_tasks[].source_path` 를 `\` 로 기록, Mac 재생성이 `/` 로 뒤집었다. 원인은 `common/state/roadmap.py` 의 `str(x.relative_to(root))` 2곳(task link `source_path` · `goal_source_missing` where) → `.as_posix()`. 회귀 case `test_source_paths_are_posix_on_any_host` 는 `relative_to` 를 `PureWindowsPath` 로 바꿔 Windows 를 흉내 — 수정 되돌리면 red 확인.
+
+## 롤오프 2026-09-30
+
 - **103차 세션 (2026-09-29, Windows 호스트) — TASK-2026-09-29-main-016 종료.** 기존 `workflow-source/.venv` 에 `standard-ai-workflow 1.14.4` editable 재설치 성공, `wk.exe --help` 확인. 사용자 PATH 에 `D:\repos\standard_ai_workflow\workflow-source\.venv\Scripts` 가 이미 있지만, 현재 Codex 프로세스 PATH 에는 없어 `wk` 가 해석되지 않았다. 임시로 현재 셸 PATH 에 추가하면 `wk` 정상 해석. 원인은 데스크톱이 PATH 등록 뒤 재시작되지 않아 이전 환경을 유지한 것. 다음 시작: Codex 완전 재시작 후 `Get-Command wk`, `wk session-start`, `wk doctor --json` 확인.
 
 ## 롤오프 2026-09-30

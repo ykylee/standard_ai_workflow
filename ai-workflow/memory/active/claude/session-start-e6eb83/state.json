@@ -1,0 +1,220 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-09-30",
+  "purpose_digest": "여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공",
+  "purpose_digest_rev": "2026-09-28",
+  "source_of_truth": {
+    "project_profile_path": "docs/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/active/claude/session-start-e6eb83/session_handoff.md",
+    "work_backlog_index_path": null,
+    "daily_backlog_dir": "ai-workflow/memory/active/claude/session-start-e6eb83/backlog",
+    "tasks_dir": "ai-workflow/memory/active/claude/session-start-e6eb83/backlog/tasks",
+    "sessions_dir": "ai-workflow/memory/active/claude/session-start-e6eb83/sessions",
+    "latest_backlog_path": "ai-workflow/memory/active/claude/session-start-e6eb83/backlog/2026-09-30.md",
+    "repository_assessment_path": null
+  },
+  "project": {
+    "project_name": "Standard AI Workflow",
+    "document_home": "docs/index.md",
+    "operations_path": null,
+    "backlog_path": "ai-workflow/memory/active/backlog/ (인덱스) + ai-workflow/memory/release/<version>/backlog/<날짜>.md (사이클별)",
+    "handoff_path": null,
+    "environment_path": "ai-workflow/memory/active/environments/"
+  },
+  "commands": {
+    "quick_tests": null,
+    "isolated_tests": null,
+    "runtime_checks": null
+  },
+  "session": {
+    "current_baseline": "claude/session-start-e6eb83 워크스페이스 seed (2026-09-30). 아직 작업 전이다.",
+    "current_axis": "main` 에서 분기한 worktree — 작업 축은 첫 backlog-update 로 등록하는 task 가 정한다. 분기 시점 기준선은 `active/main/session_handoff.md",
+    "current_focus": "TASK-2026-09-30-claude-session-start-e6eb83-002 worktree·detached HEAD 에서 브랜치 상태 경로를 못 찾는다 — 자동 seed · 로컬 detached HEAD = 기본 브랜치",
+    "in_progress_items": [
+      "TASK-2026-09-30-claude-session-start-e6eb83-002 worktree·detached HEAD 에서 브랜치 상태 경로를 못 찾는다 — 자동 seed · 로컬 detached HEAD = 기본 브랜치"
+    ],
+    "blocked_items": [],
+    "planned_items": [],
+    "recent_done_items": [
+      "TASK-2026-09-30-claude-session-start-e6eb83-001 — 브랜치 네임스페이스 자동 seed — `main` 에서 분기한 worktree"
+    ],
+    "unknown_status_items": [],
+    "environment_constraints": []
+  },
+  "backlog": {
+    "latest_backlog_path": "ai-workflow/memory/active/claude/session-start-e6eb83/backlog/2026-09-30.md",
+    "task_count": 2,
+    "in_progress_items": [
+      "TASK-2026-09-30-claude-session-start-e6eb83-002 — worktree·detached HEAD 에서 브랜치 상태 경로를 못 찾는다 — 자동 seed · 로컬 detached HEAD = 기본 브랜치"
+    ],
+    "blocked_items": [],
+    "done_items": [
+      "TASK-2026-09-30-claude-session-start-e6eb83-001 — 브랜치 네임스페이스 자동 seed — `main` 에서 분기한 worktree"
+    ]
+  },
+  "next_documents": [
+    "docs/PROJECT_PROFILE.md",
+    "ai-workflow/memory/active/claude/session-start-e6eb83/session_handoff.md",
+    "ai-workflow/memory/active/claude/session-start-e6eb83/backlog/2026-09-30.md",
+    "ai-workflow/memory/active/claude/session-start-e6eb83/backlog",
+    "ai-workflow/memory/active/claude/session-start-e6eb83/sessions"
+  ],
+  "repository_assessment": {
+    "path": null,
+    "present": false
+  },
+  "schema_version_memory_entries": "2",
+  "memory_entries": [
+    {
+      "id": "MEM-2026-07-09-001",
+      "primary_abstraction": "Workflow audit session (2026-07-09) baseline snapshot with 10 candidates",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-07-09-001.json"
+    },
+    {
+      "id": "MEM-2026-07-09-002",
+      "primary_abstraction": "ADR-005 Memora-inspired Memory Index schema and retrieval 3-tuple",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-07-09-002.json"
+    },
+    {
+      "id": "MEM-2026-07-09-003",
+      "primary_abstraction": "FULL mypy strict 도달 milestone (v0.11.18, 109 file clean, 0 errors)",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-07-09-003.json"
+    },
+    {
+      "id": "MEM-2026-07-09-004",
+      "primary_abstraction": "StdIO SDK v0.11.25 정식 stable 승격 (Phase 12 close candidate)",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-07-09-004.json"
+    },
+    {
+      "id": "MEM-2026-07-09-005",
+      "primary_abstraction": "Drift prevention automation (v0.11.23, 6 case cross-check smoke)",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-07-09-005.json"
+    },
+    {
+      "id": "MEM-2026-07-09-006",
+      "primary_abstraction": "CodeWhale 10번째 하네스 overlay (v0.10.4, single SKILL.md 패턴)",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-07-09-006.json"
+    },
+    {
+      "id": "MEM-2026-07-09-007",
+      "primary_abstraction": "Contract v1 P0 enforcement + Mavis engine hook 자동화 (Phase 12 follow-up)",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-07-09-007.json"
+    },
+    {
+      "id": "MEM-2026-08-10-001",
+      "primary_abstraction": "ADR-006 memory index 30-day retrospective conclusions",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-08-10-001.json"
+    },
+    {
+      "id": "MEM-2026-08-10-002",
+      "primary_abstraction": "threshold calibration mines production path freezes with check",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-08-10-002.json"
+    },
+    {
+      "id": "MEM-2026-08-20-001",
+      "primary_abstraction": "Assertions that check existence hide count and identity defects",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-08-20-001.json"
+    },
+    {
+      "id": "MEM-2026-08-20-002",
+      "primary_abstraction": "A breaking marker names a change, not its blast radius",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-08-20-002.json"
+    },
+    {
+      "id": "MEM-2026-08-20-003",
+      "primary_abstraction": "A probe must measure the right unit and read what the system already declares",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-08-20-003.json"
+    },
+    {
+      "id": "MEM-2026-08-20-004",
+      "primary_abstraction": "Changing a spelling breaks readers, not writers",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-08-20-004.json"
+    },
+    {
+      "id": "MEM-2026-08-25-001",
+      "primary_abstraction": "One observed event does not mean a completed write",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-08-25-001.json"
+    },
+    {
+      "id": "MEM-2026-08-25-002",
+      "primary_abstraction": "Absence is created, staleness is only reported",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-08-25-002.json"
+    },
+    {
+      "id": "MEM-2026-09-23-001",
+      "primary_abstraction": "A green summary is not a green verdict",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-001.json"
+    },
+    {
+      "id": "MEM-2026-09-23-002",
+      "primary_abstraction": "Passing and doing-what-was-intended are different questions",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-002.json"
+    },
+    {
+      "id": "MEM-2026-09-23-003",
+      "primary_abstraction": "A rule the writer cannot read is not enforced",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-003.json"
+    },
+    {
+      "id": "MEM-2026-09-23-004",
+      "primary_abstraction": "Local green and CI green can walk different branches",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-004.json"
+    },
+    {
+      "id": "MEM-2026-09-23-005",
+      "primary_abstraction": "Optimize the distribution, not the count",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-005.json"
+    },
+    {
+      "id": "MEM-2026-09-23-006",
+      "primary_abstraction": "Porting a mechanism silently drops its contract",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-006.json"
+    },
+    {
+      "id": "MEM-2026-09-23-007",
+      "primary_abstraction": "A lexical-overlap metric measures nothing and reports a constant",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-007.json"
+    },
+    {
+      "id": "MEM-2026-09-23-008",
+      "primary_abstraction": "The fix for a constant metric is usually a declaration nobody reads",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-008.json"
+    },
+    {
+      "id": "MEM-2026-09-23-009",
+      "primary_abstraction": "Swapping a measurement tool needs an outside witness that it still sees the defect",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-009.json"
+    },
+    {
+      "id": "MEM-2026-09-23-010",
+      "primary_abstraction": "A false-positive fear that narrows scope is itself a measurement gap",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-010.json"
+    },
+    {
+      "id": "MEM-2026-09-23-011",
+      "primary_abstraction": "A tool that writes 'now' cannot perform a retroactive correction",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-011.json"
+    },
+    {
+      "id": "MEM-2026-09-23-012",
+      "primary_abstraction": "A fixed metric can return under a new name; and a search that reports a hit must return it",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-012.json"
+    },
+    {
+      "id": "MEM-2026-09-23-013",
+      "primary_abstraction": "An 'unmeasured' reason can be the shadow of the measurer's own scope",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-013.json"
+    },
+    {
+      "id": "MEM-2026-09-23-014",
+      "primary_abstraction": "Stopping for false positives can be right while the cause lies one layer deeper",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-014.json"
+    },
+    {
+      "id": "MEM-2026-09-23-015",
+      "primary_abstraction": "A CLI that drops unknown arguments does something other than what was asked, and reports success",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-015.json"
+    }
+  ],
+  "memory_entries_count": 30
+}

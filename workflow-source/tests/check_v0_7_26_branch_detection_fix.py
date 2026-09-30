@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 """
-v0.7.26: F-7 (check_workflow_linter branch detection fix) smoke test (5/5 PASS)
+v0.7.26: F-7 (check_workflow_linter branch detection fix) smoke test (6/6 PASS)
 
 Test cases:
-1. test_detached_head_short_sha_fallback — detached HEAD → 7-char commit SHA (not "main")
+1. test_detached_head_short_sha_fallback — CI 의 detached HEAD → 7-char commit SHA (not "main")
 2. test_normal_branch_unchanged — main / feat/* 정상
 3. test_env_override_still_works — CODEX_WORKFLOW_BRANCH / GITHUB_HEAD_REF / GITHUB_REF_NAME
 4. test_unsafe_env_falls_back — CODEX_WORKFLOW_BRANCH="../bad" + detached → main
 5. test_git_failure_falls_back — git 명령 fail → "main"
+6. test_local_detached_head_uses_default_branch — CI 밖 detached HEAD → 기본 브랜치
+   (TASK-2026-09-30-claude-session-start-e6eb83-002: Codex worktree 는 detached HEAD 라 sha slug 가 커밋마다
+   바뀌어 메모리 네임스페이스가 고아가 됐다)
 """
 from __future__ import annotations
 
@@ -30,27 +33,32 @@ SOURCE_ROOT = REPO_ROOT / "workflow-source"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
-from workflow_kit.common.paths import get_current_branch, _usable_branch_name, BRANCH_ENV_KEYS
+from workflow_kit.common.paths import get_current_branch, _usable_branch_name, BRANCH_ENV_KEYS, CI_ENV_KEYS
+
+#: 브랜치 env 와 CI env 를 함께 비운다 — detached HEAD 의 답이 CI 여부에 달려서
+#: (TASK-2026-09-30-claude-session-start-e6eb83-002), 러너의 env 가 판정에 새면 호스트마다 결과가 갈린다.
+_ENV_KEYS = (*BRANCH_ENV_KEYS, *CI_ENV_KEYS)
 
 
 def _clean_branch_env() -> dict[str, str]:
-    saved = {k: v for k, v in os.environ.items() if k in BRANCH_ENV_KEYS}
-    for k in BRANCH_ENV_KEYS:
+    saved = {k: v for k, v in os.environ.items() if k in _ENV_KEYS}
+    for k in _ENV_KEYS:
         os.environ.pop(k, None)
     return saved
 
 
 def _restore_branch_env(saved: dict[str, str]) -> None:
-    for k in BRANCH_ENV_KEYS:
+    for k in _ENV_KEYS:
         os.environ.pop(k, None)
     os.environ.update(saved)
 
 
 # === Test 1: detached HEAD → short SHA ===
 def test_detached_head_short_sha_fallback() -> bool:
-    """detached HEAD ('HEAD') → 7-char commit SHA (not 'main')."""
+    """CI 의 detached HEAD ('HEAD') → 7-char commit SHA (not 'main')."""
     saved = _clean_branch_env()
     try:
+        os.environ["CI"] = "true"
         # mock: abbrev-ref returns "HEAD", rev-parse --short=7 returns "abc1234"
         with patch("subprocess.check_output") as mock_check:
             mock_check.side_effect = [
@@ -136,6 +144,7 @@ def test_unsafe_env_falls_back() -> bool:
     """unsafe env (e.g. '../bad') + detached HEAD ('HEAD') + short SHA fail → 'main'."""
     saved = _clean_branch_env()
     try:
+        os.environ["CI"] = "true"
         os.environ["CODEX_WORKFLOW_BRANCH"] = "../bad"
         with patch("subprocess.check_output", side_effect=[
             "HEAD\n",  # abbrev-ref returns HEAD
@@ -174,6 +183,34 @@ def test_git_failure_falls_back() -> bool:
         _restore_branch_env(saved)
 
 
+# === Test 6: CI 밖 detached HEAD → 기본 브랜치 ===
+def test_local_detached_head_uses_default_branch() -> bool:
+    """CI env 가 없으면 detached HEAD 는 sha 가 아니라 기본 브랜치다.
+
+    sha 로 돌아가면(되주입) 커밋마다 `active/<sha>/` 가 새로 생긴다 — 110차 실측의
+    `active/6545f13/state.json` 이 그 모양이다.
+    """
+    saved = _clean_branch_env()
+    try:
+        with patch("subprocess.check_output", side_effect=["HEAD\n", "abc1234\n"]), \
+                patch("workflow_kit.path_resolver._detect_default_branch", return_value="trunk"):
+            result = get_current_branch()
+        if result != "trunk":
+            print(f"  FAIL: expected default branch 'trunk', got {result!r} (sha 면 커밋마다 네임스페이스가 바뀐다)")
+            return False
+        os.environ["CI"] = "false"  # 값이 false 면 CI 가 아니다
+        with patch("subprocess.check_output", side_effect=["HEAD\n", "abc1234\n"]), \
+                patch("workflow_kit.path_resolver._detect_default_branch", return_value="trunk"):
+            result = get_current_branch()
+        if result != "trunk":
+            print(f"  FAIL: CI=false 인데 CI 로 판정했다: {result!r}")
+            return False
+        print("  PASS: 로컬 detached HEAD → 기본 브랜치")
+        return True
+    finally:
+        _restore_branch_env(saved)
+
+
 # === Main ===
 def main() -> int:
     print("=" * 60)
@@ -186,6 +223,7 @@ def main() -> int:
         test_env_override_still_works,
         test_unsafe_env_falls_back,
         test_git_failure_falls_back,
+        test_local_detached_head_uses_default_branch,
     ]
     passed = 0
     for test in tests:

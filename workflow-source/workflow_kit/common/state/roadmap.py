@@ -426,6 +426,17 @@ def _goal_link_issues(workspace_root: Path, milestones: list[Milestone]) -> list
 # --- Task link collection -----------------------------------------------------
 
 
+def _branch_task_files(active: Path) -> list[Path]:
+    """전 브랜치 네임스페이스의 task 파일. **슬래시 브랜치도 센다.**
+
+    브랜치 `feat/x` 의 네임스페이스는 `active/feat/x/` 이다. `*/backlog/…` 는 한 단계만
+    훑어서 슬래시 브랜치의 task 를 통째로 놓쳤다 — `wbs: exempt` 로 선언한 task 도
+    '선언 사슬이 끊긴 완료 항목' 으로 셌다 (TASK-2026-09-30-claude-session-start-e6eb83-002: 자동 seed 가
+    `active/claude/<name>/` 을 만들면서 드러났다).
+    """
+    return sorted(active.glob("**/backlog/tasks/TASK-*.md"))
+
+
 def collect_task_wbs_links(workspace_root: Path) -> list[TaskWbsLink]:
     """`active/<branch>/backlog/tasks/TASK-*.md` 전 브랜치에서 `wbs:` 선언을 모은다.
 
@@ -437,7 +448,7 @@ def collect_task_wbs_links(workspace_root: Path) -> list[TaskWbsLink]:
     active = memory_active_dir(workspace_root)
     if not active.is_dir():
         return links
-    for task_path in sorted(active.glob("*/backlog/tasks/TASK-*.md")):
+    for task_path in _branch_task_files(active):
         pairs, _ = _parse_frontmatter_block(task_path.read_text(encoding="utf-8"))
         wbs_ref = _as_str(pairs, "wbs")
         if not wbs_ref:
@@ -488,7 +499,7 @@ def resolve_task_goals(workspace_root: Path) -> TaskGoalResolution:
         return result
 
     milestones_without_goals: set[str] = set()
-    for task_path in sorted(active.glob("*/backlog/tasks/TASK-*.md")):
+    for task_path in _branch_task_files(active):
         pairs, _ = _parse_frontmatter_block(task_path.read_text(encoding="utf-8"))
         task_id = _as_str(pairs, "id") or task_path.stem
         wbs_ref = _as_str(pairs, "wbs")

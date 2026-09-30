@@ -4,7 +4,7 @@
 - 범위: 3계층 워크스페이스 구분, 격리 키 결정과 근거, 하네스 동시 운영 시 lease 규약, 중앙 취합 확장 지점, 미해결 질문
 - 대상 독자: AI workflow 설계자, 멀티 에이전트 운영자, 저장소 관리자
 - 상태: draft (설계 단계 — 구현 미착수)
-- 최종 수정일: 2026-09-25
+- 최종 수정일: 2026-09-30
 - 관련 문서: `./workflow_configuration_layers.md`, `./workflow_harness_distribution.md`, `./workflow_agent_topology.md`, `./orchestrator_subagent_contract_v1.md`, `./merge_doc_reconcile_skill_spec.md`, `../MEMORY_GOVERNANCE.md`
 
 > **상태 고지**: 본 문서는 *설계* 다. §2 의 "이미 있다" 항목과 §5A~§5D 의 실측은
@@ -100,7 +100,7 @@ python3 workflow-source/scripts/generate_workflow_state.py \
 | --- | --- | --- |
 | 조회 전 | `git fetch origin --prune` — `tools/survey_remote_workspaces.py` 가 기본 수행 | 안 하면 되살아난 브랜치를 stale 로 오판 → §5D.4a |
 | 조회 | 1일 초과 무활동 = `STALE` → **사용자 문의** (삭제 ❌) | §5D.4a |
-| 선점 전 | **메모리 seed** (`active/<branch>/`) — `tools/seed_workspace_memory.py` | 없으면 `session-start` 가 `missing_required_document` 로 실패 → §5A.2 |
+| 선점 전 | **메모리 seed** (`active/<branch>/`) — `tools/seed_workspace_memory.py` | 업무 지시를 싣는 자리다. 빠뜨리면 `session-start` 가 **자동 seed** 로 시작은 하지만 작업 축이 비어 있다 → §5A.2 |
 | 선점 | push 1회. `rejected` = 신호이지 장애가 아님 | §5D.2 |
 | 종료 | memory 갱신을 commit 과 같은 turn 에 | 표준 `global_workflow_standard.md` §8 |
 
@@ -505,6 +505,21 @@ recommended_next_action: None
 
 **그래서 배정의 첫 단계는 "브랜치 생성" 이 아니라 "메모리 seed" 다.** 이 단계를 빠뜨리면
 하네스는 시작하자마자 멈춘다 — 실측된 실패 모드다.
+
+> **자동 seed (TASK-2026-09-30-claude-session-start-e6eb83-002, 2026-09-30 소유자 결정).** 중앙 배정을 거치지
+> 않는 worktree 가 있다 — Claude Code 데스크톱은 세션마다 `claude/<name>` worktree 를
+> 스스로 만들고, Codex 데스크톱은 detached HEAD worktree 를 연다. 110차 실측에서 앞쪽은
+> 위 실패로 멈췄고, 이어진 `backlog-update` 는 `state.json` 만 브랜치 경로에 만들어
+> 메모리를 둘로 갈랐다. 뒤쪽은 slug 가 short sha 라 커밋마다 네임스페이스가 바뀌었다.
+>
+> 그래서 이제 `session-start` 는 **브랜치 네임스페이스가 없으면 스스로 seed 한다** —
+> 브랜치를 그 workspace 의 git 에서 얻었고(env override 제외), 그 브랜치·legacy 평면
+> handoff 가 모두 없고, 기본 브랜치 네임스페이스에 handoff 가 있을 때만. seed task 는
+> 업무를 모르므로 "자동 seed" 사건만 `done` · `wbs: exempt` 로 남기고, 실제 작업은
+> `backlog-update` 로 새 task 를 만든다 (update 는 기존 task 제목을 바꾸지 않는다).
+> CI 밖 detached HEAD 는 sha 가 아니라 **기본 브랜치** 로 해석한다 (CI 는 F-7 대로 sha).
+> 중앙 배정은 여전히 `seed-workspace-memory` 로 업무 지시를 실어야 한다 — 자동 seed 는
+> 시작을 막지 않을 뿐, 지시를 대신하지 않는다. 검사: `check_branch_memory_auto_seed`.
 
 ### 5A.3 실측된 제약 — 중앙은 in-flight 작업을 볼 수 없다
 

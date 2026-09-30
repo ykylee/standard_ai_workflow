@@ -24,7 +24,10 @@ profile 을 받는 `workflow_branch_dir` / `workflow_archived_branch_dir` 는
 1. 같은 workspace 에 대해 세 해석기(`state_path_for_workspace` /
    `workflow_branch_dir` / `workflow_archived_branch_dir`)가 **같은 slug** 를 쓴다.
 2. 그 slug 는 **workspace 자신의** branch 다 (모듈 저장소의 것이 아니다).
-3. workspace 가 git 저장소가 아니면 기존 동작(모듈 저장소 기준)으로 되돌아간다.
+3. workspace 가 git 저장소가 아니면 `main` 이다 — 모듈 저장소 기준으로 되돌아가지
+   않는다. 예전 계약은 "모듈 저장소 기준" 이었는데, bootstrap 은 비 git 대상에 `main`
+   을 써서 kit 체크아웃이 `main` 이 아닐 때 쓰는 쪽·읽는 쪽이 갈렸다
+   (TASK-2026-09-30-claude-session-start-e6eb83-002).
 4. **task ID 채번의 slug** 도 같은 답을 쓴다 — ID 가 자기 네임스페이스와 어긋나면
    안 된다.
 5. 위 전부가 **설치본 배치**(모듈 앵커가 git 저장소가 **아닌** 곳)에서도 성립한다.
@@ -182,14 +185,22 @@ def test_state_and_docs_land_in_the_same_branch_dir() -> None:
             )
 
 
-def test_non_git_workspace_falls_back_to_module_repo() -> None:
-    """git 저장소가 아니면 기존 동작으로 되돌아간다 (temp fixture 호환)."""
+def test_non_git_workspace_is_main() -> None:
+    """git 저장소가 아니면 `main` 이다 — kit 체크아웃의 브랜치에 달리지 않는다 (계약 3).
+
+    되주입 모양: 모듈 앵커로 되돌아가면 kit 체크아웃이 `main` 이 아닌 호스트
+    (worktree 브랜치)에서만 이 case 가 red 가 된다 — 그래서 모듈 앵커 브랜치와도
+    비교해 **어느 호스트에서든** 차이를 드러낸다.
+    """
     with _without_branch_env():
         with tempfile.TemporaryDirectory() as td:
             ws = _workspace(td, git=False)
             profile = ws / "docs" / "PROJECT_PROFILE.md"
             slug = _slug_after_memory(workflow_branch_dir(profile), "active")
-            assert slug == get_current_branch(), (slug, get_current_branch())
+            assert slug == "main", (slug, get_current_branch())
+            resolution = resolve_branch_for_workspace(ws)
+            assert resolution.from_this_workspace, (
+                f"비 git 판정이 workspace 를 본 답으로 안 잡혔다: {resolution}")
 
 
 def test_explicit_branch_argument_still_wins() -> None:
@@ -297,7 +308,7 @@ def main() -> int:
         test_minting_slug_matches_the_namespace,
         test_installed_shape_does_not_fall_back_to_module_anchor,
         test_state_and_docs_land_in_the_same_branch_dir,
-        test_non_git_workspace_falls_back_to_module_repo,
+        test_non_git_workspace_is_main,
         test_explicit_branch_argument_still_wins,
         test_branch_env_override_wins,
     ]

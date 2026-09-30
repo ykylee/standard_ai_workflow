@@ -217,6 +217,74 @@ def _detect_stale_branch_memories(
             )
     return {"stale_branches": stale, "archived": bool(apply and stale)}
 
+def _auto_seed_branch_memory(project_profile_path: Path) -> dict[str, Any] | None:
+    """브랜치 네임스페이스가 없으면 seed 해서 **시작할 수 있게** 한다 (TASK-2026-09-30-claude-session-start-e6eb83-002).
+
+    `active/<branch>/` 는 브랜치를 만든다고 생기지 않는다 (orchestration §5A.2). 중앙이
+    배정하는 워크스페이스는 `seed-workspace-memory` 를 먼저 돌리지만, **하네스가 스스로
+    만드는 worktree**(Claude Code 데스크톱의 `claude/<name>`)는 그 단계를 거치지 않는다.
+    110차 실측: session-start 는 `missing_required_document` 로 멈췄고, 이어진
+    `backlog-update` 는 멈추지 않고 state.json 만 `active/claude/<name>/` 에 만들어
+    브랜치 메모리가 절반짜리로 갈렸다.
+
+    seed 하는 조건은 좁다 — 셋 다 참일 때만:
+
+    - 브랜치를 **이 workspace 의 git** 에서 얻었다 (env override · 모듈 앵커 답은 제외).
+    - 그 브랜치의 handoff 가 없고, legacy 평면 handoff 도 없다 (있으면 기존 fallback).
+    - 기본 브랜치가 따로 있고 그 네임스페이스에 handoff 가 있다 — 이 저장소가 브랜치별
+      layout 을 쓰고 있다는 근거. 없으면 처음 쓰는 프로젝트라 bootstrap 이 할 일이다.
+
+    seed 는 멱등이다 (있는 파일은 덮지 않는다). 무엇을 만들었는지는 호출자가 warning 으로 말한다.
+    """
+    try:
+        from datetime import date  # noqa: PLC0415
+
+        from workflow_kit.common.paths import (  # noqa: PLC0415
+            BRANCH_SOURCE_WORKSPACE_GIT,
+            HANDOFF_FILENAME,
+            memory_root_dir,
+            path_in_active,
+            project_workspace_root,
+            resolve_branch_for_workspace,
+        )
+        from workflow_kit.path_resolver import _detect_default_branch  # noqa: PLC0415
+
+        workspace_root = project_workspace_root(project_profile_path)
+        resolution = resolve_branch_for_workspace(workspace_root)
+        if resolution.source != BRANCH_SOURCE_WORKSPACE_GIT:
+            return None
+        branch = resolution.slug
+        memory_root = memory_root_dir(project_profile_path)
+        active_dir = memory_root / "active"
+        # `path_in_active` 는 브랜치 자리가 없으면 legacy 평면 자리로 떨어진다 — 둘 중
+        # 하나라도 있으면 읽을 handoff 가 있는 것이다.
+        if path_in_active(active_dir, HANDOFF_FILENAME, branch).exists():
+            return None
+        base = _detect_default_branch(workspace_root)
+        if base == branch or not path_in_active(active_dir, HANDOFF_FILENAME, base).exists():
+            return None
+
+        from workflow_kit.tools.seed_workspace_memory import seed  # noqa: PLC0415
+
+        result = seed(
+            memory_root=memory_root,
+            branch=branch,
+            axis=(f"`{base}` 에서 분기한 worktree — 작업 축은 첫 backlog-update 로 등록하는 task 가 정한다. "
+                  f"분기 시점 기준선은 `active/{base}/session_handoff.md`"),
+            task_title=f"브랜치 네임스페이스 자동 seed — `{base}` 에서 분기한 worktree",
+            out_of_scope=None,
+            today=date.today().isoformat(),
+            apply=True,
+            force=False,
+            # 업무를 모르므로 seed 사건만 기록하고 닫는다 — 제목은 update 로 바뀌지 않는다.
+            task_status="done",
+            wbs_exempt_reason="로드맵 밖 — worktree 브랜치 네임스페이스 자동 seed 사건 기록",
+        )
+    except Exception as exc:  # noqa: BLE001 — seed 실패는 원래의 부재 오류로 이어진다
+        return {"status": "error", "error": f"{type(exc).__name__}: {exc}"}
+    return result | {"base_branch": base}
+
+
 def _task_id_collision_warnings(workspace_root: Path) -> list[str]:
     """워킹 트리의 task 가 원격의 같은 ID·다른 task 와 부딪히면 warning (TASK-2026-09-28-main-010).
 
@@ -298,6 +366,7 @@ def main() -> int:
         "memory_query_tokens": args.memory_query_tokens,
     }
 
+    auto_seed: dict[str, Any] | None = None
     try:
         profile_raw = args.project_profile_path
         if not profile_raw:
@@ -310,6 +379,9 @@ def main() -> int:
                 )
             profile_raw = str(discovered)
         project_profile_path = resolve_existing_path(profile_raw)
+        # handoff 를 명시했으면 호출자가 자리를 골랐다 — seed 하지 않는다.
+        if not args.session_handoff_path:
+            auto_seed = _auto_seed_branch_memory(project_profile_path)
         session_handoff_path = resolve_existing_path(
             args.session_handoff_path
             or str(workflow_handoff_path(project_profile_path))
@@ -346,10 +418,13 @@ def main() -> int:
             source_context=source_context | {
                 "missing_path_detail": str(exc),
                 "auto_repair": repair,
+                "auto_seed": auto_seed,
             },
             recovery_hint=(
                 "`wk ensure-entrypoints --apply` 로 부재 산출물을 현재 kit 버전으로 "
-                "채운다. 프로젝트가 처음이면 `python3 -m workflow_kit.bootstrap_lib "
+                "채운다. 브랜치 메모리(`active/<branch>/`)만 없으면 "
+                "`wk seed-workspace-memory --axis <축> --task-title <제목> --apply` 로 만든다. "
+                "프로젝트가 처음이면 `python3 -m workflow_kit.bootstrap_lib "
                 "--target-root . --project-slug <slug> --project-name <name> "
                 "--harness <harness>` 로 최초 생성한다."
             ),
@@ -358,6 +433,17 @@ def main() -> int:
         return 1
 
     warnings: list[str] = []
+    if auto_seed and auto_seed.get("status") == "ok":
+        created = [item["path"] for item in auto_seed.get("planned", [])]
+        warnings.append(
+            f"브랜치 메모리가 없어 `{auto_seed.get('branch')}` 네임스페이스를 seed 했다 "
+            f"(기준 브랜치 `{auto_seed.get('base_branch')}`, task {auto_seed.get('task_id')}): "
+            f"{created}. 작업은 이 네임스페이스에 `wk backlog-update` 로 새 task 를 만들어 기록한다."
+        )
+        if auto_seed.get("errors"):
+            warnings.append(f"브랜치 메모리 seed 가 일부 실패했다: {auto_seed['errors']}")
+    elif auto_seed:
+        warnings.append(f"브랜치 메모리 자동 seed 실패: {auto_seed.get('error') or auto_seed.get('errors')}")
     # v1.0.0: 종료된 브랜치 메모리 역방향 점검 (고아 방지). 실패해도 세션 진입을 막지 않는다.
     _detect_stale_branch_memories(
         project_profile_path, warnings,

@@ -66,7 +66,8 @@ def _make_profile(root: Path, *, branch_scoped: bool, branch: str = "main") -> P
 def case_1_branch_scoped_paths() -> bool:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        branch = P.get_current_branch()
+        # 비 git fixture — 읽는 쪽(`branch_for_workspace`)의 답으로 만든다.
+        branch = P.branch_for_workspace(root)
         profile = _make_profile(root, branch_scoped=True, branch=branch)
         backlog = P.workflow_backlog_dir(profile)
         # 슬래시 브랜치는 **중첩 디렉터리**가 된다(`active/feature/x/backlog`). 그래서

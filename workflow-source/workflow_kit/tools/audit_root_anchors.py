@@ -146,17 +146,8 @@ ROOT_ANCHOR_LEDGER: tuple[LedgerEntry, ...] = (
             "아는 caller 는 `state_path_for_workspace` 를 쓴다. (§2.50 에서 남긴 결정)"
         ),
     ),
-    LedgerEntry(
-        rule="branch_from_module_repo",
-        path="workflow-source/workflow_kit/common/paths.py",
-        symbol="resolve_branch_for_workspace",
-        reason=(
-            "workspace 가 git 저장소가 아닐 때(temp fixture 등) 모듈 저장소 기준으로 "
-            "되돌아가는 **선언된 fallback**이다 — 이 함수가 R3 규칙 자체의 정본이다. "
-            "v1.9.3 에 `branch_for_workspace` 에서 이리로 옮겼고, 되돌아갔다는 사실은 "
-            "이제 반환값의 `source` 로 드러난다 (조용히 떨어지지 않는다)."
-        ),
-    ),
+    # `resolve_branch_for_workspace` 항목은 걷었다 — 비 git workspace 는 이제 모듈
+    # 저장소가 아니라 `main` 이다 (TASK-2026-09-30-claude-session-start-e6eb83-002).
 )
 
 LEDGER_BY_KEY: dict[tuple[str, str, str], LedgerEntry] = {e.key: e for e in ROOT_ANCHOR_LEDGER}

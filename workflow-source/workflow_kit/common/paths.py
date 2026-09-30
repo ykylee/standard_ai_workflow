@@ -276,10 +276,11 @@ def get_current_branch() -> str:
     sandboxed temp directory (smoke tests, sub-agents, MCP servers) still see
     the real workflow repo's branch.
 
-    Detached HEAD (e.g. CI checkout at a specific SHA) returns the commit
+    Detached HEAD in CI (checkout at a specific SHA) returns the commit
     short SHA (7-char prefix) as a stable, collision-resistant slug instead
     of the bare ``HEAD`` literal, which would otherwise fall through to
-    ``main`` and lose the context. F-7 (v0.7.26) fix.
+    ``main`` and lose the context. F-7 (v0.7.26) fix. Outside CI a detached
+    HEAD resolves to the default branch — see ``_git_branch_slug``.
     """
     return _resolve_module_branch().slug
 
@@ -298,11 +299,29 @@ def branch_slug_for(repo_root: Path) -> str:
     return _git_branch_slug(repo_root) or "main"
 
 
+#: CI 러너임을 알리는 env. 값이 비어 있거나 `false`/`0` 이면 CI 가 아니다.
+CI_ENV_KEYS = ("CI", "GITHUB_ACTIONS")
+
+
+def _running_in_ci() -> bool:
+    return any(
+        os.environ.get(key, "").strip().lower() not in ("", "0", "false")
+        for key in CI_ENV_KEYS
+    )
+
+
 def _git_branch_slug(repo_root: Path) -> str | None:
     """``repo_root`` 를 기준으로 branch slug 를 조회. git 저장소가 아니면 None.
 
-    F-7 fix: detached HEAD (branch == "HEAD") 는 "main" 으로 흘리지 않고 commit
+    F-7 fix: CI 의 detached HEAD (branch == "HEAD") 는 "main" 으로 흘리지 않고 commit
     short SHA (7자) 를 돌려준다 — CI checkout / 특정 commit 참조의 안정적 식별자.
+
+    **CI 밖의 detached HEAD 는 기본 브랜치다 (TASK-2026-09-30-claude-session-start-e6eb83-002).** Codex 데스크톱
+    worktree 는 detached HEAD 로 열리는데, sha slug 는 **커밋할 때마다 바뀐다** — 커밋
+    한 번에 메모리 네임스페이스가 새로 생기고 앞의 것은 고아가 된다. 110차 실측:
+    `active/6545f13/state.json` 이 생겼고 그 `daily_backlog_dir` 은 존재하지 않는
+    경로였다. 로컬 detached HEAD 는 "기본 브랜치 위에서 잠깐 떨어져 나온 작업" 이므로
+    그 브랜치의 네임스페이스를 쓴다 (소유자 결정 2026-09-30).
     """
     try:
         branch = subprocess.check_output(
@@ -313,6 +332,11 @@ def _git_branch_slug(repo_root: Path) -> str | None:
         ).strip()
     except (subprocess.CalledProcessError, FileNotFoundError, NotADirectoryError, OSError):
         return None
+
+    if branch == "HEAD" and not _running_in_ci():
+        from workflow_kit.path_resolver import _detect_default_branch  # noqa: PLC0415
+
+        return _usable_branch_name(_detect_default_branch(Path(repo_root))) or "main"
 
     if branch == "HEAD":
         try:
@@ -343,7 +367,7 @@ def branch_for_workspace(workspace_root: Path) -> str:
 
     같은 인자에 대해 호출 위치가 답을 바꾼다. 그래서 workspace 를 받는 쪽은 그
     workspace 의 git 을 본다. workspace 가 git 저장소가 아니면(temp workspace 등)
-    기존 동작으로 되돌아간다.
+    `main` 이다 — 모듈 저장소의 branch 를 빌려 오지 않는다 (`resolve_branch_for_workspace`).
     """
     return resolve_branch_for_workspace(workspace_root).slug
 
@@ -353,6 +377,8 @@ def branch_for_workspace(workspace_root: Path) -> str:
 #: 뜻이라, 소비자 도구는 그 둘을 경고 대상으로 삼는다.
 BRANCH_SOURCE_ENV = "env"
 BRANCH_SOURCE_WORKSPACE_GIT = "workspace_git"
+#: workspace 를 봤더니 git 저장소가 아니었다 — 그래서 `main` (bootstrap 과 같은 규칙).
+BRANCH_SOURCE_WORKSPACE_NON_GIT = "workspace_non_git"
 BRANCH_SOURCE_MODULE_REPO = "module_repo"
 BRANCH_SOURCE_DEFAULT = "default"
 
@@ -370,7 +396,8 @@ class BranchResolution:
 
     @property
     def from_this_workspace(self) -> bool:
-        return self.source in (BRANCH_SOURCE_WORKSPACE_GIT, BRANCH_SOURCE_ENV)
+        return self.source in (BRANCH_SOURCE_WORKSPACE_GIT, BRANCH_SOURCE_WORKSPACE_NON_GIT,
+                               BRANCH_SOURCE_ENV)
 
 
 def _resolve_module_branch() -> BranchResolution:
@@ -411,8 +438,17 @@ def resolve_branch_for_workspace(workspace_root: Path) -> BranchResolution:
     """``workspace_root`` 의 branch slug 와 **그 답의 출처**.
 
     `branch_for_workspace` 가 돌려주던 값에 출처를 붙인 것이다. workspace 가 git
-    저장소면 `workspace_git`, 아니면 모듈 앵커로 되돌아가되 그 사실이
-    `source` 에 남는다 (`_resolve_module_branch` 참조).
+    저장소면 `workspace_git`, 아니면 **`main`** (`workspace_non_git`).
+
+    **비 git workspace 는 모듈 앵커로 되돌아가지 않는다
+    (TASK-2026-09-30-claude-session-start-e6eb83-002, 소유자 결정 2026-09-30).** 예전에는
+    kit 소스 체크아웃의 브랜치를 빌려 왔다. 그러면 bootstrap(`bootstrap_branch_slug`
+    — 비 git 이면 `main`)이 `active/main/` 에 쓴 프로젝트를, 읽는 쪽은
+    `active/<kit 체크아웃 브랜치>/` 에서 찾았다. kit 저장소가 `main` 일 때만 우연히
+    맞았고, worktree 브랜치(`claude/<name>`)에서는 `check_ensure_entrypoints` ·
+    `check_session_context_budget` 이 변경과 무관하게 red 였다 — 이 docstring 위
+    `branch_for_workspace` 가 경계한 "접두는 인자에서, branch 는 딴 데서" 그 모양이다.
+    모듈 앵커 기준이 필요한 sandbox caller 는 `get_current_branch()` 를 쓴다.
     """
     for env_key in BRANCH_ENV_KEYS:
         branch = _usable_branch_name(os.environ.get(env_key))
@@ -421,7 +457,7 @@ def resolve_branch_for_workspace(workspace_root: Path) -> BranchResolution:
     slug = _git_branch_slug(Path(workspace_root))
     if slug:
         return BranchResolution(slug, BRANCH_SOURCE_WORKSPACE_GIT, str(workspace_root))
-    return _resolve_module_branch()
+    return BranchResolution("main", BRANCH_SOURCE_WORKSPACE_NON_GIT, str(workspace_root))
 
 
 def workflow_branch_dir(project_profile_path: Path) -> Path:

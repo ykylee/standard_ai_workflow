@@ -24,18 +24,20 @@ SOURCE_ROOT = REPO_ROOT / "workflow-source"
 
 
 def _detect_branch_name() -> str:
-    """Return the current git branch name with a safe fallback.
+    """fixture 브랜치명 — 린터가 **임시 workspace** 에 대해 내는 답과 같은 규칙.
 
-    Delegates to :func:`workflow_kit.common.paths.get_current_branch` so the
-    test files and the linter look at the same ``ai-workflow/memory/<branch>/``
-    directory. The function prefers CI-provided env vars, then falls back
-    to ``git rev-parse`` anchored at the workflow kit repo, and finally
-    defaults to ``main`` when nothing usable is available.
+    fixture 는 전부 git 이 아닌 임시 디렉터리다. 예전에는 `get_current_branch()`
+    (kit 체크아웃의 브랜치)를 썼는데, 읽는 쪽(`branch_for_workspace`)은 비 git
+    workspace 를 `main` 으로 본다 — kit 체크아웃이 worktree 브랜치면 fixture 와
+    린터가 다른 디렉터리를 봤다 (TASK-2026-09-30-claude-session-start-e6eb83-002).
+    env override 는 두 쪽 모두에서 이긴다.
     """
-    sys.path.insert(0, str(SOURCE_ROOT))
-    from workflow_kit.common.paths import get_current_branch
+    import tempfile as _tempfile
 
-    return get_current_branch()
+    sys.path.insert(0, str(SOURCE_ROOT))
+    from workflow_kit.common.paths import branch_for_workspace
+
+    return branch_for_workspace(Path(_tempfile.gettempdir()))
 
 
 BRANCH_NAME = _detect_branch_name()

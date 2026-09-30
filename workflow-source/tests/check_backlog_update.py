@@ -19,7 +19,7 @@ if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit.common.output_contracts import validate_output_payload
-from workflow_kit.common.paths import get_current_branch
+from workflow_kit.common.paths import branch_for_workspace
 
 
 def run_backlog_update(*, expect_success: bool, args: list[str]) -> tuple[int, dict[str, object]]:
@@ -47,7 +47,7 @@ def main() -> int:
         temp_project_root = (temp_root / "project").resolve()
         temp_project_root.mkdir()
 
-        current_branch = get_current_branch()
+        current_branch = branch_for_workspace(temp_root)  # 비 git fixture → 읽는 쪽과 같은 규칙
         temp_branch_root = (temp_project_root / current_branch).resolve()
         temp_branch_root.mkdir(parents=True)
 
@@ -116,7 +116,7 @@ def main() -> int:
         temp_project_root = (temp_root / "project").resolve()
         temp_project_root.mkdir()
 
-        current_branch = get_current_branch()
+        current_branch = branch_for_workspace(temp_root)  # 비 git fixture → 읽는 쪽과 같은 규칙
         temp_branch_root = (temp_project_root / current_branch).resolve()
         temp_branch_root.mkdir(parents=True)
 
@@ -203,7 +203,7 @@ def main() -> int:
         temp_project_root = (temp_root / "project").resolve()
         temp_project_root.mkdir()
 
-        current_branch = get_current_branch()
+        current_branch = branch_for_workspace(temp_root)  # 비 git fixture → 읽는 쪽과 같은 규칙
         temp_branch_root = (temp_project_root / current_branch).resolve()
         temp_branch_root.mkdir(parents=True)
 
@@ -221,7 +221,7 @@ def main() -> int:
         temp_backlog_path = (temp_backlog_dir / backlog_path.name).resolve()
         temp_backlog_path.write_text(backlog_path.read_text(encoding="utf-8"), encoding="utf-8")
         index_path = (temp_project_root / "work_backlog.md").resolve()
-        current_branch = get_current_branch()
+        current_branch = branch_for_workspace(temp_root)  # 비 git fixture → 읽는 쪽과 같은 규칙
         canonical_rel_path = f"./{current_branch}/backlog/{backlog_path.name}"
         index_path = (temp_project_root / "work_backlog.md").resolve()
         index_text = index_path.read_text(encoding="utf-8")
@@ -306,7 +306,7 @@ def _check_auto_mode_creates_unknown_id() -> None:
 
     with tempfile.TemporaryDirectory() as temp_dir:
         project_root = (Path(temp_dir) / "project").resolve()
-        branch_root = (project_root / get_current_branch()).resolve()
+        branch_root = (project_root / branch_for_workspace(project_root.parent)).resolve()
         branch_root.mkdir(parents=True)
         for relative_path in ("PROJECT_PROFILE.md", "work_backlog.md"):
             (project_root / relative_path).write_text(

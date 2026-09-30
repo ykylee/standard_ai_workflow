@@ -125,7 +125,8 @@ def next_task_id(
 
 
 def render_handoff(*, branch: str, axis: str, task_id: str, task_title: str,
-                   today: str, out_of_scope: str | None) -> str:
+                   today: str, out_of_scope: str | None,
+                   task_status: str = "in_progress") -> str:
     """seed handoff 본문. `session-start` 가 요구하는 섹션을 채운다.
 
     `현재 기준선` 이 없으면 session-start 가 warning 을 낸다 — seed 단계에서 채워 둔다.
@@ -152,7 +153,8 @@ def render_handoff(*, branch: str, axis: str, task_id: str, task_title: str,
         "## 2. 진행 중 작업",
         "",
         "- 현재 `in_progress` 작업:",
-        f"- {task_id} — {task_title}",
+        # 빈 목록은 빈 bullet 이다 — 산문은 작업 항목으로 파싱된다 (정본 §Memory Update Paths).
+        f"- {task_id} — {task_title}" if task_status == "in_progress" else "-",
         "",
         "## 3. 차단 작업",
         "",
@@ -161,11 +163,20 @@ def render_handoff(*, branch: str, axis: str, task_id: str, task_title: str,
         "## 4. 최근 완료 작업",
         "",
         "- 최근 완료 작업 목록:",
+        *([f"- {task_id} {task_title}"] if task_status == "done" else []),
         "",
         "## 5. 다음 세션 시작 포인트",
         "",
-        f"- [`backlog/tasks/{task_id}.md`](./backlog/tasks/{task_id}.md) 의 완료 기준을 먼저 읽는다.",
+        (f"- [`backlog/tasks/{task_id}.md`](./backlog/tasks/{task_id}.md) 의 완료 기준을 먼저 읽는다."
+         if task_status == "in_progress" else
+         "- 실제 작업은 `wk backlog-update` 로 새 task 를 만들어 기록한다."),
         "- 작업 범위를 벗어나는 변경은 다른 워크스페이스와 충돌할 수 있으므로 backlog 에 별도 task 로 남긴다.",
+        "",
+        # §5 의 부류 분리 계약 — 작업 후보는 열린 task ID 를 인용한다
+        # (`check_handoff_next_steps`). 닫힌 seed task 는 후보가 아니다.
+        "#### 작업 후보 — 정본은 `state.json` 의 `planned_items` · `in_progress_items`",
+        "",
+        *([f"- {task_id} — {task_title}"] if task_status == "in_progress" else []),
         "",
         "## 6. 남은 리스크",
         "",
@@ -175,11 +186,12 @@ def render_handoff(*, branch: str, axis: str, task_id: str, task_title: str,
     return "\n".join(lines)
 
 
-def task_body(*, axis: str, out_of_scope: str | None) -> list[str]:
+def task_body(*, axis: str, out_of_scope: str | None,
+              task_status: str = "in_progress") -> list[str]:
     body = [
         "## 📝 Description",
         "",
-        f"- {task_label('status')}: in_progress",
+        f"- {task_label('status')}: {task_status}",
         f"- {task_label('request_date')}: {date.today().isoformat()}",
         f"- {task_label('owner')}: AI Agent",
         f"- {task_label('summary')}: {axis}",
@@ -191,7 +203,8 @@ def task_body(*, axis: str, out_of_scope: str | None) -> list[str]:
         "",
         "## 🛠️ Implementation / Content",
         "",
-        f"- {task_label('progress')}: 시작 전.",
+        f"- {task_label('progress')}: "
+        + ("시작 전." if task_status == "in_progress" else "seed 로 네임스페이스를 만들었다 — 이 task 는 그 사건의 기록이다."),
         "",
         "## ✅ Outcome",
         "",
@@ -241,7 +254,15 @@ def render_seed_session_record(*, branch: str, axis: str, task_id: str,
 
 def seed(*, memory_root: Path, branch: str, axis: str, task_title: str,
          out_of_scope: str | None, today: str, apply: bool,
-         force: bool) -> dict:
+         force: bool, task_status: str = "in_progress",
+         wbs_exempt_reason: str | None = None) -> dict:
+    """``task_status`` 는 첫 task 의 상태다. 중앙 배정은 업무 지시라 ``in_progress``,
+    session-start 의 자동 seed 는 업무를 모르므로 seed 사건만 ``done`` 으로 남긴다 —
+    backlog-update 는 기존 task 의 제목을 바꾸지 않아서(기존 유지) 자리표시 task 를
+    나중에 채우는 길이 없다 (TASK-2026-09-30-claude-session-start-e6eb83-002).
+
+    ``wbs_exempt_reason`` 을 주면 첫 task 를 `wbs: exempt` 로 선언한다 (ADR-027 §5) —
+    로드맵 밖 사건을 WBS 없이 닫으면 '선언 사슬이 끊긴 완료 항목' 경고가 된다."""
     active_dir = memory_root / "active"
     branch_dir = active_dir / branch
     tasks_dir = branch_dir / "backlog" / "tasks"
@@ -296,23 +317,26 @@ def seed(*, memory_root: Path, branch: str, axis: str, task_title: str,
             entry_lines=render_task_file(
                 task_id=task_id,
                 title=task_title,
-                status="in_progress",
+                status=task_status,
                 created_at=today,
                 kind="generic",
                 source_anchor=f"generic-{task_id.lower()}",
                 source_path=f"backlog/{today}.md",
-                body_lines=task_body(axis=axis, out_of_scope=out_of_scope),
+                body_lines=task_body(axis=axis, out_of_scope=out_of_scope,
+                                     task_status=task_status),
+                wbs="exempt" if wbs_exempt_reason else None,
+                wbs_exempt_reason=wbs_exempt_reason,
             ),
             title=task_title,
             kind="generic",
-            status="in_progress",
+            status=task_status,
         )
 
     if write_handoff:
         handoff_path.write_text(
             render_handoff(branch=branch, axis=axis, task_id=task_id,
                            task_title=task_title, today=today,
-                           out_of_scope=out_of_scope),
+                           out_of_scope=out_of_scope, task_status=task_status),
             encoding="utf-8",
         )
 

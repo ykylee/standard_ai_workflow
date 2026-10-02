@@ -105,6 +105,7 @@ from workflow_kit.plugin_payload import (  # noqa: E402
     ANTIGRAVITY_MCP_RELPATH,
     GOOSE_SNIPPET_RELPATH,
     MARKETPLACE_RELPATH,
+    MINIMAX_MANIFEST_RELPATH,
     OPENCODE_SNIPPET_RELPATH,
     PAYLOAD_DIRNAME,
     PAYLOAD_MCP_BRIDGE,
@@ -581,6 +582,11 @@ VERSION_BEARING_RELPATHS = (
     f"{PAYLOAD_DIRNAME}/plugin.json",
     f"{PAYLOAD_DIRNAME}/{CODEX_MANIFEST_RELPATH}",
     f"{PAYLOAD_DIRNAME}/{CLAUDE_CODE_MANIFEST_RELPATH}",
+    # MiniMax manifest — 채널이 셋이 됐으므로 버전 경로도 셋이다
+    # (TASK-2026-10-02-main-009). 여기 빠뜨리면 게이트는 4장만 세고
+    # MiniX 매니페스트의 버전 드리프트를 놓친다 — 게이트가 조용히 약해지는 방향이
+    # 그 반대라 이 리스트는 **반드시** 따라 늘린다.
+    f"{PAYLOAD_DIRNAME}/{MINIMAX_MANIFEST_RELPATH}",
     MARKETPLACE_RELPATH,
 )
 

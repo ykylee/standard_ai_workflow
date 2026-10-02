@@ -20,6 +20,9 @@ from workflow_kit.plugin_payload import (
     CLAUDE_CODE_MCP_RELPATH,
     CODEX_HOOKS_RELPATH,
     CODEX_MANIFEST_RELPATH,
+    MINIMAX_ICON_DARK_RELPATH,
+    MINIMAX_ICON_RELPATH,
+    MINIMAX_MANIFEST_RELPATH,
     PAYLOAD_DIRNAME,
     PLUGIN_NAME,
     current_kit_version,
@@ -47,6 +50,28 @@ PLUGIN_HARNESS_SPECS: dict[str, PluginHarnessSpec] = {
         slug="claude-code",
         manifest_relpath=CLAUDE_CODE_MANIFEST_RELPATH,
         include_prefixes=(CLAUDE_CODE_MANIFEST_RELPATH, CLAUDE_CODE_MCP_RELPATH, "skills/", "adapters/claude-code/"),
+    ),
+    # MiniMax Code 는 root ``plugin.json`` 을 **싣지 않는다** — MiniMax V1 manifest 선택
+    # 규칙상 유효한 Agent Plugins V1 root manifest 가 MiniMax manifest 를 가리므로,
+    # 3필드짜리 payload 루트 manifest 의 유효성을 아직 못 믿는다. 게다가 아이콘 2장이
+    # V1 스펙상 필수라 로고 없이는 설치해도 로드가 실패한다. 채널의 설치 대상이
+    # ``~/.minimax/plugins/<name>/`` 디렉터리 스캔이라 ZIP 을 경로가 그대로 쓰인다
+    # (:mod:`workflow_kit.minimax_plugin` 가 같은 접두 목록을 쓴다).
+    #
+    # ``skills/`` 접두는 ``skills/*/agents/openai.yaml`` (Codex UI 메타)도 함께 태운다.
+    # MiniMax 는 ``skills/*/SKILL.md`` 만 읽어 기능적으로 무해하고, Claude Code 채널도
+    # 이미 같은 접두를 쓴다 — 목록을 스킬마다 손으로 적으면 스킬 추가 때 이 자리가
+    # 조용히 낡는다고 판단해 **공유 접두를 유지**한다. 낭비 5파일과 stale 위험 중
+    # 어느 쪽도 이 저장소가 이미 겪은 "손으로 적은 목록" 사고가 더 나쁘다.
+    "minimax-code": PluginHarnessSpec(
+        slug="minimax-code",
+        manifest_relpath=MINIMAX_MANIFEST_RELPATH,
+        include_prefixes=(
+            MINIMAX_MANIFEST_RELPATH,
+            "skills/",
+            MINIMAX_ICON_RELPATH,
+            MINIMAX_ICON_DARK_RELPATH,
+        ),
     ),
 }
 

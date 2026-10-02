@@ -177,6 +177,20 @@ CODEX_MANIFEST_RELPATH = ".codex-plugin/plugin.json"
 #: 경로가 있으면 기본 경로는 **읽히지 않았다** (번들 field guide 는 "보탠다" 고 적었다).
 CODEX_HOOKS_RELPATH = "adapters/codex/hooks.json"
 
+#: MiniMax Code 로컬 플러그인 manifest. MiniMax Code 는 ``~/.minimax/plugins/<이름>/``
+#: 디렉터리 그 자체를 `local` 마켓플레이스로 스캔하고, 그 안의
+#: ``.minimax-plugin/plugin.json`` 을 **유일하게** 읽는다 (V1 스펙). 즉 이 파일이
+#: MiniMax 채널의 "native manifest" 다 — 다른 채널 manifest 와 같은 계층이다.
+MINIMAX_MANIFEST_RELPATH = ".minimax-plugin/plugin.json"
+
+#: MiniMax 플러그인 로고 2장. V1 스펙상 ``icon`` 은 **필수** 필드라 매니페스트만으로는
+#: 유효한 플러그인이 되지 않는다. 바이너리라 본 렌더러가 만들지 않고 손으로 유지한다 —
+#: pi.dev npm 메타와 같은 예외다 (:func:`_is_hand_maintained`). 드리프트 검사에서는
+#: 빠지지만 **존재·형식·매니페스트 참조 정합은 MiniMax 채널 검사가 따로 강제한다**
+#: (``check_minimax_plugin_channel.py``) — 예외가 검사를 없애는 게 아니라 위치를 옮긴다.
+MINIMAX_ICON_RELPATH = "icon.png"
+MINIMAX_ICON_DARK_RELPATH = "icon-dark.png"
+
 #: Antigravity 어댑터 (2026-08-29 이 호스트 실측, agy CLI). Antigravity 는
 #: **payload 루트의 관례 파일**을 읽는다: `agy plugin validate` 가 `skills/` 4종과
 #: 루트 `mcp_config.json` (mcpServers 키) 을 인식했다. 내용은 `mcp.json` 과 같은
@@ -691,6 +705,72 @@ def render_codex_manifest(version: str | None = None) -> str:
     ) + "\n"
 
 
+#: MiniMax Code 플러그인 매니페스트가 예시로 쓰는 사용자 질의 — 스킬 slug 별 1개.
+#: **목록이 아니라 매핑**이라 :data:`PLUGIN_SKILLS` 에 스킬을 넣고 여기를 안 갱신하면
+#: 렌더가 ``KeyError`` 로 즉시 red 가 된다. 이 저장소는 이미 같은 계열 사고를 두 번
+#: 겪었다 (``PLUGIN_DESCRIPTION`` 주석 — "Skills (4) 인데 설명은 스킬 3종").
+#: 예시는 채널 UI 표면이라 문안은 손으로 쓴다 (``render_codex_manifest`` 의
+#: ``interface.defaultPrompt`` 와 같은 성격).
+MINIMAX_EXAMPLE_QUERIES: dict[str, str] = {
+    "session-start": "워크플로우 세션 시작하고 다음 작업 후보 보고해줘",
+    "backlog-update": "이 작업을 오늘 백로그에 등록하고 scope creep 경고까지 확인해줘",
+    "doc-sync": "이번 변경이 영향을 주는 문서 후보 뽑아줘",
+    "session-end": "세션 종료 처리 — handoff 갱신하고 state.json 재생성해줘",
+    "compact-relay": "컨텍스트 압축 전에 compact 중계 기록 남기고 압축 뒤 이어가줘",
+}
+
+
+def render_minimax_manifest(version: str | None = None) -> str:
+    """``plugin/.minimax-plugin/plugin.json`` — MiniMax Code 로컬 플러그인 manifest.
+
+    MiniMax Code 의 `local` 마켓플레이스는 ``~/.minimax/plugins/`` **디렉터리 자체**를
+    스캔하고, 각 하위 디렉터리의 ``.minimax-plugin/plugin.json`` 을 읽는다. 스캔 기반
+    마켓플레이스라 ``mcode plugin add`` 로 원격 설치하는 경로가 없다 — 갱신은 이
+    디렉터리 재작성뿐이고, 그 재작성을 :mod:`workflow_kit.minimax_plugin` 가 한다.
+
+    **필드는 MiniMax Local Plugin V1 스펙에서 확인한 것만 쓴다.** 필수 필드는
+    ``schemaVersion`` ``name`` ``version`` ``description`` ``author`` ``icon``
+    ``category`` ``exampleQueries`` ``apps`` ``mcpServers`` ``skills`` 다.
+    :func:`render_plugin_manifest` 의 금지("스펙 원문으로 확인하지 못한 선택 필드는
+    넣지 않는다")가 여기에도 걸린다 — ``hooks`` 와 ``darkIcon`` 은 확인된 필드지만
+    **채널이 아직 안 쓴다** (hooks 는 동기식 command 핸들러 규약이 Claude/Codex
+    어댑터와 다르다. 아래 "왜 root plugin.json 을 싣지 않는가" 참조).
+
+    **``mcpServers`` 는 빈 배열로 둔다 — 의도다.** read-only 번들은 MiniMax 채널에서
+    ``~/.minimax/mcp/mcp.json`` **글로벌 merge** 로 등록되는 게 이 저장소의 정본
+    경로다 (``workflow_kit.bootstrap_lib`` 의 ``DEFAULT_MAVIS_GLOBAL_MCP_PATH``,
+    ``check_bootstrap_mavis_global_mcp.py`` 가 그 경로를 단정한다). 플러그인 manifest
+    에 다시 넣으면 같은 서버 이름이 두 번 등록된다.
+
+    **왜 root ``plugin.json`` 을 이 패키지에 싣지 않는가.** MiniMax V1 스펙의 manifest
+    선택 규칙은 "유효한 Agent Plugins V1 root ``plugin.json`` 이 MiniMax 보다 우선"이고,
+    "일반적이거나 무효한 root ``plugin.json`` 은 유효한 벤더 manifest 를 가리지 않는다"다.
+    payload 루트의 ``plugin.json`` 은 3필드짜리라 **유효한지 미확인**이다 — 가린다면
+    MiniMax manifest 가 조용히 무시된다. 그래서 MiniMax 채널 배포물과 로컬 sync 는
+    :data:`MINIMAX_MANIFEST_RELPATH` · ``skills/`` · 아이콘 2장만 싣는다. 채널 선택은
+    ``PLUGIN_HARNESS_SPECS["minimax-code"].include_prefixes`` 가 한 곳에 있다.
+    """
+    return json.dumps(
+        {
+            "schemaVersion": 1,
+            "name": PLUGIN_NAME,
+            "displayName": "Standard AI Workflow",
+            "version": version if version is not None else current_kit_version(),
+            "description": PLUGIN_DESCRIPTION,
+            "author": PLUGIN_AUTHOR["name"],
+            "icon": MINIMAX_ICON_RELPATH,
+            "darkIcon": MINIMAX_ICON_DARK_RELPATH,
+            "category": "Productivity",
+            "exampleQueries": [MINIMAX_EXAMPLE_QUERIES[spec.slug] for spec in PLUGIN_SKILLS],
+            "apps": [],
+            "mcpServers": [],
+            "skills": [f"skills/{spec.slug}/SKILL.md" for spec in PLUGIN_SKILLS],
+        },
+        ensure_ascii=False,
+        indent=2,
+    ) + "\n"
+
+
 def render_plugin_mcp_config(alias: str | None = None) -> str:
     """``plugin/mcp.json`` — read-only bundle 하나만 등록한다.
 
@@ -1117,6 +1197,7 @@ def render_agent_plugin(
     payload: dict[str, str] = {
         "plugin.json": render_plugin_manifest(version),
         CODEX_MANIFEST_RELPATH: render_codex_manifest(version),
+        MINIMAX_MANIFEST_RELPATH: render_minimax_manifest(version),
         "mcp.json": mcp_config,
         # 같은 렌더러의 출력을 두 이름으로 둔다 — 정본이 하나라 갈라지지 않고,
         # 검사 case 가 두 파일의 동일성을 강제한다.
@@ -1219,6 +1300,29 @@ def _is_pi_static(relpath: str) -> bool:
     return any(p in _PI_STATIC_DIRS for p in parts) or parts[-1] in _PI_STATIC_BASENAMES
 
 
+#: MiniMax 플러그인 로고 — 바이너리라 텍스트 렌더러가 만들 수 없다. pi.dev npm 메타와
+#: **같은 예외를 같은 이유로** 받는다 (패키지 구조 자산이지 정본 파생물이 아니다).
+#: MiniMax 플러그인 로고 파일명 — 바이너리라 텍스트 렌더러가 만들 수 없다. pi.dev npm
+#: 메타와 **같은 예외를 같은 이유로** 받는다 (패키지 구조 자산이지 정본 파생물이 아니다).
+_MINIMAX_STATIC_BASENAMES = frozenset({MINIMAX_ICON_RELPATH, MINIMAX_ICON_DARK_RELPATH})
+
+
+def _is_hand_maintained(relpath: str) -> bool:
+    """payload 안에서 **손으로 유지하는** 자산인가 — 텍스트 drift 대조에서 뺀다.
+
+    판정 대상은 두 갈래다: pi.dev npm 메타(``.pi-pkg/`` · ``package.json``)와
+    MiniMax 로고 2장. 바이너리는 ``read_text(encoding="utf-8")`` 로 열려도
+    ``UnicodeDecodeError`` 로 터지므로, 예외를 안 두면 byte 비교 자체가 성립하지 않는다.
+
+    호출부는 저장소 상대 경로(``plugin/icon.png``)와 payload 상대 경로(``icon.png``)를
+    다 넘기므로 ``package.json`` 예와 같이 **파일명**으로 판정한다. 대가가 있다 —
+    하위 디렉터리의 같은 이름 파일도 예외에 든다. 그 빈틈은 예외가 없애지 않고 옮긴다:
+    :func:`check_minimax_icons` 가 payload 루트의 정확한 두 경로가 존재하고 PNG이며
+    매니페스트에서 참조되는지 따로 강제한다.
+    """
+    return _is_pi_static(relpath) or relpath.split("/")[-1] in _MINIMAX_STATIC_BASENAMES
+
+
 def write_repo_plugin_files(repo_root: Path, files: dict[str, str] | None = None) -> list[Path]:
     """payload + marketplace 를 저장소 루트 기준으로 쓴다."""
     return write_agent_plugin(repo_root, files if files is not None else render_repo_plugin_files())
@@ -1243,7 +1347,7 @@ def diff_repo_plugin_files(repo_root: Path, files: dict[str, str] | None = None)
             if not found.is_file():
                 continue
             rel = found.relative_to(repo_root).as_posix()
-            if _is_pi_static(rel):
+            if _is_hand_maintained(rel):
                 continue
             if found.resolve() not in expected_paths:
                 problems.append(f"미등록 파일: {rel}")

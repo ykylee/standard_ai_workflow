@@ -253,6 +253,15 @@ CHANNEL_PREREQUISITES: tuple[ChannelPrerequisite, ...] = (
         note="경로 참조 설치라 사본이 없다",
     ),
     ChannelPrerequisite(
+        channel="minimax-code",
+        executables=(*_PLUGIN_COMMON,),
+        declared=("쓰기 가능한 `~/.minimax/plugins/`", "데스크톱 앱이 떠 있어야 `mcode plugin list` 로 인정을 확인한다"),
+        # mcode CLI 는 **선택**이다. 갱신 surface 는 `python -m workflow_kit.minimax_plugin`
+        # 이고, `mcode` 는 그 반영이 런타임에 인식됐는지 확인하는 창구일 뿐이다. CLI 를
+        # 전제로 재면 "앱이 안 깔린 호스트 = 채널 설치 불가" 가 되어 사실과 다르다.
+        note="로컬 마켓플레이스가 디렉터리 스캔이라 전용 갱신 명령이 없다 — sync 가 그 surface 다",
+    ),
+    ChannelPrerequisite(
         channel="bootstrap",
         executables=("python3",),
         declared=("PEP 668 인터프리터면 venv 필요 (§7.1)",),
@@ -924,9 +933,15 @@ def _probe_preflight() -> dict[str, Any]:
 
 
 def _is_pi_static(relpath: str) -> bool:
-    """pi.dev 분배 자산인가 — 렌더 대상이 아니라 손으로 유지되는 패키지 메타다."""
+    """payload 안에서 손으로 유지되는 자산인가 — 렌더 대상이 아닌 패키지 구조 자산.
+
+    pi.dev npm 메타(``.pi-pkg/`` · ``package.json``)와 MiniMax 플러그인 로고 2장이
+    여기에 든다. 로고는 바이너리라 ``read_text(encoding="utf-8")`` 가
+    ``UnicodeDecodeError`` 로 터진다 — 예외를 안 두면 아래 content_drift 가
+    ``differs: unreadable`` 로 적색을 낸다.
+    """
     try:
-        from workflow_kit.plugin_payload import _is_pi_static as impl  # noqa: PLC0415
+        from workflow_kit.plugin_payload import _is_hand_maintained as impl  # noqa: PLC0415
     except Exception:  # noqa: BLE001
         return False
     return impl(relpath)

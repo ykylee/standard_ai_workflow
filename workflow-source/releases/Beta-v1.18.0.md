@@ -56,3 +56,20 @@ worktree 브랜치가 모 브랜치(기본 브랜치)에 병합되면, 그 체�
   이어받기가 돌지 않는다 (`TASK-2026-10-02-main-003`).
 - `TASK-2026-08-25-main-017` (MCP emit command 가 항상 `python3`) 는 blocked, minimax-code 채널
   (`TASK-2026-09-30-main-001`)은 planned 그대로다.
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-10-02T03:02:12Z)_
+
+- total wiki pages: **97**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

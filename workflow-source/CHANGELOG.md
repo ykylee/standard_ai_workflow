@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- feat(branch-memory): worktree 합류 반영 — 병합된 브랜치 메모리를 모 브랜치 메모리에 기록하고 아카이브 (main-004) (82fece56)
 - feat(branch-memory): worktree seed 가 모 브랜치 내용을 이어받는다 — 원류 기록 + 합류 시 되돌려 적기 (main-001) (bb1c6088)
 - feat(compact-relay): Codex 플러그인에 압축 중계 hook 탑재 + 요약 부재 시 '대조 불가' (main-008) (0baeb787)
 - feat(compact-relay): 압축 경계를 워크플로우 메모리로 중계 — wk compact-checkpoint · hook 3종 · 스킬 compact-relay (M-018~M-021, ADR-030) (5a3c9db4)
@@ -45,11 +46,11 @@ All notable changes to this project will be documented in this file.
 - feat(meta-watch): 선언 보급 완주 — 국소 198 / 전역 10 / 미분류 68 (main-002·003) (18d8e369)
 - feat(meta-watch): 선언 보급 1차 — 채취 실측에서 WATCHES 71건 + mypy flake close (main-004·main-001) (c3c8634f)
 - feat(runner): M-011 — meta-watch 구현 (ADR-028) + 좁은 선언 7건 소탕 (11eb02d2)
-- feat(design): M-010 완결 — ADR-028 + test_impact_tiering_spec (실측 3건 기반) (07b61f88)
-- ... (156 more)
+- ... (157 more)
 
 ### Changed
 
+- chore(session): 112차 세션 종료 — main-001 · 002 close (worktree 모 브랜치 이어받기 · v1.17.0 발행) · main-003 등록 · handoff · state.json 갱신 (c44c09bf)
 - dolt remote info (1534f260)
 - chore(memory): 합류한 claude/exciting-ardinghelli-a0680d 브랜치 메모리 아카이브 · main handoff 포인터 갱신 (3c31ebb0)
 - chore(memory): 종료된 claude/session-start-e6eb83 브랜치 메모리 아카이브 · main handoff 포인터 갱신 (84761318)
@@ -79,8 +80,7 @@ All notable changes to this project will be documented in this file.
 - docs(design): ADR-029 세션 시작 컨텍스트 예산 accepted + core 스펙 → M-017 개설 (751346a3)
 - docs(planning): M-015 requirements sign-off (Q1~Q5 권고안) → M-016 design 개설 (e9a4b3c0)
 - chore(memory): 92차 세션 종료 — main-009 · 015 · 016 반영 (44e0ff24)
-- chore(memory): handoff §5 작업 후보에서 닫힌 main-015 · main-016 을 걷음 (70b13c19)
-- ... (439 more)
+- ... (440 more)
 
 ### Fixed
 
@@ -116,10 +116,17 @@ All notable changes to this project will be documented in this file.
 - fix(tests): case 수 대조 축의 범위를 실측으로 넓힌다 (main-006) + 86차 종료 (c3997a01)
 - ... (192 more)
 
+## [1.18.0] - 2026-10-02
+
+### Changed
+
+- release(v1.18.0): 발행 준비 — worktree 합류 반영 (병합된 브랜치 메모리를 모 브랜치 메모리에 기록) (1271be5f)
+
 ## [1.17.0] - 2026-10-02
 
 ### Changed
 
+- release(v1.17.0): 발행 완료 — 태그 push + GitHub Release(asset 4종) + 발행 wheel 격리 실측 + §2.8 (e543e589)
 - release(v1.17.0): 발행 준비 — worktree 모 브랜치 이어받기 + worktree 자동 seed · 게이트 호스트 의존 수리 2건 (35e4c7ef)
 
 ## [1.16.0] - 2026-09-30

@@ -354,6 +354,83 @@ def _missing_payload_assets() -> list[str]:
     return [rel for rel in required if not (PAYLOAD_ROOT / rel).is_file()]
 
 
+def _probe_mcp_servers_support() -> str:
+    """MiniMax Code 가 manifest 의 ``mcpServers`` 를 받아들이는지 **관찰**한다.
+
+    hard contract 는 우리 쪽이다 — :func:`check_v1_schema` 가 payload 가 빈 배열인
+    것을 강제한다. 여기서는 **상대의** 동작을 본다. 이 probe 는 PASS/FAIL 로 판정하지
+    않는다: "플러그인이 사라진다" 를 실패로 박아두면 MiniMax Code 가 고쳤을 때
+    게이트가 깨져서, 정작 알맞은 순간에 사람이 알아채지 못한다. 관찰이라서
+    **변해도 조용하다** — 그래서 결과를 눈에 띄게 찍고, 제약이 풀렸다면
+    ``render_minimax_manifest`` docstring 이 함께 고쳐져야 한다고 명시한다.
+
+    격리: 실 설치본을 건드리지 않는다. 유일하게 스캔되는 마켓플레이스
+    (``~/.minimax/plugins/``) 안에 **이름이 겹치지 않는 형제 디렉터리**를 잠깐
+    만들어 같은 질문을 한 번만 던지고 즉시 치운다. 동명이면 실 플러그인이 사라지는
+    것처럼 보여 구분도 안 되므로, 절대로 실 이름을 쓰지 않는다.
+    """
+    import shutil
+    import subprocess
+
+    if shutil.which("mcode") is None:
+        return "SKIP (mcode 없음 — 관찰 대상 런타임 부재)"
+    try:
+        import tempfile
+        from pathlib import Path as _P
+
+        home = _P.home() / ".minimax" / "plugins"
+        if not home.is_dir():
+            return "SKIP (~/.minimax/plugins 없음 — 로컬 마켓플레이스 부재)"
+        probe_dir = home / "zzz-minimax-mcp-probe"
+        try:
+            probe_dir.mkdir(parents=True, exist_ok=True)
+            (probe_dir / ".minimax-plugin").mkdir(exist_ok=True)
+            (probe_dir / "icon.png").write_bytes((PAYLOAD_ROOT / MINIMAX_ICON_RELPATH).read_bytes())
+            (probe_dir / ".minimax-plugin" / "plugin.json").write_text(
+                json.dumps(
+                    {
+                        "schemaVersion": 1,
+                        "name": "zzz-minimax-mcp-probe",
+                        "displayName": "MCP probe",
+                        "version": "0.0.0",
+                        "description": "관찰 전용 임시 플러그인. 게이트가 즉시 치운다.",
+                        "author": "workflow_kit check",
+                        "icon": "icon.png",
+                        "category": "Other",
+                        "exampleQueries": ["probe"],
+                        "apps": [],
+                        "mcpServers": [
+                            {"name": "ro", "type": "stdio", "command": "python3", "args": ["-c", "pass"]}
+                        ],
+                        "skills": [],
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+            proc = subprocess.run(
+                ["mcode", "plugin", "list", "--json"], capture_output=True, text=True, timeout=120
+            )
+            try:
+                data = json.loads(proc.stdout)
+            except ValueError:
+                return "SKIP (mcode 출력이 JSON 아님 — 관찰 불가)"
+            names = {entry.get("name") for entry in data.get("installed", [])}
+            if "zzz-minimax-mcp-probe" in names:
+                return (
+                    "LOADED — MiniMax Code 가 manifest 의 mcpServers 를 받는다. "
+                    "제약이 풀렸다: render_minimax_manifest 의 빈 배열 강지와 본 docstring 을 함께 검토한다"
+                )
+            return (
+                "DROPPED — 비어 있지 않은 mcpServers 를 선언한 플러그인이 목록에서 사라진다 "
+                "(MiniMax Code 3.1.0 · mcode 0.6.2 실측). payload 는 빈 배열을 유지한다"
+            )
+        finally:
+            shutil.rmtree(probe_dir, ignore_errors=True)
+    except Exception as error:  # noqa: BLE001 — 관찰은 어떤 이유로도 게이트를 red 로 만들지 않는다
+        return f"SKIP (관찰 실패: {type(error).__name__})"
+
+
 def main() -> int:
     missing = _missing_payload_assets()
     if missing:
@@ -381,6 +458,7 @@ def main() -> int:
         f"OK: MiniMax Code 채널 정합 (version={current_kit_version()} · "
         f"skills={len(PLUGIN_SKILLS)} · manifest={MINIMAX_MANIFEST_RELPATH})"
     )
+    print(f"  관찰 · manifest mcpServers 지원: {_probe_mcp_servers_support()}")
     return 0
 
 

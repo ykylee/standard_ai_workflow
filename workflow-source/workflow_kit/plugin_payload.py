@@ -739,8 +739,19 @@ def render_minimax_manifest(version: str | None = None) -> str:
     **``mcpServers`` 는 빈 배열로 둔다 — 의도다.** read-only 번들은 MiniMax 채널에서
     ``~/.minimax/mcp/mcp.json`` **글로벌 merge** 로 등록되는 게 이 저장소의 정본
     경로다 (``workflow_kit.bootstrap_lib`` 의 ``DEFAULT_MAVIS_GLOBAL_MCP_PATH``,
-    ``check_bootstrap_mavis_global_mcp.py`` 가 그 경로를 단정한다). 플러그인 manifest
-    에 다시 넣으면 같은 서버 이름이 두 번 등록된다.
+    ``check_bootstrap_mavis_global_mcp.py`` 가 그 경로를 단정한다).
+
+    **빈 배열이어야 하는 이유는 "중복 등록" 이 아니다** — 처음엔 그거라고 적었는데
+    2026-10-02 실측이 뒤집었다 (TASK-2026-10-02-feat-auto-20261002-4a5d394c-001).
+    MiniMax Code 3.1.0 · mcode 0.6.2 · macOS arm64 에서 manifest 에 **비어 있지 않은**
+    ``mcpServers`` 를 넣으면 플러그인이 **목록에서 사라진다** — 로드조차 안 된다.
+    세 형태를 모두 시도해 동일했다: ``["mcp.json"]`` (Claude 규약 파일명),
+    ``["servers.mcp.json"]`` (V1 규약 ``<servers>.mcp.json``), 그리고 인라인 객체 배열.
+    내용이 유효한지(절대 경로·정상 python)와 무관했고, 같은 설치본의 다른 플러그인은
+    계속 로드돼 설정 문제가 아님을 함께 배제했다. ``mcpServers: []`` 만 정상 로드.
+    즉 선택지가 아니라 **제약**이다 — 넣으면 채널이 통째로 사라진다.
+    나중에 MiniMax Code 가 이 제한을 풀면 그때는 플러그인 경로로 옮기는 편이 맞고,
+    그 신호는 ``check_minimax_plugin_channel.py`` 의 관찰 probe 가 남긴다.
 
     **왜 root ``plugin.json`` 을 이 패키지에 싣지 않는가.** MiniMax V1 스펙의 manifest
     선택 규칙은 "유효한 Agent Plugins V1 root ``plugin.json`` 이 MiniMax 보다 우선"이고,

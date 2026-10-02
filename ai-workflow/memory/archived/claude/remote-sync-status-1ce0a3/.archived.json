@@ -1,0 +1,18 @@
+{
+  "branch": "claude/remote-sync-status-1ce0a3",
+  "archived_at": "2026-10-03",
+  "merge_commit": null,
+  "task_ids": [
+    "TASK-2026-08-25-main-017",
+    "TASK-2026-09-30-main-001",
+    "TASK-2026-10-02-claude-remote-sync-status-1ce0a3-001",
+    "TASK-2026-10-02-claude-remote-sync-status-1ce0a3-002",
+    "TASK-2026-10-02-claude-remote-sync-status-1ce0a3-003",
+    "TASK-2026-10-02-main-003",
+    "TASK-2026-10-02-main-006",
+    "TASK-2026-10-02-main-007"
+  ],
+  "task_count": 8,
+  "open_task_ids": [],
+  "note": "종료된 브랜치의 메모리. 과거 이력 조회 대상 (읽기 전용)."
+}

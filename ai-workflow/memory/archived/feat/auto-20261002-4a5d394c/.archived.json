@@ -1,0 +1,13 @@
+{
+  "branch": "feat/auto-20261002-4a5d394c",
+  "archived_at": "2026-10-03",
+  "merge_commit": "a1f2ed684e5d1fdb4586398d5da338a50c2787ff",
+  "task_ids": [
+    "TASK-2026-10-02-feat-auto-20261002-4a5d394c-001",
+    "TASK-2026-10-02-feat-auto-20261002-4a5d394c-002",
+    "TASK-2026-10-02-feat-auto-20261002-4a5d394c-003"
+  ],
+  "task_count": 3,
+  "open_task_ids": [],
+  "note": "종료된 브랜치의 메모리. 과거 이력 조회 대상 (읽기 전용)."
+}

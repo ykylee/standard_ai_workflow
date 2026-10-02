@@ -70,20 +70,22 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-10-02-feat-auto-20261002-4a5d394c-003 검사 공용 관찰 래퍼 — 관찰 전용 session-start 호출을 한 곳에
+- TASK-2026-10-02-feat-auto-20261002-4a5d394c-002 검사 격리 결함 — session-start 합류 승격이 조용히 저장소를 쓴다
+- TASK-2026-10-02-feat-auto-20261002-4a5d394c-001 MiniMax Code 플러그인 채널 추가 — 페이로드 생성 + 릴리스 ZIP + 로컬 설치 sync
+- TASK-2026-10-02-claude-remote-sync-status-1ce0a3-003 게이트의 check_roadmap_wiring 이 worktree 에서 실제 저장소의 현재 브랜치 메모리를 합류 반영·아카이브한다
+- TASK-2026-10-02-claude-remote-sync-status-1ce0a3-002 macOS 호스트 v1.19.0 채널 재적용(§2.8) + 고유 커밋 없는 worktree 4개·브랜치 5개 정리
 - TASK-2026-10-02-main-008 v1.19.0 발행 — Windows: cp949 stdio/텍스트 I/O UTF-8 고정 + 하네스 호출 python -m workflow_kit 전환
 - TASK-2026-10-02-main-005 x
 - TASK-2026-10-02-main-004 x
 - TASK-2026-10-02-main-002 x
 - TASK-2026-10-02-main-001 x
-- TASK-2026-09-30-main-013 meta-watch 좁은 선언이 worktree 중첩 경로를 덮지 못해 게이트가 구조적으로 red 다
-- TASK-2026-09-30-main-012 로드맵 WBS 링크 수집기가 슬래시 포함 브랜치(task 가 2단계 깊이)에 닿지 않는다
-- TASK-2026-09-30-main-014 macOS Codex v1.16.0 적용·신뢰·재시작·compact 왕복 검증
-- TASK-2026-09-30-main-011 v1.16.0 발행 — Codex compact 중계 hook 탑재 + 출력 수리 (codex-json)
-- TASK-2026-09-30-main-010 Codex compact 중계 hook 출력 형식 수리 — [ 머리말이 JSON 으로 오판돼 hook failed · 재주입 0
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
 
+- (합류 `feat/auto-20261002-4a5d394c@e98bc3a6`, 2026-10-03) feat/auto-20261002-4a5d394c 워크스페이스 seed (2026-10-02). 아직 작업 전이다. — 완료 3건(TASK-2026-10-02-feat-auto-20261002-4a5d394c-001, TASK-2026-10-02-feat-auto-20261002-4a5d394c-002, TASK-2026-10-02-feat-auto-20261002-4a5d394c-003) · 이월 0건 · 되돌려 적음 0건. 기록: [`archived/feat/auto-20261002-4a5d394c/session_handoff.md`](../../archived/feat/auto-20261002-4a5d394c/session_handoff.md) · [합류 기록](./sessions/merge_feat-auto-20261002-4a5d394c_2026-10-03.md)
+- (합류 `claude/remote-sync-status-1ce0a3@f1a4b633`, 2026-10-03) claude/remote-sync-status-1ce0a3 워크스페이스 — `main@309c9ddf` 에서 이어받음 (2026-10-02, macOS 호스트). **이 브랜치 작업 2건 done (TASK-2026-10-02-claude-remote-sync-status-1ce0a3-002 M-007/WBS-7.4 · -003 M-007/WBS-7.2)** — 이 호스트 v1.19.0 §2.8 재적용(4채널 + MCP 해석기… — 완료 2건(TASK-2026-10-02-claude-remote-sync-status-1ce0a3-002, TASK-2026-10-02-claude-remote-sync-status-1ce0a3-003) · 이월 0건 · 되돌려 적음 0건. 기록: [`archived/claude/remote-sync-status-1ce0a3/session_handoff.md`](../../archived/claude/remote-sync-status-1ce0a3/session_handoff.md) · [합류 기록](./sessions/merge_claude-remote-sync-status-1ce0a3_2026-10-03.md)
 - (114차) **v1.19.0 발행됨 (main-008) — Windows 실측 대기, main-006 · 007 은 Linux 재현 조건으로만 검증해 in_progress.** 이 호스트는 §2.8 완료(behind=[] disabled=[]), claude-code · codex 재시작 필요(runtime_load), Codex hook 재신뢰 필요. Windows 호스트는 v1.19.0 wheel 로 갱신한 뒤 아래를 잰다. 소유자 보고 2건(같은 Windows · OpenCode 데스크톱): ①cp949 — 파이프 stdio 가 로캘 인코딩이라 `—` 출력에서 exit 2 → `common/stdio.force_utf8_stdio` + 텍스트 I/O 115곳 encoding 명시 + `check_text_io_encoding`. ②V3 가 `wk.exe`(pip 설치별 서명 없는 런처)를 평판 차단 → 하네스 호출을 `python -m workflow_kit <명령>` 으로 전환(소유자 결정, 셸 미상): 정본 §11.1 · 스킬 · 진입점 블록 · hook(python3→python import 탐침) · doctor(해석기별 import 실측) · 런타임 안내 30곳, `check_kit_invocation`. Windows 에서 확인할 것: `python -m workflow_kit session-start` rc 0 · OpenCode 에서 워크플로우 왕복 · `python -m workflow_kit doctor` 의 kit 해석기 줄 · OpenCode 실행 셸 종류(기록). 
 - (113차) **v1.18.0 발행됨** — claude-code 는 재시작해야 새 코드가 돈다(runtime_load stale), macOS 호스트는 §2.8 재적용(→1.18.0). **worktree 메모리 왕복은 다음 worktree 세션이 첫 실사용** — worktree 의 `session-start` 가 모 브랜치 기준선 · 열린 task 를 이어받는지(1.17.0), 그 브랜치가 main 에 병합된 뒤 main 의 `session-start` 가 합류 반영 warning 과 함께 완료 · 이월 · 되돌려 적기 · §5 합류 줄을 남기는지(1.18.0) 확인하고 그 변경을 main 커밋에 싣는다. 합류 뒤 같은 worktree 에서 이어 작업하지 말고 새 브랜치로. origin 없는 저장소 한계는 TASK-2026-10-02-main-003.
 - (110차 Claude Code worktree 합류) **worktree 브랜치는 이제 자기 네임스페이스로 자동 seed 된다** — `session-start` 가 `active/<branch>/` 부재 시 `main` 기준으로 seed, CI 밖 detached HEAD = 기본 브랜치, 비 git workspace = main (TASK-2026-09-30-claude-session-start-e6eb83-002, 6118db3d). 그 세션의 기준선·잔여 리스크는 [`archived/claude/session-start-e6eb83/session_handoff.md`](../../archived/claude/session-start-e6eb83/session_handoff.md) (브랜치 삭제 뒤 아카이브 완료). main-012 · main-013 은 같은 세션이 close.

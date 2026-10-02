@@ -58,7 +58,7 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
--
+- TASK-2026-10-02-main-002 v1.17.0 발행 — worktree 모 브랜치 이어받기 + worktree 자동 seed · meta-watch · 템플릿 검사 수리
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:

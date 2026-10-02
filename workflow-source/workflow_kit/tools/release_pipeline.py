@@ -267,7 +267,7 @@ def cmd_validate(args) -> dict:
         proc = subprocess.run(
             [sys.executable, str(REPO_ROOT / "workflow_kit/tools/check_packaging.py")],
             capture_output=True, text=True, timeout=120,
-            env=clean_env,
+            env=clean_env, encoding="utf-8", errors="replace",
         )
         results["packaging"] = {
             "exit_code": proc.returncode,
@@ -298,7 +298,7 @@ def cmd_validate(args) -> dict:
              "--project-root", str(REPO_ROOT.parent),
              "--config-path", str(REPO_ROOT)],
             capture_output=True, text=True, timeout=60,
-            env=doctor_env,
+            env=doctor_env, encoding="utf-8", errors="replace",
         )
         if proc.returncode == 0:
             try:
@@ -336,7 +336,7 @@ def cmd_validate(args) -> dict:
             # 확인). 현 계약 = top-level `generated_at` stamp. legacy 스키마
             # (`memory.last_freeze` 보유) 도 계속 인정한다.
             try:
-                data = json.loads(state_path.read_text())
+                data = json.loads(state_path.read_text(encoding="utf-8"))
             except json.JSONDecodeError as e:
                 results["state"] = {"ok": False, "error": f"state.json parse: {e}"}
             else:
@@ -362,7 +362,7 @@ def cmd_validate(args) -> dict:
     if not _skipped(args, "git"):
         proc = subprocess.run(
             ["git", "status", "--porcelain"],
-            cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=10,
+            cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=10, encoding="utf-8", errors="replace",
         )
         clean = proc.stdout.strip() == ""
         results["git"] = {
@@ -411,7 +411,7 @@ def cmd_validate(args) -> dict:
             mypy_proc = subprocess.run(
                 [sys.executable, "-m", "mypy", "--no-incremental", "--cache-dir", _isolated_mypy_cache_dir(), "--show-traceback",
                  "--config-file", mypy_config, mypy_target],
-                cwd=str(REPO_ROOT.parent), capture_output=True, text=True, timeout=120,
+                cwd=str(REPO_ROOT.parent), capture_output=True, text=True, timeout=120, encoding="utf-8", errors="replace",
             )
             # error count: lines like "file.py:LINE: error: ... [rule]"
             error_lines = [
@@ -598,7 +598,7 @@ def _check_remote_tag(tag: str, *, timeout: int = 15) -> dict:
     # 1. remote URL 추출
     remote_proc = subprocess.run(
         ["git", "remote", "get-url", "origin"],
-        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=timeout,
+        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=timeout, encoding="utf-8", errors="replace",
     )
     if remote_proc.returncode != 0:
         return result
@@ -606,7 +606,7 @@ def _check_remote_tag(tag: str, *, timeout: int = 15) -> dict:
     # 2. ls-remote 로 tag 조회
     ls_proc = subprocess.run(
         ["git", "ls-remote", "origin", f"refs/tags/{tag}"],
-        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=timeout,
+        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=timeout, encoding="utf-8", errors="replace",
     )
     if ls_proc.returncode == 0 and ls_proc.stdout.strip():
         result["exists"] = True
@@ -617,7 +617,7 @@ def _list_remote_tags(pattern: str = "v*", *, timeout: int = 15) -> list[str]:
     """원격의 tag list (정규식 filter, sort -V)."""
     ls_proc = subprocess.run(
         ["git", "ls-remote", "--tags", "origin", pattern],
-        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=timeout,
+        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=timeout, encoding="utf-8", errors="replace",
     )
     if ls_proc.returncode != 0:
         return []
@@ -736,14 +736,14 @@ def read_version() -> str:
 
 def write_version(new_version: str) -> None:
     """pyproject.toml 의 [project] version 갱신."""
-    text = PYPROJECT.read_text()
+    text = PYPROJECT.read_text(encoding="utf-8")
     text = re.sub(
         r'(version\s*=\s*)"[\d.]+([^"]*)"',
         rf'\1"{new_version}\2"',
         text,
         count=1,
     )
-    PYPROJECT.write_text(text)
+    PYPROJECT.write_text(text, encoding="utf-8")
 
 
 def read_workflow_kit_version() -> str:
@@ -774,7 +774,7 @@ def write_workflow_kit_version(new_version: str, *, suffix: str = "-beta") -> st
     # __init__.py 의 literal fallback (loud fallback chain 의 3번째) 도 정합성 유지.
     # suffix 가 "" 이면 그냥 "v{version}", 그 외는 "v{version}{suffix}" (suffix 가 이미 -beta 같은 suffix 포함).
     # v0.11.22 → 0.11.23 사이에서 suffix 이중 처리 (v0.11.23-beta-beta) bug fix.
-    text = WORKFLOW_KIT_INIT.read_text()
+    text = WORKFLOW_KIT_INIT.read_text(encoding="utf-8")
     replacement = f'{new_version}{suffix or ""}'
     # v1.2.1: literal 이 `return "1.2.1"` 형태다. `v?` 로 구 포맷도 받아 마이그레이션.
     new_text, n = re.subn(
@@ -790,7 +790,7 @@ def write_workflow_kit_version(new_version: str, *, suffix: str = "-beta") -> st
             f"loud fallback literal 을 {WORKFLOW_KIT_INIT} 에서 찾지 못했다 "
             f"(포맷이 바뀌었는가?). 갱신하지 못한 채 성공을 보고할 수 없다."
         )
-    WORKFLOW_KIT_INIT.write_text(new_text)
+    WORKFLOW_KIT_INIT.write_text(new_text, encoding="utf-8")
     write_pi_package_version(new_version)
     return f"{new_version}{suffix or ''}"
 
@@ -1074,7 +1074,7 @@ def _git_toplevel(*, timeout: int = 15) -> Path:
     try:
         proc = subprocess.run(
             ["git", "rev-parse", "--show-toplevel"],
-            capture_output=True, text=True, timeout=timeout, cwd=str(REPO_ROOT),
+            capture_output=True, text=True, timeout=timeout, cwd=str(REPO_ROOT), encoding="utf-8", errors="replace",
         )
     except (OSError, subprocess.TimeoutExpired):
         return REPO_ROOT.parent
@@ -1096,7 +1096,7 @@ def _git_dirty_paths(*, timeout: int = 15, needs_add_only: bool = False) -> list
     """
     proc = subprocess.run(
         ["git", "status", "--porcelain"],
-        capture_output=True, text=True, timeout=timeout, cwd=str(_git_toplevel()),
+        capture_output=True, text=True, timeout=timeout, cwd=str(_git_toplevel()), encoding="utf-8", errors="replace",
     )
     if proc.returncode != 0:
         return []
@@ -1122,14 +1122,14 @@ def _head_is_pushed(*, timeout: int = 15) -> dict:
     """
     proc_up = subprocess.run(
         ["git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"],
-        capture_output=True, text=True, timeout=timeout, cwd=str(REPO_ROOT),
+        capture_output=True, text=True, timeout=timeout, cwd=str(REPO_ROOT), encoding="utf-8", errors="replace",
     )
     if proc_up.returncode != 0 or not proc_up.stdout.strip():
         return {"checked": False, "upstream": None, "pushed": False}
     upstream = proc_up.stdout.strip()
     proc_anc = subprocess.run(
         ["git", "merge-base", "--is-ancestor", "HEAD", upstream],
-        capture_output=True, text=True, timeout=timeout, cwd=str(REPO_ROOT),
+        capture_output=True, text=True, timeout=timeout, cwd=str(REPO_ROOT), encoding="utf-8", errors="replace",
     )
     return {"checked": True, "upstream": upstream, "pushed": proc_anc.returncode == 0}
 
@@ -1169,7 +1169,7 @@ def _run_post_step_sync_hash(version: str, *, allow_pushed_amend: bool = False) 
     # Phase 1: sync_release_hash 호출
     proc_sync = subprocess.run(
         [sys.executable, str(sync_tool), f"--version={version_arg}", "--apply"],
-        capture_output=True, text=True, timeout=30, cwd=str(REPO_ROOT),
+        capture_output=True, text=True, timeout=30, cwd=str(REPO_ROOT), encoding="utf-8", errors="replace",
     )
     sync_result = {
         "stdout": proc_sync.stdout,
@@ -1215,7 +1215,7 @@ def _run_post_step_sync_hash(version: str, *, allow_pushed_amend: bool = False) 
     if add_targets:
         proc_add = subprocess.run(
             ["git", "add", "--", *add_targets],
-            capture_output=True, text=True, timeout=30, cwd=str(toplevel),
+            capture_output=True, text=True, timeout=30, cwd=str(toplevel), encoding="utf-8", errors="replace",
         )
         add_result = {
             "stdout": proc_add.stdout,
@@ -1231,7 +1231,7 @@ def _run_post_step_sync_hash(version: str, *, allow_pushed_amend: bool = False) 
 
     proc_amend = subprocess.run(
         ["git", "commit", "--amend", "--no-edit"],
-        capture_output=True, text=True, timeout=30, cwd=str(toplevel),
+        capture_output=True, text=True, timeout=30, cwd=str(toplevel), encoding="utf-8", errors="replace",
     )
     amend_result = {
         "stdout": proc_amend.stdout,
@@ -1249,13 +1249,13 @@ def _run_post_step_sync_hash(version: str, *, allow_pushed_amend: bool = False) 
     # 2-step: full SHA → short=7 (F-7+ 의 정공법, v0.7.26)
     proc_full = subprocess.run(
         ["git", "rev-parse", "HEAD"],
-        capture_output=True, text=True, timeout=5, cwd=str(REPO_ROOT),
+        capture_output=True, text=True, timeout=5, cwd=str(REPO_ROOT), encoding="utf-8", errors="replace",
     )
     if proc_full.returncode == 0 and proc_full.stdout.strip():
         head_full = proc_full.stdout.strip()
         proc_short = subprocess.run(
             ["git", "rev-parse", "--short=7", head_full],
-            capture_output=True, text=True, timeout=5, cwd=str(REPO_ROOT),
+            capture_output=True, text=True, timeout=5, cwd=str(REPO_ROOT), encoding="utf-8", errors="replace",
         )
         if proc_short.returncode == 0 and proc_short.stdout.strip():
             final_hash = proc_short.stdout.strip()[:7]
@@ -1280,7 +1280,7 @@ def collect_commits_since(from_tag: str) -> list[dict]:
     """git log <from_tag>..HEAD 의 commit 목록."""
     proc = subprocess.run(
         ["git", "log", f"{from_tag}..HEAD", "--pretty=format:%h|%s|%an|%ai"],
-        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=30,
+        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace",
     )
     if proc.returncode != 0:
         return []
@@ -1379,7 +1379,7 @@ def cmd_note_draft(args) -> dict:
             "commits": len(commits),
             "preview_first_500": note[:500],
         }
-    output_path.write_text(note)
+    output_path.write_text(note, encoding="utf-8")
     return {
         "mode": "applied",
         "output_path": str(output_path.relative_to(REPO_ROOT)),
@@ -1472,7 +1472,7 @@ def _tracked_live_markdown() -> list[Path]:
     try:
         listed = subprocess.run(
             ["git", "-C", str(repo_root), "ls-files", "*.md"],
-            capture_output=True, text=True, check=True,
+            capture_output=True, text=True, check=True, encoding="utf-8", errors="replace",
         ).stdout.splitlines()
     except (OSError, subprocess.CalledProcessError):
         # git 을 못 부르면 **넓히기 전 범위** 로 떨어진다 — 조용히 0 건이 되면
@@ -1999,7 +1999,7 @@ def _run_drift_prevention_smoke() -> dict:
         completed = subprocess.run(
             [sys.executable, str(smoke_path)],
             cwd=str(REPO_ROOT),
-            capture_output=True, text=True, check=False, timeout=30,
+            capture_output=True, text=True, check=False, timeout=30, encoding="utf-8", errors="replace",
         )
     except subprocess.TimeoutExpired:
         return {"guard_status": "error", "cases_pass": 0, "cases_fail": 0,
@@ -2218,7 +2218,7 @@ def release_tag_for_version(version: str, *, timeout: int = 15) -> str | None:
         try:
             proc = subprocess.run(
                 ["git", "rev-parse", "--verify", "--quiet", f"refs/tags/{candidate}"],
-                capture_output=True, text=True, timeout=timeout, cwd=str(_git_toplevel()),
+                capture_output=True, text=True, timeout=timeout, cwd=str(_git_toplevel()), encoding="utf-8", errors="replace",
             )
         except (OSError, subprocess.TimeoutExpired):
             return None
@@ -2232,7 +2232,7 @@ def smoke_files_at_tag(tag: str, *, timeout: int = 15) -> int | None:
     try:
         proc = subprocess.run(
             ["git", "ls-tree", "-r", "--name-only", tag, "--", "workflow-source/tests"],
-            capture_output=True, text=True, timeout=timeout, cwd=str(_git_toplevel()),
+            capture_output=True, text=True, timeout=timeout, cwd=str(_git_toplevel()), encoding="utf-8", errors="replace",
         )
     except (OSError, subprocess.TimeoutExpired):
         return None
@@ -2688,7 +2688,7 @@ def cmd_release(args) -> dict:
     if not args.dry_run:
         tag_create_proc = subprocess.run(
             ["git", "tag", tag, "HEAD"],
-            cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=10,
+            cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=10, encoding="utf-8", errors="replace",
         )
         results["tag_create"] = {
             "tag": tag,
@@ -2700,7 +2700,7 @@ def cmd_release(args) -> dict:
         # 그대로 진행. 그 외는 다음 step (push) 에서 검증.
         push_tag_proc = subprocess.run(
             ["git", "push", "origin", f"refs/tags/{tag}"],
-            cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=30,
+            cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace",
         )
         results["tag_push"] = {
             "tag": tag,
@@ -2730,7 +2730,7 @@ def cmd_release(args) -> dict:
     # 4. gh command build
     repo_remote = subprocess.run(
         ["git", "remote", "get-url", "origin"],
-        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=10,
+        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=10, encoding="utf-8", errors="replace",
     )
     repo = repo_remote.stdout.strip().replace("https://github.com/", "").replace(".git", "")
     results["repo"] = repo
@@ -2749,12 +2749,12 @@ def cmd_release(args) -> dict:
         return _attach_release_summary(results)
 
     # 5. gh auth check + release create
-    auth_proc = subprocess.run(["gh", "auth", "status"], capture_output=True, text=True, timeout=10)
+    auth_proc = subprocess.run(["gh", "auth", "status"], capture_output=True, text=True, timeout=10, encoding="utf-8", errors="replace")
     if auth_proc.returncode != 0:
         return _attach_release_summary({**results, "error": "gh auth not authenticated"})
     results["gh_auth_ok"] = True
 
-    proc = subprocess.run(gh_cmd, capture_output=True, text=True, timeout=120)
+    proc = subprocess.run(gh_cmd, capture_output=True, text=True, timeout=120, encoding="utf-8", errors="replace")
     results["gh_exit_code"] = proc.returncode
     if proc.stdout:
         results["gh_stdout_tail"] = proc.stdout.strip().split("\n")[-1]
@@ -2993,7 +2993,7 @@ def cmd_verify(args) -> dict:
     if args.dry_run:
         return results
 
-    proc = subprocess.run(gh_cmd, capture_output=True, text=True, timeout=30)
+    proc = subprocess.run(gh_cmd, capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace")
     if proc.returncode != 0:
         return {**results, "error": f"release not found: {tag_full} (gh exit {proc.returncode})"}
 
@@ -3014,7 +3014,7 @@ def _get_repo() -> str:
     """git remote origin → 'owner/repo' 추출."""
     proc = subprocess.run(
         ["git", "remote", "get-url", "origin"],
-        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=10,
+        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=10, encoding="utf-8", errors="replace",
     )
     return proc.stdout.strip().replace("https://github.com/", "").replace(".git", "")
 
@@ -3054,7 +3054,7 @@ def cmd_rollback(args) -> dict:
     # 실제 실행
     executed: list[dict] = []
     for cmd in commands:
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace")
         executed.append({
             "cmd": " ".join(cmd),
             "exit_code": proc.returncode,
@@ -3170,7 +3170,7 @@ def cmd_dist(args) -> dict:
             capture_output=True,
             text=True,
             timeout=args.timeout,
-            cwd=str(REPO_ROOT),
+            cwd=str(REPO_ROOT), encoding="utf-8", errors="replace",
         )
     except subprocess.TimeoutExpired:
         results["error"] = f"build timeout after {args.timeout}s"

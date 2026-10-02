@@ -89,7 +89,7 @@ def _detect_origin_url(repo_root: Path) -> str | None:
             cwd=str(repo_root),
             capture_output=True,
             text=True,
-            timeout=5,
+            timeout=5, encoding="utf-8", errors="replace",
         )
         if result.returncode == 0 and result.stdout.strip():
             return _normalize_origin_url(result.stdout.strip())
@@ -139,7 +139,7 @@ def _repo_has_origin_remote(repo_root: Path) -> bool:
             cwd=str(repo_root),
             capture_output=True,
             text=True,
-            timeout=5,
+            timeout=5, encoding="utf-8", errors="replace",
         )
     except (subprocess.TimeoutExpired, FileNotFoundError):
         return False
@@ -158,7 +158,7 @@ def _detect_default_branch(repo_root: Path) -> str:
             cwd=str(repo_root),
             capture_output=True,
             text=True,
-            timeout=5,
+            timeout=5, encoding="utf-8", errors="replace",
         )
         if result.returncode == 0:
             ref = result.stdout.strip()
@@ -192,7 +192,7 @@ def _detect_default_branch(repo_root: Path) -> str:
                 cwd=str(repo_root),
                 capture_output=True,
                 text=True,
-                timeout=5,
+                timeout=5, encoding="utf-8", errors="replace",
             )
             if result.returncode == 0 and result.stdout.strip():
                 return result.stdout.strip()

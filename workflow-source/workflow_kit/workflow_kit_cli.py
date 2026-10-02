@@ -131,6 +131,8 @@ from workflow_kit.cli_commands_release import (
     cmd_release_rollback,
     cmd_release_verify,
 )
+from workflow_kit.common.stdio import force_utf8_stdio
+
 
 __all__ = [
     # registry (cli_registry 재-export)
@@ -570,9 +572,14 @@ def run_workflow_kit_cli(argv: list[str]) -> int:
 
 
 def wk_main() -> int:
-    """`wk` console_script 진입점 (v1.1.2+, CLI 化 B안)."""
+    """`wk` console_script 진입점 (v1.1.2+, CLI 化 B안).
+
+    stdio 를 UTF-8 로 고정한 뒤 dispatch 한다 — Windows 파이프 stdio 는 로캘
+    인코딩(cp949)이라 `—` 같은 문자에서 죽는다 (TASK-2026-10-02-main-006).
+    """
+    force_utf8_stdio()
     return run_workflow_kit_cli(sys.argv[1:])
 
 
 if __name__ == "__main__":
-    sys.exit(run_workflow_kit_cli(sys.argv[1:]))
+    sys.exit(wk_main())

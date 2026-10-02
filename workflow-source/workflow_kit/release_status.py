@@ -72,7 +72,7 @@ def _last_release_tag() -> str | None:
     try:
         proc = subprocess.run(
             ["git", "describe", "--tags", "--abbrev=0"],
-            cwd=str(PROJECT_ROOT), capture_output=True, text=True, timeout=10,
+            cwd=str(PROJECT_ROOT), capture_output=True, text=True, timeout=10, encoding="utf-8", errors="replace",
         )
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return None
@@ -93,7 +93,7 @@ def _unreleased_commits(*, since_tag: str | None) -> dict[str, Any]:
         cmd = ["git", "log", "--oneline", "--no-decorate"]
     try:
         proc = subprocess.run(
-            cmd, cwd=str(PROJECT_ROOT), capture_output=True, text=True, timeout=10,
+            cmd, cwd=str(PROJECT_ROOT), capture_output=True, text=True, timeout=10, encoding="utf-8", errors="replace",
         )
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return {"count": 0, "commits": [], "error": "git not available or timeout"}
@@ -262,7 +262,7 @@ def _check_local_mypy() -> dict[str, Any]:
             [sys.executable, "-m", "mypy", "--no-incremental", "--cache-dir", _isolated_mypy_cache_dir(),
              "--config-file", str(REPO_ROOT / "pyproject.toml"),
              "workflow-source/workflow_kit/"],
-            cwd=str(PROJECT_ROOT), capture_output=True, text=True, timeout=120,
+            cwd=str(PROJECT_ROOT), capture_output=True, text=True, timeout=120, encoding="utf-8", errors="replace",
         )
     except FileNotFoundError:
         return {

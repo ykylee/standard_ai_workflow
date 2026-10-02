@@ -61,7 +61,7 @@ def _gh_available() -> tuple[bool, str]:
     """`gh` 가 있고 인증돼 있는가. (available, reason)."""
     try:
         proc = subprocess.run(
-            ["gh", "auth", "status"], capture_output=True, text=True, timeout=GH_TIMEOUT_SECONDS
+            ["gh", "auth", "status"], capture_output=True, text=True, timeout=GH_TIMEOUT_SECONDS, encoding="utf-8", errors="replace"
         )
     except FileNotFoundError:
         return False, "gh CLI not found on PATH"
@@ -77,7 +77,7 @@ def _detect_repo() -> str | None:
     try:
         proc = subprocess.run(
             ["gh", "repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"],
-            capture_output=True, text=True, timeout=GH_TIMEOUT_SECONDS,
+            capture_output=True, text=True, timeout=GH_TIMEOUT_SECONDS, encoding="utf-8", errors="replace",
         )
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return None
@@ -90,7 +90,7 @@ def _fetch_protection(repo: str, branch: str) -> tuple[dict[str, Any] | None, bo
     try:
         proc = subprocess.run(
             ["gh", "api", f"repos/{repo}/branches/{branch}/protection"],
-            capture_output=True, text=True, timeout=GH_TIMEOUT_SECONDS,
+            capture_output=True, text=True, timeout=GH_TIMEOUT_SECONDS, encoding="utf-8", errors="replace",
         )
     except FileNotFoundError:
         return None, False, "gh CLI not found on PATH"

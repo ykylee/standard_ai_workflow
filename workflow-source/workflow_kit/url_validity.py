@@ -884,7 +884,7 @@ class _CacheLock:
         # stale_seconds, treat as orphaned (process died without cleanup) and remove.
         self._maybe_cleanup_stale_lock()
         try:
-            self._fd = open(self._lock_path, "w")
+            self._fd = open(self._lock_path, "w", encoding="utf-8")
             # Try non-blocking exclusive lock first
             try:
                 fcntl.flock(self._fd.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)

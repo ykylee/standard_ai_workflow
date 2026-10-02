@@ -44,7 +44,7 @@ def git_toplevel(start: Path | None = None) -> Path | None:
     base = (start or Path.cwd()).resolve()
     proc = subprocess.run(
         ["git", "rev-parse", "--show-toplevel"],
-        cwd=str(base), capture_output=True, text=True,
+        cwd=str(base), capture_output=True, text=True, encoding="utf-8", errors="replace",
     )
     if proc.returncode != 0:
         return None
@@ -328,7 +328,7 @@ def _git_branch_slug(repo_root: Path) -> str | None:
             ["git", "rev-parse", "--abbrev-ref", "HEAD"],
             cwd=str(repo_root),
             stderr=subprocess.DEVNULL,
-            text=True,
+            text=True, encoding="utf-8", errors="replace",
         ).strip()
     except (subprocess.CalledProcessError, FileNotFoundError, NotADirectoryError, OSError):
         return None
@@ -344,7 +344,7 @@ def _git_branch_slug(repo_root: Path) -> str | None:
                 ["git", "rev-parse", "--short=7", "HEAD"],
                 cwd=str(repo_root),
                 stderr=subprocess.DEVNULL,
-                text=True,
+                text=True, encoding="utf-8", errors="replace",
             ).strip()
             if short_sha and len(short_sha) >= 7:
                 return short_sha

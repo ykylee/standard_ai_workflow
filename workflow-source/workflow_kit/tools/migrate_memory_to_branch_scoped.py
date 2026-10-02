@@ -74,7 +74,7 @@ def _git_mv(src: Path, dst: Path, *, repo_root: Path) -> tuple[bool, str]:
     dst.parent.mkdir(parents=True, exist_ok=True)
     proc = subprocess.run(
         ["git", "mv", str(src.relative_to(repo_root)), str(dst.relative_to(repo_root))],
-        cwd=str(repo_root), capture_output=True, text=True,
+        cwd=str(repo_root), capture_output=True, text=True, encoding="utf-8", errors="replace",
     )
     return proc.returncode == 0, proc.stderr.strip()
 

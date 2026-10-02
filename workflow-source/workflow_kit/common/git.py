@@ -19,7 +19,7 @@ class CommitEntry:
 def get_git_log(repo_path: str | Path, commit_range: str) -> List[str]:
     try:
         cmd = ["git", "-C", str(repo_path), "log", "--pretty=format:%s|%h|%an|%ad", "--date=iso", commit_range]
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True, encoding="utf-8", errors="replace")
         if not result.stdout.strip():
             return []
         return result.stdout.strip().split("\n")
@@ -275,7 +275,7 @@ def _run_git(
     """`git <args>` 실행. 실행 자체가 불가하면 ``None`` (호출자가 '못 봤다' 로 다룬다)."""
     try:
         return subprocess.run(
-            ["git", *args], cwd=str(cwd), capture_output=True, text=True, timeout=timeout
+            ["git", *args], cwd=str(cwd), capture_output=True, text=True, timeout=timeout, encoding="utf-8", errors="replace"
         )
     except (OSError, subprocess.TimeoutExpired):
         return None

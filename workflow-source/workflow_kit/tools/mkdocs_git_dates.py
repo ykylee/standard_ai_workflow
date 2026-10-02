@@ -135,7 +135,7 @@ class GitDatesPlugin:
                 cwd=str(git_root),
                 capture_output=True,
                 text=True,
-                timeout=10,
+                timeout=10, encoding="utf-8", errors="replace",
             )
             if result.returncode != 0:
                 LOG.debug("git log failed for %s: %s", src_path, result.stderr.strip())

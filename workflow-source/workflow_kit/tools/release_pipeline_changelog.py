@@ -86,7 +86,7 @@ def collect_commits_all_time() -> list[dict]:
     """
     proc = subprocess.run(
         ["git", "log", "--all", "--pretty=format:%h|%H|%an|%ai|%s"],
-        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=60,
+        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=60, encoding="utf-8", errors="replace",
     )
     if proc.returncode != 0:
         return []
@@ -109,7 +109,7 @@ def collect_commits_in_range(from_ref: str | None, to_ref: str = "HEAD") -> list
     range_arg = f"{from_ref}..{to_ref}"
     proc = subprocess.run(
         ["git", "log", range_arg, "--pretty=format:%h|%H|%an|%ai|%s"],
-        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=60,
+        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=60, encoding="utf-8", errors="replace",
     )
     if proc.returncode != 0:
         # from_ref 또는 to_ref invalid. caller 가 error 처리.

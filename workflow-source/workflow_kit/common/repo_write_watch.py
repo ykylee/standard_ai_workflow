@@ -72,7 +72,7 @@ def _status(repo_root: Path) -> frozenset[str] | None:
     try:
         done = subprocess.run(
             ["git", "-C", str(repo_root), "status", "--porcelain"],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace",
         )
     except (OSError, subprocess.SubprocessError):
         return None

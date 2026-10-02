@@ -81,7 +81,7 @@ def _current_branch(project_root: Path) -> str:
     try:
         proc = subprocess.run(
             ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-            cwd=project_root, capture_output=True, text=True, timeout=10,
+            cwd=project_root, capture_output=True, text=True, timeout=10, encoding="utf-8", errors="replace",
         )
     except (OSError, subprocess.SubprocessError):
         return "main"
@@ -210,7 +210,7 @@ def run(*, project_root: Path, apply: bool) -> dict[str, object]:
         for harness in harnesses:
             argv += ["--harness", harness]
         env = {**dict(__import__("os").environ), "PYTHONPATH": str(SOURCE_ROOT)}
-        proc = subprocess.run(argv, capture_output=True, text=True, env=env)
+        proc = subprocess.run(argv, capture_output=True, text=True, env=env, encoding="utf-8", errors="replace")
         if proc.returncode != 0:
             apply_error = (proc.stderr or proc.stdout)[-600:]
         else:

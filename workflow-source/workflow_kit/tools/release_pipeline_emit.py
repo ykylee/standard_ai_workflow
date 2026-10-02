@@ -84,7 +84,7 @@ def _emit_dashboard_post_release(args: argparse.Namespace, results: dict) -> dic
             text=True,
             check=False,
             timeout=60,
-            env=sub_env,
+            env=sub_env, encoding="utf-8", errors="replace",
         )
         duration_ms = int((time.monotonic() - started) * 1000)
         if completed.returncode != 0:

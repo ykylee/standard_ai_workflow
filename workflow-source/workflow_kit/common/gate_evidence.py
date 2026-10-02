@@ -51,7 +51,7 @@ EVIDENCE_SCHEMA = 1
 def _git(repo_root: Path, *args: str) -> str | None:
     try:
         proc = subprocess.run(["git", "-C", str(repo_root), *args],
-                              capture_output=True, text=True, timeout=30)
+                              capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace")
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return None
     return proc.stdout.strip() if proc.returncode == 0 else None

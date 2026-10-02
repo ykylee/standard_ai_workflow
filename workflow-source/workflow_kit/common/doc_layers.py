@@ -168,7 +168,7 @@ def is_gitignored(path: Path, *, repo_root: Path) -> bool:
     try:
         done = subprocess.run(
             ["git", "-C", str(repo_root), "check-ignore", "--no-index", "-q", "--", rel],
-            capture_output=True, text=True,
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
         )
     except OSError:
         return False          # 못 물었으면 무시로 접지 않는다 — 모름 ≠ 동결

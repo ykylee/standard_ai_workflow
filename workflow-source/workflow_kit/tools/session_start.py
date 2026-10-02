@@ -197,7 +197,7 @@ def _detect_stale_branch_memories(
 
     def run(extra: list[str]) -> dict[str, Any]:
         proc = subprocess.run(cmd + extra, capture_output=True, text=True, timeout=120,
-                              env=child_env())
+                              env=child_env(), encoding="utf-8", errors="replace")
         return json.loads(proc.stdout) if proc.stdout.strip() else {}
 
     try:

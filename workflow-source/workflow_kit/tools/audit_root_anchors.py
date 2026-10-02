@@ -237,7 +237,7 @@ def _git_source_files(scan_root: Path) -> list[Path] | None:
         try:
             proc = subprocess.run(
                 ["git", "-C", str(scan_root), *args],
-                capture_output=True, text=True, timeout=60,
+                capture_output=True, text=True, timeout=60, encoding="utf-8", errors="replace",
             )
         except (OSError, subprocess.SubprocessError):
             return None

@@ -75,7 +75,7 @@ def _detect_repo_root() -> Path:
     try:
         proc = subprocess.run(
             ["git", "rev-parse", "--show-toplevel"],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True, text=True, timeout=10, encoding="utf-8", errors="replace",
         )
         if proc.returncode == 0 and proc.stdout.strip():
             return Path(proc.stdout.strip()).resolve()
@@ -129,7 +129,7 @@ def _run_step(name: str, cmd: list[str], *, dry: bool, timeout: int = 120) -> di
         capture_output=True,
         text=True,
         timeout=timeout,
-        env=child_env(),
+        env=child_env(), encoding="utf-8", errors="replace",
     )
     result["returncode"] = proc.returncode
     if proc.stdout:

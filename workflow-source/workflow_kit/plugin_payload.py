@@ -1265,4 +1265,6 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 
 if __name__ == "__main__":  # pragma: no cover - CLI
+    from workflow_kit.common.stdio import force_utf8_stdio
+    force_utf8_stdio()
     raise SystemExit(main())

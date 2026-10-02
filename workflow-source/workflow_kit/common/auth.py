@@ -85,7 +85,7 @@ def check_api_key_storage(project_root: Path) -> RuleResult:
             cwd=str(project_root),
             capture_output=True,
             text=True,
-            timeout=10,
+            timeout=10, encoding="utf-8", errors="replace",
         )
         # API key pattern (sk-, ghp_, glpat- etc.)
         if re.search(r"sk-[a-zA-Z0-9]{20,}|ghp_[a-zA-Z0-9]{20,}|glpat-[a-zA-Z0-9_-]{20,}", proc.stdout):

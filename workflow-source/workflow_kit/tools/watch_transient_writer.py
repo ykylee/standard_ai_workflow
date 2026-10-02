@@ -148,7 +148,7 @@ def _git_toplevel(path: Path) -> Path | None:
         proc = subprocess.run(
             ["git", "-C", str(path if path.is_dir() else path.parent),
              "rev-parse", "--show-toplevel"],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace",
         )
     except (OSError, subprocess.SubprocessError):
         return None
@@ -162,7 +162,7 @@ def _capture_ps(log_dir: Path, seq: int) -> str | None:
     try:
         proc = subprocess.run(
             ["ps", "-eo", "pid,ppid,etime,args"],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace",
         )
     except (OSError, subprocess.SubprocessError):
         return None
@@ -178,7 +178,7 @@ def _capture_fuser(target: Path) -> str | None:
     try:
         proc = subprocess.run(
             ["fuser", "-v", str(target)],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace",
         )
     except (OSError, subprocess.SubprocessError):
         return None

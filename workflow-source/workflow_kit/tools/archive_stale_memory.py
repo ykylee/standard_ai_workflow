@@ -583,7 +583,7 @@ def cmd_install_cron(args: argparse.Namespace) -> dict:
     if not force_install:
         info_proc = subprocess.run(
             ["mavis", "cron", "info", agent, cron_name],
-            capture_output=True, text=True, timeout=30, cwd=str(get_repo_root(args.repo_root)),
+            capture_output=True, text=True, timeout=30, cwd=str(get_repo_root(args.repo_root)), encoding="utf-8", errors="replace",
         )
         if info_proc.returncode == 0 and cron_name in info_proc.stdout:
             # cron 이미 존재 → skip
@@ -609,7 +609,7 @@ def cmd_install_cron(args: argparse.Namespace) -> dict:
 
     proc = subprocess.run(
         ["mavis", "cron", "create", agent, cron_name, f"--schedule={cron_interval}", f"--prompt={prompt}"],
-        capture_output=True, text=True, timeout=30, cwd=str(get_repo_root(args.repo_root)),
+        capture_output=True, text=True, timeout=30, cwd=str(get_repo_root(args.repo_root)), encoding="utf-8", errors="replace",
     )
     return {
         "ok": proc.returncode == 0,
@@ -641,7 +641,7 @@ def cmd_uninstall_cron(args: argparse.Namespace) -> dict:
 
     proc = subprocess.run(
         ["mavis", "cron", "disable", agent, cron_name],
-        capture_output=True, text=True, timeout=30, cwd=str(get_repo_root(args.repo_root)),
+        capture_output=True, text=True, timeout=30, cwd=str(get_repo_root(args.repo_root)), encoding="utf-8", errors="replace",
     )
     return {
         "ok": proc.returncode == 0,
@@ -667,7 +667,7 @@ def cmd_show_cron(args: argparse.Namespace) -> dict:
     agent = getattr(args, "agent", "mavis")
     proc = subprocess.run(
         ["mavis", "cron", "list", agent],
-        capture_output=True, text=True, timeout=30, cwd=str(get_repo_root(args.repo_root)),
+        capture_output=True, text=True, timeout=30, cwd=str(get_repo_root(args.repo_root)), encoding="utf-8", errors="replace",
     )
     found = cron_name in proc.stdout if proc.returncode == 0 else False
     return {

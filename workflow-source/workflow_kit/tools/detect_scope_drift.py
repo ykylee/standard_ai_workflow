@@ -91,7 +91,7 @@ def _git_show(commit: str, path: str, cwd: Path) -> str | None:
             capture_output=True,
             text=True,
             timeout=10,
-            check=False,
+            check=False, encoding="utf-8", errors="replace",
         )
     except (OSError, subprocess.TimeoutExpired):
         return None
@@ -109,7 +109,7 @@ def _git_log(range_spec: str, cwd: Path) -> str:
             capture_output=True,
             text=True,
             timeout=10,
-            check=False,
+            check=False, encoding="utf-8", errors="replace",
         )
     except (OSError, subprocess.TimeoutExpired):
         return ""

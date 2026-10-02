@@ -155,7 +155,7 @@ def _ensure_venv(repo_root: Path, version: str) -> Path | None:
 
     actual = subprocess.run(  # noqa: S603
         [str(python), "-c", "import sys;print('%d.%d'%sys.version_info[:2])"],
-        capture_output=True, text=True,
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
     ).stdout.strip()
     if actual != version:
         print(f"  ::error::{version} venv 인데 실제 해석기는 {actual} 다")

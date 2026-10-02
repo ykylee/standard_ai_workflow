@@ -58,7 +58,7 @@ SEED_MODULE = "workflow_kit.tools.seed_workspace_memory"
 
 def _git(args: list[str], *, repo_root: Path) -> subprocess.CompletedProcess:
     return subprocess.run(["git", *args], cwd=str(repo_root),
-                          capture_output=True, text=True)
+                          capture_output=True, text=True, encoding="utf-8", errors="replace")
 
 
 def remote_branch_exists(branch: str, *, repo_root: Path, remote: str) -> bool:
@@ -153,7 +153,7 @@ def claim(*, repo_root: Path, remote: str, branch: str, axis: str,
     if no_register:
         seed_args += ["--no-register"]
     seed_proc = subprocess.run(seed_args, capture_output=True, text=True,
-                               env=seed_env)
+                               env=seed_env, encoding="utf-8", errors="replace")
     if seed_proc.returncode != 0:
         result["status"] = "error"
         result["error"] = f"seed 실패: {seed_proc.stderr.strip()}"

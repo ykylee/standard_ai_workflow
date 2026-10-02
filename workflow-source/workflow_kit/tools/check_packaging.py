@@ -228,7 +228,7 @@ def main() -> int:
             # cwd/env 둘 다 격리한다 — 소스 트리가 sys.path 에 남으면 이 smoke 는
             # wheel 이 아니라 체크아웃을 재고, 깨진 wheel 에도 PASS 를 준다.
             cwd=tmp,
-            env=isolated_env(),
+            env=isolated_env(), encoding="utf-8", errors="replace",
         )
         if completed.returncode != 0:
             print("--- import smoke failed ---")
@@ -247,7 +247,7 @@ def main() -> int:
             capture_output=True,
             text=True,
             cwd=tmp,
-            env=isolated_env(),
+            env=isolated_env(), encoding="utf-8", errors="replace",
         )
         if completed.returncode != 0:
             print("ERROR: workflow_kit.bootstrap_lib --help failed")
@@ -265,7 +265,7 @@ def main() -> int:
             capture_output=True,
             text=True,
             cwd=tmp,
-            env=isolated_env(),
+            env=isolated_env(), encoding="utf-8", errors="replace",
         )
         if completed.returncode != 0:
             print("ERROR: pip show failed")

@@ -60,7 +60,7 @@ def _git_root(cwd: Path) -> Path | None:
             capture_output=True,
             text=True,
             timeout=5,
-            check=False,
+            check=False, encoding="utf-8", errors="replace",
         )
     except (OSError, subprocess.TimeoutExpired):
         return None

@@ -63,7 +63,7 @@ PLAN_GLOB = "ai-workflow/memory/active/{branch}/session_handoff.md"
 
 def _git(args: list[str], *, repo_root: Path) -> subprocess.CompletedProcess:
     return subprocess.run(["git", *args], cwd=str(repo_root),
-                          capture_output=True, text=True)
+                          capture_output=True, text=True, encoding="utf-8", errors="replace")
 
 
 def fetch_remote(*, repo_root: Path, remote: str) -> str | None:

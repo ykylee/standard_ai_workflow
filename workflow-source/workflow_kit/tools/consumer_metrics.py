@@ -55,7 +55,7 @@ def _gh_api(endpoint: str, repo: str) -> dict | list:
     try:
         result = subprocess.run(
             ["gh", "api", f"repos/{repo}/{endpoint}"],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace",
         )
         if result.returncode != 0:
             print(f"WARN: gh api {endpoint} failed: {result.stderr.strip()}", file=sys.stderr)
@@ -73,7 +73,7 @@ def _gh_issue_list(label: str, repo: str, state: str = "all") -> list[dict]:
             ["gh", "issue", "list", "--repo", repo, "--label", label,
              "--state", state, "--json", "number,title,state,createdAt",
              "--limit", "100"],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace",
         )
         if result.returncode != 0:
             return []
@@ -320,7 +320,7 @@ def main() -> int:
     # v0.7.62+ — 나머지 명령 (--record / --digest / --digest-markdown / default) 는 gh API 호출
     # Verify gh CLI is authenticated
     try:
-        r = subprocess.run(["gh", "auth", "status"], capture_output=True, text=True, timeout=10)
+        r = subprocess.run(["gh", "auth", "status"], capture_output=True, text=True, timeout=10, encoding="utf-8", errors="replace")
         if r.returncode != 0:
             print("ERROR: gh CLI not authenticated. Run `gh auth login` first.", file=sys.stderr)
             return 1

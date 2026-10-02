@@ -121,7 +121,7 @@ def _run(
         text=True,
         check=False,
         timeout=timeout,
-        env=actual_env,
+        env=actual_env, encoding="utf-8", errors="replace",
     )
     return completed.returncode, completed.stdout, completed.stderr
 

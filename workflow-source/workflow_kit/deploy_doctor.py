@@ -1797,7 +1797,7 @@ def _run_mcp_child_probe(executable: str, cwd: Path) -> dict[str, Any]:
     try:
         proc = subprocess.run(  # noqa: S603 - PATH 해석 결과를 그대로 띄운다 (탐침 대상 자체)
             [executable, "-"], input=_MCP_CHILD_PROBE,
-            cwd=str(cwd), capture_output=True, text=True, timeout=30, env=env,
+            cwd=str(cwd), capture_output=True, text=True, timeout=30, env=env, encoding="utf-8", errors="replace",
         )
     except (OSError, subprocess.SubprocessError) as exc:
         return {"probe_error": f"{type(exc).__name__}: {exc}"}
@@ -2027,7 +2027,7 @@ def _running_processes() -> tuple[list[dict[str, Any]], str | None]:
             capture_output=True,
             text=True,
             timeout=15,
-            check=False,
+            check=False, encoding="utf-8", errors="replace",
         )
     except (OSError, subprocess.SubprocessError) as exc:
         return [], f"ps 호출 실패: {type(exc).__name__}: {exc}"

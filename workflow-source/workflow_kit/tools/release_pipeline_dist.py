@@ -113,7 +113,7 @@ def _twine_check(dist_dir: Path, *, timeout: int = 300) -> dict[str, object]:
             capture_output=True,
             text=True,
             timeout=timeout,
-            cwd=str(REPO_ROOT),
+            cwd=str(REPO_ROOT), encoding="utf-8", errors="replace",
         )
     except subprocess.TimeoutExpired:
         return {"ok": False, "error": f"twine check timeout after {timeout}s"}

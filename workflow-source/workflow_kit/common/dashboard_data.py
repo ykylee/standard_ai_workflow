@@ -406,7 +406,7 @@ def run_drift_prevention_guard_inline(
             capture_output=True,
             text=True,
             check=False,
-            timeout=timeout,
+            timeout=timeout, encoding="utf-8", errors="replace",
         )
         runtime_ms = int((time.monotonic() - started) * 1000)
         stdout = completed.stdout or ""
@@ -475,7 +475,7 @@ def _head_commit_date(workspace_root: Path) -> str:
             capture_output=True,
             text=True,
             check=False,
-            timeout=5,
+            timeout=5, encoding="utf-8", errors="replace",
         )
         if completed.returncode == 0:
             return completed.stdout.strip()
@@ -500,7 +500,7 @@ def _last_commit_date_for_paths(workspace_root: Path, paths: tuple[str, ...]) ->
             capture_output=True,
             text=True,
             check=False,
-            timeout=5,
+            timeout=5, encoding="utf-8", errors="replace",
         )
         if completed.returncode == 0:
             return completed.stdout.strip()

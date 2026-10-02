@@ -70,7 +70,7 @@ def get_git_commits(limit: int = 10) -> list[tuple[str, str]]:
         cwd=str(REPO_ROOT),
         capture_output=True,
         text=True,
-        timeout=30,
+        timeout=30, encoding="utf-8", errors="replace",
     )
     if proc.returncode != 0:
         return []
@@ -96,7 +96,7 @@ def compute_score_at_commit(commit: str) -> dict:
         capture_output=True,
         text=True,
         timeout=120,
-        env=child_env(),
+        env=child_env(), encoding="utf-8", errors="replace",
     )
     if proc.returncode != 0:
         return {"error": proc.stderr}
@@ -333,7 +333,7 @@ def main() -> int:
         ["git", "rev-parse", "HEAD"],
         cwd=str(REPO_ROOT),
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
     )
     head = head_proc.stdout.strip()
 

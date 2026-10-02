@@ -46,7 +46,7 @@ def get_repo_root(cli_value: str | os.PathLike[str] | None = None, *, _suppress_
     try:
         proc = subprocess.run(
             ["git", "rev-parse", "--show-toplevel"],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True, text=True, timeout=5, encoding="utf-8", errors="replace",
         )
         if proc.returncode == 0 and proc.stdout.strip():
             return Path(proc.stdout.strip()).resolve()
@@ -76,7 +76,7 @@ def get_latest_commit_hash(repo_root: Path, *, since: str | None = None) -> str:
         # rev-list {since}..HEAD + short hash
         proc_rev = subprocess.run(
             ["git", "rev-list", f"{since}..HEAD"],
-            capture_output=True, text=True, timeout=5, cwd=str(repo_root),
+            capture_output=True, text=True, timeout=5, cwd=str(repo_root), encoding="utf-8", errors="replace",
         )
         if proc_rev.returncode != 0 or not proc_rev.stdout.strip():
             raise RuntimeError(f"git rev-list failed: {proc_rev.stderr}")
@@ -86,7 +86,7 @@ def get_latest_commit_hash(repo_root: Path, *, since: str | None = None) -> str:
         # 2-step: full SHA → short=7
         proc_full = subprocess.run(
             ["git", "rev-parse", "HEAD"],
-            capture_output=True, text=True, timeout=5, cwd=str(repo_root),
+            capture_output=True, text=True, timeout=5, cwd=str(repo_root), encoding="utf-8", errors="replace",
         )
         if proc_full.returncode != 0 or not proc_full.stdout.strip():
             raise RuntimeError(f"git rev-parse failed: {proc_full.stderr}")
@@ -94,7 +94,7 @@ def get_latest_commit_hash(repo_root: Path, *, since: str | None = None) -> str:
         cmd = ["git", "rev-parse", "--short=7", head_sha]
 
     proc = subprocess.run(
-        cmd, capture_output=True, text=True, timeout=5, cwd=str(repo_root),
+        cmd, capture_output=True, text=True, timeout=5, cwd=str(repo_root), encoding="utf-8", errors="replace",
     )
     if proc.returncode != 0:
         raise RuntimeError(f"git rev-parse --short failed: {proc.stderr}")

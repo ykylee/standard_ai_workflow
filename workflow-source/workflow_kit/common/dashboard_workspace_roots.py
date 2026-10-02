@@ -80,7 +80,7 @@ def _auto_extra_roots(self_root: Path) -> list[Path]:
             capture_output=True,
             text=True,
             timeout=5,
-            check=False,
+            check=False, encoding="utf-8", errors="replace",
         )
     except (OSError, subprocess.TimeoutExpired):
         return []
@@ -142,7 +142,7 @@ def _worktree_branch_map(self_root: Path) -> dict[str, str]:
             capture_output=True,
             text=True,
             timeout=5,
-            check=False,
+            check=False, encoding="utf-8", errors="replace",
         )
     except (OSError, subprocess.TimeoutExpired):
         return {}

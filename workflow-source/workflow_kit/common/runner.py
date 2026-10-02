@@ -55,7 +55,7 @@ def run_json_command(cmd: list[str], cwd: Path, *, step_name: str) -> dict[str, 
             cwd=cwd,
             capture_output=True,
             text=True,
-            check=True,
+            check=True, encoding="utf-8", errors="replace",
         )
     except FileNotFoundError as exc:
         raise WorkflowStepError(

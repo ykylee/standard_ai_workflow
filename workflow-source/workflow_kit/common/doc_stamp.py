@@ -79,7 +79,7 @@ def _git(args: list[str], *, repo_root: Path) -> tuple[int, str]:
         capture_output=True,
         text=True,
         check=False,
-        env=env,
+        env=env, encoding="utf-8", errors="replace",
     )
     return completed.returncode, completed.stdout.strip()
 

@@ -165,7 +165,7 @@ def find_interpreter(floor: tuple[int, int]) -> str | None:
     for args in (["python", "find", f"{floor[0]}.{floor[1]}"],
                  ["python", "install", f"{floor[0]}.{floor[1]}"]):
         try:
-            proc = subprocess.run([uv, *args], capture_output=True, text=True, timeout=300)
+            proc = subprocess.run([uv, *args], capture_output=True, text=True, timeout=300, encoding="utf-8", errors="replace")
         except (OSError, subprocess.TimeoutExpired):
             return None
         if args[1] == "find" and proc.returncode == 0:
@@ -175,7 +175,7 @@ def find_interpreter(floor: tuple[int, int]) -> str | None:
     # install 뒤 한 번 더 묻는다
     try:
         proc = subprocess.run([uv, "python", "find", f"{floor[0]}.{floor[1]}"],
-                              capture_output=True, text=True, timeout=60)
+                              capture_output=True, text=True, timeout=60, encoding="utf-8", errors="replace")
     except (OSError, subprocess.TimeoutExpired):
         return None
     path = proc.stdout.strip().splitlines()[-1].strip() if proc.returncode == 0 and proc.stdout.strip() else ""
@@ -229,7 +229,7 @@ def run_compile(interpreter: str, paths: list[str]) -> tuple[str | None, int, li
     """
     try:
         proc = subprocess.run([interpreter, "-"], input=compile_payload(paths),
-                              capture_output=True, text=True, timeout=600)
+                              capture_output=True, text=True, timeout=600, encoding="utf-8", errors="replace")
     except (OSError, subprocess.TimeoutExpired) as exc:
         return None, 0, [], f"하한 해석기 실행 실패: {exc}"
     if proc.returncode != 0:

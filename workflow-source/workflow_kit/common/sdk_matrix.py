@@ -202,7 +202,7 @@ def observe_exercised(python: str | None = None) -> dict[str, tuple[int, str]]:
             text=True,
             env=env,
             cwd=str(source_root.parent),
-            timeout=120,
+            timeout=120, encoding="utf-8", errors="replace",
         )
         observations[declared.path] = (
             completed.returncode,
@@ -268,7 +268,7 @@ def run_local_matrix(
         installed = subprocess.run(  # noqa: S603
             [str(python), "-c",
              "import importlib.metadata as m;\ntry: print(m.version('mcp'))\nexcept Exception: print('')"],
-            capture_output=True, text=True,
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
         ).stdout.strip()
         if installed != version:
             print(f"  설치: -e workflow-source[dev,release] + mcp=={version} (현재 {installed or '없음'})")
@@ -281,7 +281,7 @@ def run_local_matrix(
         actual = subprocess.run(  # noqa: S603
             [str(python), "-c",
              "import importlib.metadata as m;\ntry: print(m.version('mcp'))\nexcept Exception: print('')"],
-            capture_output=True, text=True,
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
         ).stdout.strip()
         problem = _assert_installed(version, actual or None)
         if problem is not None:

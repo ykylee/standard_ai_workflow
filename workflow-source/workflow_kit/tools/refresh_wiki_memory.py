@@ -105,7 +105,7 @@ def get_repo_root(cli_value: str | os.PathLike[str] | None = None, *, _suppress_
     try:
         proc = subprocess.run(
             ["git", "rev-parse", "--show-toplevel"],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True, text=True, timeout=5, encoding="utf-8", errors="replace",
         )
         if proc.returncode == 0 and proc.stdout.strip():
             return Path(proc.stdout.strip()).resolve()

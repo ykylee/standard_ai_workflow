@@ -35,6 +35,7 @@ SOURCE_ROOT = REPO_ROOT / "workflow-source"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
+from workflow_kit.common import branch_inheritance as inherit  # noqa: E402
 from workflow_kit.common.paths import (  # noqa: E402
     branch_for_workspace,
     discover_project_profile_path,
@@ -127,7 +128,7 @@ def open_tasks(branch_dir: Path) -> list[tuple[str, str]]:
     `done` 이 아닌 것 전부다. status 를 아예 안 적은 task 는 **판정 근거가 없다는
     뜻**이므로(§2.39) 미완료로 본다 — 모르는 것을 끝난 것으로 취급하면 그게 곧 소실이다.
 
-    예외는 `carried_over_to` 하나다. 브랜치는 끝났는데 일이 안 끝난 경우가 있고,
+    예외는 `carried_over_to` 와 이어받은 사본(`inherited_from`, TASK-2026-10-02-main-001) 이다. 브랜치는 끝났는데 일이 안 끝난 경우가 있고,
     그때 `done` 으로 적으면 **거짓**이다. 진행 상태(`status`)와 이관 사실을 한 칸에
     섞지 않는다는 §2.39 의 원칙 그대로, 이관은 **별도 축**으로 적고 이 판정만
     면제한다 — 어디로 갔는지가 파일에 남으므로 추적이 끊기지 않는다.
@@ -139,6 +140,10 @@ def open_tasks(branch_dir: Path) -> list[tuple[str, str]]:
     for path in sorted(tasks_dir.glob("TASK-*.md")):
         front = _frontmatter(path.read_text(encoding="utf-8"))
         if front.get(CARRIED_OVER_KEY) or front.get("status") == "done":
+            continue
+        if front.get(inherit.INHERITED_FROM_KEY):
+            # 모 브랜치에서 이어받은 사본 — 그 task 는 원본이 모 브랜치에 살아 있다. 고친 것은
+            # 아카이브 직전에 원본으로 되돌려 적는다(`plan_write_back`), 안 고친 것은 그림자다.
             continue
         out.append((path.stem, front.get("status") or "(미기재)"))
     return out
@@ -475,11 +480,27 @@ def main() -> int:
                 "open_tasks": [{"id": tid, "status": st} for tid, st in open_list],
             })
             continue
+        # 이어받은 task 중 고친 것은 모 브랜치 원본으로 되돌려 적는다. 원본이 그 사이 바뀌었거나
+        # 사라졌으면 **덮지 않고 막는다** — 아카이브는 어떤 집계도 안 보므로 그대로 넣으면 소실이다.
+        plan = inherit.plan_write_back(path, active_dir)
+        stuck = [it for it in plan if it.action in (inherit.CONFLICT, inherit.ORIGIN_MISSING)]
+        if stuck:
+            candidates.append({
+                "branch": name, "action": "blocked",
+                "reason": (
+                    f"이어받은 task {len(stuck)}건을 모 브랜치 원본에 되돌려 적을 수 없다 — "
+                    + ", ".join(f"{it.task_id}({it.action}: active/{it.origin_branch})" for it in stuck)
+                    + " — 원본과 사본을 사람이 합친 뒤 다시 실행한다"
+                ),
+                "inherited": [{"id": it.task_id, "origin": it.origin_branch, "action": it.action} for it in plan],
+            })
+            continue
         candidates.append({
             "branch": name, "action": "archive",
             "reason": "강제 지정" if name in forced else "git 에 브랜치 없음 (종료됨)",
             "from": str(path), "to": str(archived_dir / name),
             "open_tasks": [{"id": tid, "status": st} for tid, st in open_list],
+            "inherited": [{"id": it.task_id, "origin": it.origin_branch, "action": it.action} for it in plan],
         })
 
     result = {
@@ -492,6 +513,7 @@ def main() -> int:
         "archived": 0,
         "blocked": sum(1 for c in candidates if c["action"] == "blocked"),
         "rewritten_references": [],
+        "written_back": [],
         "errors": [],
     }
 
@@ -503,6 +525,12 @@ def main() -> int:
             if dst.exists():
                 result["errors"].append(f"{c['branch']}: 대상이 이미 존재 ({dst})")
                 continue
+            # 이동 **전에** 되돌려 적는다 — 사본은 아직 active/ 에 있다.
+            for it in inherit.plan_write_back(src, active_dir):
+                if it.action == inherit.WRITE_BACK:
+                    inherit.apply_write_back(it)
+                    result["written_back"].append(
+                        f"{it.task_id}: active/{c['branch']} → active/{it.origin_branch}")
             err = _move(src, dst, repo_root=workspace_root)
             if err:
                 result["errors"].append(err)
@@ -529,10 +557,13 @@ def main() -> int:
             print(f"  archived={result['archived']}")
             for ref in result["rewritten_references"]:
                 print(f"  ref 재작성  {ref}")
+            for wb in result["written_back"]:
+                print(f"  되돌려 적음  {wb} (모 브랜치 handoff 목록은 다음 세션 종료 때 맞춘다)")
         if result["blocked"]:
-            print(f"\n  → 미완료 task 때문에 {result['blocked']}건을 막았다. "
-                  "`wk backlog-update` 로 이월하거나 닫은 뒤 다시 실행한다 "
-                  "(의도한 것이면 --allow-open-tasks).")
+            # 막힌 사유는 둘이다 — 섞어 말하면 충돌을 `--allow-open-tasks` 로 넘기려 든다(그 인자는 충돌을 못 넘긴다).
+            print(f"\n  → {result['blocked']}건을 막았다 (사유는 위 줄). 미완료 task 는 `wk backlog-update` 로 "
+                  "이월하거나 닫는다 (의도한 것이면 --allow-open-tasks). 이어받은 task 충돌은 모 브랜치 원본과 "
+                  "사본을 사람이 합친다 — 이 인자로 넘어가지 않는다.")
         for e in result["errors"]:
             print(f"  ERROR {e}", file=sys.stderr)
         if any(c["action"] == "archive" for c in candidates) and not args.apply:

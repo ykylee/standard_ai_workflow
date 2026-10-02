@@ -279,3 +279,11 @@ def _run_git(
         )
     except (OSError, subprocess.TimeoutExpired):
         return None
+
+
+def short_head_sha(repo_root: Path) -> Optional[str]:
+    """``HEAD`` 의 짧은 sha. git 이 없거나 커밋이 없으면 ``None`` — 원류 표기에서 sha 를 빼고 브랜치만 쓴다."""
+    proc = _run_git(["rev-parse", "--short", "HEAD"], Path(repo_root), 10)
+    if proc is None or proc.returncode != 0:
+        return None
+    return proc.stdout.strip() or None

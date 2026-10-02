@@ -264,14 +264,18 @@ def _auto_seed_branch_memory(project_profile_path: Path) -> dict[str, Any] | Non
         if base == branch or not path_in_active(active_dir, HANDOFF_FILENAME, base).exists():
             return None
 
+        from workflow_kit.common.git import short_head_sha  # noqa: PLC0415
         from workflow_kit.tools.seed_workspace_memory import seed  # noqa: PLC0415
 
+        # 모 브랜치 내용은 **이 체크아웃의** `active/<base>/` 에서 읽는다 — 분기 시점 상태이고,
+        # 작업 중인 코드와 같은 커밋이다. 원류 sha 는 그 커밋이다 (TASK-2026-10-02-main-001).
+        origin_sha = short_head_sha(workspace_root)
         result = seed(
             memory_root=memory_root,
             branch=branch,
             axis=(f"`{base}` 에서 분기한 worktree — 작업 축은 첫 backlog-update 로 등록하는 task 가 정한다. "
                   f"분기 시점 기준선은 `active/{base}/session_handoff.md`"),
-            task_title=f"브랜치 네임스페이스 자동 seed — `{base}` 에서 분기한 worktree",
+            task_title=f"브랜치 네임스페이스 자동 seed — `{base}` 에서 이어받음",
             out_of_scope=None,
             today=date.today().isoformat(),
             apply=True,
@@ -279,6 +283,8 @@ def _auto_seed_branch_memory(project_profile_path: Path) -> dict[str, Any] | Non
             # 업무를 모르므로 seed 사건만 기록하고 닫는다 — 제목은 update 로 바뀌지 않는다.
             task_status="done",
             wbs_exempt_reason="로드맵 밖 — worktree 브랜치 네임스페이스 자동 seed 사건 기록",
+            inherit_from=base,
+            origin_sha=origin_sha,
         )
     except Exception as exc:  # noqa: BLE001 — seed 실패는 원래의 부재 오류로 이어진다
         return {"status": "error", "error": f"{type(exc).__name__}: {exc}"}
@@ -437,7 +443,10 @@ def main() -> int:
         created = [item["path"] for item in auto_seed.get("planned", [])]
         warnings.append(
             f"브랜치 메모리가 없어 `{auto_seed.get('branch')}` 네임스페이스를 seed 했다 "
-            f"(기준 브랜치 `{auto_seed.get('base_branch')}`, task {auto_seed.get('task_id')}): "
+            f"(기준 브랜치 `{auto_seed.get('base_branch')}`, task {auto_seed.get('task_id')}"
+            + (f", 원류 `{auto_seed['inherited']['origin']}` 에서 열린 task {len(auto_seed['inherited']['task_ids'])}건 · "
+               f"기준선 · §5 를 이어받음" if auto_seed.get("inherited") else "")
+            + "): "
             f"{created}. 작업은 이 네임스페이스에 `wk backlog-update` 로 새 task 를 만들어 기록한다."
         )
         if auto_seed.get("errors"):

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-r"""브랜치 네임스페이스가 없는 worktree 에서 session-start 가 스스로 seed 한다 (8 cases).
+r"""브랜치 네임스페이스가 없는 worktree 에서 session-start 가 스스로 seed 한다 (13 cases).
 
 ## 왜 이 검사가 필요한가 (TASK-2026-09-30-claude-session-start-e6eb83-002)
 
@@ -32,6 +32,18 @@ r"""브랜치 네임스페이스가 없는 worktree 에서 session-start 가 스
      glob 이던 때는 자동 seed task 의 `wbs: exempt` 가 안 보여 '선언 사슬이 끊긴 완료
      항목' 경고가 매 세션 났다. 형제 공유 디렉터리(roadmap · memory_index · environments)의
      task 모양 파일은 링크로 오인하지 않는다 (main-012 완료 기준 4)
+
+이어받기 (TASK-2026-10-02-main-001 — seed 가 모 브랜치 **내용을 옮겨 적고** 원류를 남긴다):
+  9) 새 브랜치의 session-start 가 모 브랜치의 차단 task · 기준선을 보고하고, handoff 에 `원류: main@<sha>`
+     (sha = 체크아웃 HEAD) · §5 앞머리 bullet 이 실린다. 열린 task(차단·계획)는 같은 ID 로 옮겨지고
+     원류 두 줄을 걷으면 원문과 바이트가 같다. done task 는 옮기지 않는다. 모 브랜치 파일은 바이트 불변.
+     옮긴 상대 링크는 새 위치에서 풀린다
+ 10) 이어받은 task 를 worktree 에서 `backlog-update` 로 갱신할 수 있고(원류 줄 유지), 다음 시작에 정합
+     경고가 없으며, 모 브랜치 원본은 그대로다
+ 11) 로드맵 수집은 같은 ID 를 한 번만 센다 — 안 고친 사본은 원본의 그림자, 고친 사본이 원본을 대신한다
+ 12) 합류 아카이브가 고친 사본을 원류 줄 없이 원본 자리에 되돌려 적고, 안 고친 사본은 건드리지 않으며,
+     이어받은 열린 task 가 아카이브를 막지 않는다
+ 13) 원본이 그 사이 바뀌었으면 되돌려 적지 않고 막는다 — 원본 불변, 브랜치 네임스페이스는 active 에 남는다
 """
 
 from __future__ import annotations
@@ -54,6 +66,8 @@ SOURCE_ROOT = REPO_ROOT / "workflow-source"
 sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit.common.state.memory_index import TELEMETRY_SKIP_ROOT_ENV  # noqa: E402
+from workflow_kit.common.branch_inheritance import strip_inherited  # noqa: E402
+from workflow_kit.common.reconcile import STATE_CONFLICT_MARKER  # noqa: E402
 from workflow_kit.common.state.roadmap import collect_task_wbs_links, resolve_task_goals  # noqa: E402
 
 SEED_MARK = "네임스페이스를 seed 했다"
@@ -126,6 +140,158 @@ def _seeded(result: dict) -> bool:
 
 def _active(clone: Path) -> Path:
     return clone / "ai-workflow" / "memory" / "active"
+
+
+PARENT_TASKS = {
+    # id: (status, wbs)
+    "TASK-2026-09-30-main-001": ("blocked", "M-001/WBS-1.1"),
+    "TASK-2026-09-30-main-002": ("planned", "M-001/WBS-1.2"),
+    "TASK-2026-09-30-main-003": ("done", "M-001/WBS-1.3"),
+}
+
+
+def _parent_task_text(task_id: str, status: str, wbs: str) -> str:
+    return (f"---\nid: {task_id}\nstatus: {status}\ncreated_at: 2026-09-30\n"
+            f"source_anchor: generic-{task_id.lower()}\nsource_path: backlog/2026-09-30.md\n"
+            f"kind: generic\nwbs: {wbs}\n---\n\n# {task_id} — 모 브랜치 {status} task\n\n"
+            f"## 📝 Description\n\n- 상태: {status}\n\n## 🛠️ Implementation / Content\n\n- 진행 현황: 원문\n")
+
+
+def _make_inherit_repo(tmp: Path) -> Path:
+    """모 브랜치(main)에 열린 task · §5 · 상대 링크를 가진 handoff 를 둔 저장소."""
+    clone = _make_repo(tmp)
+    base = _active(clone) / "main"
+    (clone / "docs" / "SPEC.md").write_text("# spec\n", encoding="utf-8")
+    (base / "session_handoff.md").write_text(
+        "# Session Handoff\n\n## 1. 현재 작업 요약\n\n- 현재 기준선: 모 브랜치 기준선 X\n"
+        "- 현재 주 작업 축: 모 축 — [spec](../../../../docs/SPEC.md)\n\n"
+        "## 2. 진행 중 작업\n\n- 현재 `in_progress` 작업:\n-\n\n"
+        "## 3. 차단 작업\n\n- 현재 `blocked` 작업:\n- TASK-2026-09-30-main-001 모 브랜치 blocked task\n\n"
+        "## 5. 다음 세션 시작 포인트\n\n- 모 브랜치 다음 걸음 A\n- 모 브랜치 다음 걸음 B\n\n"
+        "### 누적 소절\n\n- 옮기지 않을 줄\n", encoding="utf-8")
+    index = ["# Backlog Index — 2026-09-30", "", "## Tasks", ""]
+    for task_id, (status, wbs) in PARENT_TASKS.items():
+        (base / "backlog" / "tasks" / f"{task_id}.md").write_text(
+            _parent_task_text(task_id, status, wbs), encoding="utf-8")
+        index += [f"- **{task_id}** [generic] 모 브랜치 {status} task",
+                  f"  - path: [`./tasks/{task_id}.md`](./tasks/{task_id}.md)", f"  - status: {status}"]
+    (base / "backlog" / "2026-09-30.md").write_text("\n".join(index) + "\n", encoding="utf-8")
+    _git(clone, "add", "-A")
+    _git(clone, "commit", "-qm", "parent memory")
+    return clone
+
+
+def _snapshot(directory: Path) -> dict[str, bytes]:
+    return {p.relative_to(directory).as_posix(): p.read_bytes() for p in sorted(directory.rglob("*")) if p.is_file()}
+
+
+def _archive(clone: Path, branch: str) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        [sys.executable, "-m", "workflow_kit.tools.archive_branch_memory", "--branch", branch, "--apply", "--json"],
+        cwd=clone, capture_output=True, text=True, env=_env(), timeout=120,
+    )
+
+
+def _inheritance_cases(tmp: Path) -> None:
+    import re  # noqa: PLC0415
+
+    # --- case 9: 옮겨 적기 + 원류 -------------------------------------------
+    clone = _make_inherit_repo(tmp / "c9")
+    parent = _active(clone) / "main"
+    before = _snapshot(parent)
+    _git(clone, "checkout", "-q", "-b", "claude/heir")
+    sha = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=clone, capture_output=True,
+                         text=True, env=_env()).stdout.strip()
+    result = _session_start(clone)
+    heir = _active(clone) / "claude" / "heir"
+    handoff = (heir / "session_handoff.md").read_text(encoding="utf-8") if (heir / "session_handoff.md").exists() else ""
+    problems = []
+    if "TASK-2026-09-30-main-001" not in " ".join(result.get("blocked_items") or []):
+        problems.append(f"blocked_items={result.get('blocked_items')}")
+    if "모 브랜치 기준선 X" not in " ".join(result.get("summary") or []):
+        problems.append("기준선 미보고")
+    if f"원류: `main@{sha}`" not in handoff:
+        problems.append(f"원류 줄 없음 (sha={sha})")
+    if "모 브랜치 다음 걸음 B" not in handoff or "옮기지 않을 줄" in handoff:
+        problems.append("§5 앞머리 bullet 만 옮겨야 한다")
+    for task_id, (status, wbs) in PARENT_TASKS.items():
+        copy = heir / "backlog" / "tasks" / f"{task_id}.md"
+        if status == "done":
+            if copy.exists():
+                problems.append(f"done task 를 옮겼다: {task_id}")
+            continue
+        text = copy.read_text(encoding="utf-8") if copy.exists() else ""
+        if f"inherited_from: main@{sha}" not in text:
+            problems.append(f"{task_id} 원류 frontmatter 없음")
+        elif strip_inherited(text) != _parent_task_text(task_id, status, wbs):
+            problems.append(f"{task_id} 원류 줄을 걷어도 원문과 다르다")
+    for link in re.findall(r"\]\(([^)#]+)\)", handoff):
+        if not link.startswith(("./", "http")) and not (heir / link).resolve().exists():
+            problems.append(f"깨진 링크 {link}")
+    if _snapshot(parent) != before:
+        problems.append("모 브랜치 파일이 바뀌었다")
+    _record("test_seed_inherits_parent_content_with_origin", result.get("status") == "ok" and not problems,
+            "; ".join(problems))
+
+    # --- case 10: 이어받은 task 갱신 -----------------------------------------
+    upd = subprocess.run(
+        [sys.executable, "-m", "workflow_kit.tools.backlog_update", "--project-profile-path", "docs/PROJECT_PROFILE.md",
+         "--apply", "--task-id", "TASK-2026-09-30-main-002", "--mode", "update", "--task-name", "x",
+         "--progress-note", "worktree 에서 이어서 진행"],
+        cwd=clone, capture_output=True, text=True, env=_env(), timeout=120)
+    copy = heir / "backlog" / "tasks" / "TASK-2026-09-30-main-002.md"
+    # 사본이 없으면(이어받기 실패) 판정으로 떨어뜨린다 — 예외로 죽으면 뒤 case 가 안 돈다.
+    copy_text = copy.read_text(encoding="utf-8") if copy.is_file() else ""
+    again = _session_start(clone)
+    # 정합 경고(handoff ↔ backlog)만 본다 — fixture 에 PURPOSE.md 가 없어 나는 경고는 이 판정과 무관하다.
+    conflicts = [w for w in again.get("warnings", []) if STATE_CONFLICT_MARKER in w]
+    origin_kept = copy_text.startswith("---\ninherited_from: main@")
+    ok10 = (upd.returncode == 0 and "worktree 에서 이어서 진행" in copy_text
+            and origin_kept and not conflicts
+            and again.get("status") == "ok" and _snapshot(parent) == before)
+    _record("test_inherited_task_is_updatable_in_branch", ok10,
+            f"rc={upd.returncode} updated={'worktree 에서 이어서 진행' in copy_text} "
+            f"origin_kept={origin_kept} conflicts={conflicts} "
+            f"parent_same={_snapshot(parent) == before}")
+
+    # --- case 11: 로드맵은 같은 ID 를 한 번 센다 --------------------------------
+    links = [(link.task_id, link.task_status, link.source_path) for link in collect_task_wbs_links(clone)]
+    ids = [tid for tid, _, _ in links]
+    by_id = {tid: (st, src) for tid, st, src in links}
+    ok11 = (len(ids) == len(set(ids))
+            and "/active/main/" in "/" + by_id.get("TASK-2026-09-30-main-001", ("", ""))[1]
+            and "/claude/heir/" in by_id.get("TASK-2026-09-30-main-002", ("", ""))[1])
+    _record("test_roadmap_counts_inherited_task_once", ok11, f"links={links}")
+
+    # --- case 12: 합류 아카이브가 되돌려 적는다 ----------------------------------
+    proc = _archive(clone, "claude/heir")
+    origin_002 = (parent / "backlog" / "tasks" / "TASK-2026-09-30-main-002.md").read_text(encoding="utf-8")
+    origin_001 = (parent / "backlog" / "tasks" / "TASK-2026-09-30-main-001.md").read_text(encoding="utf-8")
+    ok12 = (proc.returncode == 0 and origin_002 == strip_inherited(copy_text)
+            and origin_001 == _parent_task_text("TASK-2026-09-30-main-001", "blocked", "M-001/WBS-1.1")
+            and not heir.exists())
+    _record("test_archive_writes_back_modified_inherited_task", ok12,
+            f"rc={proc.returncode} written={origin_002 == strip_inherited(copy_text)} "
+            f"untouched_001={'inherited_from' not in origin_001} heir_left={heir.exists()} {proc.stdout[-300:]}")
+
+    # --- case 13: 원본이 바뀌었으면 막는다 --------------------------------------
+    clone = _make_inherit_repo(tmp / "c13")
+    parent = _active(clone) / "main"
+    _git(clone, "checkout", "-q", "-b", "claude/heir")
+    _session_start(clone)
+    heir = _active(clone) / "claude" / "heir"
+    subprocess.run(
+        [sys.executable, "-m", "workflow_kit.tools.backlog_update", "--project-profile-path", "docs/PROJECT_PROFILE.md",
+         "--apply", "--task-id", "TASK-2026-09-30-main-002", "--mode", "update", "--task-name", "x",
+         "--progress-note", "worktree 쪽 변경"],
+        cwd=clone, capture_output=True, text=True, env=_env(), timeout=120)
+    origin = parent / "backlog" / "tasks" / "TASK-2026-09-30-main-002.md"
+    origin.write_text(origin.read_text(encoding="utf-8") + "- 모 브랜치 쪽 변경\n", encoding="utf-8")
+    origin_before = origin.read_bytes()
+    proc = _archive(clone, "claude/heir")
+    ok13 = proc.returncode != 0 and origin.read_bytes() == origin_before and heir.exists() and "conflict" in proc.stdout
+    _record("test_archive_blocks_on_parent_conflict", ok13,
+            f"rc={proc.returncode} origin_same={origin.read_bytes() == origin_before} heir_kept={heir.exists()}")
 
 
 def main() -> int:
@@ -227,11 +393,13 @@ def main() -> int:
                 and not linked & set(decoys.values()),
                 f"exempt={resolution.exempt_tasks} linked={sorted(linked)}")
 
+        _inheritance_cases(tmp)
+
     print()
     if FAILURES:
         print(f"=== FAIL: {len(FAILURES)} case(s) — {FAILURES} ===")
         return 1
-    print("=== PASS: branch memory auto-seed (8 cases) ===")
+    print("=== PASS: branch memory auto-seed (13 cases) ===")
     return 0
 
 

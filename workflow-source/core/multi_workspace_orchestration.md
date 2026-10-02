@@ -4,7 +4,7 @@
 - 범위: 3계층 워크스페이스 구분, 격리 키 결정과 근거, 하네스 동시 운영 시 lease 규약, 중앙 취합 확장 지점, 미해결 질문
 - 대상 독자: AI workflow 설계자, 멀티 에이전트 운영자, 저장소 관리자
 - 상태: draft (설계 단계 — 구현 미착수)
-- 최종 수정일: 2026-09-30
+- 최종 수정일: 2026-10-02
 - 관련 문서: `./workflow_configuration_layers.md`, `./workflow_harness_distribution.md`, `./workflow_agent_topology.md`, `./orchestrator_subagent_contract_v1.md`, `./merge_doc_reconcile_skill_spec.md`, `../MEMORY_GOVERNANCE.md`
 
 > **상태 고지**: 본 문서는 *설계* 다. §2 의 "이미 있다" 항목과 §5A~§5D 의 실측은
@@ -520,6 +520,24 @@ recommended_next_action: None
 > CI 밖 detached HEAD 는 sha 가 아니라 **기본 브랜치** 로 해석한다 (CI 는 F-7 대로 sha).
 > 중앙 배정은 여전히 `seed-workspace-memory` 로 업무 지시를 실어야 한다 — 자동 seed 는
 > 시작을 막지 않을 뿐, 지시를 대신하지 않는다. 검사: `check_branch_memory_auto_seed`.
+>
+> **모 브랜치 이어받기 (TASK-2026-10-02-main-001, 2026-10-02 소유자 결정).** 위 자동 seed 는 빈 골격
+> handoff 에 산문 포인터만 남겨, worktree 세션이 모 브랜치의 기준선 · 차단/계획 task · 다음 시작 포인트를
+> 못 봤다 (2026-10-01 실측: "아직 작업 전" · `blocked=[]`). 이제 자동 seed 는 모 브랜치(기본 브랜치)의
+> 내용을 **새 네임스페이스에 옮겨 적는다** — 모 브랜치에는 쓰지 않는다.
+>
+> - 무엇을: handoff 의 `현재 기준선` · `현재 주 작업 축` · §5 앞머리 bullet(첫 하위 제목 전까지), 그리고
+>   열린 task(`in_progress` · `blocked` · `planned`)를 **같은 ID** 로. 닫힌 task 는 옮기지 않는다.
+>   옮긴 handoff 줄의 상대 링크는 새 위치 기준으로 다시 잡는다 (task 파일은 원문 그대로).
+> - 어느 시점을: **이 체크아웃의** `active/<base>/` — 분기 시점 상태이고 작업 중인 코드와 같은 커밋이다.
+> - 원류: handoff §1 에 `원류: <base>@<sha>` 줄 (sha = seed 시점 HEAD), 옮긴 task 의 frontmatter 맨 앞에
+>   `inherited_from: <base>@<sha>` · `inherited_hash: sha256:<원문 해시>`. 이 두 줄을 걷으면 원문과 바이트가 같다.
+> - 집계: 같은 ID 가 두 네임스페이스에 있으면 하나만 센다 — 안 고친 사본은 원본의 그림자, 고친 사본이
+>   원본을 대신한다 (`common.branch_inheritance.effective_task_files`, 로드맵 수집이 쓴다).
+> - 합류: `archive-branch-memory` 가 이동 **전에** 고친 사본을 원류 줄 없이 원본 자리로 되돌려 적고
+>   원본 daily index 의 status 를 맞춘다. 이어받은 사본은 '미완료 task' 차단에서 빠진다. 원본이 그 사이
+>   바뀌었거나(해시 불일치) 사라졌으면 덮지 않고 그 브랜치를 막는다 — 사람이 합친다. 모 브랜치 handoff
+>   목록은 되돌려 적지 않는다 (다음 세션 종료가 맞춘다).
 
 ### 5A.3 실측된 제약 — 중앙은 in-flight 작업을 볼 수 없다
 

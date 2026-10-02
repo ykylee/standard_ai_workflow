@@ -67,6 +67,7 @@ from workflow_kit.common.paths import (  # noqa: E402
     resolve_workspace_root,
     state_path_in_active,
 )
+from workflow_kit.common import branch_inheritance as inherit  # noqa: E402
 from workflow_kit.common.git import remote_known_task_ids  # noqa: E402
 from workflow_kit.common.project_docs import task_label  # noqa: E402
 from workflow_kit.common.workflow_writes import (  # noqa: E402
@@ -124,13 +125,102 @@ def next_task_id(
     return f"{prefix}{n:03d}"
 
 
+def _handoff_line(text: str, label: str) -> str:
+    prefix = f"- {label}:"
+    for line in text.splitlines():
+        if line.startswith(prefix):
+            return line[len(prefix):].strip()
+    return ""
+
+
+def _next_step_bullets(text: str) -> list[str]:
+    """handoff §5 의 **앞머리 bullet** — 첫 하위 제목(`#`) 전까지. 하위 절은 모 브랜치의 누적 기록이다."""
+    out: list[str] = []
+    inside = False
+    for line in text.splitlines():
+        if line.startswith("## "):
+            if inside:
+                break
+            inside = line.startswith("## 5.")
+            continue
+        if not inside:
+            continue
+        if line.startswith("#"):
+            break
+        if line.strip():
+            out.append(line)
+    return out
+
+
+def collect_inheritance(parent_dir: Path, *, origin: str, branch_dir: Path | None = None) -> dict:
+    """모 브랜치 네임스페이스에서 이어받을 내용을 **읽기만** 한다 (TASK-2026-10-02-main-001).
+
+    기준선 · 주 작업 축 · §5 앞머리 bullet · 열린 task(진행·차단·계획). 쓰기는 호출자가 새 네임스페이스에 한다.
+    """
+    handoff_text = (parent_dir / HANDOFF_NAME).read_text(encoding="utf-8")
+    tasks: list[dict] = []
+    tasks_dir = parent_dir / "backlog" / "tasks"
+    for path in sorted(tasks_dir.glob("TASK-*.md")) if tasks_dir.is_dir() else []:
+        text = path.read_text(encoding="utf-8")
+        status = inherit._frontmatter_value(text, "status")
+        if status not in inherit.INHERITABLE_STATES or inherit.inheritance_of(text) is not None:
+            # 모 브랜치가 다시 이어받은 사본은 옮기지 않는다 — 원류가 둘이 된다.
+            continue
+        tasks.append({
+            "id": path.stem,
+            "status": status,
+            "title": inherit.task_title(text, path.stem),
+            "kind": inherit._frontmatter_value(text, "kind") or "generic",
+            "source_path": inherit._frontmatter_value(text, "source_path"),
+            "text": text,
+        })
+    def moved(line: str) -> str:
+        if branch_dir is None:
+            return line
+        return inherit.relocate_markdown_links(line, from_dir=parent_dir, to_dir=branch_dir)
+
+    return {
+        "origin": origin,
+        "origin_branch": inherit.parse_origin(origin)[0],
+        "baseline": moved(_handoff_line(handoff_text, "현재 기준선")),
+        "axis": moved(_handoff_line(handoff_text, "현재 주 작업 축")),
+        "next_steps": [moved(line) for line in _next_step_bullets(handoff_text)],
+        "tasks": tasks,
+    }
+
+
 def render_handoff(*, branch: str, axis: str, task_id: str, task_title: str,
                    today: str, out_of_scope: str | None,
-                   task_status: str = "in_progress") -> str:
+                   task_status: str = "in_progress",
+                   inherited: dict | None = None) -> str:
     """seed handoff 본문. `session-start` 가 요구하는 섹션을 채운다.
 
     `현재 기준선` 이 없으면 session-start 가 warning 을 낸다 — seed 단계에서 채워 둔다.
+
+    ``inherited`` (:func:`collect_inheritance`) 가 있으면 모 브랜치의 기준선 · 주 작업 축 · 열린 task ·
+    §5 를 옮겨 적고 원류를 남긴다 — 모 브랜치 쪽에는 쓰지 않는다.
     """
+    inh_tasks = (inherited or {}).get("tasks", [])
+    by_status = {st: [t for t in inh_tasks if t["status"] == st] for st in inherit.INHERITABLE_STATES}
+    origin = (inherited or {}).get("origin", "")
+    origin_branch = (inherited or {}).get("origin_branch", "")
+    if inherited:
+        depth = len(Path(branch).parts)  # active/<branch…>/ 에서 active/ 로 — 슬래시 조각마다 한 단계
+        origin_link = "../" * depth + f"{origin_branch}/{HANDOFF_NAME}"
+        baseline = (f"{branch} 워크스페이스 — `{origin}` 에서 이어받음 ({today}). 이 브랜치의 작업은 아직 없다."
+                    + (f" 모 브랜치 기준선: {inherited['baseline']}" if inherited.get("baseline") else ""))
+        axis = inherited.get("axis") or axis
+    else:
+        baseline = f"{branch} 워크스페이스 seed ({today}). 아직 작업 전이다."
+
+    def task_lines(status: str, sep: str) -> list[str]:
+        return [f"- {t['id']}{sep}{t['title']}" for t in by_status.get(status, [])]
+
+    own_in_progress = [f"- {task_id} — {task_title}"] if task_status == "in_progress" else []
+    in_progress = own_in_progress + task_lines("in_progress", " ")
+    blocked = task_lines("blocked", " ")
+    candidates = ([f"- {task_id} — {task_title}"] if task_status == "in_progress" else []) \
+        + task_lines("in_progress", " — ") + task_lines("planned", " — ")
     lines = [
         "# Session Handoff",
         "",
@@ -143,9 +233,13 @@ def render_handoff(*, branch: str, axis: str, task_id: str, task_title: str,
         "",
         "## 1. 현재 작업 요약",
         "",
-        f"- 현재 기준선: {branch} 워크스페이스 seed ({today}). 아직 작업 전이다.",
+        f"- 현재 기준선: {baseline}",
         f"- 현재 주 작업 축: {axis}",
     ]
+    if inherited:
+        lines.append(f"- 원류: `{origin}` — [`active/{origin_branch}/{HANDOFF_NAME}`]({origin_link}) "
+                     f"의 기준선 · 주 작업 축 · 열린 task {len(inh_tasks)}건 · §5 를 옮겨 적었다 (모 브랜치에는 쓰지 않았다). "
+                     f"옮겨 온 task 는 frontmatter `{inherit.INHERITED_FROM_KEY}` 로 원류를 갖고, 합류 아카이브 때 고친 것만 원본에 되돌려 적힌다.")
     if out_of_scope:
         lines.append(f"- 범위 밖(건드리지 않는다): {out_of_scope}")
     lines += [
@@ -154,11 +248,12 @@ def render_handoff(*, branch: str, axis: str, task_id: str, task_title: str,
         "",
         "- 현재 `in_progress` 작업:",
         # 빈 목록은 빈 bullet 이다 — 산문은 작업 항목으로 파싱된다 (정본 §Memory Update Paths).
-        f"- {task_id} — {task_title}" if task_status == "in_progress" else "-",
+        *(in_progress or ["-"]),
         "",
         "## 3. 차단 작업",
         "",
         "- 현재 `blocked` 작업:",
+        *(blocked or ([] if not inherited else ["-"])),
         "",
         "## 4. 최근 완료 작업",
         "",
@@ -167,6 +262,8 @@ def render_handoff(*, branch: str, axis: str, task_id: str, task_title: str,
         "",
         "## 5. 다음 세션 시작 포인트",
         "",
+        *([f"- (`{origin}` handoff §5 에서 이어받음 — 아래 {len(inherited['next_steps'])}줄은 모 브랜치의 다음 시작 포인트다)"]
+          + inherited["next_steps"] if inherited and inherited.get("next_steps") else []),
         (f"- [`backlog/tasks/{task_id}.md`](./backlog/tasks/{task_id}.md) 의 완료 기준을 먼저 읽는다."
          if task_status == "in_progress" else
          "- 실제 작업은 `wk backlog-update` 로 새 task 를 만들어 기록한다."),
@@ -176,7 +273,7 @@ def render_handoff(*, branch: str, axis: str, task_id: str, task_title: str,
         # (`check_handoff_next_steps`). 닫힌 seed task 는 후보가 아니다.
         "#### 작업 후보 — 정본은 `state.json` 의 `planned_items` · `in_progress_items`",
         "",
-        *([f"- {task_id} — {task_title}"] if task_status == "in_progress" else []),
+        *candidates,
         "",
         "## 6. 남은 리스크",
         "",
@@ -218,7 +315,8 @@ def task_body(*, axis: str, out_of_scope: str | None,
 
 def render_seed_session_record(*, branch: str, axis: str, task_id: str,
                                task_title: str, today: str,
-                               out_of_scope: str | None) -> str:
+                               out_of_scope: str | None,
+                               inherited: dict | None = None) -> str:
     """seed 사건 자체를 기록하는 **첫 세션 기록**.
 
     링크는 브랜치 디렉터리 내부 상대 경로만 쓴다 — 문서와 대상이 함께 아카이브되므로
@@ -242,6 +340,10 @@ def render_seed_session_record(*, branch: str, axis: str, task_id: str,
     ]
     if out_of_scope:
         lines.append(f"- 범위 밖(건드리지 않는다): {out_of_scope}")
+    if inherited:
+        ids = ", ".join(t["id"] for t in inherited["tasks"]) or "없음"
+        lines.append(f"- 원류: `{inherited['origin']}` — 기준선 · 주 작업 축 · §5 {len(inherited['next_steps'])}줄 · "
+                     f"열린 task {len(inherited['tasks'])}건({ids})을 옮겨 적었다")
     lines += [
         "",
         "## 2. 다음 세션 시작 포인트",
@@ -255,14 +357,19 @@ def render_seed_session_record(*, branch: str, axis: str, task_id: str,
 def seed(*, memory_root: Path, branch: str, axis: str, task_title: str,
          out_of_scope: str | None, today: str, apply: bool,
          force: bool, task_status: str = "in_progress",
-         wbs_exempt_reason: str | None = None) -> dict:
+         wbs_exempt_reason: str | None = None,
+         inherit_from: str | None = None, origin_sha: str | None = None) -> dict:
     """``task_status`` 는 첫 task 의 상태다. 중앙 배정은 업무 지시라 ``in_progress``,
     session-start 의 자동 seed 는 업무를 모르므로 seed 사건만 ``done`` 으로 남긴다 —
     backlog-update 는 기존 task 의 제목을 바꾸지 않아서(기존 유지) 자리표시 task 를
     나중에 채우는 길이 없다 (TASK-2026-09-30-claude-session-start-e6eb83-002).
 
     ``wbs_exempt_reason`` 을 주면 첫 task 를 `wbs: exempt` 로 선언한다 (ADR-027 §5) —
-    로드맵 밖 사건을 WBS 없이 닫으면 '선언 사슬이 끊긴 완료 항목' 경고가 된다."""
+    로드맵 밖 사건을 WBS 없이 닫으면 '선언 사슬이 끊긴 완료 항목' 경고가 된다.
+
+    ``inherit_from`` 을 주면 그 브랜치 네임스페이스의 내용을 **이어받는다** (TASK-2026-10-02-main-001) —
+    기준선 · 주 작업 축 · §5 를 handoff 에, 열린 task 를 같은 ID 로 이 네임스페이스에 옮겨 적고
+    원류(``<branch>@<origin_sha>``)를 남긴다. 모 브랜치 쪽 파일은 읽기만 한다."""
     active_dir = memory_root / "active"
     branch_dir = active_dir / branch
     tasks_dir = branch_dir / "backlog" / "tasks"
@@ -292,6 +399,18 @@ def seed(*, memory_root: Path, branch: str, axis: str, task_title: str,
     session_record_path = branch_dir / "sessions" / f"workspace_seed_{today}.md"
     write_session = note(session_record_path, "session_record")
 
+    inherited: dict | None = None
+    inherit_targets: list[dict] = []
+    if inherit_from:
+        parent_dir = active_dir / inherit_from
+        if not (parent_dir / HANDOFF_NAME).is_file():
+            raise FileNotFoundError(f"이어받을 모 브랜치 handoff 가 없다: {parent_dir / HANDOFF_NAME}")
+        inherited = collect_inheritance(parent_dir, origin=inherit.origin_label(inherit_from, origin_sha),
+                                        branch_dir=branch_dir)
+        for t in inherited["tasks"]:
+            if note(tasks_dir / f"{t['id']}.md", "inherited_task"):
+                inherit_targets.append(t)
+
     result = {
         "status": "ok",
         "mode": "apply" if apply else "dry-run",
@@ -303,6 +422,13 @@ def seed(*, memory_root: Path, branch: str, axis: str, task_title: str,
         "warnings": [],
         "errors": [],
     }
+    if inherited is not None:
+        result["inherited"] = {
+            "origin": inherited["origin"],
+            "task_ids": [t["id"] for t in inherited["tasks"]],
+            "baseline": bool(inherited["baseline"]),
+            "next_steps": len(inherited["next_steps"]),
+        }
 
     if not apply:
         return result
@@ -332,11 +458,25 @@ def seed(*, memory_root: Path, branch: str, axis: str, task_title: str,
             status=task_status,
         )
 
+    for t in inherit_targets:
+        # 같은 ID · 같은 본문 + 원류 두 줄. index 는 원본과 같은 날짜 파일에 둔다 — task 의
+        # `source_path` 를 바꾸지 않아야 합류 때 원문 그대로 되돌릴 수 있다.
+        source = t["source_path"] if t["source_path"].startswith("backlog/") else f"backlog/{today}.md"
+        upsert_backlog_entry(
+            backlog_path=branch_dir / source,
+            task_id=t["id"],
+            entry_lines=inherit.mark_inherited(t["text"], origin=inherited["origin"]).rstrip("\n").split("\n"),
+            title=t["title"],
+            kind=t["kind"],
+            status=t["status"],
+        )
+
     if write_handoff:
         handoff_path.write_text(
             render_handoff(branch=branch, axis=axis, task_id=task_id,
                            task_title=task_title, today=today,
-                           out_of_scope=out_of_scope, task_status=task_status),
+                           out_of_scope=out_of_scope, task_status=task_status,
+                           inherited=inherited),
             encoding="utf-8",
         )
 
@@ -345,7 +485,7 @@ def seed(*, memory_root: Path, branch: str, axis: str, task_title: str,
         session_record_path.write_text(
             render_seed_session_record(branch=branch, axis=axis, task_id=task_id,
                                        task_title=task_title, today=today,
-                                       out_of_scope=out_of_scope),
+                                       out_of_scope=out_of_scope, inherited=inherited),
             encoding="utf-8",
         )
 

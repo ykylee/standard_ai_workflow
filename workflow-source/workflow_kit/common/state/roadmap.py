@@ -434,7 +434,11 @@ def _branch_task_files(active: Path) -> list[Path]:
     '선언 사슬이 끊긴 완료 항목' 으로 셌다 (TASK-2026-09-30-claude-session-start-e6eb83-002: 자동 seed 가
     `active/claude/<name>/` 을 만들면서 드러났다).
     """
-    return sorted(active.glob("**/backlog/tasks/TASK-*.md"))
+    # 이어받은 사본(worktree 가 모 브랜치에서 옮겨 적은 같은 ID)은 하나로 센다 — 안 고친 사본은
+    # 원본의 그림자, 고친 사본은 원본보다 새것 (TASK-2026-10-02-main-001, `common.branch_inheritance`).
+    from workflow_kit.common.branch_inheritance import effective_task_files  # noqa: PLC0415
+
+    return effective_task_files(active.glob("**/backlog/tasks/TASK-*.md"))
 
 
 def collect_task_wbs_links(workspace_root: Path) -> list[TaskWbsLink]:

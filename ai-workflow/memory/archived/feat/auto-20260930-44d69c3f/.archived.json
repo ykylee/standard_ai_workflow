@@ -1,0 +1,15 @@
+{
+  "branch": "feat/auto-20260930-44d69c3f",
+  "archived_at": "2026-10-02",
+  "merge_commit": null,
+  "task_ids": [
+    "TASK-2026-09-30-feat-auto-20260930-44d69c3f-001",
+    "TASK-2026-09-30-feat-auto-20260930-44d69c3f-002"
+  ],
+  "task_count": 2,
+  "open_task_ids": [
+    "TASK-2026-09-30-feat-auto-20260930-44d69c3f-001",
+    "TASK-2026-09-30-feat-auto-20260930-44d69c3f-002"
+  ],
+  "note": "종료된 브랜치의 메모리. 과거 이력 조회 대상 (읽기 전용)."
+}

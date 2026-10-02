@@ -1,0 +1,236 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-10-02",
+  "purpose_digest": "여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공",
+  "purpose_digest_rev": "2026-09-28",
+  "source_of_truth": {
+    "project_profile_path": "docs/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/active/claude/remote-sync-status-1ce0a3/session_handoff.md",
+    "work_backlog_index_path": null,
+    "daily_backlog_dir": "ai-workflow/memory/active/claude/remote-sync-status-1ce0a3/backlog",
+    "tasks_dir": "ai-workflow/memory/active/claude/remote-sync-status-1ce0a3/backlog/tasks",
+    "sessions_dir": "ai-workflow/memory/active/claude/remote-sync-status-1ce0a3/sessions",
+    "latest_backlog_path": "ai-workflow/memory/active/claude/remote-sync-status-1ce0a3/backlog/2026-10-02.md",
+    "repository_assessment_path": null
+  },
+  "project": {
+    "project_name": "Standard AI Workflow",
+    "document_home": "docs/index.md",
+    "operations_path": null,
+    "backlog_path": "ai-workflow/memory/active/backlog/ (인덱스) + ai-workflow/memory/release/<version>/backlog/<날짜>.md (사이클별)",
+    "handoff_path": null,
+    "environment_path": "ai-workflow/memory/active/environments/"
+  },
+  "commands": {
+    "quick_tests": null,
+    "isolated_tests": null,
+    "runtime_checks": null
+  },
+  "session": {
+    "current_baseline": "claude/remote-sync-status-1ce0a3 워크스페이스 — `main@309c9ddf` 에서 이어받음 (2026-10-02, macOS 호스트). **이 브랜치 작업 1건 done (TASK-2026-10-02-claude-remote-sync-status-1ce0a3-002, M-007/WBS-7.4)** — 이 호스트 v1.19.0 §2.8 재적용(4채널 + MCP 해석기 홈브루 python3 1.16.0→1.19.0, doctor behind=[] disabled=[]) + 고유 커밋 없는 worktree 4 · 브랜치 5 정리, 미커밋 브랜치 메모리 3개는 `archived/` 로 보관. 모 브랜치 기준선: **114차 세션 (2026-10-02, Linux 호스트) — task 1건 close (TASK-2026-10-02-main-008, M-007/WBS-7.4) + v1.19.0 발행, 2건 in_progress (main-006 · 007, Windows 실측 대기).** 소유자 보고 2건(같은 Windows · OpenCode 데스크톱). ①**main-006 cp949** — 하네스가 kit 를 파이프로 부르면 stdio 가 로캘 인코딩이라 `—` 출력에서 exit 2(터미널 직접 실행은 재현 안 됨, Linux 재현 `PYTHONIOENCODING=cp949`). `common/stdio.force_utf8_stdio`(wk_main · python -m 진입점 3) + 텍스트 I/O 115곳 encoding 명시(subprocess 108 은 errors=replace), check_text_io_encoding 5 cases(되주입 5 red) — `df975bbe`. ②**main-007 V3 가 wk.exe 평판 차단** — 소유자 결정 = `python -m workflow_kit` 직접(셸 미상). `workflow_kit/__main__.py` · `common/kit_invocation`(정본) · 정본 §11.1 명령 전환 + 해석기 안내 bullet → CLAUDE.md/AGENTS.md · 스킬 · hook(python3→python 중 kit import 되는 첫 해석기) · doctor(해석기별 import 실측, 플러그인 전제에서 wk 제거, `wk_on_path` legacy 유지) · 런타임 안내 30곳. check_kit_invocation 4 cases + payload bare-wk hook 가드 + 설치 문서 전제 표 정확 일치 강화 — `2eb7c315`. ③**main-008 v1.19.0** (파생 minor) — 발행 중 interpreter_matrix 가 상속 PYTHONPATH 에 속아 새 3.13 venv 의존성 설치를 건너뛰던 결함 수리(`fb957c5c`, case 5). 태그 → `ea193113`(게이트 302×2, 매트릭스 3.11 · 3.13 각 302), asset 4종, 발행 wheel 격리에서 cp949 session-start · dashboard · doctor rc 0 · hook 탐침이 Store 별칭형 python3 건너뜀, §2.8 behind=[] disabled=[]. **Codex hook 재신뢰 필요**.",
+    "current_axis": "**로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · ~~[TASK-2026-08-13-main-004] mypy flake 관찰~~ ✅ (66차 close — 33/33 표본, mypy 실패 0).",
+    "current_focus": "TASK-2026-10-02-main-006 Windows 로캘(cp949)에서 wk 가 UnicodeEncodeError 로 죽는다 — stdout 과 기본 인코딩 I/O 를 UTF-8 로 고정",
+    "in_progress_items": [
+      "TASK-2026-10-02-main-006 Windows 로캘(cp949)에서 wk 가 UnicodeEncodeError 로 죽는다 — stdout 과 기본 인코딩 I/O 를 UTF-8 로 고정",
+      "TASK-2026-10-02-main-007 Windows V3 백신이 wk.exe 를 평판 기반으로 차단한다 — pip 생성 console-script 런처 대체 진입 경로"
+    ],
+    "blocked_items": [
+      "TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다"
+    ],
+    "planned_items": [
+      "TASK-2026-09-30-main-001",
+      "TASK-2026-10-02-main-003"
+    ],
+    "recent_done_items": [
+      "TASK-2026-10-02-claude-remote-sync-status-1ce0a3-002 — macOS 호스트 v1.19.0 채널 재적용(§2.8) + 고유 커밋 없는 worktree 4개·브랜치 5개 정리",
+      "TASK-2026-10-02-claude-remote-sync-status-1ce0a3-001 — 브랜치 네임스페이스 자동 seed — `main` 에서 이어받음"
+    ],
+    "unknown_status_items": [],
+    "environment_constraints": []
+  },
+  "backlog": {
+    "latest_backlog_path": "ai-workflow/memory/active/claude/remote-sync-status-1ce0a3/backlog/2026-10-02.md",
+    "task_count": 5,
+    "in_progress_items": [
+      "TASK-2026-10-02-main-006 — Windows 로캘(cp949)에서 wk 가 UnicodeEncodeError 로 죽는다 — stdout 과 기본 인코딩 I/O 를 UTF-8 로 고정",
+      "TASK-2026-10-02-main-007 — Windows V3 백신이 wk.exe 를 평판 기반으로 차단한다 — pip 생성 console-script 런처 대체 진입 경로"
+    ],
+    "blocked_items": [],
+    "done_items": [
+      "TASK-2026-10-02-claude-remote-sync-status-1ce0a3-001 — 브랜치 네임스페이스 자동 seed — `main` 에서 이어받음",
+      "TASK-2026-10-02-claude-remote-sync-status-1ce0a3-002 — macOS 호스트 v1.19.0 채널 재적용(§2.8) + 고유 커밋 없는 worktree 4개·브랜치 5개 정리"
+    ]
+  },
+  "next_documents": [
+    "docs/PROJECT_PROFILE.md",
+    "ai-workflow/memory/active/claude/remote-sync-status-1ce0a3/session_handoff.md",
+    "ai-workflow/memory/active/claude/remote-sync-status-1ce0a3/backlog/2026-10-02.md",
+    "ai-workflow/memory/active/claude/remote-sync-status-1ce0a3/backlog",
+    "ai-workflow/memory/active/claude/remote-sync-status-1ce0a3/sessions",
+    "workflow-source/core/roadmap_milestone_wbs_spec.md",
+    "workflow-source/core/workflow_deployment_idempotency.md",
+    "ai-workflow/memory/active/main/session_handoff.md",
+    "ai-workflow/memory/archived/claude/session-start-e6eb83/session_handoff.md",
+    "ai-workflow/memory/archived/claude/exciting-ardinghelli-a0680d/session_handoff.md",
+    "ai-workflow/memory/active/main/lessons.md",
+    "ai-workflow/memory/active/main/sessions"
+  ],
+  "repository_assessment": {
+    "path": null,
+    "present": false
+  },
+  "schema_version_memory_entries": "2",
+  "memory_entries": [
+    {
+      "id": "MEM-2026-07-09-001",
+      "primary_abstraction": "Workflow audit session (2026-07-09) baseline snapshot with 10 candidates",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-07-09-001.json"
+    },
+    {
+      "id": "MEM-2026-07-09-002",
+      "primary_abstraction": "ADR-005 Memora-inspired Memory Index schema and retrieval 3-tuple",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-07-09-002.json"
+    },
+    {
+      "id": "MEM-2026-07-09-003",
+      "primary_abstraction": "FULL mypy strict 도달 milestone (v0.11.18, 109 file clean, 0 errors)",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-07-09-003.json"
+    },
+    {
+      "id": "MEM-2026-07-09-004",
+      "primary_abstraction": "StdIO SDK v0.11.25 정식 stable 승격 (Phase 12 close candidate)",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-07-09-004.json"
+    },
+    {
+      "id": "MEM-2026-07-09-005",
+      "primary_abstraction": "Drift prevention automation (v0.11.23, 6 case cross-check smoke)",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-07-09-005.json"
+    },
+    {
+      "id": "MEM-2026-07-09-006",
+      "primary_abstraction": "CodeWhale 10번째 하네스 overlay (v0.10.4, single SKILL.md 패턴)",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-07-09-006.json"
+    },
+    {
+      "id": "MEM-2026-07-09-007",
+      "primary_abstraction": "Contract v1 P0 enforcement + Mavis engine hook 자동화 (Phase 12 follow-up)",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-07-09-007.json"
+    },
+    {
+      "id": "MEM-2026-08-10-001",
+      "primary_abstraction": "ADR-006 memory index 30-day retrospective conclusions",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-08-10-001.json"
+    },
+    {
+      "id": "MEM-2026-08-10-002",
+      "primary_abstraction": "threshold calibration mines production path freezes with check",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-08-10-002.json"
+    },
+    {
+      "id": "MEM-2026-08-20-001",
+      "primary_abstraction": "Assertions that check existence hide count and identity defects",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-08-20-001.json"
+    },
+    {
+      "id": "MEM-2026-08-20-002",
+      "primary_abstraction": "A breaking marker names a change, not its blast radius",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-08-20-002.json"
+    },
+    {
+      "id": "MEM-2026-08-20-003",
+      "primary_abstraction": "A probe must measure the right unit and read what the system already declares",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-08-20-003.json"
+    },
+    {
+      "id": "MEM-2026-08-20-004",
+      "primary_abstraction": "Changing a spelling breaks readers, not writers",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-08-20-004.json"
+    },
+    {
+      "id": "MEM-2026-08-25-001",
+      "primary_abstraction": "One observed event does not mean a completed write",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-08-25-001.json"
+    },
+    {
+      "id": "MEM-2026-08-25-002",
+      "primary_abstraction": "Absence is created, staleness is only reported",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-08-25-002.json"
+    },
+    {
+      "id": "MEM-2026-09-23-001",
+      "primary_abstraction": "A green summary is not a green verdict",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-001.json"
+    },
+    {
+      "id": "MEM-2026-09-23-002",
+      "primary_abstraction": "Passing and doing-what-was-intended are different questions",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-002.json"
+    },
+    {
+      "id": "MEM-2026-09-23-003",
+      "primary_abstraction": "A rule the writer cannot read is not enforced",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-003.json"
+    },
+    {
+      "id": "MEM-2026-09-23-004",
+      "primary_abstraction": "Local green and CI green can walk different branches",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-004.json"
+    },
+    {
+      "id": "MEM-2026-09-23-005",
+      "primary_abstraction": "Optimize the distribution, not the count",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-005.json"
+    },
+    {
+      "id": "MEM-2026-09-23-006",
+      "primary_abstraction": "Porting a mechanism silently drops its contract",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-006.json"
+    },
+    {
+      "id": "MEM-2026-09-23-007",
+      "primary_abstraction": "A lexical-overlap metric measures nothing and reports a constant",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-007.json"
+    },
+    {
+      "id": "MEM-2026-09-23-008",
+      "primary_abstraction": "The fix for a constant metric is usually a declaration nobody reads",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-008.json"
+    },
+    {
+      "id": "MEM-2026-09-23-009",
+      "primary_abstraction": "Swapping a measurement tool needs an outside witness that it still sees the defect",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-009.json"
+    },
+    {
+      "id": "MEM-2026-09-23-010",
+      "primary_abstraction": "A false-positive fear that narrows scope is itself a measurement gap",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-010.json"
+    },
+    {
+      "id": "MEM-2026-09-23-011",
+      "primary_abstraction": "A tool that writes 'now' cannot perform a retroactive correction",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-011.json"
+    },
+    {
+      "id": "MEM-2026-09-23-012",
+      "primary_abstraction": "A fixed metric can return under a new name; and a search that reports a hit must return it",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-012.json"
+    },
+    {
+      "id": "MEM-2026-09-23-013",
+      "primary_abstraction": "An 'unmeasured' reason can be the shadow of the measurer's own scope",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-013.json"
+    },
+    {
+      "id": "MEM-2026-09-23-014",
+      "primary_abstraction": "Stopping for false positives can be right while the cause lies one layer deeper",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-014.json"
+    },
+    {
+      "id": "MEM-2026-09-23-015",
+      "primary_abstraction": "A CLI that drops unknown arguments does something other than what was asked, and reports success",
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-015.json"
+    }
+  ],
+  "memory_entries_count": 30
+}

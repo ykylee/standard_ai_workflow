@@ -71,8 +71,15 @@ TODAY = "TASK-2026-01-02-main-002"
 def _run_session_start(profile: Path) -> tuple[int, dict]:
     env = dict(os.environ)
     env["CODEX_WORKFLOW_BRANCH"] = BRANCH
+    # `--no-reflect` 로 합류 승격을 끈다 (TASK-2026-10-02-feat-auto-20261002-4a5d394c-002).
+    # 이 검사는 handoff ↔ task corpus 정합을 **관찰**하는 것이지 세션 기록을 갱신하는
+    # 게 아니다. 그런데 session-start 는 기본 브랜치 체크아웃에서 dry-run 을
+    # `--apply` 로 올려 버린다 — 실제 저장소 프로필을 쓰는 `case_7_self_application`
+    # 이 그래서 검사 중에 `active/<branch>/` 를 `archived/` 로 옮기고 `active/main/` 을
+    # 오염시켰다. `check_roadmap_wiring` 과 같은 결함의 두 번째 자리다. 헬퍼 한 곳에서
+    # 막으므로 fixture case 들도 같은 계약을 갖는다.
     proc = subprocess.run(
-        [sys.executable, str(TOOL_PATH), "--project-profile-path", str(profile)],
+        [sys.executable, str(TOOL_PATH), "--project-profile-path", str(profile), "--no-reflect"],
         capture_output=True, text=True, timeout=180, env=env,
     )
     try:

@@ -488,15 +488,21 @@ def main() -> int:
         return 2
 
     current = branch_for_workspace(workspace_root)
-    keep = set(args.keep) | {current}
+    # `current` 는 브랜치 오버라이드 env 를 따르지만, git 이 실제로 checkout 한 브랜치는 그와 무관하게
+    # 살아 있는 작업이다. 오버라이드가 기본 브랜치를 가리키면 worktree 의 자기 브랜치가 "HEAD 에 병합된
+    # 브랜치" 로 보여 반영 · 아카이브됐다 (TASK-2026-10-02-claude-remote-sync-status-1ce0a3-003 —
+    # 게이트의 저장소 관찰 검사가 자기 브랜치 메모리를 archived/ 로 옮겼다). detached HEAD 면 None.
+    checkout = _git(["symbolic-ref", "--short", "-q", "HEAD"], repo_root=workspace_root).stdout.strip() or None
+    keep = set(args.keep) | {current} | ({checkout} if checkout else set())
     forced = set(args.branches)
     # 합류 반영 (TASK-2026-10-02-main-004) — 이 체크아웃이 **기본 브랜치**이고 그 handoff 가 있을 때만.
     # 다른 브랜치(worktree)도 main 을 병합해 받으면 남의 네임스페이스가 섞여 들어오는데, 거기에 반영하면
-    # 모 브랜치가 아닌 곳에 기록이 쌓인다.
+    # 모 브랜치가 아닌 곳에 기록이 쌓인다. 오버라이드만 기본 브랜치이고 실제 checkout 이 다르면 반영하지 않는다.
     from workflow_kit.path_resolver import _detect_default_branch  # noqa: PLC0415
 
     parent_dir = active_dir / current
     reflect = (not args.no_reflect and current == _detect_default_branch(workspace_root)
+               and checkout in (None, current)
                and path_in_active(active_dir, HANDOFF_FILENAME, current).is_file())
 
     candidates = []

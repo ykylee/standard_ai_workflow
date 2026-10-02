@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-r"""worktree 합류 반영 — 모 브랜치에 병합된 브랜치 메모리가 모 브랜치 메모리에 기록된다 (5 cases).
+r"""worktree 합류 반영 — 모 브랜치에 병합된 브랜치 메모리가 모 브랜치 메모리에 기록된다 (6 cases).
 
 ## 왜 이 검사가 필요한가 (TASK-2026-10-02-main-004)
 
@@ -21,6 +21,9 @@ r"""worktree 합류 반영 — 모 브랜치에 병합된 브랜치 메모리가
   3) 기본 브랜치가 아닌 체크아웃은 남의 네임스페이스가 섞여 들어와도 반영하지 않는다
   4) `--no-reflect` 면 병합된 살아 있는 브랜치를 건드리지 않는다
   5) 이월할 열린 task 가 모 브랜치에 같은 ID 로 있으면 막는다 — 아무것도 옮기지 않는다
+  6) worktree 에서 브랜치 오버라이드로 기본 브랜치를 강제해도(`CODEX_WORKFLOW_BRANCH=main`) 실제 checkout
+     브랜치는 반영 · 아카이브하지 않는다 — 115차 게이트에서 저장소 관찰 검사가 자기 브랜치 메모리를
+     archived/ 로 옮겼다 (TASK-2026-10-02-claude-remote-sync-status-1ce0a3-003)
 """
 
 from __future__ import annotations
@@ -69,13 +72,14 @@ def _git(cwd: Path, *args: str) -> str:
                           capture_output=True, text=True, env=_env()).stdout.strip()
 
 
-def _module(cwd: Path, module: str, *args: str) -> subprocess.CompletedProcess:
+def _module(cwd: Path, module: str, *args: str,
+            extra_env: dict[str, str] | None = None) -> subprocess.CompletedProcess:
     return subprocess.run([sys.executable, "-m", module, *args], cwd=cwd, capture_output=True, text=True,
-                          env=_env(), timeout=180)
+                          env={**_env(), **(extra_env or {})}, timeout=180)
 
 
-def _session_start(cwd: Path) -> dict:
-    proc = _module(cwd, "workflow_kit.tools.session_start")
+def _session_start(cwd: Path, extra_env: dict[str, str] | None = None) -> dict:
+    proc = _module(cwd, "workflow_kit.tools.session_start", extra_env=extra_env)
     try:
         return json.loads(proc.stdout)
     except json.JSONDecodeError:
@@ -231,11 +235,25 @@ def main() -> int:
                 and (clone / MEM / "active" / "main" / "session_handoff.md").read_bytes() == before,
                 f"candidates={out.get('candidates')}")
 
+        # --- case 6: worktree 에서 기본 브랜치 강제 → 자기 브랜치를 건드리지 않는다 ----
+        clone, wt = _make(tmp / "c6")
+        _work_in_worktree(wt)
+        before = (wt / MEM / "active" / "main" / "session_handoff.md").read_bytes()
+        result = _session_start(wt, extra_env={"CODEX_WORKFLOW_BRANCH": "main"})
+        status = _git(wt, "status", "--porcelain")
+        _record("test_forced_default_in_worktree_keeps_own_branch",
+                not any(JOIN_MARK in w for w in result.get("warnings", []))
+                and (wt / MEM / "active" / "claude" / "w").is_dir()
+                and not (wt / MEM / "archived" / "claude" / "w").exists()
+                and (wt / MEM / "active" / "main" / "session_handoff.md").read_bytes() == before
+                and status == "",
+                f"warnings={[w[:80] for w in result.get('warnings', [])]} status={status[:200]}")
+
     print()
     if FAILURES:
         print(f"=== FAIL: {len(FAILURES)} case(s) — {FAILURES} ===")
         return 1
-    print("=== PASS: branch join reflect (5 cases) ===")
+    print("=== PASS: branch join reflect (6 cases) ===")
     return 0
 
 

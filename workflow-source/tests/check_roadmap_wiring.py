@@ -55,9 +55,33 @@ def _record(case: str, ok: bool, detail: str = "") -> None:
         FAILURES.append(case)
 
 
-def _run_tool(tool: Path, args: list[str], cwd: Path | None = None) -> tuple[int, dict]:
+def _repo_branch() -> str:
+    """이 저장소를 관찰할 때 강제할 브랜치 — 실제 checkout 브랜치, 네임스페이스가 없으면 `BRANCH`.
+
+    `main` 을 강제하면 worktree 에서 현재 브랜치가 "HEAD 에 병합된 브랜치" 로 보여
+    session-start 가 합류 반영 · 아카이브를 **실제 저장소에** 실행했다 (115차 실측 —
+    게이트 도중 자기 브랜치 메모리가 archived/ 로 옮겨졌다). 네임스페이스가 없는
+    브랜치(CI detached HEAD · slash 컨텍스트)를 그대로 넘기면 seed 가 쓰므로 그때만 `BRANCH`.
+    """
+    proc = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=str(REPO_ROOT),
+                          capture_output=True, text=True, encoding="utf-8")
+    name = proc.stdout.strip()
+    if proc.returncode == 0 and name and name != "HEAD" \
+            and (REPO_ROOT / "ai-workflow" / "memory" / "active" / name / "session_handoff.md").is_file():
+        return name
+    return BRANCH
+
+
+def _memory_status() -> str:
+    proc = subprocess.run(["git", "status", "--porcelain", "--", "ai-workflow/memory"],
+                          cwd=str(REPO_ROOT), capture_output=True, text=True, encoding="utf-8")
+    return proc.stdout
+
+
+def _run_tool(tool: Path, args: list[str], cwd: Path | None = None,
+              branch: str = BRANCH) -> tuple[int, dict]:
     env = dict(os.environ)
-    env["CODEX_WORKFLOW_BRANCH"] = BRANCH
+    env["CODEX_WORKFLOW_BRANCH"] = branch
     env["PYTHONPATH"] = str(SOURCE_ROOT)
     proc = subprocess.run(
         [sys.executable, str(tool), *args],
@@ -237,11 +261,15 @@ def test_session_context_builder_recommends_doc_phase_deliverables() -> None:
 
 def test_repo_session_start_reports_roadmap() -> None:
     """이 저장소에서 session-start 출력에 roadmap_context 가 실린다 (읽기 전용 관찰)."""
-    rc, payload = _run_tool(SESSION_TOOL, [], cwd=REPO_ROOT)
+    before = _memory_status()
+    rc, payload = _run_tool(SESSION_TOOL, [], cwd=REPO_ROOT, branch=_repo_branch())
+    after = _memory_status()
     ctx = payload.get("roadmap_context") or {}
-    ok = rc == 0 and ctx.get("present") is True and ctx.get("issues_count") == 0
+    ok = (rc == 0 and ctx.get("present") is True and ctx.get("issues_count") == 0
+          and before == after)
     _record("test_repo_session_start_reports_roadmap", ok,
-            f"rc={rc} present={ctx.get('present')} issues={ctx.get('issues_count')}")
+            f"rc={rc} present={ctx.get('present')} issues={ctx.get('issues_count')}"
+            + ("" if before == after else f" — 관찰이 저장소 메모리를 바꿨다:\n{after}"))
 
 
 def test_demo_heuristic_is_retired_and_mcp_reads_roadmap() -> None:

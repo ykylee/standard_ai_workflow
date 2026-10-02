@@ -5,12 +5,12 @@
   "purpose_digest_rev": "2026-09-28",
   "source_of_truth": {
     "project_profile_path": "docs/PROJECT_PROFILE.md",
-    "session_handoff_path": "ai-workflow/memory/active/main/session_handoff.md",
+    "session_handoff_path": "ai-workflow/memory/archived/feat/auto-20260930-f3de0dba/session_handoff.md",
     "work_backlog_index_path": null,
     "daily_backlog_dir": "ai-workflow/memory/archived/feat/auto-20260930-f3de0dba/backlog",
     "tasks_dir": "ai-workflow/memory/archived/feat/auto-20260930-f3de0dba/backlog/tasks",
     "sessions_dir": "ai-workflow/memory/archived/feat/auto-20260930-f3de0dba/sessions",
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-09-30.md",
+    "latest_backlog_path": "ai-workflow/memory/archived/feat/auto-20260930-f3de0dba/backlog/2026-09-30.md",
     "repository_assessment_path": null
   },
   "project": {
@@ -56,7 +56,7 @@
     "environment_constraints": []
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-09-30.md",
+    "latest_backlog_path": "ai-workflow/memory/archived/feat/auto-20260930-f3de0dba/backlog/2026-09-30.md",
     "task_count": 12,
     "in_progress_items": [],
     "blocked_items": [],
@@ -75,9 +75,9 @@
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",
-    "ai-workflow/memory/active/main/session_handoff.md",
-    "ai-workflow/memory/active/main/backlog/2026-09-30.md",
-    "ai-workflow/memory/active/main/state.json",
+    "ai-workflow/memory/archived/feat/auto-20260930-f3de0dba/session_handoff.md",
+    "ai-workflow/memory/archived/feat/auto-20260930-f3de0dba/backlog/2026-09-30.md",
+    "ai-workflow/memory/archived/feat/auto-20260930-f3de0dba/state.json",
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",
     "ai-workflow/memory/active/main/baselines.md",

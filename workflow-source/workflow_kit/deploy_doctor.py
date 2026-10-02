@@ -623,6 +623,9 @@ def _probe_environment(project_root: Path) -> dict[str, Any]:
         "kit_provenance": provenance,
         # hook 이 고르는 해석기 후보와 각자의 import 탐침 결과 (main-007).
         "kit_interpreters": kit_interpreters,
+        # legacy (v1.18.0 까지의 판정 필드) — 판정에는 더 쓰지 않지만 doctor --json 을 읽던
+        # 소비자가 키를 잃지 않게 값은 남긴다 (RELEASE.md §1.5, v1.19.0).
+        "wk_on_path": shutil.which("wk"),
         "findings": findings,
     }
 

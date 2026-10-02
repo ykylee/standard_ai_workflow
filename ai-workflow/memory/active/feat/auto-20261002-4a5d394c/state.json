@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-10-02",
+  "generated_at": "2026-10-03",
   "purpose_digest": "여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공",
   "purpose_digest_rev": "2026-09-28",
   "source_of_truth": {
@@ -10,7 +10,7 @@
     "daily_backlog_dir": "ai-workflow/memory/active/feat/auto-20261002-4a5d394c/backlog",
     "tasks_dir": "ai-workflow/memory/active/feat/auto-20261002-4a5d394c/backlog/tasks",
     "sessions_dir": "ai-workflow/memory/active/feat/auto-20261002-4a5d394c/sessions",
-    "latest_backlog_path": "ai-workflow/memory/active/feat/auto-20261002-4a5d394c/backlog/2026-10-02.md",
+    "latest_backlog_path": "ai-workflow/memory/active/feat/auto-20261002-4a5d394c/backlog/2026-10-03.md",
     "repository_assessment_path": null
   },
   "project": {
@@ -29,13 +29,12 @@
   "session": {
     "current_baseline": "feat/auto-20261002-4a5d394c 워크스페이스 seed (2026-10-02). 아직 작업 전이다.",
     "current_axis": "MiniMax Code 플러그인 소비 채널",
-    "current_focus": "TASK-2026-10-02-feat-auto-20261002-4a5d394c-003 — 검사 공용 관찰 래퍼 — 관찰 전용 session-start 호출을 한 곳에",
+    "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],
-    "planned_items": [
-      "TASK-2026-10-02-feat-auto-20261002-4a5d394c-003"
-    ],
+    "planned_items": [],
     "recent_done_items": [
+      "TASK-2026-10-02-feat-auto-20261002-4a5d394c-003 — 검사 공용 관찰 래퍼 — 관찰 전용 session-start 호출을 한 곳에",
       "TASK-2026-10-02-feat-auto-20261002-4a5d394c-002 — 검사 격리 결함 — session-start 합류 승격이 조용히 저장소를 쓴다",
       "TASK-2026-10-02-feat-auto-20261002-4a5d394c-001 — MiniMax Code 플러그인 채널 추가 — 페이로드 생성 + 릴리스 ZIP + 로컬 설치 sync"
     ],
@@ -43,19 +42,18 @@
     "environment_constraints": []
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/active/feat/auto-20261002-4a5d394c/backlog/2026-10-02.md",
-    "task_count": 3,
+    "latest_backlog_path": "ai-workflow/memory/active/feat/auto-20261002-4a5d394c/backlog/2026-10-03.md",
+    "task_count": 1,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
-      "TASK-2026-10-02-feat-auto-20261002-4a5d394c-001 — MiniMax Code 플러그인 채널 추가 — 페이로드 생성 + 릴리스 ZIP + 로컬 설치 sync",
-      "TASK-2026-10-02-feat-auto-20261002-4a5d394c-002 — 검사 격리 결함 — session-start 합류 승격이 조용히 저장소를 쓴다"
+      "TASK-2026-10-02-feat-auto-20261002-4a5d394c-003 — 검사 공용 관찰 래퍼 — 관찰 전용 session-start 호출을 한 곳에"
     ]
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",
     "ai-workflow/memory/active/feat/auto-20261002-4a5d394c/session_handoff.md",
-    "ai-workflow/memory/active/feat/auto-20261002-4a5d394c/backlog/2026-10-02.md",
+    "ai-workflow/memory/active/feat/auto-20261002-4a5d394c/backlog/2026-10-03.md",
     "ai-workflow/memory/active/feat/auto-20261002-4a5d394c/backlog",
     "ai-workflow/memory/active/feat/auto-20261002-4a5d394c/sessions"
   ],

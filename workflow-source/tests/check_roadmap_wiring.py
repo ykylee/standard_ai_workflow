@@ -18,6 +18,9 @@ WATCHES = (
     "ai-workflow/memory/active/*",
     "workflow-source/pyproject.toml",
     "workflow-source/workflow_kit/*",
+    # 관찰은 공용 헬퍼를 통한다 — 이 줄을 안 넣으면 meta-watch 가 "선언 밖 접근" 으로
+    # 잡는다 (`check_deploy_doctor` 의 `_newline_shim.py` 선언과 같은 계종).
+    "workflow-source/tests/_session_observer.py",
 )
 
 import json
@@ -29,8 +32,12 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
-if str(SOURCE_ROOT) not in sys.path:
-    sys.path.insert(0, str(SOURCE_ROOT))
+TESTS_ROOT = Path(__file__).resolve().parent
+for _entry in (str(SOURCE_ROOT), str(TESTS_ROOT)):
+    if _entry not in sys.path:
+        sys.path.insert(0, _entry)
+
+from _session_observer import observe_session_start  # noqa: E402
 
 from workflow_kit.common.read_only_bundle import assess_milestone_progress_payload  # noqa: E402
 from workflow_kit.common.state.roadmap import (  # noqa: E402
@@ -40,7 +47,6 @@ from workflow_kit.common.state.roadmap import (  # noqa: E402
 )
 
 REFRESH_TOOL = SOURCE_ROOT / "workflow_kit" / "tools" / "refresh_state.py"
-SESSION_TOOL = SOURCE_ROOT / "workflow_kit" / "tools" / "session_start.py"
 BACKLOG_TOOL = SOURCE_ROOT / "workflow_kit" / "tools" / "backlog_update.py"
 BRANCH = "main"
 
@@ -282,7 +288,7 @@ def test_repo_session_start_reports_roadmap() -> None:
     (TASK-2026-10-02-feat-auto-20261002-4a5d394c-002).
     """
     before = _memory_status()
-    rc, payload = _run_tool(SESSION_TOOL, ["--no-reflect"], cwd=REPO_ROOT, branch=_repo_branch())
+    rc, payload = observe_session_start(REPO_ROOT / "docs" / "PROJECT_PROFILE.md", repo_root=REPO_ROOT)
     after = _memory_status()
     ctx = payload.get("roadmap_context") or {}
     ok = (rc == 0 and ctx.get("present") is True and ctx.get("issues_count") == 0

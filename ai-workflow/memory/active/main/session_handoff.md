@@ -4,7 +4,7 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-10-02 (114차 — main-006 · 007 구현·커밋, Windows 실측 대기)
+- 최종 수정일: 2026-10-02 (114차 — main-006 · 007 구현 + main-008 v1.19.0 발행, Windows 실측 대기)
 - 이전 수정일: 2026-10-02 (113차 세션 **종료** — Linux 호스트. main-004 close: worktree 합류 반영 — 병합된 브랜치 메모리를 모 브랜치 메모리에 기록하고 아카이브 → **v1.18.0 발행** (main-005))
 - 이전 수정일: 2026-10-02 (112차 세션 **종료** — Linux 호스트. 원격 11커밋(110·111차 worktree 세션 · macOS main-014) 동기화 + main-001 close: worktree seed 가 모 브랜치 내용을 이어받는다(원류 기록 · 합류 시 되돌려 적기) → **v1.17.0 발행** (main-002) · 후속 main-003 등록)
 - 이전 수정일: 2026-09-30 (109차 세션 **종료** — Linux 호스트. main-009 · 010 · 011 close: Codex 인증 압축 왕복 실측 → 세 hook `failed`(`[` 머리말 JSON 오판) · 재주입 0 → `--output-format codex-json` 수리 · 재실측 도달 → **v1.16.0 발행**)
@@ -61,7 +61,6 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
-- TASK-2026-10-02-main-008 v1.19.0 발행 — Windows: cp949 stdio/텍스트 I/O UTF-8 고정 + 하네스 호출 python -m workflow_kit 전환
 - TASK-2026-10-02-main-007 Windows V3 백신이 wk.exe 를 평판 기반으로 차단한다 — pip 생성 console-script 런처 대체 진입 경로
 - TASK-2026-10-02-main-006 Windows 로캘(cp949)에서 wk 가 UnicodeEncodeError 로 죽는다 — stdout 과 기본 인코딩 I/O 를 UTF-8 로 고정
 ## 3. 차단 작업
@@ -71,6 +70,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-10-02-main-008 v1.19.0 발행 — Windows: cp949 stdio/텍스트 I/O UTF-8 고정 + 하네스 호출 python -m workflow_kit 전환
 - TASK-2026-10-02-main-005 x
 - TASK-2026-10-02-main-004 x
 - TASK-2026-10-02-main-002 x
@@ -80,12 +80,11 @@
 - TASK-2026-09-30-main-014 macOS Codex v1.16.0 적용·신뢰·재시작·compact 왕복 검증
 - TASK-2026-09-30-main-011 v1.16.0 발행 — Codex compact 중계 hook 탑재 + 출력 수리 (codex-json)
 - TASK-2026-09-30-main-010 Codex compact 중계 hook 출력 형식 수리 — [ 머리말이 JSON 으로 오판돼 hook failed · 재주입 0
-- TASK-2026-09-30-main-009 Codex 인증 압축 왕복 실측 — PostCompact · SessionStart(compact) 발화와 순서
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
 
-- (114차) **Windows 실측 대기 — main-006 · 007 은 Linux 재현 조건으로만 검증, in_progress.** 소유자 보고 2건(같은 Windows · OpenCode 데스크톱): ①cp949 — 파이프 stdio 가 로캘 인코딩이라 `—` 출력에서 exit 2 → `common/stdio.force_utf8_stdio` + 텍스트 I/O 115곳 encoding 명시 + `check_text_io_encoding`. ②V3 가 `wk.exe`(pip 설치별 서명 없는 런처)를 평판 차단 → 하네스 호출을 `python -m workflow_kit <명령>` 으로 전환(소유자 결정, 셸 미상): 정본 §11.1 · 스킬 · 진입점 블록 · hook(python3→python import 탐침) · doctor(해석기별 import 실측) · 런타임 안내 30곳, `check_kit_invocation`. Windows 에서 확인할 것: `python -m workflow_kit session-start` rc 0 · OpenCode 에서 워크플로우 왕복 · `python -m workflow_kit doctor` 의 kit 해석기 줄 · OpenCode 실행 셸 종류(기록). hook 명령이 바뀌어 Codex 는 재신뢰 필요. 발행 전 interpreter_matrix(python_floor 손댐).
+- (114차) **v1.19.0 발행됨 (main-008) — Windows 실측 대기, main-006 · 007 은 Linux 재현 조건으로만 검증해 in_progress.** 이 호스트는 §2.8 완료(behind=[] disabled=[]), claude-code · codex 재시작 필요(runtime_load), Codex hook 재신뢰 필요. Windows 호스트는 v1.19.0 wheel 로 갱신한 뒤 아래를 잰다. 소유자 보고 2건(같은 Windows · OpenCode 데스크톱): ①cp949 — 파이프 stdio 가 로캘 인코딩이라 `—` 출력에서 exit 2 → `common/stdio.force_utf8_stdio` + 텍스트 I/O 115곳 encoding 명시 + `check_text_io_encoding`. ②V3 가 `wk.exe`(pip 설치별 서명 없는 런처)를 평판 차단 → 하네스 호출을 `python -m workflow_kit <명령>` 으로 전환(소유자 결정, 셸 미상): 정본 §11.1 · 스킬 · 진입점 블록 · hook(python3→python import 탐침) · doctor(해석기별 import 실측) · 런타임 안내 30곳, `check_kit_invocation`. Windows 에서 확인할 것: `python -m workflow_kit session-start` rc 0 · OpenCode 에서 워크플로우 왕복 · `python -m workflow_kit doctor` 의 kit 해석기 줄 · OpenCode 실행 셸 종류(기록). 
 - (113차) **v1.18.0 발행됨** — claude-code 는 재시작해야 새 코드가 돈다(runtime_load stale), macOS 호스트는 §2.8 재적용(→1.18.0). **worktree 메모리 왕복은 다음 worktree 세션이 첫 실사용** — worktree 의 `session-start` 가 모 브랜치 기준선 · 열린 task 를 이어받는지(1.17.0), 그 브랜치가 main 에 병합된 뒤 main 의 `session-start` 가 합류 반영 warning 과 함께 완료 · 이월 · 되돌려 적기 · §5 합류 줄을 남기는지(1.18.0) 확인하고 그 변경을 main 커밋에 싣는다. 합류 뒤 같은 worktree 에서 이어 작업하지 말고 새 브랜치로. origin 없는 저장소 한계는 TASK-2026-10-02-main-003.
 - (110차 Claude Code worktree 합류) **worktree 브랜치는 이제 자기 네임스페이스로 자동 seed 된다** — `session-start` 가 `active/<branch>/` 부재 시 `main` 기준으로 seed, CI 밖 detached HEAD = 기본 브랜치, 비 git workspace = main (TASK-2026-09-30-claude-session-start-e6eb83-002, 6118db3d). 그 세션의 기준선·잔여 리스크는 [`archived/claude/session-start-e6eb83/session_handoff.md`](../../archived/claude/session-start-e6eb83/session_handoff.md) (브랜치 삭제 뒤 아카이브 완료). main-012 · main-013 은 같은 세션이 close.
 - (111차 Claude Code worktree 합류) **게이트 간헐 red 제거** — `check_v0_7_24_release_notes_template` 가 저장소 `releases/` 에 `Beta-v9.9.9-test*.md` 를 쓰던 것을 임시 디렉터리 주입(`_resolve_notes_file(..., releases_dir=)`)과 저장소 전후 스냅샷 단언으로 막았다 (TASK-2026-09-30-claude-exciting-ardinghelli-a0680d-001, 306adeaf, 게이트 native·slash 299/299). 기록은 [`archived/claude/exciting-ardinghelli-a0680d/session_handoff.md`](../../archived/claude/exciting-ardinghelli-a0680d/session_handoff.md) — worktree·브랜치는 아직 남아 있어 `--branch` 강제 아카이브했다.

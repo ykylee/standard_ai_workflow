@@ -84,3 +84,20 @@
 - 사람용 문서 곳곳의 `wk <명령>` 예시는 그대로다 (POSIX 단축형).
 - `TASK-2026-08-25-main-017` (MCP emit command 가 항상 `python3`) 는 blocked, origin 없는 저장소의 worktree seed
   (`TASK-2026-10-02-main-003`) 와 minimax-code 채널(`TASK-2026-09-30-main-001`)은 planned 그대로다.
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-10-02T07:01:18Z)_
+
+- total wiki pages: **97**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

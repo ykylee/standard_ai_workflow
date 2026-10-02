@@ -125,14 +125,6 @@ def next_task_id(
     return f"{prefix}{n:03d}"
 
 
-def _handoff_line(text: str, label: str) -> str:
-    prefix = f"- {label}:"
-    for line in text.splitlines():
-        if line.startswith(prefix):
-            return line[len(prefix):].strip()
-    return ""
-
-
 def _next_step_bullets(text: str) -> list[str]:
     """handoff §5 의 **앞머리 bullet** — 첫 하위 제목(`#`) 전까지. 하위 절은 모 브랜치의 누적 기록이다."""
     out: list[str] = []
@@ -182,8 +174,8 @@ def collect_inheritance(parent_dir: Path, *, origin: str, branch_dir: Path | Non
     return {
         "origin": origin,
         "origin_branch": inherit.parse_origin(origin)[0],
-        "baseline": moved(_handoff_line(handoff_text, "현재 기준선")),
-        "axis": moved(_handoff_line(handoff_text, "현재 주 작업 축")),
+        "baseline": moved(inherit.handoff_line(handoff_text, "현재 기준선")),
+        "axis": moved(inherit.handoff_line(handoff_text, "현재 주 작업 축")),
         "next_steps": [moved(line) for line in _next_step_bullets(handoff_text)],
         "tasks": tasks,
     }

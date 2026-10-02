@@ -9,6 +9,10 @@
 `active/<slug>/` 가 있는데 git 에 그 브랜치(로컬/원격)가 없으면 "종료된 브랜치"로 본다.
 이러면 고아가 구조적으로 생길 수 없다.
 
+**합류 반영** (TASK-2026-10-02-main-004): 기본 브랜치 체크아웃에서는 git 에 살아 있어도 **HEAD 에 병합된**
+브랜치를 대상으로 삼고, 이동 전에 그 기록을 모 브랜치 메모리에 옮긴다 (`common.branch_join`). 그때 열린
+자체 task 는 이월되므로 미완료 차단 대상이 아니다. `--no-reflect` 로 끈다.
+
 **protected main 호환**: 본 도구는 *파일 이동만* 수행하고 commit/push 는 하지 않는다.
 작업 브랜치에서 실행하면 그 변경이 해당 브랜치의 PR 에 실려 merge 된다 (piggyback).
 main 에 직접 쓰지 않으므로 protected branch 정책과 충돌하지 않는다.
@@ -36,7 +40,10 @@ if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit.common import branch_inheritance as inherit  # noqa: E402
+from workflow_kit.common import branch_join  # noqa: E402
 from workflow_kit.common.paths import (  # noqa: E402
+    HANDOFF_FILENAME,
+    path_in_active,
     branch_for_workspace,
     discover_project_profile_path,
     memory_dir_for_workspace,
@@ -72,6 +79,33 @@ def branch_exists(name: str, *, repo_root: Path) -> bool:
         if _git(["rev-parse", "--verify", "--quiet", ref], repo_root=repo_root).returncode == 0:
             return True
     return False
+
+
+def branch_ref(name: str, *, repo_root: Path) -> str | None:
+    """살아 있는 브랜치의 ref — 로컬이 우선이다 (원격 추적은 마지막 fetch 시점)."""
+    for ref in (f"refs/heads/{name}", f"refs/remotes/origin/{name}"):
+        if _git(["rev-parse", "--verify", "--quiet", ref], repo_root=repo_root).returncode == 0:
+            return ref
+    return None
+
+
+def merged_into_head(ref: str, *, repo_root: Path) -> bool:
+    """``ref`` 의 tip 이 HEAD 에 병합돼 있는가.
+
+    브랜치 네임스페이스가 **이 체크아웃에 있다** 는 것은 그 메모리를 커밋한 브랜치 커밋이 HEAD 에 들어왔다는
+    뜻이므로, 막 만든(커밋 없는) 브랜치가 우연히 조상인 경우와 섞이지 않는다 — 그런 브랜치의 메모리는
+    여기 없다 (TASK-2026-10-02-main-004).
+    """
+    return _git(["merge-base", "--is-ancestor", ref, "HEAD"], repo_root=repo_root).returncode == 0
+
+
+def short_sha(ref: str | None, *, repo_root: Path) -> str | None:
+    if ref is None:
+        return None
+    out = _git(["rev-parse", "--short", ref], repo_root=repo_root)
+    if out.returncode != 0:
+        return None
+    return out.stdout.strip() or None
 
 
 def find_branch_memories(active_dir: Path) -> list[tuple[str, Path]]:
@@ -421,6 +455,8 @@ def main() -> int:
                    help="아카이브에서 제외할 브랜치 (default: main)")
     p.add_argument("--allow-open-tasks", action="store_true",
                    help="미완료 task 가 있어도 아카이브한다 (기본은 차단 — 소실 방지)")
+    p.add_argument("--no-reflect", action="store_true",
+                   help="합류 반영(모 브랜치 메모리에 기록 · 병합된 살아 있는 브랜치 아카이브)을 끈다")
     p.add_argument("--apply", action="store_true", help="실제 이동 (default: dry-run)")
     p.add_argument("--dry-run", action="store_true", dest="dry_run", help="계획만 출력 (default)")
     p.add_argument("--json", action="store_true")
@@ -454,6 +490,14 @@ def main() -> int:
     current = branch_for_workspace(workspace_root)
     keep = set(args.keep) | {current}
     forced = set(args.branches)
+    # 합류 반영 (TASK-2026-10-02-main-004) — 이 체크아웃이 **기본 브랜치**이고 그 handoff 가 있을 때만.
+    # 다른 브랜치(worktree)도 main 을 병합해 받으면 남의 네임스페이스가 섞여 들어오는데, 거기에 반영하면
+    # 모 브랜치가 아닌 곳에 기록이 쌓인다.
+    from workflow_kit.path_resolver import _detect_default_branch  # noqa: PLC0415
+
+    parent_dir = active_dir / current
+    reflect = (not args.no_reflect and current == _detect_default_branch(workspace_root)
+               and path_in_active(active_dir, HANDOFF_FILENAME, current).is_file())
 
     candidates = []
     for name, path in find_branch_memories(active_dir):
@@ -461,10 +505,24 @@ def main() -> int:
             reason = "keep (현재 브랜치이거나 보존 대상)"
             candidates.append({"branch": name, "action": "skip", "reason": reason})
             continue
-        if name not in forced and branch_exists(name, repo_root=workspace_root):
-            candidates.append({"branch": name, "action": "skip", "reason": "git 에 브랜치가 살아 있음"})
+        ref = branch_ref(name, repo_root=workspace_root)
+        joined = False
+        if name not in forced and ref is not None:
+            if not (reflect and merged_into_head(ref, repo_root=workspace_root)):
+                candidates.append({"branch": name, "action": "skip",
+                                   "reason": "git 에 브랜치가 살아 있음" + (" (HEAD 에 미병합)" if reflect else "")})
+                continue
+            joined = True
+        join_plan = branch_join.plan_join(path, parent_dir) if reflect else None
+        if join_plan is not None and join_plan.clashes:
+            candidates.append({
+                "branch": name, "action": "blocked",
+                "reason": (f"이월할 열린 task {len(join_plan.clashes)}건이 `{current}` 에 같은 ID 로 이미 있다 — "
+                           + ", ".join(join_plan.clashes) + " — 사람이 합친 뒤 다시 실행한다"),
+            })
             continue
-        open_list = open_tasks(path)
+        # 반영하면 열린 자체 task 는 모 브랜치로 이월되므로 소실이 아니다 — 차단 대상이 아니다.
+        open_list = [] if join_plan is not None else open_tasks(path)
         if open_list and not args.allow_open_tasks:
             # **미완료 task 를 데리고 아카이브로 들어가면 그대로 소실된다.**
             # archived/ 는 어떤 집계도 안 본다 (state 생성기·dashboard 모두 active/ 만
@@ -495,12 +553,18 @@ def main() -> int:
                 "inherited": [{"id": it.task_id, "origin": it.origin_branch, "action": it.action} for it in plan],
             })
             continue
+        reason = ("강제 지정" if name in forced
+                  else "HEAD 에 병합됨 — 합류 반영 (브랜치·worktree 는 살아 있다)" if joined
+                  else "git 에 브랜치 없음 (종료됨)")
         candidates.append({
-            "branch": name, "action": "archive",
-            "reason": "강제 지정" if name in forced else "git 에 브랜치 없음 (종료됨)",
+            "branch": name, "action": "archive", "reason": reason,
             "from": str(path), "to": str(archived_dir / name),
             "open_tasks": [{"id": tid, "status": st} for tid, st in open_list],
             "inherited": [{"id": it.task_id, "origin": it.origin_branch, "action": it.action} for it in plan],
+            "reflect": None if join_plan is None else {
+                "parent": current, "sha": short_sha(ref, repo_root=workspace_root),
+                "carry": join_plan.carry, "done": join_plan.done,
+            },
         })
 
     result = {
@@ -514,6 +578,8 @@ def main() -> int:
         "blocked": sum(1 for c in candidates if c["action"] == "blocked"),
         "rewritten_references": [],
         "written_back": [],
+        "joined": [],
+        "reflect_enabled": reflect,
         "errors": [],
     }
 
@@ -525,12 +591,24 @@ def main() -> int:
             if dst.exists():
                 result["errors"].append(f"{c['branch']}: 대상이 이미 존재 ({dst})")
                 continue
-            # 이동 **전에** 되돌려 적는다 — 사본은 아직 active/ 에 있다.
-            for it in inherit.plan_write_back(src, active_dir):
-                if it.action == inherit.WRITE_BACK:
-                    inherit.apply_write_back(it)
-                    result["written_back"].append(
-                        f"{it.task_id}: active/{c['branch']} → active/{it.origin_branch}")
+            # 이동 **전에** 반영한다 — 사본은 아직 active/ 에 있다.
+            if c.get("reflect"):
+                rep = branch_join.reflect_join(
+                    branch=c["branch"], branch_dir=src, parent_branch=c["reflect"]["parent"],
+                    active_dir=active_dir, sha=c["reflect"]["sha"], today=date.today().isoformat())
+                result["joined"].append({
+                    "branch": rep.branch, "origin": rep.origin, "parent": c["reflect"]["parent"],
+                    "written_back": rep.written_back, "carried": rep.carried, "done": rep.done,
+                    "record": rep.record_path,
+                })
+                result["written_back"].extend(
+                    f"{tid}: active/{c['branch']} → active/{c['reflect']['parent']}" for tid in rep.written_back)
+            else:
+                for it in inherit.plan_write_back(src, active_dir):
+                    if it.action == inherit.WRITE_BACK:
+                        inherit.apply_write_back(it)
+                        result["written_back"].append(
+                            f"{it.task_id}: active/{c['branch']} → active/{it.origin_branch}")
             err = _move(src, dst, repo_root=workspace_root)
             if err:
                 result["errors"].append(err)
@@ -557,8 +635,12 @@ def main() -> int:
             print(f"  archived={result['archived']}")
             for ref in result["rewritten_references"]:
                 print(f"  ref 재작성  {ref}")
-            for wb in result["written_back"]:
-                print(f"  되돌려 적음  {wb} (모 브랜치 handoff 목록은 다음 세션 종료 때 맞춘다)")
+            for j in result["joined"]:
+                print(f"  합류 반영  {j['origin']} → active/{j['parent']}: 완료 {len(j['done'])} · "
+                      f"이월 {len(j['carried'])} · 되돌려 적음 {len(j['written_back'])}")
+            if not result["joined"]:
+                for wb in result["written_back"]:
+                    print(f"  되돌려 적음  {wb} (모 브랜치 handoff 목록은 다음 세션 종료 때 맞춘다)")
         if result["blocked"]:
             # 막힌 사유는 둘이다 — 섞어 말하면 충돌을 `--allow-open-tasks` 로 넘기려 든다(그 인자는 충돌을 못 넘긴다).
             print(f"\n  → {result['blocked']}건을 막았다 (사유는 위 줄). 미완료 task 는 `wk backlog-update` 로 "

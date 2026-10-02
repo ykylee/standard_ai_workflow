@@ -157,6 +157,23 @@ def _frontmatter_value(text: str, key: str) -> str:
     return ""
 
 
+def handoff_line(text: str, label: str) -> str:
+    """handoff 의 `- <label>: 값` 한 줄의 값. 없으면 빈 문자열."""
+    prefix = f"- {label}:"
+    for line in text.splitlines():
+        if line.startswith(prefix):
+            return line[len(prefix):].strip()
+    return ""
+
+
+def insert_frontmatter_line(text: str, key: str, value: str) -> str:
+    """여는 `---` 바로 뒤에 `key: value` 한 줄. 이미 있으면 그대로."""
+    head, sep, rest = text.partition("\n")
+    if head.strip() != "---" or not sep or _frontmatter_value(text, key):
+        return text
+    return f"{head}\n{key}: {value}\n{rest}"
+
+
 def task_title(text: str, task_id: str) -> str:
     for line in text.splitlines():
         if line.startswith(f"# {task_id}"):

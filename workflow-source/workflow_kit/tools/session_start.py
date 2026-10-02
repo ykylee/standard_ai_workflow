@@ -193,16 +193,34 @@ def _detect_stale_branch_memories(
     # 파일 경로가 아니라 **모듈로** 부른다 — 설치본에는 `workflow-source/` 가 없다.
     cmd = module_command("workflow_kit.tools.archive_branch_memory",
                          "--memory-root", str(memory_root), "--json")
-    if apply:
-        cmd.append("--apply")
-    try:
-        import subprocess
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60,
+    import subprocess
+
+    def run(extra: list[str]) -> dict[str, Any]:
+        proc = subprocess.run(cmd + extra, capture_output=True, text=True, timeout=120,
                               env=child_env())
-        payload = json.loads(proc.stdout) if proc.stdout.strip() else {}
+        return json.loads(proc.stdout) if proc.stdout.strip() else {}
+
+    try:
+        payload = run(["--apply"] if apply else [])
+        # 합류 반영 (TASK-2026-10-02-main-004): 기본 브랜치 체크아웃이면 도구가 반영 모드다
+        # (`reflect_enabled`). 그때는 묻지 않고 반영한다 — 병합된 worktree 의 기록이 모 브랜치
+        # 메모리에 들어오는 것이 이 세션이 이어받을 사실이고, 무엇을 했는지는 아래 warning 이 말한다.
+        if (not apply and payload.get("reflect_enabled")
+                and any(c.get("action") == "archive" for c in payload.get("candidates", []))):
+            payload = run(["--apply"])
+            apply = True
     except Exception as exc:  # noqa: BLE001
         warnings.append(f"stale branch memory 점검 실패: {type(exc).__name__}")
         return None
+    for j in payload.get("joined", []):
+        warnings.append(
+            f"합류한 브랜치 `{j['origin']}` 의 메모리를 `{j['parent']}` 에 반영했다 — 완료 {len(j['done'])}건 · "
+            f"이월 {len(j['carried'])}건 · 되돌려 적음 {len(j['written_back'])}건 (handoff 목록 · §5 합류 줄 · "
+            f"합류 기록 {j['record']}). 이 변경을 현재 브랜치의 commit 에 포함시켜라."
+        )
+    for c in payload.get("candidates", []):
+        if c.get("action") == "blocked":
+            warnings.append(f"브랜치 메모리 `{c['branch']}` 를 반영·아카이브하지 못했다: {c.get('reason')}")
     stale = [c["branch"] for c in payload.get("candidates", []) if c.get("action") == "archive"]
     if stale:
         if apply:

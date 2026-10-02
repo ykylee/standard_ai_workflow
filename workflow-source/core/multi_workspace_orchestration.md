@@ -537,7 +537,22 @@ recommended_next_action: None
 > - 합류: `archive-branch-memory` 가 이동 **전에** 고친 사본을 원류 줄 없이 원본 자리로 되돌려 적고
 >   원본 daily index 의 status 를 맞춘다. 이어받은 사본은 '미완료 task' 차단에서 빠진다. 원본이 그 사이
 >   바뀌었거나(해시 불일치) 사라졌으면 덮지 않고 그 브랜치를 막는다 — 사람이 합친다. 모 브랜치 handoff
->   목록은 되돌려 적지 않는다 (다음 세션 종료가 맞춘다).
+>   목록은 아래 합류 반영이 맞춘다.
+>
+> **합류 반영 (TASK-2026-10-02-main-004, 2026-10-02 소유자 결정).** 110·111차는 worktree 브랜치가 main 에
+> fast-forward 된 뒤 main 세션이 손으로 강제 아카이브하고 §5 포인터를 적었다 — 빠지면 worktree 의 task 가
+> `archived/` 로 들어가 main 집계에서 사라진다. 이제 **기본 브랜치 체크아웃**의 `session-start` 가 HEAD 에
+> 병합된 브랜치 네임스페이스를 **worktree·브랜치가 살아 있어도** 반영하고 아카이브한다 (`wk archive-branch-memory`
+> 도 같다, `--no-reflect` 로 끈다). 정본은 `common.branch_join`.
+>
+> - 감지: 네임스페이스가 이 체크아웃에 있고 브랜치 tip 이 HEAD 의 조상이다. 병합 뒤 브랜치가 더 나갔으면 반영하지
+>   않는다. 기본 브랜치가 아닌 체크아웃(남의 네임스페이스가 main 을 거쳐 섞여 들어온 worktree)은 반영하지 않는다.
+> - 반영: 이어받은 고친 task 되돌려 적기 + 모 브랜치 handoff 진행·차단·완료 목록 이동 · 자체 **열린** task 를 같은
+>   ID 로 이월(`merged_from: <branch>@<sha>`, 브랜치 사본은 `carried_over_to`) · 자체 **완료** task 를 '최근 완료'
+>   (자동 seed 사건 task 는 뺀다) · §5 맨 앞 합류 줄 · `sessions/merge_<slug>_<date>.md`. 이월할 ID 가 모 브랜치에
+>   이미 있으면 막는다.
+> - 한계: 반영·아카이브 뒤 **같은 worktree 에서 계속 작업해 다시 병합하면** 아카이브된 경로와 충돌한다 — 이어서
+>   일할 때는 새 브랜치로 시작한다. 검사: `check_branch_join_reflect`.
 
 ### 5A.3 실측된 제약 — 중앙은 in-flight 작업을 볼 수 없다
 

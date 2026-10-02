@@ -1,20 +1,20 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-09-30T05:55:44Z`
-- tool_version: `1.16.0`
+- generated_at: `2026-10-02T00:48:04Z`
+- tool_version: `1.17.0`
 - workspace_root: `/home/yklee/repos/standard_ai_workflow`
 
 ## Panel 1 — Drift Prevention Status
 
 - guard_status: `pass`
 - guard_cases: `7 / 7`
-- maturity_last_updated: `2026-09-30`
+- maturity_last_updated: `2026-10-02`
 - maturity_surface_changed_at: `2026-09-30`
 - maturity_stale: `False` (source: `maturity_surface_commit`)
 - harness_supported_count: `10`
-- head_commit_date: `2026-09-30`
+- head_commit_date: `2026-10-02`
 - last_updated_delta_days: `0`
-- silent_failing_cycles_count: `0` (측정 cycle 29건)
+- silent_failing_cycles_count: `0` (측정 cycle 30건)
 
 ## Panel 2 — Maturity Distribution
 
@@ -75,20 +75,20 @@
 
 ## Panel 4 — Smoke Trend
 
-- cumulative_total: `298`
-- cumulative_pass: `298`
+- cumulative_total: `299`
+- cumulative_pass: `299`
 - cumulative_pass_rate: `1.0000`
-- smoke_files_count: `298`
+- smoke_files_count: `299`
 
 ### Recent release smoke counts
 
 | version | pass | total |
 |---|---|---|
+| Beta-v1.17.0 | 299 | 299 |
 | Beta-v1.16.0 | 298 | 298 |
 | Beta-v1.15.0 | 298 | 298 |
 | Beta-v1.14.4 | 296 | 296 |
 | Beta-v1.14.3 | 296 | 296 |
-| Beta-v1.14.2 | 296 | 296 |
 
 ## Panel 5 — Recent Release Cycle
 
@@ -98,16 +98,16 @@
 
 ### Timeline (preview, first 120 char)
 
-- [0] TASK-2026-09-30-main-010 — Codex compact 중계 hook 출력 형식 수리 — [ 머리말이 JSON 으로 오판돼 hook failed · 재주입 0  `[fresh]`
-- [1] TASK-2026-09-30-main-009 — Codex 인증 압축 왕복 실측 — PostCompact · SessionStart(compact) 발화와 순서  `[fresh]`
-- [2] TASK-2026-09-30-main-008 — Codex 플러그인 hook 적재 — compact 중계 기록·재주입을 Codex 에서  `[fresh]`
-- [3] TASK-2026-09-30-main-007 — v1.15.0 발행 — compact 중계 (wk compact-checkpoint · 스킬 compact-relay · hook 3종)  `[fresh]`
-- [4] TASK-2026-09-30-main-006 — compact 중계 구현 — wk compact-checkpoint · hook 3종 · 스킬 compact-relay · 검사  `[fresh]`
-- [5] TASK-2026-09-30-main-005 — compact 중계 design — ADR-030 + compact_relay_spec  `[fresh]`
-- [6] TASK-2026-09-30-main-004 — compact 중계 requirements — 명령 계약 · checkpoint 형식 · 재주입 예산 · 누락 판정  `[fresh]`
-- [7] TASK-2026-09-30-main-003 — compact 중계 concept 검토 — 하네스별 compact 표면 실측과 checkpoint 설계 선택지  `[fresh]`
-- [8] TASK-2026-09-30-main-002 — python_floor 하한 해석기 호출을 stdin 으로 — Windows .CMD/.bat shim 에서 -c 다줄 스크립트가 첫 개행에서 잘린다 (main-013…  `[fresh]`
-- [9] TASK-2026-09-29-main-018 — str(relative_to) 잔여 사이트 점검 — wk doctor 가 Windows 에서 정본 파일을 extra 로 오판  `[fresh]`
+- [0] TASK-2026-10-02-main-001 — worktree seed 가 모 브랜치 내용을 이어받는다 — 기준선 · 다음 시작 포인트 · 열린 task 복사 + 원류 기록 + 합류 시 되돌려 적기  `[fresh]`
+- [1] TASK-2026-09-30-main-014 — macOS Codex v1.16.0 적용·신뢰·재시작·compact 왕복 검증  `[fresh]`
+- [2] TASK-2026-09-30-main-013 — meta-watch 좁은 선언이 worktree 중첩 경로를 덮지 못해 게이트가 구조적으로 red 다  `[fresh]`
+- [3] TASK-2026-09-30-main-012 — 로드맵 WBS 링크 수집기가 슬래시 포함 브랜치(task 가 2단계 깊이)에 닿지 않는다  `[fresh]`
+- [4] TASK-2026-09-30-main-011 — v1.16.0 발행 — Codex compact 중계 hook 탑재 + 출력 수리 (codex-json)  `[fresh]`
+- [5] TASK-2026-09-30-main-010 — Codex compact 중계 hook 출력 형식 수리 — [ 머리말이 JSON 으로 오판돼 hook failed · 재주입 0  `[fresh]`
+- [6] TASK-2026-09-30-main-009 — Codex 인증 압축 왕복 실측 — PostCompact · SessionStart(compact) 발화와 순서  `[fresh]`
+- [7] TASK-2026-09-30-main-008 — Codex 플러그인 hook 적재 — compact 중계 기록·재주입을 Codex 에서  `[fresh]`
+- [8] TASK-2026-09-30-main-007 — v1.15.0 발행 — compact 중계 (wk compact-checkpoint · 스킬 compact-relay · hook 3종)  `[fresh]`
+- [9] TASK-2026-09-30-main-006 — compact 중계 구현 — wk compact-checkpoint · hook 3종 · 스킬 compact-relay · 검사  `[fresh]`
 
 ## Panel 6 — Multi-Agent Concurrent Write Conflict
 
@@ -137,10 +137,10 @@
 
 - phase_15_north_star: `utilization_3tuple (query_diversity / entries_new_30d / distinct_entries_retrieved — ADR-006 W-4; hit_rate 는 보조)`
 - entries_total: `30`
-- telemetry_events_total: `3014`
-- telemetry_total_queries: `3014`
-- telemetry_hit_count: `1258`
-- telemetry_hit_rate: `0.4174`
+- telemetry_events_total: `3019`
+- telemetry_total_queries: `3019`
+- telemetry_hit_count: `1262`
+- telemetry_hit_rate: `0.4180`
 
 ### Entries by merge_state
 
@@ -152,8 +152,8 @@
 
 | source | events |
 |---|---|
-| `backlog-update` | 523 |
+| `backlog-update` | 527 |
 | `dispatcher` | 13 |
 | `doc-sync` | 2 |
-| `session-start` | 2476 |
+| `session-start` | 2477 |
 

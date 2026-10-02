@@ -72,3 +72,20 @@ v1.16.0 까지 그런 worktree 에서 `wk session-start` 는 멈췄고, 이번 �
 - 이어받은 `in_progress` task 는 모 브랜치에서도 진행 중일 수 있다 — 양쪽에서 고치면 합류 때 충돌로 막힌다.
 - `TASK-2026-08-25-main-017` (MCP emit command 가 항상 `python3`) 는 blocked, minimax-code 채널
   (`TASK-2026-09-30-main-001`)은 planned 그대로다.
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-10-02T00:48:04Z)_
+
+- total wiki pages: **97**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

@@ -58,7 +58,7 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
-- TASK-2026-10-02-main-002 v1.17.0 발행 — worktree 모 브랜치 이어받기 + worktree 자동 seed · meta-watch · 템플릿 검사 수리
+-
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:
@@ -66,6 +66,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-10-02-main-002 x
 - TASK-2026-10-02-main-001 x
 - TASK-2026-09-30-main-013 meta-watch 좁은 선언이 worktree 중첩 경로를 덮지 못해 게이트가 구조적으로 red 다
 - TASK-2026-09-30-main-012 로드맵 WBS 링크 수집기가 슬래시 포함 브랜치(task 가 2단계 깊이)에 닿지 않는다
@@ -75,7 +76,6 @@
 - TASK-2026-09-30-main-009 Codex 인증 압축 왕복 실측 — PostCompact · SessionStart(compact) 발화와 순서
 - TASK-2026-09-30-main-008 Codex 플러그인 hook 적재 — compact 중계 기록·재주입을 Codex 에서
 - TASK-2026-09-30-main-007 v1.15.0 발행 — compact 중계 (wk compact-checkpoint · 스킬 compact-relay · hook 3종)
-- TASK-2026-09-30-main-006 compact 중계 구현 — wk compact-checkpoint · hook 3종 · 스킬 compact-relay · 검사
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

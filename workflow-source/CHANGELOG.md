@@ -4,7 +4,7 @@
 - 범위: git log 에서 추출한 release 별 Added / Changed / Fixed 항목.
 - 대상 독자: maintainer, 릴리스 매니저, 외부 consumer
 - 상태: stable (자동 생성물)
-- 최종 수정일: 2026-09-30
+- 최종 수정일: 2026-10-02
 - 관련 문서: [`./releases/`](./releases/) (release note), [`../docs/RELEASE.md`](../docs/RELEASE.md) (릴리스 절차)
 
 All notable changes to this project will be documented in this file.
@@ -12,10 +12,11 @@ All notable changes to this project will be documented in this file.
 본 파일은 `tools/release_pipeline.py changelog-gen` 으로 자동 생성됩니다 (v0.7.14+).
 수동 편집은 다음 생성 시 덮어써진다 — 형식/metadata 변경은 생성기를 고칠 것.
 
-## [Unreleased] - 2026-09-30
+## [Unreleased] - 2026-10-02
 
 ### Added
 
+- feat(branch-memory): worktree seed 가 모 브랜치 내용을 이어받는다 — 원류 기록 + 합류 시 되돌려 적기 (main-001) (bb1c6088)
 - feat(compact-relay): Codex 플러그인에 압축 중계 hook 탑재 + 요약 부재 시 '대조 불가' (main-008) (0baeb787)
 - feat(compact-relay): 압축 경계를 워크플로우 메모리로 중계 — wk compact-checkpoint · hook 3종 · 스킬 compact-relay (M-018~M-021, ADR-030) (5a3c9db4)
 - feat(doctor): plugin_enabled 절을 4채널로 — codex·grok-build·antigravity 활성 선언 실측 (09-28-main-018) (90e3d52a)
@@ -45,11 +46,20 @@ All notable changes to this project will be documented in this file.
 - feat(meta-watch): 선언 보급 1차 — 채취 실측에서 WATCHES 71건 + mypy flake close (main-004·main-001) (c3c8634f)
 - feat(runner): M-011 — meta-watch 구현 (ADR-028) + 좁은 선언 7건 소탕 (11eb02d2)
 - feat(design): M-010 완결 — ADR-028 + test_impact_tiering_spec (실측 3건 기반) (07b61f88)
-- feat(roadmap): requirements sign-off — M-009 close + M-010 [design] 선언 (e3ac7a27)
-- ... (155 more)
+- ... (156 more)
 
 ### Changed
 
+- dolt remote info (1534f260)
+- chore(memory): 합류한 claude/exciting-ardinghelli-a0680d 브랜치 메모리 아카이브 · main handoff 포인터 갱신 (3c31ebb0)
+- chore(memory): 종료된 claude/session-start-e6eb83 브랜치 메모리 아카이브 · main handoff 포인터 갱신 (84761318)
+- chore(memory): main-012 close — 110차 worktree 수리(6118db3d)로 해소 · main handoff 에 worktree 합류 포인터 (1badb8bc)
+- test(branch-memory): 슬래시 브랜치 task 수집이 형제 공유 디렉터리를 오인하지 않음을 잰다 (main-012 완료 기준 4) (b963f22c)
+- merge: main(8ccd6db8·d89694b7) 을 claude/session-start-e6eb83 에 병합 (4eb71c93)
+- chore(session): 110차 세션 종료 — claude-session-start-e6eb83-002 close (worktree 자동 seed) · §2.8 재적용 · handoff · state.json 갱신 (430999f4)
+- docs(memory): macOS Codex v1.16.0 적용·신뢰·재시작 검증 반영 (d89694b7)
+- docs(memory): minimax-code 배포본 채취 완료 — M-022 철회 · main-001 갱신 · glob 결함 2건 등록 (8ccd6db8)
+- chore(session): 109차 세션 종료 — main-009 · 010 · 011 close (Codex hook 출력 수리 · v1.16.0 발행) · handoff · state.json 갱신 (6545f13a)
 - chore(session): 108차 세션 종료 — main-008 close (Codex compact 중계 hook) · main-009 등록 · handoff · state.json 갱신 (bdfe4b31)
 - chore(session): 107차 세션 종료 — compact 중계 M-018~M-021 완주 · v1.15.0 발행 · handoff · state.json 갱신 (8378809e)
 - chore(memory): 107차 — compact 중계 M-021 close (main-006) · handoff 기준선 · state.json 재생성 (6067f865)
@@ -70,20 +80,13 @@ All notable changes to this project will be documented in this file.
 - docs(planning): M-015 requirements sign-off (Q1~Q5 권고안) → M-016 design 개설 (e9a4b3c0)
 - chore(memory): 92차 세션 종료 — main-009 · 015 · 016 반영 (44e0ff24)
 - chore(memory): handoff §5 작업 후보에서 닫힌 main-015 · main-016 을 걷음 (70b13c19)
-- chore(memory): 92차 세션 종료 — main-008 반영 (러너·CLI 검사 fixture·네트워크 제거) (7339bae5)
-- perf(checks): 러너·CLI 검사의 무거운 fixture 와 네트워크 호출 제거 (09-28-main-008) (bf1417d5)
-- chore(memory): 92차 세션 종료 — release 계열 검사 mypy 반복 제거 (main-007) (8648dfc6)
-- perf(checks): release 계열 검사의 검사 내 mypy 반복 제거 (09-28-main-007) (5e0d0043)
-- chore(memory): 91차 push 게이트 red 1건을 main-005 로 등록 (e6adb0df)
-- chore(memory): 91차 세션 종료 — M-014 ① 안 구현 완료 (main-003 · main-004) (b73d9460)
-- docs(gate): LPT·jobs 실측 결과 기록 + main-003·004 close (44695add)
-- perf(gate): 병렬 구간 LPT 제출 + --jobs auto=코어 수, wiki_score 도구 실행 3→2회 (5b96ebb6)
-- chore(memory): 90차 세션 종료 — M-014 concept 종결(① 안) · 3.14 환경 복구 · PURPOSE.md 개정 (dbf0287f)
-- chore(memory): 89차 세션 종료 — CI 폐지 뒷정리 · push 게이트 · force 차단 hook 수리 (455d27c0)
-- ... (429 more)
+- ... (439 more)
 
 ### Fixed
 
+- fix(release-notes-template): simple template 검사가 저장소 releases/ 에 쓰지 않는다 (306adeaf)
+- fix(meta-watch): 저장소 안 중첩 체크아웃(worktree·clone) 경로를 좁은 선언 판정에서 뺀다 (main-013) (5d9b2228)
+- fix(branch-memory): worktree 가 자기 네임스페이스로 시작한다 — 자동 seed · 로컬 detached HEAD = 기본 브랜치 · 비 git = main (6118db3d)
 - fix(compact-relay): Codex hook 출력을 Codex wire JSON 으로 — `[` 머리말 오판으로 3종 failed · 재주입 0 이던 것 (main-009 · main-010) (8a35197b)
 - fix(python-floor): 하한 해석기 호출을 stdin 으로 — Windows 배치 shim 에서 -c 다줄 스크립트가 첫 개행에서 잘리던 것 (09-30-main-002) (a86614aa)
 - fix(doctor): wk doctor 가 Windows 에서 정본 파일을 extra 로 오판하던 것 — str(relative_to) 잔여 5곳을 as_posix() 로 (09-29-main-018) (b836d83d)
@@ -111,15 +114,19 @@ All notable changes to this project will be documented in this file.
 - fix(cli): 모르는 인자를 거절한다 — 조용히 버리면 요청과 다른 일을 한다 (main-008) (8ee16bdc)
 - fix(tests): 롤업 표식이 하나뿐이라 흐름을 못 갈랐다 (main-007) (6b7a941e)
 - fix(tests): case 수 대조 축의 범위를 실측으로 넓힌다 (main-006) + 86차 종료 (c3997a01)
-- fix(memory): 검색이 자기가 집은 것을 돌려주게 (main-005) (70a97a5d)
-- fix(tests): case 6 이 index 락을 잡아 병렬에서 터지던 것을 읽기 전용으로 (main-002) (f3ac2d13)
-- fix(memory): 승격 후보 판정을 어휘 겹침에서 선언으로 (main-003) (a5961bd2)
-- ... (189 more)
+- ... (192 more)
+
+## [1.17.0] - 2026-10-02
+
+### Changed
+
+- release(v1.17.0): 발행 준비 — worktree 모 브랜치 이어받기 + worktree 자동 seed · 게이트 호스트 의존 수리 2건 (35e4c7ef)
 
 ## [1.16.0] - 2026-09-30
 
 ### Changed
 
+- release(v1.16.0): 발행 완료 — 태그 push + GitHub Release(asset 4종) + 발행 wheel 격리 실측 + §2.8 (9d6c1436)
 - release(v1.16.0): 발행 준비 — Codex 플러그인 compact 중계 hook 탑재 + Codex wire JSON 출력 수리 (13314eaa)
 
 ## [1.15.0] - 2026-09-30

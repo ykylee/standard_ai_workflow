@@ -134,6 +134,25 @@ def running_version() -> str:
     return f"{sys.version_info[0]}.{sys.version_info[1]}"
 
 
+def venv_has_kit(python: Path) -> bool:
+    """matrix venv 의 해석기가 **자기 site-packages 로** ``workflow_kit`` 를 import 하는가.
+
+    호출자 환경의 ``PYTHONPATH`` 를 지우고 잰다. 문서의 실행 명령
+    (``PYTHONPATH=workflow-source … --run-local``)이 그대로 자식에게 상속되면
+    빈 venv 에서도 import 가 성공하고, 설치가 통째로 건너뛰어진다. 2026-10-02 실측:
+    새로 만든 3.13 venv 가 의존성 없이 돌아 pydantic 부재로 전량 red 가 났다
+    (TASK-2026-10-02-main-008). cwd 도 venv 안으로 둔다 — ``-c`` 는 cwd 를 sys.path
+    앞에 넣는다.
+    """
+    import os
+
+    env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
+    return subprocess.run(  # noqa: S603
+        [str(python), "-c", "import workflow_kit"], capture_output=True,
+        env=env, cwd=str(Path(python).parent),
+    ).returncode == 0
+
+
 def _ensure_venv(repo_root: Path, version: str) -> Path | None:
     """`version` 해석기로 개발 `.venv` 와 같은 의존성을 깐 venv 를 만든다 (있으면 재사용).
 
@@ -161,10 +180,7 @@ def _ensure_venv(repo_root: Path, version: str) -> Path | None:
         print(f"  ::error::{version} venv 인데 실제 해석기는 {actual} 다")
         return None
 
-    have_kit = subprocess.run(  # noqa: S603
-        [str(python), "-c", "import workflow_kit"], capture_output=True,
-    ).returncode == 0
-    if not have_kit:
+    if not venv_has_kit(python):
         # 개발 `.venv` 와 **같은 순서**로 깐다 — 뒤에 깔린 것이 이긴다는 사실이
         # `sdk_matrix` 가 존재하는 이유 자체다 (mcp 핀이 editable 뒤에 온다).
         print(f"  설치: requirements → requirements-dev → -e workflow-source[dev,release,mcp-sdk]")

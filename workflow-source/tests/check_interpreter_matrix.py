@@ -178,12 +178,45 @@ def case_4_declared_interpreters_are_obtainable() -> None:
     )
 
 
+def case_5_kit_probe_ignores_inherited_pythonpath() -> None:
+    """설치 여부 탐침이 상속된 ``PYTHONPATH`` 에 속지 않는다 (TASK-2026-10-02-main-008).
+
+    빈 venv + ``PYTHONPATH=workflow-source`` 에서 탐침이 '깔려 있다' 고 하면 설치가 건너뛰어진다.
+    대조군: 개발 ``.venv`` 해석기는 '깔려 있다' 여야 한다 — 둘 다 False 면 탐침이 고장난 것이다.
+    """
+    import os
+    import tempfile
+
+    from workflow_kit.common.interpreter_matrix import venv_has_kit
+
+    saved = os.environ.get("PYTHONPATH")
+    os.environ["PYTHONPATH"] = str(SOURCE_ROOT)
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            bare = Path(tmp) / "bare"
+            subprocess.run([sys.executable, "-m", "venv", "--without-pip", str(bare)], check=True)
+            bare_python = bare / "bin" / "python"
+            bare_verdict = venv_has_kit(bare_python)
+        dev_verdict = venv_has_kit(Path(sys.executable))
+    finally:
+        if saved is None:
+            os.environ.pop("PYTHONPATH", None)
+        else:
+            os.environ["PYTHONPATH"] = saved
+    _record(
+        "case 5 (설치 탐침이 상속된 PYTHONPATH 에 속지 않는다)",
+        bare_verdict is False and dev_verdict is True,
+        f"빈 venv={bare_verdict} (기대 False) · 개발 .venv={dev_verdict} (기대 True)",
+    )
+
+
 def main() -> int:
     print("=== 해석기 매트릭스 정합 (TASK-2026-09-21-main-006) ===")
     for fn in (case_1_registry_is_coherent,
                case_2_dev_local_is_tied_to_the_repo_pin,
                case_3_runner_spawns_checks_with_sys_executable,
-               case_4_declared_interpreters_are_obtainable):
+               case_4_declared_interpreters_are_obtainable,
+               case_5_kit_probe_ignores_inherited_pythonpath):
         try:
             fn()
         except Exception as exc:  # noqa: BLE001

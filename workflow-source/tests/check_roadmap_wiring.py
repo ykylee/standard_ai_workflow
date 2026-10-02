@@ -260,9 +260,19 @@ def test_session_context_builder_recommends_doc_phase_deliverables() -> None:
 
 
 def test_repo_session_start_reports_roadmap() -> None:
-    """이 저장소에서 session-start 출력에 roadmap_context 가 실린다 (읽기 전용 관찰)."""
+    """이 저장소에서 session-start 출력에 roadmap_context 가 실린다 (읽기 전용 관찰).
+
+    관찰은 두 겹의 방어를 요구한다. **환경** 층은 `branch=_repo_branch()` 다 — worktree 에서
+    `main` 을 강제하면 자기 브랜치가 "HEAD 에 병합된" 것으로 보여 합류 반영이 열린다
+    (TASK-2026-10-02-claude-remote-sync-status-1ce0a3-003 실측). **의도** 층은
+    `--no-reflect` 다 — session-start 는 관찰만 원하는 호출자에게 쓰는 면이 없어서,
+    dry-run 이 조용히 `--apply` 로 승격되면 확인할 사람이 없는 갱신이 된다
+    (TASK-2026-10-02-feat-auto-20261002-4a5d394c-002). 환경이 맞으면 둘째가 가려지지만
+    둘은 서로를 검사하지 않는다: 브랜치가 어긋난 새 경로가 나오면 첫째가, 의도가
+    바뀌면 둘째가 멈춘다. 어느 쪽도 단독으로는 충분하지 않다.
+    """
     before = _memory_status()
-    rc, payload = _run_tool(SESSION_TOOL, [], cwd=REPO_ROOT, branch=_repo_branch())
+    rc, payload = _run_tool(SESSION_TOOL, ["--no-reflect"], cwd=REPO_ROOT, branch=_repo_branch())
     after = _memory_status()
     ctx = payload.get("roadmap_context") or {}
     ok = (rc == 0 and ctx.get("present") is True and ctx.get("issues_count") == 0

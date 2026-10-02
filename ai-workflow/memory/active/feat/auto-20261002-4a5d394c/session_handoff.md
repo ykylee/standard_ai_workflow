@@ -15,16 +15,16 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
+- TASK-2026-10-02-feat-auto-20261002-4a5d394c-002 검사 격리 결함 — session-start 합류 승격이 조용히 저장소를 쓴다
 - TASK-2026-10-02-feat-auto-20261002-4a5d394c-001 — MiniMax Code 플러그인 채널 추가 — 페이로드 생성 + 릴리스 ZIP + 로컬 설치 sync
-
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:
-
+-
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
-
+-
 ## 5. 다음 세션 시작 포인트
 
 - [`backlog/tasks/TASK-2026-10-02-feat-auto-20261002-4a5d394c-001.md`](./backlog/tasks/TASK-2026-10-02-feat-auto-20261002-4a5d394c-001.md) 의 완료 기준을 먼저 읽는다.

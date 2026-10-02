@@ -172,6 +172,7 @@ def _detect_stale_branch_memories(
     warnings: list[str],
     *,
     apply: bool = False,
+    reflect: bool = True,
 ) -> dict[str, Any] | None:
     """v1.0.0: 종료된 브랜치의 메모리를 탐지(선택적으로 아카이브)한다.
 
@@ -182,6 +183,14 @@ def _detect_stale_branch_memories(
     옮기면 위험하기 때문이다. `--archive-stale-branches` 를 주면 실제 이동까지 수행한다.
     도구는 commit/push 를 하지 않으므로 protected main 과 호환되며, 변경은 작업 브랜치의
     PR 에 실려 나간다(piggyback).
+
+    ``reflect=False`` 는 **합류 승격을 끈다** (TASK-2026-10-02-feat-auto-20261002-4a5d394c-002).
+    기본 브랜치 체크아웃에서는 아래 승격이 dry-run 을 ``--apply`` 로 올려 버린다 — 그건
+    제품 의도(병합된 worktree 기록을 모 브랜치 메모리에 편입)지만 **관찰만** 하려는
+    호출자에겐 탈출구가 없었다. 그래서 생긴 플래그다. 자기 적용을 확인하는 검사는 실제
+    저장소를 cwd 로 놓고 돌리는데, 이 플래그 없이는 그 과정에서 저장소를 썼다
+    (``check_roadmap_wiring`` 실측 — 브랜치 메모리가 살아 있는 모든 작업에서 전량 게이트
+    red). 탐지·안내는 그대로 살린다 — 끄는 것은 **쓰기**뿐이다.
     """
     try:
         from workflow_kit.common.paths import memory_root_dir
@@ -205,7 +214,9 @@ def _detect_stale_branch_memories(
         # 합류 반영 (TASK-2026-10-02-main-004): 기본 브랜치 체크아웃이면 도구가 반영 모드다
         # (`reflect_enabled`). 그때는 묻지 않고 반영한다 — 병합된 worktree 의 기록이 모 브랜치
         # 메모리에 들어오는 것이 이 세션이 이어받을 사실이고, 무엇을 했는지는 아래 warning 이 말한다.
-        if (not apply and payload.get("reflect_enabled")
+        # `reflect=False` 관찰 경로에서는 이 승격을 건너뛴다 — dry-run 은 contract 로 남고
+        # 쓰기는 호출자가 명시적으로 요청할 때만 일어난다.
+        if (reflect and not apply and payload.get("reflect_enabled")
                 and any(c.get("action") == "archive" for c in payload.get("candidates", []))):
             payload = run(["--apply"])
             apply = True
@@ -379,6 +390,9 @@ def main() -> int:
     parser.add_argument("--archive-stale-branches", action="store_true",
                         dest="archive_stale_branches",
                         help="종료된 브랜치 메모리를 archived/ 로 실제 이동 (기본: 탐지+안내만)")
+    parser.add_argument("--no-reflect", action="store_true", dest="no_reflect",
+                        help="합류 반영(승격)을 끈다 — 관찰 전용. 기본 브랜치 체크아웃에서도 "
+                             "저장소를 쓰지 않는다 (검사용 · TASK-2026-10-02-feat-auto-20261002-4a5d394c-002)")
     args = parser.parse_args()
 
     source_context = {
@@ -475,6 +489,7 @@ def main() -> int:
     _detect_stale_branch_memories(
         project_profile_path, warnings,
         apply=getattr(args, "archive_stale_branches", False),
+        reflect=not getattr(args, "no_reflect", False),
     )
     # **매 시작마다** 진입점을 점검한다 (TASK-2026-08-24-main-006).
     #

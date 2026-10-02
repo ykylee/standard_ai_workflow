@@ -488,7 +488,7 @@ def emit_dashboard(score: dict, dashboard_path: Path) -> None:
             for r in records:
                 subj = r.get("subject", "")[:50]
                 trend_section += f"| `{r.get('commit', '?')}` | {subj} | {r.get('overall', 0):.2f} | {r.get('grade', 'F')} |\n"
-            trend_section += "\n자동 추출: `wk score-wiki-trend --show`\n"
+            trend_section += "\n자동 추출: `python -m workflow_kit score-wiki-trend --show`\n"
             trend_section += "history: `workflow-source/workflow_kit/tools/.score_history.jsonl` (v0.7.1+ 누적)\n"
 
     # frontmatter 를 함께 낸다 — 없으면 이 페이지만 wiki 계약 밖에 남는다.
@@ -500,14 +500,14 @@ type: meta
 status: draft
 r9_skip: true
 title: Wiki Maintainability Score Dashboard
-description: 6 dim 별 0.0~5.0 점수 + overall grade. `wk score-wiki-maintainability --emit-dashboard` 자동 산출.
+description: 6 dim 별 0.0~5.0 점수 + overall grade. `python -m workflow_kit score-wiki-maintainability --emit-dashboard` 자동 산출.
 last_touched: {timestamp[:10]}
 ---
 
 # Wiki Maintainability Score Dashboard (v0.7.1, 2026-06-13)
 
 > Generated: {timestamp}
-> 6 dim 별 0.0~5.0 점수 + overall grade. 자동 산출 — `wk score-wiki-maintainability --emit-dashboard`
+> 6 dim 별 0.0~5.0 점수 + overall grade. 자동 산출 — `python -m workflow_kit score-wiki-maintainability --emit-dashboard`
 
 ## Overall
 
@@ -563,7 +563,7 @@ last_touched: {timestamp[:10]}
 
 - **Coverage < 4.5**: v0.7.0+ step 의 concept page 추가
 - **Freshness < 4.5**: drift >= 7일 page 의 last_ingested_from 갱신
-- **Discoverability < 4.5**: 선언된 L2 4종의 부재/빈 본문 해소 (`wk wiki-emit --apply`)
+- **Discoverability < 4.5**: 선언된 L2 4종의 부재/빈 본문 해소 (`python -m workflow_kit wiki-emit --apply`)
 - **Cross-ref < 4.5**: related_pages ≥ 2 page 추가
 - **Lifecycle < 4.5**: vault L2 status: draft → reviewed 자동 갱신
 - **Operational < 4.5**: smoke test 신규 추가 또는 회귀 fix

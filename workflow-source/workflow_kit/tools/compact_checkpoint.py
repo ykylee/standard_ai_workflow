@@ -68,7 +68,7 @@ def _parse_now(value: str | None) -> datetime:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    ap = argparse.ArgumentParser(prog="wk compact-checkpoint", description=__doc__.split("\n")[0])
+    ap = argparse.ArgumentParser(prog="python -m workflow_kit compact-checkpoint", description=__doc__.split("\n")[0])
     mode = ap.add_mutually_exclusive_group(required=True)
     mode.add_argument("--note", action="store_true", help="판단 층 기록 (스킬)")
     mode.add_argument("--hook", choices=("pre", "post"), help="PreCompact / PostCompact hook")
@@ -152,7 +152,7 @@ def main(argv: list[str] | None = None) -> int:
     if loc is None:
         print(
             "[error] 브랜치 메모리 디렉터리가 없다 — 워크플로우 프로젝트가 아니거나 이 브랜치에 아직 task 가 없다"
-            " (`wk backlog-update` 가 만든다).",
+            " (`python -m workflow_kit backlog-update` 가 만든다).",
             file=sys.stderr,
         )
         return 1

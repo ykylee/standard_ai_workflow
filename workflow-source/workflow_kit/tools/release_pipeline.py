@@ -2591,7 +2591,7 @@ def cmd_release(args) -> dict:
         missing = [path for path in archives if not path.is_file()]
         if missing:
             raise FileNotFoundError(
-                "plugin archives missing; run `wk release-pipeline dist --apply` first: "
+                "plugin archives missing; run `python -m workflow_kit release-pipeline dist --apply` first: "
                 + ", ".join(path.name for path in missing)
             )
         return archives

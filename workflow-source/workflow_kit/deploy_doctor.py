@@ -50,6 +50,7 @@ from pathlib import Path
 from typing import Any
 
 from workflow_kit.bootstrap_lib.harnesses import HARNESS_SPECS
+from workflow_kit.common.kit_invocation import HOOK_INTERPRETERS, KIT_MODULE
 from workflow_kit.common.python_launcher import python_launcher
 from workflow_kit.upgrade_diff import compare_marker, parse_version_marker, read_kit_version
 
@@ -208,15 +209,17 @@ class ChannelPrerequisite:
     preflight 가 green 으로 보고하는 거짓 안심이 된다."""
 
 
-#: 모든 플러그인 채널이 공유하는 전제. 스킬이 지시하는 메모리 갱신 명령은 `wk` 로
-#: 돌고, read-only MCP 서버는 `python3 -m workflow_kit.server…` 로 뜬다 — 둘 중
-#: 하나가 없으면 설치는 성공해도 **기능이 없는 상태**가 된다.
+#: 모든 플러그인 채널이 공유하는 전제. read-only MCP 서버는 `python3 -m workflow_kit.server…`
+#: 로 뜬다 — 없으면 설치는 성공해도 **기능이 없는 상태**가 된다. 스킬 · hook 의 메모리 갱신
+#: 명령은 `wk` 실행 파일이 아니라 `python -m workflow_kit` 으로 돈다 (TASK-2026-10-02-main-007,
+#: wk.exe 는 Windows 백신이 평판으로 막는다) — 그 해석기는 이름 하나로 잴 수 없어
+#: :func:`_probe_kit_interpreters` 가 import 탐침으로 따로 잰다.
 #:
 #: `python3` 는 win32 에서도 **리터럴 그대로** 잰다 (launcher_adaptive ❌):
 #: 플러그인 payload 의 mcp.json 이 `python3` 를 체크인하므로 (platform="posix"
 #: 고정 — 해시 안정), 이 채널들이 실제로 spawn 하는 이름이 그것이다. 전제를
 #: 플랫폼으로 완화하면 payload 가 못 뜨는 호스트를 green 으로 보고하게 된다.
-_PLUGIN_COMMON = ("wk", "python3")
+_PLUGIN_COMMON = ("python3",)
 
 #: 채널별 설치 전제 **정본**. `docs/INSTALLATION_AND_USAGE.md` §7.0.0 표는 여기서
 #: 파생되고, `check_installation_usage` 가 복제를 검출한다 (컨셉 §2 선언 계약).
@@ -518,6 +521,33 @@ def _probe_kit_provenance(project_root: Path, origin: Path | None) -> dict[str, 
     )
     return record
 
+def _probe_kit_interpreters(
+    which: Callable[[str], str | None] = shutil.which,
+) -> list[dict[str, Any]]:
+    """hook 과 같은 순서로 해석기 후보를 찾아 ``workflow_kit`` import 가 되는지 잰다.
+
+    플러그인 hook 은 :data:`HOOK_INTERPRETERS` 를 차례로 시험해 kit 를 import 하는 첫
+    해석기를 쓴다 (:func:`workflow_kit.common.kit_invocation.posix_interpreter_probe`).
+    이름이 PATH 에 있다는 것만으로는 부족하다 — 다른 Python 이거나 Windows Store 별칭일
+    수 있다. 그래서 이름 해석과 import 를 둘 다 남긴다.
+    """
+    entries: list[dict[str, Any]] = []
+    for name in HOOK_INTERPRETERS:
+        resolved = which(name)
+        imports_kit = False
+        if resolved:
+            try:
+                proc = subprocess.run(
+                    [resolved, "-c", f"import {KIT_MODULE}"],
+                    capture_output=True, timeout=30, check=False,
+                )
+                imports_kit = proc.returncode == 0
+            except (OSError, subprocess.SubprocessError):
+                imports_kit = False
+        entries.append({"name": name, "resolved": resolved, "imports_kit": imports_kit})
+    return entries
+
+
 def _probe_environment(project_root: Path) -> dict[str, Any]:
     """인터프리터·venv·PATH 전제를 본다.
 
@@ -555,10 +585,12 @@ def _probe_environment(project_root: Path) -> dict[str, Any]:
             continue
         modules[name] = getattr(module, "__file__", None)
 
-    wk_path = shutil.which("wk")
-    if wk_path is None:
+    kit_interpreters = _probe_kit_interpreters()
+    if not any(entry["imports_kit"] for entry in kit_interpreters):
+        tried = ", ".join(entry["name"] for entry in kit_interpreters)
         findings.append(
-            "`wk` 가 PATH 에 없다 — 플러그인 스킬이 지시하는 메모리 갱신 명령이 돌지 않는다 "
+            f"PATH 의 해석기({tried}) 중 `workflow_kit` 를 import 하는 것이 없다 — 플러그인 hook 과 "
+            "스킬이 지시하는 `python -m workflow_kit` 메모리 갱신 명령이 돌지 않는다 "
             "(docs/INSTALLATION_AND_USAGE.md §3)"
         )
 
@@ -589,7 +621,8 @@ def _probe_environment(project_root: Path) -> dict[str, Any]:
         # 돌고 있는 사본이 저장소 소스와 같은 내용인가 (main-002). 버전 문자열이
         # 같아도 내용은 갈라질 수 있다 — 판정은 늘 남긴다 (조용한 통과 금지).
         "kit_provenance": provenance,
-        "wk_on_path": wk_path,
+        # hook 이 고르는 해석기 후보와 각자의 import 탐침 결과 (main-007).
+        "kit_interpreters": kit_interpreters,
         "findings": findings,
     }
 
@@ -2707,14 +2740,15 @@ def _render_provenance(record: dict[str, Any]) -> list[str]:
 
 
 def _render_text(report: dict[str, Any]) -> str:
-    lines: list[str] = ["=== wk doctor — 배포 탐침 (report-only) ==="]
+    lines: list[str] = ["=== python -m workflow_kit doctor — 배포 탐침 (report-only) ==="]
 
     env = report["environment"]
     lines.append("")
     lines.append("[environment]")
     lines.append(f"  python      : {env['python_version']} ({env['executable']})")
     lines.append(f"  virtualenv  : {'yes' if env['in_virtualenv'] else 'no'}")
-    lines.append(f"  wk on PATH  : {env['wk_on_path'] or '(없음)'}")
+    kit_py = [e["name"] for e in env["kit_interpreters"] if e["imports_kit"]]
+    lines.append(f"  kit 해석기  : {', '.join(kit_py) or '(없음)'}")
     lines.append(f"  workflow_kit: {env['modules'].get('workflow_kit') or '(import 실패)'}")
     lines.extend(_render_provenance(env.get("kit_provenance") or {}))
 
@@ -2929,7 +2963,7 @@ def _render_text(report: dict[str, Any]) -> str:
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="wk doctor",
+        prog="python -m workflow_kit doctor",
         description="배포 post-apply 탐침 — 설치 현황·버전·환경 전제를 보고한다 (report-only).",
     )
     parser.add_argument("--project-root", type=Path, default=None)

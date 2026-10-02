@@ -140,13 +140,15 @@ def case_5_self_application() -> None:
             culprits.append(f"어느 산출물인지 payload 가 말하지 않는다: {payload}")
         raise AssertionError(
             "이 저장소의 생성물이 생성기 출력과 갈라졌다 — " + " / ".join(culprits)
-            + ". 손으로 고치지 말고 `wk refresh-state` 로 재생성하라 (정본 §11, ADR-027 §7)."
+            + ". 손으로 고치지 말고 `python -m workflow_kit refresh-state` 로 재생성하라 (정본 §11, ADR-027 §7)."
         )
 
 
 def case_6_declaration_matches_exposure() -> None:
     standard = (SOURCE_ROOT / "core" / "global_workflow_standard.md").read_text(encoding="utf-8")
-    assert "`wk refresh-state`" in standard, "정본 §11 에 wk refresh-state 안내가 없다"
+    from workflow_kit.common.kit_invocation import KIT_INVOCATION
+    # 호출 형태는 `python -m workflow_kit` 이다 (TASK-2026-10-02-main-007 — wk.exe 는 Windows 백신이 막는다)
+    assert f"`{KIT_INVOCATION} refresh-state`" in standard, "정본 §11 에 refresh-state 안내가 없다"
     # 정본이 영어로 옮겨졌다 (2026-08-14). 재는 것은 그대로 — "state.json 이
     # 생성물이라고 정본에 적혀 있는가".
     assert "generated artifact" in standard, "정본 §11 에 state.json 생성물 선언이 없다"

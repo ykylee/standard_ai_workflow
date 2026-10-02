@@ -249,7 +249,7 @@
         {
           "id": "WBS-7.1",
           "title": "결함 수리 — 플랫폼·크로스호스트 (Windows 경로·해석기, federation 형식)",
-          "derived_status": "blocked",
+          "derived_status": "in_progress",
           "linked_task_ids": [
             "TASK-2026-08-25-main-017",
             "TASK-2026-08-29-main-003",
@@ -265,7 +265,9 @@
             "TASK-2026-09-29-main-013",
             "TASK-2026-09-29-main-017",
             "TASK-2026-09-29-main-018",
-            "TASK-2026-09-30-main-002"
+            "TASK-2026-09-30-main-002",
+            "TASK-2026-10-02-main-006",
+            "TASK-2026-10-02-main-007"
           ],
           "total_leaves": 1,
           "done_leaves": 0,

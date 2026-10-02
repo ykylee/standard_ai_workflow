@@ -75,6 +75,13 @@ from pathlib import Path
 from typing import Any, Callable, NamedTuple, Sequence
 
 from workflow_kit.common.compact_relay import OUTPUT_CODEX_JSON, codex_system_message
+from workflow_kit.common.kit_invocation import (
+    KIT_INVOCATION,
+    kit_subcommand,
+    posix_interpreter_probe,
+    posix_kit_call,
+    posix_kit_found,
+)
 from workflow_kit.common.standard_rules import (
     StandardRules,
     find_memory_command,
@@ -266,7 +273,7 @@ design → implementation). No roadmap → `present=false`; skip silently.
 by the harness registry but missing on disk are created at the current kit version, and
 files that exist but carry an older marker are **reported, never overwritten** — an
 undeclared local edit must not disappear just because a session opened. The report lands
-in `warnings`; relay it. Run `wk ensure-entrypoints` to inspect the same picture on demand,
+in `warnings`; relay it. Run `{KIT_INVOCATION} ensure-entrypoints` to inspect the same picture on demand,
 or `--apply` to fill only what is missing.
 
 ## Usage
@@ -275,7 +282,8 @@ or `--apply` to fill only what is missing.
 {command} --help
 ```
 
-If `{command.split()[0]}` is missing, do not skip silently — report the installation
+If no Python interpreter can import `workflow_kit` (`{KIT_INVOCATION} --help` fails with
+`No module named workflow_kit`), do not skip silently — report the installation
 guidance and stop (`INSTALLATION_AND_USAGE.md` §3)."""
 
 
@@ -362,7 +370,8 @@ Close the session, leaving the state so the next session can pick it up directly
 {command}
 ```
 
-If `{command.split()[0]}` is missing, do not skip silently — report the installation
+If no Python interpreter can import `workflow_kit` (`{KIT_INVOCATION} --help` fails with
+`No module named workflow_kit`), do not skip silently — report the installation
 guidance and stop (`INSTALLATION_AND_USAGE.md` §3). A hand-written `state.json` that was
 never regenerated diverges from its input documents."""
 
@@ -862,12 +871,13 @@ def _relay_hooks(rules: StandardRules, *, codex: bool = False) -> dict[str, list
     ``systemMessage`` JSON). Codex 는 ``[`` 로 시작하는 평문을 JSON 으로 오판해 hook 을 ``failed`` 로 버린다
     (codex-cli 0.159.2 실측, TASK-2026-09-30-main-009) — 평문 안내 ``[standard-ai-workflow] …`` 도 같다.
 
-    `wk` 가 없으면 **조용히** 끝난다 (부재 안내는 Claude Code 의 SessionStart ① 몫).
-    `wk` 가 있는데 명령이 실패하면(플러그인보다 오래된 kit — 명령 자체가 없다) 조용히 넘기지 않고
+    kit 를 깐 해석기가 없으면 **조용히** 끝난다 (부재 안내는 Claude Code 의 SessionStart ① 몫).
+    해석기는 :func:`posix_interpreter_probe` 가 고른다 — ``wk`` 실행 파일은 Windows 백신이
+    평판으로 막아 쓰지 않는다 (TASK-2026-10-02-main-007). 해석기가 있는데 명령이 실패하면(플러그인보다 오래된 kit — 명령 자체가 없다) 조용히 넘기지 않고
     한 줄로 말한다. exit 는 0 으로 둔다 — 압축 hook 의 exit 2 는 하네스에 따라 압축을 막는다.
     """
     relay_cmd = find_memory_command(rules, "Relay working state")
-    binary = relay_cmd.split()[0]
+    relay_sub = kit_subcommand(relay_cmd)
     relay_failed_notice = (
         f"[{PLUGIN_NAME}] `{relay_cmd}` failed — the installed kit may be older than the plugin. "
         f"Upgrade: {_INSTALL_GUIDE}"
@@ -882,8 +892,8 @@ def _relay_hooks(rules: StandardRules, *, codex: bool = False) -> dict[str, list
         return {
             "type": "command",
             "command": (
-                f"command -v {binary} >/dev/null 2>&1 && "
-                f"{{ {relay_cmd} {mode}{suffix} || echo '{notice}'; }} || true"
+                f"{posix_interpreter_probe()} {posix_kit_found()} && "
+                f"{{ {posix_kit_call(relay_sub)} {mode}{suffix} || echo '{notice}'; }} || true"
             ),
         }
 
@@ -954,9 +964,10 @@ def render_claude_code_hooks(rules: StandardRules) -> str:
     §11.1 개명 시 이 사본만 낡는다.
     """
     refresh_cmd = find_memory_command(rules, "Regenerate state.json")
-    binary = refresh_cmd.split()[0]
+    refresh_sub = kit_subcommand(refresh_cmd)
     absent_notice = (
-        f"[{PLUGIN_NAME}] `{binary}` not found — the skills still describe the procedure, but the "
+        f"[{PLUGIN_NAME}] no Python interpreter with `workflow_kit` installed was found "
+        f"(tried python3, python) — the skills still describe the procedure, but the "
         f"memory-update commands will not run. Install: {_INSTALL_GUIDE}"
     )
     relay = _relay_hooks(rules)
@@ -975,7 +986,7 @@ def render_claude_code_hooks(rules: StandardRules) -> str:
                             {
                                 "type": "command",
                                 "command": (
-                                    f"command -v {binary} >/dev/null 2>&1 || "
+                                    f"{posix_interpreter_probe()} {posix_kit_found()} || "
                                     f"echo '{absent_notice}'"
                                 ),
                             },
@@ -995,7 +1006,8 @@ def render_claude_code_hooks(rules: StandardRules) -> str:
                             {
                                 "type": "command",
                                 "command": (
-                                    f"command -v {binary} >/dev/null 2>&1 && {refresh_cmd} || "
+                                    f"{posix_interpreter_probe()} {posix_kit_found()} && "
+                                    f"{posix_kit_call(refresh_sub)} || "
                                     f"echo '{absent_notice}'"
                                 ),
                             }

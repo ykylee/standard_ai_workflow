@@ -258,7 +258,7 @@ def render_handoff(*, branch: str, axis: str, task_id: str, task_title: str,
           + inherited["next_steps"] if inherited and inherited.get("next_steps") else []),
         (f"- [`backlog/tasks/{task_id}.md`](./backlog/tasks/{task_id}.md) 의 완료 기준을 먼저 읽는다."
          if task_status == "in_progress" else
-         "- 실제 작업은 `wk backlog-update` 로 새 task 를 만들어 기록한다."),
+         "- 실제 작업은 `python -m workflow_kit backlog-update` 로 새 task 를 만들어 기록한다."),
         "- 작업 범위를 벗어나는 변경은 다른 워크스페이스와 충돌할 수 있으므로 backlog 에 별도 task 로 남긴다.",
         "",
         # §5 의 부류 분리 계약 — 작업 후보는 열린 task ID 를 인용한다
@@ -340,7 +340,7 @@ def render_seed_session_record(*, branch: str, axis: str, task_id: str,
         "",
         "## 2. 다음 세션 시작 포인트",
         "",
-        f"- `wk session-start` 로 기준선을 복원하고 {task_id} 의 완료 기준을 채운다.",
+        f"- `python -m workflow_kit session-start` 로 기준선을 복원하고 {task_id} 의 완료 기준을 채운다.",
         "",
     ]
     return "\n".join(lines)

@@ -16,7 +16,7 @@
 - 저장소를 clone한 뒤 `workflow-source/` 를 editable mode로 설치하는 방법
 - 의존성 (`pydantic`, `anyio`, `mcp[cli]`) 설치
 - `workflow_kit` (하위: `workflow_kit.bootstrap_lib`) 임포트와 기본 사용 예
-- 301개 스모크 테스트 (`workflow-source/tests/check_*.py`) 실행 방법 (v1.1.6+ 정합)
+- 302개 스모크 테스트 (`workflow-source/tests/check_*.py`) 실행 방법 (v1.1.6+ 정합)
 - `bootstrap_workflow_kit.py` 와 `generate_workflow_state.py` 실행
 - MCP 서버 (jsonrpc-bridge / stdio-sdk) 실행
 - 자주 만나는 문제 해결
@@ -328,9 +328,13 @@ pi install git:github.com/ykylee/standard_ai_workflow@v1.18.0
 
 전제 두 가지:
 
-- **플러그인은 `wk` / Python 의존을 대신 설치해 주지 않는다** (전환 원칙 4).
-  스킬·hook 이 부르는 메모리 갱신 명령은 §3 의 uv/pipx wheel 설치가 선행돼야
-  돌고, 없으면 SessionStart hook 이 설치 안내를 출력한다 (조용한 실패 없음).
+- **플러그인은 `workflow_kit` / Python 의존을 대신 설치해 주지 않는다** (전환 원칙 4).
+  스킬·hook 이 부르는 메모리 갱신 명령(`python -m workflow_kit <명령>`)은 §3 의
+  설치가 선행돼야 돌고, hook 은 `python3` → `python` 순으로 `workflow_kit` 를 import
+  하는 해석기를 찾는다. 없으면 SessionStart hook 이 설치 안내를 출력한다 (조용한 실패 없음).
+- **하네스는 `wk` 실행 파일을 부르지 않는다** (TASK-2026-10-02-main-007).
+  pip 가 만드는 `wk.exe` 는 설치마다 새로 생성되는 서명 없는 런처라 Windows 의 평판
+  기반 백신(실측: AhnLab V3)이 차단한다. `wk` 는 사람이 터미널에서 쓰는 단축형으로만 남는다.
 - 설치 선언은 user settings (`~/.claude/settings.json` 의
   `extraKnownMarketplaces` / `enabledPlugins`) 에 산다 — settings 를 재작성하는
   외부 도구가 있으면 선언이 소실될 수 있다 (실측 1회). 그 경우 위 두 명령으로
@@ -350,11 +354,11 @@ wk doctor --json          # 기계가 읽는 형태 (`.preflight.ready_channels`
 
 | 채널 | 측정하는 전제 (실행 파일) | 선언만 하는 전제 (미측정) |
 |---|---|---|
-| **claude-code** | `claude` · `wk` · `python3` | GitHub marketplace 도달 (네트워크) |
-| **codex** | `codex` · `unzip` · `wk` · `python3` | GitHub Release 의 Codex ZIP 을 미리 내려받아 둘 것 |
-| **antigravity** | `agy` · `wk` · `python3` | 로컬 체크아웃 (`agy plugin install <경로>/plugin`) 또는 `plugin@marketplace` 소스 |
-| **grok-build** | `grok` · `wk` · `python3` | GitHub marketplace 도달 (네트워크) · `--trust` 없이는 MCP·훅이 비활성 |
-| **pi-dev** | `pi` · `wk` · `python3` | 로컬 경로 또는 git 태그 지정 |
+| **claude-code** | `claude` · `python3` | GitHub marketplace 도달 (네트워크) |
+| **codex** | `codex` · `unzip` · `python3` | GitHub Release 의 Codex ZIP 을 미리 내려받아 둘 것 |
+| **antigravity** | `agy` · `python3` | 로컬 체크아웃 (`agy plugin install <경로>/plugin`) 또는 `plugin@marketplace` 소스 |
+| **grok-build** | `grok` · `python3` | GitHub marketplace 도달 (네트워크) · `--trust` 없이는 MCP·훅이 비활성 |
+| **pi-dev** | `pi` · `python3` | 로컬 경로 또는 git 태그 지정 |
 | **bootstrap** | `python3` (win32 는 `python` 으로 잰다) | PEP 668 인터프리터면 venv 필요 (§7.1) |
 
 **두 열을 섞지 않는다.** 왼쪽은 `shutil.which` 로 실제로 재고, 오른쪽은 재지
@@ -362,10 +366,10 @@ wk doctor --json          # 기계가 읽는 형태 (`.preflight.ready_channels`
 거짓 안심이 된다 (이 저장소의 규칙: *모름 ≠ 안전*). 그래서 `installable: true`
 는 "실행 파일 전제는 충족" 이라는 뜻이지 "설치가 성공한다" 는 뜻이 아니다.
 
-`wk` 와 `python3` 이 모든 플러그인 채널의 공통 전제인 이유: 스킬이 지시하는
-메모리 갱신 명령은 `wk` 로 돌고 read-only MCP 서버는 `python3 -m
-workflow_kit.server…` 로 뜬다. 둘 중 하나가 없으면 **설치는 성공해도 기능이
-없는 상태**가 된다.
+`python3` 이 모든 플러그인 채널의 공통 전제인 이유: read-only MCP 서버는 `python3 -m
+workflow_kit.server…` 로 뜬다. 없으면 **설치는 성공해도 기능이 없는 상태**가 된다.
+스킬·hook 의 메모리 갱신 명령(`python -m workflow_kit`)은 이름 하나로 잴 수 없어 표에
+없다 — environment 절이 `python3` · `python` 각각의 `workflow_kit` import 를 따로 잰다.
 
 플랫폼 주의 (main-017): **bootstrap 채널만** 인터프리터 이름을 플랫폼으로
 해석한다 (win32 는 `python` — bootstrap 이 emit 하는 MCP command 도 같은
@@ -388,7 +392,7 @@ wk doctor --json          # 기계가 읽는 형태
 wk doctor --strict        # 발견이 있으면 rc 1 (CI 용)
 ```
 
-9절: **environment** (venv·PEP 668·`wk` PATH·`workflow_kit` import·**돌고 있는
+9절: **environment** (venv·PEP 668·hook 해석기(`python3`·`python`)의 `workflow_kit` import·**돌고 있는
 kit 사본이 저장소 소스와 같은 내용인가**) ·
 **preflight** (채널별 설치 전제, §7.0.0) · **project_scope** (하네스별 산출물과
 버전 마커) · **global_scope** (하네스별 설치 선언의 거주지) · **drift** (낡은

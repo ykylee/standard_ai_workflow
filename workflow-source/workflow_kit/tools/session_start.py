@@ -231,7 +231,7 @@ def _detect_stale_branch_memories(
         else:
             warnings.append(
                 f"종료된 브랜치 메모리 {len(stale)}건이 active/ 에 남아 있다: {', '.join(stale)}. "
-                f"`wk archive-branch-memory --apply` 로 아카이브하라."
+                f"`python -m workflow_kit archive-branch-memory --apply` 로 아카이브하라."
             )
     return {"stale_branches": stale, "archived": bool(apply and stale)}
 
@@ -329,7 +329,7 @@ def _task_id_collision_warnings(workspace_root: Path) -> list[str]:
         tasks_dir = memory_active_dir(workspace_root) / branch / "backlog" / "tasks"
         found = task_id_collisions(tasks_dir, branch=branch)
     except Exception as exc:  # noqa: BLE001 — 점검 실패가 세션 진입을 막지 않는다
-        return [f"task ID 충돌 점검 실패 ({type(exc).__name__}) — `wk dashboard` 의 충돌 지표로 확인하라."]
+        return [f"task ID 충돌 점검 실패 ({type(exc).__name__}) — `python -m workflow_kit dashboard` 의 충돌 지표로 확인하라."]
     return [
         f"task ID 충돌: {task_id} — 로컬 {local!r} ≠ {found.ref} {remote!r}. "
         "로컬 쪽을 새 ID 로 재번호하고 참조를 함께 고쳐라 (다른 에이전트의 미커밋 작업이면 소유자 확인)."
@@ -445,9 +445,9 @@ def main() -> int:
                 "auto_seed": auto_seed,
             },
             recovery_hint=(
-                "`wk ensure-entrypoints --apply` 로 부재 산출물을 현재 kit 버전으로 "
+                "`python -m workflow_kit ensure-entrypoints --apply` 로 부재 산출물을 현재 kit 버전으로 "
                 "채운다. 브랜치 메모리(`active/<branch>/`)만 없으면 "
-                "`wk seed-workspace-memory --axis <축> --task-title <제목> --apply` 로 만든다. "
+                "`python -m workflow_kit seed-workspace-memory --axis <축> --task-title <제목> --apply` 로 만든다. "
                 "프로젝트가 처음이면 `python3 -m workflow_kit.bootstrap_lib "
                 "--target-root . --project-slug <slug> --project-name <name> "
                 "--harness <harness>` 로 최초 생성한다."
@@ -465,7 +465,7 @@ def main() -> int:
             + (f", 원류 `{auto_seed['inherited']['origin']}` 에서 열린 task {len(auto_seed['inherited']['task_ids'])}건 · "
                f"기준선 · §5 를 이어받음" if auto_seed.get("inherited") else "")
             + "): "
-            f"{created}. 작업은 이 네임스페이스에 `wk backlog-update` 로 새 task 를 만들어 기록한다."
+            f"{created}. 작업은 이 네임스페이스에 `python -m workflow_kit backlog-update` 로 새 task 를 만들어 기록한다."
         )
         if auto_seed.get("errors"):
             warnings.append(f"브랜치 메모리 seed 가 일부 실패했다: {auto_seed['errors']}")
@@ -621,7 +621,7 @@ def main() -> int:
             if roadmap_context.issues_count:
                 warnings.append(
                     f"roadmap 정합 이슈 {roadmap_context.issues_count}건 — "
-                    "`wk refresh-state --check` 로 확인하라 (ADR-027)."
+                    "`python -m workflow_kit refresh-state --check` 로 확인하라 (ADR-027)."
                 )
         except Exception as roadmap_exc:  # noqa: BLE001 — 로드맵 결함이 세션 진입을 막으면 안 된다
             roadmap_context = None
@@ -662,7 +662,7 @@ def main() -> int:
                 f"--harness claude-code --entry-mode skill-only",
                 # v1.1.7: 소비자 실행 경로는 wk 하나다 (정본 §11) — skills/ 스크립트
                 # 경로는 배포물에 없다 (TASK-021).
-                "wk session-start",
+                "python -m workflow_kit session-start",
             ]
             warnings.append(
                 "self-bootstrap mode: 핵심 4 file 모두 부재. "

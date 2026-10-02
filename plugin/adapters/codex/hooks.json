@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "command -v wk >/dev/null 2>&1 && { wk compact-checkpoint --restore --output-format codex-json || echo '{\"systemMessage\": \"[standard-ai-workflow] `wk compact-checkpoint` failed — the installed kit may be older than the plugin. Upgrade: docs/INSTALLATION_AND_USAGE.md §3\"}'; } || true"
+            "command": "for py in python3 python; do \"$py\" -c 'import workflow_kit' >/dev/null 2>&1 && break; py=; done; [ -n \"$py\" ] && { \"$py\" -m workflow_kit compact-checkpoint --restore --output-format codex-json || echo '{\"systemMessage\": \"[standard-ai-workflow] `python -m workflow_kit compact-checkpoint` failed — the installed kit may be older than the plugin. Upgrade: docs/INSTALLATION_AND_USAGE.md §3\"}'; } || true"
           }
         ]
       }
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "command -v wk >/dev/null 2>&1 && { wk compact-checkpoint --hook pre --output-format codex-json || echo '{\"systemMessage\": \"[standard-ai-workflow] `wk compact-checkpoint` failed — the installed kit may be older than the plugin. Upgrade: docs/INSTALLATION_AND_USAGE.md §3\"}'; } || true"
+            "command": "for py in python3 python; do \"$py\" -c 'import workflow_kit' >/dev/null 2>&1 && break; py=; done; [ -n \"$py\" ] && { \"$py\" -m workflow_kit compact-checkpoint --hook pre --output-format codex-json || echo '{\"systemMessage\": \"[standard-ai-workflow] `python -m workflow_kit compact-checkpoint` failed — the installed kit may be older than the plugin. Upgrade: docs/INSTALLATION_AND_USAGE.md §3\"}'; } || true"
           }
         ]
       }
@@ -26,7 +26,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "command -v wk >/dev/null 2>&1 && { wk compact-checkpoint --hook post --output-format codex-json || echo '{\"systemMessage\": \"[standard-ai-workflow] `wk compact-checkpoint` failed — the installed kit may be older than the plugin. Upgrade: docs/INSTALLATION_AND_USAGE.md §3\"}'; } || true"
+            "command": "for py in python3 python; do \"$py\" -c 'import workflow_kit' >/dev/null 2>&1 && break; py=; done; [ -n \"$py\" ] && { \"$py\" -m workflow_kit compact-checkpoint --hook post --output-format codex-json || echo '{\"systemMessage\": \"[standard-ai-workflow] `python -m workflow_kit compact-checkpoint` failed — the installed kit may be older than the plugin. Upgrade: docs/INSTALLATION_AND_USAGE.md §3\"}'; } || true"
           }
         ]
       }

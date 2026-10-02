@@ -134,7 +134,7 @@ def main() -> int:
             "status": "error",
             "tool_version": TOOL_VERSION,
             "mode": "check",
-            "error": f"state.json 이 없다: {state_path}. `wk refresh-state` 로 먼저 생성하라.",
+            "error": f"state.json 이 없다: {state_path}. `python -m workflow_kit refresh-state` 로 먼저 생성하라.",
             "error_code": "missing_state_json",
         }, ensure_ascii=False, indent=2))
         return 2
@@ -188,7 +188,7 @@ def main() -> int:
         "roadmap_drift_reason": "" if roadmap_ok else roadmap_reason,
         "generated_at_used": generated_at,
         "refresh_command": refresh_result["refresh_command"],
-        "recovery_hint": "" if not any_drift else "state.json / roadmap_state.json 은 생성물이다 — 손으로 고치지 말고 `wk refresh-state` 로 재생성하라 (정본 §11, ADR-027 §7).",
+        "recovery_hint": "" if not any_drift else "state.json / roadmap_state.json 은 생성물이다 — 손으로 고치지 말고 `python -m workflow_kit refresh-state` 로 재생성하라 (정본 §11, ADR-027 §7).",
     }, ensure_ascii=False, indent=2))
     return 0 if not any_drift else 1
 

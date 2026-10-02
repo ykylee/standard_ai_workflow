@@ -39,7 +39,7 @@ RETIRED_MESSAGE = (
     "  · L2 는 이제 memory SSOT 파생 4종뿐이다 (active-state · active-work-backlog ·\n"
     "    active-session-handoff · wiki-log). 생성기는 `refresh_wiki_memory --emit-l2` 하나다.\n"
     "  · 계약 원문: ai-workflow/wiki/sources/.gitkeep\n"
-    "  L2 를 갱신하려면: wk wiki-emit --apply"
+    "  L2 를 갱신하려면: python -m workflow_kit wiki-emit --apply"
 )
 
 

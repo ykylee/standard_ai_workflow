@@ -29,8 +29,11 @@
   "session": {
     "current_baseline": "**113차 세션 (2026-10-02, Linux 호스트) — task 2건 close (TASK-2026-10-02-main-004 · 005, M-007/WBS-7.4) + v1.18.0 발행.** ①**main-004** — 소유자 지시: worktree 에서 모 브랜치로 커밋·머지할 때 모 브랜치 메모리에 기록이 반영되게. 110·111차 실측 경로 = worktree 브랜치가 main 을 받아 병합 → main ff → main 세션이 **손으로** 강제 아카이브 + §5 포인터(`84761318` · `3c31ebb0`). 소유자 결정(1번) = HEAD 에 병합된 브랜치는 **worktree 가 살아 있어도** 반영 + 아카이브. 구현 `common/branch_join`(정본): 이어받은 고친 task 되돌려 적기 + 모 브랜치 handoff 목록 이동 · 자체 열린 task 같은 ID 이월(`merged_from: <branch>@<sha>`, 사본 `carried_over_to`) · 자체 완료 → 최근 완료(seed 사건 제외) · §5 합류 줄 · `sessions/merge_<slug>_<date>.md`. `archive-branch-memory` 는 **기본 브랜치 체크아웃에서만** 반영(남의 네임스페이스가 main 을 거쳐 worktree 에 섞여도 그쪽엔 안 씀), 병합 뒤 브랜치가 더 나갔으면 skip, 이월 ID 충돌 차단, `--no-reflect`. session-start 는 반영 모드면 자동 apply + warning. check_branch_join_reflect 5 cases 신설(origin+clone+살아 있는 git worktree), 되주입 9건 각 red. ②**main-005 v1.18.0** (파생 minor) — 태그 → `1271be5f`(게이트 600/600), asset 4종, 발행 wheel 로 합류 E2E(완료 1 · 이월 1 · 되돌려 적음 1), §2.8 behind=[] disabled=[] mcp 1.18.0. 한계: 반영·아카이브 뒤 같은 worktree 에서 계속 작업해 재병합하면 아카이브 경로와 충돌 — 새 브랜치로 시작.",
     "current_axis": "**로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · ~~[TASK-2026-08-13-main-004] mypy flake 관찰~~ ✅ (66차 close — 33/33 표본, mypy 실패 0).",
-    "current_focus": "TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다",
-    "in_progress_items": [],
+    "current_focus": "TASK-2026-10-02-main-007 Windows V3 백신이 wk.exe 를 평판 기반으로 차단한다 — pip 생성 console-script 런처 대체 진입 경로",
+    "in_progress_items": [
+      "TASK-2026-10-02-main-007 Windows V3 백신이 wk.exe 를 평판 기반으로 차단한다 — pip 생성 console-script 런처 대체 진입 경로",
+      "TASK-2026-10-02-main-006 Windows 로캘(cp949)에서 wk 가 UnicodeEncodeError 로 죽는다 — stdout 과 기본 인코딩 I/O 를 UTF-8 로 고정"
+    ],
     "blocked_items": [
       "TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다"
     ],
@@ -55,8 +58,11 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-10-02.md",
-    "task_count": 5,
-    "in_progress_items": [],
+    "task_count": 7,
+    "in_progress_items": [
+      "TASK-2026-10-02-main-006 — Windows 로캘(cp949)에서 wk 가 UnicodeEncodeError 로 죽는다 — stdout 과 기본 인코딩 I/O 를 UTF-8 로 고정",
+      "TASK-2026-10-02-main-007 — Windows V3 백신이 wk.exe 를 평판 기반으로 차단한다 — pip 생성 console-script 런처 대체 진입 경로"
+    ],
     "blocked_items": [],
     "done_items": [
       "TASK-2026-10-02-main-001 — worktree seed 가 모 브랜치 내용을 이어받는다 — 기준선 · 다음 시작 포인트 · 열린 task 복사 + 원류 기록 + 합류 시 되돌려 적기",

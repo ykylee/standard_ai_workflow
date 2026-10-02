@@ -299,9 +299,19 @@ def case_6_preflight_table_is_derived_not_copied() -> bool:
             problems.append(f"채널 누락: {entry.channel}")
             continue
         row = next((ln for ln in section.split("\n") if f"**{entry.channel}**" in ln), "")
+        cells = row.split("|")
+        # 누락뿐 아니라 **남은 것**도 잰다 — 포함 대조만 하면 registry 에서 빠진 전제가
+        # 표에 계속 남는다 (2026-10-02 실측: `wk` 를 전제에서 뺐는데 green, main-007).
+        listed = re.findall(r"`([^`]+)`", cells[2]) if len(cells) > 2 else []
         for exe in entry.executables:
-            if f"`{exe}`" not in row:
+            if exe not in listed:
                 problems.append(f"{entry.channel} 행에 전제 누락: {exe}")
+        allowed = set(entry.executables)
+        if entry.launcher_adaptive:  # 표가 win32 에서 재는 이름(`python`)도 적는다
+            from workflow_kit.common.python_launcher import WIN32_PYTHON
+            allowed.add(WIN32_PYTHON)
+        for extra in sorted(set(listed) - allowed):
+            problems.append(f"{entry.channel} 행에 registry 에 없는 전제: {extra}")
     if problems:
         for item in problems:
             print(f"  FAIL: {item}")

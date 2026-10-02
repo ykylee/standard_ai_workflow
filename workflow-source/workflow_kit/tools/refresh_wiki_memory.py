@@ -489,11 +489,11 @@ def emit_l2_stubs(
 #: 안 쓰는지 stderr 로 말한다 (조용한 no-op 은 이 저장소가 금지한다).
 REFRESH_RAW_RETIRED_MESSAGE = (
     "[RETIRED] --refresh-raw 는 아무것도 쓰지 않는다 (TASK-2026-08-18-main-004).\n"
-    "  · state.json  — 정본 §11.2 의 **생성 산출물**. 생성기는 `wk refresh-state` 하나다.\n"
+    "  · state.json  — 정본 §11.2 의 **생성 산출물**. 생성기는 `python -m workflow_kit refresh-state` 하나다.\n"
     "  · work_backlog.md — v0.14.0 append-only layout 에서 제거됨 (backlog/<날짜>.md 로 대체).\n"
     "  · memory/log.md — 이전 구현이 entry 를 만들고 쓰지 않던 죽은 경로.\n"
     "  · wiki/log.md — 이전 구현이 2026-06 스냅샷을 하드코딩해 실행할수록 되돌렸다.\n"
-    "  L1 갱신은 `wk refresh-state` 와 backlog/handoff 도구가 담당한다. "
+    "  L1 갱신은 `python -m workflow_kit refresh-state` 와 backlog/handoff 도구가 담당한다. "
     "본 tool 은 L2 파생 뷰(--emit-l2)만 만든다."
 )
 
@@ -504,7 +504,7 @@ def cmd_refresh_raw(args) -> dict:
     return {
         "mode": "retired",
         "writes": 0,
-        "reason": "L1 raw mirror write 경로 은퇴 — state.json 은 wk refresh-state 가 유일한 생성기",
+        "reason": "L1 raw mirror write 경로 은퇴 — state.json 은 python -m workflow_kit refresh-state 가 유일한 생성기",
     }
 
 

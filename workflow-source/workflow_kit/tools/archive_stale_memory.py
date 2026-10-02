@@ -602,7 +602,7 @@ def cmd_install_cron(args: argparse.Namespace) -> dict:
             }
 
     prompt = (
-        f"Run: wk archive-stale-memory --older-than={older_than} --apply "
+        f"Run: python -m workflow_kit archive-stale-memory --older-than={older_than} --apply "
         f"--repo-root={repo_root}\n"
         f"(auto-triggered by mavis cron '{cron_name}' every {cron_interval})"
     )

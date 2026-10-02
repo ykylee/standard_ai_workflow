@@ -45,7 +45,7 @@ BUDGETS: tuple[Budget, ...] = (
         target="session_handoff.md §5 누적형 절의 합",
         limit_bytes=8 * 1024,
         severity="red",
-        exit="wk rollover-handoff-notes --apply",
+        exit="python -m workflow_kit rollover-handoff-notes --apply",
     ),
     Budget(
         key="handoff_baseline_line",
@@ -73,7 +73,7 @@ BUDGETS: tuple[Budget, ...] = (
     # 과 규칙 블록(≈3KB)을 합쳐도 상한 아래에 남도록 잡은 값이다.
     Budget(
         key="compact_reinjection",
-        target="compact 재주입 출력 (wk compact-checkpoint --restore)",
+        target="compact 재주입 출력 (python -m workflow_kit compact-checkpoint --restore)",
         limit_bytes=4 * 1024,
         severity="red",
         exit="compact_relay.render_restore 의 절단을 고친다 — checkpoint 는 줄이지 않는다 (전체는 파일에 남는다)",

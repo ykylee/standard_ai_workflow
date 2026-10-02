@@ -643,7 +643,7 @@ def main() -> int:
                     print(f"  되돌려 적음  {wb} (모 브랜치 handoff 목록은 다음 세션 종료 때 맞춘다)")
         if result["blocked"]:
             # 막힌 사유는 둘이다 — 섞어 말하면 충돌을 `--allow-open-tasks` 로 넘기려 든다(그 인자는 충돌을 못 넘긴다).
-            print(f"\n  → {result['blocked']}건을 막았다 (사유는 위 줄). 미완료 task 는 `wk backlog-update` 로 "
+            print(f"\n  → {result['blocked']}건을 막았다 (사유는 위 줄). 미완료 task 는 `python -m workflow_kit backlog-update` 로 "
                   "이월하거나 닫는다 (의도한 것이면 --allow-open-tasks). 이어받은 task 충돌은 모 브랜치 원본과 "
                   "사본을 사람이 합친다 — 이 인자로 넘어가지 않는다.")
         for e in result["errors"]:

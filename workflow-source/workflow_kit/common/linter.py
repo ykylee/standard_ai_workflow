@@ -326,7 +326,7 @@ def check_workflow_consistency(
                 "severity": "medium",
                 "fix_suggestion": (
                     f"{task} 의 상태를 세 곳에서 맞춘다 — {ssot_label}({ssot_source}) 가 정본이고, "
-                    "handoff 는 `wk backlog-update`, state.json 은 `wk refresh-state` 로 따라온다."
+                    "handoff 는 `python -m workflow_kit backlog-update`, state.json 은 `python -m workflow_kit refresh-state` 로 따라온다."
                 ),
             })
 
@@ -365,7 +365,7 @@ def check_workflow_consistency(
                 ),
                 "severity": "low",
                 "fix_suggestion": (
-                    "`wk rollover-baselines --handoff-path <handoff> --apply` moves the "
+                    "`python -m workflow_kit rollover-baselines --handoff-path <handoff> --apply` moves the "
                     "excess into baselines.md. Do not delete them by hand — that prose "
                     "exists nowhere else."
                 ),

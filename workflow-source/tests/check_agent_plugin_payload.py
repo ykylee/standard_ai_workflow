@@ -89,6 +89,12 @@ SOURCE_ROOT = REPO_ROOT / "workflow-source"
 sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit import __version__ as KIT_VERSION  # noqa: E402
+from workflow_kit.common.kit_invocation import (  # noqa: E402
+    kit_subcommand,
+    posix_interpreter_probe,
+    posix_kit_call,
+    posix_kit_found,
+)
 from workflow_kit.common.standard_rules import find_memory_command, load_standard_rules  # noqa: E402
 from workflow_kit.plugin_payload import (  # noqa: E402
     CLAUDE_CODE_HOOKS_RELPATH,
@@ -480,7 +486,10 @@ def test_claude_code_adapter() -> None:
     # 행을 하나 추가하자 깨졌다). 위치가 아니라 **목적**으로 찾는다 — 렌더러가
     # 쓰는 것과 같은 정본 helper 다.
     refresh_cmd = find_memory_command(rules, "Regenerate state.json")
-    binary = refresh_cmd.split()[0]
+    # hook 은 `wk` 실행 파일 대신 탐침으로 고른 해석기로 kit 모듈을 부른다 (TASK-2026-10-02-main-007 —
+    # Windows 의 wk.exe 는 서명 없는 설치별 런처라 평판 기반 백신이 막는다).
+    refresh_call = posix_kit_call(kit_subcommand(refresh_cmd))
+    probe = posix_interpreter_probe()
 
     def _commands(event: str) -> list[str]:
         return [
@@ -489,17 +498,25 @@ def test_claude_code_adapter() -> None:
             for entry in matcher.get("hooks", [])
         ]
 
-    # `wk` 를 부르거나 그 부재를 알리는 hook 은 부재 검사를 가진다 (원칙 4).
-    end_cmds = [cmd for cmd in _commands("SessionEnd") if refresh_cmd in cmd]
+    # kit 를 부르거나 그 부재를 알리는 hook 은 해석기 탐침을 가진다 (원칙 4).
+    end_cmds = [cmd for cmd in _commands("SessionEnd") if refresh_call in cmd]
     if not end_cmds:
         problems.append(f"SessionEnd 가 §11.1 재생성 명령({refresh_cmd})을 부르지 않는다")
-    notice_cmds = [cmd for cmd in _commands("SessionStart") if "not found" in cmd]
+    notice_cmds = [
+        cmd for cmd in _commands("SessionStart")
+        if "installed was found" in cmd and f"{posix_kit_found()} ||" in cmd
+    ]
     if not notice_cmds:
-        problems.append("SessionStart 에 `wk` 부재 안내 hook 이 없다")
-    if not all(f"command -v {binary}" in cmd for cmd in end_cmds + notice_cmds):
-        problems.append(
-            f"`{binary}` 를 다루는 hook 에 부재 검사가 없다 — 조용한 실패 금지 (계획 원칙 4)"
-        )
+        problems.append("SessionStart 에 kit 해석기 부재 안내 hook 이 없다")
+    if not all(cmd.startswith(probe) for cmd in end_cmds + notice_cmds):
+        problems.append("kit 를 다루는 hook 에 해석기 탐침이 없다 — 조용한 실패 금지 (계획 원칙 4)")
+    # `wk` 실행 파일을 직접 부르는 hook 이 다시 생기면 Windows 에서 백신에 막힌다.
+    bare_wk = [
+        cmd for event in hooks for cmd in _commands(event)
+        if re.search(r"(^|[\s;&|{(])wk\s", cmd)
+    ]
+    if bare_wk:
+        problems.append(f"hook 이 `wk` 실행 파일을 부른다 (main-007): {bare_wk[:2]}")
 
     # 조건부 규칙 주입 (TASK-2026-08-13-main-003) — P5 실측(hook stdout 주입 성립)의
     # 실채널. 진입점 마커가 있으면 생략해야 한다 (이중 주입 방지).

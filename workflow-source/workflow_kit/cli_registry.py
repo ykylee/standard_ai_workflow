@@ -116,7 +116,7 @@ def register(name: str) -> Callable[[Callable[[list[str]], int]], Callable[[list
 
 
 def _print_usage() -> None:
-    print("Usage: wk <name> [args...]   |   workflow_kit_cli --command=<name> [args...]")
+    print("Usage: python -m workflow_kit <name> [args...]   |   wk <name> [args...]   |   workflow_kit_cli --command=<name> [args...]")
     print("Commands:")
     for name in sorted(COMMANDS):
         print(f"  {name}")

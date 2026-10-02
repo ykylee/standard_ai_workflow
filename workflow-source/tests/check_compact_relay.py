@@ -378,12 +378,14 @@ def case_10_hook_never_fails() -> None:
 
 
 def case_11_plugin_hooks_derive_from_standard() -> None:
+    from workflow_kit.common.kit_invocation import kit_subcommand, posix_interpreter_probe, posix_kit_call
     from workflow_kit.common.standard_rules import find_memory_command, load_standard_rules
     from workflow_kit.plugin_payload import CLAUDE_CODE_HOOKS_RELPATH, GROK_HOOKS_RELPATH, render_claude_code_hooks
 
     problems: list[str] = []
     rules = load_standard_rules()
-    command = find_memory_command(rules, "Relay working state")
+    # hook 은 `wk` 실행 파일이 아니라 탐침으로 고른 해석기로 kit 모듈을 부른다 (TASK-2026-10-02-main-007)
+    command = posix_kit_call(kit_subcommand(find_memory_command(rules, "Relay working state")))
     rendered = render_claude_code_hooks(rules)
     hooks = json.loads(rendered)["hooks"]
 
@@ -395,10 +397,10 @@ def case_11_plugin_hooks_derive_from_standard() -> None:
         cmds = commands(event, matcher)
         if len(cmds) != 1 or f"{command} {mode}" not in cmds[0]:
             problems.append(f"{event}({matcher}): {cmds}")
-        elif not cmds[0].endswith("|| true") or "command -v" not in cmds[0]:
-            problems.append(f"{event}: wk 부재에 조용하지 않다: {cmds[0]}")
+        elif not cmds[0].endswith("|| true") or not cmds[0].startswith(posix_interpreter_probe()):
+            problems.append(f"{event}: kit 해석기 부재에 조용하지 않다: {cmds[0]}")
         elif "failed" not in cmds[0].split(f"{command} {mode}", 1)[1]:
-            problems.append(f"{event}: wk 는 있는데 명령이 실패하면(구버전 kit) 말하지 않는다: {cmds[0]}")
+            problems.append(f"{event}: kit 는 있는데 명령이 실패하면(구버전 kit) 말하지 않는다: {cmds[0]}")
     for rel in (CLAUDE_CODE_HOOKS_RELPATH, GROK_HOOKS_RELPATH):
         path = REPO_ROOT / "plugin" / rel
         if path.read_text(encoding="utf-8") != rendered:
@@ -542,8 +544,9 @@ def _codex_wire_problem(event: str, stdout: str) -> str | None:
 def case_15_codex_hook_stdout_is_wire_json() -> None:
     """Codex 사본의 hook 명령을 **그대로** bash 로 돌려 stdout 이 Codex wire 인지 본다 (TASK-2026-09-30-main-010).
 
-    fake ``wk`` 두 벌 — 현재 kit(이 저장소 CLI 로 위임) · 구버전 kit(모르는 인자에 exit 2). 판정은 렌더러가 아니라
-    Codex 스키마를 옮긴 :func:`_codex_wire_problem` 이 한다.
+    fake 해석기 세 벌 — 현재 kit(이 저장소 CLI 로 위임) · 구버전 kit(모르는 인자에 exit 2) · kit 없음(import 탐침
+    실패 → 조용히 끝). hook 은 ``wk`` 가 아니라 ``python3``/``python`` 중 ``workflow_kit`` 를 import 하는 해석기를
+    고른다 (TASK-2026-10-02-main-007). 판정은 렌더러가 아니라 Codex 스키마를 옮긴 :func:`_codex_wire_problem` 이 한다.
     """
     from workflow_kit.common.standard_rules import load_standard_rules
     from workflow_kit.plugin_payload import render_codex_hooks
@@ -554,12 +557,16 @@ def case_15_codex_hook_stdout_is_wire_json() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         ws = _workspace(root)
-        kits = {"current": root / "kit-current", "old": root / "kit-old"}
-        for name, body in (("current", f'shift\nexec "{sys.executable}" -m workflow_kit.tools.compact_checkpoint --now {NOW} "$@"\n'),
-                           ("old", 'echo "usage: wk compact-checkpoint: unrecognized arguments" >&2\nexit 2\n')):
+        kits = {"current": root / "kit-current", "old": root / "kit-old", "absent": root / "kit-absent"}
+        # 탐침 `-c 'import workflow_kit'` 는 kit 유무, `-m workflow_kit compact-checkpoint …` 은 실행이다.
+        probe_ok = 'if [ "$1" = "-c" ]; then exit 0; fi\n'
+        for name, body in (("current", probe_ok + f'shift 3\nexec "{sys.executable}" -m workflow_kit.tools.compact_checkpoint --now {NOW} "$@"\n'),
+                           ("old", probe_ok + 'echo "usage: compact-checkpoint: unrecognized arguments" >&2\nexit 2\n'),
+                           ("absent", 'echo "No module named workflow_kit" >&2\nexit 1\n')):
             kits[name].mkdir()
-            (kits[name] / "wk").write_text("#!/bin/sh\n" + body, encoding="utf-8")
-            (kits[name] / "wk").chmod(0o755)
+            for interpreter in ("python3", "python"):
+                (kits[name] / interpreter).write_text("#!/bin/sh\n" + body, encoding="utf-8")
+                (kits[name] / interpreter).chmod(0o755)
 
         def run(kit: str, event: str, stdin: str) -> str:
             env = _env()
@@ -598,6 +605,10 @@ def case_15_codex_hook_stdout_is_wire_json() -> None:
             out = run("old", event, stdin)
             if (why := _codex_wire_problem(event, out)) or "failed" not in out:
                 problems.append(f"old/{event}: {why or '구버전 kit 을 말하지 않는다'} {out[:120]!r}")
+        # kit 를 깐 해석기가 없으면 조용히 끝난다 (rc 0 은 run 이 잰다) — 부재 안내는 Claude Code SessionStart ① 몫
+        for event, stdin in steps:
+            if out := run("absent", event, stdin):
+                problems.append(f"absent/{event}: kit 해석기가 없는데 출력했다 {out[:120]!r}")
         # 깨진 stdin · 내부 예외도 wire JSON
         out = _cli(ws, "--hook", "pre", "--output-format", relay.OUTPUT_CODEX_JSON, stdin="not json").stdout
         if why := _codex_wire_problem("PreCompact", out):
@@ -612,7 +623,7 @@ def case_15_codex_hook_stdout_is_wire_json() -> None:
         proc = _cli(ws, "--note", "--next", "n", "--output-format", relay.OUTPUT_CODEX_JSON)
         if proc.returncode != 2:
             problems.append(f"--note 에 --output-format 을 받았다: rc={proc.returncode}")
-    _record("case 15 Codex hook stdout = Codex wire JSON (현재·구버전 kit · 예외)", problems)
+    _record("case 15 Codex hook stdout = Codex wire JSON (현재·구버전·부재 kit · 예외)", problems)
 
 
 CASES = [

@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "command -v wk >/dev/null 2>&1 || echo '[standard-ai-workflow] `wk` not found — the skills still describe the procedure, but the memory-update commands will not run. Install: docs/INSTALLATION_AND_USAGE.md §3'"
+            "command": "for py in python3 python; do \"$py\" -c 'import workflow_kit' >/dev/null 2>&1 && break; py=; done; [ -n \"$py\" ] || echo '[standard-ai-workflow] no Python interpreter with `workflow_kit` installed was found (tried python3, python) — the skills still describe the procedure, but the memory-update commands will not run. Install: docs/INSTALLATION_AND_USAGE.md §3'"
           },
           {
             "type": "command",
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "command -v wk >/dev/null 2>&1 && { wk compact-checkpoint --restore || echo '[standard-ai-workflow] `wk compact-checkpoint` failed — the installed kit may be older than the plugin. Upgrade: docs/INSTALLATION_AND_USAGE.md §3'; } || true"
+            "command": "for py in python3 python; do \"$py\" -c 'import workflow_kit' >/dev/null 2>&1 && break; py=; done; [ -n \"$py\" ] && { \"$py\" -m workflow_kit compact-checkpoint --restore || echo '[standard-ai-workflow] `python -m workflow_kit compact-checkpoint` failed — the installed kit may be older than the plugin. Upgrade: docs/INSTALLATION_AND_USAGE.md §3'; } || true"
           }
         ]
       }
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "command -v wk >/dev/null 2>&1 && { wk compact-checkpoint --hook pre || echo '[standard-ai-workflow] `wk compact-checkpoint` failed — the installed kit may be older than the plugin. Upgrade: docs/INSTALLATION_AND_USAGE.md §3'; } || true"
+            "command": "for py in python3 python; do \"$py\" -c 'import workflow_kit' >/dev/null 2>&1 && break; py=; done; [ -n \"$py\" ] && { \"$py\" -m workflow_kit compact-checkpoint --hook pre || echo '[standard-ai-workflow] `python -m workflow_kit compact-checkpoint` failed — the installed kit may be older than the plugin. Upgrade: docs/INSTALLATION_AND_USAGE.md §3'; } || true"
           }
         ]
       }
@@ -38,7 +38,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "command -v wk >/dev/null 2>&1 && { wk compact-checkpoint --hook post || echo '[standard-ai-workflow] `wk compact-checkpoint` failed — the installed kit may be older than the plugin. Upgrade: docs/INSTALLATION_AND_USAGE.md §3'; } || true"
+            "command": "for py in python3 python; do \"$py\" -c 'import workflow_kit' >/dev/null 2>&1 && break; py=; done; [ -n \"$py\" ] && { \"$py\" -m workflow_kit compact-checkpoint --hook post || echo '[standard-ai-workflow] `python -m workflow_kit compact-checkpoint` failed — the installed kit may be older than the plugin. Upgrade: docs/INSTALLATION_AND_USAGE.md §3'; } || true"
           }
         ]
       }
@@ -48,7 +48,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "command -v wk >/dev/null 2>&1 && wk refresh-state || echo '[standard-ai-workflow] `wk` not found — the skills still describe the procedure, but the memory-update commands will not run. Install: docs/INSTALLATION_AND_USAGE.md §3'"
+            "command": "for py in python3 python; do \"$py\" -c 'import workflow_kit' >/dev/null 2>&1 && break; py=; done; [ -n \"$py\" ] && \"$py\" -m workflow_kit refresh-state || echo '[standard-ai-workflow] no Python interpreter with `workflow_kit` installed was found (tried python3, python) — the skills still describe the procedure, but the memory-update commands will not run. Install: docs/INSTALLATION_AND_USAGE.md §3'"
           }
         ]
       }

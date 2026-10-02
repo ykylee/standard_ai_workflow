@@ -436,6 +436,6 @@ def check_frontmatter_stamp(
             f"스탬프가 문서의 마지막 내용 변경보다 뒤처졌다 — "
             f"stamp={actual} < {floor} (변경일 {changed_at} − 유예 {grace}일, {reason}). "
             f"`{path.name}` 의 {field()} 을 올리거나 "
-            "`wk release-pipeline doc-headers-update --apply` 를 돌린다."
+            "`python -m workflow_kit release-pipeline doc-headers-update --apply` 를 돌린다."
         )
     return True, f"스탬프 {actual} >= {floor} (변경일 {changed_at}, {reason})"

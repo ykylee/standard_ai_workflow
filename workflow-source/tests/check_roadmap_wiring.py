@@ -18,6 +18,9 @@ WATCHES = (
     "ai-workflow/memory/active/*",
     "workflow-source/pyproject.toml",
     "workflow-source/workflow_kit/*",
+    # 관찰은 공용 헬퍼를 통한다 — 이 줄을 안 넣으면 meta-watch 가 "선언 밖 접근" 으로
+    # 잡는다 (`check_deploy_doctor` 의 `_newline_shim.py` 선언과 같은 계종).
+    "workflow-source/tests/_session_observer.py",
 )
 
 import json
@@ -29,8 +32,12 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
-if str(SOURCE_ROOT) not in sys.path:
-    sys.path.insert(0, str(SOURCE_ROOT))
+TESTS_ROOT = Path(__file__).resolve().parent
+for _entry in (str(SOURCE_ROOT), str(TESTS_ROOT)):
+    if _entry not in sys.path:
+        sys.path.insert(0, _entry)
+
+from _session_observer import observe_session_start  # noqa: E402
 
 from workflow_kit.common.read_only_bundle import assess_milestone_progress_payload  # noqa: E402
 from workflow_kit.common.state.roadmap import (  # noqa: E402
@@ -40,7 +47,6 @@ from workflow_kit.common.state.roadmap import (  # noqa: E402
 )
 
 REFRESH_TOOL = SOURCE_ROOT / "workflow_kit" / "tools" / "refresh_state.py"
-SESSION_TOOL = SOURCE_ROOT / "workflow_kit" / "tools" / "session_start.py"
 BACKLOG_TOOL = SOURCE_ROOT / "workflow_kit" / "tools" / "backlog_update.py"
 BRANCH = "main"
 
@@ -260,9 +266,29 @@ def test_session_context_builder_recommends_doc_phase_deliverables() -> None:
 
 
 def test_repo_session_start_reports_roadmap() -> None:
-    """이 저장소에서 session-start 출력에 roadmap_context 가 실린다 (읽기 전용 관찰)."""
+    """이 저장소에서 session-start 출력에 roadmap_context 가 실린다 (읽기 전용 관찰).
+
+    관찰에는 두 겹의 방어가 필요하고 둘은 **다른 환경에서만** 서로를 대신한다.
+    worktree 에서 `main` 을 강제하면 자기 브랜치가 "HEAD 에 병합된" 것으로 보여
+    합류 반영이 열린다 — 그래서 **환경** 층은 `branch=_repo_branch()`
+    (TASK-2026-10-02-claude-remote-sync-status-1ce0a3-003 실측).
+
+    그 갱신은 worktree 밖에서 그대로 열린다. **main 체크아웃 + 병합된 죽은 브랜치
+    메모리** 픽스처 실측(2026-10-02, filesystem 직접 비교):
+
+        --no-reflect 없음 → active/ 에서 stale-branch 가 사라지고 archived/ 로
+                           옮겨졌고, main/session_handoff.md 가 4 → 332 byte 로
+                           덮어써졌다 (합류 반영이 본 브랜치 메모리를 씀).
+        --no-reflect 있음 → active/ 그대로, archived/ 없음, handoff 4 byte 그대로.
+
+    그 가드가 죽은 브랜치를 `keep` 에 넣어 자기 브랜치를 지켜내는 것과 달리,
+    여기서 사라지는 대상은 **체크아웃된 브랜치가 아니다**. 그래서 도구 층 방어는
+    이 시나리오를 덮지 못하고, **의도** 층인 `--no-reflect` 만 남는다 — 관찰만
+    원하는 호출자에게 쓰는 면이 없으면 확인할 사람 없는 갱신이 되기 때문이다
+    (TASK-2026-10-02-feat-auto-20261002-4a5d394c-002).
+    """
     before = _memory_status()
-    rc, payload = _run_tool(SESSION_TOOL, [], cwd=REPO_ROOT, branch=_repo_branch())
+    rc, payload = observe_session_start(REPO_ROOT / "docs" / "PROJECT_PROFILE.md", repo_root=REPO_ROOT)
     after = _memory_status()
     ctx = payload.get("roadmap_context") or {}
     ok = (rc == 0 and ctx.get("present") is True and ctx.get("issues_count") == 0

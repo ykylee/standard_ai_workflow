@@ -16,7 +16,7 @@
 - 저장소를 clone한 뒤 `workflow-source/` 를 editable mode로 설치하는 방법
 - 의존성 (`pydantic`, `anyio`, `mcp[cli]`) 설치
 - `workflow_kit` (하위: `workflow_kit.bootstrap_lib`) 임포트와 기본 사용 예
-- 302개 스모크 테스트 (`workflow-source/tests/check_*.py`) 실행 방법 (v1.1.6+ 정합)
+- 304개 스모크 테스트 (`workflow-source/tests/check_*.py`) 실행 방법 (v1.1.6+ 정합)
 - `bootstrap_workflow_kit.py` 와 `generate_workflow_state.py` 실행
 - MCP 서버 (jsonrpc-bridge / stdio-sdk) 실행
 - 자주 만나는 문제 해결
@@ -269,7 +269,7 @@ print('all critical imports OK')
 
 ## 7. 부트스트랩 / 상태 생성 / MCP 실행
 
-### 7.0. 플러그인 설치 (권장 경로 — Codex / Claude Code / Antigravity / Grok Build / pi.dev)
+### 7.0. 플러그인 설치 (권장 경로 — Codex / Claude Code / MiniMax Code / Antigravity / Grok Build / pi.dev)
 
 소비 프로젝트가 워크플로우를 얻는 **권장 경로**다 (소유자 판정 2026-08-13,
 근거: [`planning/plugin-transition-plan-2026-08.md`](./planning/plugin-transition-plan-2026-08.md)
@@ -326,6 +326,30 @@ pi install ./plugin
 pi install git:github.com/ykylee/standard_ai_workflow@v1.19.0
 ```
 
+```bash
+# MiniMax Code — 로컬 마켓플레이스 디렉터리 sync (2026-10-02 추가, TASK-2026-10-02-main-009)
+# MiniMax Code 의 `local` 마켓플레이스는 ~/.minimax/plugins/ 디렉터리 자체를 스캔하고
+# 각 하위 디렉터리의 .minimax-plugin/plugin.json 을 읽는다. 원격 레지스트리가 없어
+# 설치도 갱신도 "디렉터리를 직접 쓰는 것"이고, 전용 갱신 명령이 없다 — 그래서 이
+# sync 가 그 갱신 surface 다. 기본이 dry-run 이다.
+python -m workflow_kit.minimax_plugin            # 무엇이 갱신될지 보기 (디스크 무변경)
+python -m workflow_kit.minimax_plugin --apply    # 반영 (기존 설치본 자동 백업)
+# 되돌리기: 출력이 알려주는 백업 디렉터리를 ~/.minimax/plugins/standard-ai-workflow/ 로 복사
+```
+
+MiniMax Code 채널의 성질 셋은 다른 채널과 **다르다** — 다른 채널이랑 같이 읽으면 안 된다:
+
+- **MCP 는 플러그인이 아니라 글로벌 merge 다.** manifest 의 `mcpServers` 는 빈 배열이고,
+  read-only 번들은 `~/.minimax/mcp/mcp.json` 에 등록된다 (`wk doctor` 가 그 경로를
+  단정한다). 플러그인 manifest 에 다시 넣으면 같은 서버 이름이 두 번 등록된다.
+- **root `plugin.json` 을 싣지 않는다.** MiniMax V1 manifest 선택 규칙은 "유효한
+  Agent Plugins V1 root `plugin.json` 이 MiniMax manifest 를 가린다"이고, payload
+  루트의 3필드 manifest 가 유효한지는 원문으로 확인하지 못했다 (모름 ≠ 안전).
+  가려지면 플러그인은 **조용히** MiniMax manifest 로 로드되지 않는다. sync 도 이
+  때문에 설치 대상에 루트 `plugin.json` 이 있으면 지우지 않고 멈춘다.
+- **아이콘 2장이 필수다.** V1 스펙상 `icon` 이 필수 필드라 로고 없는 패키지는 로드가
+  실패한다. `plugin/icon.png` · `plugin/icon-dark.png` 가 정본이다.
+
 전제 두 가지:
 
 - **플러그인은 `workflow_kit` / Python 의존을 대신 설치해 주지 않는다** (전환 원칙 4).
@@ -359,6 +383,7 @@ wk doctor --json          # 기계가 읽는 형태 (`.preflight.ready_channels`
 | **antigravity** | `agy` · `python3` | 로컬 체크아웃 (`agy plugin install <경로>/plugin`) 또는 `plugin@marketplace` 소스 |
 | **grok-build** | `grok` · `python3` | GitHub marketplace 도달 (네트워크) · `--trust` 없이는 MCP·훅이 비활성 |
 | **pi-dev** | `pi` · `python3` | 로컬 경로 또는 git 태그 지정 |
+| **minimax-code** | `python3` | 쓰기 가능한 ~/.minimax/plugins/ · 데스크톱 앱이 떠 있어야 mcode plugin list 로 인정을 확인한다 |
 | **bootstrap** | `python3` (win32 는 `python` 으로 잰다) | PEP 668 인터프리터면 venv 필요 (§7.1) |
 
 **두 열을 섞지 않는다.** 왼쪽은 `shutil.which` 로 실제로 재고, 오른쪽은 재지

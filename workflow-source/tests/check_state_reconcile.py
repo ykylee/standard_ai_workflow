@@ -31,17 +31,18 @@ Refs:
 """
 from __future__ import annotations
 
-import json
-import os
-import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
-if str(SOURCE_ROOT) not in sys.path:
-    sys.path.insert(0, str(SOURCE_ROOT))
+TESTS_ROOT = Path(__file__).resolve().parent
+for _entry in (str(SOURCE_ROOT), str(TESTS_ROOT)):
+    if _entry not in sys.path:
+        sys.path.insert(0, _entry)
+
+from _session_observer import observe_session_start  # noqa: E402
 
 from workflow_kit.common.reconcile import (  # noqa: E402
     STATE_CONFLICT_MARKER,
@@ -60,7 +61,6 @@ WATCHES_ALL_REASON = (
 # case 7 이 저장소의 살아있는 memory 문서를 관찰한다.
 REQUIRES_QUIET_REPO = True
 
-TOOL_PATH = SOURCE_ROOT / "workflow_kit" / "tools" / "session_start.py"
 BRANCH = "main"
 
 # 어제 등록되어 오늘로 넘어온 작업 / 오늘 등록된 작업.
@@ -69,17 +69,11 @@ TODAY = "TASK-2026-01-02-main-002"
 
 
 def _run_session_start(profile: Path) -> tuple[int, dict]:
-    env = dict(os.environ)
-    env["CODEX_WORKFLOW_BRANCH"] = BRANCH
-    proc = subprocess.run(
-        [sys.executable, str(TOOL_PATH), "--project-profile-path", str(profile)],
-        capture_output=True, text=True, timeout=180, env=env,
-    )
-    try:
-        payload = json.loads(proc.stdout) if proc.stdout.strip() else {}
-    except json.JSONDecodeError:
-        raise AssertionError(f"tool 출력이 JSON 이 아니다:\n{proc.stdout}\n{proc.stderr}")
-    return proc.returncode, payload
+    # 관찰은 공용 헬퍼가 소유한다 (TASK-2026-10-02-feat-auto-20261002-4a5d394c-003).
+    # 여기서 직접 subprocess 를 세우면 `--no-reflect` 를 까먹을 수 있고, 그 순간
+    # session-start 가 실제 저장소를 바꾼다 — 이 함수가 두 번째로 그랬다. 한 곳으로
+    # 모아 두면 플래그를 잊는 경로가 사라진다.
+    return observe_session_start(profile)
 
 
 def _conflict_warnings(payload: dict) -> list[str]:

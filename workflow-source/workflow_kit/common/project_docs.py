@@ -91,6 +91,12 @@ TASK_FIELD_LABELS: dict[str, str] = {
     "result": "Result",
     "validation": "Verification",
     "follow_up": "Follow-up",
+    # 작업 전 계획 (TASK-2026-10-05-main-002 — AI-native SDLC 플레이북 plan.md 대응).
+    # `Remaining risks` 와 섞이지 않게 위험은 `Plan risks` 로 구분한다.
+    "plan_files": "Files that change",
+    "plan_order": "Order of work",
+    "plan_risks": "Plan risks",
+    "plan_proof": "Proof",
 }
 
 #: 읽을 때 **받아들이는** 표기들. 정본이 바뀌어도 옛 문서를 계속 읽기 위한 창구다.
@@ -116,6 +122,10 @@ TASK_FIELD_ALIASES: dict[str, tuple[str, ...]] = {
     "result": ("작업 결과", "Result"),
     "validation": ("검증 결과", "Verification"),
     "follow_up": ("후속 작업", "Follow-up"),
+    "plan_files": ("바뀌는 파일", "Files that change"),
+    "plan_order": ("작업 순서", "Order of work"),
+    "plan_risks": ("계획 위험", "Plan risks"),
+    "plan_proof": ("검증 방법", "Proof"),
 }
 
 

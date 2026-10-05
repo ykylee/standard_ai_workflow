@@ -8,7 +8,7 @@
 - 범위: 세션 복원, workflow state docs 참조 순서, 작업 원칙, 세션 종료 순서
 - 대상 독자: Claude Code, 저장소 관리자, workflow 설계자
 - 상태: beta
-- 최종 수정일: 2026-10-02
+- 최종 수정일: 2026-10-05
 - 관련 문서: `ai-workflow/memory/active/<branch>/state.json`, `docs/PROJECT_PROFILE.md`
 
 > **이 저장소만의 차이**: 상태 문서가 브랜치별(`ai-workflow/memory/active/<branch>/`)로
@@ -56,13 +56,14 @@
 - `/workflow-backlog-update` — task 등록/갱신 + scope creep warning
 - `/workflow-doc-sync` — 영향 문서 동기화 (advisory)
 - `/workflow-session-end` — handoff + backlog 갱신 후 `state.json` 재생성 (세션 종료)
+- task 를 `done` 으로 닫기 전: `verifier` subagent (`.claude/agents/verifier.md`) — 완료 기준을 새 컨텍스트에서 다시 잰다
 
 ## Working Principles
 
 <!-- generated-from: core/global_workflow_standard.md §1 · §3 · §8 · §11 — do not edit this block directly; edit the standard document and regenerate. -->
 
 - Start every session by reading the current state summary documents first.
-- Before starting work, briefly state its purpose, scope, expected deliverables, and affected documents.
+- Before starting work, briefly state its purpose, scope, expected deliverables, and affected documents — and record the plan in the task file (files that change, order of work, risks, proof) so it outlives the conversation.
 - Record work in the state documents; track progress as exactly one of `planned`, `in_progress`, `blocked`, `done`.
 - Never mark an unverified result as done.
 - Before ending a session, summarize the current state so the next session can pick it up directly.

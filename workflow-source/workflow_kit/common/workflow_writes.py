@@ -389,6 +389,31 @@ def _heal_validation_split(lines: list[str]) -> list[str]:
     return healed
 
 
+#: task 파일의 작업 전 계획 절 (TASK-2026-10-05-main-002). 이 절이 없는 옛 task 파일에
+#: Plan 값을 쓰면 :func:`merge_task_file` 이 절을 Implementation 앞에 끼워 넣는다.
+PLAN_HEADING = "## 🧭 Plan"
+_PLAN_KEYS: tuple[str, ...] = ("plan_files", "plan_order", "plan_risks", "plan_proof")
+
+
+def _ensure_plan_section(lines: list[str]) -> list[str]:
+    """Plan 라벨 줄이 하나도 없으면 빈 Plan 절을 넣는다. 있으면 그대로.
+
+    위치는 `## 🛠️ Implementation` 바로 앞 (없으면 `## ✅ Outcome` 앞, 그것도 없으면 끝).
+    빈 절을 먼저 만들고 값은 :func:`_set_list_field` 가 채운다 — 새 task 를 만드는
+    렌더러와 같은 모양이 되게 한다. 라벨을 **별칭까지** 찾는다: 한국어 표기로 적힌
+    절이 있는데 또 넣으면 절이 두 벌이 된다.
+    """
+    plan_prefixes = tuple(p for key in _PLAN_KEYS for p in _label_prefixes(task_label(key)))
+    if any(_matches_label(line.strip(), plan_prefixes) for line in lines):
+        return lines
+    section = [PLAN_HEADING, "", *(f"- {task_label(key)}:" for key in _PLAN_KEYS), ""]
+    for anchor in ("## 🛠️ Implementation", "## ✅ Outcome"):
+        for idx, line in enumerate(lines):
+            if line.startswith(anchor):
+                return lines[:idx] + section + lines[idx:]
+    return [*lines, "", *section]
+
+
 def merge_task_file(
     existing_lines: list[str],
     *,
@@ -422,6 +447,9 @@ def merge_task_file(
     lines = _heal_validation_split(lines)
 
     missing: list[str] = []
+    plan_labels = {task_label(key) for key in _PLAN_KEYS}
+    if any(label in plan_labels and values for label, values in (list_updates or {}).items()):
+        lines = _ensure_plan_section(lines)
     # 다중값 먼저 — 묶음 단위 교체라 스칼라 경로와 섞이면 안 된다.
     for label, values in (list_updates or {}).items():
         if not values:

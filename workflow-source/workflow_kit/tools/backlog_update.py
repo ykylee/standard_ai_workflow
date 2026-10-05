@@ -52,6 +52,7 @@ from workflow_kit.common.workflow_state import build_state_cache_refresh_hint, r
 from workflow_kit.common.workflow_writes import (
     ensure_backlog_index_entry,
     merge_preserving_order,
+    PLAN_HEADING,
     merge_task_file,
     read_task_affected_documents,
     read_task_list_field,
@@ -59,6 +60,13 @@ from workflow_kit.common.workflow_writes import (
     sync_handoff_status,
     upsert_backlog_entry,
 )
+
+#: task 파일 `## 🧭 Plan` 절의 필드 (의미 key) — 작업 전 계획 (TASK-2026-10-05-main-002).
+#:
+#: AI-native SDLC 플레이북 Stage 3 의 `plan.md` 대응이다. 정본 §1 의 "작업 전 목적·범위·
+#: 산출물 진술" 이 대화에만 남아 compact · 세션 경계에서 사라지고, 병합된 결과를 계획과
+#: 대조할 근거도 없었다. 새 파일을 만들지 않고 task SSOT 에 절 하나로 둔다.
+PLAN_FIELDS: tuple[str, ...] = ("plan_files", "plan_order", "plan_risks", "plan_proof")
 
 #: `--replace-field` 로 지정할 수 있는 **누적 성격** 필드들 (의미 key → 라벨 key).
 #:
@@ -72,6 +80,8 @@ CUMULATIVE_FIELDS: tuple[str, ...] = (
     "result",
     "risks",
     "follow_up",
+    # Plan 절 (TASK-2026-10-05-main-002). 계획이 바뀌면 `--replace-field plan_*` 로 교체한다.
+    *PLAN_FIELDS,
 )
 
 
@@ -154,6 +164,7 @@ def build_draft_entry(
     risks: list[str] | str | None,
     follow_up: list[str] | str | None,
     validation_result: str | None = None,
+    plan: dict[str, list[str]] | None = None,
     kind: str = "generic",
     source_anchor: str | None = None,
     source_path: str | None = None,
@@ -190,6 +201,8 @@ def build_draft_entry(
             _one(task_label("summary"), task_summary),
             *_label_lines(task_label("done_criteria"), done_criteria),
             "",
+            *plan_section_lines(plan),
+            "",
             "## 🛠️ Implementation / Content",
             "",
             _one(task_label("progress"), progress_note),
@@ -219,6 +232,15 @@ def build_draft_entry(
         wbs=wbs,
         wbs_exempt_reason=wbs_exempt_reason,
     )
+
+
+def plan_section_lines(plan: dict[str, list[str]] | None = None) -> list[str]:
+    """`## 🧭 Plan` 절 — 값이 없으면 라벨 placeholder 만 둔다 (형식 유지)."""
+    plan = plan or {}
+    lines = [PLAN_HEADING, ""]
+    for key in PLAN_FIELDS:
+        lines.extend(_label_lines(task_label(key), plan.get(key)))
+    return lines
 
 
 def _one(label: str, value: str | None) -> str:
@@ -322,6 +344,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--follow-up", action="append", dest="follow_up", default=[],
                         help="후속 작업 (반복 지정 가능)")
     parser.add_argument("--validation-result")
+    # 작업 전 계획 (TASK-2026-10-05-main-002). 구현 **전에** 적고, 벗어나면 갱신한다.
+    parser.add_argument("--plan-file", action="append", dest="plan_files", default=[],
+                        help="Plan: 바뀌는 파일 (반복 지정 가능)")
+    parser.add_argument("--plan-step", action="append", dest="plan_order", default=[],
+                        help="Plan: 작업 순서 한 단계 — 완료 기준을 인용 (반복 지정 가능)")
+    parser.add_argument("--plan-risk", action="append", dest="plan_risks", default=[],
+                        help="Plan: 계획 단계에서 본 위험 (반복 지정 가능)")
+    parser.add_argument("--plan-proof", action="append", dest="plan_proof", default=[],
+                        help="Plan: 완료를 무엇으로 증명하나 — 검사 · 명령 · 실측 (반복 지정 가능)")
     parser.add_argument("--replace-field", action="append", dest="replace_fields", default=[],
                         choices=CUMULATIVE_FIELDS,
                         help="update 에서 이 누적 필드를 병합하지 않고 **교체**한다 (반복 지정 가능). "
@@ -815,6 +846,9 @@ def main() -> int:
                 list_updates[task_label("risks")] = _as_list(args.risks)
             if args.follow_up:
                 list_updates[task_label("follow_up")] = _as_list(args.follow_up)
+            for plan_key in PLAN_FIELDS:
+                if getattr(args, plan_key):
+                    list_updates[task_label(plan_key)] = _as_list(getattr(args, plan_key))
             # 작업 내용은 원문 보존이 원칙 — 비어 있을 때만 brief 로 채운다.
             if args.task_brief is not None and any(
                 is_empty_label_line(line, "summary") for line in existing_lines
@@ -902,6 +936,7 @@ def main() -> int:
                 risks=args.risks,
                 follow_up=args.follow_up,
                 validation_result=args.validation_result,
+                plan={key: _as_list(getattr(args, key)) for key in PLAN_FIELDS},
                 kind=resolved_kind,
                 wbs=args.wbs,
                 wbs_exempt_reason=args.wbs_exempt_reason,

@@ -900,6 +900,27 @@
       "wbs_ref": "exempt",
       "exempt_reason": "외부 reference concept 검토 — 채택 결정 전이라 마일스톤 미배정 (PURPOSE scope: 외부 reference concept 흡수)",
       "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-10-05-main-001.md"
+    },
+    {
+      "task_id": "TASK-2026-10-05-main-002",
+      "task_status": "done",
+      "wbs_ref": "exempt",
+      "exempt_reason": "AI-native SDLC 플레이북 적용(소유자 결정 2026-10-05) — 마일스톤 미배정 운영 개선",
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-10-05-main-002.md"
+    },
+    {
+      "task_id": "TASK-2026-10-05-main-003",
+      "task_status": "in_progress",
+      "wbs_ref": "exempt",
+      "exempt_reason": "AI-native SDLC 플레이북 적용(소유자 결정 2026-10-05) — 마일스톤 미배정 운영 개선",
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-10-05-main-003.md"
+    },
+    {
+      "task_id": "TASK-2026-10-05-main-004",
+      "task_status": "done",
+      "wbs_ref": "exempt",
+      "exempt_reason": "AI-native SDLC 플레이북 적용(소유자 결정 2026-10-05) — 마일스톤 미배정 운영 개선",
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-10-05-main-004.md"
     }
   ],
   "issues": []

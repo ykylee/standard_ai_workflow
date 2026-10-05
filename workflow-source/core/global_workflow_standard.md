@@ -3,13 +3,13 @@
 - 문서 목적: 모든 저장소에서 공통으로 적용되는 AI 에이전트 협업 표준을 정의한다.
 - 범위: 문서 구조, 세션 핸드오프, 작업 분류 및 모드(Task Modes) 기준
 - 상태: stable
-- 최종 수정일: 2026-10-02
+- 최종 수정일: 2026-10-05
 - 관련 문서: `../templates/project_workflow_profile_template.md`, `../templates/session_handoff_template.md`, `../templates/work_backlog_template.md`, **외부 contract: [`./orchestrator_subagent_contract_v1.md`](./orchestrator_subagent_contract_v1.md)**, [`./workflow_agent_topology.md`](./workflow_agent_topology.md)
 
 ## 1. Core Principles
 
 - Start every session by reading the current state summary documents first.
-- Before starting work, briefly state its purpose, scope, expected deliverables, and affected documents.
+- Before starting work, briefly state its purpose, scope, expected deliverables, and affected documents — and record the plan in the task file (files that change, order of work, risks, proof) so it outlives the conversation.
 - Record work in the state documents; track progress as exactly one of `planned`, `in_progress`, `blocked`, `done`.
 - Never mark an unverified result as done.
 - Before ending a session, summarize the current state so the next session can pick it up directly.

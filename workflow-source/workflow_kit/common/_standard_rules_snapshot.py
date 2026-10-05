@@ -13,7 +13,7 @@ from __future__ import annotations
 
 PRINCIPLES: tuple[str, ...] = (
     'Start every session by reading the current state summary documents first.',
-    'Before starting work, briefly state its purpose, scope, expected deliverables, and affected documents.',
+    'Before starting work, briefly state its purpose, scope, expected deliverables, and affected documents — and record the plan in the task file (files that change, order of work, risks, proof) so it outlives the conversation.',
     'Record work in the state documents; track progress as exactly one of `planned`, `in_progress`, `blocked`, `done`.',
     'Never mark an unverified result as done.',
     'Before ending a session, summarize the current state so the next session can pick it up directly.',

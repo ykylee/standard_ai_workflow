@@ -20,7 +20,11 @@ and `./tasks/<TASK-ID>.md`.
    excluded areas in `PURPOSE.md` §3; on overlap, leave a one-line scope-creep warning.
    Without `PURPOSE.md`, proceed advisory-only with no warning.
 4. State the priority, owner, and completion criteria.
-5. **roadmap gate** (ADR-027 §6) — when the project has
+5. **Plan before you build** — record the plan in the task's `## 🧭 Plan` section with
+   `--plan-file` (files that change), `--plan-step` (order of work, citing the completion
+   criteria), `--plan-risk`, and `--plan-proof` (what will prove it is done). Plan fields
+   merge on update; when the plan changes, replace with `--replace-field plan_files` etc.
+6. **roadmap gate** (ADR-027 §6) — when the project has
    `ai-workflow/memory/active/roadmap/`, creating a task **requires**
    `--wbs M-NNN/WBS-N.N` (a leaf of the roadmap; the SDLC-order and done-milestone
    gates apply). Off-roadmap work is declared, never slipped through:

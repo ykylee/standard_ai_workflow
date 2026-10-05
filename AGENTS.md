@@ -304,7 +304,7 @@ Claude Code 판은 `CLAUDE.md` 에 있으며 **둘은 같은 정본에서 파생
 <!-- generated-from: core/global_workflow_standard.md §1 · §3 · §8 · §11 — do not edit this block directly; edit the standard document and regenerate. -->
 
 - Start every session by reading the current state summary documents first.
-- Before starting work, briefly state its purpose, scope, expected deliverables, and affected documents.
+- Before starting work, briefly state its purpose, scope, expected deliverables, and affected documents — and record the plan in the task file (files that change, order of work, risks, proof) so it outlives the conversation.
 - Record work in the state documents; track progress as exactly one of `planned`, `in_progress`, `blocked`, `done`.
 - Never mark an unverified result as done.
 - Before ending a session, summarize the current state so the next session can pick it up directly.

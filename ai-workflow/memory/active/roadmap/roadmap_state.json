@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "generated_by": "workflow_kit.common.state.roadmap.generate_roadmap_state",
-  "generated_at": "2026-10-02",
+  "generated_at": "2026-10-05",
   "milestones": [
     {
       "id": "M-001",
@@ -893,6 +893,13 @@
       "wbs_ref": "exempt",
       "exempt_reason": "호스트별 개발 환경 복구 및 PATH 진단이며 로드맵 구현 작업이 아님.",
       "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-29-main-016.md"
+    },
+    {
+      "task_id": "TASK-2026-10-05-main-001",
+      "task_status": "done",
+      "wbs_ref": "exempt",
+      "exempt_reason": "외부 reference concept 검토 — 채택 결정 전이라 마일스톤 미배정 (PURPOSE scope: 외부 reference concept 흡수)",
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-10-05-main-001.md"
     }
   ],
   "issues": []

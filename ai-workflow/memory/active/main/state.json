@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-10-03",
+  "generated_at": "2026-10-05",
   "purpose_digest": "여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공",
   "purpose_digest_rev": "2026-09-28",
   "source_of_truth": {
@@ -10,7 +10,7 @@
     "daily_backlog_dir": "ai-workflow/memory/active/main/backlog",
     "tasks_dir": "ai-workflow/memory/active/main/backlog/tasks",
     "sessions_dir": "ai-workflow/memory/active/main/sessions",
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-10-02.md",
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-10-05.md",
     "repository_assessment_path": null
   },
   "project": {
@@ -42,6 +42,7 @@
       "TASK-2026-10-02-main-003"
     ],
     "recent_done_items": [
+      "TASK-2026-10-05-main-001 — Anthropic 'The AI-native SDLC playbook' 조사·정리 + 워크플로우 적용 검토",
       "TASK-2026-10-02-main-008 — v1.19.0 발행 — Windows: cp949 stdio/텍스트 I/O UTF-8 고정 + 하네스 호출 python -m workflow_kit 전환",
       "TASK-2026-10-02-main-005 — v1.18.0 발행 — worktree 합류 반영 (병합된 브랜치 메모리를 모 브랜치 메모리에 기록)",
       "TASK-2026-10-02-main-004 — worktree 합류 반영 — 모 브랜치에 병합된 브랜치 메모리를 모 브랜치 메모리에 기록하고 아카이브",
@@ -50,32 +51,24 @@
       "TASK-2026-09-30-main-014 — macOS Codex v1.16.0 적용·신뢰·재시작·compact 왕복 검증",
       "TASK-2026-09-30-main-013 — meta-watch 좁은 선언이 worktree 중첩 경로를 덮지 못해 게이트가 구조적으로 red 다",
       "TASK-2026-09-30-main-012 — 로드맵 WBS 링크 수집기가 슬래시 포함 브랜치(task 가 2단계 깊이)에 닿지 않는다",
-      "TASK-2026-09-30-main-011 — v1.16.0 발행 — Codex compact 중계 hook 탑재 + 출력 수리 (codex-json)",
-      "TASK-2026-09-30-main-010 — Codex compact 중계 hook 출력 형식 수리 — [ 머리말이 JSON 으로 오판돼 hook failed · 재주입 0"
+      "TASK-2026-09-30-main-011 — v1.16.0 발행 — Codex compact 중계 hook 탑재 + 출력 수리 (codex-json)"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-10-02.md",
-    "task_count": 8,
-    "in_progress_items": [
-      "TASK-2026-10-02-main-006 — Windows 로캘(cp949)에서 wk 가 UnicodeEncodeError 로 죽는다 — stdout 과 기본 인코딩 I/O 를 UTF-8 로 고정",
-      "TASK-2026-10-02-main-007 — Windows V3 백신이 wk.exe 를 평판 기반으로 차단한다 — pip 생성 console-script 런처 대체 진입 경로"
-    ],
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-10-05.md",
+    "task_count": 1,
+    "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
-      "TASK-2026-10-02-main-001 — worktree seed 가 모 브랜치 내용을 이어받는다 — 기준선 · 다음 시작 포인트 · 열린 task 복사 + 원류 기록 + 합류 시 되돌려 적기",
-      "TASK-2026-10-02-main-002 — v1.17.0 발행 — worktree 모 브랜치 이어받기 + worktree 자동 seed · meta-watch · 템플릿 검사 수리",
-      "TASK-2026-10-02-main-004 — worktree 합류 반영 — 모 브랜치에 병합된 브랜치 메모리를 모 브랜치 메모리에 기록하고 아카이브",
-      "TASK-2026-10-02-main-005 — v1.18.0 발행 — worktree 합류 반영 (병합된 브랜치 메모리를 모 브랜치 메모리에 기록)",
-      "TASK-2026-10-02-main-008 — v1.19.0 발행 — Windows: cp949 stdio/텍스트 I/O UTF-8 고정 + 하네스 호출 python -m workflow_kit 전환"
+      "TASK-2026-10-05-main-001 — Anthropic 'The AI-native SDLC playbook' 조사·정리 + 워크플로우 적용 검토"
     ]
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",
     "ai-workflow/memory/active/main/session_handoff.md",
-    "ai-workflow/memory/active/main/backlog/2026-10-02.md",
+    "ai-workflow/memory/active/main/backlog/2026-10-05.md",
     "ai-workflow/memory/active/main/state.json",
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",

@@ -62,6 +62,7 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
+- TASK-2026-10-06-main-007 v1.20.1 발행 — backlog-update handoff 제목 동기화 수리 (patch)
 - TASK-2026-10-05-main-003 [A2] 새 컨텍스트 verifier subagent — task 를 done 으로 닫기 전 완료 기준을 읽기 전용으로 대조
 - TASK-2026-10-02-main-007 Windows V3 백신이 wk.exe 를 평판 기반으로 차단한다 — pip 생성 console-script 런처 대체 진입 경로
 - TASK-2026-10-02-main-006 Windows 로캘(cp949)에서 wk 가 UnicodeEncodeError 로 죽는다 — stdout 과 기본 인코딩 I/O 를 UTF-8 로 고정

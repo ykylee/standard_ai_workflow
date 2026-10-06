@@ -29,8 +29,9 @@
   "session": {
     "current_baseline": "**114차 세션 (2026-10-02, Linux 호스트) — task 1건 close (TASK-2026-10-02-main-008, M-007/WBS-7.4) + v1.19.0 발행, 2건 in_progress (main-006 · 007, Windows 실측 대기).** 소유자 보고 2건(같은 Windows · OpenCode 데스크톱). ①**main-006 cp949** — 하네스가 kit 를 파이프로 부르면 stdio 가 로캘 인코딩이라 `—` 출력에서 exit 2(터미널 직접 실행은 재현 안 됨, Linux 재현 `PYTHONIOENCODING=cp949`). `common/stdio.force_utf8_stdio`(wk_main · python -m 진입점 3) + 텍스트 I/O 115곳 encoding 명시(subprocess 108 은 errors=replace), check_text_io_encoding 5 cases(되주입 5 red) — `df975bbe`. ②**main-007 V3 가 wk.exe 평판 차단** — 소유자 결정 = `python -m workflow_kit` 직접(셸 미상). `workflow_kit/__main__.py` · `common/kit_invocation`(정본) · 정본 §11.1 명령 전환 + 해석기 안내 bullet → CLAUDE.md/AGENTS.md · 스킬 · hook(python3→python 중 kit import 되는 첫 해석기) · doctor(해석기별 import 실측, 플러그인 전제에서 wk 제거, `wk_on_path` legacy 유지) · 런타임 안내 30곳. check_kit_invocation 4 cases + payload bare-wk hook 가드 + 설치 문서 전제 표 정확 일치 강화 — `2eb7c315`. ③**main-008 v1.19.0** (파생 minor) — 발행 중 interpreter_matrix 가 상속 PYTHONPATH 에 속아 새 3.13 venv 의존성 설치를 건너뛰던 결함 수리(`fb957c5c`, case 5). 태그 → `ea193113`(게이트 302×2, 매트릭스 3.11 · 3.13 각 302), asset 4종, 발행 wheel 격리에서 cp949 session-start · dashboard · doctor rc 0 · hook 탐침이 Store 별칭형 python3 건너뜀, §2.8 behind=[] disabled=[]. **Codex hook 재신뢰 필요**.",
     "current_axis": "**로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · ~~[TASK-2026-08-13-main-004] mypy flake 관찰~~ ✅ (66차 close — 33/33 표본, mypy 실패 0).",
-    "current_focus": "TASK-2026-10-05-main-003 [A2] 새 컨텍스트 verifier subagent — task 를 done 으로 닫기 전 완료 기준을 읽기 전용으로 대조",
+    "current_focus": "TASK-2026-10-06-main-005 x",
     "in_progress_items": [
+      "TASK-2026-10-06-main-005 x",
       "TASK-2026-10-05-main-003 [A2] 새 컨텍스트 verifier subagent — task 를 done 으로 닫기 전 완료 기준을 읽기 전용으로 대조",
       "TASK-2026-10-02-main-007 Windows V3 백신이 wk.exe 를 평판 기반으로 차단한다 — pip 생성 console-script 런처 대체 진입 경로",
       "TASK-2026-10-02-main-006 Windows 로캘(cp949)에서 wk 가 UnicodeEncodeError 로 죽는다 — stdout 과 기본 인코딩 I/O 를 UTF-8 로 고정"
@@ -59,8 +60,10 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-10-06.md",
-    "task_count": 4,
-    "in_progress_items": [],
+    "task_count": 5,
+    "in_progress_items": [
+      "TASK-2026-10-06-main-005 — v1.20.0 발행 — 진입점 다이어트(규칙 블록 · bootstrap 템플릿 · --diet) + AI-native SDLC A1~A3 + MiniMax Code 채널"
+    ],
     "blocked_items": [],
     "done_items": [
       "TASK-2026-10-06-main-001 — CLAUDE.md 다이어트 — 12,184B 중 고칠 수 있는 8.5KB 를 걷는다 (생성 규칙 블록 3.6KB 는 그대로)",

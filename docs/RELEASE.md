@@ -317,6 +317,12 @@ grok plugin install ./plugin --trust
 # antigravity — 재설치가 곧 갱신 (병합 복사).
 agy plugin install ./plugin
 
+# minimax-code — `local` 마켓플레이스가 ~/.minimax/plugins/ 를 스캔한다. 갱신 명령이 없어
+#   디렉터리를 직접 쓰는 sync 가 곧 재적용이다 (INSTALLATION_AND_USAGE.md §7.0).
+#   복사 원본은 이 저장소 plugin/, 버전은 실행한 해석기의 kit — 새 kit 이 깔린 .venv 로 돌린다.
+.venv/bin/python3 -m workflow_kit.minimax_plugin            # dry-run — 무엇이 바뀌는지
+.venv/bin/python3 -m workflow_kit.minimax_plugin --apply    # 반영 (기존 설치본 자동 백업)
+
 # pi-dev — 경로 참조라 할 일 없다.
 ```
 
@@ -348,6 +354,19 @@ wk doctor --json | python3 -c "import json,sys; print(json.load(sys.stdin)['plug
 claude plugin list        # Status: ✔ enabled 를 눈으로 확인
 codex plugin list | grep standard-ai-workflow   # STATUS: installed, enabled
 ```
+
+**minimax-code 는 위 두 절이 재지 않는다.** `content_drift` · `plugin_enabled` 는
+claude-code · codex · grok-build · antigravity 4채널만 본다 — MiniMax 가 뒤처져도
+`behind=[]` 는 그대로다. 그래서 sync 자신의 판정으로 확인한다:
+
+```bash
+.venv/bin/python3 -m workflow_kit.minimax_plugin --json | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['in_sync'], d['kit_version'], d['installed_version'])"
+#   → True <X>.<Y>.<Z> <X>.<Y>.<Z>
+```
+
+데스크톱 앱이 떠 있으면 `mcode plugin list` 로 인정까지 확인한다 (mcode CLI 는 선택 —
+PATH 에 없을 수 있다). 앱이 sync 전에 떴으면 재시작해야 새 스킬을 읽는지는 아직 실측하지
+않았다 — 재시작을 기본으로 한다.
 
 > **범위**: `behind` 는 **이 호스트의 kit 정본**(정본 페이로드 매니페스트의 버전)과
 > 비교한다. 발행 직후 저장소에서는 정본이 곧 최신 발행본이다. GitHub Releases 의

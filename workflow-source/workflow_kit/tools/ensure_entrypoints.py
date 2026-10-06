@@ -37,8 +37,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -51,6 +53,8 @@ if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit.bootstrap_lib.harnesses import HARNESS_SPECS  # noqa: E402
+from workflow_kit.bootstrap_lib.harnesses.entry_sections import ENTRY_BUDGET_BYTES  # noqa: E402
+from workflow_kit.common.entry_diet import plan_diet  # noqa: E402
 from workflow_kit.common.harness_presence import detect_harnesses  # noqa: E402
 from workflow_kit.common.paths import discover_project_profile_path  # noqa: E402
 from workflow_kit.common.project_docs import parse_project_profile_core  # noqa: E402
@@ -155,6 +159,78 @@ def classify(project_root: Path, harnesses: list[str]) -> dict[str, list[dict[st
     return out
 
 
+def _current_templates(harnesses: list[str]) -> dict[str, str]:
+    """하네스별 **현행** 진입점 생성물 ``{상대 경로: 내용}`` — 임시 디렉터리에 신규 bootstrap 한다.
+
+    다이어트의 교체본이다. 프로젝트 값이 들어가는 절(run defaults · 문서 관례)은 어차피 기존
+    진입점 쪽 본문이 '알려진 생성물' 과 달라 교체되지 않으므로, 이름은 자리표시로 충분하다.
+    """
+    templates: dict[str, str] = {}
+    env = {**os.environ, "PYTHONPATH": str(SOURCE_ROOT)}
+    with tempfile.TemporaryDirectory() as td:
+        for harness in harnesses:
+            spec = HARNESS_SPECS.get(harness)
+            if spec is None:
+                continue
+            target = Path(td) / harness
+            target.mkdir()
+            proc = subprocess.run(
+                [sys.executable, "-m", "workflow_kit.bootstrap_lib", "--target-root", str(target),
+                 "--adoption-mode", "new", "--harness", harness, "--project-slug", "demo",
+                 "--project-name", "Demo", "--no-interactive"],
+                capture_output=True, encoding="utf-8", errors="replace", env=env, check=False,
+            )
+            if proc.returncode != 0:
+                continue
+            for rel in spec.entry_files:
+                path = target / rel
+                if rel.endswith(".md") and path.is_file():
+                    templates.setdefault(rel, path.read_text(encoding="utf-8"))
+    return templates
+
+
+def diet(project_root: Path, harnesses: list[str], *, apply: bool) -> tuple[list[dict[str, object]], list[str]]:
+    """진입점 다이어트 — 과거 kit 가 생성한 그대로인 절만 현행 템플릿으로 바꾸거나 걷는다.
+
+    TASK-2026-10-06-main-004. 판정 정본은 :mod:`workflow_kit.common.entry_diet`. 포크를 선언한
+    진입점은 계산만 하고 **쓰지 않는다** — 프로젝트가 소유한 사본이다.
+    """
+    templates = _current_templates(harnesses)
+    report: list[dict[str, object]] = []
+    applied: list[str] = []
+    seen: set[str] = set()
+    for harness in harnesses:
+        spec = HARNESS_SPECS.get(harness)
+        if spec is None:
+            continue
+        for rel in spec.entry_files:
+            if not rel.endswith(".md") or rel in seen:
+                continue
+            seen.add(rel)
+            path = project_root / rel
+            if not path.is_file() or rel not in templates:
+                continue
+            text = path.read_text(encoding="utf-8")
+            forked = parse_fork_declaration(text) is not None
+            plan = plan_diet(text, templates[rel], ENTRY_BUDGET_BYTES)
+            report.append({
+                "harness": harness,
+                "path": rel,
+                "forked": forked,
+                "bytes_before": plan.bytes_before,
+                "bytes_after": plan.bytes_after,
+                "budget": plan.budget,
+                "over_budget_after": plan.bytes_after > plan.budget,
+                "counts": plan.counts(),
+                "actions": [{"title": a.title, "action": a.action} for a in plan.actions
+                            if a.action != "keep"],
+            })
+            if apply and not forked and plan.changed:
+                path.write_text(plan.new_text, encoding="utf-8")
+                applied.append(rel)
+    return report, applied
+
+
 def _missing_state_documents(project_root: Path, branch: str) -> list[str]:
     missing = []
     for template in STATE_DOCUMENT_RELPATHS:
@@ -164,7 +240,7 @@ def _missing_state_documents(project_root: Path, branch: str) -> list[str]:
     return missing
 
 
-def run(*, project_root: Path, apply: bool) -> dict[str, object]:
+def run(*, project_root: Path, apply: bool, diet_mode: bool = False) -> dict[str, object]:
     profile_path = discover_project_profile_path(project_root)
     kit_version = _kit_version()
     branch = _current_branch(project_root)
@@ -224,6 +300,11 @@ def run(*, project_root: Path, apply: bool) -> dict[str, object]:
                 apply_error = "bootstrap 출력을 읽지 못했다"
         classified = classify(project_root, harnesses)
 
+    diet_report: list[dict[str, object]] = []
+    diet_applied: list[str] = []
+    if diet_mode:
+        diet_report, diet_applied = diet(project_root, harnesses, apply=apply)
+
     return {
         "status": "blocked" if apply_error else "ok",
         "mode": "apply" if apply else "dry-run",
@@ -243,6 +324,9 @@ def run(*, project_root: Path, apply: bool) -> dict[str, object]:
         "missing_state_documents": _missing_state_documents(project_root, branch),
         "created": created,
         "apply_error": apply_error,
+        # 진입점 다이어트 (--diet). 계산은 dry-run 에서도 하고, 쓰기는 --apply 와 함께일 때만.
+        "diet": diet_report,
+        "diet_applied": diet_applied,
         "stale_hint": (
             "낡은 산출물은 **자동으로 덮지 않는다** — 포크를 선언하지 않은 손수정이 "
             "조용히 사라지기 때문이다. 갱신하려면 "
@@ -259,11 +343,14 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--project-root", default=None)
     parser.add_argument("--apply", action="store_true", help="부재 파일을 실제로 생성")
+    parser.add_argument("--diet", action="store_true",
+                        help="진입점 다이어트 — 과거 kit 가 생성한 그대로인 절을 현행 템플릿으로 교체/제거한다 "
+                             "(--apply 와 함께일 때만 쓴다, 포크 선언 파일은 보고만)")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
 
     project_root = Path(args.project_root).resolve() if args.project_root else Path.cwd()
-    result = run(project_root=project_root, apply=args.apply)
+    result = run(project_root=project_root, apply=args.apply, diet_mode=args.diet)
 
     if args.json:
         print(json.dumps(result, ensure_ascii=False, indent=2))
@@ -289,6 +376,13 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  ! {result['stale_hint']}")
         if result["apply_error"]:
             print(f"  ! 적용 실패: {result['apply_error']}")
+        for item in result["diet"]:
+            c = item["counts"]
+            tag = "포크 — 보고만" if item["forked"] else ("적용" if item["path"] in result["diet_applied"] else "계획")
+            print(f"  다이어트 {item['path']} [{tag}]: {item['bytes_before']}B → {item['bytes_after']}B "
+                  f"(예산 {item['budget']}B) · 교체 {c['replace']} · 제거 {c['remove']} · 고쳐진 옛 절 {c['edited']}")
+            for act in item["actions"]:
+                print(f"    - {act['action']}: {act['title']}")
     return 1 if result["status"] == "blocked" else 0
 
 

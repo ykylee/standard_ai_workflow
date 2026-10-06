@@ -288,7 +288,9 @@ by the harness registry but missing on disk are created at the current kit versi
 files that exist but carry an older marker are **reported, never overwritten** — an
 undeclared local edit must not disappear just because a session opened. The report lands
 in `warnings`; relay it. Run `{KIT_INVOCATION} ensure-entrypoints` to inspect the same picture on demand,
-or `--apply` to fill only what is missing.
+or `--apply` to fill only what is missing. `--diet` reports entry sections a past kit generated verbatim
+(and, with `--apply`, replaces them with the current template or drops them); edited sections and
+forked files are only reported.
 
 ## Usage
 

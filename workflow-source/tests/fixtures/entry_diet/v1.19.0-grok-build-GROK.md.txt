@@ -1,0 +1,145 @@
+<!-- standard-ai-workflow-kit: v1.19.0 -->
+
+# GROK.md (Grok Build entry point)
+
+- Purpose: the entry-point document Grok Build (the xAI CLI TUI) reads automatically every session in this repository.
+- Scope: session restore, the order to consult workflow state docs, user-facing report language, subagent / memory / MCP principles
+- Audience: Grok Build, repository maintainer, multi-agent operator
+- Status: beta
+- Last updated: 2026-10-06
+- Related: `AGENTS.md` (shared with Codex), `ai-workflow/memory/active/<branch>/state.json`, `ai-workflow/memory/active/<branch>/sessions`, `ai-workflow/memory/active/<branch>/backlog`, `docs/PROJECT_PROFILE.md`
+
+## Purpose
+
+Work in this repository follows the **Standard AI Workflow**. Session start, backlog updates, document sync, and session close all take the documents under `ai-workflow/` as the primary reference. Grok Build acts as the main agent and delegates bounded-scope work to the built-in subagents (`explore` / `plan`) or custom agents (`.grok/agents/`) to conserve context.
+
+## Read these first
+
+> `<branch>` is the current git branch name (`main` when this is not a git repository). Splitting per branch keeps concurrent work from overwriting itself.
+
+- `AGENTS.md` (entry point shared with Codex — Korean baseline + worker separation)
+- `ai-workflow/memory/active/<branch>/state.json`
+- `ai-workflow/memory/active/<branch>/sessions`
+- `ai-workflow/memory/active/<branch>/backlog`
+- `docs/PROJECT_PROFILE.md`
+- `ai-workflow/wiki/index.md` — R4 anchor based; load this first when an AI agent queries
+
+`ai-workflow/` is a meta layer for session restore and workflow state. Do not include it in the default search scope when exploring project code or project documents — reference it only when updating the workflow documents themselves or restoring the current session state.
+
+## Relationship to AGENTS.md
+
+- `AGENTS.md` is the entry point shared with Codex. It defines the main agent's Korean baseline, worker separation, and the order in which to consult `ai-workflow/memory/active/` documents.
+- This `GROK.md` is a Grok Build *additive rule* — it only adds subagent usage, MCP registration, memory opt-in, and skill registration. Keep it consistent with `AGENTS.md`.
+- Where the two documents disagree, `GROK.md` wins (additive rule inside a Grok Build session). The Korean baseline stays *identical*.
+
+## Entry skill (TUI picker)
+
+- Type `/`, search for `standard-ai-workflow`, and the `.grok/skills/standard-ai-workflow/SKILL.md` emitted by this harness appears.
+- Skill body: session start, backlog update, and document sync procedures.
+
+## Working Principles
+
+<!-- generated-from: core/global_workflow_standard.md §1 · §3 · §8 · §11 — do not edit this block directly; edit the standard document and regenerate. -->
+
+- Start every session by reading the current state summary documents first.
+- Before starting work, briefly state its purpose, scope, expected deliverables, and affected documents.
+- Record work in the state documents; track progress as exactly one of `planned`, `in_progress`, `blocked`, `done`.
+- Never mark an unverified result as done.
+- Before ending a session, summarize the current state so the next session can pick it up directly.
+- Multiple agents may work together: sync with the remote before starting, check what other agents are doing, and pick work that does not overlap.
+- Never decide irreversible actions alone — deleting or overwriting another agent's work requires confirmation from the user.
+- Keep the shared standard thin; put project-specific differences in the project profile.
+
+## Session Close Order
+
+Close a session in the order **update memory → commit → push**. Do not split the memory update into a separate turn after the commit, so that pushed commits always carry the memory update with them (collaboration consistency).
+
+- Update before closing: `state.json`, `session_handoff.md`, the latest backlog
+
+## Memory Update Paths
+
+- Restore session-start baseline: `python -m workflow_kit session-start`
+- Register / update a task: `python -m workflow_kit backlog-update`
+- Sync affected documents (advisory): `python -m workflow_kit doc-sync`
+- Regenerate state.json at session close: `python -m workflow_kit refresh-state`
+- Roll off handoff §1 baselines when over cap: `python -m workflow_kit rollover-baselines`
+- Roll off handoff §5 accumulated notes when over budget: `python -m workflow_kit rollover-handoff-notes`
+- Propose memory_index promotion candidates at close (advisory, no write): `python -m workflow_kit suggest-memory-entries`
+- Relay working state across a context compaction (skill + hooks): `python -m workflow_kit compact-checkpoint`
+
+- Run these with the Python interpreter that has `workflow_kit` installed — `python` on Windows, usually `python3` on macOS / Linux. Do not call a `wk` executable instead: on Windows it is an unsigned per-install launcher that reputation-based antivirus blocks.
+- When the handoff's `in_progress` / `blocked` lists are empty, leave an **empty bullet `-`**. Prose there is parsed as a work item.
+- Entries in the handoff's recently-completed list start with `TASK-` and never exceed 10.
+- A backlog task's `status` is one of `planned` / `in_progress` / `blocked` / `done`.
+- `state.json` is a **generated artifact** — never hand-edit it. The SSOT is `backlog/tasks/` plus `session_handoff.md`; regenerate with `python -m workflow_kit refresh-state` at session close.
+- Handoff §1 baseline lines have a cap. When it is exceeded, **move** the excess with `python -m workflow_kit rollover-baselines` — never delete them by hand. That prose exists nowhere else, unlike the recently-done list whose SSOT is `backlog/tasks/`.
+- Handoff §5 accumulated sections (everything outside the declared current-section list) have a byte budget. When it is exceeded, **move** the oldest with `python -m workflow_kit rollover-handoff-notes` — rules go to `lessons.md`, other notes to `sessions/`.
+- `session_handoff.md` and the backlog are **inputs to the state.json generator** — writing outside the format silently corrupts state.json.
+- Keep the main agent on coordination and integration as much as possible, and delegate bounded-scope work to subagents / custom agents.
+
+## Subagent principles (Grok Build multi-agent topology)
+
+- **Main agent**: talks to the user, decomposes work, invokes and integrates subagents, and owns syncing `state.json` / `session_handoff` / `work_backlog`. It does not take on tool calls itself.
+- **Built-in subagent `explore`** (read-only): codebase exploration, file search, grep — bounded-scope reads. Prefer splitting it onto a lighter model such as `--model grok-4.20-multi-agent`.
+- **Built-in subagent `plan`** (read-only): work decomposition, impact analysis, implementation planning. The main agent checks with `plan` before making tool calls.
+- **Custom agents** (`.grok/agents/`): define these when you need *role-specific personas* such as doc / code / validation workers.
+
+When invoking a subagent, state the intent and responsibility boundary explicitly (`agent_id`, `task_description`, `input_files`, `output_files`, `constraints`, `context_summary`).
+
+## MCP registration (`.grok/config.toml`)
+
+- Copy the `.grok/config.toml.example` emitted by this harness to `.grok/config.toml` and use that.
+- Absolute paths must be corrected:
+  - `PYTHONPATH = "/ABSOLUTE/PATH/TO/standard_ai_workflow/workflow-source"`
+  - `STANDARD_AI_WORKFLOW_ROOT = "/ABSOLUTE/PATH/TO/<project_root>"`
+- With `--enable-mcp`, the `[mcp_servers.standardAiWorkflowReadOnly]` block is emitted automatically.
+- Select the transport with `--mcp-bridge jsonrpc-bridge|stdio-sdk`. The default is `jsonrpc-bridge` (stable).
+
+### Compatibility auto-import
+
+Grok Build auto-loads these compatibility files (priority: config > claude > cursor > mcp).
+
+| Source | Format | Location |
+|---|---|---|
+| `config.toml` | Native Grok config | `~/.grok/config.toml`, `.grok/config.toml` |
+| `.claude.json` | Claude Code format | `~/.claude.json` |
+| `.cursor/mcp.json` | Cursor format | `~/.cursor/mcp.json`, `<project>/.cursor/mcp.json` |
+| `.mcp.json` | MCP standard | Project root |
+
+→ An existing workflow MCP registration in Claude / Cursor / standard MCP sources is imported automatically. **But when the same `[mcp_servers]` alias appears in several sources, config.toml wins**, so an unintended override is possible.
+
+## Memory (opt-in)
+
+- `~/.grok/memory/` is opt-in via `--experimental-memory` or `GROK_MEMORY=1`.
+- Do not trust the memory directory without that opt-in.
+- `[memory]` settings: `enabled`, `[memory.session] save_on_end`, `[memory.search] max_results`, `[memory.initial_injection] min_score`.
+
+## Language and context principles
+
+- Write user-facing work reports, status summaries, and document updates in Korean by default.
+- Keep code, commands, file paths, configuration keys, and external product names verbatim.
+- Handle internal reasoning and scratch classification however is most efficient, but give the user only the conclusion and the next action.
+- Avoid long intermediate reasoning, repeated summaries, and unnecessary self-explanation.
+- Keep only the facts the next session needs in the handoff and backlog, so context does not pile up.
+
+## Project run defaults
+
+- Install: `TODO: 설치 명령 입력`
+- Run locally: `TODO: 로컬 실행 명령 입력`
+- Quick test: `TODO: 빠른 테스트 명령 입력`
+- Isolated test: `TODO: 격리 테스트 명령 입력`
+- Smoke check: `TODO: 실행 확인 명령 입력`
+
+## Documentation conventions
+
+- Documentation home: `README.md`
+- Operations docs: `ai-workflow/memory/active/`
+- Backlog location: `ai-workflow/memory/active/backlog/`
+- Session handoff: `ai-workflow/memory/active/session_handoff.md`
+
+## Grok Build notes
+
+- Grok Build auto-reads both `AGENTS.md` and `GROK.md` as root entry points. On policy conflict `GROK.md` wins, but keep the two pointing at the same facts.
+- Copy `.grok/config.toml.example` into your environment configuration (`~/.grok/config.toml`, or the project-local `.grok/config.toml`). Absolute paths must be corrected.
+- Before a subagent or custom agent performs a dangerous external action (database migration, production deploy, secret rotation), get explicit user approval first.
+- This is a new-project draft. Verify that the project's own run commands and document structure are correct.

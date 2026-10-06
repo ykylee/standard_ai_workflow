@@ -71,6 +71,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-10-06-main-004 x
 - TASK-2026-10-06-main-003 x
 - TASK-2026-10-06-main-002 x
 - TASK-2026-10-06-main-001 x
@@ -80,7 +81,6 @@
 - TASK-2026-10-02-feat-auto-20261002-4a5d394c-003 검사 공용 관찰 래퍼 — 관찰 전용 session-start 호출을 한 곳에
 - TASK-2026-10-02-feat-auto-20261002-4a5d394c-002 검사 격리 결함 — session-start 합류 승격이 조용히 저장소를 쓴다
 - TASK-2026-10-02-feat-auto-20261002-4a5d394c-001 MiniMax Code 플러그인 채널 추가 — 페이로드 생성 + 릴리스 ZIP + 로컬 설치 sync
-- TASK-2026-10-02-claude-remote-sync-status-1ce0a3-003 게이트의 check_roadmap_wiring 이 worktree 에서 실제 저장소의 현재 브랜치 메모리를 합류 반영·아카이브한다
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

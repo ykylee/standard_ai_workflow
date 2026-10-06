@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "generated_by": "workflow_kit.common.state.roadmap.generate_roadmap_state",
-  "generated_at": "2026-10-05",
+  "generated_at": "2026-10-06",
   "milestones": [
     {
       "id": "M-001",
@@ -921,6 +921,13 @@
       "wbs_ref": "exempt",
       "exempt_reason": "AI-native SDLC 플레이북 적용(소유자 결정 2026-10-05) — 마일스톤 미배정 운영 개선",
       "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-10-05-main-004.md"
+    },
+    {
+      "task_id": "TASK-2026-10-06-main-001",
+      "task_status": "done",
+      "wbs_ref": "exempt",
+      "exempt_reason": "진입점 운영 정리 — 소유자 요청, 마일스톤 미배정",
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-10-06-main-001.md"
     }
   ],
   "issues": []

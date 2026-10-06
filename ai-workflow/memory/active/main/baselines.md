@@ -9,6 +9,10 @@
 > 이 파일은 **읽기 대상이 아니라 조회 대상**이다. 세션 시작에 읽지 않는다 —
 > handoff §1 이 최근 4개만 들고 있고, 그 이전이 필요할 때만 여기를 본다.
 
+## 롤오프 2026-10-06
+
+- **2026-09-30 macOS Codex 적용 검증 완료 (TASK-2026-09-30-main-014).** 설치본·MCP 1.16.0 일치, 사용자 hook 3종 신뢰, 새 CLI 0.147.0에서 실제 compact 왕복 3종 completed와 재주입 context 확인. 앱 재시작 후 Codex stale_hosts=0. MiniMax 채취 main-001과 기존 결함 main-012·013은 보존했다.
+
 ## 롤오프 2026-10-02
 
 - **109차 세션 (2026-09-30, Linux 호스트) — task 3건 close (TASK-2026-09-30-main-009 · 010 · 011, M-007/WBS-7.2 · 7.4) + v1.16.0 발행.** ①**main-009** — codex-cli **0.159.2**(108차 0.143.0 에서 바뀜) 인증 격리 `CODEX_HOME` + HEAD zip + 신뢰 해시(`[hooks.state."<key>"] trusted_hash` — 신뢰 기록은 auto mode 가 막아 소유자가 `!` 로 실행)로 app-server 압축 왕복: 순서 `PreCompact` → 원격 압축 → `PostCompact` → **다음 turn 시작 시** `SessionStart(compact)`. 세 hook 모두 `failed`("invalid … JSON output") — Codex `looks_like_json` 은 `{`·`[` 로 시작하는 stdout 을 JSON 파싱, 머리말 `[compact-checkpoint]` 가 걸림. checkpoint 는 써졌지만 재주입 rollout 0 — **108차 '기록 hook ✅' 는 부수 효과만 본 판정이었다**. `PostCompact` 입력에 `compact_summary` 여전히 없음. 압축 hook 평문 stdout 은 Codex 가 버린다(소스 `events/compact.rs`). ②**main-010** — `wk compact-checkpoint --output-format codex-json`(재주입 = `hookSpecificOutput.additionalContext`, 그 밖 = `systemMessage`, hook 밖 모드 exit 2) + Codex 사본만 인자·JSON 실패 안내, Claude Code·Grok 무변경. check_compact_relay 15 cases(case 15 = Codex 사본 명령을 그대로 bash 로 돌려 Codex 출력 스키마 판정), 되주입 6건 각 red. 재실측 3종 `completed` + 재주입 rollout developer 메시지 도달. ③**main-011 v1.16.0** (소유자가 release-status 파생 minor 채택, 1.15.1 아님) — 태그 → `13314eaa`(게이트 298×2), asset 4종, 발행 wheel 격리 실측, §2.8 behind=[] disabled=[] mcp 1.16.0. 명령 변경으로 **Codex 실사용자는 hook 재신뢰 필요**.

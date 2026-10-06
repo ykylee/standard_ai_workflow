@@ -817,6 +817,8 @@ def main() -> int:
         # 결과를 보여 준다 — 쓸 내용과 보여 준 초안이 달라선 안 된다.
         task_ssot_path = daily_backlog_path.parent / "tasks" / f"{task_id}.md"
         update_merge = requested_mode == "update" and task_ssot_path.exists()
+        #: task 의 정본 제목. create 는 입력값, update 병합은 task 파일에 이미 있는 제목이다.
+        resolved_title = args.task_name
 
         if update_merge:
             existing_lines = task_ssot_path.read_text(encoding="utf-8").splitlines()
@@ -917,6 +919,11 @@ def main() -> int:
                 warnings.append(
                     f"task 제목이 기존과 다르다 (기존 유지): 기존 `{existing_title_match.group(1)}` / 입력 `{args.task_name}`."
                 )
+            if existing_title_match:
+                # 보존한 제목을 **파생 기록에도** 쓴다 (TASK-2026-10-06-main-006). task 파일은 기존 제목을
+                # 지키는데 handoff 동기화 · 이월 색인은 입력 --task-name 을 써서, `--task-name x` 로 갱신한
+                # task 가 handoff '최근 완료' 에 'TASK-… x' 로 남았다 (116차 실측 5건, 113차 1건).
+                resolved_title = existing_title_match.group(1)
         else:
             draft_entry = build_draft_entry(
                 task_id=task_id,
@@ -1032,7 +1039,7 @@ def main() -> int:
                     backlog_path=daily_backlog_path,
                     task_id=task_id,
                     entry_lines=draft_entry,
-                    title=args.task_name,
+                    title=resolved_title,
                     kind=resolved_kind,
                     status=status,
                     # update 병합 시 index block 도 보존 — status 줄만 바꾼다.
@@ -1083,7 +1090,7 @@ def main() -> int:
             if session_handoff_path.exists() and status in {"in_progress", "blocked", "done"}:
                 sync_handoff_status(
                     handoff_path=session_handoff_path,
-                    task_label=f"{task_id} {args.task_name}",
+                    task_label=f"{task_id} {resolved_title}",
                     status=status,
                 )
                 apply_result["written_paths"].append(str(session_handoff_path))

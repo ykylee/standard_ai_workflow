@@ -72,6 +72,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-10-06-main-006 backlog-update 의 handoff 동기화가 보존된 task 제목 대신 입력 --task-name 을 쓴다
 - TASK-2026-10-06-main-005 v1.20.0 발행 — 진입점 다이어트(규칙 블록 · bootstrap 템플릿 · --diet) + AI-native SDLC A1~A3 + MiniMax Code 채널
 - TASK-2026-10-06-main-004 [진입점 다이어트 3] 기존 진입점 다이어트 단계 — 채택 프로젝트의 진입점을 예산 · 현행 템플릿과 대조해 보고/정리
 - TASK-2026-10-06-main-003 [진입점 다이어트 2] bootstrap 생성 진입점 템플릿 다이어트 + 하네스별 진입점 바이트 예산 검사
@@ -81,7 +82,6 @@
 - TASK-2026-10-05-main-002 [A1] 작업 전 계획을 task 파일 Plan 절로 남긴다 — 바뀌는 파일 · 작업 순서 · 위험 · 검증 방법
 - TASK-2026-10-05-main-001 Anthropic 'The AI-native SDLC playbook' 조사·정리 + 워크플로우 적용 검토
 - TASK-2026-10-02-feat-auto-20261002-4a5d394c-003 검사 공용 관찰 래퍼 — 관찰 전용 session-start 호출을 한 곳에
-- TASK-2026-10-02-feat-auto-20261002-4a5d394c-002 검사 격리 결함 — session-start 합류 승격이 조용히 저장소를 쓴다
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

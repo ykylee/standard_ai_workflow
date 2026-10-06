@@ -13,7 +13,7 @@ stable 로 선언된 `backlog-update` 가 **governance 가 규정한 layout 을 
 **layout 자체를 규약으로 검사하지 않았다.** 그래서 skill 을 실제로 돌려 산출물을
 governance 규약과 대조하는 본 smoke 를 둔다 (§2.18 "선언이 사실인가" 의 연장).
 
-Test list (11 case):
+Test list (12 case):
 1. test_daily_index_is_link_only
 2. test_task_file_naming_and_frontmatter
 3. test_no_bak_file_written
@@ -25,6 +25,7 @@ Test list (11 case):
 9. test_handoff_dedupes_by_task_id (TASK-2026-08-11-main-023 되주입)
 10. test_update_task_brief_is_optional (TASK-2026-09-18-main-001 되주입)
 11. test_update_explicit_kind_moves_index_marker (TASK-2026-09-29-main-008 되주입)
+12. test_update_derived_records_keep_preserved_title (TASK-2026-10-06-main-006 되주입)
 
 Cross-ref: workflow-source/MEMORY_GOVERNANCE.md §2 +
 workflow-source/tests/check_appendonly_memory_layout.py (저장소 실물 검사).
@@ -356,6 +357,36 @@ def test_handoff_dedupes_by_task_id() -> None:
         assert done_section.count(task_id) == 1, "완료 목록 중복/누락"
 
 
+def test_update_derived_records_keep_preserved_title() -> None:
+    """update 가 다른 --task-name 을 받아도 handoff · 이월 색인은 task 파일의 보존 제목을 쓴다.
+
+    TASK-2026-10-06-main-006: task 파일은 기존 제목을 지키는데(경고 '기존 유지'), handoff 동기화와
+    날짜 이월 색인은 입력값을 써서 `--task-name x` 로 갱신한 task 가 handoff 에 'TASK-… x' 로 남았다.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        ws = _make_workspace(td)
+        task_id = _seed(ws, name="보존할 제목")["task_id"]
+        handoff = _branch_dir(ws) / "session_handoff.md"
+        handoff.write_text(
+            "# Session Handoff\n\n## 2. 진행 중 작업\n\n- 현재 `in_progress` 작업:\n-\n\n"
+            "## 3. 차단 작업\n\n- 현재 `blocked` 작업:\n-\n\n"
+            "## 4. 최근 완료 작업\n\n- 최근 완료 작업 목록:\n-\n",
+            encoding="utf-8",
+        )
+        _run_apply(ws, "--task-name", "x", "--task-id", task_id, "--mode", "update",
+                   "--status", "in_progress")
+        in_progress = handoff.read_text(encoding="utf-8").split("## 2.")[1].split("## 3.")[0]
+        assert f"- {task_id} 보존할 제목" in in_progress, f"handoff 진행 중 제목이 보존되지 않았다:\n{in_progress}"
+        # 다른 날짜로 이월 — 새 날짜 색인에 만들어지는 항목도 보존 제목이다.
+        _run_apply(ws, "--task-name", "x", "--task-id", task_id, "--mode", "update",
+                   "--status", "done", "--validation-result", "smoke PASS", "--target-date", "2026-07-23")
+        text = handoff.read_text(encoding="utf-8")
+        done = text.split("## 4.")[1]
+        assert f"- {task_id} 보존할 제목" in done and f"{task_id} x" not in text, f"완료 목록 제목:\n{done}"
+        carried = (_branch_dir(ws) / "backlog" / "2026-07-23.md").read_text(encoding="utf-8")
+        assert "보존할 제목" in carried and f"{task_id}** [release] x" not in carried, f"이월 색인 제목:\n{carried}"
+
+
 def main() -> int:
     test_funcs = [
         test_daily_index_is_link_only,
@@ -369,6 +400,7 @@ def main() -> int:
         test_handoff_dedupes_by_task_id,
         test_update_task_brief_is_optional,
         test_update_explicit_kind_moves_index_marker,
+        test_update_derived_records_keep_preserved_title,
     ]
     failures: list[tuple[str, str]] = []
     for func in test_funcs:

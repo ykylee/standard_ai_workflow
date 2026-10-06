@@ -4,7 +4,7 @@
 - 범위: git log 에서 추출한 release 별 Added / Changed / Fixed 항목.
 - 대상 독자: maintainer, 릴리스 매니저, 외부 consumer
 - 상태: stable (자동 생성물)
-- 최종 수정일: 2026-10-02
+- 최종 수정일: 2026-10-06
 - 관련 문서: [`./releases/`](./releases/) (release note), [`../docs/RELEASE.md`](../docs/RELEASE.md) (릴리스 절차)
 
 All notable changes to this project will be documented in this file.
@@ -12,10 +12,14 @@ All notable changes to this project will be documented in this file.
 본 파일은 `tools/release_pipeline.py changelog-gen` 으로 자동 생성됩니다 (v0.7.14+).
 수동 편집은 다음 생성 시 덮어써진다 — 형식/metadata 변경은 생성기를 고칠 것.
 
-## [Unreleased] - 2026-10-02
+## [Unreleased] - 2026-10-06
 
 ### Added
 
+- feat(entrypoints): ensure-entrypoints --diet — 기존 진입점에서 과거 kit 생성 그대로인 절만 교체/제거 (진입점 다이어트 3) (14fd87be)
+- feat(bootstrap): 생성 진입점 템플릿 다이어트 + 하네스별 분량 예산 검사 (진입점 다이어트 2) (b575b670)
+- feat(sdlc): AI-native SDLC 플레이북 A1~A3 적용 — task Plan 절 · verifier subagent · 검사 약화 차단 hook (d8bbf1e4)
+- feat(plugin): MiniMax Code 소비 채널 추가 — 페이로드 · 릴리스 ZIP · 로컬 sync (d8e4ebee)
 - feat(windows): 하네스가 wk 실행 파일 대신 python -m workflow_kit 으로 kit 를 부른다 (main-007) (2eb7c315)
 - feat(branch-memory): worktree 합류 반영 — 병합된 브랜치 메모리를 모 브랜치 메모리에 기록하고 아카이브 (main-004) (82fece56)
 - feat(branch-memory): worktree seed 가 모 브랜치 내용을 이어받는다 — 원류 기록 + 합류 시 되돌려 적기 (main-001) (bb1c6088)
@@ -42,14 +46,21 @@ All notable changes to this project will be documented in this file.
 - feat(tests): 검사를 도는 해석기를 선언 축으로 (main-006) + 82차 세션 종료 (e5f9b554)
 - feat(tests): 선언 하한 Python 을 실물 해석기로 잰다 (main-005) (9915e4ad)
 - feat(metrics): 어휘 겹침을 선언 사슬로 — goal coverage · 시계 의존 게이트 · ENFORCES 축 (c08dfebd)
-- feat(release): 발행 게이트가 필수 CI 워크플로 전수를 보고 기본 차단한다 (main-005) (c49e2c74)
-- feat(harness): gemini-cli 지원 종료 + antigravity 플러그인 채널 신설 — 전 계약 실측 (main-004·005·006 + 30일 main-001) (35a7a859)
-- feat(meta-watch): 선언 보급 완주 — 국소 198 / 전역 10 / 미분류 68 (main-002·003) (18d8e369)
-- feat(meta-watch): 선언 보급 1차 — 채취 실측에서 WATCHES 71건 + mypy flake close (main-004·main-001) (c3c8634f)
-- ... (158 more)
+- ... (162 more)
 
 ### Changed
 
+- docs(standard): 진입점 규칙 블록 압축 — 3,635B → 2,740B, 근거는 정본 본문으로 (진입점 다이어트 1) (062c4d64)
+- docs(entry): CLAUDE.md 다이어트 — 12,184B → 7,733B (생성 규칙 블록은 바이트 동일) (55f9bb66)
+- docs(planning): Anthropic "The AI-native SDLC playbook" 조사 정리 + 워크플로우 적용 검토 (7335cd97)
+- chore(session): worktree 합류 반영 — feat/auto-20261002-4a5d394c 3건 close (c1a01964)
+- Merge pull request #30 from ykylee/feat/auto-20261002-4a5d394c (a1f2ed68)
+- refactor(test): 관찰 전용 session-start 를 공용 헬퍼로 — 재발을 막는다 (e98bc3a6)
+- docs(plugin): MiniMax manifest 가 mcpServers 를 못 받는 이유를 정정한다 (b28bac31)
+- chore(session): handoff §5 를 부류별로 되돌리고 후속 task 등록 (f706d2d0)
+- chore(session): 세션 종료 — main-009 계열 2건 close · handoff §5 · state.json 재생성 (c2af79d9)
+- chore(session): 115차 세션 종료 — macOS v1.19.0 §2.8 재적용 · 고유 커밋 없는 worktree/브랜치 정리 · 브랜치 메모리 3개 아카이브 (1ac26b0b)
+- chore(session): 114차 세션 종료 — main-008 close (v1.19.0 발행) · main-006 · 007 Windows 실측 대기 · handoff · state.json 갱신 (309c9ddf)
 - chore(session): 113차 세션 종료 — main-004 · 005 close (worktree 합류 반영 · v1.18.0 발행) · handoff · state.json 갱신 (11fe1e6f)
 - chore(session): 112차 세션 종료 — main-001 · 002 close (worktree 모 브랜치 이어받기 · v1.17.0 발행) · main-003 등록 · handoff · state.json 갱신 (c44c09bf)
 - dolt remote info (1534f260)
@@ -69,21 +80,14 @@ All notable changes to this project will be documented in this file.
 - chore(state): 105차 state.json 재생성 — active/main/ 기준선에 minimax-code 갭 반영 (7b85854b)
 - docs(memory): 105차 마감 — minimax-code 플러그인 채널 갭 등록 (M-007/WBS-7.4) (38cb7208)
 - test(mcp): roundtrip 에 --literal-command — emit 된 launcher 를 치환 없이 PATH 에서 해석해 spawn (08-25-main-017 기준 2 실측 칸) (19b04e0a)
-- docs(memory): close Windows wk PATH session (ed5b2ba9)
-- chore(session): 101차 세션 종료 — handoff · state.json 갱신 (main-011 · 012) (29f92437)
-- chore(session): 100차 세션 종료 — handoff · state.json 갱신 (main-010) (3eb769dc)
-- chore(memory): 96차 세션 종료 — main-016 발행 기록 정리 + plugin_enabled 4채널 (09-28-main-018) (f8f40e99)
-- chore(memory): 95차 세션 종료 — plugin_enabled 절 신설 뒤 게이트 기록 + macOS 전량 게이트 첫 실측 (09-28-main-017) (569f858c)
-- chore(memory): 94차 세션 종료 — macOS 호스트 동기화 + v1.13.0 채널 재적용 + worktree 4개 정리 (09-23-main-017) (ab7bf648)
-- refactor(release)!: v1.12.0 은퇴 shim 2종 제거 — verify_required_ci · REQUIRED_CI_WORKFLOWS (09-28-main-015) (2f3affc5)
-- chore(memory): 방치된 worktree 잔재 정리 — 원격 브랜치 3 삭제 + clear-field memory 아카이브 (09-23-main-017) (46ce9f9f)
-- docs(claude-md): 운영 절을 docs/LOCAL_GATE.md 로 이관 — CLAUDE.md 19.6KB → 11.3KB (M-017/WBS-17.4) (e1ef118b)
-- docs(design): ADR-029 세션 시작 컨텍스트 예산 accepted + core 스펙 → M-017 개설 (751346a3)
-- docs(planning): M-015 requirements sign-off (Q1~Q5 권고안) → M-016 design 개설 (e9a4b3c0)
-- ... (441 more)
+- ... (452 more)
 
 ### Fixed
 
+- fix(test): main 체크아웃 관찰에서 --no-reflect 없이는 session-start 가 쓴다 (4b1b5256)
+- fix(test): check_state_reconcile 도 관찰 전용 경로로 돌린다 (582763f4)
+- fix(test): session-start 합류 승격이 관찰 경로에서 저장소를 쓰지 않게 한다 (ed9eb423)
+- fix(archive): 브랜치 오버라이드가 기본 브랜치여도 실제 checkout 브랜치는 합류 반영·아카이브하지 않는다 (remote-sync-status-1ce0a3-003) (f1a4b633)
 - fix(matrix): interpreter_matrix 설치 탐침이 상속된 PYTHONPATH 에 속아 의존성 설치를 건너뛰던 것 (main-008) (fb957c5c)
 - fix(windows): cp949 로캘에서 wk 가 UnicodeEncodeError 로 죽던 것 — stdio · 텍스트 I/O 를 UTF-8 로 고정 (main-006) (df975bbe)
 - fix(release-notes-template): simple template 검사가 저장소 releases/ 에 쓰지 않는다 (306adeaf)
@@ -110,16 +114,19 @@ All notable changes to this project will be documented in this file.
 - fix(telemetry): 검사가 실제 저장소 telemetry 에 쓰지 않게 + 러너가 증가를 red 로 (09-28-main-006) (4ea61232)
 - fix(dashboard): telemetry 를 대시보드당 스냅샷 1회로 — Panel 3·8 hit_rate 경합 (09-28-main-005) (e5d2c6f4)
 - fix(hooks): force 차단 hook 을 git 의 실제 pre-push 인터페이스로 판정 (09-25-main-002) (2dec51ca)
-- fix(memory): main-019 index 제목 중복 + handoff §5 의 닫힌 후보 정리 (a1e93af9)
-- fix(tests): 소스 전수 열거가 중첩 worktree 까지 훑었다 — 호스트 의존 red (main-011) (ca2db5ba)
-- fix(docs): CLAUDE.md 스탬프 + 유예가 로컬 게이트를 가린 자리 등록 (main-009) (c2c7593f)
-- fix(cli): 모르는 인자를 거절한다 — 조용히 버리면 요청과 다른 일을 한다 (main-008) (8ee16bdc)
-- ... (194 more)
+- ... (198 more)
+
+## [1.20.0] - 2026-10-06
+
+### Changed
+
+- release(v1.20.0): 발행 준비 — 진입점 다이어트 + AI-native SDLC A1~A3 + MiniMax Code 채널 (997b2b3b)
 
 ## [1.19.0] - 2026-10-02
 
 ### Changed
 
+- release(v1.19.0): 발행 완료 — 태그 push + GitHub Release(asset 4종) + 발행 wheel 격리 실측 + §2.8 (e5f48f3e)
 - release(v1.19.0): 발행 준비 — Windows: cp949 stdio/텍스트 I/O UTF-8 고정 + 하네스 호출 python -m workflow_kit 전환 (ea193113)
 
 ## [1.18.0] - 2026-10-02

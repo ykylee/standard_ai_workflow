@@ -84,3 +84,20 @@ task 파일에 `## 🧭 Plan` 절 — 바뀌는 파일 · 작업 순서 · 위�
   그 절을 보수적으로 남길 뿐이다).
 - verifier subagent 의 실제 로드(도구 제한 포함)는 Claude Code 재시작 뒤 실측 대기 (TASK-2026-10-05-main-003).
 - Windows 실물(cp949 · `python -m workflow_kit`)은 여전히 실측 대기 (TASK-2026-10-02-main-006 · 007).
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-10-06T01:27:19Z)_
+
+- total wiki pages: **97**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

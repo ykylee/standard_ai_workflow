@@ -4,7 +4,8 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-10-02 (114차 세션 **종료** — Linux 호스트. main-006 · 007 구현(Windows cp949 · wk.exe 백신 차단 → python -m workflow_kit) + main-008 **v1.19.0 발행**, 006 · 007 은 Windows 실측 대기)
+- 최종 수정일: 2026-10-06 (116차 — 플레이북 검토 · A1~A3 · 진입점 다이어트 · **v1.20.0 발행**)
+- 이전 수정일: 2026-10-02 (114차 세션 **종료** — Linux 호스트. main-006 · 007 구현(Windows cp949 · wk.exe 백신 차단 → python -m workflow_kit) + main-008 **v1.19.0 발행**, 006 · 007 은 Windows 실측 대기)
 - 이전 수정일: 2026-10-02 (113차 세션 **종료** — Linux 호스트. main-004 close: worktree 합류 반영 — 병합된 브랜치 메모리를 모 브랜치 메모리에 기록하고 아카이브 → **v1.18.0 발행** (main-005))
 - 이전 수정일: 2026-10-02 (112차 세션 **종료** — Linux 호스트. 원격 11커밋(110·111차 worktree 세션 · macOS main-014) 동기화 + main-001 close: worktree seed 가 모 브랜치 내용을 이어받는다(원류 기록 · 합류 시 되돌려 적기) → **v1.17.0 발행** (main-002) · 후속 main-003 등록)
 - 이전 수정일: 2026-09-30 (109차 세션 **종료** — Linux 호스트. main-009 · 010 · 011 close: Codex 인증 압축 왕복 실측 → 세 hook `failed`(`[` 머리말 JSON 오판) · 재주입 0 → `--output-format codex-json` 수리 · 재실측 도달 → **v1.16.0 발행**)
@@ -61,7 +62,6 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
-- TASK-2026-10-06-main-005 x
 - TASK-2026-10-05-main-003 [A2] 새 컨텍스트 verifier subagent — task 를 done 으로 닫기 전 완료 기준을 읽기 전용으로 대조
 - TASK-2026-10-02-main-007 Windows V3 백신이 wk.exe 를 평판 기반으로 차단한다 — pip 생성 console-script 런처 대체 진입 경로
 - TASK-2026-10-02-main-006 Windows 로캘(cp949)에서 wk 가 UnicodeEncodeError 로 죽는다 — stdout 과 기본 인코딩 I/O 를 UTF-8 로 고정
@@ -72,6 +72,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-10-06-main-005 x
 - TASK-2026-10-06-main-004 x
 - TASK-2026-10-06-main-003 x
 - TASK-2026-10-06-main-002 x
@@ -81,11 +82,11 @@
 - TASK-2026-10-05-main-001 Anthropic 'The AI-native SDLC playbook' 조사·정리 + 워크플로우 적용 검토
 - TASK-2026-10-02-feat-auto-20261002-4a5d394c-003 검사 공용 관찰 래퍼 — 관찰 전용 session-start 호출을 한 곳에
 - TASK-2026-10-02-feat-auto-20261002-4a5d394c-002 검사 격리 결함 — session-start 합류 승격이 조용히 저장소를 쓴다
-- TASK-2026-10-02-feat-auto-20261002-4a5d394c-001 MiniMax Code 플러그인 채널 추가 — 페이로드 생성 + 릴리스 ZIP + 로컬 설치 sync
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
 
+- (116차) **v1.20.0 발행됨** (main-005) — 진입점 다이어트 3단계(정본 규칙 블록 3.6→2.7KB · bootstrap 템플릿 + `check_entry_budget` 8KB · `ensure-entrypoints --diet` 절 단위, 옛 생성물 해시는 `scripts/harvest_entry_sections.py`) + AI-native SDLC A1~A3(task Plan 절 · verifier · 검사 약화 차단 hook) + MiniMax Code 채널. 이 호스트 §2.8 완료 — claude-code · codex 재시작 필요. **verifier 실측 대기**(main-003): 재시작 뒤 `subagent_type=verifier` 로 task 1건 → 쓰기 도구 미노출 확인 후 done. macOS: §2.8(→1.20.0, MiniMax 포함 — RELEASE.md §2.8 에 MiniMax 절차 없음). 새 발행이 진입점 템플릿을 바꾸면 harvest 재실행.
 - (합류 `feat/auto-20261002-4a5d394c@e98bc3a6`, 2026-10-03) feat/auto-20261002-4a5d394c 워크스페이스 seed (2026-10-02). 아직 작업 전이다. — 완료 3건(TASK-2026-10-02-feat-auto-20261002-4a5d394c-001, TASK-2026-10-02-feat-auto-20261002-4a5d394c-002, TASK-2026-10-02-feat-auto-20261002-4a5d394c-003) · 이월 0건 · 되돌려 적음 0건. 기록: [`archived/feat/auto-20261002-4a5d394c/session_handoff.md`](../../archived/feat/auto-20261002-4a5d394c/session_handoff.md) · [합류 기록](./sessions/merge_feat-auto-20261002-4a5d394c_2026-10-03.md)
 - (합류 `claude/remote-sync-status-1ce0a3@f1a4b633`, 2026-10-03) claude/remote-sync-status-1ce0a3 워크스페이스 — `main@309c9ddf` 에서 이어받음 (2026-10-02, macOS 호스트). **이 브랜치 작업 2건 done (TASK-2026-10-02-claude-remote-sync-status-1ce0a3-002 M-007/WBS-7.4 · -003 M-007/WBS-7.2)** — 이 호스트 v1.19.0 §2.8 재적용(4채널 + MCP 해석기… — 완료 2건(TASK-2026-10-02-claude-remote-sync-status-1ce0a3-002, TASK-2026-10-02-claude-remote-sync-status-1ce0a3-003) · 이월 0건 · 되돌려 적음 0건. 기록: [`archived/claude/remote-sync-status-1ce0a3/session_handoff.md`](../../archived/claude/remote-sync-status-1ce0a3/session_handoff.md) · [합류 기록](./sessions/merge_claude-remote-sync-status-1ce0a3_2026-10-03.md)
 - (114차) **v1.19.0 발행됨 (main-008) — Windows 실측 대기, main-006 · 007 은 Linux 재현 조건으로만 검증해 in_progress.** 이 호스트는 §2.8 완료(behind=[] disabled=[]), claude-code · codex 재시작 필요(runtime_load), Codex hook 재신뢰 필요. Windows 호스트는 v1.19.0 wheel 로 갱신한 뒤 아래를 잰다. 소유자 보고 2건(같은 Windows · OpenCode 데스크톱): ①cp949 — 파이프 stdio 가 로캘 인코딩이라 `—` 출력에서 exit 2 → `common/stdio.force_utf8_stdio` + 텍스트 I/O 115곳 encoding 명시 + `check_text_io_encoding`. ②V3 가 `wk.exe`(pip 설치별 서명 없는 런처)를 평판 차단 → 하네스 호출을 `python -m workflow_kit <명령>` 으로 전환(소유자 결정, 셸 미상): 정본 §11.1 · 스킬 · 진입점 블록 · hook(python3→python import 탐침) · doctor(해석기별 import 실측) · 런타임 안내 30곳, `check_kit_invocation`. Windows 에서 확인할 것: `python -m workflow_kit session-start` rc 0 · OpenCode 에서 워크플로우 왕복 · `python -m workflow_kit doctor` 의 kit 해석기 줄 · OpenCode 실행 셸 종류(기록). 

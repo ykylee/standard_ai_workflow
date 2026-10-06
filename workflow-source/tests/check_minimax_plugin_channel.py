@@ -23,10 +23,17 @@ case 구성:
      되고, 되돌리면 원래 상태로 돌아간다. 백업이 마켓플레이스 **밖**에 생긴다.
   7. **그림자 manifest 거부** — 설치 대상에 루트 ``plugin.json`` 이 있으면 지우지
      않고 실패한다 (MiniMax manifest 를 가릴 수 있다).
+  8. **반영 보고는 반영 전 기준** (TASK-2026-10-06-main-009) — ``--apply`` 가 반영
+     뒤 상태만 찍어 처음 설치도 "전부 이미 일치" · "설치본: <새 버전>" 으로 읽혔다.
+     ``before`` 가 반영 전 버전·계획을 싣고, ``written`` 은 바뀐 파일만, 텍스트는
+     ``<옛 버전> → <새 버전>`` 과 반영 전 계획을 낸다. 재실행은 0개 · 백업 없음,
+     일부만 바뀌면 그 파일만 쓴다. 반영 뒤 불일치는 텍스트 · ``--json`` 모두 rc 1.
 """
 
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import re
 import shutil
@@ -41,6 +48,7 @@ sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit import __version__ as VERSION  # noqa: E402
 from workflow_kit.minimax_plugin import (  # noqa: E402
+    main as minimax_sync_main,
     plan_minimax_sync,
     sync_minimax_plugin,
 )
@@ -431,6 +439,88 @@ def _probe_mcp_servers_support() -> str:
         return f"SKIP (관찰 실패: {type(error).__name__})"
 
 
+def _run_cli(argv: list[str]) -> tuple[int, str]:
+    # 예외는 판정으로 바꾼다 — 죽으면 앞서 쌓인 FAIL 이 출력되지 않는다.
+    buffer = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(buffer):
+            code = minimax_sync_main(argv)
+    except Exception as error:  # noqa: BLE001
+        FAILURES.append(f"sync CLI 가 예외로 죽었다: {error!r}")
+        return -1, buffer.getvalue()
+    return code, buffer.getvalue()
+
+
+def check_apply_report_before_state() -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        plugin_dir = _stale_plugin_dir(root)
+        changed = {
+            action["relpath"]
+            for action in plan_minimax_sync(payload_dir=PAYLOAD_ROOT, plugin_dir=plugin_dir)["actions"]
+            if action["action"] != "unchanged"
+        }
+
+        applied = sync_minimax_plugin(payload_dir=PAYLOAD_ROOT, plugin_dir=plugin_dir, apply=True)
+        before = applied.get("before") or {}
+        _assert(
+            before.get("installed_version") == "1.14.4",
+            f"before 가 반영 전 버전을 싣지 않는다: {before.get('installed_version')}",
+        )
+        _assert(
+            {a["relpath"] for a in before.get("actions", []) if a["action"] != "unchanged"} == changed,
+            "before.actions 가 반영 전 계획과 다르다",
+        )
+        _assert(set(applied["written"]) == changed, f"written 이 바뀐 파일만이 아니다: {len(applied['written'])} vs {len(changed)}")
+
+        # 텍스트: 빈 대상 첫 설치가 '이미 일치' 로 읽히면 안 된다.
+        # 백업은 대상의 조부모 아래에 초 단위 이름으로 생긴다 — 위 반영과 같은
+        # 자리를 쓰면 같은 초에 충돌해 판정 전에 예외로 죽는다.
+        fresh = root / "fresh" / "plugins" / PLUGIN_NAME
+        fresh_plan = plan_minimax_sync(payload_dir=PAYLOAD_ROOT, plugin_dir=fresh)["actions"]
+        code, out = _run_cli(["--payload-dir", str(PAYLOAD_ROOT), "--plugin-dir", str(fresh), "--apply"])
+        _assert(code == 0, f"첫 설치 rc={code}")
+        _assert("(0개 이미 일치)" in out, f"첫 설치 텍스트가 반영 뒤 상태를 센다:\n{out}")
+        _assert(f"설치본: 없음 → {VERSION}" in out, f"첫 설치 텍스트에 '없음 → {VERSION}' 이 없다:\n{out}")
+        # 개수 줄만 보면 목록이 통째로 사라져도 green 이다 — 목록 줄을 계획과 대조한다.
+        listed = {line.split()[1] for line in out.splitlines() if line.startswith("  create ")}
+        expected_created = {a["relpath"] for a in fresh_plan if a["action"] == "create"}
+        _assert(
+            bool(expected_created) and listed == expected_created,
+            f"첫 설치 텍스트의 create 목록이 반영 전 계획과 다르다: {len(listed)} vs {len(expected_created)}",
+        )
+
+        stale = _stale_plugin_dir(root / "stale2")
+        code, out = _run_cli(["--payload-dir", str(PAYLOAD_ROOT), "--plugin-dir", str(stale), "--apply", "--no-backup"])
+        _assert(f"설치본: 1.14.4 → {VERSION}" in out, f"갱신 텍스트에 '1.14.4 → {VERSION}' 이 없다:\n{out}")
+
+        # 재실행: 쓴 파일 0 · 백업 없음 · 텍스트가 무변경을 말한다.
+        again = sync_minimax_plugin(payload_dir=PAYLOAD_ROOT, plugin_dir=fresh, apply=True)
+        _assert(again["written"] == [], f"재실행이 파일을 썼다: {again['written']}")
+        _assert(again["backup_dir"] is None, f"무변경 재실행이 백업을 만들었다: {again['backup_dir']}")
+        code, out = _run_cli(["--payload-dir", str(PAYLOAD_ROOT), "--plugin-dir", str(fresh), "--apply"])
+        _assert("바뀐 파일 없음" in out, f"무변경 재실행 텍스트가 무변경을 말하지 않는다:\n{out}")
+        _assert("→" not in out, f"무변경 재실행 텍스트에 버전 화살표가 찍혔다:\n{out}")
+
+        # 일부만 바뀐 설치본: 위 fixture 는 전 파일이 create/update 라 written 필터를
+        # 단독으로 못 잡는다 — 한 파일만 고쳐 written 이 그 하나인지 잰다.
+        touched = "skills/doc-sync/SKILL.md"
+        (fresh / touched).write_text("drifted\n", encoding="utf-8")
+        partial = sync_minimax_plugin(payload_dir=PAYLOAD_ROOT, plugin_dir=fresh, apply=True, backup=False)
+        _assert(partial["written"] == [touched], f"일부 갱신의 written 이 그 파일만이 아니다: {partial['written']}")
+
+        # 반영 뒤 불일치는 텍스트 · JSON 모두 rc 1 — payload manifest 버전을 kit 과 다르게 둔다.
+        skewed = root / "skewed-payload"
+        shutil.copytree(PAYLOAD_ROOT, skewed, symlinks=True)
+        manifest = json.loads((skewed / MINIMAX_MANIFEST_RELPATH).read_text(encoding="utf-8"))
+        manifest["version"] = "0.0.1"
+        (skewed / MINIMAX_MANIFEST_RELPATH).write_text(json.dumps(manifest), encoding="utf-8")
+        for extra_args in ([], ["--json"]):
+            target = root / f"skew{len(extra_args)}" / "plugins" / PLUGIN_NAME
+            code, out = _run_cli(["--payload-dir", str(skewed), "--plugin-dir", str(target), "--apply", *extra_args])
+            _assert(code == 1, f"반영 뒤 불일치인데 rc={code} ({extra_args or 'text'})")
+
+
 def main() -> int:
     missing = _missing_payload_assets()
     if missing:
@@ -448,6 +538,7 @@ def main() -> int:
     check_archive_isolation()
     check_local_sync()
     check_shadow_manifest_refused()
+    check_apply_report_before_state()
 
     if FAILURES:
         for failure in FAILURES:

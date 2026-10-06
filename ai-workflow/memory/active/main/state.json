@@ -42,6 +42,7 @@
       "TASK-2026-10-02-main-003"
     ],
     "recent_done_items": [
+      "TASK-2026-10-06-main-009 — minimax_plugin --apply 출력이 반영 뒤 상태를 찍어 무엇이 바뀌었는지 오독된다",
       "TASK-2026-10-06-main-008 — RELEASE.md §2.8 에 minimax-code 재적용 · 확인 절차 보강",
       "TASK-2026-10-06-main-007 — v1.20.1 발행 — backlog-update handoff 제목 동기화 수리 (patch)",
       "TASK-2026-10-06-main-006 — backlog-update 의 handoff 동기화가 보존된 task 제목 대신 입력 --task-name 을 쓴다",
@@ -50,15 +51,14 @@
       "TASK-2026-10-06-main-003 — [진입점 다이어트 2] bootstrap 생성 진입점 템플릿 다이어트 + 하네스별 진입점 바이트 예산 검사",
       "TASK-2026-10-06-main-002 — [진입점 다이어트 1] 정본 생성 규칙 블록(§1 · §8 · §11) 압축 — 모든 진입점 · 스킬 공통 3.6KB",
       "TASK-2026-10-06-main-001 — CLAUDE.md 다이어트 — 12,184B 중 고칠 수 있는 8.5KB 를 걷는다 (생성 규칙 블록 3.6KB 는 그대로)",
-      "TASK-2026-10-05-main-004 — [A3] 검사 약화 차단 가드 hook — --no-verify push · --no-lock 전량 · gate_evidence 직접 쓰기를 이유와 함께 막는다",
-      "TASK-2026-10-05-main-003 — [A2] 새 컨텍스트 verifier subagent — task 를 done 으로 닫기 전 완료 기준을 읽기 전용으로 대조"
+      "TASK-2026-10-05-main-004 — [A3] 검사 약화 차단 가드 hook — --no-verify push · --no-lock 전량 · gate_evidence 직접 쓰기를 이유와 함께 막는다"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-10-06.md",
-    "task_count": 9,
+    "task_count": 10,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
@@ -70,7 +70,8 @@
       "TASK-2026-10-06-main-006 — backlog-update 의 handoff 동기화가 보존된 task 제목 대신 입력 --task-name 을 쓴다",
       "TASK-2026-10-06-main-007 — v1.20.1 발행 — backlog-update handoff 제목 동기화 수리 (patch)",
       "TASK-2026-10-05-main-003 — [A2] 새 컨텍스트 verifier subagent — task 를 done 으로 닫기 전 완료 기준을 읽기 전용으로 대조",
-      "TASK-2026-10-06-main-008 — RELEASE.md §2.8 에 minimax-code 재적용 · 확인 절차 보강"
+      "TASK-2026-10-06-main-008 — RELEASE.md §2.8 에 minimax-code 재적용 · 확인 절차 보강",
+      "TASK-2026-10-06-main-009 — minimax_plugin --apply 출력이 반영 뒤 상태를 찍어 무엇이 바뀌었는지 오독된다"
     ]
   },
   "next_documents": [

@@ -34,7 +34,7 @@ sync 가 같은 정본을 공유하게 하려는 의도다 — 두 대상이 갈
 
 - 기본이 **dry-run** 이다. 실제 반영은 ``--apply`` 를 줘야 한다.
 - 반영 전에 기존 설치본을 타임스탬프 디렉터리로 **백업**한다. 되돌리기는 그
-  디렉터리를 다시 복사하면 된다.
+  디렉터리를 다시 복사하면 된다. 쓸 파일이 없으면 (이미 일치) 백업도 만들지 않는다.
 - 설치 대상에 **루트 ``plugin.json`` 이 있으면 실패**한다 (가린다면 모르는 사이
   조용히 MiniMax manifest 가 꺼진다). 사용자가 직접 넣은 파일을 임의로 지우지
   않는다 — 알리고 멈춘다.
@@ -186,6 +186,11 @@ def sync_minimax_plugin(
 
     되돌리기: 반환값의 ``backup_dir`` 이 ``plugin_dir`` 을 통째로 받은 디렉터리다.
     그 안의 내용을 다시 ``plugin_dir`` 로 복사하면 이전 상태로 돌아간다.
+
+    반영하면 최상위 필드는 **반영 뒤** 상태이고, 반영 **전** 상태는 ``before``
+    (``installed_version`` · ``actions``) 에 따로 싣는다. 반영 뒤 상태만 보고하면
+    처음 설치도 "전부 이미 일치" 로 읽힌다. ``written`` 은 실제로 쓴 파일
+    (``create`` · ``update``) 만 센다.
     """
     plan = plan_minimax_sync(payload_dir=payload_dir, plugin_dir=plugin_dir)
     if not apply:
@@ -195,8 +200,10 @@ def sync_minimax_plugin(
     target = Path(plan["plugin_dir"])
     spec = PLUGIN_HARNESS_SPECS["minimax-code"]
 
+    to_write = {action["relpath"] for action in plan["actions"] if action["action"] != "unchanged"}
     backup_dir: Path | None = None
-    if backup and target.is_dir():
+    # 쓸 파일이 없으면 백업도 만들지 않는다 — 재실행마다 같은 사본이 쌓인다.
+    if backup and to_write and target.is_dir():
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         # 백업은 마켓플레이스 디렉터리 **밖**에 둔다. 안쪽이면 `local` 마켓플레이스가
         # 디렉터리를 스캔해 백업본을 플러그인으로 등록한다.
@@ -208,13 +215,21 @@ def sync_minimax_plugin(
 
     written: list[str] = []
     for rel, path in _selected_files(source, spec.include_prefixes):
+        if rel not in to_write:
+            continue
         destination = target / rel
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(path, destination)
         written.append(rel)
 
     result = plan_minimax_sync(payload_dir=source, plugin_dir=target)
-    return {**result, "applied": True, "backup_dir": str(backup_dir) if backup_dir else None, "written": written}
+    return {
+        **result,
+        "applied": True,
+        "before": {"installed_version": plan["installed_version"], "actions": plan["actions"]},
+        "backup_dir": str(backup_dir) if backup_dir else None,
+        "written": written,
+    }
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -235,27 +250,41 @@ def main(argv: Sequence[str] | None = None) -> int:
         backup=not args.no_backup,
     )
 
+    # 반영 뒤에도 불일치면 텍스트 · JSON 모두 rc 1 — 출력 형식이 판정을 바꾸지 않는다.
+    failed = bool(result["applied"]) and not result["in_sync"]
     if args.json:
         print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
+        return 1 if failed else 0
 
+    # 반영했으면 계획과 버전은 반영 **전** 기준으로 보여 준다 — 반영 뒤 상태로
+    # 찍으면 처음 설치도 "전부 이미 일치" 로 읽힌다.
+    before = result.get("before") or result
+    installed = before["installed_version"] or "없음"
+    if result["applied"] and before["installed_version"] != result["installed_version"]:
+        installed = f"{installed} → {result['installed_version'] or '없음'}"
     print(f"payload  : {result['payload_dir']}")
     print(f"설치 대상: {result['plugin_dir']}")
-    print(f"kit      : {result['kit_version']}  ·  설치본: {result['installed_version'] or '없음'}")
-    for action in result["actions"]:
+    print(f"kit      : {result['kit_version']}  ·  설치본: {installed}")
+    for action in before["actions"]:
         if action["action"] == "unchanged":
             continue
         print(f"  {action['action']:9} {action['relpath']}")
-    unchanged = sum(1 for action in result["actions"] if action["action"] == "unchanged")
+    unchanged = sum(1 for action in before["actions"] if action["action"] == "unchanged")
     print(f"  ({unchanged}개 이미 일치)")
     for rel in result["extra"]:
         print(f"  extra    {rel} (지우지 않음 — 소유자 판단)")
     if not result["applied"]:
         print("DRY-RUN: `--apply` 로 실제 반영한다")
         return 0
-    print(f"APPLIED: {len(result['written'])}개 파일 기록")
+    if result["written"]:
+        print(f"APPLIED: {len(result['written'])}개 파일 기록")
+    else:
+        print("APPLIED: 바뀐 파일 없음 — 이미 정본과 일치")
     if result["backup_dir"]:
         print(f"백업    : {result['backup_dir']}")
+    if failed:
+        print("경고    : 반영 뒤에도 정본과 일치하지 않는다 — `--json` 의 actions 를 확인한다")
+        return 1
     return 0
 
 

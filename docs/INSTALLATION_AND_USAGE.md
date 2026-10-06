@@ -333,7 +333,7 @@ pi install git:github.com/ykylee/standard_ai_workflow@v1.20.1
 # 설치도 갱신도 "디렉터리를 직접 쓰는 것"이고, 전용 갱신 명령이 없다 — 그래서 이
 # sync 가 그 갱신 surface 다. 기본이 dry-run 이다.
 python -m workflow_kit.minimax_plugin            # 무엇이 갱신될지 보기 (디스크 무변경)
-python -m workflow_kit.minimax_plugin --apply    # 반영 (기존 설치본 자동 백업)
+python -m workflow_kit.minimax_plugin --apply    # 반영 (바뀌는 파일이 있으면 기존 설치본 자동 백업)
 # 되돌리기: 출력이 알려주는 백업 디렉터리를 ~/.minimax/plugins/standard-ai-workflow/ 로 복사
 ```
 

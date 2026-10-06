@@ -71,6 +71,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-10-06-main-009 minimax_plugin --apply 출력이 반영 뒤 상태를 찍어 무엇이 바뀌었는지 오독된다
 - TASK-2026-10-06-main-008 RELEASE.md §2.8 에 minimax-code 재적용 · 확인 절차 보강
 - TASK-2026-10-05-main-003 [A2] 새 컨텍스트 verifier subagent — task 를 done 으로 닫기 전 완료 기준을 읽기 전용으로 대조
 - TASK-2026-10-06-main-007 v1.20.1 발행 — backlog-update handoff 제목 동기화 수리 (patch)
@@ -80,7 +81,6 @@
 - TASK-2026-10-06-main-003 [진입점 다이어트 2] bootstrap 생성 진입점 템플릿 다이어트 + 하네스별 진입점 바이트 예산 검사
 - TASK-2026-10-06-main-002 [진입점 다이어트 1] 정본 생성 규칙 블록(§1 · §8 · §11) 압축 — 모든 진입점 · 스킬 공통 3.6KB
 - TASK-2026-10-06-main-001 CLAUDE.md 다이어트 — 12,184B 중 고칠 수 있는 8.5KB 를 걷는다 (생성 규칙 블록 3.6KB 는 그대로)
-- TASK-2026-10-05-main-004 [A3] 검사 약화 차단 가드 hook — --no-verify push · --no-lock 전량 · gate_evidence 직접 쓰기를 이유와 함께 막는다
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

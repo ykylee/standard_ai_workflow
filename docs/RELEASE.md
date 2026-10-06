@@ -321,7 +321,7 @@ agy plugin install ./plugin
 #   디렉터리를 직접 쓰는 sync 가 곧 재적용이다 (INSTALLATION_AND_USAGE.md §7.0).
 #   복사 원본은 이 저장소 plugin/, 버전은 실행한 해석기의 kit — 새 kit 이 깔린 .venv 로 돌린다.
 .venv/bin/python3 -m workflow_kit.minimax_plugin            # dry-run — 무엇이 바뀌는지
-.venv/bin/python3 -m workflow_kit.minimax_plugin --apply    # 반영 (기존 설치본 자동 백업)
+.venv/bin/python3 -m workflow_kit.minimax_plugin --apply    # 반영 (바뀌는 파일이 있으면 기존 설치본 자동 백업)
 
 # pi-dev — 경로 참조라 할 일 없다.
 ```

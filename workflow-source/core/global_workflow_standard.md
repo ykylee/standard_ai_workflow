@@ -3,19 +3,22 @@
 - 문서 목적: 모든 저장소에서 공통으로 적용되는 AI 에이전트 협업 표준을 정의한다.
 - 범위: 문서 구조, 세션 핸드오프, 작업 분류 및 모드(Task Modes) 기준
 - 상태: stable
-- 최종 수정일: 2026-10-05
+- 최종 수정일: 2026-10-06
 - 관련 문서: `../templates/project_workflow_profile_template.md`, `../templates/session_handoff_template.md`, `../templates/work_backlog_template.md`, **외부 contract: [`./orchestrator_subagent_contract_v1.md`](./orchestrator_subagent_contract_v1.md)**, [`./workflow_agent_topology.md`](./workflow_agent_topology.md)
 
 ## 1. Core Principles
 
-- Start every session by reading the current state summary documents first.
-- Before starting work, briefly state its purpose, scope, expected deliverables, and affected documents — and record the plan in the task file (files that change, order of work, risks, proof) so it outlives the conversation.
-- Record work in the state documents; track progress as exactly one of `planned`, `in_progress`, `blocked`, `done`.
+- Read the state summary documents first, every session.
+- Before starting work, state its purpose, scope, deliverables, and affected documents, and record the plan in the task file (files, order of work, risks, proof).
+- Track work in the state documents with exactly one status: `planned`, `in_progress`, `blocked`, `done`.
 - Never mark an unverified result as done.
-- Before ending a session, summarize the current state so the next session can pick it up directly.
-- Multiple agents may work together: sync with the remote before starting, check what other agents are doing, and pick work that does not overlap.
-- Never decide irreversible actions alone — deleting or overwriting another agent's work requires confirmation from the user.
-- Keep the shared standard thin; put project-specific differences in the project profile.
+- Before ending a session, leave a state summary the next session can resume from.
+- With multiple agents: sync with the remote first, check what the others are doing, and pick work that does not overlap.
+- Never decide irreversible actions alone — deleting or overwriting another agent's work needs the user's confirmation.
+- Keep the shared standard thin; project-specific differences go in the project profile.
+
+진입점 블록은 위 bullet 만 싣는다 (진입점 다이어트, TASK-2026-10-06-main-002). 계획을 task 파일에 남기는 이유는
+대화가 compact · 세션 경계에서 사라지고 결과를 계획과 대조할 근거가 없어서다 (TASK-2026-10-05-main-002).
 
 ## 1.1 언어와 보고 원칙
 
@@ -129,7 +132,9 @@
 
 ## 8. Session Close Principles and Procedure
 
-Close a session in the order **update memory → commit → push**. Do not split the memory update into a separate turn after the commit, so that pushed commits always carry the memory update with them (collaboration consistency).
+Close a session in the order **update memory → commit → push** — the memory update rides in the pushed commit, never in a later turn.
+
+협업 정합성 때문이다: push 된 커밋이 늘 메모리 갱신을 함께 싣고 있어야 다른 에이전트가 같은 상태를 본다.
 
 **8.1 Close procedure (memory → commit → push)**
 1. **Update memory** (immediately before the commit): reflect today's results in the state documents.
@@ -235,24 +240,27 @@ Measured (2026-08-11): prose such as "(none ...)" left in an empty handoff list 
 | Register / update a task | `python -m workflow_kit backlog-update` |
 | Sync affected documents (advisory) | `python -m workflow_kit doc-sync` |
 | Regenerate state.json at session close | `python -m workflow_kit refresh-state` |
-| Roll off handoff §1 baselines when over cap | `python -m workflow_kit rollover-baselines` |
-| Roll off handoff §5 accumulated notes when over budget | `python -m workflow_kit rollover-handoff-notes` |
-| Propose memory_index promotion candidates at close (advisory, no write) | `python -m workflow_kit suggest-memory-entries` |
-| Relay working state across a context compaction (skill + hooks) | `python -m workflow_kit compact-checkpoint` |
+| Roll off handoff §1 baselines over cap | `python -m workflow_kit rollover-baselines` |
+| Roll off handoff §5 notes over budget | `python -m workflow_kit rollover-handoff-notes` |
+| Propose memory_index entries at close (advisory) | `python -m workflow_kit suggest-memory-entries` |
+| Relay working state across compaction | `python -m workflow_kit compact-checkpoint` |
 
-- Run these with the Python interpreter that has `workflow_kit` installed — `python` on Windows, usually `python3` on macOS / Linux. Do not call a `wk` executable instead: on Windows it is an unsigned per-install launcher that reputation-based antivirus blocks.
+- Run them with the Python that has `workflow_kit` installed (`python` on Windows, usually `python3` elsewhere) — not a `wk` executable, which Windows antivirus blocks.
+
+`wk.exe` 는 pip 가 설치마다 만드는 서명 없는 런처라 평판 기반 백신(실측: AhnLab V3)이 막는다 (TASK-2026-10-02-main-007).
 
 **11.2 Parsing contract** — holds even when writing by hand instead of using the tools
 
-- When the handoff's `in_progress` / `blocked` lists are empty, leave an **empty bullet `-`**. Prose there is parsed as a work item.
-- Entries in the handoff's recently-completed list start with `TASK-` and never exceed 10.
-- A backlog task's `status` is one of `planned` / `in_progress` / `blocked` / `done`.
-- `state.json` is a **generated artifact** — never hand-edit it. The SSOT is `backlog/tasks/` plus `session_handoff.md`; regenerate with `python -m workflow_kit refresh-state` at session close.
-- Handoff §1 baseline lines have a cap. When it is exceeded, **move** the excess with
-  `python -m workflow_kit rollover-baselines` — never delete them by hand. That prose exists nowhere else,
-  unlike the recently-done list whose SSOT is `backlog/tasks/`.
-- Handoff §5 accumulated sections (everything outside the declared current-section list) have a byte budget. When it is exceeded, **move** the oldest with `python -m workflow_kit rollover-handoff-notes` — rules go to `lessons.md`, other notes to `sessions/`.
-- `session_handoff.md` and the backlog are **inputs to the state.json generator** — writing outside the format silently corrupts state.json.
+- Empty handoff `in_progress` / `blocked` lists hold an **empty bullet `-`** — prose there is parsed as a work item.
+- Handoff recently-completed entries start with `TASK-`, at most 10.
+- `state.json` is a **generated artifact** — never hand-edit it; regenerate with `refresh-state` (sources: `backlog/tasks/` + `session_handoff.md`).
+- Over the handoff §1 baseline cap, **move** lines with `rollover-baselines` — never delete them.
+- Over the handoff §5 notes budget, **move** the oldest with `rollover-handoff-notes` (rules → `lessons.md`, notes → `sessions/`).
+- Write the handoff and backlog only in their format — they feed the state.json generator.
+
+근거 (진입점에는 싣지 않는다): §1 기준선 산문은 다른 어디에도 없어 손으로 지우면 사라진다 — 최근 완료 목록은 정본이
+`backlog/tasks/` 라 다르다. §5 의 '누적형' 은 선언된 현재형 절 목록(`HANDOFF_S5_CURRENT_SECTIONS`) 밖의 절이다. 형식 밖의
+문장은 state.json 을 조용히 오염시킨다 (2026-08-11 실측: 빈 목록의 "(없음 …)" 산문이 작업 1건으로 읽혔다).
 
 ## 다음에 읽을 문서
 

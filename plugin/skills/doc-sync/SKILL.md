@@ -33,16 +33,15 @@ python -m workflow_kit doc-sync --help
 - Register / update a task: `python -m workflow_kit backlog-update`
 - Sync affected documents (advisory): `python -m workflow_kit doc-sync`
 - Regenerate state.json at session close: `python -m workflow_kit refresh-state`
-- Roll off handoff §1 baselines when over cap: `python -m workflow_kit rollover-baselines`
-- Roll off handoff §5 accumulated notes when over budget: `python -m workflow_kit rollover-handoff-notes`
-- Propose memory_index promotion candidates at close (advisory, no write): `python -m workflow_kit suggest-memory-entries`
-- Relay working state across a context compaction (skill + hooks): `python -m workflow_kit compact-checkpoint`
+- Roll off handoff §1 baselines over cap: `python -m workflow_kit rollover-baselines`
+- Roll off handoff §5 notes over budget: `python -m workflow_kit rollover-handoff-notes`
+- Propose memory_index entries at close (advisory): `python -m workflow_kit suggest-memory-entries`
+- Relay working state across compaction: `python -m workflow_kit compact-checkpoint`
 
-- Run these with the Python interpreter that has `workflow_kit` installed — `python` on Windows, usually `python3` on macOS / Linux. Do not call a `wk` executable instead: on Windows it is an unsigned per-install launcher that reputation-based antivirus blocks.
-- When the handoff's `in_progress` / `blocked` lists are empty, leave an **empty bullet `-`**. Prose there is parsed as a work item.
-- Entries in the handoff's recently-completed list start with `TASK-` and never exceed 10.
-- A backlog task's `status` is one of `planned` / `in_progress` / `blocked` / `done`.
-- `state.json` is a **generated artifact** — never hand-edit it. The SSOT is `backlog/tasks/` plus `session_handoff.md`; regenerate with `python -m workflow_kit refresh-state` at session close.
-- Handoff §1 baseline lines have a cap. When it is exceeded, **move** the excess with `python -m workflow_kit rollover-baselines` — never delete them by hand. That prose exists nowhere else, unlike the recently-done list whose SSOT is `backlog/tasks/`.
-- Handoff §5 accumulated sections (everything outside the declared current-section list) have a byte budget. When it is exceeded, **move** the oldest with `python -m workflow_kit rollover-handoff-notes` — rules go to `lessons.md`, other notes to `sessions/`.
-- `session_handoff.md` and the backlog are **inputs to the state.json generator** — writing outside the format silently corrupts state.json.
+- Run them with the Python that has `workflow_kit` installed (`python` on Windows, usually `python3` elsewhere) — not a `wk` executable, which Windows antivirus blocks.
+- Empty handoff `in_progress` / `blocked` lists hold an **empty bullet `-`** — prose there is parsed as a work item.
+- Handoff recently-completed entries start with `TASK-`, at most 10.
+- `state.json` is a **generated artifact** — never hand-edit it; regenerate with `refresh-state` (sources: `backlog/tasks/` + `session_handoff.md`).
+- Over the handoff §1 baseline cap, **move** lines with `rollover-baselines` — never delete them.
+- Over the handoff §5 notes budget, **move** the oldest with `rollover-handoff-notes` (rules → `lessons.md`, notes → `sessions/`).
+- Write the handoff and backlog only in their format — they feed the state.json generator.

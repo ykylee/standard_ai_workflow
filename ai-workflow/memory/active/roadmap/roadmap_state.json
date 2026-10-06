@@ -928,6 +928,27 @@
       "wbs_ref": "exempt",
       "exempt_reason": "진입점 운영 정리 — 소유자 요청, 마일스톤 미배정",
       "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-10-06-main-001.md"
+    },
+    {
+      "task_id": "TASK-2026-10-06-main-002",
+      "task_status": "done",
+      "wbs_ref": "exempt",
+      "exempt_reason": "진입점 다이어트 — 소유자 결정 2026-10-06 (템플릿 + 기존 진입점 + 정본 규칙 블록 모두), 마일스톤 미배정",
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-10-06-main-002.md"
+    },
+    {
+      "task_id": "TASK-2026-10-06-main-003",
+      "task_status": "planned",
+      "wbs_ref": "exempt",
+      "exempt_reason": "진입점 다이어트 — 소유자 결정 2026-10-06 (템플릿 + 기존 진입점 + 정본 규칙 블록 모두), 마일스톤 미배정",
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-10-06-main-003.md"
+    },
+    {
+      "task_id": "TASK-2026-10-06-main-004",
+      "task_status": "planned",
+      "wbs_ref": "exempt",
+      "exempt_reason": "진입점 다이어트 — 소유자 결정 2026-10-06 (템플릿 + 기존 진입점 + 정본 규칙 블록 모두), 마일스톤 미배정",
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-10-06-main-004.md"
     }
   ],
   "issues": []

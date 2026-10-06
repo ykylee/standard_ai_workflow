@@ -50,6 +50,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- chore(session): 세션 종료 — main-006 close (handoff 제목 동기화 수리, 미발행) · handoff · state.json 갱신 (56ce4fd4)
+- chore(session): 116차 세션 종료 — 플레이북 검토 · A1~A3 · 진입점 다이어트 · v1.20.0 발행 · handoff · state.json 갱신 (c166c6ad)
 - docs(standard): 진입점 규칙 블록 압축 — 3,635B → 2,740B, 근거는 정본 본문으로 (진입점 다이어트 1) (062c4d64)
 - docs(entry): CLAUDE.md 다이어트 — 12,184B → 7,733B (생성 규칙 블록은 바이트 동일) (55f9bb66)
 - docs(planning): Anthropic "The AI-native SDLC playbook" 조사 정리 + 워크플로우 적용 검토 (7335cd97)
@@ -78,12 +80,11 @@ All notable changes to this project will be documented in this file.
 - chore(memory): 107차 — compact 중계 M-021 close (main-006) · handoff 기준선 · state.json 재생성 (6067f865)
 - chore(session): 106차 세션 종료 — main-002 close · main-001 minimax 형식 조사 기록 · handoff · state.json 갱신 (6b8d11e8)
 - chore(state): 105차 state.json 재생성 — active/main/ 기준선에 minimax-code 갭 반영 (7b85854b)
-- docs(memory): 105차 마감 — minimax-code 플러그인 채널 갭 등록 (M-007/WBS-7.4) (38cb7208)
-- test(mcp): roundtrip 에 --literal-command — emit 된 launcher 를 치환 없이 PATH 에서 해석해 spawn (08-25-main-017 기준 2 실측 칸) (19b04e0a)
-- ... (452 more)
+- ... (454 more)
 
 ### Fixed
 
+- fix(backlog-update): handoff 동기화 · 이월 색인이 보존된 task 제목을 쓴다 (main-006) (6c348937)
 - fix(test): main 체크아웃 관찰에서 --no-reflect 없이는 session-start 가 쓴다 (4b1b5256)
 - fix(test): check_state_reconcile 도 관찰 전용 경로로 돌린다 (582763f4)
 - fix(test): session-start 합류 승격이 관찰 경로에서 저장소를 쓰지 않게 한다 (ed9eb423)
@@ -113,13 +114,19 @@ All notable changes to this project will be documented in this file.
 - fix(release): validate source 목록을 정본 하나로 — 사본이 새 source 를 못 따라감 (09-28-main-009) (9c2bd06a)
 - fix(telemetry): 검사가 실제 저장소 telemetry 에 쓰지 않게 + 러너가 증가를 red 로 (09-28-main-006) (4ea61232)
 - fix(dashboard): telemetry 를 대시보드당 스냅샷 1회로 — Panel 3·8 hit_rate 경합 (09-28-main-005) (e5d2c6f4)
-- fix(hooks): force 차단 hook 을 git 의 실제 pre-push 인터페이스로 판정 (09-25-main-002) (2dec51ca)
-- ... (198 more)
+- ... (199 more)
+
+## [1.20.1] - 2026-10-06
+
+### Changed
+
+- release(v1.20.1): 발행 준비 — backlog-update handoff 제목 동기화 수리 (patch) (ffff4900)
 
 ## [1.20.0] - 2026-10-06
 
 ### Changed
 
+- release(v1.20.0): 발행 완료 — 태그 push + GitHub Release(asset 5종) + 발행 wheel 격리 실측 + §2.8 (2e959331)
 - release(v1.20.0): 발행 준비 — 진입점 다이어트 + AI-native SDLC A1~A3 + MiniMax Code 채널 (997b2b3b)
 
 ## [1.19.0] - 2026-10-02

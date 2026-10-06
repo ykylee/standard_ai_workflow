@@ -39,3 +39,20 @@ update 병합 경로가 task 파일에서 이미 읽고 있던 원래 제목을 
 
 - 이미 기록된 `TASK-… x` 류 handoff 줄은 소급 수리하지 않는다.
 - v1.20.0 노트 §4 의 한계(verifier 실제 로드 · Windows 실물 실측 대기 등)는 그대로다.
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-10-06T02:05:35Z)_
+
+- total wiki pages: **97**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

@@ -938,7 +938,7 @@
     },
     {
       "task_id": "TASK-2026-10-06-main-003",
-      "task_status": "planned",
+      "task_status": "done",
       "wbs_ref": "exempt",
       "exempt_reason": "진입점 다이어트 — 소유자 결정 2026-10-06 (템플릿 + 기존 진입점 + 정본 규칙 블록 모두), 마일스톤 미배정",
       "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-10-06-main-003.md"

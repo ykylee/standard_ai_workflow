@@ -18,6 +18,10 @@ BACKLOG_UPDATE_SCRIPT = SOURCE_ROOT / "skills" / "backlog-update" / "scripts" / 
 # 배포 대상 core 문서의 **정본 목록**. 개수를 test 에 손으로 적지 않는다.
 sys.path.insert(0, str(SOURCE_ROOT / "scripts"))
 from workflow_kit.bootstrap_lib.__main__ import DEFAULT_CORE_DOCS  # noqa: E402
+from workflow_kit.bootstrap_lib.harnesses.entry_sections import (  # noqa: E402
+    READ_FIRST_LINES,
+    language_section,
+)
 
 
 def run_bootstrap(args: list[str]) -> dict[str, object]:
@@ -310,11 +314,13 @@ def check_opencode_only_mode() -> None:
 
         agents_text = Path(str(harness_files["codex_agents"])).read_text(encoding="utf-8")
         # 2026-08-14: 진입점 문안 영어화. 재는 질문은 그대로다.
-        if "Write user-facing work reports" not in agents_text:
+        # 2026-10-06: 진입점 공유 절 정본에서 파생 (entry_sections, 진입점 다이어트 2).
+        if language_section() not in agents_text:
             raise AssertionError("AGENTS.md should include the reporting-language rule.")
-        if "ai-workflow/memory/active/<branch>/state.json" not in agents_text:
+        # 2026-10-06: 경로 목록 대신 session-start 를 가리키는 공유 절 (entry_sections) 에서 파생.
+        if READ_FIRST_LINES[0] not in agents_text:
             raise AssertionError("AGENTS.md should direct agents to the workflow state cache.")
-        if "Do not include it in the default search scope" not in agents_text:
+        if READ_FIRST_LINES[1] not in agents_text:
             raise AssertionError("AGENTS.md should exclude ai-workflow from normal project exploration.")
         if "- Purpose:" not in agents_text:
             raise AssertionError("AGENTS.md should include doc metadata for repository smoke checks.")
@@ -419,7 +425,8 @@ def check_antigravity_mode() -> None:
             raise AssertionError("ANTIGRAVITY.md should have the correct header.")
         if "Antigravity" not in antigravity_text:
             raise AssertionError("ANTIGRAVITY.md should mention Antigravity.")
-        if "Write user-facing work reports" not in antigravity_text:
+        # 2026-10-06: 진입점 공유 절 정본에서 파생 (entry_sections, 진입점 다이어트 2).
+        if language_section() not in antigravity_text:
             raise AssertionError("ANTIGRAVITY.md should include the Korean reporting rule.")
         if "browser sub-agent" not in antigravity_text:
             raise AssertionError("ANTIGRAVITY.md should mention sub-agents.")
@@ -469,7 +476,8 @@ def check_minimax_code_mode() -> None:
             raise AssertionError("MiniMax.md should describe the orchestrator/worker split.")
         if "WorkerTask" not in minimax_text:
             raise AssertionError("MiniMax.md should reference the WorkerTask contract.")
-        if "Write user-facing work reports" not in minimax_text:
+        # 2026-10-06: 진입점 공유 절 정본에서 파생 (entry_sections, 진입점 다이어트 2).
+        if language_section() not in minimax_text:
             raise AssertionError("MiniMax.md should include the reporting-language rule.")
 
         config_text = Path(str(harness_files["minimax_config_example"])).read_text(encoding="utf-8")

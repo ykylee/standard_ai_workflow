@@ -26,6 +26,7 @@ from workflow_kit.bootstrap_lib.writes import rel, write_text
 
 #: pi-dev 전용 장의 제목 — 합쳐졌는지 판정하는 표식이자 idempotency key.
 PI_DEV_SUPPLEMENT_HEADING = "# Pi Coding Agent Profile (pi-dev only)"
+from workflow_kit.bootstrap_lib.harnesses.entry_sections import language_section, read_first_section
 from workflow_kit.common.standard_rules import (
     find_memory_command,
     load_standard_rules,
@@ -60,6 +61,8 @@ def render_antigravity_agents(args: argparse.Namespace, paths: Paths, context: d
             smoke_check = "node --version"
 
     _STANDARD_RULES = render_entrypoint_rules()
+    _READ_FIRST = read_first_section(extra=())
+    _LANGUAGE = language_section()
     return f"""# ANTIGRAVITY.md
 
 - Purpose: Provide the workflow entry rules and core working principles Antigravity should read first in this repository.
@@ -69,33 +72,11 @@ def render_antigravity_agents(args: argparse.Namespace, paths: Paths, context: d
 - Last updated: {args.today}
 - Related: `ai-workflow/memory/active/<branch>/state.json`, `ai-workflow/memory/active/<branch>/sessions`, `ai-workflow/memory/active/<branch>/backlog`, `docs/PROJECT_PROFILE.md`
 
-## Purpose
-
-Work in this repository follows the standard AI workflow. Session start, backlog updates,
-document sync, and session close all take the documents under `ai-workflow/` as the
-primary reference.
-
-## Read these first
-
-> `<branch>` is the current git branch name (`main` when this is not a git repository). Splitting per branch keeps concurrent work from overwriting itself.
-
-- `ai-workflow/memory/active/<branch>/state.json`
-- `ai-workflow/memory/active/<branch>/sessions`
-- `ai-workflow/memory/active/<branch>/backlog`
-- `docs/PROJECT_PROFILE.md`
-- `ai-workflow/wiki/index.md` — R4 anchor based; load this first when an AI agent queries
-
-`ai-workflow/` is a meta layer for session restore and workflow state. Do not include it in the default search scope when exploring project code or project documents — reference it only when updating the workflow documents themselves or restoring the current session state.
+{_READ_FIRST}
 
 {_STANDARD_RULES}
 
-## Language and context principles
-
-- Write user-facing work reports, status summaries, and document updates in Korean by default.
-- Keep code, commands, file paths, configuration keys, and external product names verbatim.
-- Handle internal reasoning and scratch classification however is most efficient, but give the user only the conclusion and the next action.
-- Avoid long intermediate reasoning, repeated summaries, and unnecessary self-explanation.
-- Keep only the facts the next session needs in the handoff and backlog, so context does not pile up.
+{_LANGUAGE}
 
 ## Project run defaults
 
@@ -151,6 +132,8 @@ def render_minimax_agents(args: argparse.Namespace, paths: Paths, context: dict[
             smoke_check = "node --version"
 
     _STANDARD_RULES = render_entrypoint_rules()
+    _READ_FIRST = read_first_section(extra=('`AGENTS.md` (workflow rules summary)',))
+    _LANGUAGE = language_section()
     return f"""# MiniMax.md
 
 - Purpose: Provide the workflow entry rules the MiniMax Code (Mavis) harness should read first in this repository.
@@ -160,21 +143,7 @@ def render_minimax_agents(args: argparse.Namespace, paths: Paths, context: dict[
 - Last updated: {args.today}
 - Related: `ai-workflow/memory/active/<branch>/state.json`, `ai-workflow/memory/active/<branch>/sessions`, `ai-workflow/memory/active/<branch>/backlog`, `docs/PROJECT_PROFILE.md`, `AGENTS.md`
 
-## Purpose
-
-Work in this repository follows the **Standard AI Workflow**. Session start, backlog updates, document sync, and session close all take the documents under `ai-workflow/` as the primary reference. MiniMax Code acts as the main orchestrator and delegates bounded-scope work to doc/code/validation workers to conserve context.
-
-## Read these first
-
-> `<branch>` is the current git branch name (`main` when this is not a git repository). Splitting per branch keeps concurrent work from overwriting itself.
-
-- `ai-workflow/memory/active/<branch>/state.json`
-- `ai-workflow/memory/active/<branch>/sessions`
-- `ai-workflow/memory/active/<branch>/backlog`
-- `docs/PROJECT_PROFILE.md`
-- `AGENTS.md` (workflow rules summary)
-
-`ai-workflow/` is a meta layer for session restore and workflow state. Do not include it in the default search scope when exploring project code or project documents — reference it only when updating the workflow documents themselves or restoring the current session state.
+{_READ_FIRST}
 
 {_STANDARD_RULES}
 - Keep the main orchestrator on coordination and integration as much as possible, and delegate tool calls, exploration, and edits to the `.MiniMax/agents/workflow-*.md` workers.
@@ -188,13 +157,7 @@ Work in this repository follows the **Standard AI Workflow**. Session start, bac
 
 When delegating to a worker, state the intent and the responsibility boundary in the `WorkerTask` shape (worker_id, task_description, input_files, output_files, constraints, context_summary). Take the result back in the `WorkerResponse` shape (status, summary, produced_artifacts, risks_identified, suggested_follow_up).
 
-## Language and context principles
-
-- Write user-facing work reports, status summaries, and document updates in Korean by default.
-- Keep code, commands, file paths, configuration keys, and external product names verbatim.
-- Handle internal reasoning and scratch classification however is most efficient, but give the user only the conclusion and the next action.
-- Avoid long intermediate reasoning, repeated summaries, and unnecessary self-explanation.
-- Keep only the facts the next session needs in the handoff and backlog, so context does not pile up.
+{_LANGUAGE}
 
 ## Project run defaults
 
@@ -445,6 +408,8 @@ def render_codex_agents(args: argparse.Namespace, paths: Paths, context: dict[st
             smoke_check = "node --version"
 
     _STANDARD_RULES = render_entrypoint_rules()
+    _READ_FIRST = read_first_section(extra=())
+    _LANGUAGE = language_section()
     return f"""# AGENTS.md
 
 - Purpose: Provide the workflow entry rules and core working principles Codex should read first in this repository.
@@ -454,33 +419,11 @@ def render_codex_agents(args: argparse.Namespace, paths: Paths, context: dict[st
 - Last updated: {args.today}
 - Related: `ai-workflow/memory/active/<branch>/state.json`, `ai-workflow/memory/active/<branch>/sessions`, `ai-workflow/memory/active/<branch>/backlog`, `docs/PROJECT_PROFILE.md`
 
-## Purpose
-
-Work in this repository follows the standard AI workflow. Session start, backlog updates,
-document sync, and session close all take the documents under `ai-workflow/` as the
-primary reference.
-
-## Read these first
-
-> `<branch>` is the current git branch name (`main` when this is not a git repository). Splitting per branch keeps concurrent work from overwriting itself.
-
-- `ai-workflow/memory/active/<branch>/state.json`
-- `ai-workflow/memory/active/<branch>/sessions`
-- `ai-workflow/memory/active/<branch>/backlog`
-- `docs/PROJECT_PROFILE.md`
-- `ai-workflow/wiki/index.md` — R4 anchor based; load this first when an AI agent queries
-
-`ai-workflow/` is a meta layer for session restore and workflow state. Do not include it in the default search scope when exploring project code or project documents — reference it only when updating the workflow documents themselves or restoring the current session state.
+{_READ_FIRST}
 
 {_STANDARD_RULES}
 
-## Language and context principles
-
-- Write user-facing work reports, status summaries, and document updates in Korean by default.
-- Keep code, commands, file paths, configuration keys, and external product names verbatim.
-- Handle internal reasoning and scratch classification however is most efficient, but give the user only the conclusion and the next action.
-- Avoid long intermediate reasoning, repeated summaries, and unnecessary self-explanation.
-- Keep only the facts the next session needs in the handoff and backlog, so context does not pile up.
+{_LANGUAGE}
 
 ## Project run defaults
 
@@ -948,45 +891,23 @@ def render_claude_code_agents(args: argparse.Namespace, context: dict[str, objec
     *정합* 을 한국어로 명시. 기존 AGENTS.md 가 있으면 `@AGENTS.md` import 안내.
     """
     _STANDARD_RULES = render_entrypoint_rules()
+    _READ_FIRST = read_first_section(extra=(
+        "Relationship to AGENTS.md: Claude Code does not read `AGENTS.md` — if the project has one, "
+        "add a single `@AGENTS.md` line to this file.",
+        "Missing `state.json` / `PURPOSE.md` is not a failure — session-start skips them and offers to scaffold.",
+    ))
+    _LANGUAGE = language_section()
     _ENTRY_COMMANDS = render_entry_command_list()
     return f"""# CLAUDE.md (Claude Code entry point)
 
-- Purpose: the *directional intent* of the standard AI workflow, plus the entry rules Claude Code needs every session
-- Scope: session restore, the order to consult workflow state docs, working principles, session close order
-- Audience: Claude Code, repository maintainer, workflow designer
+- Purpose: the entry rules Claude Code needs every session in this repository
+- Scope: session restore, working principles, session close order, run commands
+- Audience: Claude Code, repository maintainer
 - Status: beta
 - Last updated: {args.today}
 - Related: `ai-workflow/memory/active/<branch>/state.json`, `docs/PROJECT_PROFILE.md`
 
-## What this file is for
-
-- **Role**: the entry-point document Claude Code *reads automatically at session start* in this repository.
-- **Location**: `./CLAUDE.md` (or `./.claude/CLAUDE.md`) — both are read automatically.
-- **Relationship to AGENTS.md**: Claude Code does *not* read `AGENTS.md` directly. If this
-  project already has one, pull it in from `CLAUDE.md` with an `@AGENTS.md` import or a symlink:
-
-  ```bash
-  # import (add a single @AGENTS.md line inside CLAUDE.md)
-  @AGENTS.md
-
-  # or symlink (prefer the import for cross-platform setups)
-  ln -s AGENTS.md CLAUDE.md
-  ```
-
-## Read these first
-
-> `<branch>` is the current git branch name (`main` when this is not a git repository). Splitting per branch keeps concurrent work from overwriting itself.
-
-- `ai-workflow/memory/active/<branch>/state.json`
-- `ai-workflow/memory/active/<branch>/sessions`
-- `ai-workflow/memory/active/<branch>/backlog`
-- `docs/PROJECT_PROFILE.md`
-- `ai-workflow/wiki/index.md` — R4 anchor based; load this first when an AI agent queries
-- (if present) `ai-workflow/memory/active/PURPOSE.md` — directional intent one-liner + body excerpt
-
-`ai-workflow/` is a meta layer for session restore and workflow state. Do not include it in
-the default search scope when exploring project code or project documents — reference it only
-when updating the workflow documents themselves or restoring the current session state.
+{_READ_FIRST}
 
 ## Entry slash commands (additive)
 
@@ -994,24 +915,7 @@ when updating the workflow documents themselves or restoring the current session
 
 {_STANDARD_RULES}
 
-## Language and context principles
-
-- Write user-facing work reports, status summaries, and document updates in Korean by default.
-- Keep code, commands, file paths, configuration keys, and external product names verbatim.
-- Handle internal reasoning and scratch classification however is most efficient, but give
-  the user only the conclusion and the next action.
-- Avoid long intermediate reasoning, repeated summaries, and unnecessary self-explanation.
-- Keep only the facts the next session needs in the handoff and backlog, so context does not pile up.
-
-## self-bootstrap (when PURPOSE.md / state.json are absent)
-
-When `state.json` or `PURPOSE.md` is absent, the session-start skill *skips gracefully*.
-When the user invokes `/workflow-session-start` (or on automatic read), it attempts a
-*minimum-effort* baseline restore:
-
-1. `ai-workflow/memory/active/<branch>/state.json` missing → offer to scaffold it
-2. `PURPOSE.md` missing → 4-element placeholder + suggest a light `init` call
-3. `work_backlog.md` missing → empty index + guidance for registering the first task
+{_LANGUAGE}
 
 ## Project run defaults
 
@@ -1022,13 +926,6 @@ When the user invokes `/workflow-session-start` (or on automatic read), it attem
 - **smoke check**: {context.get('smoke_check_command', 'TODO')}
 
 These commands are inferred. Correct them to the project's real commands before committing.
-
-## Read next
-
-- `ai-workflow/README.md` (kit overview)
-- `docs/PROJECT_PROFILE.md` (project metadata)
-- `ai-workflow/memory/active/<branch>/sessions` (current session handoff)
-- `harnesses/claude-code/apply_guide.md` (Claude Code apply procedure)
 """
 
 
@@ -1812,6 +1709,8 @@ def render_grok_build_agents(args: argparse.Namespace, context: dict[str, object
             smoke_check = "node --version"
 
     _STANDARD_RULES = render_entrypoint_rules()
+    _READ_FIRST = read_first_section(extra=('`AGENTS.md` (entry point shared with Codex — Korean baseline + worker separation)',))
+    _LANGUAGE = language_section()
     return f"""# GROK.md (Grok Build entry point)
 
 - Purpose: the entry-point document Grok Build (the xAI CLI TUI) reads automatically every session in this repository.
@@ -1821,81 +1720,34 @@ def render_grok_build_agents(args: argparse.Namespace, context: dict[str, object
 - Last updated: {args.today}
 - Related: `AGENTS.md` (shared with Codex), `ai-workflow/memory/active/<branch>/state.json`, `ai-workflow/memory/active/<branch>/sessions`, `ai-workflow/memory/active/<branch>/backlog`, `docs/PROJECT_PROFILE.md`
 
-## Purpose
-
-Work in this repository follows the **Standard AI Workflow**. Session start, backlog updates, document sync, and session close all take the documents under `ai-workflow/` as the primary reference. Grok Build acts as the main agent and delegates bounded-scope work to the built-in subagents (`explore` / `plan`) or custom agents (`.grok/agents/`) to conserve context.
-
-## Read these first
-
-> `<branch>` is the current git branch name (`main` when this is not a git repository). Splitting per branch keeps concurrent work from overwriting itself.
-
-- `AGENTS.md` (entry point shared with Codex — Korean baseline + worker separation)
-- `ai-workflow/memory/active/<branch>/state.json`
-- `ai-workflow/memory/active/<branch>/sessions`
-- `ai-workflow/memory/active/<branch>/backlog`
-- `docs/PROJECT_PROFILE.md`
-- `ai-workflow/wiki/index.md` — R4 anchor based; load this first when an AI agent queries
-
-`ai-workflow/` is a meta layer for session restore and workflow state. Do not include it in the default search scope when exploring project code or project documents — reference it only when updating the workflow documents themselves or restoring the current session state.
+{_READ_FIRST}
 
 ## Relationship to AGENTS.md
 
-- `AGENTS.md` is the entry point shared with Codex. It defines the main agent's Korean baseline, worker separation, and the order in which to consult `ai-workflow/memory/active/` documents.
-- This `GROK.md` is a Grok Build *additive rule* — it only adds subagent usage, MCP registration, memory opt-in, and skill registration. Keep it consistent with `AGENTS.md`.
-- Where the two documents disagree, `GROK.md` wins (additive rule inside a Grok Build session). The Korean baseline stays *identical*.
-
-## Entry skill (TUI picker)
-
-- Type `/`, search for `standard-ai-workflow`, and the `.grok/skills/standard-ai-workflow/SKILL.md` emitted by this harness appears.
-- Skill body: session start, backlog update, and document sync procedures.
+- `AGENTS.md` (shared with Codex) holds the shared rules; this `GROK.md` only adds Grok Build specifics. On conflict `GROK.md` wins — keep both on the same facts.
+- Entry skill: type `/` and search `standard-ai-workflow` (`.grok/skills/standard-ai-workflow/SKILL.md`).
 
 {_STANDARD_RULES}
 - Keep the main agent on coordination and integration as much as possible, and delegate bounded-scope work to subagents / custom agents.
 
 ## Subagent principles (Grok Build multi-agent topology)
 
-- **Main agent**: talks to the user, decomposes work, invokes and integrates subagents, and owns syncing `state.json` / `session_handoff` / `work_backlog`. It does not take on tool calls itself.
-- **Built-in subagent `explore`** (read-only): codebase exploration, file search, grep — bounded-scope reads. Prefer splitting it onto a lighter model such as `--model grok-4.20-multi-agent`.
-- **Built-in subagent `plan`** (read-only): work decomposition, impact analysis, implementation planning. The main agent checks with `plan` before making tool calls.
-- **Custom agents** (`.grok/agents/`): define these when you need *role-specific personas* such as doc / code / validation workers.
-
-When invoking a subagent, state the intent and responsibility boundary explicitly (`agent_id`, `task_description`, `input_files`, `output_files`, `constraints`, `context_summary`).
+- **Main agent**: talks to the user, splits and integrates work, and owns `state.json` / handoff / backlog sync.
+- **`explore`** · **`plan`** (built-in, read-only): bounded reads and planning — check with `plan` before tool calls. **Custom agents** (`.grok/agents/`) for doc / code / validation personas.
+- Hand each subagent an explicit scope (`agent_id`, `task_description`, `input_files`, `output_files`, `constraints`, `context_summary`).
 
 ## MCP registration (`.grok/config.toml`)
 
-- Copy the `.grok/config.toml.example` emitted by this harness to `.grok/config.toml` and use that.
-- Absolute paths must be corrected:
-  - `PYTHONPATH = "/ABSOLUTE/PATH/TO/standard_ai_workflow/workflow-source"`
-  - `STANDARD_AI_WORKFLOW_ROOT = "/ABSOLUTE/PATH/TO/<project_root>"`
+- Copy `.grok/config.toml.example` to `.grok/config.toml` (or `~/.grok/config.toml`) and correct the absolute `PYTHONPATH` / `STANDARD_AI_WORKFLOW_ROOT` paths.
 - With `--enable-mcp`, the `[mcp_servers.standardAiWorkflowReadOnly]` block is emitted automatically.
 - Select the transport with `--mcp-bridge jsonrpc-bridge|stdio-sdk`. The default is `jsonrpc-bridge` (stable).
-
-### Compatibility auto-import
-
-Grok Build auto-loads these compatibility files (priority: config > claude > cursor > mcp).
-
-| Source | Format | Location |
-|---|---|---|
-| `config.toml` | Native Grok config | `~/.grok/config.toml`, `.grok/config.toml` |
-| `.claude.json` | Claude Code format | `~/.claude.json` |
-| `.cursor/mcp.json` | Cursor format | `~/.cursor/mcp.json`, `<project>/.cursor/mcp.json` |
-| `.mcp.json` | MCP standard | Project root |
-
-→ An existing workflow MCP registration in Claude / Cursor / standard MCP sources is imported automatically. **But when the same `[mcp_servers]` alias appears in several sources, config.toml wins**, so an unintended override is possible.
+- Grok also imports MCP servers from `.claude.json`, `.cursor/mcp.json`, and `.mcp.json`; on an alias clash `config.toml` wins.
 
 ## Memory (opt-in)
 
-- `~/.grok/memory/` is opt-in via `--experimental-memory` or `GROK_MEMORY=1`.
-- Do not trust the memory directory without that opt-in.
-- `[memory]` settings: `enabled`, `[memory.session] save_on_end`, `[memory.search] max_results`, `[memory.initial_injection] min_score`.
+- Trust `~/.grok/memory/` only with `--experimental-memory` or `GROK_MEMORY=1` (`[memory]` settings in `config.toml`).
 
-## Language and context principles
-
-- Write user-facing work reports, status summaries, and document updates in Korean by default.
-- Keep code, commands, file paths, configuration keys, and external product names verbatim.
-- Handle internal reasoning and scratch classification however is most efficient, but give the user only the conclusion and the next action.
-- Avoid long intermediate reasoning, repeated summaries, and unnecessary self-explanation.
-- Keep only the facts the next session needs in the handoff and backlog, so context does not pile up.
+{_LANGUAGE}
 
 ## Project run defaults
 
@@ -1914,8 +1766,6 @@ Grok Build auto-loads these compatibility files (priority: config > claude > cur
 
 ## Grok Build notes
 
-- Grok Build auto-reads both `AGENTS.md` and `GROK.md` as root entry points. On policy conflict `GROK.md` wins, but keep the two pointing at the same facts.
-- Copy `.grok/config.toml.example` into your environment configuration (`~/.grok/config.toml`, or the project-local `.grok/config.toml`). Absolute paths must be corrected.
 - Before a subagent or custom agent performs a dangerous external action (database migration, production deploy, secret rotation), get explicit user approval first.
 - {harness_note}
 """

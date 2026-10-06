@@ -41,10 +41,10 @@
     "planned_items": [
       "TASK-2026-09-30-main-001",
       "TASK-2026-10-02-main-003",
-      "TASK-2026-10-06-main-003",
       "TASK-2026-10-06-main-004"
     ],
     "recent_done_items": [
+      "TASK-2026-10-06-main-003 — [진입점 다이어트 2] bootstrap 생성 진입점 템플릿 다이어트 + 하네스별 진입점 바이트 예산 검사",
       "TASK-2026-10-06-main-002 — [진입점 다이어트 1] 정본 생성 규칙 블록(§1 · §8 · §11) 압축 — 모든 진입점 · 스킬 공통 3.6KB",
       "TASK-2026-10-06-main-001 — CLAUDE.md 다이어트 — 12,184B 중 고칠 수 있는 8.5KB 를 걷는다 (생성 규칙 블록 3.6KB 는 그대로)",
       "TASK-2026-10-05-main-004 — [A3] 검사 약화 차단 가드 hook — --no-verify push · --no-lock 전량 · gate_evidence 직접 쓰기를 이유와 함께 막는다",
@@ -53,8 +53,7 @@
       "TASK-2026-10-02-main-008 — v1.19.0 발행 — Windows: cp949 stdio/텍스트 I/O UTF-8 고정 + 하네스 호출 python -m workflow_kit 전환",
       "TASK-2026-10-02-main-005 — v1.18.0 발행 — worktree 합류 반영 (병합된 브랜치 메모리를 모 브랜치 메모리에 기록)",
       "TASK-2026-10-02-main-004 — worktree 합류 반영 — 모 브랜치에 병합된 브랜치 메모리를 모 브랜치 메모리에 기록하고 아카이브",
-      "TASK-2026-10-02-main-002 — v1.17.0 발행 — worktree 모 브랜치 이어받기 + worktree 자동 seed · meta-watch · 템플릿 검사 수리",
-      "TASK-2026-10-02-main-001 — worktree seed 가 모 브랜치 내용을 이어받는다 — 기준선 · 다음 시작 포인트 · 열린 task 복사 + 원류 기록 + 합류 시 되돌려 적기"
+      "TASK-2026-10-02-main-002 — v1.17.0 발행 — worktree 모 브랜치 이어받기 + worktree 자동 seed · meta-watch · 템플릿 검사 수리"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
@@ -66,7 +65,8 @@
     "blocked_items": [],
     "done_items": [
       "TASK-2026-10-06-main-001 — CLAUDE.md 다이어트 — 12,184B 중 고칠 수 있는 8.5KB 를 걷는다 (생성 규칙 블록 3.6KB 는 그대로)",
-      "TASK-2026-10-06-main-002 — [진입점 다이어트 1] 정본 생성 규칙 블록(§1 · §8 · §11) 압축 — 모든 진입점 · 스킬 공통 3.6KB"
+      "TASK-2026-10-06-main-002 — [진입점 다이어트 1] 정본 생성 규칙 블록(§1 · §8 · §11) 압축 — 모든 진입점 · 스킬 공통 3.6KB",
+      "TASK-2026-10-06-main-003 — [진입점 다이어트 2] bootstrap 생성 진입점 템플릿 다이어트 + 하네스별 진입점 바이트 예산 검사"
     ]
   },
   "next_documents": [

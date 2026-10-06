@@ -11,6 +11,10 @@
 
 ## 롤오프 2026-10-06
 
+- **113차 세션 (2026-10-02, Linux 호스트) — task 2건 close (TASK-2026-10-02-main-004 · 005, M-007/WBS-7.4) + v1.18.0 발행.** ①**main-004** — 소유자 지시: worktree 에서 모 브랜치로 커밋·머지할 때 모 브랜치 메모리에 기록이 반영되게. 110·111차 실측 경로 = worktree 브랜치가 main 을 받아 병합 → main ff → main 세션이 **손으로** 강제 아카이브 + §5 포인터(`84761318` · `3c31ebb0`). 소유자 결정(1번) = HEAD 에 병합된 브랜치는 **worktree 가 살아 있어도** 반영 + 아카이브. 구현 `common/branch_join`(정본): 이어받은 고친 task 되돌려 적기 + 모 브랜치 handoff 목록 이동 · 자체 열린 task 같은 ID 이월(`merged_from: <branch>@<sha>`, 사본 `carried_over_to`) · 자체 완료 → 최근 완료(seed 사건 제외) · §5 합류 줄 · `sessions/merge_<slug>_<date>.md`. `archive-branch-memory` 는 **기본 브랜치 체크아웃에서만** 반영(남의 네임스페이스가 main 을 거쳐 worktree 에 섞여도 그쪽엔 안 씀), 병합 뒤 브랜치가 더 나갔으면 skip, 이월 ID 충돌 차단, `--no-reflect`. session-start 는 반영 모드면 자동 apply + warning. check_branch_join_reflect 5 cases 신설(origin+clone+살아 있는 git worktree), 되주입 9건 각 red. ②**main-005 v1.18.0** (파생 minor) — 태그 → `1271be5f`(게이트 600/600), asset 4종, 발행 wheel 로 합류 E2E(완료 1 · 이월 1 · 되돌려 적음 1), §2.8 behind=[] disabled=[] mcp 1.18.0. 한계: 반영·아카이브 뒤 같은 worktree 에서 계속 작업해 재병합하면 아카이브 경로와 충돌 — 새 브랜치로 시작.
+
+## 롤오프 2026-10-06
+
 - **2026-09-30 macOS Codex 적용 검증 완료 (TASK-2026-09-30-main-014).** 설치본·MCP 1.16.0 일치, 사용자 hook 3종 신뢰, 새 CLI 0.147.0에서 실제 compact 왕복 3종 completed와 재주입 context 확인. 앱 재시작 후 Codex stale_hosts=0. MiniMax 채취 main-001과 기존 결함 main-012·013은 보존했다.
 
 ## 롤오프 2026-10-02

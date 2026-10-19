@@ -208,7 +208,12 @@ def main() -> int:
         # 찾고 있었고, 그래서 판정이 **호스트 저장소의 브랜치 상태**에 달려 있었다 —
         # main 에서는 통과하고 detached HEAD(CI 의 PR checkout)나 메모리 디렉터리 없는
         # 브랜치에서는 FAIL. 나머지 warning 만 본다.
-        residual = [w for w in payload.get("warnings", []) if w != STATE_ABSENT_WARNING]
+        # graph_insights 의 provenance(예: '선언 없는 goal: …')도 같은 종류다 — `--project-profile-path`
+        # 가 가리키는 **호스트 저장소**의 PURPOSE · 로드맵에서 나오는 advisory 이지 claim 산출물이 아니다
+        # (TASK-2026-10-19-main-004 에서 실제로 걸렸다). 그 항목은 graph_insights.warnings 로 따로 나오므로 뺀다.
+        advisory = set(payload.get("graph_insights", {}).get("warnings", []))
+        residual = [w for w in payload.get("warnings", [])
+                    if w != STATE_ABSENT_WARNING and w not in advisory]
         _record("test_winner_can_start_session",
                 payload.get("status") == "ok" and not residual,
                 f"status={payload.get('status')} warnings={payload.get('warnings')}")

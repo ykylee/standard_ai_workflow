@@ -318,7 +318,11 @@ def test_coverage_comes_from_declarations_not_vocabulary() -> None:
         assert result.coverage.mode == COVERAGE_MODE_UNDECLARED, result.coverage.mode
         assert result.health is not None and result.health.tier == TIER_UNMEASURED, result.health
         assert result.coverage.provenance, "못 쟀으면 사유를 내놓아야 한다 (조용한 0 금지)"
-        print("  선언 제거 → undeclared · unmeasured · 사유 보고: PASS")
+        from workflow_kit.common.purpose_graph import UNSERVED_GOAL_PREFIX
+        assert not [p for p in result.coverage.provenance if p.startswith(UNSERVED_GOAL_PREFIX)], (
+            f"선언이 0 이면 '못 쟀다' 한 줄이지 goal 전부를 '선언 없는 goal' 로 나열하지 않는다: {result.coverage.provenance}"
+        )
+        print("  선언 제거 → undeclared · unmeasured · 사유 보고 (goal 나열 없음): PASS")
 
 
 def test_leaf_declaration_wins_over_milestone() -> None:
@@ -385,6 +389,63 @@ def test_current_task_format_is_parsed_without_id_noise() -> None:
     print("  TASK- 형식 인식 + ID 토큰 누출 0 (legacy 병행): PASS")
 
 
+def test_unserved_goal_is_named_in_provenance() -> None:
+    """case 7: 어느 마일스톤 · leaf 도 선언하지 않은 goal 은 provenance 에 지목된다 (TASK-2026-10-19-main-004).
+
+    uncovered 만 보면 '일을 안 했다' 와 '닿을 자리가 없다' 가 같은 모양이다. 이 저장소 실측에서
+    G5 는 PURPOSE 개정으로 뒤늦게 추가돼 어느 마일스톤에도 없었고, session-start 는 warnings 없이
+    coverage 40 · fair 만 냈다. 두 방향을 고정한다: 전부 선언된 fixture 에는 그 줄이 **없고**, goal 을
+    하나 더 적으면 그 goal 이 **이름으로** 지목된다 (coverage 분모는 그대로 — 진짜 공백이다).
+    """
+    import json
+    import tempfile
+
+    import _goal_coverage_fixture as fixture
+    from workflow_kit.common.purpose_graph import (
+        COVERAGE_MODE_DECLARED,
+        UNSERVED_GOAL_PREFIX,
+        run_graph_insights,
+    )
+
+    with tempfile.TemporaryDirectory() as tmp:
+        ws = fixture.build_workspace(Path(tmp))
+        result = run_graph_insights(workspace_root=ws)
+        assert result.coverage is not None and result.coverage.mode == COVERAGE_MODE_DECLARED
+        assert not [p for p in result.coverage.provenance if p.startswith(UNSERVED_GOAL_PREFIX)], result.coverage.provenance
+        purpose = next(ws.rglob("PURPOSE.md"))
+        text = purpose.read_text(encoding="utf-8")
+        marker = "\n## 2. Key Questions"
+        assert marker in text
+        purpose.write_text(text.replace(marker, "- **G9**: 아무도 섬기지 않는 목표\n" + marker, 1), encoding="utf-8")
+        result = run_graph_insights(workspace_root=ws)
+        assert result.coverage is not None and result.coverage.mode == COVERAGE_MODE_DECLARED, result.coverage
+        assert "G9" in result.coverage.uncovered, result.coverage
+        assert result.coverage.total_goals == len(fixture.GOALS) + 1, result.coverage
+        lines = [p for p in result.coverage.provenance if p.startswith(UNSERVED_GOAL_PREFIX)]
+        assert len(lines) == 1 and " G9 " in lines[0] and "wbs_goals" in lines[0], result.coverage.provenance
+        for gid in fixture.GOALS:
+            assert f" {gid}" not in lines[0].split("—")[0], lines[0]
+        # 세 번째 방향 — '선언됐지만 안 닿은' goal 은 uncovered 이지만 **지목되면 안 된다**. WBS-100.2(→G2) 의
+        # 완료 항목을 지우면 G2 는 안 닿지만 선언은 있다. uncovered 기준으로 지목하는 구현(verifier R6)은 여기서 red.
+        g2_tasks = [tid for tid, _title, wbs in fixture.DONE_ITEMS if wbs.endswith("/WBS-100.2")]
+        assert g2_tasks, "fixture 에 WBS-100.2 완료 항목이 없다 — 이 방향의 전제가 깨졌다"
+        tasks_dir = next(ws.rglob("backlog/tasks"))
+        for tid in g2_tasks:
+            (tasks_dir / f"{tid}.md").unlink()
+        state = next(ws.rglob("state.json"))
+        data = json.loads(state.read_text(encoding="utf-8"))
+        session = data["session"]
+        session["recent_done_items"] = [i for i in session["recent_done_items"] if not any(t in i for t in g2_tasks)]
+        state.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+        result = run_graph_insights(workspace_root=ws)
+        assert result.coverage is not None and "G2" in result.coverage.uncovered and "G9" in result.coverage.uncovered, result.coverage
+        lines = [p for p in result.coverage.provenance if p.startswith(UNSERVED_GOAL_PREFIX)]
+        assert len(lines) == 1 and " G9 " in lines[0] and " G2" not in lines[0].split("—")[0], (
+            f"선언됐지만 안 닿은 G2 가 '선언 없는 goal' 로 지목됐다 — uncovered 와 unserved 를 섞었다: {lines}"
+        )
+        print("  전부 선언 → 지목 없음 · G9 추가 → 'G9' 지목 + 분모 +1 · 선언됐지만 안 닿은 G2 → uncovered 이되 지목 없음: PASS")
+
+
 def main() -> int:
     tests = [
         test_score_never_falls_as_work_is_done,
@@ -393,6 +454,7 @@ def main() -> int:
         test_current_task_format_is_parsed_without_id_noise,
         test_coverage_comes_from_declarations_not_vocabulary,
         test_leaf_declaration_wins_over_milestone,
+        test_unserved_goal_is_named_in_provenance,
     ]
     passed = 0
     for t in tests:

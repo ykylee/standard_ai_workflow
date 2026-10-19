@@ -140,7 +140,12 @@ def main() -> int:
         # checkout)나 메모리 디렉터리 없는 브랜치에서는 못 찾아 FAIL 했다 — 판정이
         # seed 산출물이 아니라 호스트 상태에 달려 있었다. seed 는 state.json 을
         # 일부러 만들지 않으므로(아래 test_no_state_json) 이 한 줄은 정상이다.
-        residual = [w for w in started.get("warnings", []) if w != STATE_ABSENT_WARNING]
+        # graph_insights 의 provenance(예: '선언 없는 goal: …')도 같은 종류의 잡음이다 — 호스트 저장소의
+        # PURPOSE · 로드맵에서 나오는 advisory 이지 seed 산출물이 아니다 (TASK-2026-10-19-main-004 에서
+        # 실제로 걸렸다). graph_insights.warnings 로 따로 나오므로 그 항목은 뺀다.
+        advisory = set(started.get("graph_insights", {}).get("warnings", []))
+        residual = [w for w in started.get("warnings", [])
+                    if w != STATE_ABSENT_WARNING and w not in advisory]
         _record(
             "test_session_start_has_no_warnings",
             not residual,

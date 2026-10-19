@@ -116,6 +116,10 @@ class RecentDoneItem:
 #: 인지를 값만 보고는 가를 수 없어서 함께 내보낸다.
 COVERAGE_MODE_DECLARED = "declared"
 COVERAGE_MODE_UNDECLARED = "undeclared"
+#: PURPOSE §1 에는 있는데 어느 마일스톤 · leaf 도 선언하지 않은 goal 의 provenance 접두사
+#: (TASK-2026-10-19-main-004). 그 goal 은 어떤 작업으로도 닿을 수 없으므로 uncovered 를 '일을
+#: 안 했다' 로 읽으면 틀린다 — 처방은 작업이 아니라 선언이다.
+UNSERVED_GOAL_PREFIX = "선언 없는 goal:"
 COVERAGE_MODE_NONE = "none"
 
 #: 선언이 없어 coverage 축을 못 잰 상태. `poor` 와 섞으면 실패가 나쁨으로 읽힌다.
@@ -487,6 +491,15 @@ def compute_goal_coverage_declared(
     if resolution.milestones_without_goals:
         provenance.append(
             "goals 미선언 마일스톤: " + ", ".join(resolution.milestones_without_goals)
+        )
+    # 선언 사슬의 끝 칸이 비어 있는 goal — 어느 마일스톤 · leaf 도 섬기지 않아 어떤 완료 항목도
+    # 닿을 수 없다 (이 저장소 실측 2026-10-19: G5 는 PURPOSE 개정으로 뒤늦게 추가돼 M-001~M-007
+    # 어디에도 없었다). 조용히 uncovered 로 세지 않고 처방(선언)을 같이 적는다.
+    unserved = [g for g in goal_ids if g not in resolution.declared_goal_ids]
+    if unserved and resolution.declared_goal_ids:
+        provenance.append(
+            f"{UNSERVED_GOAL_PREFIX} {', '.join(unserved)} — 어느 마일스톤 · leaf 도 섬기지 않아 "
+            "어떤 완료 항목으로도 닿을 수 없다 (milestone `goals:` 또는 `wbs_goals:` 에 적으면 닿는다)"
         )
     if unresolved:
         by_reason: dict[str, int] = {}

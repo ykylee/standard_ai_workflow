@@ -1,8 +1,8 @@
 """과거 kit 버전이 생성한 진입점 절의 해시 — **생성물, 직접 고치지 않는다.**
 
 생성: ``python3 workflow-source/scripts/harvest_entry_sections.py --tmp-dir <경로> --apply``
-채취 ref: v1.2.0-beta, 825478bc, v1.3.0, v1.5.0, v1.7.0, v1.9.4, v1.12.0, v1.14.4, v1.16.0, v1.19.0, 062c4d64
-결과: v1.2.0-beta: bootstrap 13/13 · 825478bc: bootstrap 13/13 · v1.3.0: bootstrap 13/13 · v1.5.0: bootstrap 13/13 · v1.7.0: bootstrap 13/13 · v1.9.4: bootstrap 12/13 · v1.12.0: bootstrap 12/13 · v1.14.4: bootstrap 12/13 · v1.16.0: bootstrap 12/13 · v1.19.0: bootstrap 12/13 · 062c4d64: bootstrap 12/13
+채취 ref: v1.2.0-beta, 825478bc, v1.3.0, v1.5.0, v1.7.0, v1.9.4, v1.12.0, v1.14.4, v1.16.0, v1.19.0, 062c4d64, v1.20.0
+결과: v1.2.0-beta: bootstrap 13/13 · 825478bc: bootstrap 13/13 · v1.3.0: bootstrap 13/13 · v1.5.0: bootstrap 13/13 · v1.7.0: bootstrap 13/13 · v1.9.4: bootstrap 12/13 · v1.12.0: bootstrap 12/13 · v1.14.4: bootstrap 12/13 · v1.16.0: bootstrap 12/13 · v1.19.0: bootstrap 12/13 · 062c4d64: bootstrap 12/13 · v1.20.0: bootstrap 12/13
 
 키는 절 제목(`## ` 뒤), 값은 정규화 본문(공백 묶음 → 한 칸)의 SHA-256 앞 16자.
 """
@@ -33,12 +33,12 @@ KNOWN_GENERATED: dict[str, frozenset[str]] = {
     'Entry slash commands (additive)': frozenset({'254f9c5b896931a6', 'a13947ac4dc3435c', 'bb872da29b735ad9'}),
     'Gemini CLI notes': frozenset({'38ff533944affb84'}),
     'Gemini CLI 전용 메모': frozenset({'10e86f4a51942af5'}),
-    'Grok Build notes': frozenset({'c515c6a68016d3e3'}),
+    'Grok Build notes': frozenset({'5fbd7ccc07c68061', 'c515c6a68016d3e3'}),
     'Grok Build 전용 메모': frozenset({'7fd0740c85287ff6'}),
-    'Language and context principles': frozenset({'cc88aef3663bfddb'}),
-    'MCP registration (`.grok/config.toml`)': frozenset({'713230493f4a2aad'}),
+    'Language and context principles': frozenset({'1143c009fe453594', 'cc88aef3663bfddb'}),
+    'MCP registration (`.grok/config.toml`)': frozenset({'713230493f4a2aad', '89aa63b799aa3a46'}),
     'MCP 등록 (`.grok/config.toml`)': frozenset({'13ea0e0fa732fe85'}),
-    'Memory (opt-in)': frozenset({'23071d50ff79f787', 'a71069d948860e7f'}),
+    'Memory (opt-in)': frozenset({'23071d50ff79f787', '4788f716882dc7bd', 'a71069d948860e7f'}),
     'Memory Update Paths': frozenset({'0f81e1e831016389', '14a6994a3b03d5fd', '1704435c639c6efe', '3bc0e768249cebb9', '4ae487ecc0d7f458', '4be2ac99546a961f', '6c9bef6326e717ad', '6d5900864e7171bd', '71705a671299fc77', '7ac497766ef69051', '7f3271a2293b7736', '99cb151d357a216a', '9b49202c94f7680e', 'a710b7af3050136d', 'cd73441345313983', 'd09ced4418c2f193', 'dd077134658e343b', 'ee3661a9d09289fb'}),
     'MiniMax Code notes': frozenset({'7145d5e9bbbf49e6', 'b0aed4c69a8674a6'}),
     'MiniMax Code 전용 메모': frozenset({'ef42a9ac85adf44d'}),
@@ -46,12 +46,12 @@ KNOWN_GENERATED: dict[str, frozenset[str]] = {
     'Project run defaults': frozenset({'01ffa88309deff16', 'a157f1f10c5c5ae9'}),
     'Purpose': frozenset({'143462730b38ee23', '2b6a9d64c2fb6d00', '5de3f3c2814507f6'}),
     'Read next': frozenset({'87404c62c739c0fc', '909361889924a936'}),
-    'Read these first': frozenset({'2e0beb010aad47cd', '64322e465cfbf59c', 'a0ab6ce722e2ba47', 'cb84e72164708ab7'}),
-    'Relationship to AGENTS.md': frozenset({'6d91a37f698608c1'}),
+    'Read these first': frozenset({'05d78ddfbac54664', '2cc1150864316bbe', '2e0beb010aad47cd', '64322e465cfbf59c', '6be6e8fd9f63835a', 'a0ab6ce722e2ba47', 'c450251a56fcfdf2', 'cb84e72164708ab7'}),
+    'Relationship to AGENTS.md': frozenset({'1a7543b023fbe196', '6d91a37f698608c1'}),
     'Reporting rules': frozenset({'8a6235b589011459'}),
     'Session Close Order': frozenset({'07abcc60f4b2e923', 'c4400e2cdbec4888'}),
     'Standard AI workflow entry': frozenset({'ca555ad8d456f841'}),
-    'Subagent principles (Grok Build multi-agent topology)': frozenset({'b9a6ee2c7ed0ab35'}),
+    'Subagent principles (Grok Build multi-agent topology)': frozenset({'4fad4327b0926fe5', 'b9a6ee2c7ed0ab35'}),
     'Subagent 운영 원칙 (Grok Build Multi-Agent Topology)': frozenset({'f434504de718af97'}),
     'What this file is for': frozenset({'cd0cf37793025101'}),
     'Working Principles': frozenset({'1d77de58921b774a', '25c6e7398d7121cf'}),

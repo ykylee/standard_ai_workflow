@@ -9,20 +9,26 @@ bootstrap 한 출력이다 (`.txt` — 문서 검사가 진입점 문서로 읽�
 2. 사용자가 고친 옛 절은 `edited` 로 남는다 (본문 보존)
 3. 멱등 — 다이어트한 결과를 다시 돌리면 바꿀 것이 없다
 4. `ensure-entrypoints` 배선 — `--apply` 없이는 안 쓰고, 포크 선언 파일은 `--apply` 여도 안 쓴다
+5. 한국어 제목 별칭이 현행 템플릿 제목을 가리킨다
+6. **현행 생성물 ⊆ 알려진 생성물** — 모든 하네스의 현행 bootstrap 출력 절이 `KNOWN_GENERATED` 에 있다.
+   템플릿을 바꾸고 harvest 를 다시 돌리지 않으면 red (TASK-2026-10-19-main-001 — v1.20.0 이 그렇게 빠져 있었다)
+7. 데이터 모듈이 기록한 채취 ref 가 `scripts/harvest_entry_sections.py` 의 `DEFAULT_REFS` 와 같다
 """
 from __future__ import annotations
 
 WATCHES = (
     "workflow-source/workflow_kit/*",
+    "workflow-source/scripts/harvest_entry_sections.py",
     "workflow-source/tests/fixtures/entry_diet/*",
     "workflow-source/templates/*",
     "workflow-source/core/global_workflow_standard.md",
     "workflow-source/pyproject.toml",
 )
 
-#: 현행 템플릿을 얻으려고 하네스를 bootstrap 한다.
+#: 현행 템플릿을 얻으려고 하네스를 bootstrap 한다 (case 6 은 모든 하네스를 하나씩).
 CHECK_TIMEOUT_S = 150
 
+import importlib.util
 import sys
 import tempfile
 from pathlib import Path
@@ -31,11 +37,17 @@ SOURCE_ROOT = Path(__file__).resolve().parents[1]
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
+from workflow_kit.bootstrap_lib.harnesses import SUPPORTED_HARNESSES  # noqa: E402
 from workflow_kit.bootstrap_lib.harnesses.entry_sections import ENTRY_BUDGET_BYTES  # noqa: E402
-from workflow_kit.common.entry_diet import HEADING_ALIASES, normalize, plan_diet, split_sections  # noqa: E402
+from workflow_kit.common import _entry_known_sections  # noqa: E402
+from workflow_kit.common.entry_diet import (  # noqa: E402
+    HEADING_ALIASES, is_known_generated, normalize, plan_diet, split_sections,
+)
 from workflow_kit.tools.ensure_entrypoints import _current_templates, diet  # noqa: E402
 
 FIXTURES = SOURCE_ROOT / "tests" / "fixtures" / "entry_diet"
+HARVEST_SCRIPT = SOURCE_ROOT / "scripts" / "harvest_entry_sections.py"
+KNOWN_MODULE = Path(_entry_known_sections.__file__)
 #: fixture → (하네스, 진입점 파일)
 CASES = {
     "v1.19.0-claude-code-CLAUDE.md.txt": ("claude-code", "CLAUDE.md"),
@@ -148,13 +160,44 @@ def case_5_aliases_point_at_current_titles() -> None:
     _record("case 5 (한국어 제목 별칭이 현행 템플릿 제목을 가리킨다)", not dangling, f"없는 대상: {dangling}")
 
 
+def case_6_current_output_is_known_generated() -> None:
+    """현행 템플릿 절이 전부 '알려진 생성물' 이어야 다음 템플릿 변경 뒤에도 이 버전 생성물을 교체할 수 있다."""
+    # 하네스마다 따로 bootstrap 한다 — 같은 파일명(AGENTS.md)을 여러 하네스가 다르게 만들어, 합친 dict 는 마지막 것만 본다.
+    templates = {f"{harness}/{rel}": text for harness in SUPPORTED_HARNESSES
+                 for rel, text in _current_templates([harness]).items()}
+    unknown = [f"{key}:{title}" for key, text in sorted(templates.items())
+               for title, body in split_sections(text)[1] if not is_known_generated(title, body)]
+    hint = (f"템플릿 변경 커밋 해시를 {HARVEST_SCRIPT.relative_to(SOURCE_ROOT.parent)} 의 DEFAULT_REFS 에 더하고 "
+            "--tmp-dir <실디스크> --apply 로 다시 채취")
+    _record(f"case 6 (현행 생성물 ⊆ 알려진 생성물 — 하네스 {len(SUPPORTED_HARNESSES)} · 진입점 {len(templates)})",
+            bool(templates) and not unknown,
+            "현행 템플릿을 못 얻었다" if not templates else (f"KNOWN 에 없는 절 {len(unknown)}: {unknown[:8]} — {hint}" if unknown else ""))
+
+
+def case_7_known_module_records_default_refs() -> None:
+    spec = importlib.util.spec_from_file_location("harvest_entry_sections", HARVEST_SCRIPT)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    wanted = list(module.DEFAULT_REFS)
+    recorded: list[str] = []
+    for line in KNOWN_MODULE.read_text(encoding="utf-8").splitlines():
+        if line.startswith("채취 ref:"):
+            recorded = [r.strip() for r in line.split(":", 1)[1].split(",") if r.strip()]
+            break
+    _record("case 7 (데이터 모듈의 채취 ref == harvest DEFAULT_REFS)", recorded == wanted,
+            "" if recorded == wanted else f"기록 {recorded} ≠ DEFAULT_REFS {wanted} — harvest --apply 로 다시 채취")
+
+
 def main() -> int:
     print("=== 기존 진입점 다이어트 (TASK-2026-10-06-main-004) ===")
     for fn in (case_1_old_generated_entries_shrink_to_current,
                case_2_user_edited_section_is_kept,
                case_3_idempotent,
                case_4_ensure_entrypoints_writes_only_with_apply_and_never_forks,
-               case_5_aliases_point_at_current_titles):
+               case_5_aliases_point_at_current_titles,
+               case_6_current_output_is_known_generated,
+               case_7_known_module_records_default_refs):
         try:
             fn()
         except Exception as exc:  # noqa: BLE001

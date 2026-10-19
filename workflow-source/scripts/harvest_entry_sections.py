@@ -13,6 +13,9 @@ TASK-2026-10-06-main-004 (진입점 다이어트 3). `common/entry_diet.py` 는 
 
 ref 를 늘리면(새 발행) 다시 돌린다 — 현행 템플릿이 바뀐 발행 뒤에 돌리지 않으면, 그 발행으로
 만든 진입점의 절은 '알려진 생성물' 로 인식되지 않아 다이어트에서 보수적으로 남는다(해롭지 않다).
+누락은 `tests/check_entry_diet.py` case 6 · 7 이 잡는다: 템플릿을 바꾼 **커밋 해시**를 ``DEFAULT_REFS``
+에 더하고 ``--apply`` 로 전량 다시 채취한다(버전 bump 는 절 본문을 안 바꾸므로 그 커밋 = 다음 발행 태그).
+``--ref`` 는 요약 전용이다 — ``--apply`` 와 같이 주면 나머지 ref 의 해시를 통째로 잃으므로 거절한다.
 """
 from __future__ import annotations
 
@@ -30,9 +33,11 @@ OUT = REPO / "workflow-source" / "workflow_kit" / "common" / "_entry_known_secti
 
 #: 채취 대상 ref. `workflow_kit.bootstrap_lib` 네임스페이스(2026-08-12) 이후의 발행 태그를 고르고,
 #: 한국어 템플릿의 마지막 상태(영어 전환 4054dccc 직전 825478bc)와 다이어트 직전(062c4d64)을 더했다.
+#: 템플릿을 바꾼 발행마다 한 ref 를 더한다 — v1.20.0 이 다이어트된 템플릿의 첫 발행이고 v1.20.1 은
+#: 절 본문이 같다(2026-10-19 실측 27절 동일). `check_entry_diet` case 6 이 누락을 잡는다.
 DEFAULT_REFS = (
     "v1.2.0-beta", "825478bc", "v1.3.0", "v1.5.0", "v1.7.0", "v1.9.4", "v1.12.0",
-    "v1.14.4", "v1.16.0", "v1.19.0", "062c4d64",
+    "v1.14.4", "v1.16.0", "v1.19.0", "062c4d64", "v1.20.0",
 )
 HARNESSES = ("codex", "opencode", "pi-dev", "antigravity", "minimax-code", "claude-code",
              "aider", "goose", "grok-build", "gemini-cli", "codewhale", "custom", "mavis")
@@ -113,6 +118,9 @@ def main() -> int:
     parser.add_argument("--ref", action="append", dest="refs", default=[], help="채취 ref (반복, 기본 DEFAULT_REFS)")
     parser.add_argument("--apply", action="store_true", help="데이터 모듈을 쓴다 (기본: 요약만)")
     args = parser.parse_args()
+    if args.apply and args.refs:
+        parser.error("--ref 는 요약 전용 — --apply 는 DEFAULT_REFS 전량을 채취한다 (부분 채취가 나머지 해시를 지운다). "
+                     "새 ref 는 DEFAULT_REFS 에 더하고 --apply 만 준다")
     refs = tuple(args.refs) or DEFAULT_REFS
     with tempfile.TemporaryDirectory(dir=args.tmp_dir) as td:
         known, log = harvest(refs, Path(td))

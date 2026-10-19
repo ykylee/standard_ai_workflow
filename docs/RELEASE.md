@@ -5,7 +5,7 @@
 - 대상 독자: 저장소 maintainer (`ykylee`), 릴리스 매니저
 - 상태: stable (v1.20.1 기준; 절차 자체는 v0.5.7+ 부터 정식 도입된 정책 유지)
 - 현재 package version: 1.20.1 (`workflow-source/pyproject.toml`)
-- 최종 수정일: 2026-10-06
+- 최종 수정일: 2026-10-19
 - 관련 문서: [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md), [./INSTALLATION_AND_USAGE.md](./INSTALLATION_AND_USAGE.md), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md), [workflow-source/releases/](https://github.com/ykylee/standard_ai_workflow/tree/main/workflow-source/releases/)
 
 > **최종 갱신**: 2026-07-18 (회귀 표를 v0.15.15 까지 확장하고 `release_pipeline.py` 자동화 경로 반영)
@@ -128,6 +128,11 @@ git status                 # clean 트리 확인
 git log --oneline -3       # 머지된 release squash 커밋 확인
 gh auth status             # gh CLI 로그인 확인 (keyring)
 ```
+
+- 이번 발행이 **진입점 템플릿**(`bootstrap_lib/harnesses/renderers.py` · `entry_sections.py` · 정본 생성 규칙 블록)을 바꿨으면,
+  그 커밋 해시를 `workflow-source/scripts/harvest_entry_sections.py` 의 `DEFAULT_REFS` 에 더하고
+  `--tmp-dir <실디스크> --apply` 로 다시 채취해 커밋한다 — 안 하면 `check_entry_diet` case 6 · 7 이 red 이고,
+  이 발행으로 bootstrap 한 진입점은 다음 다이어트에서 '알려진 생성물' 로 인식되지 않는다 (TASK-2026-10-19-main-001).
 
 ### 2.2 버전 박기 (pyproject.toml)
 

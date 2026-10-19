@@ -25,13 +25,16 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-10-02-main-003 원격 없는 저장소의 worktree 는 자동 seed · 이어받기가 안 돈다 — 기본 브랜치 판정이 현재 브랜치로 떨어진다
 - TASK-2026-09-30-main-001 minimax-code 가 플러그인 채널로 미지원 — 배포·드리프트 판정·재생성이 모두 kit 밖
 - TASK-2026-10-19-feat-auto-20261019-a0afcf36-001 브랜치 네임스페이스 자동 seed — `main` 에서 이어받음
 ## 5. 다음 세션 시작 포인트
 
 - (`main@06abaaf0` handoff §5 에서 이어받음 — 아래 14줄은 모 브랜치의 다음 시작 포인트다)
+- (118차) **origin 없는 저장소에서도 자동 seed 가 된다** (TASK-2026-10-02-main-003) — `_detect_default_branch` 는 remote 가 없으면 *현재 브랜치* 를 기본 브랜치로 돌려주는데, seed 조건은 `base != 현재 브랜치` 라서 그 조건이 깨졌다 → session-start 가 `missing_required_document` 로 멈췄다(2026-10-02 실측). **기본 판정은 그대로 두고** seed 전용 후보 판정(`path_resolver._seed_base_branch_candidates`)을 새로 썼다 — origin 있으면 기존 판정, 없으면 **실재하는 기본 브랜치 후보**(`init.defaultBranch` → `main` → `master`; 현재 브랜치 아니고 **로컬 브랜치로 실재**하는 것만). **후보가 여럿이면 "handoff 가 있는 첫 것"** 을 base 로 삼는다 — 앞 후보가 실재해도 그 네임스페이스에 메모리가 없을 수 있다(verifier 지적 LOW → 반영). 실측: origin 0개인 저장소에 `git worktree add -b claude/heir` → `claude/heir` 네임스페이스 seed(기준 `main`). 되주입 4건 모두 rc 1 — 판정 되돌리기(원래 증상 `missing_required_document` 재현) · 후보를 `main` 하나로 · 실재 확인 제거 · 첫 후보만 보기.
+- (118차) **MiniMax Code 앱은 재시작하지 않아도 된다** — 118차 §2.8 재적용(→1.20.1) 후 **스킬 본문은 호출 시점에 디스크에서 읽힌다**(같은 세션에서 그 스킬을 두 번 불러 1.19.0 → 1.20.1 문구로 바뀐 것을 직접 확인 — 1.19.0 에 없던 `--diet` 절이 나옴). 스킬 목록도 5종 그대로(추가·삭제 없음)라 플러그인 "등록" 자체의 변경도 없다. **재시작이 필요한 건 스킬이 새로 추가/삭제되거나 MCP·hooks 같은 프로세스 시작 시 등록 항목이 바뀔 때**다 — 이번엔 본문만 바뀌었으니 해당 없다. doctor 의 `runtime_load` finding 은 "플러그인은 프로세스 시작 때 로드된다" 는 일반 원칙을 인용하므로 재시작을 권하는 것처럼 보인다 — 그건 채널 등록 변경에 대한 말이고, 본문 변경에는 과하다.
 - (118차) **minimax-code 채널을 doctor 세 축에 편입** (TASK-2026-09-30-main-001 close) — 실측 정본: MiniMax Code 의 **활성 상태는 JSON 이 아니라 SQLite** 다 (`~/.minimax/v2/sqlite/runtime-state.sqlite` → `local_runtime_plugin_local_disabled` 표, **행 = 꺼짐**, `canonical_root` = 플러그인 디렉터리 절대경로). `mcode plugin disable` → 행 1개, `enable` → 행 0개 (2026-10-19 실측, mcode 0.6.2). claude-code 와 **정반대**라 부재가 꺼짐을 대신하지 않는다 — 행이 없으면 켜짐이다. `content_drift`(behind)·`plugin_enabled`(disabled)·`runtime_load`(재시작) 3축이 이 채널을 본다. 로더는 **MiniMax Code 데스크톱 앱**이다(`ps -Ao comm=` → `/Applications/MiniMax Code.app/Contents/MacOS/MiniMax Code`; CLI `mcode` 는 node 프로세스라 이름이 안 잡힌다).
-- (118차) **이 호스트 §2.8 재적용 완료** — minimax 플러그인 1.19.0 → **1.20.1** (`python -m workflow_kit.minimax_plugin --apply`, 백업 `~/.minimax/plugin-backups/standard-ai-workflow-20261019T130050Z`, `.DS_Store` 는 소유자 판단으로 보존). **MiniMax Code 앱(pid 2767)이 재적용(22:00:50)보다 먼저 기동(21:41:44) — 앱 재시작 필요**(플러그인은 프로세스 시작 때 로드된다). 다음 세션 첫 확인: 앱 재시작 → `mcode plugin list` 로 스킬 5종 노출 확인 → `wk doctor --json` 의 `content_drift.behind` 에 minimax-code 가 없을 것.
+- (118차) **이 호스트 §2.8 재적용 완료** — minimax 플러그인 1.19.0 → **1.20.1** (`python -m workflow_kit.minimax_plugin --apply`, 백업 `~/.minimax/plugin-backups/standard-ai-workflow-20261019T130050Z`, `.DS_Store` 는 소유자 판단으로 보존). 다음 세션 첫 확인(선택): `wk doctor --json` 의 `content_drift.behind` 에 minimax-code 가 없을 것(재적용 후 1.20.1). 앱 재시작은 필요 없다 — 위 118차 항목 참고.
 - (118차) **main-006 · main-007 · main-017 은 이 호스트에서 닫을 수 없다** — 셋 다 **Windows 실물 실측** 이 남았다(006·007 은 코드가 이미 반영됐고 판정 근거만 부족 · 017 은 `--literal-command` 판정 기구까지 있고 완료 기준 2 만 남음). macOS 에서 코드를 더 고쳐도 근거가 늘지 않는다 — Windows 호스트에서만 닫는다.
 - (117차) **verifier 실사용 개시** — task 를 done 으로 닫기 전에 `subagent_type=verifier` 를 부른다. 등록 때 `backlog-update --done-criteria` 를 반드시 같이 준다(기준 줄이 비면 verifier 가 막는다). 되주입 전수는 verifier 에게 '수리 부분을 빠짐없이 하나씩 되돌려라' 로 맡기면 작성자보다 넓게 찾는다. **minimax-code**: §2.8 절차 생김 — macOS 호스트 →1.20.1 적용 시 `python -m workflow_kit.minimax_plugin --apply` 후 `--json` 의 `in_sync` 로 확인, 앱 재시작 필요 여부와 `mcode plugin list` 인정은 그때 첫 실측. codex 3 · grok-build 1 프로세스가 1.20.1 이전 기동 — 재시작 필요.
 - (116차) **v1.20.0 발행됨** (main-005) — 진입점 다이어트 3단계(정본 규칙 블록 3.6→2.7KB · bootstrap 템플릿 + `check_entry_budget` 8KB · `ensure-entrypoints --diet` 절 단위, 옛 생성물 해시는 `scripts/harvest_entry_sections.py`) + AI-native SDLC A1~A3(task Plan 절 · verifier · 검사 약화 차단 hook) + MiniMax Code 채널. 이 호스트 §2.8 완료 — claude-code · codex 재시작 필요. ~~verifier 실측 대기(main-003)~~ ✅ 117차. macOS: §2.8(→1.20.0, MiniMax 포함 — RELEASE.md §2.8 에 MiniMax 절차 없음). 새 발행이 진입점 템플릿을 바꾸면 harvest 재실행. main-006 수리는 v1.20.1 로 발행됨 — macOS §2.8 은 →1.20.1.
@@ -54,7 +57,8 @@
 
 - TASK-2026-10-02-main-006 — Windows 로캘(cp949)에서 wk 가 UnicodeEncodeError 로 죽는다 — stdout 과 기본 인코딩 I/O 를 UTF-8 로 고정
 - TASK-2026-10-02-main-007 — Windows V3 백신이 wk.exe 를 평판 기반으로 차단한다 — pip 생성 console-script 런처 대체 진입 경로
-- TASK-2026-10-02-main-003 — 원격 없는 저장소의 worktree 는 자동 seed · 이어받기가 안 돈다 — 기본 브랜치 판정이 현재 브랜치로 떨어진다
+
+> 남은 열린 task 3건은 **전부 Windows 실물 실측** 이 남았다 — 006 · 007 은 코드가 이미 반영됐고 판정 근거만 부족하고, 017 은 `--literal-command` 판정 기구까지 있고 완료 기준 2 만 남았다. macOS 에서 코드를 더 고쳐도 근거가 늘지 않는다 — Windows 호스트에서만 닫는다.
 
 ## 6. 남은 리스크
 

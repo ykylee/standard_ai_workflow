@@ -276,7 +276,7 @@ def _auto_seed_branch_memory(project_profile_path: Path) -> dict[str, Any] | Non
             project_workspace_root,
             resolve_branch_for_workspace,
         )
-        from workflow_kit.path_resolver import _detect_default_branch  # noqa: PLC0415
+        from workflow_kit.path_resolver import _seed_base_branch_candidates  # noqa: PLC0415
 
         workspace_root = project_workspace_root(project_profile_path)
         resolution = resolve_branch_for_workspace(workspace_root)
@@ -289,8 +289,15 @@ def _auto_seed_branch_memory(project_profile_path: Path) -> dict[str, Any] | Non
         # 하나라도 있으면 읽을 handoff 가 있는 것이다.
         if path_in_active(active_dir, HANDOFF_FILENAME, branch).exists():
             return None
-        base = _detect_default_branch(workspace_root)
-        if base == branch or not path_in_active(active_dir, HANDOFF_FILENAME, base).exists():
+        # 기준 브랜치는 **후보들 중 handoff 가 있는 첫 것**이다 — 후보는 복수일 수
+        # 있고, 앞 후보가 브랜치로 실재해도 그 네임스페이스에 메모리가 없을 수
+        # 있다(그때는 base 를 못 찾은 게 아니라 다음 후보를 봐야 한다).
+        base: str | None = None
+        for candidate in _seed_base_branch_candidates(workspace_root, branch):
+            if path_in_active(active_dir, HANDOFF_FILENAME, candidate).exists():
+                base = candidate
+                break
+        if base is None:
             return None
 
         from workflow_kit.common.git import short_head_sha  # noqa: PLC0415

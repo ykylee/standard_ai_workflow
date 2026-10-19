@@ -37,11 +37,10 @@
     "blocked_items": [
       "TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다"
     ],
-    "planned_items": [
-      "TASK-2026-10-02-main-003"
-    ],
+    "planned_items": [],
     "recent_done_items": [
       "TASK-2026-10-19-feat-auto-20261019-a0afcf36-001 — 브랜치 네임스페이스 자동 seed — `main` 에서 이어받음",
+      "TASK-2026-10-02-main-003 — 원격 없는 저장소의 worktree 는 자동 seed · 이어받기가 안 돈다 — 기본 브랜치 판정이 현재 브랜치로 떨어진다",
       "TASK-2026-09-30-main-001 — minimax-code 가 플러그인 채널로 미지원 — 배포·드리프트 판정·재생성이 모두 kit 밖"
     ],
     "unknown_status_items": [],
@@ -49,12 +48,13 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/feat/auto-20261019-a0afcf36/backlog/2026-10-19.md",
-    "task_count": 2,
+    "task_count": 3,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
       "TASK-2026-10-19-feat-auto-20261019-a0afcf36-001 — 브랜치 네임스페이스 자동 seed — `main` 에서 이어받음",
-      "TASK-2026-09-30-main-001 — minimax-code 가 플러그인 채널로 미지원 — 배포·드리프트 판정·재생성이 모두 kit 밖"
+      "TASK-2026-09-30-main-001 — minimax-code 가 플러그인 채널로 미지원 — 배포·드리프트 판정·재생성이 모두 kit 밖",
+      "TASK-2026-10-02-main-003 — 원격 없는 저장소의 worktree 는 자동 seed · 이어받기가 안 돈다 — 기본 브랜치 판정이 현재 브랜치로 떨어진다"
     ]
   },
   "next_documents": [

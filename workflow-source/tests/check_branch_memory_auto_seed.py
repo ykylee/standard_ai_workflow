@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-r"""브랜치 네임스페이스가 없는 worktree 에서 session-start 가 스스로 seed 한다 (13 cases).
+r"""브랜치 네임스페이스가 없는 worktree 에서 session-start 가 스스로 seed 한다 (17 cases).
 
 ## 왜 이 검사가 필요한가 (TASK-2026-09-30-claude-session-start-e6eb83-002)
 
@@ -19,7 +19,7 @@ r"""브랜치 네임스페이스가 없는 worktree 에서 session-start 가 스
 판정이 호스트 저장소 상태에 달리지 않게, 매 case 가 임시 git 저장소(origin + clone)를
 만들고 브랜치·CI env 를 비운 좁은 환경에서 모듈을 띄운다.
 
-7 cases:
+18 cases:
   1) 새 브랜치 → session-start status=ok + seed warning + 한 벌(handoff·backlog·task·
      sessions·state.json) — 되주입: seed 를 끄면 missing_required_document
   2) 재실행은 다시 seed 하지 않는다 (task 가 늘지 않고 seed warning 이 없다)
@@ -44,6 +44,13 @@ r"""브랜치 네임스페이스가 없는 worktree 에서 session-start 가 스
  12) 합류 아카이브가 고친 사본을 원류 줄 없이 원본 자리에 되돌려 적고, 안 고친 사본은 건드리지 않으며,
      이어받은 열린 task 가 아카이브를 막지 않는다
  13) 원본이 그 사이 바뀌었으면 되돌려 적지 않고 막는다 — 원본 불변, 브랜치 네임스페이스는 active 에 남는다
+
+origin 없는 저장소 (TASK-2026-10-02-main-003 — remote 가 없으면 base 판정이 현재 브랜치로
+떨어져 `base == branch` 가 되고 seed 가 조용히 건너뛰어졌다):
+ 14) origin 없는 저장소에서도 새 브랜치가 seed 된다 — 기준 브랜치는 "실재하는 기본 브랜치
+     후보(init.defaultBranch → main → master)" 로 찾는다. "main" 만 하드코딩하지 않았는지
+     보려고 기본 브랜치가 master 인 저장소도 같이 본다. 기준 후보가 하나도 실재하지 않으면
+     seed 하지 않는다 — 엉뚱한 모 브랜치에서 받는 것이 더 나쁘다
 """
 
 from __future__ import annotations
@@ -294,6 +301,49 @@ def _inheritance_cases(tmp: Path) -> None:
             f"rc={proc.returncode} origin_same={origin.read_bytes() == origin_before} heir_kept={heir.exists()}")
 
 
+def _make_originless_repo(tmp: Path, *, base_branch: str = "main",
+                          memory_branch: str | None = None, marker: str = "base") -> Path:
+    """**origin 없는** 저장소 — 로컬 전용. 기본 브랜치에 브랜치별 메모리를 둔 채.
+
+    2026-10-02 실측 (TASK-2026-10-02-main-003): 여기가 자동 seed 가 막히던 자리다.
+    remote 가 없으면 base 판정이 *현재 브랜치*로 떨어져 ``base == branch`` 가 되고,
+    seed 가 조용히 건너뛰어졌더니 session-start 가 ``missing_required_document`` 로
+    멈췄다. clone(origin 있음) 에서는 정상이라 origin 없는 형상만 따로 만든다 —
+    다른 case 의 fixture 와 섞이면 형상이 가려져 판정을 못 한다.
+
+    `base_branch` 로 기본 브랜치 이름을 바꾼다 — "main" 만 있으면 "main" 을
+    하드코딩한 구현과 구분이 되지 않는다("master" 저장소에서 실려야 한다).
+
+    `memory_branch` 을 주면 그 브랜치에만 메모리를 둔다 — `base_branch` 는
+    **메모리 없이** 남는다("브랜치는 실재하지만 그 네임스페이스에 메모리가 없는"
+    상황을 만든다). `marker` 는 base handoff 에 심는 구분 표식이다 — 어느
+    브랜치에서 이어받았는지를 내용으로 증명한다.
+    """
+    repo = tmp / "repo"
+    (repo / "docs").mkdir(parents=True)
+    _git(tmp, "init", "-q", "-b", base_branch, str(repo))
+    (repo / "docs" / "PROJECT_PROFILE.md").write_text(
+        "# Project Profile\n\n- 프로젝트명: originless probe\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-qm", "base")
+    holder = memory_branch or base_branch
+    if holder != base_branch:
+        _git(repo, "checkout", "-q", "-b", holder)
+    base = repo / "ai-workflow" / "memory" / "active" / holder
+    (base / "backlog" / "tasks").mkdir(parents=True)
+    (base / "sessions").mkdir()
+    (base / "sessions" / "seed.md").write_text("# s\n", encoding="utf-8")
+    (base / "backlog" / "tasks" / ".gitkeep").write_text("", encoding="utf-8")
+    (base / "session_handoff.md").write_text(
+        "# Session Handoff\n\n## 1. 현재 작업 요약\n\n"
+        f"- 현재 기준선: {marker}\n"
+        "- 현재 주 작업 축: base 축\n\n## 2. 진행 중 작업\n\n- 현재 `in_progress` 작업:\n-\n",
+        encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-qm", "memory")
+    return repo
+
+
 def main() -> int:
     with tempfile.TemporaryDirectory(prefix="auto-seed-") as raw:
         tmp = Path(raw)
@@ -395,11 +445,96 @@ def main() -> int:
 
         _inheritance_cases(tmp)
 
+        # --- case 14: origin 없는 저장소에서도 seed 된다 (TASK-2026-10-02-main-003) ---
+        # remote 가 없으면 base 판정이 *현재 브랜치*로 떨어져 `base == branch` 가 되고
+        # seed 가 조용히 건너뛰어졌다 — session-start 는 `missing_required_document` 로
+        # 멈췄다. 기준 브랜치는 "실재하는 기본 브랜치 후보" 로 찾아야 한다.
+        repo = _make_originless_repo(tmp / "c14")
+        _git(repo, "checkout", "-q", "-b", "claude/heir")
+        result = _session_start(repo)
+        branch_dir = _active(repo) / "claude" / "heir"
+        expected = ["session_handoff.md", "state.json", "backlog/tasks", "sessions"]
+        missing = [p for p in expected if not (branch_dir / p).exists()]
+        _record("test_originless_repo_is_seeded",
+                result.get("status") == "ok" and _seeded(result) and not missing,
+                f"status={result.get('status')} error={result.get('error_code')} "
+                f"seeded={_seeded(result)} missing={missing}")
+
+        # "main" 을 하드코딩하지 않았는지 — 기본 브랜치가 master 인 저장소에서 실려야 한다.
+        repo = _make_originless_repo(tmp / "c14b", base_branch="master")
+        _git(repo, "checkout", "-q", "-b", "claude/heir")
+        result = _session_start(repo)
+        _record("test_originless_repo_finds_master_base",
+                result.get("status") == "ok" and _seeded(result)
+                and (_active(repo) / "claude" / "heir" / "session_handoff.md").is_file(),
+                f"status={result.get('status')} seeded={_seeded(result)}")
+
+        # `init.defaultBranch` 가 가리키는 브랜치가 **이 저장소에 없으면** 실재하는
+        # 후보로 넘어간다 — 설정값은 전역일 수 있어 존재 확인 없이는 엉뚱한 이름을
+        # 답으로 내놓고 seed 가 조용히 죽는다.
+        #
+        # 판별력을 위해 "ghost" 를 **브랜치 없이 네임스페이스만 남은** 자리로 만든다
+        # (예전에 있다가 지워진 자리). handoff 만 있고 git 브랜치는 없는 상태다 —
+        # 여기서 "실재 확인" 이 없으면 ghost 가 답이 되어 지워진 브랜치의 옛 기록을
+        # 원류로 받게 된다.
+        repo = _make_originless_repo(tmp / "c14d", marker="MAIN-BASE")
+        ghost = _active(repo) / "ghost"
+        (ghost / "backlog" / "tasks").mkdir(parents=True)
+        (ghost / "sessions").mkdir()
+        (ghost / "session_handoff.md").write_text(
+            "# Session Handoff\n\n## 1. 현재 작업 요약\n\n- 현재 기준선: GHOST-BASE\n"
+            "- 현재 주 작업 축: ghost 축\n\n## 2. 진행 중 작업\n\n- 현재 `in_progress` 작업:\n-\n",
+            encoding="utf-8")
+        _git(repo, "config", "init.defaultBranch", "ghost")
+        _git(repo, "add", "-A")
+        _git(repo, "commit", "-qm", "ghost namespace")
+        _git(repo, "checkout", "-q", "-b", "claude/heir")
+        result = _session_start(repo)
+        seeded = _active(repo) / "claude" / "heir" / "session_handoff.md"
+        text = seeded.read_text(encoding="utf-8") if seeded.is_file() else ""
+        # **§1 만 본다** — ghost 네임스페이스는 git 브랜치가 없으므로 seed 가 §5 의
+        # **합류 기록**에 정상적으로 실린다("합류 `ghost` … GHOST-BASE"). 그건 옳은
+        # 기록이지 원류가 아니므로, 판정은 *이어받은 기준선*(§1) 에 한다.
+        section1 = text.split("## 2.")[0]
+        _record("test_originless_repo_skips_absent_configured_branch",
+                result.get("status") == "ok" and _seeded(result)
+                and "MAIN-BASE" in section1 and "GHOST-BASE" not in section1,
+                f"status={result.get('status')} seeded={_seeded(result)} "
+                f"main={'MAIN-BASE' in section1} ghost={'GHOST-BASE' in section1}")
+
+        # "브랜치는 실재하지만 그 네임스페이스에 **메모리가 없는**" 후보가 앞에 오면
+        # 뒤 후보로 넘어가야 한다 — 안 넘어가면 가능한 base 를 놓친다(fail-safe 지만
+        # 기회의 누락). 표식으로 **어느 브랜치에서 이어받았는지** 를 내용으로 증명한다.
+        repo = _make_originless_repo(tmp / "c14e", base_branch="main",
+                                     memory_branch="master", marker="MASTER-BASE")
+        _git(repo, "checkout", "-q", "-b", "claude/heir")
+        result = _session_start(repo)
+        seeded = _active(repo) / "claude" / "heir" / "session_handoff.md"
+        text = seeded.read_text(encoding="utf-8") if seeded.is_file() else ""
+        section1 = text.split("## 2.")[0]
+        _record("test_originless_repo_skips_branch_without_memory",
+                result.get("status") == "ok" and _seeded(result) and "MASTER-BASE" in section1,
+                f"status={result.get('status')} seeded={_seeded(result)} "
+                f"inherited_master={'MASTER-BASE' in section1}")
+
+        # 기준 후보가 하나도 실재하지 않으면 seed 하지 않는다 — 엉뚱한 모 브랜치에서
+        # 받는 것이 더 나쁘다(있지 않은 handoff 를 읽으면 조용히 빈 상태로 시작한다).
+        # `init.defaultBranch` 를 로컬로 못 박아 호스트 전역 설정에 기대지 않게 한다.
+        repo = _make_originless_repo(tmp / "c14c", base_branch="trunk")
+        _git(repo, "config", "init.defaultBranch", "nope")
+        _git(repo, "checkout", "-q", "-b", "claude/lonely")
+        _git(repo, "branch", "-q", "-D", "trunk")
+        result = _session_start(repo)
+        extra = sorted(p.name for p in _active(repo).iterdir() if p.is_dir() and p.name != "trunk")
+        _record("test_originless_repo_without_base_does_not_seed",
+                not _seeded(result) and not extra,
+                f"seeded={_seeded(result)} extra={extra}")
+
     print()
     if FAILURES:
         print(f"=== FAIL: {len(FAILURES)} case(s) — {FAILURES} ===")
         return 1
-    print("=== PASS: branch memory auto-seed (13 cases) ===")
+    print("=== PASS: branch memory auto-seed (18 cases) ===")
     return 0
 
 

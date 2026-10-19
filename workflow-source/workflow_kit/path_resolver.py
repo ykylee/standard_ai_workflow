@@ -203,6 +203,83 @@ def _detect_default_branch(repo_root: Path) -> str:
     return "main"
 
 
+def _local_branch_exists(repo_root: Path, name: str) -> bool:
+    """``name`` 이 이 저장소의 **로컬 브랜치**로 존재하는가."""
+    if not name:
+        return False
+    try:
+        result = subprocess.run(
+            ["git", "show-ref", "--verify", "--quiet", f"refs/heads/{name}"],
+            cwd=str(repo_root),
+            capture_output=True,
+            timeout=5,
+            check=False,
+        )
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        return False
+    return result.returncode == 0
+
+
+def _config_default_branch(repo_root: Path) -> str | None:
+    """``init.defaultBranch`` 설정값 — 저장소 로컬이 우선이고 없으면 전역."""
+    for scope in ("--local", "--global"):
+        try:
+            result = subprocess.run(
+                ["git", "config", "--get", scope, "init.defaultBranch"],
+                cwd=str(repo_root),
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False, encoding="utf-8", errors="replace",
+            )
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            continue
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+    return None
+
+
+def _seed_base_branch_candidates(repo_root: Path, current_branch: str) -> list[str]:
+    """자동 seed 의 **기준 브랜치 후보** — 우선순위 순으로 나열한다.
+
+    :func:`_detect_default_branch` 와 **의도가 다르다.** 그쪽은 "canonical URL
+    에 붙일 기본 브랜치" 를 재고, remote 가 없으면 *현재 브랜치*를 돌려준다
+    (2026-08-13 실측 — origin 있는 저장소에서 그 fallback 은 같은 커밋이 셀마다
+    다른 URL 을 갖게 했다). 여기서는 **현재 브랜치와 달라야 하는** 기준 브랜치를
+    찾는다. seed 는 `base != 현재 브랜치` 일 때만 성립하기 때문이다.
+
+    origin 없는 저장소에서 그 조건이 깨졌다: base 판정이 현재 브랜치로 떨어져
+    `base == branch` 가 되고, seed 가 조용히 건너뛰어졌더니 session-start 는
+    `missing_required_document` 로 멈췄다 (2026-10-02 실측, TASK-2026-10-02-main-003).
+
+    그래서 origin 이 없으면 **기본 브랜치 후보**를 본다 — ``init.defaultBranch``
+    (설정값) → ``main`` → ``master``. 후보는 두 조건을 모두 만족해야 한다:
+    현재 브랜치가 아니고, **이 저장소에 실제로 존재하는** 로컬 브랜치여야 한다.
+    존재 확인이 없으면 전역 설정 한 번으로 엉뚱한 브랜치를 골라 Seed 를 엉뚱한
+    모 브랜치에서 받게 된다.
+
+    **목록으로 돌려주는 이유**: 후보가 여러 개일 수 있다. 앞 후보는 브랜치로
+    실재해도 **그 브랜치에 메모리가 없을 수 있다** — 그때 뒤 후보로 넘어가야
+    한다. "브랜치 실재" 와 "메모리 보유" 를 한 층에서 같이 보면, 실재하지만
+    메모리가 없는 후보 앞에서 멈춰 **가능한 base 를 놓친다**. 메모리 보유 여부는
+    이 모듈이 모르는 사실이므로 판단은 호출자(session_start)가 한다.
+
+    Returns:
+        후보 브랜치 이름들. 비어 있으면 seed 할 기준이 없다.
+    """
+    if _repo_has_origin_remote(repo_root):
+        default = _detect_default_branch(repo_root)
+        # 기본 브랜치 자신에서는 seed 하지 않는다 — 자기 자신을 원류로 삼지 않는다.
+        return [] if default == current_branch else [default]
+    candidates: list[str] = []
+    for candidate in (_config_default_branch(repo_root), "main", "master"):
+        if not candidate or candidate in candidates or candidate == current_branch:
+            continue
+        if _local_branch_exists(repo_root, candidate):
+            candidates.append(candidate)
+    return candidates
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------

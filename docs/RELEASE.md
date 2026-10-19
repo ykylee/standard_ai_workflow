@@ -3,8 +3,8 @@
 - 문서 목적: Standard AI Workflow 릴리스 절차 (버전 박기 → 빌드 → 스모크 → GitHub Release attach) 를 한 자리에 정리한다.
 - 범위: 채널 정책, 사전 점검, 빌드, 로컬 smoke, GitHub Release 생성, 트러블슈팅, 회귀 표
 - 대상 독자: 저장소 maintainer (`ykylee`), 릴리스 매니저
-- 상태: stable (v1.20.1 기준; 절차 자체는 v0.5.7+ 부터 정식 도입된 정책 유지)
-- 현재 package version: 1.20.1 (`workflow-source/pyproject.toml`)
+- 상태: stable (v1.21.0 기준; 절차 자체는 v0.5.7+ 부터 정식 도입된 정책 유지)
+- 현재 package version: 1.21.0 (`workflow-source/pyproject.toml`)
 - 최종 수정일: 2026-10-19
 - 관련 문서: [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md), [./INSTALLATION_AND_USAGE.md](./INSTALLATION_AND_USAGE.md), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md), [workflow-source/releases/](https://github.com/ykylee/standard_ai_workflow/tree/main/workflow-source/releases/)
 
@@ -371,7 +371,7 @@ MiniMax 로컬 런타임의 **SQLite**(`~/.minimax/v2/sqlite/runtime-state.sqlit
 ```bash
 wk doctor --json | python3 -c "import json,sys; d=json.load(sys.stdin); print([b['harness'] for b in d['content_drift']['behind']])"
 #   → ['codex', 'grok-build', 'antigravity', 'claude-code']
-#     (minimax-code 는 **없어야** 정상이다 — §2.8 재적용으로 1.20.1 이라 behind 가 아니다.
+#     (minimax-code 는 **없어야** 정상이다 — §2.8 재적용 뒤 kit 과 같은 버전이라 behind 가 아니다.
 #      뒤처져 있으면 이 목록에 'minimax-code' 가 오른다.)
 wk doctor --json | python3 -c "import json,sys; print(json.load(sys.stdin)['plugin_enabled']['disabled'])"
 #   → []   (minimax-code 도 같이 잰다)
@@ -507,7 +507,7 @@ gh release edit "v<X>.<Y>.<Z>" --repo "$REPO" --draft=false
 ## 다음에 읽을 문서
 
 - [릴리스 노트 디렉토리](https://github.com/ykylee/standard_ai_workflow/tree/main/workflow-source/releases/)
-- [현재 릴리스 노트 v1.20.1](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/releases/Beta-v1.20.1.md)
+- [현재 릴리스 노트 v1.21.0](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/releases/Beta-v1.21.0.md)
 - [Maturity Matrix](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/maturity_matrix.json)
 - [설치·사용 가이드](./INSTALLATION_AND_USAGE.md)
 - [Project Profile](./PROJECT_PROFILE.md)

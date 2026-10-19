@@ -27,7 +27,7 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**118차 세션 (2026-10-19, Linux 호스트) — task 2건 close (M-007/WBS-7.2), 발행 없음 (main 은 v1.20.1 + 117 · 118차 커밋, 미발행 수리 누적).** ①**main-001** — 진입점 다이어트 harvest 가 다이어트 직전 `062c4d64` 에서 멈춰 v1.20.0 생성물 7절이 `KNOWN_GENERATED` 에 없었다(실측: v1.20.0 · v1.20.1 · HEAD 27절 동일). `DEFAULT_REFS` 에 v1.20.0 추가 → 해시 102→112(삭제 0). `check_entry_diet` case 6(하네스 12 를 **하나씩** bootstrap — 합친 dict 는 같은 AGENTS.md 의 마지막 하네스만 본다 · 진입점 8) · case 7(데이터 모듈 채취 ref == DEFAULT_REFS), `--ref` + `--apply` 거절, RELEASE.md §2.1 절차. ②**main-002** — `check_memory_lint` T1b stale 이 branch-scoped 전환(07-21) 이후 루트 공유층(KEEP 4건)만 mtime 으로 재다 07-16 파일이 90일을 넘겨 red. branch 디렉터리(중첩 포함)의 **git 커밋 일자**로 재고 KEEP 은 `migrate_memory_to_branch_scoped.KEEP` 파생 면제, self-test(mtime · git fixture). verifier 2회 — 둘 다 FAIL 0, `--changed` 는 동시 실행 telemetry 오염으로 UNMEASURED → 단독 재실행 280/280 rc=0 으로 close. 같은 파일 T1a · T1c · T1d 는 legacy 경로라 조용히 skip(무력화 3건, follow-up).",
+    "current_baseline": "**118차 세션 (2026-10-19, Linux 호스트) — task 3건 close (M-007/WBS-7.2), 발행 없음 (main 은 v1.20.1 + 117 · 118차 커밋, 미발행 수리 누적).** ①**main-001** — 진입점 다이어트 harvest 가 다이어트 직전 `062c4d64` 에서 멈춰 v1.20.0 생성물 7절이 `KNOWN_GENERATED` 에 없었다(실측: v1.20.0 · v1.20.1 · HEAD 27절 동일). `DEFAULT_REFS` 에 v1.20.0 추가 → 해시 102→112(삭제 0). `check_entry_diet` case 6(하네스 12 를 **하나씩** bootstrap — 합친 dict 는 같은 AGENTS.md 의 마지막 하네스만 본다 · 진입점 8) · case 7(데이터 모듈 채취 ref == DEFAULT_REFS), `--ref` + `--apply` 거절, RELEASE.md §2.1 절차. ②**main-002** — `check_memory_lint` T1b stale 이 branch-scoped 전환(07-21) 이후 루트 공유층(KEEP 4건)만 mtime 으로 재다 07-16 파일이 90일을 넘겨 red. branch 디렉터리(중첩 포함)의 **git 커밋 일자**로 재고 KEEP 은 `migrate_memory_to_branch_scoped.KEEP` 파생 면제, self-test(mtime · git fixture). verifier 2회 — 둘 다 FAIL 0, `--changed` 는 동시 실행 telemetry 오염으로 UNMEASURED → 단독 재실행 280/280 rc=0 으로 close. ③**main-003** — 같은 파일의 T1a(archive/<latest>/work_backlog.md) 은퇴(`check_state_reconcile` 정본) · T1c orphan: 브랜치별 tasks/*.md 가 같은 브랜치 index 에 ID 로 출현(옛 `- **ID**` 형식 포함 — 실저장소 TASK-2026-07-20-001 이 기댄다) · T1d missing: 참조 ID 를 index `path:` 선언 → 브랜치 tasks/ → archived/ 순 해소(합류 worktree 7건 · session 종류 2건이 그렇게 해소), 정규식 못 읽는 stem 은 red · 안 맞는 참조(옛 TASK-001 꼴 535건)는 숫자로 보고. verifier 되주입 9건 red.",
     "current_axis": "**로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · ~~[TASK-2026-08-13-main-004] mypy flake 관찰~~ ✅ (66차 close — 33/33 표본, mypy 실패 0).",
     "current_focus": "TASK-2026-10-02-main-007 Windows V3 백신이 wk.exe 를 평판 기반으로 차단한다 — pip 생성 console-script 런처 대체 진입 경로",
     "in_progress_items": [
@@ -42,6 +42,7 @@
       "TASK-2026-10-02-main-003"
     ],
     "recent_done_items": [
+      "TASK-2026-10-19-main-003 — check_memory_lint T1a · T1c · T1d 가 legacy 경로라 항상 skip — 은퇴 1 · branch-scoped 재작성 2",
       "TASK-2026-10-19-main-002 — check_memory_lint T1b stale 가 branch-scoped 전환 뒤 공유층 파일만 잰다 — 시간 경과만으로 red",
       "TASK-2026-10-19-main-001 — 진입점 다이어트 harvest 재실행 — v1.20.0 생성물 채취 + '현행 생성물 ⊆ 알려진 생성물' 검사로 재실행 누락 고정",
       "TASK-2026-10-06-main-009 — minimax_plugin --apply 출력이 반영 뒤 상태를 찍어 무엇이 바뀌었는지 오독된다",
@@ -50,20 +51,20 @@
       "TASK-2026-10-06-main-006 — backlog-update 의 handoff 동기화가 보존된 task 제목 대신 입력 --task-name 을 쓴다",
       "TASK-2026-10-06-main-005 — v1.20.0 발행 — 진입점 다이어트(규칙 블록 · bootstrap 템플릿 · --diet) + AI-native SDLC A1~A3 + MiniMax Code 채널",
       "TASK-2026-10-06-main-004 — [진입점 다이어트 3] 기존 진입점 다이어트 단계 — 채택 프로젝트의 진입점을 예산 · 현행 템플릿과 대조해 보고/정리",
-      "TASK-2026-10-06-main-003 — [진입점 다이어트 2] bootstrap 생성 진입점 템플릿 다이어트 + 하네스별 진입점 바이트 예산 검사",
-      "TASK-2026-10-06-main-002 — [진입점 다이어트 1] 정본 생성 규칙 블록(§1 · §8 · §11) 압축 — 모든 진입점 · 스킬 공통 3.6KB"
+      "TASK-2026-10-06-main-003 — [진입점 다이어트 2] bootstrap 생성 진입점 템플릿 다이어트 + 하네스별 진입점 바이트 예산 검사"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-10-19.md",
-    "task_count": 2,
+    "task_count": 3,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
       "TASK-2026-10-19-main-001 — 진입점 다이어트 harvest 재실행 — v1.20.0 생성물 채취 + '현행 생성물 ⊆ 알려진 생성물' 검사로 재실행 누락 고정",
-      "TASK-2026-10-19-main-002 — check_memory_lint T1b stale 가 branch-scoped 전환 뒤 공유층 파일만 잰다 — 시간 경과만으로 red"
+      "TASK-2026-10-19-main-002 — check_memory_lint T1b stale 가 branch-scoped 전환 뒤 공유층 파일만 잰다 — 시간 경과만으로 red",
+      "TASK-2026-10-19-main-003 — check_memory_lint T1a · T1c · T1d 가 legacy 경로라 항상 skip — 은퇴 1 · branch-scoped 재작성 2"
     ]
   },
   "next_documents": [

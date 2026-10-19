@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "generated_by": "workflow_kit.common.state.roadmap.generate_roadmap_state",
-  "generated_at": "2026-10-06",
+  "generated_at": "2026-10-19",
   "milestones": [
     {
       "id": "M-001",
@@ -339,7 +339,9 @@
             "TASK-2026-09-30-main-013",
             "TASK-2026-10-02-main-003",
             "TASK-2026-10-06-main-006",
-            "TASK-2026-10-06-main-009"
+            "TASK-2026-10-06-main-009",
+            "TASK-2026-10-19-main-001",
+            "TASK-2026-10-19-main-002"
           ],
           "total_leaves": 1,
           "done_leaves": 0,

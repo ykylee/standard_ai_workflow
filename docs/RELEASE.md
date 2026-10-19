@@ -5,7 +5,7 @@
 - 대상 독자: 저장소 maintainer (`ykylee`), 릴리스 매니저
 - 상태: stable (v1.20.1 기준; 절차 자체는 v0.5.7+ 부터 정식 도입된 정책 유지)
 - 현재 package version: 1.20.1 (`workflow-source/pyproject.toml`)
-- 최종 수정일: 2026-10-06
+- 최종 수정일: 2026-10-19
 - 관련 문서: [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md), [./INSTALLATION_AND_USAGE.md](./INSTALLATION_AND_USAGE.md), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md), [workflow-source/releases/](https://github.com/ykylee/standard_ai_workflow/tree/main/workflow-source/releases/)
 
 > **최종 갱신**: 2026-07-18 (회귀 표를 v0.15.15 까지 확장하고 `release_pipeline.py` 자동화 경로 반영)
@@ -346,18 +346,34 @@ wk doctor --json | python3 -c "import json,sys; print(json.load(sys.stdin)['cont
 
 ```bash
 wk doctor --json | python3 -c "import json,sys; print(json.load(sys.stdin)['plugin_enabled']['disabled'])"
-#   → []   (항목은 `<채널>:<키>` — 4채널을 잰다, TASK-2026-09-28-main-018)
+#   → []   (항목은 `<채널>:<키>` — 5채널을 잰다, TASK-2026-09-28-main-018 · TASK-2026-09-30-main-001)
 #   claude-code:…  → claude plugin enable standard-ai-workflow@standard-ai-workflow
 #   codex:…        → ~/.codex/config.toml 의 [plugins."standard-ai-workflow@standard-ai-workflow"] 에 enabled = true (enable 명령이 없다)
 #   grok-build:…   → grok plugin enable standard-ai-workflow
 #   antigravity:…  → IDE 플러그인 패널 또는 ~/.gemini/config/config.json 의 plugins.standard-ai-workflow.enabled (agy plugin enable 은 이 파일을 쓰지 않는다)
+#   minimax-code:… → mcode plugin enable standard-ai-workflow@local
 claude plugin list        # Status: ✔ enabled 를 눈으로 확인
 codex plugin list | grep standard-ai-workflow   # STATUS: installed, enabled
 ```
 
-**minimax-code 는 위 두 절이 재지 않는다.** `content_drift` · `plugin_enabled` 는
-claude-code · codex · grok-build · antigravity 4채널만 본다 — MiniMax 가 뒤처져도
-`behind=[]` 는 그대로다. 그래서 sync 자신의 판정으로 확인한다:
+**minimax-code 도 위 두 절이 잰다** (TASK-2026-09-30-main-001, 2026-10-19). `content_drift` 는
+`~/.minimax/plugins/standard-ai-workflow/` 를 사본으로 세어 behind 를 판정하고, `plugin_enabled` 는
+MiniMax 로컬 런타임의 **SQLite**(`~/.minimax/v2/sqlite/runtime-state.sqlite` →
+`local_runtime_plugin_local_disabled`) 표로 켜짐·꺼짐을 판정한다 — MiniMax 는
+`mcode plugin enable|disable` 가 상태를 직접 기록하는 채널이라, claude-code 처럼 "선언이 지워져서
+꺼진" 형태가 아니다. 표에 행이 없으면 켜짐이다(부재가 꺼짐을 대신하지 않는다).
+
+```bash
+wk doctor --json | python3 -c "import json,sys; d=json.load(sys.stdin); print([b['harness'] for b in d['content_drift']['behind']])"
+#   → ['codex', 'grok-build', 'antigravity', 'claude-code']
+#     (minimax-code 는 **없어야** 정상이다 — §2.8 재적용으로 1.20.1 이라 behind 가 아니다.
+#      뒤처져 있으면 이 목록에 'minimax-code' 가 오른다.)
+wk doctor --json | python3 -c "import json,sys; print(json.load(sys.stdin)['plugin_enabled']['disabled'])"
+#   → []   (minimax-code 도 같이 잰다)
+```
+
+sync 자신의 판정으로도 확인한다 — doctor 가 재적용 **사전** 상태를 보여주는 것은 맞지만,
+doctor 한 번이 두 축(사본·활성)을 함께 재므로 재적용 후에는 doctor 만으로 충분하다:
 
 ```bash
 .venv/bin/python3 -m workflow_kit.minimax_plugin --json | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['in_sync'], d['kit_version'], d['installed_version'])"

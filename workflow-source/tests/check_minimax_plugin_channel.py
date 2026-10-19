@@ -28,6 +28,11 @@ case 구성:
      ``before`` 가 반영 전 버전·계획을 싣고, ``written`` 은 바뀐 파일만, 텍스트는
      ``<옛 버전> → <새 버전>`` 과 반영 전 계획을 낸다. 재실행은 0개 · 백업 없음,
      일부만 바뀌면 그 파일만 쓴다. 반영 뒤 불일치는 텍스트 · ``--json`` 모두 rc 1.
+  9. **doctor 가 이 채널을 잰다** (TASK-2026-09-30-main-001) — ``content_drift`` 가
+     ``~/.minimax/plugins/standard-ai-workflow/`` 를 **사본**으로 세어 behind 를
+     판정하고, ``plugin_enabled`` 가 ``runtime-state.sqlite`` 의
+     ``local_runtime_plugin_local_disabled`` 표로 켜짐·꺼짐을 판정한다. 표에 행이
+     없으면 켜짐(부재가 꺼짐을 대신하지 않는다), 행이 있으면 꺼짐으로 보고된다.
 """
 
 from __future__ import annotations
@@ -37,10 +42,12 @@ import io
 import json
 import re
 import shutil
+import sqlite3
 import sys
 import tempfile
 import zipfile
 from pathlib import Path
+from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
@@ -49,13 +56,18 @@ sys.path.insert(0, str(SOURCE_ROOT))
 from workflow_kit import __version__ as VERSION  # noqa: E402
 from workflow_kit.minimax_plugin import (  # noqa: E402
     main as minimax_sync_main,
+)
+from workflow_kit.minimax_plugin import (  # noqa: E402
     plan_minimax_sync,
     sync_minimax_plugin,
 )
-from workflow_kit.plugin_distribution import PLUGIN_HARNESS_SPECS, build_plugin_archives  # noqa: E402
+from workflow_kit.plugin_distribution import (  # noqa: E402
+    PLUGIN_HARNESS_SPECS,
+    build_plugin_archives,
+)
 from workflow_kit.plugin_payload import (  # noqa: E402
-    CODEX_MANIFEST_RELPATH,
     CLAUDE_CODE_MANIFEST_RELPATH,
+    CODEX_MANIFEST_RELPATH,
     MINIMAX_ICON_DARK_RELPATH,
     MINIMAX_ICON_RELPATH,
     MINIMAX_MANIFEST_RELPATH,
@@ -124,6 +136,10 @@ WATCHES = (
     "workflow-source/pyproject.toml",
     "workflow-source/tests/check_minimax_plugin_channel.py",
     "plugin/*",
+    # doctor 축(case 9)이 정본 페이로드를 **렌더**해 비교한다 — 렌더 경로가
+    # 진입점 블록의 §11 갱신 명령을 표준 문서에서 뽑는다 (정본:
+    # `plugin_payload.find_memory_command` → `common/standard_rules`).
+    "workflow-source/core/global_workflow_standard.md",
 )
 
 FAILURES: list[str] = []
@@ -134,8 +150,9 @@ def _assert(condition: bool, message: str) -> None:
         FAILURES.append(message)
 
 
-def _manifest() -> dict:
-    return json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+def _manifest() -> dict[str, Any]:
+    payload: dict[str, Any] = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    return payload
 
 
 def check_payload_drift() -> None:
@@ -383,7 +400,6 @@ def _probe_mcp_servers_support() -> str:
     if shutil.which("mcode") is None:
         return "SKIP (mcode 없음 — 관찰 대상 런타임 부재)"
     try:
-        import tempfile
         from pathlib import Path as _P
 
         home = _P.home() / ".minimax" / "plugins"
@@ -521,6 +537,141 @@ def check_apply_report_before_state() -> None:
             _assert(code == 1, f"반영 뒤 불일치인데 rc={code} ({extra_args or 'text'})")
 
 
+def _minimax_disabled_db(home: Path) -> Path:
+    """MiniMax 로컬 런타임의 활성 상태 DB — 표가 비어 있는 상태로 만든다.
+
+    실제 경로(`~/.minimax/v2/sqlite/runtime-state.sqlite`)와 **같은 상대 깊이**를
+    갖는다 — 판정 코드가 그 경로를 하드코딩하지 않아도 이 fixture 가 그 자리를
+    재현해야 진짜 자리와 같은 판정을 받는다.
+    """
+    db = home / ".minimax" / "v2" / "sqlite" / "runtime-state.sqlite"
+    db.parent.mkdir(parents=True, exist_ok=True)
+    con = sqlite3.connect(db)
+    try:
+        con.execute(
+            "CREATE TABLE local_runtime_plugin_local_disabled ("
+            "canonical_root TEXT PRIMARY KEY, updated_at_ms INTEGER NOT NULL)"
+        )
+        con.commit()
+    finally:
+        con.close()
+    return db
+
+
+def check_doctor_axis() -> None:
+    """doctor 의 두 축이 이 채널을 잰다 — 사본(b behind) · 활성(disabled).
+
+    2026-10-19 실측 (mcode 0.6.2, macOS): `mcode plugin disable` 은
+    `~/.minimax/v2/sqlite/runtime-state.sqlite` 의 `local_runtime_plugin_local_disabled`
+    표에 **플러그인 디렉터리 절대 경로** 한 줄을 넣고, enable 은 그 줄을 지운다.
+    그래서 활성 판정의 정본은 JSON 설정 파일이 아니라 **이 DB** 다.
+    """
+    from workflow_kit import deploy_doctor
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        home = Path(tmpdir)
+        # 1.14.4 처럼 오래된 설치본 — doctor 가 "behind" 로 잡아야 한다.
+        plugin_dir = home / ".minimax" / "plugins" / PLUGIN_NAME
+        (plugin_dir / ".minimax-plugin").mkdir(parents=True)
+        (plugin_dir / MINIMAX_ICON_RELPATH).write_bytes(b"")
+        (plugin_dir / MINIMAX_ICON_DARK_RELPATH).write_bytes(b"")
+        (plugin_dir / "skills" / "session-start").mkdir(parents=True)
+        (plugin_dir / "skills" / "session-start" / "SKILL.md").write_text(
+            "stale\n", encoding="utf-8"
+        )
+        (plugin_dir / ".minimax-plugin" / "plugin.json").write_text(
+            json.dumps({"version": "1.14.4"}, ensure_ascii=False), encoding="utf-8"
+        )
+
+        drift = deploy_doctor._probe_content_drift(home)
+        caches = [c for c in drift.get("caches", []) if c.get("harness") == "minimax-code"]
+        _assert(
+            len(caches) == 1,
+            f"content_drift 가 minimax-code 사본을 세지 않았다: {caches}",
+        )
+        if len(caches) != 1:
+            # 사본이 없으면 뒤의 단언이 전부 vacuous 해진다 — 여기서 끝낸다.
+            return
+        record = caches[0]
+        _assert(
+            record.get("installed_version") == "1.14.4",
+            f"설치본 버전을 못 읽었다: {record.get('installed_version')}",
+        )
+        _assert(
+            record.get("behind") is True,
+            f"1.14.4 설치본을 behind 로 판정하지 않았다: {record.get('behind')}",
+        )
+        _assert(
+            record.get("in_sync") is False,
+            "1.14.4 설치본을 in_sync 로 판정했다",
+        )
+        _assert(
+            any(d.get("path") == MINIMAX_MANIFEST_RELPATH for d in record.get("differs", [])),
+            f"매니페스트 차이를 잡지 못했다: {record.get('differs')}",
+        )
+        # 뒤처짐 목록에도 실린다 — doctor 의 `content_drift.behind` 가 그 자리다.
+        _assert(
+            any(b.get("harness") == "minimax-code" for b in drift.get("behind", [])),
+            f"behind 목록에 minimax-code 가 없다: {drift.get('behind')}",
+        )
+
+        # 2. 활성 축 — 표가 비어 있으면 켜짐.
+        db = _minimax_disabled_db(home)
+        enabled = deploy_doctor._probe_plugin_enabled(home, home, drift)
+        recs = [p for p in enabled.get("plugins", []) if p.get("harness") == "minimax-code"]
+        _assert(
+            len(recs) == 1,
+            f"plugin_enabled 가 minimax-code 를 읽지 않았다: {enabled.get('plugins')}",
+        )
+        if len(recs) != 1:
+            return
+        _assert(
+            recs[0].get("enabled") is True,
+            f"표가 비었는데 꺼짐으로 판정했다: {recs[0]}",
+        )
+        _assert(
+            recs[0].get("key") == f"{PLUGIN_NAME}@local",
+            f"키가 mcode 가 쓰는 선택자와 다르다: {recs[0].get('key')}",
+        )
+        _assert(
+            "minimax-code" not in enabled.get("disabled", []),
+            f"켜진 플러그인을 disabled 로 보고했다: {enabled.get('disabled')}",
+        )
+
+        # 3. 표에 행이 있으면 꺼짐 — 그리고 "꺼짐" 이 보고에 실린다.
+        con = sqlite3.connect(db)
+        try:
+            con.execute(
+                "INSERT INTO local_runtime_plugin_local_disabled VALUES (?, ?)",
+                (str(plugin_dir), 0),
+            )
+            con.commit()
+        finally:
+            con.close()
+        disabled = deploy_doctor._probe_plugin_enabled(home, home, drift)
+        recs = [p for p in disabled.get("plugins", []) if p.get("harness") == "minimax-code"]
+        _assert(
+            len(recs) == 1 and recs[0].get("enabled") is False,
+            f"행이 있는데 켜짐으로 판정했다: {recs}",
+        )
+        _assert(
+            f"minimax-code:{PLUGIN_NAME}@local" in disabled.get("disabled", []),
+            f"disabled 목록에 실리지 않았다: {disabled.get('disabled')}",
+        )
+        _assert(
+            any("minimax-code" in f for f in disabled.get("findings", [])),
+            f"발견 문장에 실리지 않았다: {disabled.get('findings')}",
+        )
+
+        # 4. DB 가 없으면 "모름" — 통과로 세지 않는다 (읽기 실패는 사유로 남는다).
+        db.unlink()
+        unknown = deploy_doctor._probe_plugin_enabled(home, home, drift)
+        _assert(
+            "minimax-code" in (unknown.get("read_errors") or {}),
+            f"DB 부재를 읽기 실패로 남기지 않았다: {unknown.get('read_errors')}",
+        )
+
+
 def main() -> int:
     missing = _missing_payload_assets()
     if missing:
@@ -539,6 +690,7 @@ def main() -> int:
     check_local_sync()
     check_shadow_manifest_refused()
     check_apply_report_before_state()
+    check_doctor_axis()
 
     if FAILURES:
         for failure in FAILURES:

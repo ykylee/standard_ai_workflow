@@ -4,7 +4,7 @@
 - 범위: 의존성 설치, 패키지 임포트, 스모크 테스트 실행, bootstrap/demo/MCP 실행, 핵심 워크플로우 호출 예시
 - 대상 독자: 워크플로우를 직접 수정·검증하려는 개발자, 패키지 인테그레이션을 시도하는 통합 담당자
 - 상태: stable (v1.20.1 기준; 일부 본문 예시는 v0.5.10 시점 baseline 으로 표기, 동작 자체는 v1.1.6 과 정합)
-- 최종 수정일: 2026-10-06
+- 최종 수정일: 2026-10-19
 - 관련 문서: [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [QUICKSTART.md](https://github.com/ykylee/standard_ai_workflow/blob/main/QUICKSTART.md), [./DOCUMENT_INDEX.md](./DOCUMENT_INDEX.md), [./CODE_INDEX.md](./CODE_INDEX.md), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md)
 
 > [!NOTE]
@@ -423,7 +423,7 @@ kit 사본이 저장소 소스와 같은 내용인가**) ·
 버전 마커) · **global_scope** (하네스별 설치 선언의 거주지) · **drift** (낡은
 마커, 스코프 간 어긋남) · **content_drift** (설치 사본의 페이로드 해시 대조) ·
 **mcp_interpreter** (플러그인 MCP 가 실제로 띄우는 해석기가 어떤 kit 을 import 하는가) ·
-**plugin_enabled** (설치본을 하네스가 켜 두었는가 — 채널별 활성 선언의 부재 / 명시 false, 4채널) ·
+**plugin_enabled** (설치본을 하네스가 켜 두었는가 — 채널별 활성 선언의 부재 / 명시 false, 5채널) ·
 **runtime_load** (실행 중 호스트가 이 설치를 봤는가).
 
 > **설치와 활성은 다른 축이다** (TASK-2026-09-28-main-017). 95차(2026-09-28) 실측에서
@@ -433,7 +433,8 @@ kit 사본이 저장소 소스와 같은 내용인가**) ·
 > `<plugin>@<marketplace>` 키를 `enabledPlugins` 에서 찾아(프로젝트 로컬 > 프로젝트 >
 > 사용자) **부재**와 **명시 false** 를 구분해 발견으로 낸다.
 >
-> **선언 자리는 채널마다 다르다** (96차 2026-09-28 실측, TASK-2026-09-28-main-018 — 4채널로 확장):
+> **선언 자리는 채널마다 다르다** (96차 2026-09-28 실측, TASK-2026-09-28-main-018 — 4채널로 확장 →
+> 118차 2026-10-19 에 minimax-code 까지 5채널, TASK-2026-09-30-main-001):
 >
 > | 채널 | 활성 선언 | 부재의 뜻 | 되살리기 |
 > |---|---|---|---|
@@ -441,10 +442,13 @@ kit 사본이 저장소 소스와 같은 내용인가**) ·
 > | codex | `~/.codex/config.toml` `[plugins."<plugin>@<market>"] enabled` | 꺼짐 (기본값을 추측하지 않는다) | 그 블록에 `enabled = true` — codex 에는 enable 명령이 없다 |
 > | grok-build | `~/.grok/config.toml` `[plugins] enabled = […]` / `disabled = […]` | **로드** — 양쪽 목록 부재는 기본 로드다 (끄는 선언은 `disabled` 하나) | `grok plugin enable standard-ai-workflow` |
 > | antigravity | `~/.gemini/config/config.json` `plugins.<이름>.enabled` | **로드** — 사본 자리가 자동 발견 루트다 (agy 1.0.16 은 첫 실행에 `enabled: true` 를 써 넣는다) | IDE 플러그인 패널 또는 그 파일 (`agy plugin enable` 은 이 파일을 쓰지 않는다) |
+> | minimax-code | `~/.minimax/v2/sqlite/runtime-state.sqlite` → `local_runtime_plugin_local_disabled` 표의 행 (행 = 플러그인 디렉터리 절대경로) | **로드** — 끄는 선언이 하나뿐이라 표가 비면 켜진 것이다 | `mcode plugin enable <key>@local` |
 > | pi-dev | 없음 (경로 참조) | 해당 없음 | — |
 >
 > grok 의 두 목록은 `grok plugin disable` → `enable` 왕복으로, antigravity 의 무반응은
-> `agy plugin disable science` 뒤 파일 불변으로 실측했다.
+> `agy plugin disable science` 뒤 파일 불변으로 실측했다. minimax-code 는
+> `mcode plugin disable` → 표 행 1개 → `enable` → 행 0개 로 실측했다(2026-10-19) —
+> **JSON 설정 파일이 아니라 SQLite** 다(§7.0.2 읽는 법 9번째 항목).
 >
 > **부재의 뜻은 실행으로 쟀다** (97차 2026-09-28, TASK-2026-09-28-main-019). grok 은 `enabled` 줄을
 > 지운 상태 · `enabled = []` 에서 `grok -p` 세션의 프롬프트가 enabled 와 바이트 동일했고
@@ -578,8 +582,9 @@ bootstrap 채널의 규율일 뿐이고, 플러그인 채널은 각 하네스의
 | **grok-build** | 사본 (`~/.grok/installed-plugins/<id>/` — `<id>` 는 **플러그인 이름이 아니라** `plugin-<hash>` 다. 이름 → 경로 매핑은 같은 디렉터리의 `registry.json` 이 쥔다) | **거부** — `Error: repo '<id>' already installed` (중복 항목은 안 생긴다) | `plugin update` 가 `local symlink, already live` 를 출력하지만 **실제로는 갱신하지 않는다** (원본에 표식을 넣고 실측) | `plugin uninstall <플러그인 이름>` → `plugin install`. **`plugin-<hash>` id 를 주면 안 된다** — 왼쪽 열의 `<id>` 와 다른 값이다 (아래 6) |
 | **pi-dev** | **경로 참조** — `~/.pi/agent/settings.json` 의 `packages[]`. 사본 없음 | 성공, 항목 중복 없음 (멱등) | `pi update <source>` 성공 | **불필요** — 원본이 곧 설치본이다 |
 | **antigravity** | 사본 (`~/.gemini/config/plugins/<name>/`, **무버전** — 2026-08-29 실측) | `plugin install` 재실행이 성공하며 디렉터리를 갈아엎지 않는 병합 복사 (marker 파일 생존 실측) | 전용 update 명령 없음 | **재설치가 곧 갱신** — `plugin install` 재실행. 완전 초기화는 `uninstall` → `install` (uninstall 은 디렉터리 통째 제거 실측) |
+| **minimax-code** | **디렉터리 그 자체** (`~/.minimax/plugins/<name>/`) — `local` 마켓플레이스가 **디렉터리를 스캔**한다. 캐시도 버전 디렉터리도 없다 (2026-10-19 실측, mcode 0.6.2) | 원격 마켓플레이스가 없어 **`mcode plugin add` 로 당겨오는 경로가 없다** — 디렉터리를 직접 써야 한다 | **갱신 명령이 없다** (Claude Code 의 `plugin update` · Codex 의 `plugin add` 처럼 **둘 다 없다**) | **`python -m workflow_kit.minimax_plugin --apply`** — sync 가 곧 재적용이다. 바뀐 파일이 있으면 기존 설치본을 **타임스탬프 백업**으로 남긴다 (백업은 마켓플레이스 **밖**) |
 
-읽는 법 일곱 가지:
+읽는 법 아홉 가지:
 
 1. **"버전이 같으면 내용도 같다" 는 성립하지 않는다.** claude-code 는 이 전제로
    업데이트를 거절한다 — 실측 중 설치본이 정본보다 낡아 있었고(같은 `1.2.0`),
@@ -677,6 +682,21 @@ bootstrap 채널의 규율일 뿐이고, 플러그인 채널은 각 하네스의
    절차가 된다. 어느 쪽인지는 추측하지 말고 `~/.claude/plugins/known_marketplaces.json`
    의 `source` 를 읽는다. **`github` 소스 셀은 이 호스트에서 잴 수 없어 비어 있다** —
    추정으로 채우지 않는다.
+
+9. **minimax-code 는 "설치" 와 "켜짐" 이 서로 다른 자리에 있다** (2026-10-19 실측,
+   mcode 0.6.2, TASK-2026-09-30-main-001). 설치는 **디렉터리의 존재**이고 — 위 표
+   행처럼 캐시도 버전 디렉터리도 없어서 사본이 곧 설치본이다. 켜짐은 **다른 자리**에
+   기록된다: `mcode plugin disable` 은 `~/.minimax/v2/sqlite/runtime-state.sqlite` 의
+   `local_runtime_plugin_local_disabled` 표에 **플러그인 디렉터리 절대 경로** 한 줄을
+   넣고, `enable` 은 그 줄을 지운다 (실측: disable → 행 1개 → enable → 행 0개).
+
+   그래서 이 채널은 claude-code 와 정반대다. claude-code 는 **선언이 지워지면** 꺼진
+   것처럼 보이고(부재가 발견이다), MiniMax 는 **명령이 상태를 직접 기록한다** — 꺼짐은
+   표에 **행이 있을 때** 뿐이고, 행이 없으면 켜진 것이다. 부재가 꺼짐을 대신하지 않는다.
+
+   `wk doctor` 의 `plugin_enabled` 절이 이 표를 읽는다(2026-10-19 추가 — 이전엔 이
+   채널을 안 봤다). DB 를 **읽기 전용**으로 연다 — doctor 는 report-only 라 사용자의
+   런타임 상태를 고치지 않는다. DB 가 없으면 "모름" 을 보고하고 통과로 세지 않는다.
 
 > 이 표는 `wk doctor` (§7.0.1) 의 **복구 열**이다. 탐침의 `content_drift` 절이
 > 페이로드 해시로 *어긋났다* 는 사실까지 말해 주지만(2026-08-18+), 고치는 방법은

@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "generated_by": "workflow_kit.common.state.roadmap.generate_roadmap_state",
-  "generated_at": "2026-10-06",
+  "generated_at": "2026-10-19",
   "milestones": [
     {
       "id": "M-001",
@@ -241,9 +241,9 @@
       "sdlc_phase": "stabilization",
       "declared_status": "in_progress",
       "derived_status": "in_progress",
-      "progress": 0.25,
+      "progress": 0.5,
       "total_leaves": 4,
-      "done_leaves": 1,
+      "done_leaves": 2,
       "deliverables_missing": [],
       "wbs": [
         {
@@ -381,8 +381,9 @@
         {
           "id": "WBS-7.4",
           "title": "릴리스·채널 운영 (발행 사이클, 소비 채널 재적용, 브랜치 메모리 정비)",
-          "derived_status": "in_progress",
+          "derived_status": "done",
           "linked_task_ids": [
+            "TASK-2026-09-30-main-001",
             "TASK-2026-08-30-main-004",
             "TASK-2026-08-31-main-001",
             "TASK-2026-08-31-main-005",
@@ -412,7 +413,6 @@
             "TASK-2026-09-29-main-011",
             "TASK-2026-09-29-main-012",
             "TASK-2026-09-29-main-014",
-            "TASK-2026-09-30-main-001",
             "TASK-2026-09-30-main-007",
             "TASK-2026-09-30-main-011",
             "TASK-2026-09-30-main-014",
@@ -426,7 +426,7 @@
             "TASK-2026-10-06-main-008"
           ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         }
       ]
@@ -794,6 +794,13 @@
   ],
   "current_milestone_id": "M-007",
   "exempt_tasks": [
+    {
+      "task_id": "TASK-2026-10-19-feat-auto-20261019-a0afcf36-001",
+      "task_status": "done",
+      "wbs_ref": "exempt",
+      "exempt_reason": "로드맵 밖 — worktree 브랜치 네임스페이스 자동 seed 사건 기록",
+      "source_path": "ai-workflow/memory/active/feat/auto-20261019-a0afcf36/backlog/tasks/TASK-2026-10-19-feat-auto-20261019-a0afcf36-001.md"
+    },
     {
       "task_id": "TASK-2026-08-25-main-010",
       "task_status": "done",

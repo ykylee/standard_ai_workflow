@@ -73,6 +73,8 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-10-02-main-003 원격 없는 저장소의 worktree 는 자동 seed · 이어받기가 안 돈다 — 기본 브랜치 판정이 현재 브랜치로 떨어진다
+- TASK-2026-09-30-main-001 minimax-code 가 플러그인 채널로 미지원 — 배포·드리프트 판정·재생성이 모두 kit 밖
 - TASK-2026-10-19-main-004 goal coverage 가 '어느 마일스톤도 섬기지 않는 goal' 을 조용히 uncovered 로 센다 — 닿을 수 없는 goal 을 provenance 로 지목
 - TASK-2026-10-19-main-003 check_memory_lint T1a · T1c · T1d 가 legacy 경로라 항상 skip — 은퇴 1 · branch-scoped 재작성 2
 - TASK-2026-10-19-main-002 check_memory_lint T1b stale 가 branch-scoped 전환 뒤 공유층 파일만 잰다 — 시간 경과만으로 red
@@ -81,12 +83,11 @@
 - TASK-2026-10-06-main-008 RELEASE.md §2.8 에 minimax-code 재적용 · 확인 절차 보강
 - TASK-2026-10-05-main-003 [A2] 새 컨텍스트 verifier subagent — task 를 done 으로 닫기 전 완료 기준을 읽기 전용으로 대조
 - TASK-2026-10-06-main-007 v1.20.1 발행 — backlog-update handoff 제목 동기화 수리 (patch)
-- TASK-2026-10-06-main-006 backlog-update 의 handoff 동기화가 보존된 task 제목 대신 입력 --task-name 을 쓴다
-- TASK-2026-10-06-main-005 v1.20.0 발행 — 진입점 다이어트(규칙 블록 · bootstrap 템플릿 · --diet) + AI-native SDLC A1~A3 + MiniMax Code 채널
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
 
+- (합류 `feat/auto-20261019-a0afcf36@cbe0b88b`, 2026-10-19) feat/auto-20261019-a0afcf36 워크스페이스 — `main@06abaaf0` 에서 이어받음 (2026-10-19). 이 브랜치의 작업은 아직 없다. 모 브랜치 기준선: **117차 세션 (2026-10-06, Linux 호스트) — task 3건 close, 발행 없음 (main 은 v1.20.1 + 3커밋).** ①**main-003**(A2) — 재시작 뒤 `subagent_type=verifier` 로… — 완료 0건 · 이월 0건 · 되돌려 적음 2건(TASK-2026-09-30-main-001, TASK-2026-10-02-main-003). 기록: [`archived/feat/auto-20261019-a0afcf36/session_handoff.md`](../../archived/feat/auto-20261019-a0afcf36/session_handoff.md) · [합류 기록](./sessions/merge_feat-auto-20261019-a0afcf36_2026-10-19.md)
 - (118차) **소유자 결정 대기 — G4 · G5 선언**: session-start 가 '선언 없는 goal: G4, G5' 를 낸다. 제안: G5 → M-001~M-006 `goals:` 에 추가 + M-007 `wbs_goals` WBS-7.4 → G3, G5 / G4 → M-006 `goals:` [G3, G4] + WBS-7.4 → G3, G4 (또는 G4 를 운영 약속으로 두고 goal 번호에서 제외). 적용은 roadmap/M-*.md frontmatter 손편집 + `refresh-state`. minimax-code macOS §2.8 은 앱에서 진행 중(1.20.1 wheel 은 `--apply` 보고 오독 수리 전 — `--json` 의 `in_sync` 로 판정).
 - (118차) **미발행 수리 누적** — 117차(§2.8 minimax · `--apply` 보고 · verifier) + 118차(harvest v1.20.0 · case 6 · 7 · memory_lint T1b). 다음 발행(1.20.2 또는 1.21.0)에 묶고 macOS §2.8 →그 버전. 발행이 진입점 템플릿을 바꾸면 **커밋 해시를 `DEFAULT_REFS` 에 더하고 `harvest --apply`** (RELEASE.md §2.1 · case 6 이 red 로 알린다). ~~`check_memory_lint` T1a · T1c · T1d 무력화 3건~~ ✅ main-003. 이 호스트 claude-code · codex 프로세스는 1.20.1 이전 기동 — 재시작 필요 그대로.
 - (117차) **verifier 실사용 개시** — task 를 done 으로 닫기 전에 `subagent_type=verifier` 를 부른다. 등록 때 `backlog-update --done-criteria` 를 반드시 같이 준다(기준 줄이 비면 verifier 가 막는다). 되주입 전수는 verifier 에게 '수리 부분을 빠짐없이 하나씩 되돌려라' 로 맡기면 작성자보다 넓게 찾는다. **minimax-code**: §2.8 절차 생김 — macOS 호스트 →1.20.1 적용 시 `python -m workflow_kit.minimax_plugin --apply` 후 `--json` 의 `in_sync` 로 확인, 앱 재시작 필요 여부와 `mcode plugin list` 인정은 그때 첫 실측. codex 3 · grok-build 1 프로세스가 1.20.1 이전 기동 — 재시작 필요.

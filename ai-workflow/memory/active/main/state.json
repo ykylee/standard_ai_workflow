@@ -37,10 +37,7 @@
     "blocked_items": [
       "TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다"
     ],
-    "planned_items": [
-      "TASK-2026-09-30-main-001",
-      "TASK-2026-10-02-main-003"
-    ],
+    "planned_items": [],
     "recent_done_items": [
       "TASK-2026-10-19-main-004 — goal coverage 가 '어느 마일스톤도 섬기지 않는 goal' 을 조용히 uncovered 로 센다 — 닿을 수 없는 goal 을 provenance 로 지목",
       "TASK-2026-10-19-main-003 — check_memory_lint T1a · T1c · T1d 가 legacy 경로라 항상 skip — 은퇴 1 · branch-scoped 재작성 2",
@@ -83,6 +80,8 @@
     "workflow-source/MEMORY_GOVERNANCE.md",
     "ai-workflow/memory/active/main/sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md",
     "ai-workflow/memory/active/main/sessions/adr006_retrospective_and_calibration_2026-08-10.md",
+    "ai-workflow/memory/archived/feat/auto-20261019-a0afcf36/session_handoff.md",
+    "ai-workflow/memory/active/main/sessions/merge_feat-auto-20261019-a0afcf36_2026-10-19.md",
     "ai-workflow/memory/archived/feat/auto-20261002-4a5d394c/session_handoff.md",
     "ai-workflow/memory/active/main/sessions/merge_feat-auto-20261002-4a5d394c_2026-10-03.md",
     "ai-workflow/memory/archived/claude/remote-sync-status-1ce0a3/session_handoff.md",

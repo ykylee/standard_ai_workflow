@@ -5,12 +5,12 @@
   "purpose_digest_rev": "2026-09-28",
   "source_of_truth": {
     "project_profile_path": "docs/PROJECT_PROFILE.md",
-    "session_handoff_path": "ai-workflow/memory/active/feat/auto-20261019-a0afcf36/session_handoff.md",
+    "session_handoff_path": "ai-workflow/memory/archived/feat/auto-20261019-a0afcf36/session_handoff.md",
     "work_backlog_index_path": null,
-    "daily_backlog_dir": "ai-workflow/memory/active/feat/auto-20261019-a0afcf36/backlog",
-    "tasks_dir": "ai-workflow/memory/active/feat/auto-20261019-a0afcf36/backlog/tasks",
-    "sessions_dir": "ai-workflow/memory/active/feat/auto-20261019-a0afcf36/sessions",
-    "latest_backlog_path": "ai-workflow/memory/active/feat/auto-20261019-a0afcf36/backlog/2026-10-19.md",
+    "daily_backlog_dir": "ai-workflow/memory/archived/feat/auto-20261019-a0afcf36/backlog",
+    "tasks_dir": "ai-workflow/memory/archived/feat/auto-20261019-a0afcf36/backlog/tasks",
+    "sessions_dir": "ai-workflow/memory/archived/feat/auto-20261019-a0afcf36/sessions",
+    "latest_backlog_path": "ai-workflow/memory/archived/feat/auto-20261019-a0afcf36/backlog/2026-10-19.md",
     "repository_assessment_path": null
   },
   "project": {
@@ -47,7 +47,7 @@
     "environment_constraints": []
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/active/feat/auto-20261019-a0afcf36/backlog/2026-10-19.md",
+    "latest_backlog_path": "ai-workflow/memory/archived/feat/auto-20261019-a0afcf36/backlog/2026-10-19.md",
     "task_count": 3,
     "in_progress_items": [],
     "blocked_items": [],
@@ -59,10 +59,10 @@
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",
-    "ai-workflow/memory/active/feat/auto-20261019-a0afcf36/session_handoff.md",
-    "ai-workflow/memory/active/feat/auto-20261019-a0afcf36/backlog/2026-10-19.md",
-    "ai-workflow/memory/active/feat/auto-20261019-a0afcf36/backlog",
-    "ai-workflow/memory/active/feat/auto-20261019-a0afcf36/sessions",
+    "ai-workflow/memory/archived/feat/auto-20261019-a0afcf36/session_handoff.md",
+    "ai-workflow/memory/archived/feat/auto-20261019-a0afcf36/backlog/2026-10-19.md",
+    "ai-workflow/memory/archived/feat/auto-20261019-a0afcf36/backlog",
+    "ai-workflow/memory/archived/feat/auto-20261019-a0afcf36/sessions",
     "workflow-source/core/roadmap_milestone_wbs_spec.md",
     "workflow-source/core/workflow_deployment_idempotency.md",
     "ai-workflow/memory/active/main/session_handoff.md",

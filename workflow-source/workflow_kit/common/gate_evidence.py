@@ -129,12 +129,24 @@ def _is_zero_sha(sha: str) -> bool:
     return bool(sha) and set(sha) <= _ZERO
 
 
+#: 삭제 push 를 막는 원격 ref — 복구 비용이 큰 것만 (소유자 결정 2026-10-19, TASK-2026-10-19-main-007).
+#: worktree 합류 뒤 기능 브랜치 삭제는 일상 흐름이라 막지 않는다 (로컬 ref · reflog 로 복구된다).
+PROTECTED_DELETE_REFS: frozenset[str] = frozenset({"refs/heads/main", "refs/heads/master"})
+PROTECTED_DELETE_PREFIXES: tuple[str, ...] = ("refs/tags/",)
+
+
+def is_protected_delete(remote_ref: str) -> bool:
+    """이 원격 ref 의 **삭제** push 를 막는가 — `main`/`master` 와 모든 태그."""
+    return remote_ref in PROTECTED_DELETE_REFS or remote_ref.startswith(PROTECTED_DELETE_PREFIXES)
+
+
 def check_push(repo_root: Path, lines: list[str]) -> list[str]:
     """pre-push 표준입력(`<local ref> <local sha> <remote ref> <remote sha>`)을 판정한다.
 
     반환은 막을 사유 목록 — 비면 통과. ref 마다 **tip sha** 하나를 본다 (게이트는
-    push 직전 HEAD 에서 돈다). 삭제 push(local sha 가 0)는 올리는 것이 없으니 통과.
-    태그는 가리키는 커밋으로 벗긴다. **모름은 통과가 아니다** — sha 를 못 벗기면 막는다.
+    push 직전 HEAD 에서 돈다). 삭제 push(local sha 가 0)는 올리는 것이 없으니 통과하되,
+    `main` · 태그의 삭제는 막는다 (:func:`is_protected_delete`). 태그는 가리키는 커밋으로
+    벗긴다. **모름은 통과가 아니다** — sha 를 못 벗기면 막는다.
     """
     problems: list[str] = []
     for raw in lines:
@@ -143,6 +155,10 @@ def check_push(repo_root: Path, lines: list[str]) -> list[str]:
             continue
         local_ref, local_sha, remote_ref, _remote_sha = parts
         if _is_zero_sha(local_sha):
+            if is_protected_delete(remote_ref):
+                problems.append(
+                    f"{remote_ref}: 삭제 push 를 막는다 — main · 태그는 복구 비용이 커서 보호한다 "
+                    "(소유자 결정 2026-10-19). 정말 지워야 하면 `git push --no-verify`")
             continue
         commit = _git(repo_root, "rev-parse", "--verify", "--quiet", f"{local_sha}^{{commit}}")
         if not commit:
@@ -170,8 +186,8 @@ def main(argv: list[str] | None = None) -> int:
     problems = check_push(Path(args[1]), sys.stdin.read().splitlines())
     if not problems:
         return 0
-    print("[pre-push] 게이트를 돌지 않은 커밋은 push 하지 않는다 (TASK-2026-09-23-main-009):",
-          file=sys.stderr)
+    print("[pre-push] 게이트를 돌지 않은 커밋 · main · 태그의 삭제는 push 하지 않는다 "
+          "(TASK-2026-09-23-main-009 · TASK-2026-10-19-main-007):", file=sys.stderr)
     for item in problems:
         print(f"  - {item}", file=sys.stderr)
     print("  커밋 후 깨끗한 트리에서 `run_all_checks.py --branch-context=all` 을 돌린다. "

@@ -4,7 +4,7 @@
 - 범위: `.venv` 개발 환경, 전량/선택 실행, 게이트 통과 기록과 pre-push hook, SDK·브랜치·해석기 매트릭스, 경고 게이트
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-09-28
+- 최종 수정일: 2026-10-19
 - 관련 문서: [`../CLAUDE.md`](../CLAUDE.md), [`RELEASE.md`](./RELEASE.md), [ADR-029](../ai-workflow/wiki/decisions/adr-029-session-context-budget.md)
 
 > **이관 기록** (ADR-029, TASK-2026-09-28-main-013). 아래 절은 `CLAUDE.md` 의
@@ -61,6 +61,8 @@
 > 한 번 `git config core.hooksPath .githooks` 로 켠다. 게이트를 돈 **뒤** 편집하면 그 커밋은
 > 기록이 없어 막힌다 — 86차 `f4504818` 이 정확히 그렇게 게이트 밖에서 push 됐다. 우회는
 > `git push --no-verify` (그 push 는 게이트 근거가 없다).
+>
+> **`main` · 태그의 삭제 push 도 막는다** (소유자 결정 2026-10-19, TASK-2026-10-19-main-007) — 복구 비용이 큰 것만이다. 기능 브랜치 삭제는 worktree 합류 뒤 일상 흐름이라 통과한다. 정말 지워야 하면 `git push --no-verify`.
 
 > **GitHub Actions 테스트 workflow 는 없다** (2026-09-23 소유자 결정, TASK-2026-09-23-main-022).
 > 느렸고, 어차피 push 전에 로컬 게이트를 돈다. 남은 workflow 는 `mkdocs`(문서 배포)와

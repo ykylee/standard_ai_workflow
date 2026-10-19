@@ -9,7 +9,8 @@ green 이었다. CI 가 폐지된 지금은 그런 커밋을 아무도 안 잰�
 이 검사가 고정하는 것 (임시 저장소에서 — 실 저장소의 기록·설정을 건드리지 않는다):
 
 - 기록 있음 → 통과 · 기록 없음 → 막음 · 컨텍스트 빠진 기록 → 막음
-- 삭제 push 는 통과 · 태그는 가리키는 커밋으로 벗긴다 · 못 읽는 sha 는 막는다 (모름 ≠ 통과)
+- 삭제 push 는 통과 · **main · 태그의 삭제는 막는다**(소유자 결정 2026-10-19, TASK-2026-10-19-main-007 — 실제 git 의
+  삭제 stdin 을 채취해 fixture 모양과 대조) · 태그는 가리키는 커밋으로 벗긴다 · 못 읽는 sha 는 막는다 (모름 ≠ 통과)
 - 저장소의 `.githooks/pre-push` 가 실행 가능하고, 실제로 그 판정을 exit code 로 낸다
 - hooksPath 로 꺼지는 `.git/hooks/pre-push` 를 같은 인자·입력으로 이어 부른다
 """
@@ -93,6 +94,14 @@ def test_check_push_verdicts() -> None:
         # 삭제 push · 태그 벗기기 · 못 읽는 sha
         if gate_evidence.check_push(repo, [f"(delete) {ZERO} refs/heads/x {gated}"]):
             problems.append("삭제 push 를 막았다")
+        # main · 태그의 삭제는 막는다 — 다른 브랜치 삭제는 위처럼 통과 (소유자 결정 2026-10-19, main-007)
+        for ref in ("refs/heads/main", "refs/heads/master", "refs/tags/v1"):
+            out = gate_evidence.check_push(repo, [f"(delete) {ZERO} {ref} {gated}"])
+            if not out or "삭제" not in out[0] or "--no-verify" not in out[0]:
+                problems.append(f"{ref} 삭제 push 를 통과시켰다: {out}")
+        for ref in ("refs/heads/feat/main-ish", "refs/heads/main2", "refs/heads/mainline", "refs/heads/feat/main"):
+            if gate_evidence.check_push(repo, [f"(delete) {ZERO} {ref} {gated}"]):
+                problems.append(f"{ref}: 이름에 main 이 든 기능 브랜치 삭제를 막았다 — 정확 일치여야 한다")
         _git(repo, "tag", "-a", "v1", gated, "-m", "t")
         tag_obj = _git(repo, "rev-parse", "v1")
         if tag_obj == gated or gate_evidence.check_push(repo, [_line(tag_obj, "refs/tags/v1")]):
@@ -101,6 +110,41 @@ def test_check_push_verdicts() -> None:
         if not out or "읽지 못했다" not in out[0]:
             problems.append(f"못 읽는 sha 를 통과시켰다: {out}")
     _record("test_check_push_verdicts", not problems, "; ".join(problems))
+
+
+def test_delete_push_stdin_matches_real_git() -> None:
+    """fixture 의 삭제 push 줄이 **실제 git 이 hook 에 주는 줄**과 같은 모양인가 (fixture 는 실물을 닮아야 한다).
+
+    임시 bare 원격에 브랜치를 올리고 `git push --delete` 하면서 pre-push hook 이 받은 stdin 을 채취한다.
+    그 줄 그대로 check_push 에 넣어 기능 브랜치는 통과, 같은 줄의 ref 를 main 으로 바꾸면 막히는지 잰다.
+    """
+    problems: list[str] = []
+    with tempfile.TemporaryDirectory(prefix="pre-push-real-") as tmpdir:
+        base = Path(tmpdir)
+        remote = base / "remote.git"
+        subprocess.run(["git", "init", "-q", "--bare", str(remote)], check=True, capture_output=True)
+        repo, gated, _ungated = _repo(base)
+        _git(repo, "remote", "add", "origin", str(remote))
+        _git(repo, "branch", "feat", gated)
+        _git(repo, "push", "-q", "origin", "feat")
+        seen = base / "stdin.txt"
+        hooks = repo / ".git" / "hooks"
+        hooks.mkdir(exist_ok=True)
+        dump = hooks / "pre-push"
+        dump.write_text(f'#!/bin/sh\ncat > "{seen}"\nexit 0\n', encoding="utf-8")
+        dump.chmod(0o755)
+        _git(repo, "-c", "core.hooksPath=.git/hooks", "push", "-q", "origin", "--delete", "feat")
+        line = seen.read_text(encoding="utf-8").strip() if seen.is_file() else ""
+        parts = line.split()
+        if len(parts) != 4 or parts[1] != ZERO or parts[2] != "refs/heads/feat":
+            problems.append(f"실제 삭제 push 의 stdin 이 fixture 모양과 다르다: {line!r}")
+        else:
+            if gate_evidence.check_push(repo, [line]):
+                problems.append(f"실제 기능 브랜치 삭제 줄을 막았다: {line!r}")
+            as_main = line.replace("refs/heads/feat", "refs/heads/main")
+            if not gate_evidence.check_push(repo, [as_main]):
+                problems.append(f"실제 모양의 main 삭제 줄을 통과시켰다: {as_main!r}")
+    _record("test_delete_push_stdin_matches_real_git", not problems, "; ".join(problems) or line)
 
 
 def test_hook_script_enforces_verdict() -> None:
@@ -120,6 +164,12 @@ def test_hook_script_enforces_verdict() -> None:
                 problems.append(f"{sha[:8]}: exit {proc.returncode} (기대 {want}) {proc.stderr[-300:]!r}")
             if want == 1 and "--no-verify" not in proc.stderr:
                 problems.append("막을 때 우회 방법을 말하지 않는다")
+        # main 삭제는 hook 경로로도 exit 1 · 기능 브랜치 삭제는 exit 0
+        for ref, want in (("refs/heads/main", 1), ("refs/heads/feat/x", 0)):
+            proc = subprocess.run(["sh", str(HOOK)], cwd=repo, input=f"(delete) {ZERO} {ref} {gated}\n",
+                                  capture_output=True, text=True, timeout=60)
+            if proc.returncode != want:
+                problems.append(f"{ref} 삭제: exit {proc.returncode} (기대 {want}) {proc.stderr[-200:]!r}")
         # hooksPath 로 꺼지는 `.git/hooks/pre-push` 를 이어 부르는가 — 같은 인자·입력으로
         legacy = repo / ".git" / "hooks" / "pre-push"
         seen = repo / "legacy-saw.txt"
@@ -136,7 +186,7 @@ def test_hook_script_enforces_verdict() -> None:
 
 
 def main() -> int:
-    cases = [test_check_push_verdicts, test_hook_script_enforces_verdict]
+    cases = [test_check_push_verdicts, test_delete_push_stdin_matches_real_git, test_hook_script_enforces_verdict]
     for case in cases:
         case()
     print(f"\n{len(cases) - len(FAILURES)}/{len(cases)} passed")

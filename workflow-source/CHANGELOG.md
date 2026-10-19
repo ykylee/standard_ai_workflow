@@ -4,7 +4,7 @@
 - 범위: git log 에서 추출한 release 별 Added / Changed / Fixed 항목.
 - 대상 독자: maintainer, 릴리스 매니저, 외부 consumer
 - 상태: stable (자동 생성물)
-- 최종 수정일: 2026-10-06
+- 최종 수정일: 2026-10-19
 - 관련 문서: [`./releases/`](./releases/) (release note), [`../docs/RELEASE.md`](../docs/RELEASE.md) (릴리스 절차)
 
 All notable changes to this project will be documented in this file.
@@ -12,10 +12,11 @@ All notable changes to this project will be documented in this file.
 본 파일은 `tools/release_pipeline.py changelog-gen` 으로 자동 생성됩니다 (v0.7.14+).
 수동 편집은 다음 생성 시 덮어써진다 — 형식/metadata 변경은 생성기를 고칠 것.
 
-## [Unreleased] - 2026-10-06
+## [Unreleased] - 2026-10-19
 
 ### Added
 
+- feat(minimax-code): doctor 가 이 채널을 잰다 — behind·disabled·재시작 3축 편입 (main-001) (4ab6938c)
 - feat(entrypoints): ensure-entrypoints --diet — 기존 진입점에서 과거 kit 생성 그대로인 절만 교체/제거 (진입점 다이어트 3) (14fd87be)
 - feat(bootstrap): 생성 진입점 템플릿 다이어트 + 하네스별 분량 예산 검사 (진입점 다이어트 2) (b575b670)
 - feat(sdlc): AI-native SDLC 플레이북 A1~A3 적용 — task Plan 절 · verifier subagent · 검사 약화 차단 hook (d8bbf1e4)
@@ -45,11 +46,18 @@ All notable changes to this project will be documented in this file.
 - feat(tests): 저장소 코드가 낸 Python 경고를 게이트 신호로 (main-007) (5205ba80)
 - feat(tests): 검사를 도는 해석기를 선언 축으로 (main-006) + 82차 세션 종료 (e5f9b554)
 - feat(tests): 선언 하한 Python 을 실물 해석기로 잰다 (main-005) (9915e4ad)
-- feat(metrics): 어휘 겹침을 선언 사슬로 — goal coverage · 시계 의존 게이트 · ENFORCES 축 (c08dfebd)
-- ... (162 more)
+- ... (163 more)
 
 ### Changed
 
+- chore(session): worktree 합류 반영 — feat/auto-20261019-a0afcf36 2건 close (be5e6da8)
+- Merge branch 'feat/auto-20261019-a0afcf36' (1b1f7519)
+- chore(session): 118차 세션 — main-004 close (goal coverage provenance) · G4 · G5 선언안 §5 · handoff · state.json 갱신 (6ca14604)
+- chore(session): 118차 세션 — main-003 close (memory_lint T1a 은퇴 · T1c/T1d 재작성) · handoff · state.json 갱신 (6050e4e3)
+- chore(session): 118차 세션 종료 — main-001 · 002 close (harvest v1.20.0 · memory_lint T1b, 미발행) · handoff · baselines 이관 · state.json 갱신 (4c39e752)
+- chore(session): 117차 세션 종료 — main-003 · 008 · 009 close (verifier 실사용 · §2.8 minimax · apply 보고 수리, 미발행) · handoff · state.json 갱신 (06abaaf0)
+- docs(release): §2.8 에 minimax-code 재적용 · 확인 절차 보강 (main-008) (2ef4682f)
+- chore(session): main-003 close — verifier subagent 실제 로드 실측 (v1.20.1 발행 task 3/3 PASS) (bfd4e375)
 - chore(session): 세션 종료 — main-006 close (handoff 제목 동기화 수리, 미발행) · handoff · state.json 갱신 (56ce4fd4)
 - chore(session): 116차 세션 종료 — 플레이북 검토 · A1~A3 · 진입점 다이어트 · v1.20.0 발행 · handoff · state.json 갱신 (c166c6ad)
 - docs(standard): 진입점 규칙 블록 압축 — 3,635B → 2,740B, 근거는 정본 본문으로 (진입점 다이어트 1) (062c4d64)
@@ -72,18 +80,16 @@ All notable changes to this project will be documented in this file.
 - test(branch-memory): 슬래시 브랜치 task 수집이 형제 공유 디렉터리를 오인하지 않음을 잰다 (main-012 완료 기준 4) (b963f22c)
 - merge: main(8ccd6db8·d89694b7) 을 claude/session-start-e6eb83 에 병합 (4eb71c93)
 - chore(session): 110차 세션 종료 — claude-session-start-e6eb83-002 close (worktree 자동 seed) · §2.8 재적용 · handoff · state.json 갱신 (430999f4)
-- docs(memory): macOS Codex v1.16.0 적용·신뢰·재시작 검증 반영 (d89694b7)
-- docs(memory): minimax-code 배포본 채취 완료 — M-022 철회 · main-001 갱신 · glob 결함 2건 등록 (8ccd6db8)
-- chore(session): 109차 세션 종료 — main-009 · 010 · 011 close (Codex hook 출력 수리 · v1.16.0 발행) · handoff · state.json 갱신 (6545f13a)
-- chore(session): 108차 세션 종료 — main-008 close (Codex compact 중계 hook) · main-009 등록 · handoff · state.json 갱신 (bdfe4b31)
-- chore(session): 107차 세션 종료 — compact 중계 M-018~M-021 완주 · v1.15.0 발행 · handoff · state.json 갱신 (8378809e)
-- chore(memory): 107차 — compact 중계 M-021 close (main-006) · handoff 기준선 · state.json 재생성 (6067f865)
-- chore(session): 106차 세션 종료 — main-002 close · main-001 minimax 형식 조사 기록 · handoff · state.json 갱신 (6b8d11e8)
-- chore(state): 105차 state.json 재생성 — active/main/ 기준선에 minimax-code 갭 반영 (7b85854b)
-- ... (454 more)
+- ... (462 more)
 
 ### Fixed
 
+- fix(auto-seed): origin 없는 저장소에서도 이어받기 — 기준 브랜치 판정을 분리 (main-003) (cbe0b88b)
+- fix(purpose_graph): 어느 마일스톤 · leaf 도 섬기지 않는 goal 을 provenance 로 지목 — 조용한 uncovered 금지 (main-004) (e88e4b48)
+- fix(memory_lint): T1a 은퇴 · T1c/T1d 를 branch-scoped 로 — index path 선언 · archived 해소, 미분류 참조는 숫자로 (main-003) (094a51ba)
+- fix(memory_lint): T1b stale 을 branch-scoped 로 — 공유층 면제 · 브랜치 메모리의 git 커밋 일자로 90일 판정 (main-002) (9f027210)
+- fix(entry_diet): harvest 에 v1.20.0 채취 + '현행 생성물 ⊆ 알려진 생성물' 검사로 재실행 누락 고정 (main-001) (b64024b2)
+- fix(minimax_plugin): --apply 보고를 반영 전 기준으로 — 첫 설치가 '이미 일치' 로 읽히던 오독 (main-009) (077474d8)
 - fix(backlog-update): handoff 동기화 · 이월 색인이 보존된 task 제목을 쓴다 (main-006) (6c348937)
 - fix(test): main 체크아웃 관찰에서 --no-reflect 없이는 session-start 가 쓴다 (4b1b5256)
 - fix(test): check_state_reconcile 도 관찰 전용 경로로 돌린다 (582763f4)
@@ -108,18 +114,19 @@ All notable changes to this project will be documented in this file.
 - fix(bootstrap): minimax-code 경로 대소문자 불일치로 session-start 가 매 세션 빈 task 를 만들던 것 (#29, 09-29-main-002) (9e4660ba)
 - fix(backlog-update): 날짜 경계 이월이 새 daily index 에 [generic] 을 적던 것 + 98차 세션 종료 (09-29-main-001) (6fd6af7c)
 - fix(plugin): antigravity MCP 도구 11개가 전부 거부되던 것 — 사본 별칭을 ro 로 + grok 목록 부재 위양성 (09-28-main-019·020) (0a232c99)
-- fix(tests): check_self_application 이 실제 사용 지표에 session-start 를 붙였다 + main-018 판정 (09-23-main-018) (23162c90)
-- fix(release): 유예 없이 지운 공개 API 2종을 은퇴 shim 으로 복원 — v1.13.0 제거 (09-28-main-014) (891ce0b4)
-- fix(dashboard): Panel 1 phase 를 로드맵 정본에서 파생 — v0.15 에 멈춘 상수 표시 (09-23-main-015) (6253791c)
-- fix(release): validate source 목록을 정본 하나로 — 사본이 새 source 를 못 따라감 (09-28-main-009) (9c2bd06a)
-- fix(telemetry): 검사가 실제 저장소 telemetry 에 쓰지 않게 + 러너가 증가를 red 로 (09-28-main-006) (4ea61232)
-- fix(dashboard): telemetry 를 대시보드당 스냅샷 1회로 — Panel 3·8 hit_rate 경합 (09-28-main-005) (e5d2c6f4)
-- ... (199 more)
+- ... (205 more)
+
+## [1.21.0] - 2026-10-19
+
+### Changed
+
+- release(v1.21.0): 발행 준비 — minimax-code doctor 5채널 편입 + 117 · 118차 수리 묶음 (minor) (a019c51b)
 
 ## [1.20.1] - 2026-10-06
 
 ### Changed
 
+- release(v1.20.1): 발행 완료 — 태그 push + GitHub Release(asset 5종) + 발행 wheel 격리 실측 + §2.8 (868d11f0)
 - release(v1.20.1): 발행 준비 — backlog-update handoff 제목 동기화 수리 (patch) (ffff4900)
 
 ## [1.20.0] - 2026-10-06

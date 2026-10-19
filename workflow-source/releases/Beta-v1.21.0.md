@@ -10,7 +10,7 @@
 
 ## 0. 릴리스 판정
 
-v1.20.1 이후 두 호스트(Linux · macOS)에서 닫은 일곱 task 가 발행되지 않은 채 쌓였다. 그중 하나는 채널 기능이다 —
+v1.20.1 이후 두 호스트(Linux · macOS)에서 닫은 아홉 task 가 발행되지 않은 채 쌓였다(소비자에게 보이는 것은 §2 의 여섯 절). 그중 하나는 채널 기능이다 —
 `wk doctor` 의 `content_drift` · `plugin_enabled` · `runtime_load` 가 MiniMax Code 를 보지 않아, 그 채널이 뒤처져도
 `behind=[]` 였다. 나머지는 "검사가 조용히 통과하던 자리" 를 닫은 수리다: 다이어트 harvest 가 v1.20.0 생성물을 모르는 채
 green · 메모리 lint 가 legacy 경로만 보며 green · goal coverage 가 닿을 수 없는 goal 을 warnings 없이 uncovered 로만 냄 ·
@@ -69,7 +69,7 @@ warnings 없이 uncovered 로만 냈다. 이제 `선언 없는 goal: G4, G5 — 
 
 - 전량 게이트 `--branch-context=all` — 발행 준비 커밋에서 실행 (결과는 발행 기록에 남긴다)
 - 각 task 는 별도 컨텍스트의 `verifier` subagent 가 완료 기준을 다시 쟀다 — 되주입 red 건수: main-001 7/7 · main-002 7/11
-  (생존 중 1건은 git fixture 로 고정) · main-003 9/9 · main-004 4/7 (생존 중 2건을 fixture 로 고정, 1건은 상수 단일 출처라 의도된 생존)
+  (생존 중 1건은 git fixture 로 고정) · main-003 9/9 · main-004 5/8 (생존 3건 중 2건을 fixture 로 고정, 1건은 접두사 상수가 단일 출처라 의도된 생존)
 - `check_minimax_plugin_channel` · `check_branch_memory_auto_seed` 는 macOS 호스트에서 mcode 0.6.2 · origin 0 저장소로 실측
 - 해석기 매트릭스는 이번 minor 에서 **돌리지 않았다** — 변경이 I/O · 해석기 민감 코드가 아니고(SQLite 는 표준 라이브러리),
   하한 문법은 게이트의 `check_python_floor_syntax` 가 3.10 해석기로 잰다
@@ -81,3 +81,20 @@ warnings 없이 uncovered 로만 냈다. 이제 `선언 없는 goal: G4, G5 — 
 - G4 · G5 의 선언은 소유자 결정 대기 — 적용 전까지 session-start 가 '선언 없는 goal: G4, G5' 를 낸다.
 - Windows 실물 실측 3건(cp949 · wk.exe 백신 차단 · emit python3)은 그대로 열려 있다.
 - v1.20.1 노트 §4 의 한계는 그대로다.
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-10-19T14:39:12Z)_
+
+- total wiki pages: **97**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

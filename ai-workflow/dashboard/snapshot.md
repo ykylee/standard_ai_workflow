@@ -1,20 +1,20 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-10-06T02:05:35Z`
-- tool_version: `1.20.1`
+- generated_at: `2026-10-19T14:39:12Z`
+- tool_version: `1.21.0`
 - workspace_root: `/home/yklee/repos/standard_ai_workflow`
 
 ## Panel 1 — Drift Prevention Status
 
 - guard_status: `pass`
 - guard_cases: `7 / 7`
-- maturity_last_updated: `2026-10-06`
+- maturity_last_updated: `2026-10-19`
 - maturity_surface_changed_at: `2026-10-06`
 - maturity_stale: `False` (source: `maturity_surface_commit`)
 - harness_supported_count: `10`
-- head_commit_date: `2026-10-06`
+- head_commit_date: `2026-10-19`
 - last_updated_delta_days: `0`
-- silent_failing_cycles_count: `0` (측정 cycle 34건)
+- silent_failing_cycles_count: `0` (측정 cycle 35건)
 
 ## Panel 2 — Maturity Distribution
 
@@ -84,11 +84,11 @@
 
 | version | pass | total |
 |---|---|---|
+| Beta-v1.21.0 | 309 | 309 |
 | Beta-v1.20.1 | 309 | 309 |
 | Beta-v1.20.0 | 309 | 309 |
 | Beta-v1.19.0 | 302 | 302 |
 | Beta-v1.18.0 | 300 | 300 |
-| Beta-v1.17.0 | 299 | 299 |
 
 ## Panel 5 — Recent Release Cycle
 
@@ -98,16 +98,16 @@
 
 ### Timeline (preview, first 120 char)
 
-- [0] TASK-2026-10-06-main-006 — backlog-update 의 handoff 동기화가 보존된 task 제목 대신 입력 --task-name 을 쓴다  `[fresh]`
-- [1] TASK-2026-10-06-main-005 — v1.20.0 발행 — 진입점 다이어트(규칙 블록 · bootstrap 템플릿 · --diet) + AI-native SDLC A1~A3 + MiniMax Code 채…  `[fresh]`
-- [2] TASK-2026-10-06-main-004 — [진입점 다이어트 3] 기존 진입점 다이어트 단계 — 채택 프로젝트의 진입점을 예산 · 현행 템플릿과 대조해 보고/정리  `[fresh]`
-- [3] TASK-2026-10-06-main-003 — [진입점 다이어트 2] bootstrap 생성 진입점 템플릿 다이어트 + 하네스별 진입점 바이트 예산 검사  `[fresh]`
-- [4] TASK-2026-10-06-main-002 — [진입점 다이어트 1] 정본 생성 규칙 블록(§1 · §8 · §11) 압축 — 모든 진입점 · 스킬 공통 3.6KB  `[fresh]`
-- [5] TASK-2026-10-06-main-001 — CLAUDE.md 다이어트 — 12,184B 중 고칠 수 있는 8.5KB 를 걷는다 (생성 규칙 블록 3.6KB 는 그대로)  `[fresh]`
-- [6] TASK-2026-10-05-main-004 — [A3] 검사 약화 차단 가드 hook — --no-verify push · --no-lock 전량 · gate_evidence 직접 쓰기를 이유와 함께 막는다  `[fresh]`
-- [7] TASK-2026-10-05-main-002 — [A1] 작업 전 계획을 task 파일 Plan 절로 남긴다 — 바뀌는 파일 · 작업 순서 · 위험 · 검증 방법  `[fresh]`
-- [8] TASK-2026-10-05-main-001 — Anthropic 'The AI-native SDLC playbook' 조사·정리 + 워크플로우 적용 검토  `[fresh]`
-- [9] TASK-2026-10-02-main-008 — v1.19.0 발행 — Windows: cp949 stdio/텍스트 I/O UTF-8 고정 + 하네스 호출 python -m workflow_kit 전환  `[fresh]`
+- [0] TASK-2026-10-19-main-004 — goal coverage 가 '어느 마일스톤도 섬기지 않는 goal' 을 조용히 uncovered 로 센다 — 닿을 수 없는 goal 을 provenance 로 지목  `[fresh]`
+- [1] TASK-2026-10-19-main-003 — check_memory_lint T1a · T1c · T1d 가 legacy 경로라 항상 skip — 은퇴 1 · branch-scoped 재작성 2  `[fresh]`
+- [2] TASK-2026-10-19-main-002 — check_memory_lint T1b stale 가 branch-scoped 전환 뒤 공유층 파일만 잰다 — 시간 경과만으로 red  `[fresh]`
+- [3] TASK-2026-10-19-main-001 — 진입점 다이어트 harvest 재실행 — v1.20.0 생성물 채취 + '현행 생성물 ⊆ 알려진 생성물' 검사로 재실행 누락 고정  `[fresh]`
+- [4] TASK-2026-10-06-main-009 — minimax_plugin --apply 출력이 반영 뒤 상태를 찍어 무엇이 바뀌었는지 오독된다  `[fresh]`
+- [5] TASK-2026-10-06-main-008 — RELEASE.md §2.8 에 minimax-code 재적용 · 확인 절차 보강  `[fresh]`
+- [6] TASK-2026-10-06-main-007 — v1.20.1 발행 — backlog-update handoff 제목 동기화 수리 (patch)  `[fresh]`
+- [7] TASK-2026-10-06-main-006 — backlog-update 의 handoff 동기화가 보존된 task 제목 대신 입력 --task-name 을 쓴다  `[fresh]`
+- [8] TASK-2026-10-06-main-005 — v1.20.0 발행 — 진입점 다이어트(규칙 블록 · bootstrap 템플릿 · --diet) + AI-native SDLC A1~A3 + MiniMax Code 채…  `[fresh]`
+- [9] TASK-2026-10-06-main-004 — [진입점 다이어트 3] 기존 진입점 다이어트 단계 — 채택 프로젝트의 진입점을 예산 · 현행 템플릿과 대조해 보고/정리  `[fresh]`
 
 ## Panel 6 — Multi-Agent Concurrent Write Conflict
 
@@ -137,10 +137,10 @@
 
 - phase_15_north_star: `utilization_3tuple (query_diversity / entries_new_30d / distinct_entries_retrieved — ADR-006 W-4; hit_rate 는 보조)`
 - entries_total: `30`
-- telemetry_events_total: `3067`
-- telemetry_total_queries: `3067`
-- telemetry_hit_count: `1308`
-- telemetry_hit_rate: `0.4265`
+- telemetry_events_total: `3106`
+- telemetry_total_queries: `3106`
+- telemetry_hit_count: `1342`
+- telemetry_hit_rate: `0.4321`
 
 ### Entries by merge_state
 
@@ -152,8 +152,8 @@
 
 | source | events |
 |---|---|
-| `backlog-update` | 565 |
+| `backlog-update` | 590 |
 | `dispatcher` | 13 |
 | `doc-sync` | 2 |
-| `session-start` | 2487 |
+| `session-start` | 2501 |
 

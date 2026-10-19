@@ -39,6 +39,7 @@ import json
 import os
 import re
 import shutil
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -48,6 +49,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 from workflow_kit.bootstrap_lib.harnesses import HARNESS_SPECS
 from workflow_kit.common.kit_invocation import HOOK_INTERPRETERS, KIT_MODULE
@@ -162,6 +164,18 @@ PLUGIN_INSTALL_CACHES: tuple[PluginInstallCache, ...] = (
         harness="antigravity",
         glob=".gemini/config/plugins/standard-ai-workflow",
     ),
+    PluginInstallCache(
+        # MiniMax Code 의 `local` 마켓플레이스는 `~/.minimax/plugins/` **디렉터리
+        # 자체**를 스캔한다 — 캐시도 버전 디렉터리도 없고, 설치된 이름이 곧 그
+        # 디렉터리다 (2026-10-19 실측: mcode 0.6.2, `mcode plugin list` →
+        # `standard-ai-workflow@local`). 그래서 이 축의 "설치본"은 파일 한 장이
+        # 아니라 **디렉터리 전체**다. 비교 대상은 채널 스펙의 접두 목록
+        # (`.minimax-plugin/plugin.json` · `skills/` · 아이콘 2장)에서 파생된다
+        # (`_channel_expected`) — 루트 `plugin.json` 은 채널이 싣지 않으므로
+        # 기대치에도 없다.
+        harness="minimax-code",
+        glob=".minimax/plugins/standard-ai-workflow",
+    ),
 )
 
 #: 채널을 **실행하는 프로세스**의 `ps comm` 이름. `runtime_load` 절이 "지금 돌고
@@ -174,6 +188,13 @@ HARNESS_CLI_COMMANDS: dict[str, tuple[str, ...]] = {
     "grok-build": ("grok",),
     # IDE 프로세스명은 미실측 — CLI(`agy`) 만 선언한다 (모름 ≠ 안전).
     "antigravity": ("agy",),
+    # MiniMax Code **데스크톱 앱**이 플러그인을 로드한다 (2026-10-19 실측:
+    # `ps -Ao comm=` → `/Applications/MiniMax Code.app/Contents/MacOS/MiniMax Code`,
+    # `Path(...).name` = `MiniMax Code`). CLI(`mcode`) 는 node 프로세스로 뜨므로
+    # 이름이 잡히지 않는다 — 로더가 CLI 가 아니라는 뜻이라 넣지 않는다.
+    # Windows 에서는 프로세스명이 `MiniMax Code.exe` 다. 다른 채널과 마찬가지로
+    # 이 축은 POSIX 프로세스명(= 확장자 없음)을 전제한다.
+    "minimax-code": ("MiniMax Code",),
 }
 
 #: 어느 채널에서든 사본 안에 있어도 드리프트로 세지 않는 것들.
@@ -2491,6 +2512,69 @@ def _antigravity_plugin_enabled(home: Path) -> tuple[list[dict[str, Any]], str |
     }], error
 
 
+def _minimax_plugin_enabled(home: Path) -> tuple[list[dict[str, Any]], str | None]:
+    """minimax-code 의 활성 선언 — `~/.minimax/v2/sqlite/runtime-state.sqlite` 의
+    ``local_runtime_plugin_local_disabled`` 테이블 (2026-10-19 실측, mcode 0.6.2).
+
+    MiniMax Code 의 ``local`` 마켓플레이스는 **디렉터리 스캔**이라 "설치 기록"
+    파일이 없다 — 설치를 말하는 것은 그 디렉터리가 존재한다는 사실뿐이다. 그리고
+    MiniMax Code 에는 켜고 끄는 명령이 **있다** (``mcode plugin enable|disable``).
+    claude-code 처럼 "선언이 지워져서 꺼진" 형태가 아니라, 명령이 상태를 직접
+    기록한다. 그 기록이 사는 곳이 이 **SQLite** 다 — 로컬 런타임이 함께 쓰는 DB 라
+    JSON 설정 파일이 아니다 (2026-10-19 실측: disable → 행 1개 → enable → 행 0개).
+
+    표의 ``canonical_root`` 은 플러그인 디렉터리의 **절대 경로**다
+    (``/Users/<user>/.minimax/plugins/standard-ai-workflow``). 행이 있으면 꺼져 있고
+    없으면 켜져 있다 — 끄는 선언이 하나뿐인 형태라 부재가 "꺼짐" 을 대신하지
+    않는다 (grok-build 의 disabled 목록과 같은 규칙).
+
+    DB 는 **읽기 전용**으로 연다 (``mode=ro``) — doctor 는 report-only 라 사용자의
+    런타임 상태를 고치지 않는다. 못 읽으면 "모름" 을 보고하고 통과로 세지 않는다.
+    """
+    entry = next((e for e in PLUGIN_INSTALL_CACHES if e.harness == "minimax-code"), None)
+    if entry is None:
+        return [], "분배 레지스트리에 minimax-code 채널이 없다"
+    copy_dir = home / entry.glob
+    if not copy_dir.is_dir():
+        return [], "설치 사본이 없다"
+    db = home / ".minimax" / "v2" / "sqlite" / "runtime-state.sqlite"
+    if not db.is_file():
+        return [], "runtime-state.sqlite 이 없다 — MiniMax 로컬 런타임이 이 경로에 DB 를 두지 않는다"
+    try:
+        # 경로를 **URL-quote** 한다 — 홈에 `?`/`#` 가 있으면 쿼리 문자열로 오인돼
+        # `mode=ro` 가 잘리고 SQLite 가 **쓰기 모드**로 열린다(그리고 잘린 경로에
+        # 새 파일을 만든다). doctor 는 report-only 라 이게 깨지면 안 된다
+        # (2026-10-19 verifier 실측: `?` 포함 홈에서 0바이트 파일이 생김).
+        con = sqlite3.connect(f"file:{quote(str(db))}?mode=ro", uri=True)
+        try:
+            rows = con.execute(
+                "SELECT canonical_root FROM local_runtime_plugin_local_disabled"
+            ).fetchall()
+        finally:
+            con.close()
+    except (sqlite3.Error, OSError) as exc:
+        return [], f"runtime-state.sqlite 을 읽지 못했다: {type(exc).__name__}"
+    # 기록된 경로와 비교 기준은 **같은 형태**로 맞춘다 — DB 는 정규화된 절대 경로를
+    # 담고, 여기서는 home 기준 상대 경로를 조립한다. macOS 의 `/var` → `/private/var`
+    # 처럼 심볼릭 링크가 걸린 홈에서는 문자열이 어긋난다.
+    def _norm(value: str) -> str:
+        try:
+            return os.path.realpath(value)
+        except OSError:
+            return value
+
+    target = _norm(str(copy_dir))
+    disabled = { _norm(str(row[0])) for row in rows if row and row[0] }
+    return [{
+        "harness": "minimax-code",
+        "key": f"{copy_dir.name}@local",
+        "enabled": target not in disabled,
+        "decided_by": "~/.minimax/v2/sqlite/runtime-state.sqlite 의 "
+                      "local_runtime_plugin_local_disabled",
+        "basis": "declared",
+    }], None
+
+
 #: 채널별 되살리는 명령 — 발견 문장에 그대로 실린다. codex 에는 enable 명령이 없다.
 _PLUGIN_ENABLE_REMEDY: dict[str, str] = {
     "claude-code": "`claude plugin enable {key}`",
@@ -2499,7 +2583,20 @@ _PLUGIN_ENABLE_REMEDY: dict[str, str] = {
     "grok-build": "`grok plugin enable {key}`",
     "antigravity": "Antigravity 의 플러그인 패널에서 켜거나 `~/.gemini/config/config.json` 의 "
                    "`plugins.{key}.enabled` 를 true 로 (`agy plugin enable` 은 이 파일을 쓰지 않는다 — 실측)",
+    "minimax-code": "`mcode plugin enable {key}`",
 }
+
+#: 채널별 활성 판정의 **실측일** — 발견 문장이 인용하는 날짜다. 기본값은 4채널의
+#: 실측일(2026-09-28)이고, minimax-code 는 표 구조를 처음 실측한 날(2026-10-19).
+#: 날짜를 채널마다 다르게 쓰는 이유: "몇 개 채널을 봤다" 가 아니라 "이 채널의
+#: 판정 근거를 언제 실측했는가" 를 독자가 알 수 있어야 한다.
+_PLUGIN_ENABLE_MEASURED_ON: dict[str, str] = {
+    "minimax-code": "2026-10-19",
+}
+
+
+def _plugin_enable_measured_on(harness: str) -> str:
+    return _PLUGIN_ENABLE_MEASURED_ON.get(harness, "2026-09-28")
 
 
 def _probe_plugin_enabled(
@@ -2573,6 +2670,7 @@ def _probe_plugin_enabled(
         ("codex", _codex_plugin_enabled),
         ("grok-build", _grok_plugin_enabled),
         ("antigravity", _antigravity_plugin_enabled),
+        ("minimax-code", _minimax_plugin_enabled),
     ):
         records, error = reader(home)
         plugins.extend(records)
@@ -2594,25 +2692,26 @@ def _probe_plugin_enabled(
             continue
         disabled.append(f"{harness}:{key}")
         remedy = _PLUGIN_ENABLE_REMEDY[harness].format(key=key)
+        measured_on = _plugin_enable_measured_on(harness)
         if rec["enabled"] is False:
             findings.append(
                 f"{harness} 플러그인 `{key}` 가 **명시적으로 꺼져 있다** "
                 f"(`{rec['decided_by']}` 의 활성 선언 = false). 설치본은 있으나 하네스가 "
                 "읽지 않으므로 스킬·MCP 가 노출되지 않는다 — 의도가 아니면 "
-                f"{remedy} (2026-09-28 실측, docs/RELEASE.md §2.8)"
+                f"{remedy} ({measured_on} 실측, docs/RELEASE.md §2.8)"
             )
         elif harness == "claude-code":
             findings.append(
                 f"claude-code 플러그인 `{key}` 의 **enabledPlugins 선언이 없다** "
                 f"(읽은 설정: {looked or '없음'}). 설치본은 있으나 `claude plugin list` 가 "
                 "disabled 로 보이는 상태다 — 갱신·외부 도구 재작성이 선언을 지운 경우로, "
-                f"{remedy} 가 되살린다 (2026-09-28 실측, docs/RELEASE.md §2.8)"
+                f"{remedy} 가 되살린다 ({measured_on} 실측, docs/RELEASE.md §2.8)"
             )
         else:
             findings.append(
                 f"{harness} 플러그인 `{key}` 의 **활성 선언이 없다** (설치 명령이 적어 두는 "
                 "선언이 사라진 상태 — 하네스가 이 사본을 읽는다는 근거가 없다). "
-                f"{remedy} 가 되살린다 (2026-09-28 실측, docs/RELEASE.md §2.8)"
+                f"{remedy} 가 되살린다 ({measured_on} 실측, docs/RELEASE.md §2.8)"
             )
 
     return {
@@ -2630,7 +2729,9 @@ def _probe_plugin_enabled(
             "claude-code `enabledPlugins` · codex `[plugins.\"…\"] enabled` · grok-build "
             "`[plugins] disabled`(양쪽 목록 부재 = 기본 로드) · antigravity "
             "`config.json plugins.<이름>.enabled`(부재 = 자동 발견; 워크스페이스 `plugins.json` "
-            "의 exclude 는 자기 entries 만 걸러 이 설치본을 끄지 못한다)"
+            "의 exclude 는 자기 entries 만 걸러 이 설치본을 끄지 못한다) · minimax-code "
+            "`runtime-state.sqlite` 의 `local_runtime_plugin_local_disabled`(행 = 꺼짐; "
+            "MiniMax 는 `mcode plugin enable|disable` 가 상태를 직접 기록한다)"
         ),
         "not_applicable": {
             "pi-dev": "경로 참조라 켜고 끄는 선언이 없다",

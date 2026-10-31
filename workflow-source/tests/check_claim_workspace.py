@@ -57,6 +57,7 @@ SOURCE_ROOT = REPO_ROOT / "workflow-source"
 sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit.common.purpose_graph import STATE_ABSENT_WARNING  # noqa: E402
+from workflow_kit.common.child_process import platform_env, tool_path  # noqa: E402
 from workflow_kit.common.state.memory_index import TELEMETRY_SKIP_ROOT_ENV  # noqa: E402
 
 CLAIM = SOURCE_ROOT / "workflow_kit" / "tools" / "claim_workspace.py"
@@ -65,7 +66,7 @@ PROFILE = REPO_ROOT / "docs" / "PROJECT_PROFILE.md"
 
 BRANCH = "feat-contested"
 TODAY = date.today().isoformat()
-ENV = {"PYTHONPATH": str(SOURCE_ROOT), "PATH": "/usr/bin:/bin:/usr/local/bin"}
+ENV = {"PYTHONPATH": str(SOURCE_ROOT), "PATH": tool_path("/usr/bin:/bin:/usr/local/bin")}
 # 환경을 일부러 좁히지만 러너의 telemetry 표식은 넘긴다 — 빠지면 이 검사가 실제
 # 저장소 session-start 를 사용 지표에 섞는다 (TASK-2026-09-28-main-006 실측).
 if TELEMETRY_SKIP_ROOT_ENV in os.environ:
@@ -87,7 +88,7 @@ def _record(name: str, ok: bool, detail: str = "") -> None:
 
 
 def _git(args: list[str], cwd: Path, check: bool = True) -> subprocess.CompletedProcess:
-    env = {**ENV, "HOME": str(cwd),
+    env = {**platform_env(ENV, cwd),
            "GIT_AUTHOR_NAME": "T", "GIT_AUTHOR_EMAIL": "t@t",
            "GIT_COMMITTER_NAME": "T", "GIT_COMMITTER_EMAIL": "t@t"}
     proc = subprocess.run(["git", *args], cwd=str(cwd), capture_output=True,
@@ -103,7 +104,7 @@ def _claim(repo: Path, *, axis: str, apply: bool, name: str = "agent") -> dict:
             "--today", TODAY, "--json"]
     args.append("--apply" if apply else "--dry-run")
     proc = subprocess.run(args, capture_output=True, text=True,
-                          env={**ENV, "HOME": str(repo),
+                          env={**platform_env(ENV, repo),
                                "GIT_AUTHOR_NAME": name, "GIT_AUTHOR_EMAIL": f"{name}@t",
                                "GIT_COMMITTER_NAME": name, "GIT_COMMITTER_EMAIL": f"{name}@t"})
     assert proc.stdout.strip(), f"claim 출력 없음: {proc.stderr}"
@@ -199,7 +200,7 @@ def main() -> int:
              "--work-backlog-index-path",
              str(win_repo / "ai-workflow" / "memory" / "active" / BRANCH / "backlog" / f"{TODAY}.md"),
              "--project-profile-path", str(PROFILE)],
-            capture_output=True, text=True, env=ENV,
+            capture_output=True, text=True, env=platform_env(ENV, win_repo),
         )
         payload = json.loads(started.stdout)
         # `state.json 부재` 는 갓 claim 한 workspace 에서 정상이다 (seed 는 파생 파일을

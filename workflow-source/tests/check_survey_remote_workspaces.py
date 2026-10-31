@@ -42,6 +42,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
 sys.path.insert(0, str(SOURCE_ROOT))
+from workflow_kit.common.child_process import platform_child_env  # noqa: E402
 
 SURVEY = SOURCE_ROOT / "workflow_kit" / "tools" / "survey_remote_workspaces.py"
 SEED = SOURCE_ROOT / "workflow_kit" / "tools" / "seed_workspace_memory.py"
@@ -57,8 +58,7 @@ def _record(name: str, ok: bool, detail: str = "") -> None:
 
 def _git(args: list[str], cwd: Path, **env_extra: str) -> None:
     env = {
-        "PATH": "/usr/bin:/bin:/usr/local/bin",
-        "HOME": str(cwd),
+        **platform_child_env(cwd, path="/usr/bin:/bin:/usr/local/bin"),
         "GIT_AUTHOR_NAME": "T", "GIT_AUTHOR_EMAIL": "t@t",
         "GIT_COMMITTER_NAME": "T", "GIT_COMMITTER_EMAIL": "t@t",
         **env_extra,
@@ -75,8 +75,8 @@ def _survey(repo: Path, *, no_fetch: bool = False, stale_hours: int | None = Non
     if stale_hours is not None:
         args += ["--stale-hours", str(stale_hours)]
     proc = subprocess.run(args, capture_output=True, text=True,
-                          env={"PYTHONPATH": str(SOURCE_ROOT),
-                               "PATH": "/usr/bin:/bin:/usr/local/bin"})
+                          env=platform_child_env(
+                              path="/usr/bin:/bin:/usr/local/bin", PYTHONPATH=str(SOURCE_ROOT)))
     assert proc.returncode == 0, f"survey 실패: {proc.stderr}"
     return json.loads(proc.stdout)
 
@@ -115,7 +115,8 @@ def main() -> int:
                  str(work / "ai-workflow" / "memory"), "--branch", branch,
                  "--axis", axis, "--task-title", axis, "--apply"],
                 capture_output=True, text=True,
-                env={"PYTHONPATH": str(SOURCE_ROOT), "PATH": "/usr/bin:/bin:/usr/local/bin"},
+                env=platform_child_env(
+                    path="/usr/bin:/bin:/usr/local/bin", PYTHONPATH=str(SOURCE_ROOT)),
                 check=True,
             )
             stamp = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(now - hours * 3600))

@@ -78,6 +78,7 @@ from pathlib import Path
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SOURCE_ROOT))
 
+from workflow_kit.common.child_process import platform_child_env  # noqa: E402
 from workflow_kit.common.paths import (  # noqa: E402
     BRANCH_ENV_KEYS,
     BRANCH_SOURCE_DEFAULT,
@@ -117,7 +118,7 @@ def _git(cwd: Path, *args: str) -> None:
     subprocess.run(
         ["git", *args], cwd=str(cwd), check=True,
         capture_output=True, text=True, timeout=60,
-        env={"PATH": "/usr/bin:/bin", "HOME": str(cwd), "GIT_CONFIG_GLOBAL": "/dev/null"},
+        env=platform_child_env(cwd, path="/usr/bin:/bin", GIT_CONFIG_GLOBAL="/dev/null"),
     )
 
 

@@ -47,6 +47,12 @@ if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit.common.child_process import child_env, module_command  # noqa: E402
+from workflow_kit.common.child_process import (  # noqa: E402
+    child_env,
+    home_env,
+    module_command,
+    tool_path,
+)
 from workflow_kit.common.paths import (  # noqa: E402
     memory_dir_for_workspace,
     resolve_workspace_root,
@@ -136,7 +142,17 @@ def claim(*, repo_root: Path, remote: str, branch: str, axis: str,
         if k in os.environ
     }
     seed_env = child_env(
-        {"PATH": "/usr/bin:/bin:/usr/local/bin", **forwarded}, base={},
+        {
+            # Windows 에서 git 을 찾으려면 PATH 를 상속해야 하고, 자식의
+            # Path.home() 이 죽지 않으려면 홈 키가 있어야 한다 (한글 Windows =
+            # USERPROFILE). POSIX 는 좁힌 PATH 를 그대로 유지한다.
+            "PATH": tool_path("/usr/bin:/bin:/usr/local/bin"),
+            **home_env(),
+            # 자식 stdout 이 cp949 로 새면 `—` 에서 죽는다.
+            "PYTHONUTF8": "1",
+            **forwarded,
+        },
+        base={},
     )
     seed_args = module_command(
         SEED_MODULE,

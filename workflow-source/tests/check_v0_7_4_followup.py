@@ -24,7 +24,7 @@ sys.path.insert(0, str(SOURCE_ROOT))
 def test_doctor_pretty_default():
     """workflow doctor — pretty table default."""
     result = subprocess.run(
-        ["python3", "-m", "workflow_kit.cli.doctor", "--project-root", str(PROJECT_ROOT)],
+        [sys.executable, "-m", "workflow_kit.cli.doctor", "--project-root", str(PROJECT_ROOT)],
         cwd=str(SOURCE_ROOT),
         capture_output=True,
         text=True,

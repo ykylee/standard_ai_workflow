@@ -49,7 +49,7 @@ def _run_score_tool(args: list[str] = None) -> dict:
     """score tool 실행 + JSON 반환."""
     args = args or ["--json"]
     proc = subprocess.run(
-        ["python3", str(TOOL_PATH)] + args,
+        [sys.executable, str(TOOL_PATH)] + args,
         cwd=str(REPO_ROOT),
         capture_output=True,
         text=True,
@@ -196,7 +196,7 @@ def test_dashboard_emit() -> None:
         # 이미 생성됨 — skip
         return
     proc = subprocess.run(
-        ["python3", str(TOOL_PATH), "--emit-dashboard"],
+        [sys.executable, str(TOOL_PATH), "--emit-dashboard"],
         cwd=str(REPO_ROOT),
         capture_output=True,
         text=True,

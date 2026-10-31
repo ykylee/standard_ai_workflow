@@ -45,6 +45,7 @@ WATCHES = (
 import json
 import os
 import subprocess
+from workflow_kit.common.child_process import platform_child_env  # noqa: E402
 import sys
 import tempfile
 from pathlib import Path
@@ -150,7 +151,7 @@ def case_4_missing_is_unmeasured() -> None:
 
 def _run(args: list[str]) -> subprocess.CompletedProcess:
     # 좁힌 환경 — 상속된 브랜치 오버라이드 없이 임시 workspace 자신의 브랜치(비 git → main)를 잰다.
-    env = {"PYTHONPATH": str(SOURCE_ROOT), "PATH": "/usr/bin:/bin:/usr/local/bin"}
+    env = platform_child_env(path="/usr/bin:/bin:/usr/local/bin", PYTHONPATH=str(SOURCE_ROOT))
     if TELEMETRY_SKIP_ROOT_ENV in os.environ:
         env[TELEMETRY_SKIP_ROOT_ENV] = os.environ[TELEMETRY_SKIP_ROOT_ENV]
     return subprocess.run([sys.executable, *args], capture_output=True, text=True, env=env)

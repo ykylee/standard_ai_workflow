@@ -391,7 +391,7 @@ def score_operational() -> tuple[float, dict]:
             continue
         try:
             result = subprocess.run(
-                ["python3", str(path)],
+                [sys.executable, str(path)],
                 cwd=str(REPO_ROOT),
                 capture_output=True,
                 timeout=60,

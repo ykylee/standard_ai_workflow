@@ -48,6 +48,7 @@ WATCHES = (
 import json
 import os
 import subprocess
+from workflow_kit.common.child_process import platform_child_env  # noqa: E402
 import sys
 import tempfile
 from pathlib import Path
@@ -78,7 +79,7 @@ def _record(name: str, ok: bool, detail: str = "") -> None:
 
 
 def _run(args: list[str]) -> subprocess.CompletedProcess:
-    env = {"PYTHONPATH": str(SOURCE_ROOT), "PATH": "/usr/bin:/bin:/usr/local/bin"}
+    env = platform_child_env(path="/usr/bin:/bin:/usr/local/bin", PYTHONPATH=str(SOURCE_ROOT))
     # 좁힌 환경에도 러너의 telemetry 표식은 넘긴다 (TASK-2026-09-28-main-006).
     if TELEMETRY_SKIP_ROOT_ENV in os.environ:
         env[TELEMETRY_SKIP_ROOT_ENV] = os.environ[TELEMETRY_SKIP_ROOT_ENV]

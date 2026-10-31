@@ -47,6 +47,7 @@ SOURCE_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit.common import dashboard_data as dd  # noqa: E402
+from workflow_kit.common.child_process import platform_child_env  # noqa: E402
 
 PROBE = """
 import json, sys
@@ -73,7 +74,7 @@ def _probe_from(cwd: Path) -> dict:
     proc = subprocess.run(
         [sys.executable, "-c", PROBE],
         capture_output=True, text=True, timeout=180, cwd=str(cwd),
-        env={"PYTHONPATH": str(SOURCE_ROOT), "PATH": "/usr/bin:/bin", "HOME": str(cwd)},
+        env=platform_child_env(cwd, path="/usr/bin:/bin", PYTHONPATH=str(SOURCE_ROOT)),
     )
     assert proc.returncode == 0, f"exit {proc.returncode}: {proc.stderr[-800:]}"
     return json.loads(proc.stdout.strip().splitlines()[-1])

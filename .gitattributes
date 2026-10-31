@@ -1,3 +1,28 @@
+# 저장소 텍스트의 줄바꿈 — LF 고정 (한글 Windows 대응)
+#
+# 왜: Windows 는 기본적으로 core.autocrlf=true 라 **checkout 시 CRLF** 이 된다.
+# 그 결과 세 가지가 깨진다 (2026-10-31 Windows 실측).
+#
+# ① **셸 훅이 실행되지 않는다** — `.githooks/pre-push` 가 CRLF 면 shebang 이
+#    `#!/bin/sh\r` 이 되고, sh 가 훅을 못 읽는다. push 게이트가 조용히 무력화된다.
+# ② **비교가 호스트마다 달라진다** — 바이트·줄 단위 비교(검사 · payload 해시)가
+#    LF 호스트와 CRLF 호스트에서 다른 결과를 낸다.
+# ③ **저장소 파일의 정본이 흐려진다** — 정본은 POSIX(LF) 다.
+#
+# `eol=lf` 는 core.autocrlf 보다 우선한다. 이 규칙이 없으면 Windows 호스트의
+# autocrlf 설정에 따라 같은 커밋이 서로 다른 바이트로 checkout 된다.
+* text=auto eol=lf
+
+# Windows 셸 스크립트만 CRLF 를 유지한다 — cmd.exe/PowerShell 은 CRLF 를 요구한다.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# 셸 훅·스크립트는 실행 대상이라 LF 를 강제한다(위 `*` 규칙과 같은 결론이지만
+# 의도를 명시적으로 남긴다 — autocrlf 를 켠 호스트에서 되돌아오는 것을 막는다).
+*.sh text eol=lf
+.githooks/** text eol=lf
+
 # git 병합 전략 — workflow memory 전용
 #
 # 왜: 여러 호스트/에이전트가 각자 브랜치에서 작업하면, 브랜치별로 격리된

@@ -29,7 +29,7 @@ DASHBOARD_PATH = REPO_ROOT / "ai-workflow" / "wiki" / "concepts" / "wiki-maintai
 
 def _run(args: list[str], timeout: int = 60) -> tuple[int, str, str]:
     proc = subprocess.run(
-        ["python3", str(TOOL_PATH)] + args,
+        [sys.executable, str(TOOL_PATH)] + args,
         cwd=str(REPO_ROOT),
         capture_output=True,
         text=True,

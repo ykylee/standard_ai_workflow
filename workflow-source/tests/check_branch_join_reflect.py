@@ -46,6 +46,7 @@ SOURCE_ROOT = REPO_ROOT / "workflow-source"
 sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit.common.reconcile import STATE_CONFLICT_MARKER  # noqa: E402
+from workflow_kit.common.child_process import platform_child_env  # noqa: E402
 from workflow_kit.common.state.memory_index import TELEMETRY_SKIP_ROOT_ENV  # noqa: E402
 
 FAILURES: list[str] = []
@@ -60,8 +61,10 @@ def _record(name: str, ok: bool, detail: str = "") -> None:
 
 
 def _env() -> dict[str, str]:
-    env = {"PYTHONPATH": str(SOURCE_ROOT), "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-           "HOME": os.environ.get("HOME", "/tmp"), "GIT_CONFIG_NOSYSTEM": "1"}
+    env = platform_child_env(
+        path=os.environ.get("PATH", "/usr/bin:/bin"),
+        PYTHONPATH=str(SOURCE_ROOT), GIT_CONFIG_NOSYSTEM="1",
+    )
     if TELEMETRY_SKIP_ROOT_ENV in os.environ:
         env[TELEMETRY_SKIP_ROOT_ENV] = os.environ[TELEMETRY_SKIP_ROOT_ENV]
     return env

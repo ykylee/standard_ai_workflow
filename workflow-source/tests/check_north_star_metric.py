@@ -37,6 +37,7 @@ WATCHES = (
 
 import json
 import subprocess
+from workflow_kit.common.child_process import platform_child_env  # noqa: E402
 import sys
 import tempfile
 from pathlib import Path
@@ -81,7 +82,7 @@ def _make_repo(ws: Path, *, last_updated: str, commit_date: str) -> None:
         ["git", "-c", "user.email=smoke@test", "-c", "user.name=smoke",
          "commit", "--amend", "--no-edit", "-q", "--date", stamp],
         cwd=str(ws), capture_output=True, text=True, check=True,
-        env={"GIT_COMMITTER_DATE": stamp, "PATH": "/usr/bin:/bin"},
+        env=platform_child_env(path="/usr/bin:/bin", GIT_COMMITTER_DATE=stamp),
     )
 
 

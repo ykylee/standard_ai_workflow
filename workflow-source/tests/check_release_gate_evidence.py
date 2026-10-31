@@ -50,6 +50,7 @@ for _p in (SOURCE_ROOT, TESTS_DIR):
         sys.path.insert(0, str(_p))
 
 from workflow_kit.common import gate_evidence  # noqa: E402
+from workflow_kit.common.child_process import platform_env, tool_path  # noqa: E402
 from workflow_kit.common.branch_matrix import labels  # noqa: E402
 from workflow_kit.tools import release_pipeline  # noqa: E402
 from workflow_kit.tools.release_pipeline import verify_gate_evidence  # noqa: E402
@@ -58,7 +59,7 @@ PIPELINE_SRC = SOURCE_ROOT / "workflow_kit" / "tools" / "release_pipeline.py"
 RUNNER_SRC = TESTS_DIR / "run_all_checks.py"
 
 FAILURES: list[str] = []
-GIT_ENV = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin",
+GIT_ENV = {"PATH": tool_path("/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin"),
            "GIT_CONFIG_GLOBAL": "/dev/null", "GIT_CONFIG_NOSYSTEM": "1"}
 
 
@@ -78,7 +79,7 @@ def _git_repo(td: str) -> Path:
     for args in (("init", "-q", "."), ("add", "-A"),
                  ("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "init")):
         subprocess.run(["git", *args], cwd=str(root), check=True, capture_output=True,
-                       timeout=60, env={**GIT_ENV, "HOME": td})
+                       timeout=60, env=platform_env(GIT_ENV, td))
     return root
 
 

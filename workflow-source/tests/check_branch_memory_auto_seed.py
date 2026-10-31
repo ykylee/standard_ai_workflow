@@ -73,6 +73,7 @@ SOURCE_ROOT = REPO_ROOT / "workflow-source"
 sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit.common.state.memory_index import TELEMETRY_SKIP_ROOT_ENV  # noqa: E402
+from workflow_kit.common.child_process import platform_child_env  # noqa: E402
 from workflow_kit.common.branch_inheritance import strip_inherited  # noqa: E402
 from workflow_kit.common.reconcile import STATE_CONFLICT_MARKER  # noqa: E402
 from workflow_kit.common.state.roadmap import collect_task_wbs_links, resolve_task_goals  # noqa: E402
@@ -89,9 +90,10 @@ def _record(name: str, ok: bool, detail: str = "") -> None:
 
 def _env(extra: dict[str, str] | None = None) -> dict[str, str]:
     # 브랜치 env · CI env 를 물려받지 않는다 — 답이 러너에 달리면 호스트마다 갈린다.
-    env = {"PYTHONPATH": str(SOURCE_ROOT), "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-           "HOME": os.environ.get("HOME", "/tmp"),
-           "GIT_CONFIG_NOSYSTEM": "1"}
+    env = platform_child_env(
+        path=os.environ.get("PATH", "/usr/bin:/bin"),
+        PYTHONPATH=str(SOURCE_ROOT), GIT_CONFIG_NOSYSTEM="1",
+    )
     if TELEMETRY_SKIP_ROOT_ENV in os.environ:
         env[TELEMETRY_SKIP_ROOT_ENV] = os.environ[TELEMETRY_SKIP_ROOT_ENV]
     env.update(extra or {})

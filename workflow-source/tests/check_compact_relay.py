@@ -59,6 +59,7 @@ if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit.common import compact_relay as relay  # noqa: E402
+from workflow_kit.common.child_process import platform_child_env  # noqa: E402
 from workflow_kit.common.context_budget import BUDGETS_BY_KEY  # noqa: E402
 
 FAILURES: list[str] = []
@@ -94,12 +95,10 @@ def _record(name: str, problems: list[str]) -> None:
 
 
 def _env() -> dict[str, str]:
-    env = {
-        "PYTHONPATH": str(SOURCE_ROOT),
-        "PATH": "/usr/bin:/bin:/usr/local/bin",
-        "HOME": os.environ.get("HOME", "/tmp"),
-        "GIT_CONFIG_NOSYSTEM": "1",
-    }
+    env = platform_child_env(
+        path="/usr/bin:/bin:/usr/local/bin",
+        PYTHONPATH=str(SOURCE_ROOT), GIT_CONFIG_NOSYSTEM="1",
+    )
     return env
 
 

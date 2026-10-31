@@ -58,3 +58,68 @@ def child_env(extra: dict[str, str] | None = None, *, base: dict[str, str] | Non
         f"{PACKAGE_PARENT}{os.pathsep}{existing}" if existing else str(PACKAGE_PARENT)
     )
     return env
+
+
+#: POSIX 최소 PATH — ``git`` · ``sh`` 가 있는 표준 위치.
+POSIX_TOOL_PATH = "/usr/bin:/bin:/usr/local/bin"
+
+
+def home_env(home: Path | str | None = None) -> dict[str, str]:
+    """홈을 격리한 환경 조각 — POSIX 는 ``HOME``, Windows 는 ``HOME`` + ``USERPROFILE``.
+
+    ``ntpath.expanduser`` 는 ``HOME`` 을 **읽지 않는다** — ``USERPROFILE``(또는
+    ``HOMEDRIVE``+``HOMEPATH``) 가 있어야 하고, 둘 다 없으면 ``Path.home()`` 이
+    ``RuntimeError`` 로 죽는다 (2026-10-31 Windows 실측). 그래서 두 키를 같은 값으로
+    함께 준다 — 어느 플랫폼에서든 "이 자식의 홈은 이 디렉터리" 를 뜻한다.
+    """
+    if home is not None:
+        target = str(home)
+    else:
+        target = os.environ.get("USERPROFILE") or os.environ.get("HOME") or os.path.expanduser("~")
+    return {"HOME": target, "USERPROFILE": target}
+
+
+def tool_path(posix_default: str = POSIX_TOOL_PATH) -> str:
+    """자식에게 줄 ``PATH`` — Windows 는 상속, POSIX 는 호출자가 준 최소 경로.
+
+    ``git.exe`` 는 ``/usr/bin`` 에 없다. POSIX 최소 PATH 를 그대로 주면 git 을 못
+    찾아 그 git 을 쓰는 검사 전체가 성립하지 않는다. Windows 는 상속 PATH 로 대체하고,
+    POSIX 는 호출자가 원하던 값을 그대로 쓴다 — 플랫폼 판정을 바꾸지 않는다.
+    """
+    if os.name == "nt":
+        return os.environ.get("PATH", "")
+    return posix_default
+
+
+def platform_child_env(home: Path | str | None = None, *, path: str = POSIX_TOOL_PATH,
+                        **extra: str) -> dict[str, str]:
+    """Windows 에서도 성립하는 자식 환경 — 홈 격리 · UTF-8 · 도구 PATH.
+
+    자식 프로세스는 파이프 stdout 을 로캘 인코딩(cp949 등)으로 쓴다. ``—``(U+2014) ·
+    ``✅`` 같은 문자가 없으면 출력 도중 ``UnicodeEncodeError`` 로 죽는다. 자식이 UTF-8
+    로 말하게 한다 (``PYTHONUTF8=1`` — ``scripts/cross_platform_cli_probe.py`` 와 같은
+    관례).
+
+    판정(허용/기각)은 바꾸지 않는다 — 환경만 그 플랫폼에서 성립하는 값으로 맞춘다.
+    """
+    env = {
+        **home_env(home),
+        "PATH": tool_path(path),
+        "PYTHONUTF8": "1",
+    }
+    env.update(extra)
+    return env
+
+
+def platform_env(base: dict[str, str], home: Path | str | None = None) -> dict[str, str]:
+    """기존 최소 환경 dict 에 플랫폼 조각을 덧댄다 — ``PATH`` 는 **건드리지 않는다**.
+
+    ``PATH`` 를 건드리는 게 의도인 경우(자식이 git 같은 도구를 찾아야 한다면
+    :func:`tool_path` 로 Windows 에서 상속으로 바꿔야 한다)에는 ``base`` 를 만들 때
+    직접 바꿔서 넘긴다. 여기서는 격리하고 싶은 ``PATH=""`` · ``"/nonexistent"`` 같은
+    **고정값**을 조용히 무너뜨리지 않는다.
+    """
+    env = {**base}
+    env.update(home_env(home))
+    env["PYTHONUTF8"] = "1"
+    return env

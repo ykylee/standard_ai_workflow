@@ -34,6 +34,7 @@ from __future__ import annotations
 import ast
 import importlib
 import re
+import sys
 import tempfile
 import time
 import tracemalloc
@@ -548,7 +549,7 @@ def _eval_performance_baseline(project_root: Path, *, state: dict[str, Any] | No
             start = time.time()
             try:
                 subprocess.run(
-                    ["python3", str(tf)],
+                    [sys.executable, str(tf)],
                     cwd=str(project_root),
                     capture_output=True,
                     timeout=30,

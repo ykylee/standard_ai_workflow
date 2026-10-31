@@ -48,6 +48,7 @@ SOURCE_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit.cli.doctor import default_project_root  # noqa: E402
+from workflow_kit.common.child_process import platform_child_env  # noqa: E402
 from workflow_kit.common.metadata import (  # noqa: E402
     CONFIG_REASON_FILE_MISSING,
     CONFIG_REASON_SECTION_MISSING,
@@ -67,7 +68,7 @@ def _run(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [sys.executable, "-m", "workflow_kit.cli.doctor", *args],
         capture_output=True, text=True, timeout=180, cwd=str(cwd),
-        env={"PYTHONPATH": str(SOURCE_ROOT), "PATH": "/usr/bin:/bin", "HOME": str(cwd)},
+        env=platform_child_env(cwd, path="/usr/bin:/bin", PYTHONPATH=str(SOURCE_ROOT)),
     )
 
 

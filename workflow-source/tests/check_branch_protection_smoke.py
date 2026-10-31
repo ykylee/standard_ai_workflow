@@ -27,6 +27,7 @@ WATCHES = (
 )
 
 import subprocess
+from workflow_kit.common.child_process import platform_env  # noqa: E402
 import sys
 from pathlib import Path
 
@@ -120,7 +121,8 @@ def main() -> int:
 
     # 8) CLI graceful skip — PATH 를 비워 gh 를 없앤다
     cli = SOURCE_ROOT / "workflow_kit" / "tools" / "check_branch_protection.py"
-    env_no_gh = {"PATH": "/nonexistent", "PYTHONPATH": str(SOURCE_ROOT)}
+    # PATH 는 "gh 를 못 찾는" 의도 그대로 둔다 — 홈/UTF-8 만 채운다.
+    env_no_gh = platform_env({"PATH": "/nonexistent", "PYTHONPATH": str(SOURCE_ROOT)})
     plain = subprocess.run(
         [sys.executable, str(cli), "--json"],
         capture_output=True, text=True, timeout=60, env=env_no_gh,

@@ -47,7 +47,9 @@ from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TOOLS_DIR = REPO_ROOT / "workflow-source" / "workflow_kit" / "tools"
+sys.path.insert(0, str(TOOLS_DIR.parents[1]))
 sys.path.insert(0, str(TOOLS_DIR))
+from workflow_kit.common.child_process import platform_child_env  # noqa: E402
 
 from audit_root_anchors import (  # noqa: E402
     ROOT_ANCHOR_LEDGER,
@@ -257,7 +259,7 @@ def case_7_auditor_root_is_not_module_derived() -> bool:
         proc = subprocess.run(
             [sys.executable, str(AUDIT_TOOL), "--json"],
             cwd=str(elsewhere), capture_output=True, text=True, timeout=180,
-            env={"PATH": "/usr/bin:/bin", "HOME": str(elsewhere)},
+            env=platform_child_env(elsewhere, path="/usr/bin:/bin"),
         )
         payload = json.loads(proc.stdout)
         if Path(payload["scan_root"]).resolve() != elsewhere:
@@ -375,7 +377,7 @@ def case_11_generated_is_decided_by_git_not_by_name() -> bool:
         build.mkdir()
         (build / "real_source.py").write_text(src, encoding="utf-8")
 
-        env = {"PATH": "/usr/bin:/bin", "HOME": str(root), "GIT_CONFIG_GLOBAL": "/dev/null"}
+        env = platform_child_env(root, path="/usr/bin:/bin", GIT_CONFIG_GLOBAL="/dev/null")
         for args in (("init", "-q", "."), ("add", "-A"),
                      ("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "init")):
             proc = subprocess.run(["git", *args], cwd=str(root), capture_output=True,

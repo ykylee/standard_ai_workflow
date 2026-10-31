@@ -110,7 +110,7 @@ def _run_skill_actual(skill: str, *args: str) -> dict | None:
     run_script = scripts[0]
     try:
         result = subprocess.run(
-            ["python3", str(run_script), *args],
+            [sys.executable, str(run_script), *args],
             capture_output=True, text=True, timeout=10,
         )
         # JSON parse

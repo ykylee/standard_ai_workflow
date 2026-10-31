@@ -43,6 +43,7 @@ from workflow_kit.bootstrap_lib.harnesses import (  # noqa: E402
     HARNESS_SPECS,
     SUPPORTED_HARNESSES,
 )
+from workflow_kit.common.child_process import platform_child_env  # noqa: E402
 from workflow_kit.deploy_doctor import (  # noqa: E402
     CHANNEL_PREREQUISITES,
     VOLATILE_PATH_PREFIXES,
@@ -376,7 +377,7 @@ def test_registries_are_derived_not_copied() -> None:
 def test_dispatcher_registers_doctor() -> None:
     """`wk doctor` 로 실제 도달하는가 — 모듈만 있고 등록이 빠지면 기능이 없는 것과 같다."""
     child_env = os.environ.copy()
-    child_env.update({"PYTHONPATH": str(SOURCE_ROOT), "PATH": "", "HOME": str(REPO_ROOT)})
+    child_env.update(platform_child_env(REPO_ROOT, PYTHONPATH=str(SOURCE_ROOT), PATH=""))
     proc = subprocess.run(
         [
             sys.executable,

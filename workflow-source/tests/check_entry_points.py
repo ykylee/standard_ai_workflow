@@ -132,7 +132,7 @@ def main() -> int:
             legacy_script = SOURCE_ROOT / "workflow_kit" / "tools" / f"{tool_name}.py"
             if legacy_script.is_file():
                 r = subprocess.run(
-                    ["python3", str(legacy_script), "--help"],
+                    [sys.executable, str(legacy_script), "--help"],
                     cwd=REPO_ROOT, capture_output=True, text=True, timeout=10,
                 )
                 legacy_helps.append((cmd, r.returncode))

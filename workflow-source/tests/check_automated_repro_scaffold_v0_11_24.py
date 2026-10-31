@@ -125,7 +125,7 @@ def test_case_4_dry_run_no_write() -> None:
             capture_output=True,
             text=True,
             timeout=30,
-            env={**os.environ, "PYTHONPATH": str(REPO / "workflow-source")},
+            env={**os.environ, "PYTHONPATH": str(REPO / "workflow-source")}, encoding="utf-8", errors="replace"
         )
         assert proc.returncode == 0, f"dry-run failed: {proc.stderr}"
         assert not output.exists(), "dry-run should not write the output file"
@@ -160,7 +160,7 @@ def test_case_5_success_envelope_and_line_count() -> None:
             capture_output=True,
             text=True,
             timeout=30,
-            env={**os.environ, "PYTHONPATH": str(REPO / "workflow-source")},
+            env={**os.environ, "PYTHONPATH": str(REPO / "workflow-source")}, encoding="utf-8", errors="replace"
         )
         assert proc.returncode == 0, f"script failed: {proc.stderr}"
         result = json.loads(proc.stdout)

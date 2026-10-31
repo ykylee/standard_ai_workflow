@@ -44,7 +44,7 @@ def _run(*args: str, cwd: Path | None = None) -> subprocess.CompletedProcess:
     )
     return subprocess.run(
         [sys.executable, str(SCRIPT), *args],
-        cwd=str(cwd or REPO_ROOT), env=env, capture_output=True, text=True, timeout=30,
+        cwd=str(cwd or REPO_ROOT), env=env, capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace"
     )
 
 

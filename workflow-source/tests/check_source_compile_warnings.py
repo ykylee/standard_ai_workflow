@@ -147,13 +147,16 @@ else:
 
 proc = subprocess.run(
     ["git", "ls-files", "*.py"],
-    cwd=REPO_ROOT, capture_output=True, text=True,
+    cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace"
 )
 if proc.returncode != 0:
     _fail("case 2", f"git ls-files 실패: {proc.stderr.strip()[:200]}")
 else:
     tracked = {line for line in proc.stdout.split() if line}
-    swept = {str(path.relative_to(REPO_ROOT)) for path in sources}
+    # git 은 POSIX 경로를 준다 — `str(path)` 는 Windows 에서 `\` 를 내므로 대조가
+    # 607건 전부 어긋난다. 저장소 상대경로는 **항상 POSIX** (`paths.safe_relpath` 와
+    # 같은 규약) 여야 비교가 성립한다.
+    swept = {path.relative_to(REPO_ROOT).as_posix() for path in sources}
     missing = sorted(tracked - swept)
     extra = sorted(swept - tracked)
     # **좁아지는 쪽만 red 다.** 이 case 가 막는 것은 '범위가 조용히 줄어 그 밖이
@@ -222,7 +225,7 @@ with tempfile.TemporaryDirectory() as tmp:
     def import_detects() -> int:
         run = subprocess.run([sys.executable, str(driver), tmp],
                              capture_output=True, text=True, timeout=60,
-                             env=driver_env)
+                             env=driver_env, encoding="utf-8", errors="replace")
         return int(run.stdout.strip().splitlines()[-1].strip("[]"))
 
     first = import_detects()          # cold: .pyc 가 없다 → 컴파일 → 경고
@@ -258,7 +261,7 @@ with tempfile.TemporaryDirectory() as _tmp:
         (_root / _rel).write_text("x = 1" + chr(10), encoding="utf-8")
     (_root / "wt" / ".git").write_text("gitdir: /elsewhere" + chr(10), encoding="utf-8")
     (_root / "deep" / "repo" / ".git").mkdir()
-    _got = sorted(str(p.relative_to(_root)) for p in iter_sources(_root))
+    _got = sorted(p.relative_to(_root).as_posix() for p in iter_sources(_root))
 
 _want = ["a.py", "pkg/b.py"]
 if _got == _want:

@@ -29,17 +29,27 @@ from __future__ import annotations
 
 #: 이 검사의 입력 표면 (spec `core/test_impact_tiering_spec.md` §2).
 #: 게이트 채취 실측에서 뽑아 넓은 쪽으로 올렸다 — 좁으면 meta-watch 가 red 로 잡는다.
+#:
+#: 표면은 감시 도구 파일 하나로 좁게 유지한다 (2026-10-31): 도구가 kit 패키지를
+#: import 하면 실제 접근 표면이 공통 모듈 43개로 넓어지고 `--changed` 에서 이
+#: 검사가 지나치게 자주 발화한다. 그래서 도구는 **표준 라이브러리만** 쓴다 —
+#: summary 원자적 쓰기도 정본 helper 대신 도구 안에서 직접 한다 (Windows 파일
+#: 잠금에 대한 재시도와 **고정된 tmp 이름**이 필요해서 — 잔여물이 남으면
+#: 디렉터리 정리가 실패한다).
 WATCHES = (
     "workflow-source/workflow_kit/tools/*",
 )
 
+import contextlib
 import json
 import os
+import shutil
 import signal
 import subprocess
 import sys
 import tempfile
 import time
+from collections.abc import Iterator
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -94,10 +104,38 @@ def _atomic_write(path: Path, text: str) -> None:
 
     그래서 테스트는 원자적으로 쓴다 — 재려는 것은 *transient 를 잡는가* 이지
     *부분 쓰기를 잡는가* 가 아니다. 후자는 아래 전용 case 가 따로 선언한다.
+
+    **바이트로 쓴다** (`write_bytes`) — 텍스트 모드는 Windows 에서 `\\n` 을
+    `\\r\\n` 으로 번역한다 (2026-10-31 실측: 원본 42바이트가 디스크에는 46바이트로
+    기록된다). 그러면 "복원 이벤트의 md5 == 원본 md5" 단언이 플랫폼마다 같은 의미를
+    갖는다 — 번역된 줄바꿈 때문에 원본과 다른 바이트를 비교하게 된다.
     """
     tmp_path = path.with_name(path.name + ".tmp-atomic")
-    tmp_path.write_text(text, encoding="utf-8")
-    os.replace(tmp_path, path)
+    tmp_path.write_bytes(text.encode("utf-8"))
+    _replace_with_retry(tmp_path, path)
+
+
+def _replace_with_retry(src: Path, dst: Path, *, attempts: int = 20,
+                        backoff_s: float = 0.02) -> None:
+    """`os.replace` 를 잠깐 재시도한다 — Windows 파일 잠금에 한 번으론 부족하다.
+
+    Windows 는 "삭제 공유" 없이 열린 파일을 이름 변경으로 덮어쓸 수 없다
+    (WinError 5 / 32). 감시자가 대상 파일을 읽고 있는 그 짧은 창에 걸리면
+    replace 가 실패한다 (2026-10-31 실측: 전량 게이트에서 6회 중 1회 red).
+    **원자성 자체는 그대로다** — 한 번의 replace 는 여전히 한 번의 상태 전이이고,
+    잠금만 풀리면 즉시 반영된다. 관측 창을 테스트가 좌표로 메우는 대신 잠금을
+    기다린다.
+    """
+    last: OSError | None = None
+    for attempt in range(attempts):
+        try:
+            os.replace(src, dst)
+            return
+        except PermissionError as exc:
+            last = exc
+            time.sleep(min(0.2, backoff_s * (attempt + 1)))
+    if last is not None:
+        raise last
 
 
 def _wait_for_events(log_dir: Path, minimum: int, *, timeout: float = EVENT_WAIT_S) -> int:
@@ -135,7 +173,7 @@ def _stop_and_summary(proc: subprocess.Popen[str], log_dir: Path) -> dict[str, o
 def test_transient_reinjection_is_captured(tmp: Path) -> None:
     target = tmp / "pyproject.toml"
     original = "[project]\nname = \"probe\"\nversion = \"1.0.0\"\n"
-    target.write_text(original, encoding="utf-8")
+    target.write_bytes(original.encode("utf-8"))
     log_dir = tmp / "log1"
     log_dir.mkdir()
 
@@ -177,7 +215,7 @@ def test_transient_reinjection_is_captured(tmp: Path) -> None:
 
 def test_no_change_yields_zero_events(tmp: Path) -> None:
     target = tmp / "quiet.toml"
-    target.write_text("untouched = true\n", encoding="utf-8")
+    target.write_bytes(b"untouched = true\n")
     log_dir = tmp / "log2"
     log_dir.mkdir()
 
@@ -192,7 +230,7 @@ def test_no_change_yields_zero_events(tmp: Path) -> None:
 
 def test_missing_and_reappear_are_distinct(tmp: Path) -> None:
     target = tmp / "vanish.toml"
-    target.write_text("x = 1\n", encoding="utf-8")
+    target.write_bytes(b"x = 1\n")
     log_dir = tmp / "log3"
     log_dir.mkdir()
 
@@ -200,7 +238,7 @@ def test_missing_and_reappear_are_distinct(tmp: Path) -> None:
     try:
         target.unlink()
         time.sleep(SETTLE_S)
-        target.write_text("x = 2\n", encoding="utf-8")
+        target.write_bytes(b"x = 2\n")
         time.sleep(SETTLE_S)
     finally:
         summary = _stop_and_summary(proc, log_dir)
@@ -216,7 +254,7 @@ def test_refuses_log_inside_watched_repo(tmp: Path) -> None:
     repo.mkdir()
     subprocess.run(["git", "init", "-q", str(repo)], check=True, capture_output=True)
     target = repo / "pyproject.toml"
-    target.write_text("v = 1\n", encoding="utf-8")
+    target.write_bytes(b"v = 1\n")
     inside_log = repo / "watch-log"
 
     denied = subprocess.run(
@@ -239,7 +277,7 @@ def test_refuses_log_inside_watched_repo(tmp: Path) -> None:
 
 def test_quiet_run_leaves_no_auto_log(tmp: Path) -> None:
     target = tmp / "quiet2.toml"
-    target.write_text("still = true\n", encoding="utf-8")
+    target.write_bytes(b"still = true\n")
 
     proc = subprocess.run(
         [sys.executable, str(TOOL_PATH), "--file", str(target),
@@ -275,7 +313,7 @@ def test_intermediate_state_is_reported_not_smoothed(tmp: Path) -> None:
     """
     target = tmp / "pyproject.toml"
     original = "[project]\nname = \"probe\"\nversion = \"1.0.0\"\n"
-    target.write_text(original, encoding="utf-8")
+    target.write_bytes(original.encode("utf-8"))
     log_dir = tmp / "log6"
     log_dir.mkdir()
 
@@ -283,7 +321,7 @@ def test_intermediate_state_is_reported_not_smoothed(tmp: Path) -> None:
     try:
         # 2단계 쓰기: 비우고 → (폴링 간격보다 길게) 머문 뒤 → 채운다.
         # 비원자적 쓰기가 만드는 상태를 **결정적으로** 재현한 것이다.
-        with target.open("w", encoding="utf-8") as handle:
+        with target.open("w", encoding="utf-8", newline="") as handle:
             handle.truncate(0)
             handle.flush()
             os.fsync(handle.fileno())
@@ -314,20 +352,95 @@ CASES = [
 ]
 
 
+def _one_line(text: object) -> str:
+    """실패 사유를 **한 줄**로 접는다.
+
+    사유 안에 줄바꿈이 있으면 뒤따르는 줄이 "PASS"/"FAIL" 로 시작할 수 있고, 그
+    줄이 case 발화 표식으로 세어져 요약 개수와 어긋난다(게이트 메타 축). 한 줄로
+    접으면 표식은 항상 case 당 정확히 하나다.
+    """
+    return " ".join(str(text).split())
+
+
+@contextlib.contextmanager
+def _case_tempdir() -> Iterator[Path]:
+    """case 하나가 쓸 temp 트리 — **정리까지 재시도**한다.
+
+    Windows 는 잠깐 열린 파일을 지울 수 없다 (WinError 32). 감시자가 죽으면서
+    남긴 summary tmp 를 바이러스 스캐너가 아직 잡고 있으면 `rmtree` 가 실패한다
+    (2026-10-31 실측: 게이트 tmp 디렉터리에서 5/6 재현). 잠금만 풀리면 곧 지워
+    지므로 **잠깐 기다렸다가 다시 지운다** — 영구적으로 안 지워지는 경우(진짜
+    누수)는 그대로 실패로 남긴다.
+    """
+    raw = Path(tempfile.mkdtemp(prefix="check-watch-transient-"))
+    try:
+        yield raw
+    finally:
+        _rmtree_with_retry(raw)
+
+
+def _rmtree_with_retry(path: Path, *, attempts: int = 20, backoff_s: float = 0.05) -> None:
+    """`shutil.rmtree` 를 잠깐 재시도한다 — Windows 파일 잠금에 한 번으론 부족하다.
+
+    **잡아야 하는 예외는 `PermissionError` 하나가 아니다.** Windows 에서 잠깐 열린
+    파일(백신 스캐너 핸들 · 삭제 대기 중인 항목)이 있으면 두 가지로 보인다:
+    `PermissionError` (WinError 5 / 32) 와 **WinError 145
+    (ERROR_DIR_NOT_EMPTY, "디렉터리가 비어 있지 않습니다")** 다. 후자는 사실상
+    같은 현상이다 — 항목은 이미 삭제 대기 중이라 `os.unlink` 이 성공하지만
+    핸들이 풀릴 때까지 디렉터리 목록에는 남고, 그래서 `os.rmdir` 이 145 로
+    거절된다. 핸들이 풀리면 곧 빈 디렉터리가 된다.
+    `PermissionError` 만 잡으면 그 창이 그대로 **검사 실패** 로 새어 나온다
+    (2026-10-31 실측: 전량 게이트에서 `log2` 정리가 WinError 145 로 red).
+
+    그래서 **`OSError` 전체**를 잡아 재시도한다. 판정(allowed / denied)을 바꾸는
+    것이 아니라 *정리 시도의 재시도 횟수* 를 늘리는 것뿐이다 — 판정 축은 그대로
+    두고, 실제로는 지워지지 않은 경우만 끝까지 실패로 남긴다. 끝까지 안 지워지면
+    **남은 트리를 함께 적어** 진짜 누수를 진단할 수 있게 한다 (그냥 "안 지워짐"
+    으로 끝내면 다음 사람이 같은 5분 고비를 다시那头에서부터 헤맨다).
+    """
+    last: OSError | None = None
+    for attempt in range(attempts):
+        if not path.exists():
+            return
+        try:
+            shutil.rmtree(path)
+            return
+        except OSError as exc:
+            last = exc
+            time.sleep(min(0.2, backoff_s * (attempt + 1)))
+    if last is not None:
+        raise OSError(f"{last} (재시도 {attempts}회 후 잔여: {_residual_listing(path)})") from last
+
+
+def _residual_listing(path: Path) -> str:
+    """정리가 실패했을 때 남은 트리를 한 줄로 — 진짜 누수인 경우를 구분 가능하게."""
+    try:
+        items = sorted(p.relative_to(path).as_posix() for p in path.rglob("*"))
+    except OSError as exc:
+        return f"<목록 실패: {exc}>"
+    if not items:
+        return "<빈 디렉터리>"
+    return ", ".join(items[:10]) + (f" … 외 {len(items) - 10}개" if len(items) > 10 else "")
+
+
 def main() -> int:
     passed = 0
     failures: list[str] = []
     for case in CASES:
-        with tempfile.TemporaryDirectory(prefix="check-watch-transient-") as raw:
+        with _case_tempdir() as raw:
             try:
-                case(Path(raw))
+                case(raw)
                 passed += 1
+                # **통과한 case 도 줄을 낸다** — 통과 case 를 조용히 넘기면 출력에
+                # 남는 case 표식이 실패분뿐이라 "선언 6 vs 발화 4" 로 어긋난다
+                # (2026-10-31 게이트 메타 축 실측). 표식은 case 당 정확히 하나.
+                print(f"  PASS  {case.__name__}")
             except AssertionError as exc:
                 failures.append(f"{case.__name__}: {exc}")
+                print(f"  FAIL  {case.__name__}: {_one_line(exc)}")
             except Exception as exc:  # noqa: BLE001 — 검사 실패는 전부 보고한다
                 failures.append(f"{case.__name__}: {type(exc).__name__}: {exc}")
-    for line in failures:
-        print(f"  FAIL {line}")
+                print(f"  FAIL  {case.__name__}: {type(exc).__name__}: {_one_line(exc)}")
     print(f"{passed}/{len(CASES)} PASS")
     return 0 if not failures else 1
 

@@ -131,7 +131,7 @@ def _readme_version_mismatches(expected: str) -> list[tuple[str, str | None]]:
 def _head_commit_date() -> str:
     proc = subprocess.run(
         ["git", "log", "-1", "--format=%cs"],
-        cwd=str(REPO), capture_output=True, text=True, timeout=10,
+        cwd=str(REPO), capture_output=True, text=True, timeout=10, encoding="utf-8", errors="replace"
     )
     return proc.stdout.strip()
 

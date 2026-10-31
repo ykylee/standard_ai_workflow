@@ -75,7 +75,7 @@ def _run_runner(*extra: str) -> dict:
         [sys.executable, str(RUNNER), f"--filter={SAMPLE_FILTER}", "--json",
          "--no-guard", *extra],
         capture_output=True, text=True, timeout=600,
-        env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)},
+        env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)}, encoding="utf-8", errors="replace"
     )
     return json.loads(proc.stdout)
 
@@ -306,7 +306,7 @@ def test_declared_timeout_extends_and_default_kills() -> None:
             [sys.executable, str(RUNNER), f"--tests-dir={tmp}", "--timeout=1",
              "--jobs=2", "--json", "--no-guard"],
             capture_output=True, text=True, timeout=120,
-            env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)},
+            env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)}, encoding="utf-8", errors="replace"
         )
         data = json.loads(proc.stdout)
         by_name = {r["name"]: r for r in data["results"]}
@@ -433,7 +433,7 @@ def test_fixture_runner_leaves_history_alone() -> None:
              "--no-guard", "--no-lock"],
             capture_output=True, text=True, timeout=120,
             env={k: v for k, v in {**os.environ, "PYTHONPATH": str(SOURCE_ROOT)}.items()
-                 if k != R.RUNNER_LOCK_ENV},
+                 if k != R.RUNNER_LOCK_ENV}, encoding="utf-8", errors="replace"
         )
         data = json.loads(proc.stdout)
     sch = data["schedule"]

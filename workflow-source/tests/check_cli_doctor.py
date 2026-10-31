@@ -39,7 +39,7 @@ def _run_doctor(*args: str, cwd: Path | None = None) -> subprocess.CompletedProc
     return subprocess.run(
         [sys.executable, "-m", "workflow_kit.cli.doctor", *args],
         capture_output=True, text=True, timeout=60,
-        cwd=str(cwd) if cwd else None,
+        cwd=str(cwd) if cwd else None, encoding="utf-8", errors="replace"
     )
 
 

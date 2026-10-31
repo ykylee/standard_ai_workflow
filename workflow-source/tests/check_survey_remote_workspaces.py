@@ -64,7 +64,7 @@ def _git(args: list[str], cwd: Path, **env_extra: str) -> None:
         **env_extra,
     }
     proc = subprocess.run(["git", *args], cwd=str(cwd), capture_output=True,
-                          text=True, env=env)
+                          text=True, env=env, encoding="utf-8", errors="replace")
     assert proc.returncode == 0, f"git {' '.join(args)} 실패: {proc.stderr}"
 
 
@@ -76,7 +76,7 @@ def _survey(repo: Path, *, no_fetch: bool = False, stale_hours: int | None = Non
         args += ["--stale-hours", str(stale_hours)]
     proc = subprocess.run(args, capture_output=True, text=True,
                           env=platform_child_env(
-                              path="/usr/bin:/bin:/usr/local/bin", PYTHONPATH=str(SOURCE_ROOT)))
+                              path="/usr/bin:/bin:/usr/local/bin", PYTHONPATH=str(SOURCE_ROOT)), encoding="utf-8", errors="replace")
     assert proc.returncode == 0, f"survey 실패: {proc.stderr}"
     return json.loads(proc.stdout)
 
@@ -117,7 +117,7 @@ def main() -> int:
                 capture_output=True, text=True,
                 env=platform_child_env(
                     path="/usr/bin:/bin:/usr/local/bin", PYTHONPATH=str(SOURCE_ROOT)),
-                check=True,
+                check=True, encoding="utf-8", errors="replace"
             )
             stamp = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(now - hours * 3600))
             _git(["add", "-A"], work)

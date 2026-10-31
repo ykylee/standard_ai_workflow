@@ -23,6 +23,12 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
+
+#: kit 을 직접 import 하므로 저장소 패키지 경로를 먼저 넣는다 (단독 실행 대비).
+if str(SOURCE_ROOT) not in sys.path:
+    sys.path.insert(0, str(SOURCE_ROOT))
+
+from workflow_kit.common.child_process import platform_child_env  # noqa: E402
 HARNESSES_DIR = SOURCE_ROOT / "harnesses"
 MATURITY_PATH = SOURCE_ROOT / "core" / "maturity_matrix.json"
 
@@ -151,8 +157,11 @@ def case_4_related_docs() -> bool:
         [sys.executable, "-m", "workflow_kit.workflow_kit_cli",
          "--command=dashboard", "--format=json"],
         cwd=str(REPO_ROOT),
-        env={"PYTHONPATH": str(SOURCE_ROOT), "PATH": __import__("os").environ.get("PATH", "")},
-        capture_output=True, text=True, timeout=60,
+        env=platform_child_env(
+            PYTHONPATH=str(SOURCE_ROOT),
+            path=__import__("os").environ.get("PATH", ""),
+        ),
+        capture_output=True, text=True, timeout=60, encoding="utf-8", errors="replace"
     ).stdout)
     p2_names = set(panel_2["panels"]["maturity_distribution"]["harnesses"].get("supported_names", []))
     mm = _load_maturity()

@@ -45,7 +45,7 @@ def _run_tool(args: list[str], cwd: Path | None = None) -> tuple[int, dict]:
     proc = subprocess.run(
         [sys.executable, str(TOOL_PATH), *args],
         capture_output=True, text=True, timeout=120,
-        cwd=str(cwd) if cwd else None, env=env,
+        cwd=str(cwd) if cwd else None, env=env, encoding="utf-8", errors="replace"
     )
     try:
         payload = json.loads(proc.stdout) if proc.stdout.strip() else {}

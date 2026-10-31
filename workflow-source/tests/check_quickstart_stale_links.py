@@ -39,7 +39,7 @@ def main() -> int:
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
-        check=True,
+        check=True, encoding="utf-8", errors="replace"
     )
     payload = json.loads(completed.stdout)
     if not payload["checked_files"]:

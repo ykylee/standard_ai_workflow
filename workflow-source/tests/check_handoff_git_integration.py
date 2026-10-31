@@ -26,7 +26,7 @@ def test_handoff_git_integration():
         "--git-range", "HEAD~3..HEAD"
     ]
 
-    result = subprocess.run(cmd, capture_output=True, text=True, check=True, cwd=repo_root)
+    result = subprocess.run(cmd, capture_output=True, text=True, check=True, cwd=repo_root, encoding="utf-8", errors="replace")
     payload = json.loads(result.stdout)
 
     assert payload["status"] == "ok"

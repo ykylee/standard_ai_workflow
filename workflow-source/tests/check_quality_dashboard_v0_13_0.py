@@ -51,7 +51,7 @@ def _run_cli(*args: str) -> tuple[int, str, str]:
         env=env,
         capture_output=True,
         text=True,
-        check=False,
+        check=False, encoding="utf-8", errors="replace"
     )
     return completed.returncode, completed.stdout, completed.stderr
 
@@ -360,7 +360,7 @@ def _check_cli_html_publish(tmp_path: Path) -> None:
         capture_output=True,
         text=True,
         check=False,
-        timeout=60,
+        timeout=60, encoding="utf-8", errors="replace"
     )
     _assert(
         completed.returncode == 0,

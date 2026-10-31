@@ -122,7 +122,7 @@ def run_bootstrap(target_root: Path, harness: str) -> dict[str, object]:
         capture_output=True,
         text=True,
         check=True,
-        env=env,
+        env=env, encoding="utf-8", errors="replace"
     )
     # Walk backwards over the lines, trying to parse a JSON object out of
     # the tail. The manifest is the last valid JSON object on stdout.
@@ -250,7 +250,7 @@ def spawn_bridge(
         stderr=subprocess.PIPE,
         text=True,
         bufsize=0,
-        env=env,
+        env=env, encoding="utf-8", errors="replace"
     )
 
 

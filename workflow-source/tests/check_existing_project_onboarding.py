@@ -28,7 +28,7 @@ def run_json(cmd: list[str], cwd: Path) -> dict[str, object]:
         cwd=cwd,
         capture_output=True,
         text=True,
-        check=True,
+        check=True, encoding="utf-8", errors="replace"
     )
     return json.loads(completed.stdout)
 
@@ -39,7 +39,7 @@ def run_json_allow_failure(cmd: list[str], cwd: Path) -> tuple[int, dict[str, ob
         cwd=cwd,
         capture_output=True,
         text=True,
-        check=False,
+        check=False, encoding="utf-8", errors="replace"
     )
     return completed.returncode, json.loads(completed.stdout)
 

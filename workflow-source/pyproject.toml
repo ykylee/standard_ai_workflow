@@ -260,6 +260,19 @@ ignore = ["E501"]
 [tool.mypy]
 python_version = "3.10"
 # v0.8.0+ — strict = true.
+#
+# v1.2.1 (TASK-2026-10-31-main-003): **분석 플랫폼 고정 — linux.**
+# 이 kit 은 POSIX 전제(``fcntl`` 파일 락 · ``resource.getrusage``)다. mypy 는
+# **자기 호스트의** ``sys.platform`` 로 표준 라이브러리 스텁을 고르므로, Windows 에서
+# 돌리면 typeshed 의 플랫폼 가드(``if sys.platform != "win32"``) 때문에 실제 코드에
+# 없는 오류가 10건 난다:
+#   url_validity.py: "Module has no attribute flock / LOCK_EX / LOCK_NB"
+#   profiling.py:    "Module has no attribute getrusage / RUSAGE_SELF"
+# 게이트 호스트는 macOS/Linux 이고 배포 대상도 그쪽이므로, **분석 기준을 배포 대상에
+# 고정**한다 — Windows 로컬 실행에서도 CI 와 같은 결과가 나오게 하는 것이 목적이다.
+# (Windows 전용 코드는 ``sys.platform == "win32"`` 가드 안에 있어 linux 기준으로
+#  unreachable 로 처리된다.)
+platform = "linux"
 # 단계적 격상 (workflow-source/core/v0_8_0_stable_api_spec.md §5.3):
 # - v0.8.0: workflow_kit/__init__.py 의 public surface 만 strict clean (이 file 자체).
 #   다른 module 은 pyproject.toml [tool.mypy.overrides] 로 module 별 strict 분할.

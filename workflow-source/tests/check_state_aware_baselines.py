@@ -148,7 +148,7 @@ def test_doctor_config_partial_rules_applied() -> None:
         proc = subprocess.run(
             [sys.executable, "-m", "workflow_kit.cli.doctor",
              "--project-root", tmp, "--baseline=resiliency", "--json"],
-            capture_output=True, text=True, timeout=60,
+            capture_output=True, text=True, timeout=60, encoding="utf-8", errors="replace"
         )
         assert proc.returncode == 0, f"exit {proc.returncode}: {proc.stderr}"
         out = json.loads(proc.stdout)
@@ -169,7 +169,7 @@ def test_doctor_config_opt_in_applied() -> None:
         proc = subprocess.run(
             [sys.executable, "-m", "workflow_kit.cli.doctor",
              "--project-root", tmp, "--baseline=security-auth", "--json"],
-            capture_output=True, text=True, timeout=60,
+            capture_output=True, text=True, timeout=60, encoding="utf-8", errors="replace"
         )
         assert proc.returncode == 0
         out = json.loads(proc.stdout)
@@ -192,7 +192,7 @@ def test_doctor_config_partial_rules_and_opt_in_union() -> None:
         proc = subprocess.run(
             [sys.executable, "-m", "workflow_kit.cli.doctor",
              "--project-root", tmp, "--baseline=resiliency", "--json"],
-            capture_output=True, text=True, timeout=60,
+            capture_output=True, text=True, timeout=60, encoding="utf-8", errors="replace"
         )
         assert proc.returncode == 0
         out = json.loads(proc.stdout)

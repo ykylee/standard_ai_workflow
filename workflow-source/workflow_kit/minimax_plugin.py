@@ -52,6 +52,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from workflow_kit.common.paths import user_home
 from workflow_kit.plugin_distribution import PLUGIN_HARNESS_SPECS
 from workflow_kit.plugin_payload import (
     MINIMAX_MANIFEST_RELPATH,
@@ -71,7 +72,7 @@ DEFAULT_MINIMAX_DATA_DIRNAME = ".minimax"
 
 def minimax_plugin_root(data_dir: Path | None = None) -> Path:
     """MiniMax Code 로컬 마켓플레이스 디렉터리 (``<data>/plugins``)."""
-    base = data_dir if data_dir is not None else Path.home() / DEFAULT_MINIMAX_DATA_DIRNAME
+    base = data_dir if data_dir is not None else user_home() / DEFAULT_MINIMAX_DATA_DIRNAME
     return base / "plugins"
 
 

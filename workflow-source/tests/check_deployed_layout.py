@@ -132,7 +132,11 @@ def _used_only_for_sys_path(tree: ast.AST, name: str) -> bool:
 def _load_sources() -> list[tuple[str, str, ast.AST]]:
     out = []
     for f in sorted(PKG.rglob("*.py")):
-        rel = str(f.relative_to(PKG))
+        # 면제 registry(LAYOUT_EXEMPT · EXEC_EXEMPT) 의 키는 **POSIX** 다.
+        # `str(...)` 는 Windows 에서 `\` 를 내서 면제 대상이 전부 '위반' 으로
+        # 오판됐다 (저장소 전용 모듈인데 재실행 금지로 잡혔다).
+        # 저장소 상대경로는 항상 POSIX (`paths.safe_relpath` 와 같은 규약).
+        rel = f.relative_to(PKG).as_posix()
         src = f.read_text(encoding="utf-8")
         out.append((rel, src, ast.parse(src)))
     return out

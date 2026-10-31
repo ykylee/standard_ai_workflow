@@ -125,11 +125,11 @@ def main() -> int:
     env_no_gh = platform_env({"PATH": "/nonexistent", "PYTHONPATH": str(SOURCE_ROOT)})
     plain = subprocess.run(
         [sys.executable, str(cli), "--json"],
-        capture_output=True, text=True, timeout=60, env=env_no_gh,
+        capture_output=True, text=True, timeout=60, env=env_no_gh, encoding="utf-8", errors="replace"
     )
     strict = subprocess.run(
         [sys.executable, str(cli), "--json", "--require-gh"],
-        capture_output=True, text=True, timeout=60, env=env_no_gh,
+        capture_output=True, text=True, timeout=60, env=env_no_gh, encoding="utf-8", errors="replace"
     )
     check(
         "8) gh 부재 → rc 0 (skip) / --require-gh → rc 1",

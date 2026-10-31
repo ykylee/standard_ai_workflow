@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Smoke test — workspace registry 모듈 + CLI (6 cases).
+"""Smoke test — workspace registry 모듈 + CLI (8 cases).
 
 ## 왜 이 검사가 필요한가
 
@@ -8,15 +8,16 @@ in-flight 가시성을 줘야 하는지 측정이 필요하다. 또 dashboard Pa
 경로를 합류시키는 동작도 직접 확인한다. 이 산출물이 registry 에 들고 있는 entry 의
 metadata(branch/harness/endpoint) 가 안정적이어야 다른 도구들이 의존할 수 있다.
 
-7 cases:
+8 cases:
   1) register: 새 entry 가 생기고 `last_seen_at` 이 박힌다
   2) register idempotent: 동일 path 재등록 시 entries 증가 ❌, `last_seen_at` 갱신 ⭕
   3) unregister --path: 해당 entry 만 제거
   4) unregister --branch: 같은 branch 의 모든 entry 제거
   5) unregister --all: 전부 제거
-  6) atomic write: 권한 0o600, JSON 정상 parse round-trip
+  6) atomic write: 권한 (POSIX 0o600 — **Windows 는 표현 불가**, 아래 참조), JSON 정상 parse round-trip
   7) dashboard 합류: registry 가 알려주는 경로의 state.json 이 collect_recent_releases
      의 timeline 에 합류
+  8) CLI: register / list / paths / unregister 가 subprocess 로 정상 동작
 
 Refs:
   - workflow-source/core/multi_workspace_orchestration.md §7.1, §5A.3
@@ -67,6 +68,49 @@ def _tmpdir(prefix: str) -> Path:
 def _assert(cond: bool, msg: str) -> None:
     if not cond:
         raise AssertionError(msg)
+
+
+#: **Windows 는 POSIX 권한비트를 표현하지 못한다.**
+#:
+#: CPython 의 ``os.chmod`` 은 Windows 에서 read-only attribute 만 바꾸고(소유자
+#: 쓰기 비트 → attribute *해제*), ``os.stat().st_mode`` 은 파일마다 ``0o666``
+#: (쓰기 가능) 또는 ``0o444``(읽기 전용) 만 돌려준다 — 2026-10-31 실측
+#: (Windows 11 / Python 3.13): ``chmod(0o600) → 0o666`` · ``chmod(0o755) → 0o666``
+#: · ``chmod(0o444) → 0o444``. "소유자만 읽기" 는 **ACL** 로만 되는데 stdlib 로는
+#: 표현할 수 없다.
+WINDOWS_EXPRESSIBLE_MODES = (0o666, 0o444)
+
+
+def _mode_failure(path: Path, expected: int, posix_msg: str, writable_msg: str) -> str | None:
+    """파일 권한을 **플랫폼에 맞게** 판정한다. 실패 사유(문자열) 를 돌려준다.
+
+    POSIX — 기대 모드와 **정확히** 같아야 한다 (판정 완화 없음).
+
+    Windows — POSIX 권한비트 단언은 **원천적으로 성립하지 않는다.** 그래서 그
+    단언만 '해당 없음' 으로 두고(조용히 건너뛰지 않는다) **근거를 출력에 남긴다**.
+    대신 Windows 에서 성립하는 것 두 가지를 판정한다:
+
+    ① 표현 가능 집합(``0o666`` / ``0o444``) 안인가
+    ② 쓰기 가능한가 — 읽기 전용(``0o444``) 이면 atomic replace 가 PermissionError
+       를 내서 *두 번째 저장부터* 막는다 (2026-10-31 실측). 그래서 secret 파일의
+       Windows 정답은 **쓰기 가능(0o666)** 이다.
+    """
+    mode = stat.S_IMODE(path.stat().st_mode)
+    if os.name != "nt":
+        if mode == expected:
+            return None
+        return posix_msg.format(mode=oct(mode), expected=oct(expected))
+    print(
+        f"     [mode] Windows — POSIX {oct(expected)} 단언은 성립 불가: os.chmod 은 "
+        f"read-only attribute 만 바꾸고 실제 모드는 {oct(mode)} (표현 가능 집합 "
+        f"{' / '.join(oct(m) for m in WINDOWS_EXPRESSIBLE_MODES)}). 대신 "
+        f"'표현 집합 안' + '쓰기 가능' 으로 판정한다 — 소유자 한정 읽기는 ACL 전용."
+    )
+    if mode not in WINDOWS_EXPRESSIBLE_MODES:
+        return f"Windows 표현 가능 모드 밖: {oct(mode)}"
+    if not os.access(path, os.W_OK):
+        return writable_msg
+    return None
 
 
 def _isolated_registry():
@@ -170,17 +214,19 @@ def test_unregister_all() -> None:
 
 
 def test_atomic_write_permissions() -> None:
-    """case 6: 파일 권한 0o600, JSON round-trip."""
+    """case 6: 파일 권한 (POSIX 0o600), JSON round-trip."""
     tmp = _isolated_registry()
     try:
         R.register("/tmp/ws-a", branch="feat-a")
         path = R.registry_path()
         _assert(path.is_file(), f"registry 파일 없음: {path}")
-        mode = stat.S_IMODE(path.stat().st_mode)
-        _assert(
-            mode == 0o600,
-            f"권한 0o600 예상, 실제 {oct(mode)}",
+        problem = _mode_failure(
+            path,
+            0o600,
+            "권한 {expected} 예상, 실제 {mode}",
+            "registry 파일이 쓰기 불가 — atomic save 가 두 번째 저장부터 막힌다",
         )
+        _assert(problem is None, problem or "")
         # JSON round-trip
         raw = path.read_text(encoding="utf-8")
         parsed = json.loads(raw)
@@ -261,7 +307,7 @@ def test_cli_register_list_paths() -> None:
                 "--harness", "codex",
                 "--apply",
             ]
-            r = subprocess.run(cli, env=env, capture_output=True, text=True)
+            r = subprocess.run(cli, env=env, capture_output=True, text=True, encoding="utf-8", errors="replace")
             _assert(r.returncode == 0, f"register CLI failed: {r.stderr}")
 
             cli = [
@@ -269,7 +315,7 @@ def test_cli_register_list_paths() -> None:
                 str(REPO_ROOT / "workflow-source" / "workflow_kit" / "tools" / "workspace_registry.py"),
                 "list",
             ]
-            r = subprocess.run(cli, env=env, capture_output=True, text=True)
+            r = subprocess.run(cli, env=env, capture_output=True, text=True, encoding="utf-8", errors="replace")
             _assert(r.returncode == 0, f"list CLI failed: {r.stderr}")
             _assert("feat-cli" in r.stdout, f"list 출력에 feat-cli 없음: {r.stdout}")
 
@@ -278,7 +324,7 @@ def test_cli_register_list_paths() -> None:
                 str(REPO_ROOT / "workflow-source" / "workflow_kit" / "tools" / "workspace_registry.py"),
                 "paths",
             ]
-            r = subprocess.run(cli, env=env, capture_output=True, text=True)
+            r = subprocess.run(cli, env=env, capture_output=True, text=True, encoding="utf-8", errors="replace")
             _assert(r.returncode == 0, f"paths CLI failed: {r.stderr}")
             _assert(td in r.stdout, f"paths 출력에 {td} 없음: {r.stdout}")
 
@@ -289,7 +335,7 @@ def test_cli_register_list_paths() -> None:
                 "--all",
                 "--apply",
             ]
-            r = subprocess.run(cli, env=env, capture_output=True, text=True)
+            r = subprocess.run(cli, env=env, capture_output=True, text=True, encoding="utf-8", errors="replace")
             _assert(r.returncode == 0, f"unregister CLI failed: {r.stderr}")
     finally:
         R.unregister(all=True)

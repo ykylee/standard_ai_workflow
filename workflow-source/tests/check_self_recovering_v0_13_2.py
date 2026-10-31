@@ -59,7 +59,7 @@ README = REPO_ROOT / "README.md"
 def _run(cmd: list[str], **kw) -> subprocess.CompletedProcess:
     """subprocess wrapper: cwd = REPO_ROOT, capture stdout/stderr, text mode."""
     return subprocess.run(cmd, cwd=str(REPO_ROOT), capture_output=True, text=True,
-                          check=False, **kw)
+                          check=False, **kw, encoding="utf-8", errors="replace")
 
 
 def _run_self_recover(args: list[str]) -> dict:

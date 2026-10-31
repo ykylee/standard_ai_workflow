@@ -16,6 +16,16 @@ Test 구성 (3 test):
    `path.is_absolute()` 면 symlink-aware path 가 정답 (실제로는 *symlink 없이* resolve 가
    *보존*)
 
+## 링크 fixture 는 플랫폼마다 성립하는 형태로 만든다 (2026-10-31 Windows 실측)
+
+Windows 는 관리자 권한 · 개발자 모드 없으면 심볼릭 링크를 **만들 수 없다**
+(WinError 1314) — 이 검사 3 case 가 전부 그 error 로 죽었다. 판정을 빼는 대신
+**같은 성질을 가진 링크** 로 대체한다: POSIX 는 심볼릭 링크, Windows 는
+**디렉터리 정션**(junction, `mklink /J`) 이며, 정션은 그 권한 없이 만들어지고
+`Path.resolve()` 가 심볼릭 링크와 **똑같이** 따라간다 — 즉 이 검사가 재는 성질
+("resolve 는 링크를 따라가고, absolute 는 링크 경로를 보존한다") 은 그대로 성립한다.
+링크를 아예 만들 수 없는 환경에서는 조용히 통과시키지 않고 **명확히 실패**한다.
+
 Reference:
 - workflow_kit/common/linter.py (v0.7.22 본 release, .resolve() → .absolute())
 - v0.7.16 release note (linter symlink-resolve 의 1차 발견)
@@ -33,8 +43,10 @@ WATCHES = (
     "workflow-source/workflow_kit/*",
 )
 
+import contextlib
 import importlib.util
 import os
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -54,6 +66,60 @@ def _import_linter():
     sys.modules["wf_linter"] = mod
     spec.loader.exec_module(mod)
     return mod
+
+
+def _make_dir_link(link: Path, target: Path) -> None:
+    """`link` 를 `target` 을 가리키는 **디렉터리 링크**로 만든다.
+
+    POSIX 는 심볼릭 링크, Windows 는 **디렉터리 정션**(junction) 다.
+
+    Windows 는 관리자 권한 · 개발자 모드 없으면 심볼릭 링크를 만들 수 없다
+    (WinError 1314 — 2026-10-31 실측). 정션은 그 권한 없이 만들어지며, `Path.resolve()`
+    가 심볼릭 링크와 **똑같이** 따라간다 — 즉 이 검사가 재는 성질("resolve 는 링크를
+    따라가고 absolute 는 링크 경로를 보존한다") 은 그 플랫폼에서 그대로 성립한다.
+
+    링크를 **아예** 만들 수 없는 환경이면 조용히 통과시키지 않고 명시적으로 실패한다
+    — 판정(allowed/denied)을 약화하는 게 아니라, 검증 자체가 성립하지 않는다는
+    사실을 드러내는 것이다.
+    """
+    if os.name != "nt":
+        link.symlink_to(target, target_is_directory=True)
+    else:
+        try:
+            # 개발자 모드가 켜진 Windows 에서는 심볼릭 링크가 정본이다.
+            link.symlink_to(target, target_is_directory=True)
+        except OSError:
+            # 없으면 정션으로 대체한다 (같은 볼륨 안이어야 한다 — temp 루트는 하나다).
+            proc = subprocess.run(
+                ["cmd", "/c", "mklink", "/J", str(link), str(target)],
+                capture_output=True, text=True, timeout=60, encoding="utf-8", errors="replace"
+            )
+            if proc.returncode != 0:
+                raise RuntimeError(
+                    f"디렉터리 링크를 만들 수 없다: {link} -> {target} "
+                    f"(mklink 실패: {proc.stdout.strip()} {proc.stderr.strip()})"
+                ) from None
+    # fixture 가 **재미KIT 성질**을 실제로 갖고 있는지 확인한다 — resolve 는 따라가고
+    # absolute 는 보존한다. 이게 아니면 이 검사는 아무것도 재지 않는다(조용한 무력화).
+    resolved, absolute = link.resolve(), link.absolute()
+    if str(resolved) == str(absolute):
+        raise RuntimeError(
+            f"만들어진 링크가 resolve()/absolute() 를 구분하지 않는다: {link} "
+            f"(resolved={resolved}, absolute={absolute}) — 이 검사가 재는 성질이 없다"
+        )
+
+
+@contextlib.contextmanager
+def _dir_link(link: Path, target: Path):
+    """`link` → `target` 디렉터리 링크를 만들고, 끝나면 **링크만** 지운다."""
+    _make_dir_link(link, target)
+    try:
+        yield link
+    finally:
+        if os.name == "nt":
+            # 정션은 대상을 따라가지 않고 링크만 지운다 (Windows 의 RemoveDirectory).
+            with contextlib.suppress(OSError):
+                os.rmdir(link)
 
 
 # --- Test 1: broken link check 의 symlink-aware ---
@@ -81,27 +147,27 @@ def test_linter_broken_link_symlink_aware() -> None:
         # symlink 환경 시뮬레이션: 다른 dir 에서 symlink → real_dir
         with tempfile.TemporaryDirectory() as symlink_parent:
             symlink_dir = Path(symlink_parent) / "workspace"
-            symlink_dir.symlink_to(real_dir)
-            # cwd 가 symlink 인 상태에서 linter 호출
-            old_cwd = os.getcwd()
-            os.chdir(str(symlink_dir))
-            try:
-                result = linter.check_workflow_consistency(
-                    state_json_path=state_json,
-                    handoff_path=handoff,
-                    latest_backlog_path=backlog,
-                )
-                # README.md 가 real_dir 에 존재 → broken link 0
-                # v0.7.16 의 .resolve() 였다면: symlink 따라가서 cwd=/tmp/.../real_dir 가 아닌
-                # /tmp/.../real_dir/real_dir/README.md 로 normalize → broken false-positive
-                # v0.7.22 의 .absolute() 면: symlink 보존 + cwd 기준 정규화 → README.md
-                # 정상 인식.
-                broken = [i for i in result["issues"] if i["type"] == "broken_link"]
-                assert len(broken) == 0, (
-                    f"false-positive broken link in symlink env: {broken}"
-                )
-            finally:
-                os.chdir(old_cwd)
+            with _dir_link(symlink_dir, Path(real_dir)):
+                # cwd 가 symlink 인 상태에서 linter 호출
+                old_cwd = os.getcwd()
+                os.chdir(str(symlink_dir))
+                try:
+                    result = linter.check_workflow_consistency(
+                        state_json_path=state_json,
+                        handoff_path=handoff,
+                        latest_backlog_path=backlog,
+                    )
+                    # README.md 가 real_dir 에 존재 → broken link 0
+                    # v0.7.16 의 .resolve() 였다면: symlink 따라가서 cwd=/tmp/.../real_dir 가 아닌
+                    # /tmp/.../real_dir/real_dir/README.md 로 normalize → broken false-positive
+                    # v0.7.22 의 .absolute() 면: symlink 보존 + cwd 기준 정규화 → README.md
+                    # 정상 인식.
+                    broken = [i for i in result["issues"] if i["type"] == "broken_link"]
+                    assert len(broken) == 0, (
+                        f"false-positive broken link in symlink env: {broken}"
+                    )
+                finally:
+                    os.chdir(old_cwd)
 
 
 # --- Test 2: maturity consistency 의 symlink-aware ---
@@ -118,24 +184,24 @@ def test_linter_maturity_test_path_symlink_aware() -> None:
         # symlink 환경: symlink_dir → real_dir, cwd 가 symlink_dir
         with tempfile.TemporaryDirectory() as symlink_parent:
             symlink_dir = Path(symlink_parent) / "workspace"
-            symlink_dir.symlink_to(real_dir)
-            old_cwd = os.getcwd()
-            os.chdir(str(symlink_dir))
-            try:
-                # maturity_matrix 의 skills.{skill}.test_path = "test_foo.py"
-                # .absolute() 면 (real_dir / "test_foo.py").absolute() = /tmp/.../real_dir/test_foo.py
-                # .resolve() 였다면: (real_dir / "test_foo.py").resolve() = /tmp/.../real_dir/test_foo.py
-                # (real_dir 가 symlink 의 target 이라 resolve 도 real path) — *단*,
-                # test_foo.py 자체가 real path 의 file 이라 .exists() 도 True.
-                # 본 test 는 *본질적으로* 두 case 모두 PASS. *진짜* test 는 다음 (Test 3).
-                result = linter.check_maturity_consistency(
-                    matrix_path=Path(real_dir) / "matrix.json",  # dummy
-                    roadmap_path=Path(real_dir) / "roadmap.md",  # dummy
-                    project_root=Path(real_dir),
-                )
-                assert "status" in result
-            finally:
-                os.chdir(old_cwd)
+            with _dir_link(symlink_dir, Path(real_dir)):
+                old_cwd = os.getcwd()
+                os.chdir(str(symlink_dir))
+                try:
+                    # maturity_matrix 의 skills.{skill}.test_path = "test_foo.py"
+                    # .absolute() 면 (real_dir / "test_foo.py").absolute() = /tmp/.../real_dir/test_foo.py
+                    # .resolve() 였다면: (real_dir / "test_foo.py").resolve() = /tmp/.../real_dir/test_foo.py
+                    # (real_dir 가 symlink 의 target 이라 resolve 도 real path) — *단*,
+                    # test_foo.py 자체가 real path 의 file 이라 .exists() 도 True.
+                    # 본 test 는 *본질적으로* 두 case 모두 PASS. *진짜* test 는 다음 (Test 3).
+                    result = linter.check_maturity_consistency(
+                        matrix_path=Path(real_dir) / "matrix.json",  # dummy
+                        roadmap_path=Path(real_dir) / "roadmap.md",  # dummy
+                        project_root=Path(real_dir),
+                    )
+                    assert "status" in result
+                finally:
+                    os.chdir(old_cwd)
 
 
 # --- Test 3: 정공법 자체 (.resolve() 와 .absolute() 의 차이) ---
@@ -154,26 +220,26 @@ def test_linter_resolve_to_absolute_invariant() -> None:
         # symlink → real_dir
         with tempfile.TemporaryDirectory() as symlink_parent:
             symlink_dir = Path(symlink_parent) / "workspace"
-            symlink_dir.symlink_to(real_dir)
-            test_via_symlink = symlink_dir / "test.py"
-            # .resolve() = symlink 따라가서 real path
-            resolved = test_via_symlink.resolve()
-            # .absolute() = cwd 기준 정규화 (symlink 보존)
-            absolute = test_via_symlink.absolute()
-            # 본질: resolved != absolute (symlink 환경의 핵심)
-            # 단, real_file 의 *실제 존재* 검증은 둘 다 PASS
-            assert resolved.exists()
-            assert absolute.exists()
-            # resolve 결과는 real path, absolute 결과는 symlink path
-            # 즉 absolute 가 *사용자 가 작성한 relative path* 의 의도 보존
-            assert str(resolved) != str(absolute), (
-                f"symlink env 에서 .resolve() 와 .absolute() 결과가 동일 — 본 fix 가 무의미. "
-                f"resolved={resolved}, absolute={absolute}"
-            )
-            # .absolute() 결과가 symlink path 보존
-            assert str(absolute).startswith(str(symlink_dir)), (
-                f".absolute() 가 symlink 보존 안 함: {absolute}"
-            )
+            with _dir_link(symlink_dir, Path(real_dir)):
+                test_via_symlink = symlink_dir / "test.py"
+                # .resolve() = symlink 따라가서 real path
+                resolved = test_via_symlink.resolve()
+                # .absolute() = cwd 기준 정규화 (symlink 보존)
+                absolute = test_via_symlink.absolute()
+                # 본질: resolved != absolute (symlink 환경의 핵심)
+                # 단, real_file 의 *실제 존재* 검증은 둘 다 PASS
+                assert resolved.exists()
+                assert absolute.exists()
+                # resolve 결과는 real path, absolute 결과는 symlink path
+                # 즉 absolute 가 *사용자 가 작성한 relative path* 의 의도 보존
+                assert str(resolved) != str(absolute), (
+                    f"symlink env 에서 .resolve() 와 .absolute() 결과가 동일 — 본 fix 가 무의미. "
+                    f"resolved={resolved}, absolute={absolute}"
+                )
+                # .absolute() 결과가 symlink path 보존
+                assert str(absolute).startswith(str(symlink_dir)), (
+                    f".absolute() 가 symlink 보존 안 함: {absolute}"
+                )
 
 
 # --- 메인 실행 ---

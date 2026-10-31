@@ -28,7 +28,9 @@ WATCHES = (
 
 import http.server
 import json
+import os
 import socketserver
+import stat
 import sys
 import tempfile
 import threading
@@ -42,6 +44,46 @@ if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit.common import workspace_registry as R  # noqa: E402
+
+#: **Windows 는 POSIX 권한비트를 표현하지 못한다.**
+#:
+#: CPython 의 ``os.chmod`` 은 Windows 에서 read-only attribute 만 바꾸고(소유자
+#: 쓰기 비트 → attribute *해제*), ``os.stat().st_mode`` 은 파일마다 ``0o666``
+#: (쓰기 가능) 또는 ``0o444``(읽기 전용) 만 돌려준다 — 2026-10-31 실측
+#: (Windows 11 / Python 3.13): ``chmod(0o600) → 0o666`` · ``chmod(0o755) → 0o666``
+#: · ``chmod(0o444) → 0o444``. "소유자만 읽기" 는 **ACL** 로만 되는데 stdlib 로는
+#: 표현할 수 없다.
+WINDOWS_EXPRESSIBLE_MODES = (0o666, 0o444)
+
+
+def _mode_failure(path: Path, expected: int, posix_msg: str, writable_msg: str) -> str | None:
+    """파일 권한을 **플랫폼에 맞게** 판정한다. 실패 사유(문자열) 를 돌려준다.
+
+    POSIX — 기대 모드와 **정확히** 같아야 한다 (판정 완화 없음).
+
+    Windows — POSIX 권한비트 단언은 **원천적으로 성립하지 않는다.** 그래서 그
+    단언만 '해당 없음' 으로 두고(조용히 건너뛰지 않는다) **근거를 출력에 남긴다.**
+    대신 Windows 에서 성립하는 것 두 가지를 판정한다: ① 표현 가능 집합 안인가
+    ② 쓰기 가능한가 — 읽기 전용(``0o444``) 이면 atomic replace 가 PermissionError
+    를 내서 *두 번째 저장부터* 막는다 (2026-10-31 실측). 그래서 secret 파일의
+    Windows 정답은 **쓰기 가능(0o666)** 이다.
+    """
+    mode = stat.S_IMODE(path.stat().st_mode)
+    if os.name != "nt":
+        if mode == expected:
+            return None
+        return posix_msg.format(mode=oct(mode), expected=oct(expected))
+    print(
+        f"     [mode] Windows — POSIX {oct(expected)} 단언은 성립 불가: os.chmod 은 "
+        f"read-only attribute 만 바꾸고 실제 모드는 {oct(mode)} (표현 가능 집합 "
+        f"{' / '.join(oct(m) for m in WINDOWS_EXPRESSIBLE_MODES)}). 대신 "
+        f"'표현 집합 안' + '쓰기 가능' 으로 판정한다 — 소유자 한정 읽기는 ACL 전용."
+    )
+    if mode not in WINDOWS_EXPRESSIBLE_MODES:
+        return f"Windows 표현 가능 모드 밖: {oct(mode)}"
+    if not os.access(path, os.W_OK):
+        return writable_msg
+    return None
 
 
 def _make_registry_json(entries: list[dict], host_id: str = "remote-host") -> dict:
@@ -138,6 +180,7 @@ def _start_server(registry_payload: dict | None = None, *, delay: float = 0.0) -
 
 def main() -> int:
     failures: list[str] = []
+    fired = 0  # 실제로 발화한 case 수 — 요약 숫자는 여기서 파생한다 (상수 금지).
 
     with tempfile.TemporaryDirectory() as tmp:
         # 격리: known_hosts + remote_cache 모두 tempdir 로
@@ -157,6 +200,7 @@ def main() -> int:
             elif "not in known_hosts" not in res.get("error", ""):
                 failures.append(f"[1] not-registered: error 메시지 이상, got {res.get('error')!r}")
             else:
+                fired += 1
                 print("  [1] not-registered  ✓  (미등록 host → 즉시 error, no-op)")
 
             # 2) http.server — 정상 registry pull + cache 저장
@@ -175,17 +219,25 @@ def main() -> int:
                 elif not remote_cache_dir.joinpath("remote-A.json").is_file():
                     failures.append(f"[2] http pull: cache file not created")
                 else:
-                    # cache 0o600 확인
-                    mode = remote_cache_dir.joinpath("remote-A.json").stat().st_mode & 0o777
-                    if mode != 0o600:
-                        failures.append(f"[2] http pull: cache perms {oct(mode)} != 0o600")
+                    # cache 권한 판정 — POSIX 0o600. Windows 는 POSIX 비트가 성립하지
+                    # 않으므로 platform 분기로 처리하고 **근거를 출력에 남긴다**.
+                    cache_file = remote_cache_dir.joinpath("remote-A.json")
+                    problem = _mode_failure(
+                        cache_file,
+                        0o600,
+                        "cache perms {mode} != {expected}",
+                        "cache 파일이 쓰기 불가 — atomic save 가 두 번째 저장부터 막힌다",
+                    )
+                    if problem:
+                        failures.append(f"[2] http pull: {problem}")
                     else:
                         # entries count 확인
                         regs = res.get("registry", {}).get("entries", [])
                         if len(regs) != 2:
                             failures.append(f"[2] http pull: expected 2 entries, got {len(regs)}")
                         else:
-                            print("  [2] http pull       ✓  (2 entries + cache 0o600 saved)")
+                            fired += 1
+                            print("  [2] http pull       ✓  (2 entries + cache saved)")
             finally:
                 server.shutdown()
                 server.server_close()
@@ -207,6 +259,7 @@ def main() -> int:
             elif not res.get("from_cache"):
                 failures.append(f"[3] cache fallback: expected from_cache=True, got {res}")
             else:
+                fired += 1
                 print("  [3] cache fallback  ✓  (unreachable + cache hit → from_cache=True)")
 
             # 4) unreachable host + cache 부재 → error
@@ -219,6 +272,7 @@ def main() -> int:
             elif "error" not in res:
                 failures.append(f"[4] unreachable+no-cache: error key missing, got {res}")
             else:
+                fired += 1
                 print("  [4] unreachable     ✓  (no cache → error, from_cache=False)")
 
             # 5) malformed JSON
@@ -232,6 +286,7 @@ def main() -> int:
                 elif "JSONDecodeError" not in res.get("error", ""):
                     failures.append(f"[5] malformed: error 메시지 이상, got {res.get('error')!r}")
                 else:
+                    fired += 1
                     print("  [5] malformed       ✓  (JSONDecodeError → ok=False)")
             finally:
                 server.shutdown()
@@ -253,6 +308,7 @@ def main() -> int:
                 if len(regs) != 1 or regs[0].get("path") != "/wt/file-test":
                     failures.append(f"[6] file:// : wrong payload, got {regs}")
                 else:
+                    fired += 1
                     print("  [6] file://         ✓  (local file fetched, 1 entry)")
 
             # 7) merge_with_remotes — local + remote 합치기, source_host_id 보존
@@ -296,6 +352,7 @@ def main() -> int:
                         f"(local host {R.host_id()!r} 우선이어야 함)"
                     )
                 else:
+                    fired += 1
                     print(f"  [7] merge_with_remotes  ✓  ({len(merged)} entries, "
                           f"local /wt/feat-x 우선 (source_host_id={feat_x.source_host_id!r}), "
                           f"errors={len(errors)} (unreachable 정상))")
@@ -322,6 +379,7 @@ def main() -> int:
                 elif res.get("from_cache"):
                     failures.append(f"[8] cache TTL: expected from_cache=False (stale), got {res}")
                 else:
+                    fired += 1
                     print("  [8] cache TTL       ✓  (24h stale cache 무시 + 새 fetch)")
             finally:
                 server.shutdown()
@@ -333,7 +391,7 @@ def main() -> int:
         for f in failures:
             print(f"  - {f}")
         return 1
-    print("ALL PASS: HTTP pull + remote cache + merge — 8 case (urllib in-process)")
+    print(f"ALL PASS: HTTP pull + remote cache + merge — {fired} case (urllib in-process)")
     return 0
 
 

@@ -21,6 +21,7 @@ import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+from workflow_kit.common.paths import memory_active_dir, user_home
 from workflow_kit.common.paths import memory_active_dir
 
 # Rule result types
@@ -68,9 +69,9 @@ def check_api_key_storage(project_root: Path) -> RuleResult:
     """SEC-AUTH-01: macOS keyring 또는 env var 사용. plaintext file (chmod 600 미만) 금지."""
     # 우리 storage 위치: ~/.myharness/, ~/.aws/, ~/.config/gh/
     secret_paths = [
-        Path.home() / ".myharness" / "providers.toml",
-        Path.home() / ".aws" / "credentials",
-        Path.home() / ".config" / "gh" / "hosts.yml",
+        user_home() / ".myharness" / "providers.toml",
+        user_home() / ".aws" / "credentials",
+        user_home() / ".config" / "gh" / "hosts.yml",
     ]
     bad_perms = []
     for p in secret_paths:

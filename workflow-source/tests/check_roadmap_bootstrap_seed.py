@@ -67,7 +67,7 @@ def _bootstrap(root: Path, mode: str) -> subprocess.CompletedProcess[str]:
          "--target-root", str(root), "--project-slug", "seedfx",
          "--project-name", "Seed Fixture", "--adoption-mode", mode,
          "--harness", "claude-code", "--no-interactive"],
-        capture_output=True, text=True, timeout=180, env=env, cwd=str(root),
+        capture_output=True, text=True, timeout=180, env=env, cwd=str(root), encoding="utf-8", errors="replace"
     )
 
 

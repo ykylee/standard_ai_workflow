@@ -118,7 +118,7 @@ def _git(cwd: Path, *args: str) -> None:
     subprocess.run(
         ["git", *args], cwd=str(cwd), check=True,
         capture_output=True, text=True, timeout=60,
-        env=platform_child_env(cwd, path="/usr/bin:/bin", GIT_CONFIG_GLOBAL="/dev/null"),
+        env=platform_child_env(cwd, path="/usr/bin:/bin", GIT_CONFIG_GLOBAL="/dev/null"), encoding="utf-8", errors="replace"
     )
 
 
@@ -281,7 +281,7 @@ def test_installed_shape_does_not_fall_back_to_module_anchor() -> None:
         env["PYTHONPATH"] = str(site)
         out = subprocess.run(
             [sys.executable, "-c", probe, str(ws)],
-            capture_output=True, text=True, timeout=120, env=env, cwd=str(ws),
+            capture_output=True, text=True, timeout=120, env=env, cwd=str(ws), encoding="utf-8", errors="replace"
         )
         assert out.returncode == 0, f"탐침 실패: {out.stderr[-400:]}"
         got = json.loads(out.stdout.strip().splitlines()[-1])

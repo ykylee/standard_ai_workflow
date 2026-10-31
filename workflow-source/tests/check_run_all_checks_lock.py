@@ -44,6 +44,12 @@ RUNNER = SOURCE_ROOT / "tests" / "run_all_checks.py"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
+from workflow_kit.common.file_lock import (  # noqa: E402 - sys.path 조정 이후 import
+    prepare_lock_file,
+    try_lock_exclusive,
+    unlock as release_file_lock,
+)
+
 # runner 모듈에서 정본 상수/함수를 가져온다 (경로 규약 사본 금지).
 import importlib.util
 
@@ -68,7 +74,7 @@ def _child_env(*, with_marker: bool) -> dict[str, str]:
 def _run(extra: list[str], *, with_marker: bool) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [sys.executable, str(RUNNER), *CHEAP_ARGS, *extra],
-        capture_output=True, text=True, timeout=120, env=_child_env(with_marker=with_marker),
+        capture_output=True, text=True, timeout=120, env=_child_env(with_marker=with_marker), encoding="utf-8", errors="replace"
     )
 
 
@@ -81,25 +87,25 @@ class _FakeHolder:
         self._fd = None
 
     def __enter__(self) -> "_FakeHolder":
-        import fcntl
         LOCK_PATH.parent.mkdir(parents=True, exist_ok=True)
-        self._fd = open(LOCK_PATH, "a+", encoding="utf-8")
-        try:
-            fcntl.flock(self._fd.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        # Windows 는 빈 파일을 잠그면 그 파일 전체가 읽히지 않는다 — 1 바이트 확보.
+        prepare_lock_file(LOCK_PATH)
+        self._fd = open(LOCK_PATH, "a+b")
+        if try_lock_exclusive(self._fd):
             self.acquired = True
+            payload = json.dumps({"pid": os.getpid(), "note": "check-fake-holder"}).encode("utf-8")
             self._fd.seek(0)
-            self._fd.truncate()
-            self._fd.write(json.dumps({"pid": os.getpid(), "note": "check-fake-holder"}))
+            self._fd.write(payload)
+            self._fd.truncate(len(payload))
             self._fd.flush()
-        except OSError:
+        else:
             self.acquired = False  # 부모 runner 가 이미 보유 — 그대로 사용
         return self
 
     def __exit__(self, *exc: object) -> None:
         if self._fd is not None:
             if self.acquired:
-                import fcntl
-                fcntl.flock(self._fd.fileno(), fcntl.LOCK_UN)
+                release_file_lock(self._fd)
             self._fd.close()
 
 
@@ -126,11 +132,11 @@ def case_4_lock_lives_in_gitdir() -> None:
     # 워킹 트리 오염 검사가 보지 않는 위치인지 — git 스스로에게 묻는다.
     proc = subprocess.run(
         ["git", "check-ignore", "-q", str(LOCK_PATH)], cwd=REPO_ROOT,
-        capture_output=True, text=True,
+        capture_output=True, text=True, encoding="utf-8", errors="replace"
     )
     tracked = subprocess.run(
         ["git", "ls-files", "--error-unmatch", str(LOCK_PATH)], cwd=REPO_ROOT,
-        capture_output=True, text=True,
+        capture_output=True, text=True, encoding="utf-8", errors="replace"
     )
     assert tracked.returncode != 0, "락 파일이 git 추적 대상이다"
 
@@ -141,11 +147,10 @@ def case_5_free_acquire_and_holder_info() -> None:
     info = json.loads(LOCK_PATH.read_text(encoding="utf-8"))
     for key in ("pid", "started_at", "branch", "argv"):
         assert key in info, f"보유자 정보에 {key} 가 없다: {info}"
-    # 종료된 프로세스의 락은 커널이 해제한다 — 즉시 다시 잡혀야 한다.
-    import fcntl
-    with open(LOCK_PATH, "a+", encoding="utf-8") as fd:
-        fcntl.flock(fd.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-        fcntl.flock(fd.fileno(), fcntl.LOCK_UN)
+    # 종료된 프로세스의 락은 OS 가 해제한다 — 즉시 다시 잡혀야 한다.
+    with open(LOCK_PATH, "a+b") as fd:
+        assert try_lock_exclusive(fd), "종료된 프로세스의 락이 해제되지 않았다"
+        release_file_lock(fd)
 
 
 def main() -> int:

@@ -157,7 +157,7 @@ def case_4_declared_interpreters_are_obtainable() -> None:
             continue
         actual = subprocess.run(  # noqa: S603
             [path, "-c", "import sys;print('%d.%d'%sys.version_info[:2])"],
-            capture_output=True, text=True, timeout=60,
+            capture_output=True, text=True, timeout=60, encoding="utf-8", errors="replace"
         ).stdout.strip()
         if actual != version:
             _record("case 4 (선언된 해석기를 구할 수 있다)", False,
@@ -195,7 +195,17 @@ def case_5_kit_probe_ignores_inherited_pythonpath() -> None:
         with tempfile.TemporaryDirectory() as tmp:
             bare = Path(tmp) / "bare"
             subprocess.run([sys.executable, "-m", "venv", "--without-pip", str(bare)], check=True)
-            bare_python = bare / "bin" / "python"
+            # venv 의 해석기 위치는 **플랫폼마다 다르다** — POSIX 는 `bin/python`,
+            # Windows 는 `Scripts/python.exe` (2026-10-31 Windows 실측: `bin/python` 이
+            # 없어 탐침이 FileNotFoundError 로 죽었다 — 판정이 아니라 대상 부재였다).
+            # 경로 표기는 저장소 규약상 POSIX 다 — 레이아웃만 그 플랫폼에서 성립하게 한다.
+            if os.name == "nt":
+                bare_python = bare / "Scripts" / "python.exe"
+            else:
+                bare_python = bare / "bin" / "python"
+            assert bare_python.is_file(), (
+                f"빈 venv 의 해석기를 찾지 못했다: {bare_python} — "
+                f"이 플랫폼의 venv 레이아웃이 다른가?")
             bare_verdict = venv_has_kit(bare_python)
         dev_verdict = venv_has_kit(Path(sys.executable))
     finally:

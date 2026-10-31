@@ -195,7 +195,7 @@ def test_generated_entrypoints_carry_rules() -> None:
                 "--no-interactive",
                 *args,
             ],
-            cwd=REPO_ROOT, capture_output=True, text=True,
+            cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace"
         )
         if completed.returncode != 0:
             _record("test_generated_entrypoints_carry_rules", False,
@@ -319,7 +319,7 @@ def test_shared_entrypoint_merges_instead_of_overwriting() -> None:
                 "--no-interactive",
                 "--harness", "codex", "--harness", "pi-dev",
             ],
-            cwd=REPO_ROOT, capture_output=True, text=True,
+            cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace"
         )
         if completed.returncode != 0:
             _record("test_shared_entrypoint_merges_instead_of_overwriting", False,
@@ -369,7 +369,7 @@ def test_entrypoint_paths_match_generated_layout() -> None:
                 "--no-interactive",
                 "--harness", "claude-code",
             ],
-            cwd=REPO_ROOT, capture_output=True, text=True,
+            cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace"
         )
         if completed.returncode != 0:
             _record("test_entrypoint_paths_match_generated_layout", False,

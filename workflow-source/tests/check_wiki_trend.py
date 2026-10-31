@@ -33,7 +33,7 @@ def _run(args: list[str], timeout: int = 60) -> tuple[int, str, str]:
         cwd=str(REPO_ROOT),
         capture_output=True,
         text=True,
-        timeout=timeout,
+        timeout=timeout, encoding="utf-8", errors="replace"
     )
     return proc.returncode, proc.stdout, proc.stderr
 

@@ -34,6 +34,9 @@ from __future__ import annotations
 #: 이 검사의 입력 표면 (spec `core/test_impact_tiering_spec.md` §2).
 #: 게이트 채취 실측에서 뽑아 넓은 쪽으로 올렸다 — 좁으면 meta-watch 가 red 로 잡는다.
 WATCHES = (
+    # v1.2.1 (TASK-2026-10-31-main-003): kit 을 import 하면 `workflow_kit/__init__.py` 가
+    # 버전을 읽으려고 **pyproject.toml** 을 연다 — 그 파일도 입력 표면이다.
+    "workflow-source/pyproject.toml",
     "workflow-source/workflow_kit/*",
 )
 

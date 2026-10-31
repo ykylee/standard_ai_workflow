@@ -62,6 +62,7 @@ import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
+from workflow_kit.common.paths import user_home
 
 # v0.7.15+ atomic_write (POSIX os.replace guarantee)
 try:
@@ -79,7 +80,7 @@ except ImportError:
     path_in_active = None  # type: ignore[assignment]
     branch_for_workspace = None  # type: ignore[assignment]
 
-_LEGACY_REPO_ROOT = Path.home() / "repos" / "standard_ai_workflow_minimax"
+_LEGACY_REPO_ROOT = user_home() / "repos" / "standard_ai_workflow_minimax"
 _DEPRECATION_WARNED = False
 
 

@@ -107,7 +107,7 @@ def observe_session_start(
         # 저장소를 보는 셈이고, 그 저장소엔 아카이브할 게 없어서 "안전" 이라는
         # **빈 증명** 이 나온다. 이 버그를 음성 대조군이 실제로 잡았다.
         cwd=str(root),
-        capture_output=True, text=True, timeout=timeout, env=env,
+        capture_output=True, text=True, timeout=timeout, env=env, encoding="utf-8", errors="replace"
     )
     try:
         payload = json.loads(proc.stdout) if proc.stdout.strip() else {}

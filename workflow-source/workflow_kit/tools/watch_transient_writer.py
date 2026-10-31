@@ -46,6 +46,11 @@
     python3 -m workflow_kit.tools.watch_transient_writer \
         --file workflow-source/pyproject.toml --interval 0.05 --duration 600 --json
 
+summary.json 은 **살아 있는 동안에도** 유지된다 (관측 이벤트 직후 + 0.25초 주기).
+Windows 에서는 SIGTERM 이 `TerminateProcess` 로 끝나 신호 핸들러가 도는 일이
+없어, 종료 시점에만 쓰면 summary 가 아예 없는 상태로 죽는다 — 그래서 죽기 직전
+관측까지 파일에 남긴다.
+
 Cross-ref: session_handoff §6 "transient pyproject writer 정체 미상",
 TASK-2026-08-11-main-008 (관찰자 3검사 정숙화), TASK-2026-08-11-main-013.
 """
@@ -56,6 +61,7 @@ import argparse
 import difflib
 import hashlib
 import json
+import os
 import shutil
 import signal
 import subprocess
@@ -71,6 +77,41 @@ FILE_SOURCE_CWD_DEFAULT = "cwd-default"
 
 #: 미지정 시 cwd 기준으로 찾는 기본 대상 — 이 도구를 만들게 한 바로 그 파일.
 DEFAULT_TARGET_RELPATH = "workflow-source/pyproject.toml"
+
+#: summary.json 을 **실행 중에도** 유지하는 주기(초).
+#:
+#: POSIX 에서는 SIGTERM 이 Python 핸들러로 넘어와서 종료 시점에 summary.json 을
+#: 쓴다. Windows 에서는 SIGTERM 이 `TerminateProcess` 로 끝나므로 **핸들러가 도는
+#: 일이 없다** — 프로세스가 죽으면 아무것도 못 쓴다 (2026-10-31 실측: summary.json
+#: 부재로 검사 4개가 red). 그래서 summary 를 살아 있는 동안 계속 유지한다 — 죽는
+#: 순간까지 남은 관측이 산출물에 남아 있어야 이 도구가 포렌식 증거로 성립한다.
+#:
+#: 첫 폴링 직후 바로 한 번 쓰고(그 시점에 이미 `polls >= 1`), 그 뒤 이 주기로
+#: 갱신한다 — 관측 0건이어도 "폴링은 돌아갔다" 는 사실이 남아야 한다.
+#:
+#: 주기가 짧을수록 summary 가 빠르게 최신으로 따라오지만 쓰기가 잦아진다
+#: (Windows 에서 파일 잠금에 걸릴 확률도 함께 오른다). 0.25초는 그 중간 —
+#: 이벤트 직후 쓰기가 잠금에 막혀도 0.25초 안에 다시 써서 "마지막 관측이 summary
+#: 에 반영되지 않은" 창을 좁게 유지한다.
+SUMMARY_FLUSH_INTERVAL_S = 0.25
+
+#: summary 쓰기가 Windows 파일 잠금에 막혔을 때 재시도하는 횟수와 대기 간격(초).
+#:
+#: Windows 는 "삭제 공유" 없이 열린 파일을 `os.replace` 로 덮어쓸 수 없다
+#: (WinError 5 / 32). 감시자가 대상을 읽고 있는 짧은 창, 또는 백신 스캐너가
+#: 새 파일을 잡고 있는 순간에 걸리면 replace 가 실패한다 — 이 도구는 **관측자**
+#: 이므로 잠깐의 잠금 하나로 죽으면 안 된다.
+SUMMARY_WRITE_ATTEMPTS = 8
+SUMMARY_WRITE_BACKOFF_S = 0.05
+
+#: summary 원자적 쓰기의 tmp 파일 이름 — **고정**이다.
+#:
+#: 무작위 이름 대신 고정이라, 쓰기가 Windows 파일 잠금에 막혔을 때 남는 잔여물이
+#: 항상 같은 파일이다 — 다음 쓰기가 그 자리를 다시 쓰고, 종료 시 정리할 수 있다.
+#: (정본 `workflow_kit.common.atomic_write` 는 무작위 tmp 를 쓰고 실패 시 best-effort
+#: 로 지우는데, Windows 에서 잠금에 걸리면 잔여물이 남는다 — 2026-10-31 실측:
+#: 게이트 tmp 디렉터리에서 검사 5/6 회가 잔여물 정리에 실패했다.)
+SUMMARY_TMP_NAME = "summary.json.tmp"
 
 
 @dataclass
@@ -203,6 +244,61 @@ def _write_snapshot(log_dir: Path, seq: int, content: bytes) -> str:
     return str(out)
 
 
+def write_summary(log_dir: Path, result: WatchResult) -> Path:
+    """summary.json 을 쓴다 — **원자적**으로 (잘려 읽히는 summary 는 증거가 아니다).
+
+    같은 디렉터리에 tmp 를 쓰고 `os.replace` 로 갈아끼운다: 쓰는 도중 죽어도
+    읽히는 파일은 항상 완전한 JSON 이다 (POSIX atomic rename).
+
+    **실행 중에도** 호출된다 (아래 `watch` 주석) — 죽는 순간까지 남은 관측이
+    산출물에 남는 것이 이 도구의 존재 이유다.
+
+    Windows 는 "삭제 공유" 없이 열린 파일을 이름 변경으로 덮어쓸 수 없다
+    (WinError 5 / 32 — 대상을 읽고 있는 핸들, 백신 스캐너 등). 잠깐의 파일 잠금
+    하나로 **관측자가 죽으면** 감시 자체가 사라지므로, 잠깐 기다려 다시 시도한다.
+    """
+    summary_path = log_dir / "summary.json"
+    tmp_path = summary_path.with_name(SUMMARY_TMP_NAME)
+    payload = json.dumps(result.as_dict(), ensure_ascii=False, indent=2)
+    for attempt in range(SUMMARY_WRITE_ATTEMPTS):
+        try:
+            tmp_path.write_text(payload, encoding="utf-8")
+            os.replace(tmp_path, summary_path)
+            return summary_path
+        except PermissionError:
+            if attempt == SUMMARY_WRITE_ATTEMPTS - 1:
+                raise
+            time.sleep(SUMMARY_WRITE_BACKOFF_S * (attempt + 1))
+    raise AssertionError("unreachable")  # pragma: no cover — 위 루프가 항상 반환/재발
+
+
+def discard_summary_tmp(log_dir: Path) -> None:
+    """남은 summary tmp 를 지운다 — 증거 디렉터리에 잔여물을 두지 않는다.
+
+    쓰기가 잠금에 막혀 죽은 경우 tmp 가 남을 수 있다. 이름이 고정이라 다음
+    쓰기가 같은 자리를 다시 쓰지만, **감시가 끝난 뒤**에는 자리가 비어 있어야
+    한다 (디렉터리 정리를 방해하지 않도록).
+    """
+    tmp_path = (log_dir / "summary.json").with_name(SUMMARY_TMP_NAME)
+    try:
+        tmp_path.unlink()
+    except OSError:
+        pass
+
+
+def flush_summary(log_dir: Path, result: WatchResult) -> bool:
+    """summary 갱신 — 잠금에 막혀도 **관측은 계속**한다 (경고는 남긴다).
+
+    조용히 넘기지는 않는다 — 못 쓴 사실은 stderr 에 남겨야 다음 사람이 본다.
+    """
+    try:
+        write_summary(log_dir, result)
+    except PermissionError as exc:
+        print(f"warning: summary.json 쓰기 실패 (파일 잠금): {exc}", file=sys.stderr)
+        return False
+    return True
+
+
 def resolve_target(raw: str | None) -> tuple[Path, str]:
     """감시 대상과 **그 출처** — 모듈 위치에서 유도하지 않는다 (audit_root_anchors R2)."""
     if raw is not None:
@@ -225,12 +321,20 @@ def watch(target: Path, target_source: str, log_dir: Path, interval_s: float,
         encoding="utf-8")
     deadline = time.monotonic() + duration_s if duration_s > 0 else None
     seq = 0
+    # 첫 폴링 직후 바로 summary 를 쓰도록 기준점을 이미 지난 값으로 시작한다 —
+    # "관측 0건"이어도 폴링이 돌았다는 사실(polls >= 1)은 남아야 한다.
+    last_flush = time.monotonic() - SUMMARY_FLUSH_INTERVAL_S
 
     while not stop_flag["stop"]:
         if deadline is not None and time.monotonic() >= deadline:
             break
         time.sleep(interval_s)
         result.polls += 1
+        # 관측이 늘지 않아도 summary 는 유지한다 — 프로세스가 죽어도 마지막 관측이
+        # 산출물에 남아야 한다 (Windows SIGTERM = TerminateProcess, 위 상수 주석).
+        if time.monotonic() - last_flush >= SUMMARY_FLUSH_INTERVAL_S:
+            flush_summary(log_dir, result)
+            last_flush = time.monotonic()
         cur = _read_state(target)
 
         if cur is None and prev is None:
@@ -263,6 +367,10 @@ def watch(target: Path, target_source: str, log_dir: Path, interval_s: float,
         (log_dir / "events.jsonl").open("a", encoding="utf-8").write(
             json.dumps(event.as_dict(), ensure_ascii=False) + "\n")
         prev = cur
+        # 이벤트 직후엔 summary 도 즉시 갱신한다 — 죽기 직전의 마지막 관측이
+        # summary 에 반영돼야 "무엇이 관측됐나" 를 잃지 않는다.
+        flush_summary(log_dir, result)
+        last_flush = time.monotonic()
 
     result.stopped_at = _now_human()
     return result
@@ -327,9 +435,10 @@ def main(argv: list[str] | None = None) -> int:
             print(f"관측 0건 / poll {result.polls}회 — 자동 생성 로그 제거", file=sys.stderr)
         return 0
 
-    summary_path = log_dir / "summary.json"
-    summary_path.write_text(
-        json.dumps(result.as_dict(), ensure_ascii=False, indent=2), encoding="utf-8")
+    write_summary(log_dir, result)
+    # 쓰기가 잠금에 막혀 죽은 경우 남은 tmp 를 정리한다 — 증거 디렉터리에
+    # 잔여물을 남기는 것은 "조용한 감시는 잔여물 0" 계약과 반대다.
+    discard_summary_tmp(log_dir)
 
     if args.json:
         print(json.dumps(result.as_dict(), ensure_ascii=False, indent=2))

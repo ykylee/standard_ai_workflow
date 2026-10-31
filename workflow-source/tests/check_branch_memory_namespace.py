@@ -179,7 +179,7 @@ def foreign_namespace_writes(
 # ---------------------------------------------------------------------------
 def _git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        ["git", *args], cwd=str(repo), capture_output=True, text=True, timeout=30,
+        ["git", *args], cwd=str(repo), capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace"
     )
 
 
@@ -360,7 +360,7 @@ def _init_repo(root: Path, *, default_branch: str = "main") -> None:
     bare = root.parent / f"{root.name}.origin.git"
     subprocess.run(
         ["git", "init", "--quiet", "--bare", f"--initial-branch={default_branch}", str(bare)],
-        capture_output=True, text=True, timeout=30, check=True,
+        capture_output=True, text=True, timeout=30, check=True, encoding="utf-8", errors="replace"
     )
     _git(root, "init", "--quiet", f"--initial-branch={default_branch}")
     _git(root, "config", "user.email", "fixture@example.com")

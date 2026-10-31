@@ -31,6 +31,7 @@ from typing import Callable
 
 from workflow_kit.bootstrap_lib.paths import Paths
 from workflow_kit.bootstrap_lib.writes import write_text
+from workflow_kit.common.paths import user_home
 from workflow_kit.common.python_launcher import python_launcher
 
 
@@ -364,7 +365,7 @@ def render_minimax_code_mcp_config(args: argparse.Namespace, paths: Paths) -> st
 #: harness 는 workspace 단위 자동 로드 ❌ 라서 *project-local* 사본을 emit 하지
 #: 않고 이 한 곳만 merge 한다. CLI 옵션 ``--mavis-global-mcp-path`` 로 테스트
 #: 격리가 가능 (실 사용 시 default 고정).
-DEFAULT_MAVIS_GLOBAL_MCP_PATH: Path = Path.home() / ".minimax" / "mcp" / "mcp.json"
+DEFAULT_MAVIS_GLOBAL_MCP_PATH: Path = user_home() / ".minimax" / "mcp" / "mcp.json"
 
 
 def render_mavis_global_mcp_config(args: argparse.Namespace) -> dict:

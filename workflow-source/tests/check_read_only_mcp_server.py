@@ -34,7 +34,7 @@ def run_json(args: list[str], *, expect_success: bool = True) -> tuple[int, dict
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
-        check=False,
+        check=False, encoding="utf-8", errors="replace"
     )
     if expect_success and completed.returncode != 0:
         raise AssertionError(f"Entrypoint failed unexpectedly: {completed.stderr}\n{completed.stdout}")

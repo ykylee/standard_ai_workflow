@@ -90,7 +90,7 @@ def _run_apply(ws: Path, *extra: str) -> dict:
          "--project-profile-path", str(ws / "docs" / "PROJECT_PROFILE.md"),
          "--target-date", "2026-07-22",
          "--apply", *extra],
-        capture_output=True, text=True, check=False, env=env, cwd=str(ws),
+        capture_output=True, text=True, check=False, env=env, cwd=str(ws), encoding="utf-8", errors="replace"
     )
     assert proc.returncode == 0, proc.stderr[-2000:]
     return json.loads(proc.stdout)
@@ -106,7 +106,7 @@ def _run_raw(ws: Path, *extra: str) -> tuple[int, dict]:
          "--project-profile-path", str(ws / "docs" / "PROJECT_PROFILE.md"),
          "--target-date", "2026-07-22",
          "--apply", *extra],
-        capture_output=True, text=True, check=False, env=env, cwd=str(ws),
+        capture_output=True, text=True, check=False, env=env, cwd=str(ws), encoding="utf-8", errors="replace"
     )
     return proc.returncode, json.loads(proc.stdout)
 

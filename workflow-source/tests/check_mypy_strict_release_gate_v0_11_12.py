@@ -124,7 +124,7 @@ def test_mypy_strict_release_gate_v0_11_12() -> None:
              "--cache-dir", str(cache),
              "--config-file", str(REPO_ROOT / "workflow-source" / "pyproject.toml"),
              probe.name],
-            cwd=_td, capture_output=True, text=True,
+            cwd=_td, capture_output=True, text=True, encoding="utf-8", errors="replace"
         )
         leftovers = sorted(
             q.name for q in Path(_td).iterdir()
@@ -146,7 +146,7 @@ def test_mypy_strict_release_gate_v0_11_12() -> None:
     _env["PYTHONPATH"] = str(REPO_ROOT / "workflow-source") + _os.pathsep + _env.get("PYTHONPATH", "")
     _help = subprocess.run(
         [sys.executable, "-m", "workflow_kit.tools.release_pipeline", "validate", "--help"],
-        capture_output=True, text=True, timeout=60, env=_env, cwd=str(REPO_ROOT),
+        capture_output=True, text=True, timeout=60, env=_env, cwd=str(REPO_ROOT), encoding="utf-8", errors="replace"
     )
     assert _help.returncode == 0, f"validate --help exit {_help.returncode}: {_help.stderr[-300:]}"
     assert "--skip-mypy" in _help.stdout, "validate subcommand 의 --skip-mypy flag 부재"

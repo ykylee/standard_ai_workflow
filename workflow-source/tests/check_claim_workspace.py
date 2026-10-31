@@ -92,7 +92,7 @@ def _git(args: list[str], cwd: Path, check: bool = True) -> subprocess.Completed
            "GIT_AUTHOR_NAME": "T", "GIT_AUTHOR_EMAIL": "t@t",
            "GIT_COMMITTER_NAME": "T", "GIT_COMMITTER_EMAIL": "t@t"}
     proc = subprocess.run(["git", *args], cwd=str(cwd), capture_output=True,
-                          text=True, env=env)
+                          text=True, env=env, encoding="utf-8", errors="replace")
     if check:
         assert proc.returncode == 0, f"git {' '.join(args)}: {proc.stderr}"
     return proc
@@ -106,7 +106,7 @@ def _claim(repo: Path, *, axis: str, apply: bool, name: str = "agent") -> dict:
     proc = subprocess.run(args, capture_output=True, text=True,
                           env={**platform_env(ENV, repo),
                                "GIT_AUTHOR_NAME": name, "GIT_AUTHOR_EMAIL": f"{name}@t",
-                               "GIT_COMMITTER_NAME": name, "GIT_COMMITTER_EMAIL": f"{name}@t"})
+                               "GIT_COMMITTER_NAME": name, "GIT_COMMITTER_EMAIL": f"{name}@t"}, encoding="utf-8", errors="replace")
     assert proc.stdout.strip(), f"claim 출력 없음: {proc.stderr}"
     return json.loads(proc.stdout)
 
@@ -200,7 +200,7 @@ def main() -> int:
              "--work-backlog-index-path",
              str(win_repo / "ai-workflow" / "memory" / "active" / BRANCH / "backlog" / f"{TODAY}.md"),
              "--project-profile-path", str(PROFILE)],
-            capture_output=True, text=True, env=platform_env(ENV, win_repo),
+            capture_output=True, text=True, env=platform_env(ENV, win_repo), encoding="utf-8", errors="replace"
         )
         payload = json.loads(started.stdout)
         # `state.json 부재` 는 갓 claim 한 workspace 에서 정상이다 (seed 는 파생 파일을

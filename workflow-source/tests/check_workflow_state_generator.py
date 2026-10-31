@@ -33,7 +33,7 @@ def test_relative_paths_in_state():
         ]
 
         print(f"Running: {' '.join(cmd)}")
-        result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(repo_root))
+        result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(repo_root), encoding="utf-8", errors="replace")
         if result.returncode != 0:
             print(f"Error: {result.stderr}")
             exit(1)

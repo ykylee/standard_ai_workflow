@@ -69,7 +69,7 @@ def _tree_digest(root: Path) -> str:
     for p in sorted(root.rglob("*")):
         if ".git" in p.parts:
             continue
-        h.update(str(p.relative_to(root)).encode())
+        h.update(p.relative_to(root).as_posix().encode())
         if p.is_file():
             h.update(p.read_bytes())
     return h.hexdigest()
@@ -81,7 +81,7 @@ def _run(module: str, args: list[str], repo: Path, timeout: int = 90) -> subproc
     env["STANDARD_AI_WF_REPO"] = str(repo)
     return subprocess.run(
         [sys.executable, "-m", module, *args],
-        capture_output=True, text=True, timeout=timeout, env=env, cwd=str(repo),
+        capture_output=True, text=True, timeout=timeout, env=env, cwd=str(repo), encoding="utf-8", errors="replace"
     )
 
 

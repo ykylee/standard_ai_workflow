@@ -27,6 +27,12 @@ from __future__ import annotations
 #: 이 검사의 입력 표면 (spec `core/test_impact_tiering_spec.md` §2).
 #: 게이트 채취 실측에서 뽑아 넓은 쪽으로 올렸다 — 좁으면 meta-watch 가 red 로 잡는다.
 WATCHES = (
+    # v1.2.1 (TASK-2026-10-31-main-003): dashboard 를 자식으로 띄우므로
+    # **kit import 표면**(workflow_kit/**)과 pyproject(버전 읽기) 이 실제 접근에
+    # 들어간다. 이전 선언은 core/* 하나였고 — 자식이 죽어서 "접근 0" (=넓은 선언
+    # warn) 으로 가려져 있었다. 죽지 않게 되니 좁은 선언(red) 으로 드러났다.
+    "workflow-source/pyproject.toml",
+    "workflow-source/workflow_kit/*",
     "workflow-source/core/*",
 )
 
@@ -37,6 +43,12 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
+
+#: kit 을 직접 import 하므로 저장소 패키지 경로를 먼저 넣는다 (단독 실행 대비).
+if str(SOURCE_ROOT) not in sys.path:
+    sys.path.insert(0, str(SOURCE_ROOT))
+
+from workflow_kit.common.child_process import platform_child_env  # noqa: E402
 MATURITY_PATH = SOURCE_ROOT / "core" / "maturity_matrix.json"
 
 
@@ -46,8 +58,11 @@ def _collect_dashboard() -> dict:
         [sys.executable, "-m", "workflow_kit.workflow_kit_cli",
          "--command=dashboard", "--format=json"],
         cwd=str(REPO_ROOT),
-        env={"PYTHONPATH": str(SOURCE_ROOT), "PATH": __import__("os").environ.get("PATH", "")},
-        capture_output=True, text=True, timeout=60,
+        env=platform_child_env(
+            PYTHONPATH=str(SOURCE_ROOT),
+            path=__import__("os").environ.get("PATH", ""),
+        ),
+        capture_output=True, text=True, timeout=60, encoding="utf-8", errors="replace"
     )
     if proc.returncode != 0:
         raise RuntimeError(f"dashboard --format=json failed: {proc.stderr[:300]}")
@@ -65,7 +80,7 @@ def _git_head_commit_date() -> str:
     """git log -1 commit date (ISO date)."""
     proc = subprocess.run(
         ["git", "log", "-1", "--format=%cd", "--date=short"],
-        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=10,
+        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=10, encoding="utf-8", errors="replace"
     )
     if proc.returncode != 0:
         raise RuntimeError(f"git log failed: {proc.stderr[:200]}")

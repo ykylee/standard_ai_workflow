@@ -37,6 +37,11 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
 
+#: kit 을 직접 import 하므로 저장소 패키지 경로를 먼저 넣는다 (단독 실행 대비).
+if str(SOURCE_ROOT) not in sys.path:
+    sys.path.insert(0, str(SOURCE_ROOT))
+
+from workflow_kit.common.child_process import platform_child_env  # noqa: E402
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
@@ -51,8 +56,11 @@ def _collect_panel_4() -> dict:
         [sys.executable, "-m", "workflow_kit.workflow_kit_cli",
          "--command=dashboard", "--format=json"],
         cwd=str(REPO_ROOT),
-        env={"PYTHONPATH": str(SOURCE_ROOT), "PATH": __import__("os").environ.get("PATH", "")},
-        capture_output=True, text=True, timeout=60,
+        env=platform_child_env(
+            PYTHONPATH=str(SOURCE_ROOT),
+            path=__import__("os").environ.get("PATH", ""),
+        ),
+        capture_output=True, text=True, timeout=60, encoding="utf-8", errors="replace"
     )
     if proc.returncode != 0:
         raise RuntimeError(f"dashboard --format=json failed: {proc.stderr[:300]}")
@@ -68,7 +76,7 @@ def _actual_smoke_files_count() -> int:
 def _git(args: list[str]) -> tuple[int, str]:
     proc = subprocess.run(
         ["git", *args], cwd=str(REPO_ROOT),
-        capture_output=True, text=True, timeout=20, check=False,
+        capture_output=True, text=True, timeout=20, check=False, encoding="utf-8", errors="replace"
     )
     return proc.returncode, proc.stdout.strip()
 

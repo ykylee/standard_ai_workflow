@@ -25,6 +25,13 @@ Reference:
 
 from __future__ import annotations
 
+
+#: release pipeline 은 validate·version-bump·doctor·dist 를 한 번에 굴린다 — 단독 52.3s 실측(2026-10-31, Windows).
+#: 기본 60s 상한은 행(hang) 잡기용이고, 병렬 부하만 얹혀도 이 상한을 넘는다
+#: (게이트 전량 축에서 실제로 TIMEOUT 이 났다). 저장소 규칙대로 상한을 선언한다
+#: (CLAUDE.md: 단독 ~25s 초과 검사는 선언).
+CHECK_TIMEOUT_S = 150
+
 #: 의도적 전역 (spec `core/test_impact_tiering_spec.md` §2).
 WATCHES_ALL_REASON = (
     "release pipeline 의 validate/version-bump/dist 가 "
@@ -65,7 +72,7 @@ def test_validate_json_output() -> None:
         [sys.executable, str(TOOL), "validate",
          "--skip-packaging", "--skip-doctor",
          "--json"],
-        capture_output=True, text=True, timeout=60,
+        capture_output=True, text=True, timeout=60, encoding="utf-8", errors="replace"
     )
     # exit 0 또는 1 (git.status untracked 있을 수 있음) — JSON parse 가능 검증
     out = json.loads(proc.stdout)
@@ -125,7 +132,7 @@ def test_version_bump_apply_in_sandbox() -> None:
         proc = subprocess.run(
             [sys.executable, str(src / "workflow_kit" / "tools" / "release_pipeline.py"),
              "version-bump", "--patch", "--apply", "--skip-sync-hash", "--json"],
-            capture_output=True, text=True, timeout=60, cwd=str(sandbox),
+            capture_output=True, text=True, timeout=60, cwd=str(sandbox), encoding="utf-8", errors="replace"
         )
         assert proc.returncode == 0, f"exit {proc.returncode}: {proc.stderr}"
         result = json.loads(proc.stdout)
@@ -178,7 +185,7 @@ def test_doc_headers_update_syncs_distributed_core() -> None:
         proc = subprocess.run(
             [sys.executable, str(src / "workflow_kit" / "tools" / "release_pipeline.py"),
              "doc-headers-update", "--scope=core", "--apply", "--json"],
-            capture_output=True, text=True, timeout=60, cwd=str(sandbox),
+            capture_output=True, text=True, timeout=60, cwd=str(sandbox), encoding="utf-8", errors="replace"
         )
         assert proc.returncode == 0, f"exit {proc.returncode}: {proc.stderr}"
 
@@ -195,7 +202,7 @@ def test_note_draft_dry_run() -> None:
     proc = subprocess.run(
         [sys.executable, str(TOOL), "note-draft",
          "--from=v0.7.4-beta", "--to=0.7.9", "--dry-run"],
-        capture_output=True, text=True, timeout=30,
+        capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace"
     )
     assert proc.returncode == 0, f"exit {proc.returncode}: {proc.stderr}"
     out = re.search(r"output_path:\s*([^\s]+)", proc.stdout)
@@ -244,7 +251,7 @@ def test_cli_subcommand_help() -> None:
     """main --help + 각 subcommand --help 정상."""
     proc = subprocess.run(
         [sys.executable, str(TOOL), "--help"],
-        capture_output=True, text=True, timeout=10,
+        capture_output=True, text=True, timeout=10, encoding="utf-8", errors="replace"
     )
     assert proc.returncode == 0
     assert "validate" in proc.stdout

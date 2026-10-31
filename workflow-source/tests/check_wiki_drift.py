@@ -188,7 +188,7 @@ def test_inrepo_wiki_l1_drift() -> None:
             # 기준으로는 relative_to 가 ValueError 를 낸다. 즉 **drift 를 실제로
             # 발견하는 순간 report 대신 크래시**했고, 그래서 이 보고 경로는 한 번도
             # 실행된 적이 없다.
-            drift_pages.append((str(md.relative_to(REPO_ROOT)), drift_days))
+            drift_pages.append((md.relative_to(REPO_ROOT).as_posix(), drift_days))
 
     if drift_pages:
         msg = "drift detected (updated > 7일 stale vs last_ingested_from code mtime):\n"

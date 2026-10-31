@@ -70,7 +70,7 @@ def test_dist_dry_run_no_build_module() -> None:
 
     proc = subprocess.run(
         [sys.executable, str(TOOL), "dist", "--dry-run", "--json"],
-        capture_output=True, text=True, timeout=30,
+        capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace"
     )
     assert proc.returncode == 1, f"expected exit 1, got {proc.returncode}: {proc.stderr}"
     out = json.loads(proc.stdout)
@@ -93,7 +93,7 @@ def test_dist_dry_run_with_build_module() -> None:
 
     proc = subprocess.run(
         [sys.executable, str(TOOL), "dist", "--dry-run", "--json"],
-        capture_output=True, text=True, timeout=30,
+        capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace"
     )
     assert proc.returncode == 0, f"expected exit 0, got {proc.returncode}: {proc.stderr}"
     out = json.loads(proc.stdout)
@@ -119,7 +119,7 @@ def test_dist_apply_with_build_module() -> None:
     proc = subprocess.run(
         [sys.executable, str(TOOL), "dist", "--apply", "--timeout=120", "--json"],
         capture_output=True, text=True, timeout=180,
-        cwd=str(SOURCE_ROOT),
+        cwd=str(SOURCE_ROOT), encoding="utf-8", errors="replace"
     )
     assert proc.returncode == 0, f"expected exit 0, got {proc.returncode}: {proc.stderr}"
     out = json.loads(proc.stdout)
@@ -145,7 +145,7 @@ def test_dist_skip_existing() -> None:
     proc = subprocess.run(
         [sys.executable, str(TOOL), "dist", "--skip-existing", "--dry-run", "--json"],
         capture_output=True, text=True, timeout=30,
-        cwd=str(SOURCE_ROOT),
+        cwd=str(SOURCE_ROOT), encoding="utf-8", errors="replace"
     )
     assert proc.returncode == 0
     out = json.loads(proc.stdout)
@@ -201,7 +201,7 @@ def test_dist_subcommand_help() -> None:
     """main --help + 7 subcommand (validate / version-bump / note-draft / release / verify / rollback / dist) 노출."""
     proc = subprocess.run(
         [sys.executable, str(TOOL), "--help"],
-        capture_output=True, text=True, timeout=10,
+        capture_output=True, text=True, timeout=10, encoding="utf-8", errors="replace"
     )
     assert proc.returncode == 0, f"expected exit 0, got {proc.returncode}: {proc.stderr}"
     for cmd in ("validate", "version-bump", "note-draft", "release", "verify", "rollback", "dist"):
@@ -215,7 +215,7 @@ def test_dist_skip_existing_argparse() -> None:
     """dist --skip-existing 가 argparse error 없이 받아들여짐."""
     proc = subprocess.run(
         [sys.executable, str(TOOL), "dist", "--skip-existing", "--dry-run", "--json"],
-        capture_output=True, text=True, timeout=30,
+        capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace"
     )
     # build module 부재 시 exit 1 이지만 argparse error 는 없어야 함
     assert "unrecognized arguments" not in proc.stderr

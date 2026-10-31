@@ -74,7 +74,7 @@ def main() -> int:
             cwd=repo_copy,
             capture_output=True,
             text=True,
-            check=True,
+            check=True, encoding="utf-8", errors="replace"
         )
         payload = json.loads(completed.stdout)
         generated = payload["generated_files"]

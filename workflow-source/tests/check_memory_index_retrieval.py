@@ -149,11 +149,11 @@ def main() -> int:
         # 엇나가 red 가 된다 (2026-09-23 실측: native green / slash red).
         # fixture 는 자기가 재려는 조건을 **스스로** 성립시켜야 한다.
         subprocess.run(["git", "init", "-q", "-b", "main"],
-                       cwd=str(ws7), capture_output=True, text=True)
+                       cwd=str(ws7), capture_output=True, text=True, encoding="utf-8", errors="replace")
         subprocess.run(
             ["git", "-c", "user.email=t@t", "-c", "user.name=t",
              "commit", "-q", "--allow-empty", "-m", "seed"],
-            cwd=str(ws7), capture_output=True, text=True,
+            cwd=str(ws7), capture_output=True, text=True, encoding="utf-8", errors="replace"
         )
         branch7 = ws7 / "ai-workflow" / "memory" / "active" / "main"
         (branch7 / "backlog").mkdir(parents=True)
@@ -176,7 +176,7 @@ def main() -> int:
         proc = subprocess.run(
             [sys.executable, "-m", "workflow_kit.workflow_kit_cli",
              "--command=session-start", "--project-profile-path=docs/PROJECT_PROFILE.md"],
-            cwd=str(ws7), capture_output=True, text=True, env=env, timeout=120,
+            cwd=str(ws7), capture_output=True, text=True, env=env, timeout=120, encoding="utf-8", errors="replace"
         )
         try:
             payload = json.loads(proc.stdout)

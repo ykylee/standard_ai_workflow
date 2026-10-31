@@ -36,7 +36,7 @@ def run_validation_with_args(*, expect_success: bool, args: list[str]) -> tuple[
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
-        check=False,
+        check=False, encoding="utf-8", errors="replace"
     )
     if expect_success and completed.returncode != 0:
         raise AssertionError(f"Expected validation-plan success but got {completed.returncode}: {completed.stderr}")

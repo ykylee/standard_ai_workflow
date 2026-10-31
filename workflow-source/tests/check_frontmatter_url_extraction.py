@@ -248,14 +248,14 @@ def test_zero_scan_is_not_a_pass() -> None:
     with tempfile.TemporaryDirectory() as td:
         proc = subprocess.run(
             [sys.executable, "-m", "workflow_kit.frontmatter_urls", td, "--check"],
-            cwd=str(SOURCE_ROOT), capture_output=True, text=True, timeout=60,
+            cwd=str(SOURCE_ROOT), capture_output=True, text=True, timeout=60, encoding="utf-8", errors="replace"
         )
         assert proc.returncode == 2, f"빈 디렉토리인데 exit {proc.returncode}: {proc.stderr}"
         assert "V-R10-no-input" in proc.stderr, proc.stderr
         # --allow-empty 를 **명시** 했을 때만 통과다.
         proc2 = subprocess.run(
             [sys.executable, "-m", "workflow_kit.frontmatter_urls", td, "--check", "--allow-empty"],
-            cwd=str(SOURCE_ROOT), capture_output=True, text=True, timeout=60,
+            cwd=str(SOURCE_ROOT), capture_output=True, text=True, timeout=60, encoding="utf-8", errors="replace"
         )
         assert proc2.returncode == 0, proc2.stderr
 

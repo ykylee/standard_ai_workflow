@@ -8,7 +8,8 @@ git repo 에서 검증. **in-process** 함수 호출 (subprocess mock 한계 회
 
 검증 케이스 (8):
     1. dry-run install — hook 파일 *생성 안됨*, report 만 emit
-    2. install --apply — hook 파일 *생성됨*, mode 0o755
+    2. install --apply — hook 파일 *생성됨*, mode 0o755 (POSIX. **Windows 는 실행
+       비트가 없어 표현 불가** — platform 분기로 판정하고 근거를 출력에 남긴다)
     3. install idempotent — 두 번 install, backup 0개 유지, hook content 동일
     4. install with existing — 기존 hook backup 됨, 새 hook 설치, backup 1개
     5. status — installed / matches_src / backups 정확
@@ -55,12 +56,63 @@ HOOK_SOURCE = (
     / "pre-push-no-force.sh"
 )
 
+#: **Windows 는 POSIX 권한비트를 표현하지 못한다.**
+#:
+#: CPython 의 ``os.chmod`` 은 Windows 에서 read-only attribute 만 바꾸고(소유자
+#: 쓰기 비트 → attribute *해제*), ``os.stat().st_mode`` 은 파일마다 ``0o666``
+#: (쓰기 가능) 또는 ``0o444``(읽기 전용) 만 돌려준다 — 2026-10-31 실측
+#: (Windows 11 / Python 3.13): ``chmod(0o600) → 0o666`` · ``chmod(0o755) → 0o666``
+#: · ``chmod(0o444) → 0o444``.
+WINDOWS_EXPRESSIBLE_MODES = (0o666, 0o444)
+
+
+def _hook_mode_failure(path: Path, expected: int = 0o755) -> str | None:
+    """hook 파일 권한을 **플랫폼에 맞게** 판정한다. 실패 사유(문자열) 를 돌려준다.
+
+    POSIX — 실행 비트까지 포함해 ``0o755`` 와 **정확히** 같아야 한다 (판정 완화 없음).
+
+    Windows — **실행 비트가 없다.** ``os.chmod`` 은 read-only attribute 만 바꾸므로
+    ``0o755`` 의 owner-write 비트(=attribute 해제) 때문에 결과는 ``0o666`` 이다
+    (2026-10-31 실측). 그래서 POSIX 비트 단언만 '해당 없음' 으로 두고 — 조용히
+    건너뛰지 않고 **근거를 출력에 남긴다.** 대신 Windows 에서 성립하는 계약 셋을
+    판정한다:
+
+    ① 표현 가능 집합(``0o666`` / ``0o444``) 안인가
+    ② 읽을 수 있고 shebang 이 있는가 — git 은 Windows 에서도 동봉 sh 로 hook 을
+       실행하므로 실행 가능성은 *비트* 가 아니라 **동작** 으로 성립한다 (그 증거는
+       같은 검사의 실제 ``git push`` case 가 담당한다)
+    ③ 쓰기 가능한가 — 읽기 전용이면 재설치(``shutil.copy2`` 가 기존 대상 위에
+       덮어씀)가 PermissionError 로 깨진다 (2026-10-31 실측)
+    """
+    mode = stat.S_IMODE(path.stat().st_mode)
+    if os.name != "nt":
+        if mode == expected:
+            return None
+        return f"mode {oct(mode)} != {oct(expected)}"
+    print(
+        f"     [mode] Windows — POSIX {oct(expected)} 단언은 성립 불가: Windows 에는 "
+        f"실행 비트가 없고 os.chmod 은 read-only attribute 만 바꾸므로 실제 모드는 "
+        f"{oct(mode)} (표현 가능 집합 "
+        f"{' / '.join(oct(m) for m in WINDOWS_EXPRESSIBLE_MODES)}). 대신 "
+        f"'표현 집합 안' + '읽기/ shebang' + '쓰기 가능' 으로 판정한다 — git 이 hook 을 "
+        f"실제로 실행하는지는 같은 검사의 실제 git push case 가 잰다."
+    )
+    if mode not in WINDOWS_EXPRESSIBLE_MODES:
+        return f"Windows 표현 가능 모드 밖: {oct(mode)}"
+    if not os.access(path, os.R_OK):
+        return "hook 을 읽을 수 없다 — git 이 실행할 수 없다"
+    if not path.read_bytes().startswith(b"#!"):
+        return "hook 에 shebang 이 없다 — git 이 실행할 수 없다"
+    if not os.access(path, os.W_OK):
+        return "hook 이 쓰기 불가 — 재설치(덮어쓰기)가 막힌다"
+    return None
+
 
 def _git(cwd: Path, *args: str, hooks: Path | None = None) -> subprocess.CompletedProcess[str]:
     """``hooks`` 를 주면 그 디렉터리를 hooksPath 로 고정한다 — 사용자 전역 `core.hooksPath`
     가 있으면 `.git/hooks` 가 무시되어 검사가 엉뚱한 hook(또는 없음)을 잰다."""
     pre = ["-c", f"core.hooksPath={hooks}"] if hooks is not None else []
-    return subprocess.run(["git", *pre, *args], cwd=cwd, capture_output=True, text=True, timeout=60)
+    return subprocess.run(["git", *pre, *args], cwd=cwd, capture_output=True, text=True, timeout=60, encoding="utf-8", errors="replace")
 
 
 def _commit(work: Path, tag: str) -> None:
@@ -113,6 +165,7 @@ def _real_push_outcomes(work: Path, hooks: Path, remote: Path) -> dict:
 
 def main() -> int:
     failures: list[str] = []
+    fired = 0  # 실제로 발화한 case 수 — 요약 숫자는 여기서 파생한다 (상수 금지).
 
     with tempfile.TemporaryDirectory() as tmp:
         # 격리: 별도 git repo 생성
@@ -137,19 +190,29 @@ def main() -> int:
             if hook_target.exists():
                 failures.append(f"[1] dry-run: hook created (should NOT be created)")
             else:
+                fired += 1
                 print("  [1] dry-run install        ✓  (hook 미생성, preview 만)")
 
             # 2) install --apply
             ns = argparse.Namespace(apply=True)
             install_pre_push_hook.cmd_install(ns)
             if not hook_target.is_file():
-                failures.append(f"[2] install --apply: hook not created")
-            elif stat.S_IMODE(os.stat(hook_target).st_mode) != 0o755:
-                failures.append(f"[2] install --apply: mode {oct(stat.S_IMODE(os.stat(hook_target).st_mode))} != 0o755")
-            elif hook_target.read_bytes() != HOOK_SOURCE.read_bytes():
-                failures.append(f"[2] install --apply: content differs from source")
+                failures.append("[2] install --apply: hook not created")
             else:
-                print("  [2] install --apply        ✓  (hook 생성, mode 0o755, content 동일)")
+                # 권한 판정 — POSIX 0o755. Windows 에는 실행 비트가 없으므로 platform
+                # 분기로 처리하고 **근거를 출력에 남긴다**.
+                problem = _hook_mode_failure(hook_target)
+                if problem:
+                    failures.append(f"[2] install --apply: {problem}")
+                elif hook_target.read_bytes() != HOOK_SOURCE.read_bytes():
+                    failures.append("[2] install --apply: content differs from source")
+                else:
+                    fired += 1
+                    mode = stat.S_IMODE(os.stat(hook_target).st_mode)
+                    print(
+                        f"  [2] install --apply        ✓  "
+                        f"(hook 생성, mode {oct(mode)}, content 동일)"
+                    )
 
             # 3) idempotent — 두 번 install
             backups_before = list((repo_dir / ".git" / "hooks").glob("pre-push.bak.*"))
@@ -158,6 +221,7 @@ def main() -> int:
             if len(backups_after) != len(backups_before):
                 failures.append(f"[3] idempotent: backup created on identical content ({len(backups_after)} vs {len(backups_before)})")
             else:
+                fired += 1
                 print(f"  [3] idempotent              ✓  (2회 install, backup {len(backups_after)}개 유지)")
 
             # 4) install with existing — 기존 hook 다른 내용
@@ -173,6 +237,7 @@ def main() -> int:
             elif hook_target.read_bytes() != HOOK_SOURCE.read_bytes():
                 failures.append(f"[4] existing: hook not replaced with source")
             else:
+                fired += 1
                 print(f"  [4] install with existing   ✓  (backup 1개, hook 교체)")
 
             # 5) status (in-process, capture stdout)
@@ -190,6 +255,7 @@ def main() -> int:
             elif len(payload.get("backups", [])) != 1:
                 failures.append(f"[5] status: backups count should be 1, got {payload.get('backups')}")
             else:
+                fired += 1
                 print("  [5] status                 ✓  (installed=True, matches_source=True, backups=1)")
 
             # 6) 실제 git push — git 이 hook 에 넘기는 인터페이스(인자 2개 + stdin ref 줄)로 잰다
@@ -227,6 +293,7 @@ def main() -> int:
                         "[6] 되주입이 red 를 못 만든다 — 조상 검사를 빼도 시나리오 결과가 같다 "
                         f"(force_nonff rc={mut['force_nonff'][0]}, unknown rc={mut['unknown_remote'][0]})")
             if not any(f.startswith("[6]") for f in failures):
+                fired += 1
                 print("  [6] 실제 git push          ✓  (force non-ff·원격 미상 거부, 5 경로 통과, 되주입 발화)")
 
             # 7) uninstall — hook 제거 + backup 복원
@@ -236,6 +303,7 @@ def main() -> int:
             elif hook_target.read_text(encoding="utf-8") != custom_old:
                 failures.append(f"[7] uninstall: restored content != original custom_old")
             else:
+                fired += 1
                 print("  [7] uninstall              ✓  (hook 복원, backup 보존)")
 
         finally:
@@ -252,7 +320,7 @@ def main() -> int:
         proc = subprocess.run(
             [sys.executable, "-m", "workflow_kit.tools.install_pre_push_hook",
              "status", "--json"],
-            cwd=str(repo_dir), capture_output=True, text=True, timeout=60, env=env,
+            cwd=str(repo_dir), capture_output=True, text=True, timeout=60, env=env, encoding="utf-8", errors="replace"
         )
         if proc.returncode != 0:
             failures.append(f"[8] cwd 기준 status 실패 (exit {proc.returncode}): {proc.stderr.strip()[:200]}")
@@ -269,6 +337,7 @@ def main() -> int:
             elif got and not Path(got.get("source_path", "")).is_file():
                 failures.append(f"[8] hook 원본이 없다: {got.get('source_path')}")
             elif got:
+                fired += 1
                 print("  [8] cwd 기준 대상 선택     ✓  (mock 없이, hook 원본도 존재)")
 
     print()
@@ -277,7 +346,9 @@ def main() -> int:
         for f in failures:
             print(f"  - {f}")
         return 1
-    print("ALL PASS: pre-push hook installer — 8 case (dry-run / install / idempotent / existing / status / 실제 git push + 되주입 / uninstall / cwd 대상 선택)")
+    print(f"ALL PASS: pre-push hook installer — {fired} case "
+          f"(dry-run / install / idempotent / existing / status / 실제 git push + 되주입 / "
+          f"uninstall / cwd 대상 선택)")
     return 0
 
 

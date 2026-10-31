@@ -81,12 +81,12 @@ def _load_samples() -> list[dict]:
         try:
             obj = json.loads(f.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
-            out.append({"_path": str(f.relative_to(REPO_ROOT)), "_malformed": True})
+            out.append({"_path": f.relative_to(REPO_ROOT).as_posix(), "_malformed": True})
             continue
         if not isinstance(obj, dict):
-            out.append({"_path": str(f.relative_to(REPO_ROOT)), "_not_dict": True})
+            out.append({"_path": f.relative_to(REPO_ROOT).as_posix(), "_not_dict": True})
             continue
-        obj["_path"] = str(f.relative_to(REPO_ROOT))
+        obj["_path"] = f.relative_to(REPO_ROOT).as_posix()
         out.append(obj)
     return out
 

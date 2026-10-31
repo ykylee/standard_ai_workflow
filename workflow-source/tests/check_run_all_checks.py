@@ -177,7 +177,7 @@ def test_cli_json_output() -> None:
     """
     proc = subprocess.run(
         [sys.executable, str(RUNNER), "--filter=security_baseline,unit_of_work_template", "--json"],
-        capture_output=True, text=True, timeout=60,
+        capture_output=True, text=True, timeout=60, encoding="utf-8", errors="replace"
     )
     assert proc.returncode == 0, f"exit {proc.returncode}: {proc.stderr}"
     out = json.loads(proc.stdout)
@@ -196,7 +196,7 @@ def test_cli_no_match_filter_errors() -> None:
     """--filter=zzz_no_match_zzz → exit 2 (매치 0)."""
     proc = subprocess.run(
         [sys.executable, str(RUNNER), "--filter=zzz_no_match_zzz"],
-        capture_output=True, text=True, timeout=30,
+        capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace"
     )
     assert proc.returncode == 2
     assert "0 file 매치" in proc.stderr or "부재" in proc.stderr

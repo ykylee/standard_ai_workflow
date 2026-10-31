@@ -42,7 +42,7 @@ def _run_release(*extra: str) -> subprocess.CompletedProcess[str]:
             "--skip-smoke-count-check", "--json", *extra]
     return subprocess.run(
         argv, capture_output=True, text=True, timeout=120,
-        env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)},
+        env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)}, encoding="utf-8", errors="replace"
     )
 
 

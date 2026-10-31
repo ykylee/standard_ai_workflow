@@ -18,7 +18,9 @@ in-flight 워크스페이스를 알아낼 수 있게 한다.
 
 - 기본: ``~/.cache/workflow_kit/registry.json``
 - override: ``WORKFLOW_REGISTRY_PATH`` env, 또는 ``XDG_CACHE_HOME`` env
-- 권한: 0o600 (single-host file).
+- 권한: POSIX ``0o600`` (single-host file). **Windows 는 이 값을 표현하지 못한다**
+  — ``os.chmod`` 은 read-only attribute 만 바꾸므로 결과는 ``0o666`` 이다
+  (:func:`apply_secret_file_mode` 참조).
 - atomic write: ``tmp + os.replace`` (process crash safety).
 
 ## host_id
@@ -64,6 +66,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Final
 
+from workflow_kit.common.paths import user_home
+
 SCHEMA_VERSION: Final[str] = "1"
 DEFAULT_STALE_SECONDS: Final[int] = 7 * 24 * 60 * 60  # 7일
 # v0.15.22+ (TASK-2026-08-08-main-014, §0.8 #2) — confidence 4-level enum 임계.
@@ -75,6 +79,29 @@ DEFAULT_FRESH_SECONDS: Final[int] = 24 * 60 * 60  # 24h
 CONFIDENCE_LEVELS: Final[frozenset[str]] = frozenset(
     {"fresh", "recent", "stale", "orphan"}
 )
+
+# --- 파일 권한 (secret 파일) -----------------------------------------------
+#
+#: secret 파일의 목표 권한 — POSIX 의미로는 "소유자만 읽기/쓰기".
+SECRET_FILE_MODE: Final[int] = 0o600
+
+
+def apply_secret_file_mode(path: Path | str) -> None:
+    """secret 파일에 목표 권한을 건다 (POSIX ``0o600``).
+
+    POSIX — ``0o600`` 이 그대로 성립한다 (소유자만 읽기/쓰기).
+
+    Windows — **같은 값이 성립하지 않는다.** ``os.chmod`` 은 read-only attribute
+    만 바꾸므로 ``0o600`` 의 owner-write 비트가 "attribute 해제(=쓰기 가능)" 로
+    옮겨붙고 결과는 ``0o666`` 이다 (Windows 가 표현하는 파일 모드는 ``0o666``
+    (쓰기 가능) 과 ``0o444`` (읽기 전용) 뿐이다 — 2026-10-31 실측, Windows 11 /
+    Python 3.13: ``chmod(0o600) → 0o666`` · ``chmod(0o755) → 0o666`` ·
+    ``chmod(0o444) → 0o444``). 읽기 전용(``0o444``) 으로 내리는 건 **하지
+    않는다** — atomic replace 가 read-only 대상에 대해 PermissionError 를 내고
+    두 번째 저장부터 막는다 (같은 실측). 즉 Windows 에서 성립하는 보장은
+    "쓰기 가능" 이고, 소유자 한정 읽기는 **ACL** 로만 된다 (stdlib 로는 불가).
+    """
+    os.chmod(path, SECRET_FILE_MODE)
 
 
 @dataclass(frozen=True)
@@ -207,7 +234,7 @@ def registry_path() -> Path:
     xdg = os.environ.get("XDG_CACHE_HOME", "").strip()
     if xdg:
         return Path(xdg).expanduser() / "workflow_kit" / "registry.json"
-    return Path.home() / ".cache" / "workflow_kit" / "registry.json"
+    return user_home() / ".cache" / "workflow_kit" / "registry.json"
 
 
 def load() -> Registry:
@@ -229,7 +256,11 @@ def load() -> Registry:
 
 
 def save(reg: Registry) -> None:
-    """registry 를 atomic 하게 저장. 권한 0o600. 단일 host 의 단일 file 이다."""
+    """registry 를 atomic 하게 저장. POSIX 권한 0o600. 단일 host 의 단일 file 이다.
+
+    Windows 에서는 ``0o600`` 이 성립하지 않는다 — :func:`apply_secret_file_mode`
+    가 그 사실을 코드에 남긴다 (실제 성립값 = ``0o666``, 쓰기 가능).
+    """
     path = registry_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     reg.updated_at = _utcnow_iso()
@@ -241,7 +272,7 @@ def save(reg: Registry) -> None:
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as fp:
             fp.write(payload)
-        os.chmod(tmp_name, 0o600)
+        apply_secret_file_mode(tmp_name)
         os.replace(tmp_name, path)
     except Exception:
         # tmp 잔여물 정리 — 다음 save 가 덮어쓰지만 명시적으로.
@@ -493,7 +524,7 @@ def confidence(
 #: mavis 데스크탑이 *유일하게* 읽는 글로벌 mcp.json. §6.5.2 의 DataDir = ~/.minimax.
 #: ``bootstrap_lib.mcp.DEFAULT_MAVIS_GLOBAL_MCP_PATH`` 와 같은 상수. 본 모듈이
 #: single source of truth (host-scoped resource 의 모든 일을 한 자리에).
-DEFAULT_MAVIS_GLOBAL_MCP_PATH: Path = Path.home() / ".minimax" / "mcp" / "mcp.json"
+DEFAULT_MAVIS_GLOBAL_MCP_PATH: Path = user_home() / ".minimax" / "mcp" / "mcp.json"
 
 #: mavis 글로벌의 alias 를 registry entry path 로 환원할 때 쓰는 prefix. 실제
 #: 파일 시스템 경로가 아니라는 사실을 *명시적 prefix* 로 표시 (dashboard 가
@@ -779,7 +810,7 @@ def export_to_mavis(
         if actual.is_file():
             os.chmod(tmp_name, actual.stat().st_mode)
         else:
-            os.chmod(tmp_name, 0o600)
+            apply_secret_file_mode(tmp_name)
         os.replace(tmp_name, actual)
     except Exception:
         try:
@@ -946,7 +977,10 @@ def load_known_hosts() -> list[KnownHost]:
 
 
 def save_known_hosts(hosts: list[KnownHost]) -> None:
-    """known_hosts.json atomic 저장. 0o600, schema_version 표기."""
+    """known_hosts.json atomic 저장. POSIX 권한 0o600, schema_version 표기.
+
+    Windows 에서는 ``0o600`` 이 성립하지 않는다 (:func:`apply_secret_file_mode`).
+    """
     path = known_hosts_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = json.dumps(
@@ -965,7 +999,7 @@ def save_known_hosts(hosts: list[KnownHost]) -> None:
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as fp:
             fp.write(payload)
-        os.chmod(tmp_name, 0o600)
+        apply_secret_file_mode(tmp_name)
         os.replace(tmp_name, path)
     except Exception:
         try:
@@ -1169,7 +1203,10 @@ def _load_remote_cache(host_id: str, *, ttl_seconds: int = DEFAULT_CACHE_TTL_SEC
 
 
 def _save_remote_cache(host_id: str, registry_dict: dict[str, Any]) -> None:
-    """cache file atomic 저장. 0o600, ``_cached_at`` 자동 주입."""
+    """cache file atomic 저장. POSIX 권한 0o600, ``_cached_at`` 자동 주입.
+
+    Windows 에서는 ``0o600`` 이 성립하지 않는다 (:func:`apply_secret_file_mode`).
+    """
     path = remote_cache_path(host_id)
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = json.dumps(
@@ -1188,7 +1225,7 @@ def _save_remote_cache(host_id: str, registry_dict: dict[str, Any]) -> None:
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as fp:
             fp.write(payload)
-        os.chmod(tmp_name, 0o600)
+        apply_secret_file_mode(tmp_name)
         os.replace(tmp_name, path)
     except Exception:
         try:

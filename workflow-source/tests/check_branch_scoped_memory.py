@@ -162,7 +162,7 @@ def case_5_branch_slug_normalization() -> bool:
 def _run_archiver(memory_root: Path, *args: str) -> dict:
     proc = subprocess.run(
         [sys.executable, str(ARCHIVER), "--memory-root", str(memory_root), "--json", *args],
-        capture_output=True, text=True, timeout=60,
+        capture_output=True, text=True, timeout=60, encoding="utf-8", errors="replace"
     )
     return json.loads(proc.stdout) if proc.stdout.strip() else {}
 

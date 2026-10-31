@@ -273,7 +273,7 @@ def test_memory_index_query_error_codes() -> None:
             [sys.executable, str(script), *args],
             capture_output=True, text=True, timeout=60,
             cwd=str(REPO_ROOT),
-            env={**os.environ, "PYTHONPATH": str(REPO_ROOT / "workflow-source")},
+            env={**os.environ, "PYTHONPATH": str(REPO_ROOT / "workflow-source")}, encoding="utf-8", errors="replace"
         )
         assert proc.stdout.strip(), f"stdout 이 비었다 (rc={proc.returncode}) {proc.stderr[:200]}"
         return _json.loads(proc.stdout)
@@ -681,7 +681,7 @@ def test_entry_script_subprocess_invocation() -> None:
                 "--json",
             ],
             capture_output=True,
-            text=True,
+            text=True, encoding="utf-8", errors="replace"
         )
         assert result.returncode == 0, (
             f"exit non-zero: {result.returncode}\nstderr: {result.stderr}"

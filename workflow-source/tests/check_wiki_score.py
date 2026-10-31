@@ -53,7 +53,7 @@ def _run_score_tool(args: list[str] = None) -> dict:
         cwd=str(REPO_ROOT),
         capture_output=True,
         text=True,
-        timeout=120,
+        timeout=120, encoding="utf-8", errors="replace"
     )
     if proc.returncode != 0:
         raise RuntimeError(f"score tool failed: {proc.stderr}")
@@ -200,7 +200,7 @@ def test_dashboard_emit() -> None:
         cwd=str(REPO_ROOT),
         capture_output=True,
         text=True,
-        timeout=60,
+        timeout=60, encoding="utf-8", errors="replace"
     )
     assert proc.returncode == 0, f"emit failed: {proc.stderr}"
     assert DASHBOARD_PATH.exists(), f"dashboard not created: {DASHBOARD_PATH}"

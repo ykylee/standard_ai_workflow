@@ -92,7 +92,7 @@ def test_version_bump_argparse() -> None:
     ]:
         proc = subprocess.run(
             [sys.executable, str(TOOL), "version-bump"] + args,
-            capture_output=True, text=True, timeout=30,
+            capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace"
         )
         assert "unrecognized arguments" not in proc.stderr, \
             f"args={args} → argparse error: {proc.stderr}"
@@ -108,7 +108,7 @@ def test_version_bump_dry_run_no_change() -> None:
 
     proc = subprocess.run(
         [sys.executable, str(TOOL), "version-bump", "--to=0.7.99", "--dry-run", "--json"],
-        capture_output=True, text=True, timeout=30,
+        capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace"
     )
     assert proc.returncode == 0, f"exit {proc.returncode}: {proc.stderr}"
     out = json.loads(proc.stdout)
@@ -135,7 +135,7 @@ def test_version_bump_apply_sync_both() -> None:
     # apply
     proc = subprocess.run(
         [sys.executable, str(TOOL), "version-bump", "--to", target, "--apply", "--skip-sync-hash", "--json"],
-        capture_output=True, text=True, timeout=30,
+        capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace"
     )
     assert proc.returncode == 0, f"exit {proc.returncode}: {proc.stderr}"
     out = json.loads(proc.stdout)
@@ -154,7 +154,7 @@ def test_version_bump_apply_sync_both() -> None:
     # restore
     proc2 = subprocess.run(
         [sys.executable, str(TOOL), "version-bump", "--to", pre_py, "--apply", "--skip-sync-hash"],
-        capture_output=True, text=True, timeout=30,
+        capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace"
     )
     assert proc2.returncode == 0, f"restore exit {proc2.returncode}: {proc2.stderr}"
     assert _read_pyproject_version() == pre_py
@@ -172,7 +172,7 @@ def test_version_bump_no_init_skips() -> None:
 
     proc = subprocess.run(
         [sys.executable, str(TOOL), "version-bump", "--to", target, "--no-init", "--apply", "--skip-sync-hash"],
-        capture_output=True, text=True, timeout=30,
+        capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace"
     )
     assert proc.returncode == 0, f"exit {proc.returncode}: {proc.stderr}"
 
@@ -192,7 +192,7 @@ def test_version_bump_no_init_skips() -> None:
     subprocess.run(
         [sys.executable, str(TOOL), "version-bump", "--to", pre_py, "--apply", "--skip-sync-hash"],
         capture_output=True, text=True, timeout=30,
-        check=True,
+        check=True, encoding="utf-8", errors="replace"
     )
     assert _read_pyproject_version() == pre_py
 

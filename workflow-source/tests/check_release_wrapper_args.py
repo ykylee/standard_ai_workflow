@@ -69,7 +69,7 @@ def _pathspec_resolves(paths: list[str], *, cwd: Path) -> subprocess.CompletedPr
     return subprocess.run(
         ["git", "ls-files", "--error-unmatch", "--cached", "--others",
          "--exclude-standard", "--", *paths],
-        capture_output=True, text=True, timeout=30, cwd=str(cwd),
+        capture_output=True, text=True, timeout=30, cwd=str(cwd), encoding="utf-8", errors="replace"
     )
 
 
@@ -170,7 +170,7 @@ def main() -> int:
     dirty = rp._git_dirty_paths()
     proc_st = subprocess.run(
         ["git", "status", "--porcelain"],
-        capture_output=True, text=True, timeout=15, cwd=str(toplevel),
+        capture_output=True, text=True, timeout=15, cwd=str(toplevel), encoding="utf-8", errors="replace"
     )
     deleted = set()
     for line in proc_st.stdout.splitlines():
@@ -224,7 +224,7 @@ def main() -> int:
         (root6 / "sub").mkdir(parents=True)
         def _g6(*args: str, cwd: Path) -> subprocess.CompletedProcess[str]:
             return subprocess.run(["git", *args], cwd=str(cwd),
-                                  capture_output=True, text=True, timeout=30)
+                                  capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace")
         _g6("init", "-q", ".", cwd=root6)
         _g6("config", "user.email", "t@example.com", cwd=root6)
         _g6("config", "user.name", "t", cwd=root6)
@@ -314,7 +314,7 @@ def main() -> int:
         def _g(*args: str) -> subprocess.CompletedProcess[str]:
             return subprocess.run(
                 ["git", *args],
-                capture_output=True, text=True, timeout=15, cwd=str(tr),
+                capture_output=True, text=True, timeout=15, cwd=str(tr), encoding="utf-8", errors="replace"
             )
 
         _g("init", "-q")

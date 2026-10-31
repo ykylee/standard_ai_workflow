@@ -152,7 +152,7 @@ def test_case_8_doc_headers_update_only_bumps_stale_stamps() -> None:
 
         def git(*args: str) -> None:
             subprocess.run(["git", *args], cwd=repo, env=env, check=True,
-                           capture_output=True, text=True)
+                           capture_output=True, text=True, encoding="utf-8", errors="replace")
 
         git("init", "-q")
         git("config", "user.email", "t@example.invalid")
@@ -294,10 +294,15 @@ def test_case_5_release_dry_run_triggers_drift_step() -> None:
     dist 부재 → 'no dist files' 로 끝나는 단말 경로. *그 전에* auto-step 이 결과 dict 에
     박혀 들어가는지가 본 test 의 핵심. 단, dist 부재 로 *error 필드* 가 있는 모드 라도
     *results dict 의 doc_headers_update / maturity_matrix_sync 키* 가 존재해야 한다.
+
+    **해석기는 `sys.executable` 로 부른다.** `"python3"` 는 Windows 에 PATH 에
+    없으면 Microsoft Store 별칭 stub 이 걸려 "Python was not found" 만 남고
+    exit 한다 — 파이프라인이 아니라 **인터프리터 탐색** 이 실패한 것이므로
+    case 5·6·7 이 같은 이유로 같이 죽었다.
     """
     proc = subprocess.run(
         [
-            "python3",
+            sys.executable,
             str(RELEASE_PIPELINE),
             "release",
             "--dry-run",
@@ -308,7 +313,7 @@ def test_case_5_release_dry_run_triggers_drift_step() -> None:
         capture_output=True,
         text=True,
         timeout=60,
-        env={**os.environ, "PYTHONPATH": str(REPO / "workflow-source")},
+        env={**os.environ, "PYTHONPATH": str(REPO / "workflow-source")}, encoding="utf-8", errors="replace"
     )
     output = proc.stdout + proc.stderr
     # 본 검증은 drift prevention step 이 자동 호출된 *흔적* 이 stdout/json 에 들어있는지.
@@ -346,7 +351,7 @@ def test_case_6_release_dry_run_does_not_touch_repo() -> None:
     """
     proc = subprocess.run(
         [
-            "python3",
+            sys.executable,
             str(RELEASE_PIPELINE),
             "release",
             "--dry-run",
@@ -358,7 +363,7 @@ def test_case_6_release_dry_run_does_not_touch_repo() -> None:
         capture_output=True,
         text=True,
         timeout=120,
-        env={**os.environ, "PYTHONPATH": str(REPO / "workflow-source")},
+        env={**os.environ, "PYTHONPATH": str(REPO / "workflow-source")}, encoding="utf-8", errors="replace"
     )
     try:
         payload = json.loads(proc.stdout)
@@ -394,11 +399,11 @@ def test_case_7_auto_bump_dry_run_does_not_write_version() -> None:
     """
     proc = subprocess.run(
         [
-            "python3", str(RELEASE_PIPELINE), "release",
+            sys.executable, str(RELEASE_PIPELINE), "release",
             "--auto-bump", "--skip-validate", "--dry-run", "--json",
         ],
         cwd=str(REPO), capture_output=True, text=True, timeout=120,
-        env={**os.environ, "PYTHONPATH": str(REPO / "workflow-source")},
+        env={**os.environ, "PYTHONPATH": str(REPO / "workflow-source")}, encoding="utf-8", errors="replace"
     )
     try:
         payload = json.loads(proc.stdout)

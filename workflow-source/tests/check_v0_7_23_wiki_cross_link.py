@@ -39,7 +39,7 @@ TOOL = SOURCE_ROOT / "workflow_kit" / "tools" / "wiki_emit.py"
 def _run(args: list[str], *, timeout: int = 60) -> tuple[int, str, str]:
     proc = subprocess.run(
         [sys.executable, str(TOOL)] + args,
-        capture_output=True, text=True, timeout=timeout,
+        capture_output=True, text=True, timeout=timeout, encoding="utf-8", errors="replace"
     )
     return proc.returncode, proc.stdout, proc.stderr
 

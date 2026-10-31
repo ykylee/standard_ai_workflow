@@ -1372,17 +1372,19 @@ def cmd_note_draft(args) -> dict:
         return {"mode": "error", "error": f"no commits since {args.from_tag}"}
     note = draft_release_note(args.to, commits, args.from_tag)
     output_path = RELEASES_DIR / f"Beta-v{args.to}.md"
+    # 저장소 상대경로는 항상 POSIX (Windows 의 `\` 를 그대로 노출하지 않는다).
+    rel_output = output_path.relative_to(REPO_ROOT).as_posix()
     if args.dry_run:
         return {
             "mode": "dry-run",
-            "output_path": str(output_path.relative_to(REPO_ROOT)),
+            "output_path": rel_output,
             "commits": len(commits),
             "preview_first_500": note[:500],
         }
     output_path.write_text(note, encoding="utf-8")
     return {
         "mode": "applied",
-        "output_path": str(output_path.relative_to(REPO_ROOT)),
+        "output_path": rel_output,
         "commits": len(commits),
     }
 
@@ -1618,7 +1620,7 @@ def _sync_distributed_core_mirror(dry_run: bool) -> list[str]:
                 atomic_write_text(copy_path, new)
             else:
                 copy_path.write_text(new, encoding="utf-8")
-        synced.append(str(copy_path.relative_to(REPO_ROOT.parent)))
+        synced.append(copy_path.relative_to(REPO_ROOT.parent).as_posix())
     return synced
 
 
@@ -1697,19 +1699,19 @@ def cmd_doc_headers_update(args) -> dict:
         # 판정은 검사와 **같은 정본**(`common.doc_stamp`)을 쓴다. 읽는 쪽만 알고
         # 쓰는 쪽이 모르던 규약이라 이 결함이 났으므로, 사본을 새로 만들지 않는다.
         if not _stamp_needs_bump(path, txt, repo_root=repo_root, dirty=dirty):
-            skipped_current.append(str(path.relative_to(repo_root)))
+            skipped_current.append(path.relative_to(repo_root).as_posix())
             continue
         new = write_stamp(path, txt, target_date, repo_root=repo_root)
         if new == txt:
             continue
         if dry_run:
-            updated_paths.append(str(path.relative_to(REPO_ROOT.parent)))
+            updated_paths.append(path.relative_to(REPO_ROOT.parent).as_posix())
             continue
         if atomic_write_text is not None:
             atomic_write_text(path, new)
         else:
             path.write_text(new, encoding="utf-8")
-        updated_paths.append(str(path.relative_to(REPO_ROOT.parent)))
+        updated_paths.append(path.relative_to(REPO_ROOT.parent).as_posix())
 
     # core 정본을 건드렸으면 배포 사본(ai-workflow/core/)도 같이 맞춘다 —
     # 사본 byte 동일은 저장소 규약이고, 그 규약은 *만드는 층*이 알아야 한다.
@@ -1817,7 +1819,7 @@ def cmd_maturity_matrix_sync(args) -> dict:
             "applied": applied_ops,
             "summary": summary,
             "last_updated_after": mm["last_updated"],
-            "files": [str(maturity_path.relative_to(REPO_ROOT.parent))],
+            "files": [maturity_path.relative_to(REPO_ROOT.parent).as_posix()],
         }
 
     # apply
@@ -1834,7 +1836,7 @@ def cmd_maturity_matrix_sync(args) -> dict:
         "applied": applied_ops,
         "summary": summary,
         "last_updated_after": mm["last_updated"],
-        "files": [str(maturity_path.relative_to(REPO_ROOT.parent))],
+        "files": [maturity_path.relative_to(REPO_ROOT.parent).as_posix()],
     }
 
 
@@ -1901,7 +1903,7 @@ def _fix_loud_fallback() -> dict:
     if n == 0:
         return {"ok": False, "error": "loud fallback literal not found"}
     atomic_write_text(WORKFLOW_KIT_INIT, new_src)
-    return {"ok": True, "old": "loud_fallback", "new": py_v, "file": str(WORKFLOW_KIT_INIT.relative_to(REPO_ROOT))}
+    return {"ok": True, "old": "loud_fallback", "new": py_v, "file": WORKFLOW_KIT_INIT.relative_to(REPO_ROOT).as_posix()}
 
 
 def _fix_readme_header_version() -> dict:
@@ -1927,9 +1929,9 @@ def _fix_readme_header_version() -> dict:
     if changed:
         atomic_write_text(README_PATH, new_src)
     try:
-        rel = str(README_PATH.relative_to(REPO_ROOT))
+        rel = README_PATH.relative_to(REPO_ROOT).as_posix()
     except ValueError:
-        rel = str(README_PATH.relative_to(REPO_ROOT.parent))
+        rel = README_PATH.relative_to(REPO_ROOT.parent).as_posix()
     return {
         "ok": True,
         "old": "readme_header",
@@ -2718,12 +2720,12 @@ def cmd_release(args) -> dict:
             results["tag_pre_check_warning"] = f"remote tag {tag} already exists (dry-run: pre-check only)"
 
     release_files = [*dist_files, *plugin_dist_files]
-    rel_assets = [str(f.relative_to(REPO_ROOT)) for f in release_files]
+    rel_assets = [f.relative_to(REPO_ROOT).as_posix() for f in release_files]
     results["tag"] = tag
     results["assets"] = rel_assets
     # v0.7.24+: notes_file 가 in-repo 면 relative path, 그 외 (예: changelog) 면 absolute
     try:
-        results["notes_file"] = str(notes_file.relative_to(REPO_ROOT))
+        results["notes_file"] = notes_file.relative_to(REPO_ROOT).as_posix()
     except ValueError:
         results["notes_file"] = str(notes_file)
 
@@ -3113,7 +3115,7 @@ def cmd_dist(args) -> dict:
     results["command"] = " ".join(cmd)
     results["expected_pattern"] = f"standard_ai_workflow-{_expected_dist_pattern(current_version)}*"
     results["planned_plugin_archives"] = [
-        str(path.relative_to(REPO_ROOT)) for path in planned_plugin_archives(_dist_dir, current_version)
+        path.relative_to(REPO_ROOT).as_posix() for path in planned_plugin_archives(_dist_dir, current_version)
     ]
 
     # 4) skip-existing check (--skip-existing) — skip build but still run
@@ -3144,7 +3146,7 @@ def cmd_dist(args) -> dict:
                 results["planned_plugin_archives"]
                 if args.dry_run
                 else [
-                    str(path.relative_to(REPO_ROOT))
+                    path.relative_to(REPO_ROOT).as_posix()
                     for path in build_plugin_archives(_dist_dir, version=current_version)
                 ]
             )
@@ -3197,7 +3199,7 @@ def cmd_dist(args) -> dict:
         return results
 
     results["plugin_archives"] = [
-        str(path.relative_to(REPO_ROOT))
+        path.relative_to(REPO_ROOT).as_posix()
         for path in build_plugin_archives(_dist_dir, version=current_version)
     ]
 

@@ -97,7 +97,7 @@ def _run_tool(*args: str, repo_root: Path, external_wiki: Path | None = None) ->
     ]
     if external_wiki is not None:
         cmd += ["--external-wiki", str(external_wiki)]
-    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace")
     if proc.returncode != 0:
         return {"error": proc.stderr, "returncode": proc.returncode, "stdout": proc.stdout}
     try:
@@ -293,7 +293,7 @@ def test_drift_warning() -> bool:
 def test_unknown_args() -> bool:
     """--dry-run / --apply 모두 부재 시 argparse error."""
     cmd = [PYTHON, str(TOOL), "--json"]
-    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=10, encoding="utf-8", errors="replace")
     if proc.returncode == 0:
         print(f"  FAIL: expected argparse error, got success")
         return False

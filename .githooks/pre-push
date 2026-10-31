@@ -6,13 +6,61 @@
 # core.hooksPath 를 켜면 git 은 `.git/hooks/` 를 더는 보지 않는다. 그 자리에 설치된
 # hook(예: tools/install_pre_push_hook.py 의 force 차단)이 조용히 꺼지지 않도록,
 # 게이트 판정을 통과하면 `<git common dir>/hooks/pre-push` 를 같은 인자·입력으로 이어 부른다.
-hook_dir=$(cd "$(dirname "$0")" && pwd)
-kit_root=$(dirname "$hook_dir")
+
+# --- 이 훅이 있는 위치 (kit 루트) ---
+# git 은 훅을 저장소 루트 기준 상대 경로로 부르지만, 다른 곳에서 절대 경로로 부를
+# 수도 있다 — Windows 는 그 절대 경로에 백슬래시가 들어온다. `dirname` 은 POSIX
+# 구분자만 알기 때문에 백슬래시를 슬래시로 바꾼다 (2026-10-31 Windows 실측:
+# 그대로 두면 hook_dir 이 cwd 로 떨어져 kit 을 못 찾아 `python3` 로 넘어간다).
+self=$0
+case "$self" in
+    *\\*) self=$(printf '%s' "$self" | tr '\\' '/') ;;
+esac
+hook_dir=$(cd "$(dirname "$self")" 2>/dev/null && pwd) || exit 1
+kit_root=$(cd "$hook_dir/.." 2>/dev/null && pwd) || exit 1
 repo_root=$(git rev-parse --show-toplevel) || exit 1
-py="$kit_root/.venv/bin/python3"
-[ -x "$py" ] || py=python3
+
+# --- 인터프리터 찾기 ---
+# venv 의 해석기 위치는 플랫폼마다 다르다 — POSIX 는 `<venv>/bin/python3`,
+# Windows 는 `<venv>/Scripts/python.exe` 다. 저장소 venv 를 먼저 쓰고, 없으면
+# PATH 의 python3/python 을 쓴다 — 단 Microsoft Store 별칭 스톱은 "Python was not
+# found" 를 찍고 죽는다 (2026-10-31 Windows 실측). 실제로 `-c 'import sys'` 가
+# 되는 후보만 고른다 (판정을 약화하는 게 아니라, *실행 가능한* 해석기를 고르는 것).
+py=
+for cand in \
+    "$kit_root/.venv/bin/python3" \
+    "$kit_root/workflow-source/.venv/bin/python3" \
+    "$kit_root/.venv/Scripts/python.exe" \
+    "$kit_root/workflow-source/.venv/Scripts/python.exe"
+do
+    if [ -x "$cand" ]; then
+        py="$cand"
+        break
+    fi
+done
+if [ -z "$py" ]; then
+    for cand in python3 python; do
+        if command -v "$cand" >/dev/null 2>&1 && "$cand" -c 'import sys' >/dev/null 2>&1; then
+            py="$cand"
+            break
+        fi
+    done
+fi
+if [ -z "$py" ]; then
+    echo "pre-push: python interpreter not found (저장소 venv 도 PATH 의 python3/python 도 없다)" >&2
+    exit 1
+fi
+
+# kit 소스 경로 — MSYS(git-bash) 는 POSIX 형식 경로를 준다. 네이티브 python 은
+# Windows 형식이 정확하니 있으면 그걸로 바꿔 넘긴다 (없으면 POSIX 그대로 — POSIX
+# 셸에서는 원래 그 형태다).
+kit_src="$kit_root/workflow-source"
+if (cd "$kit_src" 2>/dev/null && pwd -W >/dev/null 2>&1); then
+    kit_src=$(cd "$kit_src" && pwd -W)
+fi
+
 input=$(cat)
-printf '%s\n' "$input" | PYTHONPATH="$kit_root/workflow-source" "$py" \
+printf '%s\n' "$input" | PYTHONPATH="$kit_src" "$py" \
     -m workflow_kit.common.gate_evidence pre-push "$repo_root" || exit 1
 
 common_dir=$(git rev-parse --git-common-dir) || exit 1

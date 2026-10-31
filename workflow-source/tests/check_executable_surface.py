@@ -111,7 +111,7 @@ def test_case_2_entrypoints_respond_to_help() -> None:
             cwd=str(REPO_ROOT),
             capture_output=True,
             text=True,
-            timeout=HELP_TIMEOUT_SEC,
+            timeout=HELP_TIMEOUT_SEC, encoding="utf-8", errors="replace"
         )
         rel = ep.relative_to(REPO_ROOT)
         if proc.returncode != 0:

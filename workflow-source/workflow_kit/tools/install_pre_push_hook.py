@@ -37,6 +37,7 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
+import stat
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -82,6 +83,24 @@ def _hook_path(git_root: Path) -> Path:
     return git_root / ".git" / "hooks" / "pre-push"
 
 
+def _chmod_hook(target: Path) -> int:
+    """hook 을 실행 가능하게 만들고, **실제로 성립한 모드** 를 돌려준다.
+
+    POSIX — ``0o755`` (소유자 실행 + group/other 읽기/실행).
+
+    **Windows 는 실행 비트를 표현하지 못한다.** CPython 의 ``os.chmod`` 은
+    read-only attribute 만 바꾸므로 ``0o755`` 의 owner-write 비트(=attribute 해제)
+    때문에 결과는 ``0o666``(쓰기 가능) 이다 — 2026-10-31 실측 (Windows 11 /
+    Python 3.13). git 은 Windows 에서도 동봉 sh 로 hook 을 실행하므로 실행
+    가능성은 *비트* 가 아니라 **동작** 으로 성립한다 (그 증거는 검사 쪽의
+    실제 ``git push`` case 가 담당한다). 읽기 전용(``0o444``) 으로 내리면
+    재설치(``shutil.copy2`` 가 기존 대상 위에 덮어씀)가 PermissionError 로
+    깨지므로 여기서는 쓰기 가능을 유지한다.
+    """
+    target.chmod(0o755)
+    return stat.S_IMODE(target.stat().st_mode)
+
+
 def _backup_list(git_root: Path) -> list[Path]:
     """``.git/hooks/pre-push.bak.*`` 목록. 최신 우선 정렬."""
     hooks_dir = git_root / ".git" / "hooks"
@@ -124,8 +143,8 @@ def cmd_install(args: argparse.Namespace) -> int:
     if target.is_file() and target.read_bytes() != HOOK_SOURCE.read_bytes():
         target.rename(backup_new)
     shutil.copy2(HOOK_SOURCE, target)
-    target.chmod(0o755)
-    print(f"  ✓ installed: {target} (mode 0o755)")
+    mode = _chmod_hook(target)
+    print(f"  ✓ installed: {target} (mode {oct(mode)})")
     return 0
 
 
@@ -153,8 +172,8 @@ def cmd_uninstall(args: argparse.Namespace) -> int:
     print(f"  ✓ removed: {target}")
     if latest is not None:
         shutil.copy2(latest, target)
-        target.chmod(0o755)
-        print(f"  ✓ restored from backup: {latest}")
+        mode = _chmod_hook(target)
+        print(f"  ✓ restored from backup: {latest} (mode {oct(mode)})")
     return 0
 
 

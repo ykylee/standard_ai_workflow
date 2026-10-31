@@ -32,6 +32,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 TESTS_DIR = Path(__file__).resolve().parent
@@ -57,10 +58,32 @@ def _write(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8")
 
 
+def _unlink(path: Path) -> None:
+    """파일을 지운다 — **열린 핸들을 먼저 닫고**, 잠깐 붙잡힌 건 기다린다.
+
+    Windows 는 열린 파일을 지울 수 없다 (WinError 32) — 원인이 두 개다:
+    (1) 이 코드 자신이 fd 를 들고 있고 (2026-10-31 실측 — `mkstemp` 의 fd 를 안 닫아
+    그랬다), (2) 항 virus · 인덱서가 잠깐 붙잡고 있다. (1) 은 근본 고치지만
+    (2) 는 그 플랫폼에서 원래 있는 일이라 짧은 대기 후 재시도로 막는다.
+    """
+    for attempt in range(6):
+        try:
+            path.unlink(missing_ok=True)
+            return
+        except PermissionError:
+            if attempt == 5:
+                raise
+            time.sleep(0.05)
+
+
 def case_1_capture_records_repo_access(root: Path) -> None:
     """주입된 프로세스의 저장소 안 파일 접근이 기록된다 (저장소 밖은 아니다)."""
     _write(root / "data" / "in_repo.txt", "x")
-    outside = Path(tempfile.mkstemp(prefix="mw-outside-")[1])
+    # mkstemp 의 fd 를 **닫는다** — 닫지 않으면 그 파일이 열린 채로 남아 Windows 에서
+    # 정리(unlink) 가 PermissionError(WinError 32) 로 죽는다 (2026-10-31 실측).
+    fd, outside_name = tempfile.mkstemp(prefix="mw-outside-")
+    os.close(fd)
+    outside = Path(outside_name)
     site_dir = root / "site"
     MW.write_sitecustomize(site_dir)
     out = root / "acc.txt"
@@ -75,7 +98,7 @@ def case_1_capture_records_repo_access(root: Path) -> None:
     accessed = MW.load_accesses(out)
     assert "data/in_repo.txt" in accessed, f"저장소 안 접근이 기록되지 않았다: {accessed}"
     assert not any("mw-outside" in a for a in accessed), "저장소 밖 접근을 기록했다"
-    outside.unlink(missing_ok=True)
+    _unlink(outside)
 
 
 def case_2_capture_propagates_to_python_child(root: Path) -> None:

@@ -68,7 +68,7 @@ def _run(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [sys.executable, "-m", "workflow_kit.cli.doctor", *args],
         capture_output=True, text=True, timeout=180, cwd=str(cwd),
-        env=platform_child_env(cwd, path="/usr/bin:/bin", PYTHONPATH=str(SOURCE_ROOT)),
+        env=platform_child_env(cwd, path="/usr/bin:/bin", PYTHONPATH=str(SOURCE_ROOT)), encoding="utf-8", errors="replace"
     )
 
 

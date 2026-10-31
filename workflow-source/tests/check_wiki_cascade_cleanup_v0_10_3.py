@@ -283,7 +283,7 @@ def test_cascade_delete_cli_registered_v0_10_3() -> None:
             ],
             capture_output=True,
             text=True,
-            cwd=str(SOURCE_ROOT),
+            cwd=str(SOURCE_ROOT), encoding="utf-8", errors="replace"
         )
         assert result.returncode == 0, f"CLI fail: {result.returncode}\nstdout: {result.stdout}\nstderr: {result.stderr}"
         assert "Wiki Cascade-Delete Plan (advisory)" in result.stdout

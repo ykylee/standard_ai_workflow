@@ -3,6 +3,7 @@
 from __future__ import annotations
 import os
 import subprocess
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
@@ -14,6 +15,32 @@ BRANCH_ENV_KEYS = (
     "CI_COMMIT_REF_NAME",
     "BRANCH_NAME",
 )
+
+
+def user_home() -> Path:
+    """사용자 홈 디렉터리 — **해석이 불가능할 때만** 임시 디렉터리로 떨어진다.
+
+    ``Path.home()`` 는 ``HOME``(POSIX) · ``USERPROFILE``(Windows) 이 없으면
+    ``RuntimeError("Could not determine home directory.")`` 로 죽는다.
+    2026-10-31 Windows 실측: ``HOME``·``USERPROFILE`` 이 빠진 자식 환경에서
+    ``import workflow_kit`` **부터** 죽었다 — ``url_validity`` 가 모듈 수준에서
+    ``Path.home()`` 을 호출하기 때문이다. 자식 환경(``env={"PYTHONPATH": ..., "PATH": ...}``
+    같은 최소 dict)을 만드는 쪽이 그 사실을 몰랐고, kitside 에서 막지 않으면
+    "도구 하나가 안 돌아간다" 가 아니라 **패키지 전체가 못 import** 된다.
+
+    홈을 다른 곳으로 조용히 바꿔 놓지는 않는다. 해석이 안 될 때만 임시 디렉터리를
+    명시적 폴백으로 쓴다 — 어디로 갔는지는 caller 가 로그로 남긴다.
+    """
+    try:
+        return Path.home()
+    except RuntimeError:
+        pass
+    # Windows 는 USERPROFILE 을 우선하고, POSIX 는 HOME 을 본다 — 순서를 뒤집지 않는다.
+    for key in ("USERPROFILE", "HOME"):
+        value = os.environ.get(key)
+        if value:
+            return Path(value)
+    return Path(tempfile.gettempdir())
 
 
 def discover_project_profile_path(start: Path | None = None) -> Path | None:

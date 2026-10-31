@@ -391,7 +391,7 @@ def test_dispatcher_registers_doctor() -> None:
         capture_output=True,
         text=True,
         cwd=str(SOURCE_ROOT),
-        env=child_env,
+        env=child_env, encoding="utf-8", errors="replace"
     )
     ok = proc.returncode == 0
     payload: dict[str, object] = {}
@@ -1813,7 +1813,7 @@ def test_symlinked_home_reports_real_paths_once() -> None:
                 ["cmd.exe", "/c", "mklink", "/J", str(link), str(real)],
                 capture_output=True,
                 text=True,
-                timeout=30,
+                timeout=30, encoding="utf-8", errors="replace"
             )
             if junction.returncode != 0:
                 raise AssertionError(f"directory junction 생성 실패: {junction.stderr or junction.stdout}")

@@ -30,7 +30,7 @@ def run_bootstrap(args: list[str]) -> dict[str, object]:
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
-        check=True,
+        check=True, encoding="utf-8", errors="replace"
     )
     return json.loads(completed.stdout)
 
@@ -41,7 +41,7 @@ def run_backlog_update(args: list[str]) -> dict[str, object]:
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
-        check=True,
+        check=True, encoding="utf-8", errors="replace"
     )
     return json.loads(completed.stdout)
 

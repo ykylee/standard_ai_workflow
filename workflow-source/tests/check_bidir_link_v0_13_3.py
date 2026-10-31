@@ -57,7 +57,7 @@ def _run_bidir_link(args: list[str]) -> dict:
     cmd = [sys.executable, "workflow-source/workflow_kit/tools/release_pipeline.py",
            "bidir-link"] + args + ["--json"]
     proc = subprocess.run(cmd, cwd=str(REPO_ROOT), capture_output=True, text=True,
-                          check=False, timeout=60)
+                          check=False, timeout=60, encoding="utf-8", errors="replace")
     if proc.returncode != 0:
         raise RuntimeError(f"bidir-link failed (rc={proc.returncode}): {proc.stderr}")
     return json.loads(proc.stdout)
@@ -263,7 +263,7 @@ def main() -> int:
         _SNAPSHOT = _take_snapshot()
         rc = _run_cases()
 
-    changed = [str(q.relative_to(origin)) for q, b in before.items()
+    changed = [q.relative_to(origin).as_posix() for q, b in before.items()
                if q.is_file() and q.read_bytes() != b]
     assert not changed, f"원본을 건드렸다: {changed[:5]} — 사본에서만 --apply 해야 한다"
     return rc

@@ -40,10 +40,11 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from workflow_kit.common.paths import memory_dir_for_workspace, user_home
 from workflow_kit.common.paths import memory_dir_for_workspace
 
 # === Path setup ===
-_LEGACY_REPO_ROOT = Path.home() / "repos" / "standard_ai_workflow_minimax"
+_LEGACY_REPO_ROOT = user_home() / "repos" / "standard_ai_workflow_minimax"
 _DEPRECATION_WARNED = False
 
 

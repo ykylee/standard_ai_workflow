@@ -487,7 +487,7 @@ def test_graph_insights_cli_registered_v0_11_1() -> None:
         env=env,
         capture_output=True,
         text=True,
-        timeout=30,
+        timeout=30, encoding="utf-8", errors="replace"
     )
     # state.json 미변경 확인 (read-only dispatch)
     if state_path.exists():

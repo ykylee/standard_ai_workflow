@@ -96,7 +96,7 @@ def _run_seed(env: dict, proj: Path, *args: str) -> subprocess.CompletedProcess:
         capture_output=True,
         text=True,
         cwd=str(proj),
-        env=env,
+        env=env, encoding="utf-8", errors="replace"
     )
 
 

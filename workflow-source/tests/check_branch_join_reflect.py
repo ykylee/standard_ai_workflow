@@ -28,6 +28,13 @@ r"""worktree 합류 반영 — 모 브랜치에 병합된 브랜치 메모리가
 
 from __future__ import annotations
 
+
+#: branch join reflect 은 worktree fixture 를 만들어 세션 흐름을 끝까지 굴린다 — 단독 74.4s 실측(2026-10-31, Windows).
+#: 기본 60s 상한은 행(hang) 잡기용이고, 병렬 부하만 얹혀도 이 상한을 넘는다
+#: (게이트 전량 축에서 실제로 TIMEOUT 이 났다). 저장소 규칙대로 상한을 선언한다
+#: (CLAUDE.md: 단독 ~25s 초과 검사는 선언).
+CHECK_TIMEOUT_S = 150
+
 #: 이 검사의 입력 표면 (spec `core/test_impact_tiering_spec.md` §2).
 WATCHES = (
     "workflow-source/pyproject.toml",
@@ -72,13 +79,13 @@ def _env() -> dict[str, str]:
 
 def _git(cwd: Path, *args: str) -> str:
     return subprocess.run(["git", "-c", "user.email=t@t", "-c", "user.name=t", *args], cwd=cwd, check=True,
-                          capture_output=True, text=True, env=_env()).stdout.strip()
+                          capture_output=True, text=True, env=_env(), encoding="utf-8", errors="replace").stdout.strip()
 
 
 def _module(cwd: Path, module: str, *args: str,
             extra_env: dict[str, str] | None = None) -> subprocess.CompletedProcess:
     return subprocess.run([sys.executable, "-m", module, *args], cwd=cwd, capture_output=True, text=True,
-                          env={**_env(), **(extra_env or {})}, timeout=180)
+                          env={**_env(), **(extra_env or {})}, timeout=180, encoding="utf-8", errors="replace")
 
 
 def _session_start(cwd: Path, extra_env: dict[str, str] | None = None) -> dict:

@@ -60,7 +60,7 @@ def _run_module(*args: str) -> subprocess.CompletedProcess[str]:
         capture_output=True,
         text=True,
         timeout=60,
-        env={**__import__("os").environ, "PYTHONPATH": str(SOURCE_ROOT)},
+        env={**__import__("os").environ, "PYTHONPATH": str(SOURCE_ROOT)}, encoding="utf-8", errors="replace"
     )
 
 

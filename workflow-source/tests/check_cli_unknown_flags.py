@@ -84,7 +84,7 @@ def _run(args: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
     env["PYTHONPATH"] = str(SOURCE_ROOT)
     return subprocess.run(
         [sys.executable, "-m", "workflow_kit.workflow_kit_cli", *args],
-        cwd=str(cwd), capture_output=True, text=True, timeout=120, env=env,
+        cwd=str(cwd), capture_output=True, text=True, timeout=120, env=env, encoding="utf-8", errors="replace"
     )
 
 

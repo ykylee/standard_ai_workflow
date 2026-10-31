@@ -62,7 +62,12 @@ def atomic_write_json(
         suffix=".tmp",
     )
     try:
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
+        # `newline="\n"` — Windows 텍스트 모드는 `\n` 을 `os.linesep`(=CRLF) 로 번역한다.
+        # 저장소 표준은 LF(`.gitattributes` 의 `* text=auto eol=lf`) 라, 정본 쓰기
+        # 헬퍼가 CRLF 를 끼워 넣으면 **호스트마다 다른 바이트**가 된다 — 같은
+        # 산출물이 POSIX 에선 LF · Windows 에선 CRLF 라 해시·비교가 갈린다.
+        # (TASK-2026-10-31-main-003 — 한글 Windows 프로필)
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as f:
             json.dump(data, f, indent=indent, ensure_ascii=ensure_ascii)
             f.flush()
             try:
@@ -102,7 +107,9 @@ def atomic_write_text(
         suffix=".tmp",
     )
     try:
-        with os.fdopen(fd, "w", encoding=encoding) as f:
+        # `newline="\n"` — 위 `atomic_write_json` 과 같은 이유. Windows 텍스트 모드의
+        # CRLF 번역을 막아 산출물 바이트가 호스트에 따라 달라지지 않게 한다.
+        with os.fdopen(fd, "w", encoding=encoding, newline="\n") as f:
             f.write(body)
             f.flush()
             try:

@@ -38,7 +38,7 @@ PYTHON = sys.executable
 def _run_tool(*args: str, repo_root: Path) -> dict:
     """Run sync_release_hash.py with given args. Returns parsed output (text mode)."""
     cmd = [PYTHON, str(TOOL), *args, "--repo-root", str(repo_root)]
-    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace")
     if proc.returncode != 0:
         return {"error": proc.stderr, "returncode": proc.returncode, "stdout": proc.stdout}
     return {"stdout": proc.stdout}
@@ -68,11 +68,11 @@ def test_state_json_hash_updated() -> bool:
         subprocess.run(["git", "commit", "-q", "-m", "init"], cwd=str(repo_root), check=True)
         head_full = subprocess.run(
             ["git", "rev-parse", "HEAD"],
-            cwd=str(repo_root), capture_output=True, text=True, check=True,
+            cwd=str(repo_root), capture_output=True, text=True, check=True, encoding="utf-8", errors="replace"
         ).stdout.strip()
         head_sha = subprocess.run(
             ["git", "rev-parse", "--short=7", head_full],
-            cwd=str(repo_root), capture_output=True, text=True, check=True,
+            cwd=str(repo_root), capture_output=True, text=True, check=True, encoding="utf-8", errors="replace"
         ).stdout.strip()[:7]
 
         # backlog 디렉토리 (없어도 됨 — skip)
@@ -111,11 +111,11 @@ def test_backlog_commit_updated() -> bool:
         subprocess.run(["git", "commit", "-q", "-m", "init"], cwd=str(repo_root), check=True)
         head_full = subprocess.run(
             ["git", "rev-parse", "HEAD"],
-            cwd=str(repo_root), capture_output=True, text=True, check=True,
+            cwd=str(repo_root), capture_output=True, text=True, check=True, encoding="utf-8", errors="replace"
         ).stdout.strip()
         head_sha = subprocess.run(
             ["git", "rev-parse", "--short=7", head_full],
-            cwd=str(repo_root), capture_output=True, text=True, check=True,
+            cwd=str(repo_root), capture_output=True, text=True, check=True, encoding="utf-8", errors="replace"
         ).stdout.strip()[:7]
 
         result = _run_tool("--version=v0.7.26", "--apply", repo_root=repo_root)
@@ -206,11 +206,11 @@ def test_real_repo_hash_sync() -> bool:
     original_content = state_path.read_text(encoding="utf-8")
     head_full = subprocess.run(
         ["git", "rev-parse", "HEAD"],
-        cwd=str(REPO_ROOT), capture_output=True, text=True, check=True,
+        cwd=str(REPO_ROOT), capture_output=True, text=True, check=True, encoding="utf-8", errors="replace"
     ).stdout.strip()
     head_sha = subprocess.run(
         ["git", "rev-parse", "--short=7", head_full],
-        cwd=str(REPO_ROOT), capture_output=True, text=True, check=True,
+        cwd=str(REPO_ROOT), capture_output=True, text=True, check=True, encoding="utf-8", errors="replace"
     ).stdout.strip()[:7]
 
     # 현재 v0.7.25 entry 가 어떤 hash 인지 확인

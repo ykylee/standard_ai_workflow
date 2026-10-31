@@ -204,7 +204,7 @@ def case_6_runner_reds_on_repo_warning() -> None:
             [sys.executable, str(RUNNER), "--filter=zzz_warning_probe",
              "--no-meta-watch", "--json"],
             capture_output=True, text=True, timeout=120, cwd=str(REPO_ROOT),
-            env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)},
+            env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)}, encoding="utf-8", errors="replace"
         )
         data = json.loads(proc.stdout) if proc.stdout.strip() else {}
         gated = data.get("warnings", {}).get("gated", [])

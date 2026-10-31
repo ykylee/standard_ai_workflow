@@ -133,7 +133,7 @@ def main() -> int:
             if legacy_script.is_file():
                 r = subprocess.run(
                     [sys.executable, str(legacy_script), "--help"],
-                    cwd=REPO_ROOT, capture_output=True, text=True, timeout=10,
+                    cwd=REPO_ROOT, capture_output=True, text=True, timeout=10, encoding="utf-8", errors="replace"
                 )
                 legacy_helps.append((cmd, r.returncode))
             # module path (entry point 가 가리키는 모듈 그대로).
@@ -144,7 +144,7 @@ def main() -> int:
             r2 = subprocess.run(
                 [sys.executable, "-m", module_name, "--help"],
                 cwd=SOURCE_ROOT, capture_output=True, text=True, timeout=10,
-                env=module_env,
+                env=module_env, encoding="utf-8", errors="replace"
             )
             module_helps.append((cmd, r2.returncode))
             if "No module named" in r2.stderr:

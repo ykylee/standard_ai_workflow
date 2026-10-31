@@ -102,7 +102,7 @@ def _run_bu(backlog: Path, *extra: str) -> subprocess.CompletedProcess[str]:
             "--daily-backlog-path", str(backlog),
             "--task-name", "테스트", "--task-brief", "브리프", "--apply", *extra]
     return subprocess.run(argv, cwd=str(SOURCE_ROOT), capture_output=True, text=True,
-                          env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)}, timeout=180)
+                          env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)}, timeout=180, encoding="utf-8", errors="replace")
 
 
 def _task_path(backlog: Path) -> Path:

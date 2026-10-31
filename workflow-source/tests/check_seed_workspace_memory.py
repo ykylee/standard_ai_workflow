@@ -83,7 +83,7 @@ def _run(args: list[str]) -> subprocess.CompletedProcess:
     # 좁힌 환경에도 러너의 telemetry 표식은 넘긴다 (TASK-2026-09-28-main-006).
     if TELEMETRY_SKIP_ROOT_ENV in os.environ:
         env[TELEMETRY_SKIP_ROOT_ENV] = os.environ[TELEMETRY_SKIP_ROOT_ENV]
-    return subprocess.run([sys.executable, *args], capture_output=True, text=True, env=env)
+    return subprocess.run([sys.executable, *args], capture_output=True, text=True, env=env, encoding="utf-8", errors="replace")
 
 
 def _seed(memory_root: Path, *, apply: bool, axis: str = AXIS,

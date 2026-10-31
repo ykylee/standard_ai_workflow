@@ -51,6 +51,26 @@ GATE_RUNNER = TESTS_DIR / "run_all_checks.py"
 REQUIRED_EXCLUDES = (".venv", ".git", "node_modules", "__pycache__")
 
 
+def _cleanup_roots() -> list[Path]:
+    """정리 도구(`cleanup_leaked_tempdirs`) 가 **실제로 훑는** temp root 목록.
+
+    정본은 `export_harness_package.leaked_tempdir_roots()` 다 — 후보는 플랫폼마다
+    다르다 (POSIX: /tmp · /var/tmp / Windows: %TEMP% · D:\\tmp). 정본을 못 읽으면
+    (import 실패) 플랫폼 기본값으로 물러난다 — 측정 대상이 사라지진 않는다.
+    """
+    fallback = [Path(tempfile.gettempdir()), Path("/var/tmp")]
+    try:
+        sys.path.insert(0, str(EXPORT_TOOL.parent))
+        import importlib
+
+        mod = importlib.import_module("export_harness_package")
+        roots = [Path(p) for p in mod.leaked_tempdir_roots()]
+    except Exception as exc:  # pragma: no cover - import 실패 시 기본값으로
+        print(f"  [warn] 정본 후보 목록을 못 읽었다 ({exc}) — 기본 root 로 잰다")
+        return fallback
+    return roots or fallback
+
+
 def case_1_no_unfiltered_repo_copy() -> bool:
     """1) smoke 가 `cp -R <REPO_ROOT>` 로 저장소를 통째 복사하지 않는다."""
     offenders: list[str] = []
@@ -89,7 +109,23 @@ def case_2_scaffold_excludes_heavy_trees() -> bool:
 
 
 def case_3_cleanup_scans_var_tmp() -> bool:
-    """3) cleanup_leaked_tempdirs 가 /var/tmp 를 포함해 훑는다 (원래 버그의 회귀 가드)."""
+    """3) cleanup_leaked_tempdirs 가 /var/tmp 를 포함해 훑는다 (원래 버그의 회귀 가드).
+
+    2026-10-31 Windows 실측: 이 case 가 POSIX 전용 경로를 **그대로 요구**해 Windows 에서
+    늘 red 였다 — `Path("/var/tmp")` 는 `D:\\var\\tmp` 로落到, 그 디렉터리는 Windows 에
+    없다. 그래서 `leaked_tempdir_roots()` 는 그 루트를 후보로 돌려줄 수 없다
+    (존재하지 않는 디렉터리는 후보가 아니다 — 구현이 옳고 **요구**가 플랫폼 사실에
+    묶여 있었다).
+
+    계약의 본질은 "누수가 쌓이는 temp root 를 **여러 개** 훑는다" 다. 그래서 판정을
+    그 플랫폼에서 성립하는 형태로 바꾼다:
+
+    - **정적** (양쪽 공통): 구현이 `/var/tmp` 를 후보로 **mentions** 해야 하고,
+      후보가 하나뿐인 구 impl 로 되돌아가지 않아야 한다.
+    - **런타임**: POSIX 는 `/var/tmp` 가 실제 후보에 들어 있어야 한다 (원래 버그의
+      회귀 가드 — 그대로). Windows 는 그 플랫폼의 temp root (`%TEMP%`) 가 실제
+      후보에 들어 있어야 한다 (단일 root impl 로의 회귀를 막는다).
+    """
     src = EXPORT_TOOL.read_text(encoding="utf-8")
     if "/var/tmp" not in src:
         print("  FAIL: export_harness_package.py 가 /var/tmp 를 훑지 않음")
@@ -97,7 +133,16 @@ def case_3_cleanup_scans_var_tmp() -> bool:
     if 'os.environ.get("TMPDIR", "/tmp")' in src and "leaked_tempdir_roots" not in src:
         print("  FAIL: TMPDIR 단일 root 만 보는 구 impl (누수 위치 /var/tmp 를 놓침)")
         return False
-    # 실제 함수가 /var/tmp 를 후보로 반환하는지 런타임 확인
+    # 후보가 **여러 개** 라는 계약 — 정적으로 못 박는다. 런타임 후보 수는 그 호스트에
+    # 어떤 temp root 가 존재하느냐에 달려 있어 플랫폼마다 달라진다 (Windows: %TEMP% ·
+    # D:\tmp / POSIX: /tmp · /var/tmp). 그래서 "구 후보가 몇 개인가" 대신 "구 impl 이
+    # 후보를 어디서 모으는가" 를 본다 — 단일 root impl(원래 버그)이면 `gettempdir()`
+    # 가 후보 목록에 없다.
+    if "tempfile.gettempdir()" not in src:
+        print("  FAIL: 후보 root 목록이 tempfile.gettempdir() 를 넣지 않는다 — "
+              "단일 root impl (원래 버그) 위험")
+        return False
+    # 실제 함수가 그 플랫폼의 temp root 를 후보로 반환하는지 런타임 확인
     sys.path.insert(0, str(EXPORT_TOOL.parent))
     try:
         import importlib
@@ -111,7 +156,12 @@ def case_3_cleanup_scans_var_tmp() -> bool:
     # `leaked_tempdir_roots()` 는 후보를 `resolve()` 해서 돌려주는데, macOS 는
     # `/var` 가 `/private/var` 심볼릭이라 결과가 `/private/var/tmp` 가 된다.
     # 구현은 정상이고 검사가 플랫폼을 못 넘긴 것이었다 — resolve 된 형태로 비교한다.
-    expected = str(Path("/var/tmp").resolve())
+    # Windows 에서는 `/var/tmp` 자체가 없으므로 **그 플랫폼의** temp root 를 요구한다
+    # (경로 표기는 저장소 규약상 POSIX 다 — 판정 대상만 그 플랫폼에서 성립하게 한다).
+    if os.name == "nt":
+        expected = str(Path(tempfile.gettempdir()).resolve())
+    else:
+        expected = str(Path("/var/tmp").resolve())
     if expected not in roots:
         print(f"  FAIL: leaked_tempdir_roots() 에 {expected} 없음 (got {roots})")
         return False
@@ -162,7 +212,14 @@ def case_5_runner_has_default_timeout() -> bool:
 
 
 def case_6_scaffold_leaves_no_orphan() -> bool:
-    """6) 실측: check_scaffold_harness 1회 실행이 temp root 에 orphan 을 남기지 않는다."""
+    """6) 실측: check_scaffold_harness 1회 실행이 temp root 에 orphan 을 남기지 않는다.
+
+    재는 root 는 **정리 도구가 실제로 훑는 root** 와 같아야 한다 — 2026-10-31
+    Windows 실측: 이 case 가 `gettempdir()` + `/var/tmp` 만 봤다. Windows 에선
+    `/var/tmp` 가 `D:\\var\\tmp` 로 존재하지 않는 경로라 빈 집합이 되고, 정리 도구가
+    **훑는** `D:\\tmp` 는 보지 않았다 — 즉 누수가 쌓일 수 있는 그 루트를 못 보는
+    모양이었다. 그래서 후보 목록은 정본(`leaked_tempdir_roots()`)에서 가져온다.
+    """
 
     def snapshot(root: Path) -> set[str]:
         try:
@@ -170,13 +227,13 @@ def case_6_scaffold_leaves_no_orphan() -> bool:
         except OSError:
             return set()
 
-    roots = [Path(tempfile.gettempdir()), Path("/var/tmp")]
+    roots = _cleanup_roots()
     before = {r: snapshot(r) for r in roots}
 
     env = dict(os.environ, PYTHONPATH=str(REPO_ROOT / "workflow-source"))
     proc = subprocess.run(
         [sys.executable, str(SCAFFOLD_SMOKE)],
-        cwd=str(REPO_ROOT), env=env, capture_output=True, text=True, timeout=180,
+        cwd=str(REPO_ROOT), env=env, capture_output=True, text=True, timeout=180, encoding="utf-8", errors="replace"
     )
     if proc.returncode != 0:
         print(f"  FAIL: check_scaffold_harness 실행 실패 (exit {proc.returncode})")
@@ -191,7 +248,8 @@ def case_6_scaffold_leaves_no_orphan() -> bool:
     if leaked:
         print(f"  FAIL: 실행 후 orphan temp dir 잔존: {leaked}")
         return False
-    print("  [info] 실행 후 orphan temp dir 0건 (/tmp + /var/tmp)")
+    print(f"  [info] 실행 후 orphan temp dir 0건 (재 본 root: "
+          f"{', '.join(str(r) for r in roots)})")
     return True
 
 

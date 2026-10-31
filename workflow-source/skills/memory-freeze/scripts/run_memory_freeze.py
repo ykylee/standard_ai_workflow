@@ -72,11 +72,17 @@ def main() -> int:
     # branch-scoped / append-only layout 도입 전의 구현이 남아 있던 것.
     FREEZE_SUFFIXES = (".md", ".json", ".toml", ".txt", ".yaml", ".yml")
     frozen_files: list[str] = []
+    frozen_paths: list[Path] = []
     for item in sorted(active_dir.rglob("*")):
         if not item.is_file():
             continue
         if item.suffix in FREEZE_SUFFIXES or item.name.endswith(".template"):
-            frozen_files.append(str(item.relative_to(active_dir)))
+            rel_path = item.relative_to(active_dir)
+            frozen_paths.append(rel_path)
+            # 보고용 상대경로는 **항상 POSIX** — `str()` 는 Windows 에서 `\` 를
+            # 내므로 다른 호스트는 `main\state.json` 을 파일명 한 덩어리로 읽는다
+            # (`workflow_kit.common.paths.safe_relpath` 와 같은 규약).
+            frozen_files.append(rel_path.as_posix())
 
     if not frozen_files:
         payload = {
@@ -93,7 +99,7 @@ def main() -> int:
     # archive_dir 을 지워 "성공 아니면 없음" 을 보장한다.
     archive_dir.mkdir(parents=True, exist_ok=True)
     try:
-        for rel in frozen_files:
+        for rel in frozen_paths:
             src = active_dir / rel
             dst = archive_dir / rel
             dst.parent.mkdir(parents=True, exist_ok=True)  # 하위 디렉터리 보존

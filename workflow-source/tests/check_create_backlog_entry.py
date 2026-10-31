@@ -50,7 +50,7 @@ def main() -> int:
             cwd=neutral_cwd,
             capture_output=True,
             text=True,
-            check=True,
+            check=True, encoding="utf-8", errors="replace"
         )
     payload = json.loads(completed.stdout)
     output_errors = validate_output_payload(payload, family="create_backlog_entry")

@@ -92,7 +92,7 @@ def _run_tool(tool: Path, args: list[str], cwd: Path | None = None,
     proc = subprocess.run(
         [sys.executable, str(tool), *args],
         capture_output=True, text=True, timeout=120,
-        cwd=str(cwd) if cwd else None, env=env,
+        cwd=str(cwd) if cwd else None, env=env, encoding="utf-8", errors="replace"
     )
     try:
         payload = json.loads(proc.stdout) if proc.stdout.strip() else {}

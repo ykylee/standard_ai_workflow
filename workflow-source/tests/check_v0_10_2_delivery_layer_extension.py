@@ -311,7 +311,7 @@ def test_session_start_self_bootstrap_v0_10_2() -> None:
             ],
             capture_output=True,
             text=True,
-            cwd=str(SOURCE_ROOT),
+            cwd=str(SOURCE_ROOT), encoding="utf-8", errors="replace"
         )
         # session-start 는 graceful skip + exit 0 또는 1 — JSON output verify
         # output JSON parse

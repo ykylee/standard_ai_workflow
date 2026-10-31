@@ -34,7 +34,9 @@ from __future__ import annotations
 import copy
 import functools
 import json
+import os
 import shutil
+import stat
 
 # 단독 43s 실측 (2026-08-14) — 기본 60s 상한과 여유가 없어 병렬 부하 편차만으로
 # TIMEOUT flake 가 난다 (같은 날 slash 축 전량에서 실제로 났다). 행 검출은 150s 로 충분.
@@ -123,6 +125,25 @@ def _fixture(td: str, filename: str, source: str) -> Path:
     pkg.mkdir(parents=True)
     (pkg / filename).write_text(source, encoding="utf-8")
     return root
+
+
+def _rmtree_force_writable(path: Path) -> None:
+    """읽기 전용 파일을 포함해 트리를 지운다.
+
+    Windows 의 git 은 loose object 을 **444 (읽기 전용)** 으로 만든다 (2026-10-31
+    Windows 실측) — 그대로 지우면 PermissionError(WinError 5) 로 죽는다. 지우기 전에
+    쓰기 권한을 되돌린다. POSIX 는 이 문제가 없으므로 건드리지 않는다 (디렉터리의
+    execute bit 를 잃는 부작용을 피한다).
+    """
+
+    def _fix(func, target, exc) -> None:
+        if os.name == "nt":
+            os.chmod(target, stat.S_IREAD | stat.S_IWRITE)
+        func(target)
+
+    # `onexc` 는 3.12+, `onerror` 는 그 이전 — 선언된 최소 버전(3.11)까지 성립해야 한다.
+    kwargs = {"onexc": _fix} if sys.version_info >= (3, 12) else {"onerror": _fix}
+    shutil.rmtree(path, **kwargs)
 
 
 @functools.lru_cache(maxsize=1)
@@ -259,7 +280,7 @@ def case_7_auditor_root_is_not_module_derived() -> bool:
         proc = subprocess.run(
             [sys.executable, str(AUDIT_TOOL), "--json"],
             cwd=str(elsewhere), capture_output=True, text=True, timeout=180,
-            env=platform_child_env(elsewhere, path="/usr/bin:/bin"),
+            env=platform_child_env(elsewhere, path="/usr/bin:/bin"), encoding="utf-8", errors="replace"
         )
         payload = json.loads(proc.stdout)
         if Path(payload["scan_root"]).resolve() != elsewhere:
@@ -297,7 +318,7 @@ def case_8_wrong_root_fails_loudly() -> bool:
             return False
         proc = subprocess.run(
             [sys.executable, str(AUDIT_TOOL), "--repo-root", str(empty)],
-            capture_output=True, text=True, timeout=180,
+            capture_output=True, text=True, timeout=180, encoding="utf-8", errors="replace"
         )
         if proc.returncode == 0:
             print(f"  FAIL: CLI 가 exit 0 (조사 0건인데 성공으로 보고)\n{proc.stdout}")
@@ -324,7 +345,7 @@ def case_10_scan_covers_every_source_file() -> bool:
     for args in (["ls-files", "-z", "--", "*.py"],
                  ["ls-files", "--others", "--exclude-standard", "-z", "--", "*.py"]):
         proc = subprocess.run(["git", "-C", str(REPO_ROOT), *args],
-                              capture_output=True, text=True, timeout=60)
+                              capture_output=True, text=True, timeout=60, encoding="utf-8", errors="replace")
         if proc.returncode != 0:
             print(f"  FAIL: git 조회 실패 ({args}): {proc.stderr.strip()[:200]}")
             return False
@@ -381,7 +402,7 @@ def case_11_generated_is_decided_by_git_not_by_name() -> bool:
         for args in (("init", "-q", "."), ("add", "-A"),
                      ("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "init")):
             proc = subprocess.run(["git", *args], cwd=str(root), capture_output=True,
-                                  text=True, timeout=60, env=env)
+                                  text=True, timeout=60, env=env, encoding="utf-8", errors="replace")
             if proc.returncode != 0:
                 print(f"  FAIL: fixture git 준비 실패 ({args}): {proc.stderr.strip()[:200]}")
                 return False
@@ -398,7 +419,7 @@ def case_11_generated_is_decided_by_git_not_by_name() -> bool:
             return False
 
         # (c) git 을 지우면 fallback 이고, 그 사실이 보여야 한다.
-        shutil.rmtree(root / ".git")
+        _rmtree_force_writable(root / ".git")
         fb = run_audit(root)
         if fb["inventory"]["source_selection"] != SELECTION_NAME_FALLBACK:
             print(f"  FAIL: git 없는데 선정이 {fb['inventory']['source_selection']}")
@@ -423,7 +444,7 @@ def case_9_cli_runs_green_on_this_repo() -> bool:
     """9) CLI 를 저장소 루트에서 돌리면 exit 0 (실제 invocation 형태)."""
     proc = subprocess.run(
         [sys.executable, str(AUDIT_TOOL), "--repo-root", str(REPO_ROOT)],
-        capture_output=True, text=True, timeout=180,
+        capture_output=True, text=True, timeout=180, encoding="utf-8", errors="replace"
     )
     if proc.returncode != 0:
         print(f"  FAIL: exit {proc.returncode}\n{proc.stdout}\n{proc.stderr[-600:]}")

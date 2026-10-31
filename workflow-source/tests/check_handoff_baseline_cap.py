@@ -197,7 +197,7 @@ def case_8_cap_zero_rejected(root: Path) -> None:
         [sys.executable, "-m", "workflow_kit.tools.rollover_handoff_baselines",
          "--handoff-path", str(p), "--cap", "0", "--apply"],
         cwd=str(SOURCE_ROOT), capture_output=True, text=True,
-        env={**__import__("os").environ, "PYTHONPATH": str(SOURCE_ROOT)}, timeout=60,
+        env={**__import__("os").environ, "PYTHONPATH": str(SOURCE_ROOT)}, timeout=60, encoding="utf-8", errors="replace"
     )
     assert proc.returncode != 0, "--cap 0 을 받아들였다 — 현재 기준선까지 지운다"
 

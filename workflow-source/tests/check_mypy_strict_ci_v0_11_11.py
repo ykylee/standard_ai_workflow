@@ -129,7 +129,7 @@ def test_mypy_strict_ci_v0_11_11() -> None:
              "--config-file", "workflow-source/pyproject.toml",
              "workflow-source/workflow_kit/"],
             cwd=str(REPO_ROOT),
-            capture_output=True, text=True, timeout=120,
+            capture_output=True, text=True, timeout=120, encoding="utf-8", errors="replace"
         )
         ci_errors = [
             line for line in result_ci.stdout.splitlines()

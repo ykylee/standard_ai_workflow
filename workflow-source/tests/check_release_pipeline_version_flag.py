@@ -28,7 +28,7 @@ def test_version_argparse_recognized() -> None:
     """release --version=<X.Y.Z> 가 argparse error 없이 받아들여짐 + version_source=cli-flag."""
     proc = subprocess.run(
         [sys.executable, str(TOOL), "release", "--version=0.7.5", "--skip-validate", "--dry-run", "--json"],
-        capture_output=True, text=True, timeout=30,
+        capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace"
     )
     # argparse 가 --version 을 인식하면 stderr 에 'unrecognized arguments' 없어야 함
     assert "unrecognized arguments" not in proc.stderr, f"argparse error: {proc.stderr}"
@@ -87,7 +87,7 @@ def test_version_override_pyproject() -> None:
     try:
         proc = subprocess.run(
             [sys.executable, str(TOOL), "release", "--version=0.7.5", "--skip-validate", "--dry-run", "--json"],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace"
         )
         out = json.loads(proc.stdout)
         assert out["version_source"] == "cli-flag", \
@@ -140,7 +140,7 @@ def test_version_default_pyproject() -> None:
 
     proc = subprocess.run(
         [sys.executable, str(TOOL), "release", "--skip-validate", "--dry-run", "--json"],
-        capture_output=True, text=True, timeout=120,
+        capture_output=True, text=True, timeout=120, encoding="utf-8", errors="replace"
     )
     out = json.loads(proc.stdout)
     assert out["version_source"] == "pyproject.toml", \

@@ -73,7 +73,7 @@ def _git_mv(src: Path, dst: Path, *, repo_root: Path) -> tuple[bool, str]:
     """git mv 로 이동 (히스토리 보존). 실패 시 (False, stderr)."""
     dst.parent.mkdir(parents=True, exist_ok=True)
     proc = subprocess.run(
-        ["git", "mv", str(src.relative_to(repo_root)), str(dst.relative_to(repo_root))],
+        ["git", "mv", src.relative_to(repo_root).as_posix(), dst.relative_to(repo_root).as_posix()],
         cwd=str(repo_root), capture_output=True, text=True, encoding="utf-8", errors="replace",
     )
     return proc.returncode == 0, proc.stderr.strip()

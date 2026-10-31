@@ -46,7 +46,7 @@ def _gh_authenticated() -> bool:
     """Skip test if gh CLI is not authenticated (e.g. CI)."""
     try:
         r = subprocess.run(
-            ["gh", "auth", "status"], capture_output=True, text=True, timeout=10
+            ["gh", "auth", "status"], capture_output=True, text=True, timeout=10, encoding="utf-8", errors="replace"
         )
         return r.returncode == 0
     except FileNotFoundError:

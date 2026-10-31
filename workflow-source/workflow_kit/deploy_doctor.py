@@ -53,6 +53,7 @@ from urllib.parse import quote
 
 from workflow_kit.bootstrap_lib.harnesses import HARNESS_SPECS
 from workflow_kit.common.kit_invocation import HOOK_INTERPRETERS, KIT_MODULE
+from workflow_kit.common.paths import user_home
 from workflow_kit.common.python_launcher import python_launcher
 from workflow_kit.upgrade_diff import compare_marker, parse_version_marker, read_kit_version
 
@@ -2772,7 +2773,7 @@ def probe(
             주지 않으면 실 호스트의 해석기를 띄운다 (`processes` 와 같은 이유).
     """
     resolved_project = (project_root or Path.cwd()).resolve()
-    resolved_home = (home or Path.home()).resolve()
+    resolved_home = (home or user_home()).resolve()
 
     environment = _probe_environment(resolved_project)
     preflight = _probe_preflight()

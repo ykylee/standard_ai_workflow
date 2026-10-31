@@ -148,7 +148,7 @@ def cmd_okf_validate(argv: list[str]) -> int:
         for page in pages:
             for issue in lint_page(page, bundle_path, mode_literal):
                 all_issues.append({
-                    "page": str(issue.page.relative_to(bundle_path)),
+                    "page": issue.page.relative_to(bundle_path).as_posix(),
                     "rule": issue.rule,
                     "severity": issue.severity,
                     "message": issue.message,

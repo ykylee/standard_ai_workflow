@@ -47,6 +47,6 @@ def truncates(shim: Path) -> bool:
     """모형 유효성 — shim 이 `-c` 다줄의 첫 개행 뒤를 실제로 버리는가."""
     seen = subprocess.run(
         [str(shim), "-c", "print('first')\nprint('second')"],
-        capture_output=True, text=True, timeout=30,
+        capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace"
     ).stdout.split()
     return seen == ["first"]

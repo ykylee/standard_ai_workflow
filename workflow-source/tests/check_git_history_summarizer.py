@@ -43,7 +43,7 @@ def _run(*args: str) -> subprocess.CompletedProcess:
         [sys.executable, str(
             REPO_ROOT / "workflow-source/mcp_servers/git-history-summarizer/scripts/run_git_history_summarizer.py"
         ), *args],
-        cwd=str(REPO_ROOT), env=env, capture_output=True, text=True, timeout=30,
+        cwd=str(REPO_ROOT), env=env, capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace"
     )
 
 

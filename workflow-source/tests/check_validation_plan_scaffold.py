@@ -59,7 +59,7 @@ def main() -> int:
             ],
             capture_output=True,
             text=True,
-            check=False
+            check=False, encoding="utf-8", errors="replace"
         )
 
         if completed.returncode != 0:

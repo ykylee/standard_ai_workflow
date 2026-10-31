@@ -308,7 +308,7 @@ def main() -> int:
         [sys.executable, str(SOURCE_ROOT / "workflow_kit" / "tools" / "host_serve_registry.py"),
          "--print-systemd-unit", "--bind", "192.168.1.10", "--port", "8765",
          "--token-env", "WK_REGISTRY_TOKEN"],
-        capture_output=True, text=True, timeout=30, env=unit_env,
+        capture_output=True, text=True, timeout=30, env=unit_env, encoding="utf-8", errors="replace"
     )
     unit_ok = (
         proc.returncode == 0
@@ -322,7 +322,7 @@ def main() -> int:
     proc_no_token = subprocess.run(
         [sys.executable, str(SOURCE_ROOT / "workflow_kit" / "tools" / "host_serve_registry.py"),
          "--print-systemd-unit"],
-        capture_output=True, text=True, timeout=30, env=unit_env,
+        capture_output=True, text=True, timeout=30, env=unit_env, encoding="utf-8", errors="replace"
     )
     no_token_ok = (
         proc_no_token.returncode == 0

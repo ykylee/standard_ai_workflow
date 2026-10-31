@@ -198,7 +198,7 @@ def _run_mypy(extra_args: list[str]) -> subprocess.CompletedProcess[str]:
     """REPO_ROOT 를 cwd 로 mypy 실행 (CI 와 동일 조건)."""
     return subprocess.run(
         [sys.executable, "-m", "mypy", "-v", "--no-incremental", "--cache-dir", _isolated_mypy_cache_dir(), *extra_args, TARGET_REL],
-        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=300,
+        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=300, encoding="utf-8", errors="replace"
     )
 
 
@@ -351,7 +351,10 @@ def test_schemas_files_are_checked() -> bool:
     """
     proc = _run_mypy(["--config-file", CONFIG_REL])
     out = proc.stdout + proc.stderr
-    found = re.findall(r"path='([^']*workflow_kit/common/schemas/[^']*)'", out)
+    # mypy 는 경로를 ``repr()`` 로 찍는다 — Windows 면 역슬래시가 **두 개**로
+    # 늘어난다 (``workflow_kit\\common\\schemas\\x.py``). 구분자는 "한 개 이상" 으로
+    # 받아야 양쪽 플랫폼이 함께 걸린다.
+    found = re.findall(r"path='([^']*workflow_kit[\\/]+common[\\/]+schemas[\\/]+[^']*)'", out)
     if not found:
         print("  FAIL: workflow_kit/common/schemas/ 가 검사 대상에 없다 "
               "(exclude anchor 회귀 가능성)")

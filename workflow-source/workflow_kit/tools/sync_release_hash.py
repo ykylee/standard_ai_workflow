@@ -21,11 +21,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from workflow_kit.common.paths import (  # noqa: E402
     memory_dir_for_workspace,
+    user_home,
     state_path_for_workspace,
 )
 
 # === Path setup ===
-_LEGACY_REPO_ROOT = Path.home() / "repos" / "standard_ai_workflow_minimax"
+_LEGACY_REPO_ROOT = user_home() / "repos" / "standard_ai_workflow_minimax"
 _DEPRECATION_WARNED = False
 
 

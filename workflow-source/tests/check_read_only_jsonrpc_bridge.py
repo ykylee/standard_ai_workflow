@@ -28,7 +28,7 @@ def run_request(request: dict[str, object]) -> dict[str, object]:
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
-        check=True,
+        check=True, encoding="utf-8", errors="replace"
     )
     if not completed.stdout.strip():
         raise AssertionError("Expected JSON-RPC response on stdout.")
@@ -41,7 +41,7 @@ def run_raw_request(raw_request: str, *, expect_success: bool = True) -> tuple[i
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
-        check=False,
+        check=False, encoding="utf-8", errors="replace"
     )
     if expect_success and completed.returncode != 0:
         raise AssertionError(f"Expected raw request to succeed: {completed.stderr}\n{completed.stdout}")
@@ -57,7 +57,7 @@ def run_stdio_lines(lines: list[str]) -> list[dict[str, object]]:
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
-        check=True,
+        check=True, encoding="utf-8", errors="replace"
     )
     return [json.loads(line) for line in completed.stdout.splitlines() if line.strip()]
 

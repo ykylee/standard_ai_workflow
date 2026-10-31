@@ -135,7 +135,7 @@ def test_case_4_conflict_detection_in_file() -> None:
             capture_output=True,
             text=True,
             timeout=30,
-            env={**os.environ, "PYTHONPATH": str(REPO / "workflow-source")},
+            env={**os.environ, "PYTHONPATH": str(REPO / "workflow-source")}, encoding="utf-8", errors="replace"
         )
         assert proc.returncode == 0, f"script failed: {proc.stderr}"
         result = json.loads(proc.stdout)
@@ -184,7 +184,7 @@ def test_case_5_handoff_path_no_crash_with_unparseable_input() -> None:
             capture_output=True,
             text=True,
             timeout=30,
-            env={**os.environ, "PYTHONPATH": str(REPO / "workflow-source")},
+            env={**os.environ, "PYTHONPATH": str(REPO / "workflow-source")}, encoding="utf-8", errors="replace"
         )
         # 본 시점: parse_handoff 가 unrecognized handoff format 에서 RuntimeError raise 시
         # handoff_parse_failed error_code emit, returncode 1. parse 성공 시 status=ok, returncode 0.
@@ -233,7 +233,7 @@ def test_case_6_apply_creates_resolved_file_with_suffix() -> None:
             capture_output=True,
             text=True,
             timeout=30,
-            env={**os.environ, "PYTHONPATH": str(REPO / "workflow-source")},
+            env={**os.environ, "PYTHONPATH": str(REPO / "workflow-source")}, encoding="utf-8", errors="replace"
         )
         assert proc.returncode == 0, f"--apply failed: {proc.stderr}"
         result = json.loads(proc.stdout)
@@ -273,7 +273,7 @@ def test_case_7_manual_strategy_preserves_conflict_markers() -> None:
             capture_output=True,
             text=True,
             timeout=30,
-            env={**os.environ, "PYTHONPATH": str(REPO / "workflow-source")},
+            env={**os.environ, "PYTHONPATH": str(REPO / "workflow-source")}, encoding="utf-8", errors="replace"
         )
         assert proc.returncode == 0
         result = json.loads(proc.stdout)

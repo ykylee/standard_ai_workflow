@@ -21,6 +21,17 @@ SOURCE_ROOT = REPO_ROOT / "workflow-source"
 SCRIPT_PATH = SOURCE_ROOT / "skills" / "code-index-update" / "scripts" / "run_code_index_update.py"
 
 
+def _posix(text: str) -> str:
+    """경로 구분자만 POSIX 형식으로 정규화한다 — 판정은 경로 **내용**이 아니라 끝부분을 본다.
+
+    산출물의 후보 경로는 OS 네이티브 표기다 (Windows 는 백슬래시). 그대로 접미사를
+    비교하면 Windows 에서만 "선언된 문서 홈이 우선 후보가 아니다" 로 red 가 된다
+    (2026-10-31 실측: 후보는 실제로 `...\\docs\\README.md` 였음). 경로 자체는 바꾸지
+    않고 **구분자만** 정규화해 두 플랫폼에서 같은 판정이 나게 한다.
+    """
+    return text.replace("\\", "/")
+
+
 def run_index_update(example_name: str, changed_files: list[str], change_summary: str) -> dict[str, object]:
     example_root = SOURCE_ROOT / "examples" / example_name
     completed = subprocess.run(
@@ -58,9 +69,9 @@ def main() -> int:
     if output_errors:
         raise AssertionError(f"Acme code-index-update payload violated output contract: {output_errors}")
     acme_priorities = set(acme_payload["priority_index_candidates"])
-    if not any(item.endswith("docs/README.md") for item in acme_priorities):
+    if not any(_posix(item).endswith("docs/README.md") for item in acme_priorities):
         raise AssertionError("Acme example should elevate the declared document home as a priority index candidate.")
-    if not any(item.endswith("docs/operations/README.md") for item in acme_priorities):
+    if not any(_posix(item).endswith("docs/operations/README.md") for item in acme_priorities):
         raise AssertionError("Acme example should elevate the operations README candidate.")
     if not acme_payload["stale_index_warnings"]:
         raise AssertionError("Acme example should produce at least one stale index warning.")
@@ -77,7 +88,7 @@ def main() -> int:
     if output_errors:
         raise AssertionError(f"Research code-index-update payload violated output contract: {output_errors}")
     research_candidates = set(research_payload["index_update_candidates"])
-    if not any(item.endswith("docs/evals/README.md") for item in research_candidates):
+    if not any(_posix(item).endswith("docs/evals/README.md") for item in research_candidates):
         raise AssertionError("Research example should include the evals README candidate.")
     if not research_payload["document_structure_signals"]:
         raise AssertionError("Research example should include document structure signals.")
@@ -131,9 +142,9 @@ def main() -> int:
             check=True,
         )
         payload = json.loads(completed.stdout)
-        if not any(item.endswith("/docs/README.md") for item in payload["priority_index_candidates"]):
+        if not any(_posix(item).endswith("/docs/README.md") for item in payload["priority_index_candidates"]):
             raise AssertionError("Project docs should resolve from repository root, not ai-workflow/memory.")
-        if any("/ai-workflow/memory/docs/" in item for item in payload["index_update_candidates"]):
+        if any("/ai-workflow/memory/docs/" in _posix(item) for item in payload["index_update_candidates"]):
             raise AssertionError("Project doc candidates should not resolve under ai-workflow/memory/docs.")
 
     print("Code-index-update smoke check passed.")

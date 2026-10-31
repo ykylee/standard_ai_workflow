@@ -132,7 +132,7 @@ def _run(args: list[str]) -> dict[str, object]:
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
-        check=False,
+        check=False, encoding="utf-8", errors="replace"
     )
     if completed.returncode != 0:
         raise AssertionError(f"backlog-update 실패 rc={completed.returncode}: {completed.stderr[-400:]}")

@@ -34,7 +34,7 @@ def run_bootstrap():
         "--adoption-mode", "existing",
         "--update-deps"
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
     print(result.stdout)
     if result.returncode != 0:
         print(result.stderr)

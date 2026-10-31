@@ -65,7 +65,7 @@ def _tree_digest(root: Path) -> str:
     """디렉터리 전체의 경로+내용 해시. write 0 을 증명하는 데 쓴다."""
     h = hashlib.sha256()
     for p in sorted(root.rglob("*")):
-        h.update(str(p.relative_to(root)).encode())
+        h.update(p.relative_to(root).as_posix().encode())
         if p.is_file():
             h.update(p.read_bytes())
     return h.hexdigest()
@@ -77,7 +77,7 @@ def _run(args: list[str], repo: Path, timeout: int = 60) -> subprocess.Completed
     env["STANDARD_AI_WF_REPO"] = str(repo)
     return subprocess.run(
         [sys.executable, "-m", TOOL_MODULE, *args],
-        capture_output=True, text=True, timeout=timeout, env=env, cwd=str(repo),
+        capture_output=True, text=True, timeout=timeout, env=env, cwd=str(repo), encoding="utf-8", errors="replace"
     )
 
 

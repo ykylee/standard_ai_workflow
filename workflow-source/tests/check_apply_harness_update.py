@@ -22,7 +22,7 @@ def run_json(cmd: list[str], cwd: Path) -> dict[str, object]:
         cwd=cwd,
         capture_output=True,
         text=True,
-        check=True,
+        check=True, encoding="utf-8", errors="replace"
     )
     return json.loads(completed.stdout)
 

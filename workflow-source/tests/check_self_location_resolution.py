@@ -98,13 +98,13 @@ def _make_workspace(root: Path, *, branch: str | None, memory_branch: str) -> Pa
     (branch_dir / "state.json").write_text("{}\n", encoding="utf-8")
     if branch is not None:
         subprocess.run(["git", "init", "-q", "-b", branch], cwd=str(root),
-                       capture_output=True, text=True)
+                       capture_output=True, text=True, encoding="utf-8", errors="replace")
         # 커밋 0 인 저장소는 `git rev-parse --abbrev-ref HEAD` 가 실패해 브랜치
         # 해석이 모듈 저장소로 폴백된다 — 재려는 조건을 실재하게 만들려면 커밋이 필요하다.
         subprocess.run(
             ["git", "-c", "user.email=t@t", "-c", "user.name=t",
              "commit", "-q", "--allow-empty", "-m", "seed"],
-            cwd=str(root), capture_output=True, text=True,
+            cwd=str(root), capture_output=True, text=True, encoding="utf-8", errors="replace"
         )
     return root
 
@@ -112,7 +112,7 @@ def _make_workspace(root: Path, *, branch: str | None, memory_branch: str) -> Pa
 def _run_archiver(cwd: Path) -> tuple[int, dict, str]:
     proc = subprocess.run(
         [sys.executable, str(ARCHIVER), "--dry-run", "--json"],
-        cwd=str(cwd), capture_output=True, text=True, env=_clean_env(),
+        cwd=str(cwd), capture_output=True, text=True, env=_clean_env(), encoding="utf-8", errors="replace"
     )
     try:
         payload = json.loads(proc.stdout) if proc.stdout else {}
@@ -214,7 +214,7 @@ def main() -> int:
         bare = Path(td) / "no-memory-ws"
         (bare / "docs").mkdir(parents=True)
         (bare / "docs" / "PROJECT_PROFILE.md").write_text("# P\n", encoding="utf-8")
-        subprocess.run(["git", "init", "-q"], cwd=str(bare), capture_output=True, text=True)
+        subprocess.run(["git", "init", "-q"], cwd=str(bare), capture_output=True, text=True, encoding="utf-8", errors="replace")
         rc, payload, err = _run_archiver(bare)
         check(
             "3) archive — active dir 부재는 path_source 를 담은 exit 2",

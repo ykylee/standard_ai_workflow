@@ -75,14 +75,20 @@ def _kit_version() -> str:
 
 
 def rel(path: Path, base: Path) -> str:
-    """Return a relative path string for ``path`` against ``base``.
+    r"""Return a relative path string for ``path`` against ``base``.
 
     Falls back to the absolute string when ``path`` is not under ``base``.
+
+    **항상 POSIX** (``/``) 다 — 저장소 상대경로는 플랫폼 구분자를 싣지 않는다.
+    `str(Path)` 는 Windows 에서 `\` 를 내므로 매니페스트의 ``rel`` 이
+    ``.claude\commands\workflow-session-end.md`` 가 되고, POSIX 소비자는
+    그것을 파일명 한 덩어리로 읽는다 (`workflow_kit.common.paths.safe_relpath`
+    와 같은 규약).
     """
     try:
-        return str(path.resolve().relative_to(base.resolve()))
+        return path.resolve().relative_to(base.resolve()).as_posix()
     except ValueError:
-        return str(path.resolve())
+        return path.resolve().as_posix()
 
 
 # Paths that the smart update must NEVER overwrite, even with force.

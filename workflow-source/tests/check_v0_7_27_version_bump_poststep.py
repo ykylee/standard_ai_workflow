@@ -85,7 +85,7 @@ def _run_inproc(args: list[str], repo_root: Path) -> dict:
 def _run_tool(*args: str, repo_root: Path) -> dict:
     """Run release_pipeline.py with given args. Returns parsed JSON (subprocess)."""
     cmd = [PYTHON, str(TOOL), *args, "--json"]
-    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=30, cwd=str(repo_root))
+    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=30, cwd=str(repo_root), encoding="utf-8", errors="replace")
     if proc.returncode != 0:
         return {"error": proc.stderr, "returncode": proc.returncode, "stdout": proc.stdout}
     try:

@@ -90,7 +90,7 @@ def _bootstrap(target: Path, *, harness: str = "claude-code", today: str | None 
     if today is not None:
         argv += ["--today", today]
     return subprocess.run(
-        argv, cwd=str(REPO_ROOT), capture_output=True, text=True, env=_env(), check=True,
+        argv, cwd=str(REPO_ROOT), capture_output=True, text=True, env=_env(), check=True, encoding="utf-8", errors="replace"
     ).stdout
 
 
@@ -212,7 +212,7 @@ def test_session_start_checks_on_every_start() -> None:
         gone.unlink()
         proc = subprocess.run(
             [sys.executable, "-m", "workflow_kit.workflow_kit_cli", "session-start"],
-            cwd=str(target), capture_output=True, text=True, env=_env(),
+            cwd=str(target), capture_output=True, text=True, env=_env(), encoding="utf-8", errors="replace"
         )
         restored = gone.exists()
     problems: list[str] = []

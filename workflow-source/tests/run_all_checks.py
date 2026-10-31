@@ -68,6 +68,12 @@ TESTS_DIR = SOURCE_ROOT / "tests"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
+from workflow_kit.common.file_lock import (  # noqa: E402 - sys.path 조정 이후 import
+    prepare_lock_file,
+    try_lock_exclusive,
+    unlock as release_file_lock,
+)
+
 # runner **부모 프로세스** 가 자기 import 로 내는 경고를 버리지 않는다
 # (TASK-2026-09-21-main-008). `warning_verdict` 는 per-check 서브프로세스 출력만
 # 훑으므로, 부모가 낸 경고는 배너보다도 먼저 stderr 에 찍히면서 게이트를 통과했다 —
@@ -166,8 +172,11 @@ QUIET_MARKER = "REQUIRES_QUIET_REPO"
 # 정보를 찍고 즉시 실패한다 (조용히 진행 금지 — "모름 ≠ 안전").
 #
 # 설계 (선례: workflow_kit/url_validity.py `_CacheLock`, ADR-015):
-# - `fcntl.flock` advisory lock. 프로세스가 죽으면 커널이 자동 해제하므로
-#   stale 락이 다음 실행을 막는 일이 없다 (PID 생존 확인이 따로 필요 없는 이유).
+# - advisory lock — POSIX 는 `fcntl.flock`, Windows 는 `msvcrt.locking`
+#   (정본: `workflow_kit/common/file_lock.py`). 프로세스가 죽으면 OS 가 자동
+#   해제하므로 stale 락이 다음 실행을 막는 일이 없다 (PID 생존 확인이 따로
+#   필요 없는 이유). Windows 에서 "락 없이 진행" 으로 빠지지 않는다 —
+#   동시 실행 가드가 조용히 사라지는 것이 가장 나쁜 실패다 (TASK-2026-10-31-main-003).
 # - 락 파일은 **`.git/` 안** — 워킹 트리에 두면 `check_no_repo_write` 가 오염으로
 #   잡는다. git worktree 는 `.git` 이 파일이라 gitdir 을 따라간다.
 # - **재진입**: runner 를 부르는 검사(check_parallel_smoke 등)가 낳은 자식 runner 는
@@ -218,17 +227,16 @@ class RunnerLock:
         """(획득/승계 성공?, 실패 시 보유자 설명)."""
         if self._nested:
             return True, "(부모 runner 의 락을 승계)"
-        try:
-            import fcntl
-        except ImportError:  # Windows: advisory no-op (선례와 동일)
-            return True, "(fcntl 없음 — 락 없이 진행)"
         self.lock_path.parent.mkdir(parents=True, exist_ok=True)
-        fd = open(self.lock_path, "a+", encoding="utf-8")
-        try:
-            fcntl.flock(fd.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except OSError:
-            fd.seek(0)
-            holder = fd.read().strip() or "(보유자 정보 없음)"
+        # Windows 는 빈 파일을 잠그면 그 파일 전체가 읽히지 않는다 — 1 바이트 확보.
+        prepare_lock_file(self.lock_path)
+        fd = open(self.lock_path, "a+b")
+        if not try_lock_exclusive(fd):
+            try:
+                fd.seek(0)
+                holder = fd.read().decode("utf-8").strip() or "(보유자 정보 없음)"
+            except OSError:
+                holder = "(보유자 정보 읽기 실패)"
             fd.close()
             return False, holder
         branch = ""
@@ -236,19 +244,22 @@ class RunnerLock:
             proc = subprocess.run(
                 ["git", "rev-parse", "--abbrev-ref", "HEAD"],
                 capture_output=True, text=True, timeout=5,
-                cwd=str(self.lock_path.parent),
+                cwd=str(self.lock_path.parent), encoding="utf-8", errors="replace"
             )
             branch = proc.stdout.strip()
         except Exception:  # noqa: BLE001 - 보유자 정보는 best effort
             pass
-        fd.seek(0)
-        fd.truncate()
-        fd.write(json.dumps({
+        payload = json.dumps({
             "pid": os.getpid(),
             "started_at": datetime.datetime.now().isoformat(timespec="seconds"),
             "branch": branch,
             "argv": sys.argv[1:],
-        }, ensure_ascii=False))
+        }, ensure_ascii=False).encode("utf-8")
+        # truncate 를 먼저 하면 파일이 잠시 비어 Windows 에서 읽히지 않는다.
+        # 덮어쓴 뒤 길이를 맞춰 자른다 (내용 영역과 락 영역은 겹치지 않는다).
+        fd.seek(0)
+        fd.write(payload)
+        fd.truncate(len(payload))
         fd.flush()
         self._fd = fd
         # 자식 runner (runner 를 부르는 검사) 는 이 마커로 락을 승계한다.
@@ -259,8 +270,7 @@ class RunnerLock:
         if self._fd is None:
             return
         try:
-            import fcntl
-            fcntl.flock(self._fd.fileno(), fcntl.LOCK_UN)  # type: ignore[attr-defined]
+            release_file_lock(self._fd)  # type: ignore[arg-type]
         except Exception:  # noqa: BLE001
             pass
         try:
@@ -450,7 +460,7 @@ def changed_paths(repo_root: Path, base: str | None) -> tuple[list[str], str]:
     def _git(*argv: str) -> tuple[int, str]:
         try:
             proc = subprocess.run(["git", *argv], cwd=str(repo_root),
-                                  capture_output=True, text=True, timeout=30)
+                                  capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace")
         except (OSError, subprocess.SubprocessError) as e:
             return 1, str(e)
         return proc.returncode, proc.stdout
@@ -703,7 +713,7 @@ def _run_one(
     """
     start = time.time()
     try:
-        rel = str(check_path.relative_to(SOURCE_ROOT))
+        rel = check_path.relative_to(SOURCE_ROOT).as_posix()
     except ValueError:
         # `--tests-dir` 가 저장소 밖(fixture dir 등)을 가리키면 상대화가 불가능하다
         # — 표시용 경로일 뿐이므로 절대 경로로 보고한다.
@@ -715,6 +725,12 @@ def _run_one(
     env = os.environ.copy()
     env["TMPDIR"] = str(tmp_dir)
     env.setdefault("PYTHONPATH", str(SOURCE_ROOT))
+    # v1.2.1 (TASK-2026-10-31-main-003): **표준 스트림을 UTF-8 로 고정.**
+    # 한글 Windows 의 로캘 인코딩은 cp949 다. 로캘 그대로 두면 검사가(cp949 로) 쓴
+    # 출력과 자식(UTF-8) 의 출력이 어긋나 UnicodeDecodeError 로 죽는다 —
+    # kit CLI 는 `workflow_kit.common.stdio` 로 이미 UTF-8 을 강제한다.
+    # 여기서도 UTF-8 모드를 고정해 **검사 → 자식** 축을 한 언어로 맞춘다.
+    env["PYTHONUTF8"] = "1"
     # 실제 저장소 telemetry 에 쓰지 않는다 (TASK-2026-09-28-main-006) — 검사가
     # 부른 session-start 가 사용 지표에 섞였다. 새는 자식은 run_pass 가 잡는다.
     env[TELEMETRY_SKIP_ROOT_ENV] = str(SOURCE_ROOT.parent)
@@ -735,7 +751,7 @@ def _run_one(
     proc = subprocess.Popen(
         [sys.executable, str(check_path)],
         stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-        env=env, start_new_session=True,
+        env=env, start_new_session=True, encoding="utf-8", errors="replace"
     )
     timed_out = False
     try:

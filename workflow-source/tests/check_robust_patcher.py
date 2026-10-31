@@ -36,7 +36,7 @@ def run_patcher(*, expect_success: bool, args: list[str]) -> tuple[int, dict[str
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
-        check=False,
+        check=False, encoding="utf-8", errors="replace"
     )
     if expect_success and completed.returncode != 0:
         raise AssertionError(f"Expected robust-patcher success but got {completed.returncode}: {completed.stderr}")

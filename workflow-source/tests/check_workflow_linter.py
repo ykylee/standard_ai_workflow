@@ -74,7 +74,7 @@ def run_linter(project_root: Path, extra_args: list[str] = []) -> dict:
         str(REPO_ROOT / "workflow-source/skills/workflow-linter/scripts/run_workflow_linter.py"),
         "--project-profile-path", str(project_profile_path),
     ] + extra_args
-    result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(project_root))
+    result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(project_root), encoding="utf-8", errors="replace")
     try:
         return json.loads(result.stdout)
     except json.JSONDecodeError:

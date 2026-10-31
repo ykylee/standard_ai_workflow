@@ -61,7 +61,7 @@ def check_health_check(project_root: Path) -> RuleResult:
         rule_id="RES-WF-01",
         title="Health Check",
         status="compliant",
-        notes=f"doctor.py 발견: {[str(p.relative_to(project_root)) for p in candidates if p.exists()]}",
+        notes=f"doctor.py 발견: {[p.relative_to(project_root).as_posix() for p in candidates if p.exists()]}",
     )
 
 

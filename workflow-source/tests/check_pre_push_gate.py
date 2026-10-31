@@ -25,6 +25,7 @@ WATCHES = (
 )
 
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -51,7 +52,59 @@ def _git(repo: Path, *args: str) -> str:
     env = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t",
            "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
     return subprocess.run(["git", "-C", str(repo), *args], check=True,
-                          capture_output=True, text=True, env=env).stdout.strip()
+                          capture_output=True, text=True, env=env,
+                          encoding="utf-8", errors="replace").stdout.strip()
+
+
+def _sh_command() -> list[str] | None:
+    """훅 스크립트를 실행할 셸 — POSIX 는 ``sh``, Windows 는 git-bash 의 ``sh.exe``.
+
+    Windows 에서 git for Windows 는 설치할 때 ``C:\\Program Files\\Git\\cmd`` 만
+    PATH 에 넣고 ``usr\\bin`` 은 안 넣는 경우가 흔하다 — 그러면 ``sh`` 를 못 찾아
+    검사 자체가 FileNotFoundError 로 죽는다(2026-10-31 실측). git.exe 위치에서
+    ``usr/bin/sh.exe`` 를 같이 찾는다. **못 찾으면 None** — 호출자가 그 사실을
+    명시적으로 보고한다(조용히 통과시키지 않는다).
+    """
+    found = shutil.which("sh") or shutil.which("sh.exe")
+    if found:
+        return [found]
+    git = shutil.which("git") or shutil.which("git.exe")
+    if git:
+        # <git>/cmd/git.exe → <git>/usr/bin/sh.exe
+        candidate = Path(git).resolve().parent.parent / "usr" / "bin" / "sh.exe"
+        if candidate.is_file():
+            return [str(candidate)]
+    return None
+
+
+def _write_sh(path: Path, text: str) -> None:
+    """셸 스크립트를 **LF** 로 쓴다.
+
+    저장소 규약상 셸 스크립트는 LF 고정(`.gitattributes`: `*.sh`, `.githooks/**`) 다.
+    `Path.write_text` 는 플랫폼 기본 개행으로 번역하므로 Windows 에선 CRLF 가 되고
+    shebang 이 `#!/bin/sh\\r` 이 된다 — git 이 못 실행할 수 있다(2026-10-31 실측).
+    """
+    path.write_text(text, encoding="utf-8", newline="\n")
+
+
+def _hook_env() -> dict[str, str]:
+    """훅을 실행할 환경 — **git 이 훅에 주는 PATH** 를 흉내낸다.
+
+    Git for Windows 는 훅을 실행할 때 자기 실행 디렉터리(`usr\\bin` 등)를 PATH 에
+    더한다 — 그래서 훅 안의 `dirname`·`tr`·`cat` 이 동작한다. 이 검사는 훅을
+    **직접** `sh` 로 부르므로(2026-10-31 Windows 실측) 그 PATH 를 명시적으로
+    넣어준다. 넣지 않으면 사용자의 PATH 에 `usr\\bin` 이 없는 Windows 박스에서
+    **훅은 정상인데 검사만 red** 가 된다 — 거짓 실패다. (실제 `git push` 경로는
+    git 이 PATH 를 넣어 주므로 통과한다 — 같은 환경에서 확인했다.)
+    """
+    env = dict(os.environ)
+    git = shutil.which("git") or shutil.which("git.exe")
+    if not git:
+        return env
+    usr_bin = Path(git).resolve().parent.parent / "usr" / "bin"
+    if usr_bin.is_dir():
+        env["PATH"] = os.pathsep.join([str(usr_bin), env.get("PATH", "")])
+    return env
 
 
 def _repo(tmp: Path) -> tuple[Path, str, str]:
@@ -131,7 +184,7 @@ def test_delete_push_stdin_matches_real_git() -> None:
         hooks = repo / ".git" / "hooks"
         hooks.mkdir(exist_ok=True)
         dump = hooks / "pre-push"
-        dump.write_text(f'#!/bin/sh\ncat > "{seen}"\nexit 0\n', encoding="utf-8")
+        _write_sh(dump, f'#!/bin/sh\ncat > "{seen}"\nexit 0\n')
         dump.chmod(0o755)
         _git(repo, "-c", "core.hooksPath=.git/hooks", "push", "-q", "origin", "--delete", "feat")
         line = seen.read_text(encoding="utf-8").strip() if seen.is_file() else ""
@@ -155,28 +208,48 @@ def test_hook_script_enforces_verdict() -> None:
         return
     if os.name != "nt" and not os.access(HOOK, os.X_OK):
         problems.append("hook 에 실행 권한이 없다 — git 은 조용히 건너뛴다")
+    # 훅이 **셸** 로 실행돼야 판정을 관찰할 수 있다 — sh 를 못 찾으면 조용히
+    # 통과시키지 않고 그 사실을 보고한다 (검증 자체가 성립하지 않는다).
+    sh = _sh_command()
+    if sh is None:
+        _record("test_hook_script_enforces_verdict", False,
+                "셸(sh) 을 찾지 못했다 — 훅 스크립트를 실행할 수 없다 "
+                "(git-bash 필요: PATH 에 sh 가 없고 git 옆 usr\\bin\\sh.exe 도 없다)")
+        return
+    # 훅이 `python3` 리터럴 하나에 의존하지 않는지 — Windows 에선 Microsoft Store
+    # 별칭 스톱이 그걸 받아 "Python was not found" 를 찍고 죽는다 (2026-10-31 실측).
+    # 두 플랫폼의 venv 레이아웃을 **둘 다** 알아야 한다.
+    hook_src = HOOK.read_text(encoding="utf-8")
+    for needle, why in (("bin/python3", "POSIX venv 레이아웃"),
+                        ("Scripts/python.exe", "Windows venv 레이아웃")):
+        if needle not in hook_src:
+            problems.append(f"훅이 {why} ({needle}) 을 찾지 않는다")
     with tempfile.TemporaryDirectory(prefix="pre-push-hook-") as tmpdir:
         repo, gated, ungated = _repo(Path(tmpdir))
         for sha, want in ((gated, 0), (ungated, 1)):
-            proc = subprocess.run(["sh", str(HOOK)], cwd=repo, input=_line(sha) + "\n",
-                                  capture_output=True, text=True, timeout=60)
+            proc = subprocess.run([*sh, str(HOOK)], cwd=repo, input=_line(sha) + "\n",
+                                  env=_hook_env(), capture_output=True, text=True, timeout=60,
+                                  encoding="utf-8", errors="replace")
             if proc.returncode != want:
                 problems.append(f"{sha[:8]}: exit {proc.returncode} (기대 {want}) {proc.stderr[-300:]!r}")
             if want == 1 and "--no-verify" not in proc.stderr:
                 problems.append("막을 때 우회 방법을 말하지 않는다")
         # main 삭제는 hook 경로로도 exit 1 · 기능 브랜치 삭제는 exit 0
         for ref, want in (("refs/heads/main", 1), ("refs/heads/feat/x", 0)):
-            proc = subprocess.run(["sh", str(HOOK)], cwd=repo, input=f"(delete) {ZERO} {ref} {gated}\n",
-                                  capture_output=True, text=True, timeout=60)
+            proc = subprocess.run([*sh, str(HOOK)], cwd=repo, input=f"(delete) {ZERO} {ref} {gated}\n",
+                                  env=_hook_env(), capture_output=True, text=True, timeout=60,
+                                  encoding="utf-8", errors="replace")
             if proc.returncode != want:
                 problems.append(f"{ref} 삭제: exit {proc.returncode} (기대 {want}) {proc.stderr[-200:]!r}")
         # hooksPath 로 꺼지는 `.git/hooks/pre-push` 를 이어 부르는가 — 같은 인자·입력으로
         legacy = repo / ".git" / "hooks" / "pre-push"
         seen = repo / "legacy-saw.txt"
-        legacy.write_text(f'#!/bin/sh\necho "$1 $(cat)" > "{seen}"\nexit 1\n', encoding="utf-8")
+        _write_sh(legacy, f'#!/bin/sh\necho "$1 $(cat)" > "{seen}"\nexit 1\n')
         legacy.chmod(0o755)
-        proc = subprocess.run(["sh", str(HOOK), "origin", "url"], cwd=repo,
-                              input=_line(gated) + "\n", capture_output=True, text=True, timeout=60)
+        proc = subprocess.run([*sh, str(HOOK), "origin", "url"], cwd=repo,
+                              input=_line(gated) + "\n", env=_hook_env(),
+                              capture_output=True, text=True, timeout=60,
+                              encoding="utf-8", errors="replace")
         if proc.returncode != 1:
             problems.append(f"기존 .git/hooks/pre-push 의 거절을 삼켰다: exit {proc.returncode}")
         saw = seen.read_text(encoding="utf-8") if seen.is_file() else ""

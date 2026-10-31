@@ -378,7 +378,7 @@ def test_skill_scripts_integration_v0_9_5() -> None:
             ],
             capture_output=True,
             text=True,
-            timeout=30,
+            timeout=30, encoding="utf-8", errors="replace"
         )
         # session-start 가 handoff parse 시도 → 빈 handoff 라서 missing_required_document 가능.
         # purpose_context 가 output 에 포함되었는지 확인 (status 가 ok 일 때)
@@ -406,7 +406,7 @@ def test_skill_scripts_integration_v0_9_5() -> None:
             ],
             capture_output=True,
             text=True,
-            timeout=30,
+            timeout=30, encoding="utf-8", errors="replace"
         )
         if result_bu.returncode == 0:
             data_bu = json.loads(result_bu.stdout)
@@ -427,7 +427,7 @@ def test_skill_scripts_integration_v0_9_5() -> None:
             ],
             capture_output=True,
             text=True,
-            timeout=30,
+            timeout=30, encoding="utf-8", errors="replace"
         )
         if result_ds.returncode == 0:
             data_ds = json.loads(result_ds.stdout)

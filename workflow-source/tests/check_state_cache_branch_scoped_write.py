@@ -151,7 +151,7 @@ def test_backlog_update_draft_does_not_write_state() -> None:
              "--task-brief", "draft only",
              "--target-date", "2026-07-22",
              "--mode", "create"],
-            capture_output=True, text=True, check=False, env=env, cwd=str(ws),
+            capture_output=True, text=True, check=False, env=env, cwd=str(ws), encoding="utf-8", errors="replace"
         )
         assert proc.returncode == 0, proc.stderr[-2000:]
         payload = json.loads(proc.stdout)

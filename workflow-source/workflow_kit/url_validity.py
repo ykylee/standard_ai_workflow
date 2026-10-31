@@ -33,6 +33,13 @@ from pathlib import Path
 from typing import IO, Any, Literal
 from urllib.parse import urlparse
 
+from workflow_kit.common.file_lock import (
+    prepare_lock_file,
+    try_lock_exclusive,
+    unlock as release_file_lock,
+)
+from workflow_kit.common.paths import user_home
+
 
 # ---------------------------------------------------------------------------
 # Severity
@@ -802,7 +809,7 @@ def check_url_semantic_composite(
     )]
 # ---------------------------------------------------------------------------
 DEFAULT_CACHE_TTL_SECONDS: int = 86400
-DEFAULT_CACHE_FILE: Path = Path.home() / ".workflow_kit" / "url_validity_cache.json"
+DEFAULT_CACHE_FILE: Path = user_home() / ".workflow_kit" / "url_validity_cache.json"
 DEFAULT_CACHE_MAX_BYTES: int = 10 * 1024 * 1024  # 10 MB
 DEFAULT_CACHE_MAX_ENTRIES: int = 10000  # LRU cap
 
@@ -857,8 +864,13 @@ _evictions_lfu: int = 0  # v0.7.41+ per-strategy counter (ADR-021 follow-up, inc
 class _CacheLock:
     """Context manager for cross-process file lock on cache file. ADR-015.
 
-    Uses `fcntl.flock` for advisory locking (POSIX only).
-    Falls back to no-op on Windows (non-blocking). Emits WARN on failure.
+    Uses advisory locking: POSIX 는 ``fcntl.flock`` , Windows 는
+    ``msvcrt.locking`` — 둘 다 :mod:`workflow_kit.common.file_lock` 한 곳에 있다.
+    Emits WARN on failure.
+
+    **Windows 에서 no-op 이 아니다 (TASK-2026-10-31-main-003).** 이전엔
+    ``fcntl`` 가 없으면 그냥 "락 없이 진행"했는데, 그건 동시 실행 가드가
+    조용히 사라지는 것이었다. 이제 양쪽에서 실제로 잡힌다.
     """
 
     DEFAULT_LOCK_TIMEOUT: float = 30.0
@@ -872,23 +884,18 @@ class _CacheLock:
         self._lock_path: Path | None = None
         self._fd: IO[Any] | None = None
     def __enter__(self) -> "_CacheLock":
-        try:
-            import fcntl  # POSIX only
-        except ImportError:
-            # Windows: no-op
-            return self
         # Use a sidecar lock file (cache_file.lock) to avoid interfering with cache reads
         self.cache_file.parent.mkdir(parents=True, exist_ok=True)
         self._lock_path = self.cache_file.with_suffix(self.cache_file.suffix + ".lock")
         # v0.7.38+: orphan lock cleanup. If lock file exists and is older than
         # stale_seconds, treat as orphaned (process died without cleanup) and remove.
         self._maybe_cleanup_stale_lock()
+        # Windows 는 빈 파일을 잠그면 그 파일 전체가 읽히지 않는다 — 1 바이트 확보.
+        prepare_lock_file(self._lock_path)
         try:
-            self._fd = open(self._lock_path, "w", encoding="utf-8")
+            self._fd = open(self._lock_path, "a+b")
             # Try non-blocking exclusive lock first
-            try:
-                fcntl.flock(self._fd.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-            except OSError:
+            if not try_lock_exclusive(self._fd):
                 # Already locked — retry with backoff until timeout
                 import time
                 deadline = time.monotonic() + self.timeout
@@ -896,12 +903,10 @@ class _CacheLock:
                 acquired = False
                 while time.monotonic() < deadline:
                     time.sleep(backoff)
-                    try:
-                        fcntl.flock(self._fd.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    if try_lock_exclusive(self._fd):
                         acquired = True
                         break
-                    except OSError:
-                        backoff = min(backoff * 2, 1.0)
+                    backoff = min(backoff * 2, 1.0)
                 if not acquired:
                     raise OSError(f"lock acquisition timeout after {self.timeout}s")
         except OSError as e:
@@ -914,11 +919,7 @@ class _CacheLock:
 
     def __exit__(self, *args: Any) -> Literal[False]:
         if self._fd is not None:
-            try:
-                import fcntl
-                fcntl.flock(self._fd.fileno(), fcntl.LOCK_UN)
-            except (OSError, ImportError):
-                pass
+            release_file_lock(self._fd)
             self._fd.close()
             self._fd = None
         return False

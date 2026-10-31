@@ -102,7 +102,7 @@ def _emit_dashboard_post_release(args: argparse.Namespace, results: dict) -> dic
             }
         # path 표시는 project_root 기준 relative (absolute path 입력이면 그대로 노출).
         try:
-            display_path = str(dashboard_path.relative_to(project_root))
+            display_path = dashboard_path.relative_to(project_root).as_posix()
         except ValueError:
             display_path = str(dashboard_path)
         return {

@@ -46,7 +46,7 @@ shutil.copyfile(REAL_MATURITY_PATH, MATURITY_PATH)
 def _run(*args: str) -> subprocess.CompletedProcess:
     return subprocess.run(
         [sys.executable, str(SCRIPT), *args, "--maturity-path", str(MATURITY_PATH), "--json"],
-        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=30,
+        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace"
     )
 
 

@@ -139,7 +139,33 @@ NAME_RE = re.compile(r"^(?!-)(?!.*--)[a-z0-9-]{1,64}(?<!-)$")
 #: manifest 가 선언해도 되는 필드 — 계획 §3-P1 의 계약. 스펙 확인 전까지 고정.
 MANIFEST_FIELDS = {"name", "version", "description"}
 
+#: payload 가 MCP command 를 고정하는 플랫폼.
+#:
+#: payload 는 **체크인되는 산출물**이라 렌더 호스트와 무관하게 같은 내용이어야 한다
+#: (해시로 드리프트를 재므로 호스트마다 command 가 갈리면 그 비교가 무너진다).
+#: 그래서 payload 렌더러는 `platform="posix"` 를 명시해 고정한다
+#: (`workflow_kit/plugin_payload.py` · `workflow_kit/common/python_launcher.py` 참조).
+#:
+#: 기대값도 **같은 고정**으로 파생해야 한다 — 호스트 기본값으로 재면 Windows 에서만
+#: `python` vs payload 의 `python3` 으로 갈려 3개 case 가 red 가 된다 (2026-10-31 실측).
+#: 여기서 파생하지 않으면 payload 가 손으로 적은 값과 같아져 검사 목적을 잃는다 —
+#: 기대값은 정본 함수(`mcp_server_command`) 가 만든 값이어야 한다.
+PAYLOAD_MCP_PLATFORM = "posix"
+
 FAILURES: list[str] = []
+
+
+def _expected_payload_mcp_command() -> list[str]:
+    """payload 가 실어야 하는 MCP command — 정본 함수에서 **파생**한다.
+
+    `mcp_server_command` 를 플랫폼 고정으로 호출할 뿐이다. 직접 배열을 적으면
+    entry-point 모듈명이 바뀔 때 이 검사가 못 잡는다 (파생 규칙의 존재 이유).
+    """
+    from workflow_kit.bootstrap_lib.mcp import mcp_server_command
+
+    return mcp_server_command(
+        PAYLOAD_MCP_BRIDGE, PAYLOAD_MCP_BUNDLE, platform=PAYLOAD_MCP_PLATFORM
+    )
 
 
 def _record(name: str, ok: bool, detail: str = "") -> None:
@@ -359,7 +385,6 @@ def test_mcp_matches_read_only_bundle() -> None:
     from workflow_kit.bootstrap_lib.mcp import (
         MCP_SERVER_ALIAS,
         MCP_WRITE_SERVER_ALIAS,
-        mcp_server_command,
     )
     from workflow_kit.server.read_only_registry import tool_specs_for_bundle
 
@@ -374,7 +399,7 @@ def test_mcp_matches_read_only_bundle() -> None:
             "파일을 바꾸는 도구는 명시 opt-in 이다 (ADR-003)"
         )
     entry = servers.get(MCP_SERVER_ALIAS, {})
-    expected = mcp_server_command(PAYLOAD_MCP_BRIDGE, PAYLOAD_MCP_BUNDLE)
+    expected = _expected_payload_mcp_command()
     if [entry.get("command"), *entry.get("args", [])] != expected:
         problems.append(f"command/args 가 mcp_server_command 파생이 아니다: {entry.get('args')}")
     if not tool_specs_for_bundle(PAYLOAD_MCP_BUNDLE):
@@ -829,9 +854,7 @@ def test_antigravity_adapter() -> None:
     from workflow_kit.bootstrap_lib.mcp import (
         MCP_SERVER_ALIAS,
         MCP_WRITE_SERVER_ALIAS,
-        mcp_server_command,
     )
-
     from workflow_kit.plugin_payload import (
         ANTIGRAVITY_MCP_SERVER_ALIAS,
         ANTIGRAVITY_TOOL_NAME_RE,
@@ -870,7 +893,7 @@ def test_antigravity_adapter() -> None:
     if all(ANTIGRAVITY_TOOL_NAME_RE.match(n) for n in antigravity_tool_names(MCP_SERVER_ALIAS)):
         problems.append("공용 별칭으로도 전부 통과한다 — 실측(전부 거부)과 판정이 어긋난다")
     entry = next(iter(servers.values()), {})
-    expected_cmd = mcp_server_command(PAYLOAD_MCP_BRIDGE, PAYLOAD_MCP_BUNDLE)
+    expected_cmd = _expected_payload_mcp_command()
     if [entry.get("command"), *entry.get("args", [])] != expected_cmd:
         problems.append(f"command/args 가 mcp_server_command 파생이 아니다: {entry.get('args')}")
     if "PYTHONPATH" in entry.get("env", {}):
@@ -899,11 +922,10 @@ def test_goose_opencode_snippets() -> None:
     from workflow_kit.bootstrap_lib.mcp import (
         MCP_CONFIG_ROOT_KEY,
         MCP_SERVER_ALIAS,
-        mcp_server_command,
     )
 
     payload = render_agent_plugin()
-    expected_cmd = mcp_server_command(PAYLOAD_MCP_BRIDGE, PAYLOAD_MCP_BUNDLE)
+    expected_cmd = _expected_payload_mcp_command()
     problems: list[str] = []
 
     opencode = json.loads(payload[OPENCODE_SNIPPET_RELPATH])

@@ -24,7 +24,7 @@ def run_session_start(*, expect_success: bool, args: list[str]) -> tuple[int, di
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
-        check=False,
+        check=False, encoding="utf-8", errors="replace"
     )
     if expect_success and completed.returncode != 0:
         raise AssertionError(f"Expected session-start success but got {completed.returncode}: {completed.stderr}")

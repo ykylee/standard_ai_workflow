@@ -130,7 +130,7 @@ def _run(ws: Path, *extra: str) -> dict:
             *extra,
         ],
         capture_output=True, text=True, timeout=120,
-        env=platform_child_env(path="/usr/bin:/bin", PYTHONPATH=str(SOURCE_ROOT)),
+        env=platform_child_env(path="/usr/bin:/bin", PYTHONPATH=str(SOURCE_ROOT)), encoding="utf-8", errors="replace"
     )
     assert proc.stdout.strip(), f"runner 가 아무것도 출력하지 않았다.\nstderr: {proc.stderr[-800:]}"
     return json.loads(proc.stdout)

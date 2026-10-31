@@ -54,7 +54,7 @@ def _run_cli(*extra: str, stdin_text: str | None = None) -> subprocess.Completed
         input=stdin_text,
         capture_output=True,
         text=True,
-        timeout=60,
+        timeout=60, encoding="utf-8", errors="replace"
     )
 
 

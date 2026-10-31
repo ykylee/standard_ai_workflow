@@ -100,7 +100,7 @@ def _invoke_tool_directly(root: Path) -> None:
     subprocess.run(
         [sys.executable, str(SESSION_START_TOOL),
          "--project-profile-path", str(root / "docs" / "PROJECT_PROFILE.md")],
-        cwd=str(root), capture_output=True, text=True, timeout=180, env=env,
+        cwd=str(root), capture_output=True, text=True, timeout=180, env=env, encoding="utf-8", errors="replace"
     )
 
 

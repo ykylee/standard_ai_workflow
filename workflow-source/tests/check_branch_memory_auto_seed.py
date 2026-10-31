@@ -55,6 +55,13 @@ origin 없는 저장소 (TASK-2026-10-02-main-003 — remote 가 없으면 base 
 
 from __future__ import annotations
 
+
+#: branch memory auto-seed 은 18 case 를 모두 도는 데 시간이 든다 — 단독 67.8s 실측(2026-10-31, Windows).
+#: 기본 60s 상한은 행(hang) 잡기용이고, 병렬 부하만 얹혀도 이 상한을 넘는다
+#: (게이트 전량 축에서 실제로 TIMEOUT 이 났다). 저장소 규칙대로 상한을 선언한다
+#: (CLAUDE.md: 단독 ~25s 초과 검사는 선언).
+CHECK_TIMEOUT_S = 150
+
 #: 이 검사의 입력 표면 (spec `core/test_impact_tiering_spec.md` §2).
 WATCHES = (
     "workflow-source/pyproject.toml",
@@ -102,7 +109,7 @@ def _env(extra: dict[str, str] | None = None) -> dict[str, str]:
 
 def _git(cwd: Path, *args: str) -> None:
     subprocess.run(["git", "-c", "user.email=t@t", "-c", "user.name=t", *args],
-                   cwd=cwd, check=True, capture_output=True, text=True, env=_env())
+                   cwd=cwd, check=True, capture_output=True, text=True, env=_env(), encoding="utf-8", errors="replace")
 
 
 def _make_repo(tmp: Path, *, with_base_memory: bool = True) -> Path:
@@ -135,7 +142,7 @@ def _make_repo(tmp: Path, *, with_base_memory: bool = True) -> Path:
 def _session_start(cwd: Path, *args: str, env: dict[str, str] | None = None) -> dict:
     proc = subprocess.run(
         [sys.executable, "-m", "workflow_kit.tools.session_start", *args],
-        cwd=cwd, capture_output=True, text=True, env=_env(env), timeout=120,
+        cwd=cwd, capture_output=True, text=True, env=_env(env), timeout=120, encoding="utf-8", errors="replace"
     )
     try:
         return json.loads(proc.stdout)
@@ -197,7 +204,7 @@ def _snapshot(directory: Path) -> dict[str, bytes]:
 def _archive(clone: Path, branch: str) -> subprocess.CompletedProcess:
     return subprocess.run(
         [sys.executable, "-m", "workflow_kit.tools.archive_branch_memory", "--branch", branch, "--apply", "--json"],
-        cwd=clone, capture_output=True, text=True, env=_env(), timeout=120,
+        cwd=clone, capture_output=True, text=True, env=_env(), timeout=120, encoding="utf-8", errors="replace"
     )
 
 
@@ -210,7 +217,7 @@ def _inheritance_cases(tmp: Path) -> None:
     before = _snapshot(parent)
     _git(clone, "checkout", "-q", "-b", "claude/heir")
     sha = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=clone, capture_output=True,
-                         text=True, env=_env()).stdout.strip()
+                         text=True, env=_env(), encoding="utf-8", errors="replace").stdout.strip()
     result = _session_start(clone)
     heir = _active(clone) / "claude" / "heir"
     handoff = (heir / "session_handoff.md").read_text(encoding="utf-8") if (heir / "session_handoff.md").exists() else ""
@@ -247,7 +254,7 @@ def _inheritance_cases(tmp: Path) -> None:
         [sys.executable, "-m", "workflow_kit.tools.backlog_update", "--project-profile-path", "docs/PROJECT_PROFILE.md",
          "--apply", "--task-id", "TASK-2026-09-30-main-002", "--mode", "update", "--task-name", "x",
          "--progress-note", "worktree 에서 이어서 진행"],
-        cwd=clone, capture_output=True, text=True, env=_env(), timeout=120)
+        cwd=clone, capture_output=True, text=True, env=_env(), timeout=120, encoding="utf-8", errors="replace")
     copy = heir / "backlog" / "tasks" / "TASK-2026-09-30-main-002.md"
     # 사본이 없으면(이어받기 실패) 판정으로 떨어뜨린다 — 예외로 죽으면 뒤 case 가 안 돈다.
     copy_text = copy.read_text(encoding="utf-8") if copy.is_file() else ""
@@ -293,7 +300,7 @@ def _inheritance_cases(tmp: Path) -> None:
         [sys.executable, "-m", "workflow_kit.tools.backlog_update", "--project-profile-path", "docs/PROJECT_PROFILE.md",
          "--apply", "--task-id", "TASK-2026-09-30-main-002", "--mode", "update", "--task-name", "x",
          "--progress-note", "worktree 쪽 변경"],
-        cwd=clone, capture_output=True, text=True, env=_env(), timeout=120)
+        cwd=clone, capture_output=True, text=True, env=_env(), timeout=120, encoding="utf-8", errors="replace")
     origin = parent / "backlog" / "tasks" / "TASK-2026-09-30-main-002.md"
     origin.write_text(origin.read_text(encoding="utf-8") + "- 모 브랜치 쪽 변경\n", encoding="utf-8")
     origin_before = origin.read_bytes()

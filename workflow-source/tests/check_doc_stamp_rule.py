@@ -80,7 +80,7 @@ def _shift(days: int) -> str:
 def _git(repo: Path, *args: str, env_extra: dict[str, str] | None = None) -> None:
     env = {**os.environ, **(env_extra or {})}
     completed = subprocess.run(
-        ["git", *args], cwd=str(repo), capture_output=True, text=True, env=env
+        ["git", *args], cwd=str(repo), capture_output=True, text=True, env=env, encoding="utf-8", errors="replace"
     )
     if completed.returncode != 0:
         raise AssertionError(f"git {' '.join(args)} 실패: {completed.stderr.strip()}")

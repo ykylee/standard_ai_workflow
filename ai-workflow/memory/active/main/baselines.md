@@ -11,6 +11,10 @@
 
 ## 롤오프 2026-10-31
 
+- **117차 세션 (2026-10-06, Linux 호스트) — task 3건 close, 발행 없음 (main 은 v1.20.1 + 3커밋).** ①**main-003**(A2) — 재시작 뒤 `subagent_type=verifier` 로 v1.20.1 발행 task(main-007) 검증 3/3 PASS, 노출 도구 Bash·Read 뿐(쓰기 도구 미노출 실측). Bash 쓰기는 지시문 규율 의존, 선언한 Grep·Glob 은 이 빌드 미노출. ②**main-008**(WBS-7.4) — `docs/RELEASE.md` §2.8 에 `python -m workflow_kit.minimax_plugin` 재적용 + doctor `content_drift`·`plugin_enabled` 가 minimax 를 안 잰다는 사실 + `in_sync` 확인 one-liner (`2ef4682f`). ③**main-009**(WBS-7.2) — `--apply` 가 반영 뒤 상태를 찍어 첫 설치가 '13개 이미 일치' 로 읽히던 것: 바뀐 파일만 쓰고 `before` 를 싣고 '<옛> → <새>' · 무변경은 백업 없음 · 반영 뒤 불일치 rc 1(text·json), case 8 (`077474d8`). verifier 3회 — 기준 줄 부재로 1회 차단, 되주입 구멍 2건(목록 루프 · 화살표 조건) 추가 발견.
+
+## 롤오프 2026-10-31
+
 - **116차 세션 (2026-10-05~06, Linux 호스트) — task 9건 close + v1.20.0 발행, A2(verifier) in_progress.** ①**AI-native SDLC 플레이북 검토**(main-001, `docs/planning/ai-native-sdlc-playbook-review-2026-10.md`) → 소유자 결정 A1~A3: **A1** task `## 🧭 Plan` 절 + `backlog-update --plan-*` + 정본 §1 원칙(main-002) · **A2** `.claude/agents/verifier.md`(대역 실측에서 mypy strict 회귀를 잡음, 실제 로드는 재시작 후 — main-003 in_progress) · **A3** `.claude/hooks/guard_check_weakening.py` PreToolUse(첫 정규식판이 따옴표 안 언급에 오탐 → shlex 토큰, main-004). ②**진입점 다이어트**: 이 저장소 CLAUDE.md 12,184→6,838B(10-06-main-001) · 정본 규칙 블록 3,635→2,740B(근거는 비렌더 본문, main-002) · bootstrap 템플릿 공유 절 `entry_sections.py` + `check_entry_budget` 8KB(CLAUDE 7,758→5,020 · GROK 10,532→6,663B, main-003) · `ensure-entrypoints --diet` 절 단위(과거 kit 생성 그대로인 절만 교체/제거, 해시는 발행 태그 11개 실제 bootstrap 채취 `scripts/harvest_entry_sections.py`, main-004). ③**v1.20.0**(main-005, 파생 minor) — 태그 → `997b2b3b`(게이트 309×2), asset 5종(MiniMax ZIP 추가), 발행 wheel 로 --diet 7,636→5,107B, §2.8 behind=[] disabled=[]. ④**main-006** — backlog-update 의 handoff 동기화 · 이월 색인이 보존 제목 대신 입력 `--task-name` 을 쓰던 결함 수리(`6c348937`) → ⑤**v1.20.1** patch 발행(main-007, 태그 → `ffff4900`, 게이트 309×2, 발행 wheel 로 제목 보존 실측, §2.8 behind=[] disabled=[]).
 
 ## 롤오프 2026-10-22

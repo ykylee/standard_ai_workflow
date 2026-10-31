@@ -115,7 +115,7 @@ def test_runner_declares_contexts_from_registry() -> None:
     help_text = subprocess.run(
         [sys.executable, str(RUNNER), "--help"],
         capture_output=True, text=True, timeout=60,
-        env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)},
+        env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)}, encoding="utf-8", errors="replace"
     ).stdout
     assert "--branch-context" in help_text, "runner 에 --branch-context 가 없다"
     for label in labels():
@@ -128,7 +128,7 @@ def _run_probe(*extra: str) -> str:
     proc = subprocess.run(
         [sys.executable, str(RUNNER), f"--filter={PROBE_FILTER}", "--json", *extra],
         capture_output=True, text=True, timeout=300,
-        env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)},
+        env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)}, encoding="utf-8", errors="replace"
     )
     return proc.stdout
 

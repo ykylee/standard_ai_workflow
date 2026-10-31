@@ -47,7 +47,7 @@ PYTHON = sys.executable
 def _run_tool(*args: str, repo_root: Path) -> dict:
     """Run archive_stale_memory.py with given args. Returns parsed JSON."""
     cmd = [PYTHON, str(TOOL), *args, "--repo-root", str(repo_root)]
-    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace")
     if proc.returncode != 0:
         return {"error": proc.stderr, "returncode": proc.returncode, "stdout": proc.stdout}
     try:

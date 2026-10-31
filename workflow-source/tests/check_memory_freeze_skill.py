@@ -52,7 +52,7 @@ def _run(active: Path, archive: Path, *extra: str) -> tuple[int, dict]:
             "--archive-root", str(archive),
             *extra,
         ],
-        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=120,
+        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=120, encoding="utf-8", errors="replace"
     )
     try:
         payload = json.loads(proc.stdout)

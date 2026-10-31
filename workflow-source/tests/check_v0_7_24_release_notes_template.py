@@ -144,8 +144,14 @@ def test_notes_template_custom() -> None:
         f"custom path 가 absolute 가 아님: {notes_file}"
     )
 
-    # absolute path
-    abs_path = "/tmp/test-notes.md"
+    # absolute path — **그 플랫폼 관례의 절대 경로**를 쓴다.
+    # POSIX 리터럴(`/tmp/test-notes.md`)은 Windows 에서 절대 경로가 아니다
+    # (`Path("/tmp/x").is_absolute()` == False) → 저장소 상대 경로로 해석되어
+    # "custom:<절대경로>" 계약이 성립하지 않는다 (2026-10-31 실측). 어느 플랫폼에서든
+    # 실제로 절대인 값을 만들어 같은 계약을 잰다.
+    import tempfile
+
+    abs_path = str(Path(tempfile.gettempdir()) / "test-notes.md")
     result_abs = mod._resolve_notes_file("0.7.24", f"custom:{abs_path}")
     assert result_abs.get("error") is None
     assert str(result_abs["notes_file"]) == abs_path

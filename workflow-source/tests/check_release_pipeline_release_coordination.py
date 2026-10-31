@@ -48,7 +48,7 @@ def test_remote_tag_check_argparse() -> None:
     """release --auto-bump 가 argparse error 없이 받아들여짐."""
     proc = subprocess.run(
         [sys.executable, str(TOOL), "release", "--auto-bump", "--skip-validate", "--dry-run", "--json"],
-        capture_output=True, text=True, timeout=30,
+        capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace"
     )
     assert "unrecognized arguments" not in proc.stderr, f"argparse error: {proc.stderr}"
     # dry-run 결과는 dist 부재로 error 포함 가능. version_source 또는 auto_bump field 검증.
@@ -65,7 +65,7 @@ def test_allow_existing_tag_argparse() -> None:
     """release --allow-existing-tag 이 argparse error 없이 받아들여짐 (v0.7.21+)."""
     proc = subprocess.run(
         [sys.executable, str(TOOL), "release", "--allow-existing-tag", "--skip-validate", "--dry-run", "--json"],
-        capture_output=True, text=True, timeout=30,
+        capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace"
     )
     assert "unrecognized arguments" not in proc.stderr, f"argparse error: {proc.stderr}"
     # dry-run 결과는 dist 부재로 error 포함 가능. 정상.
@@ -96,7 +96,7 @@ def test_remote_tag_check_dry_run_no_remote() -> None:
         # _check_remote_tag 가 cwd 기준 호출 — git rev-parse 가 fail 하면 exists=False)
         proc = subprocess.run(
             [sys.executable, str(TOOL), "release", "--skip-validate", "--dry-run", "--json"],
-            capture_output=True, text=True, timeout=30, cwd=tmp,
+            capture_output=True, text=True, timeout=30, cwd=tmp, encoding="utf-8", errors="replace"
         )
         # dummy remote 에 tag 부재 → exists=False, release 흐름은 dist 부재로 error 가능
         # argparse + _check_remote_tag 가 graceful 인지 검증
@@ -132,7 +132,7 @@ def test_remote_tag_check_dry_run_existing_tag() -> None:
         # _check_remote_tag 가 network error 시 graceful — 일단 stderr 에 argparse error 부재만 확인
         proc = subprocess.run(
             [sys.executable, str(TOOL), "release", "--skip-validate", "--dry-run", "--json"],
-            capture_output=True, text=True, timeout=30, cwd=tmp,
+            capture_output=True, text=True, timeout=30, cwd=tmp, encoding="utf-8", errors="replace"
         )
         # 본 test 의 핵심: --auto-bump 또는 --dry-run 둘 다 graceful
         assert "unrecognized arguments" not in proc.stderr

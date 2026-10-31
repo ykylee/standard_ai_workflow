@@ -41,7 +41,7 @@ def _run_bootstrap_lib(args: list[str], env: dict[str, str] | None = None) -> di
         capture_output=True,
         text=True,
         env=full_env,
-        check=True,
+        check=True, encoding="utf-8", errors="replace"
     )
     return json.loads(completed.stdout)
 
@@ -208,7 +208,7 @@ def test_apply_upgrade_smart_update() -> None:
             env={**env, **os.environ},
             capture_output=True,
             text=True,
-            check=True,
+            check=True, encoding="utf-8", errors="replace"
         )
         assert "Created:" in completed.stdout
         # First run creates both VERSION and PROFILE.md.
@@ -228,7 +228,7 @@ def test_apply_upgrade_smart_update() -> None:
             env={**env, **os.environ},
             capture_output=True,
             text=True,
-            check=True,
+            check=True, encoding="utf-8", errors="replace"
         )
         assert "Ignored:" in completed2.stdout
         assert "already up to date" in completed2.stdout

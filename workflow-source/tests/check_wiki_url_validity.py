@@ -17,6 +17,9 @@ from __future__ import annotations
 #: 이 검사의 입력 표면 (spec `core/test_impact_tiering_spec.md` §2).
 #: 게이트 채취 실측에서 뽑아 넓은 쪽으로 올렸다 — 좁으면 meta-watch 가 red 로 잡는다.
 WATCHES = (
+    # v1.2.1 (TASK-2026-10-31-main-003): kit 을 import 하면 `workflow_kit/__init__.py` 가
+    # 버전을 읽으려고 **pyproject.toml** 을 연다 — 그 파일도 입력 표면이다.
+    "workflow-source/pyproject.toml",
     "workflow-source/workflow_kit/*",
 )
 
@@ -520,14 +523,29 @@ def _lock_write_worker(url_suffix: str, cache_file_str: str, url_validity_path: 
 
 
 def _lock_hold_worker(duration: float, lock_path_str: str) -> None:
-    """자식 프로세스: 잠금을 duration 초 동안 붙들고 있는다."""
-    import fcntl
-    import time as _time
+    """자식 프로세스: 잠금을 duration 초 동안 붙들고 있는다.
 
-    with open(lock_path_str, "w") as fd:
-        fcntl.flock(fd.fileno(), fcntl.LOCK_EX)
+    Windows 는 ``fcntl`` 가 없다 — 정본 락 helper(``workflow_kit.common.file_lock``)를
+    쓴다. POSIX 는 ``flock`` , Windows 는 ``msvcrt.locking`` 이고, 둘 다 "다른 주체가
+    잡고 있으면 막힌다" 는 계약을 같게 만든다 (TASK-2026-10-31-main-003).
+    """
+    import sys as _sys
+    import time as _time
+    from pathlib import Path as _Path
+
+    if str(SOURCE_ROOT) not in _sys.path:
+        _sys.path.insert(0, str(SOURCE_ROOT))
+    from workflow_kit.common.file_lock import (  # noqa: PLC0415 - 자식 프로세스 안에서 import
+        lock_exclusive_blocking,
+        prepare_lock_file,
+    )
+
+    path = _Path(lock_path_str)
+    prepare_lock_file(path)
+    with open(path, "a+b") as fd:
+        if not lock_exclusive_blocking(fd, timeout=duration + 5.0):
+            return
         _time.sleep(duration)
-        fcntl.flock(fd.fileno(), fcntl.LOCK_UN)
 
 
 def test_file_lock_serializes_concurrent_writes() -> None:
@@ -801,7 +819,6 @@ def test_cache_gzip_compression_roundtrip() -> None:
 
 
 def test_file_lock_timeout() -> None:
-    import fcntl
     import multiprocessing
     import time as _time
     mod = _import_url_validity()

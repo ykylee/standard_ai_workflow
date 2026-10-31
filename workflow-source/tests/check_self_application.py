@@ -140,7 +140,7 @@ def _run_json(argv: list[str]) -> dict:
     # 표식을 넘기지만, 이 검사는 CLAUDE.md 가 커밋 전마다 **단독으로** 돌리라는
     # 검사라 러너 밖에서 돈다 — 표식 없이 커밋마다 session-start 1건이 붙었다.
     env = {**os.environ, TELEMETRY_SKIP_ROOT_ENV: str(REPO_ROOT)}
-    completed = subprocess.run(argv, cwd=REPO_ROOT, capture_output=True, text=True, env=env)
+    completed = subprocess.run(argv, cwd=REPO_ROOT, capture_output=True, text=True, env=env, encoding="utf-8", errors="replace")
     try:
         return json.loads(completed.stdout)
     except json.JSONDecodeError:
@@ -207,7 +207,7 @@ def _git_ignores(rel: str) -> bool | None:
     try:
         completed = subprocess.run(
             ["git", "check-ignore", "-q", "--", rel],
-            cwd=REPO_ROOT, capture_output=True, text=True,
+            cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace"
         )
     except (OSError, subprocess.SubprocessError):
         return None

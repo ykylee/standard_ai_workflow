@@ -57,7 +57,7 @@ from workflow_kit.common.dashboard_data import (  # noqa: E402
 def _git(ws: Path, *args: str) -> None:
     subprocess.run(
         ["git", "-c", "user.email=smoke@test", "-c", "user.name=smoke", *args],
-        cwd=str(ws), capture_output=True, text=True, check=True,
+        cwd=str(ws), capture_output=True, text=True, check=True, encoding="utf-8", errors="replace"
     )
 
 
@@ -82,7 +82,7 @@ def _make_repo(ws: Path, *, last_updated: str, commit_date: str) -> None:
         ["git", "-c", "user.email=smoke@test", "-c", "user.name=smoke",
          "commit", "--amend", "--no-edit", "-q", "--date", stamp],
         cwd=str(ws), capture_output=True, text=True, check=True,
-        env=platform_child_env(path="/usr/bin:/bin", GIT_COMMITTER_DATE=stamp),
+        env=platform_child_env(path="/usr/bin:/bin", GIT_COMMITTER_DATE=stamp), encoding="utf-8", errors="replace"
     )
 
 

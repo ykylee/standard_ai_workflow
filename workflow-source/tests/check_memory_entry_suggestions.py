@@ -230,13 +230,13 @@ def main() -> int:
         ok = subprocess.run(
             [sys.executable, str(tool), "--handoff-path", str(handoff_file),
              "--workspace-root", str(ws), "--date", "2026-01-05", "--json"],
-            capture_output=True, text=True,
+            capture_output=True, text=True, encoding="utf-8", errors="replace"
         )
         ok_payload = json.loads(ok.stdout) if ok.returncode == 0 else {}
         missing = subprocess.run(
             [sys.executable, str(tool), "--handoff-path", str(ws / "no-such.md"),
              "--workspace-root", str(ws), "--json"],
-            capture_output=True, text=True,
+            capture_output=True, text=True, encoding="utf-8", errors="replace"
         )
         missing_payload = json.loads(missing.stdout) if missing.stdout else {}
         check(
@@ -259,14 +259,14 @@ def main() -> int:
             (ws9 / "docs" / "PROJECT_PROFILE.md").write_text(
                 "# PROJECT_PROFILE\n", encoding="utf-8")
             subprocess.run(["git", "init", "-q", "-b", "feature/probe"],
-                           cwd=str(ws9), capture_output=True, text=True)
+                           cwd=str(ws9), capture_output=True, text=True, encoding="utf-8", errors="replace")
             # 커밋 0 인 저장소는 `git rev-parse --abbrev-ref HEAD` 가 실패해
             # 브랜치 해석이 모듈 저장소로 폴백된다 — 재려는 조건(브랜치 인식)을
             # 실재하게 만들려면 커밋이 하나 필요하다.
             subprocess.run(
                 ["git", "-c", "user.email=t@t", "-c", "user.name=t",
                  "commit", "-q", "--allow-empty", "-m", "seed"],
-                cwd=str(ws9), capture_output=True, text=True,
+                cwd=str(ws9), capture_output=True, text=True, encoding="utf-8", errors="replace"
             )
             branch_handoff = ws9 / "ai-workflow" / "memory" / "active" / "feature" / "probe" / "session_handoff.md"
             branch_handoff.parent.mkdir(parents=True)
@@ -278,7 +278,7 @@ def main() -> int:
                     if k not in ("CODEX_WORKFLOW_BRANCH", "GITHUB_HEAD_REF", "GITHUB_REF_NAME")}
             noarg = subprocess.run(
                 [sys.executable, str(tool), "--date", "2026-01-05", "--json"],
-                cwd=str(ws9), capture_output=True, text=True, env=env9,
+                cwd=str(ws9), capture_output=True, text=True, env=env9, encoding="utf-8", errors="replace"
             )
             noarg_payload = json.loads(noarg.stdout) if noarg.stdout else {}
             resolved = str(noarg_payload.get("handoff_path", ""))

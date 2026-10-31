@@ -638,7 +638,7 @@ def collect_multi_agent_concurrent_write_conflict(workspace_root: Path) -> dict[
             if "<<<<<<<" in text:
                 working_tree_conflict_count += 1
                 try:
-                    conflict_locations.append(str(f.relative_to(root)))
+                    conflict_locations.append(f.relative_to(root).as_posix())
                 except ValueError:
                     conflict_locations.append(str(f))
 
@@ -652,6 +652,7 @@ def collect_multi_agent_concurrent_write_conflict(workspace_root: Path) -> dict[
         proc = _subprocess.run(
             ["git", "log", "--all", "--merges", "--pretty=format:%H %s"],
             cwd=str(root), capture_output=True, text=True, timeout=10, check=False,
+            encoding="utf-8", errors="replace",
         )
         if proc.returncode == 0:
             git_log_measured = True
@@ -1258,7 +1259,7 @@ def collect_smoke_trend(
                     "version": rf.stem,  # 'Beta-v0.11.25'
                     "pass": smoke_pass,
                     "total": smoke_total,
-                    "release_note_path": str(rf.relative_to(root)),
+                    "release_note_path": rf.relative_to(root).as_posix(),
                 }
             )
 

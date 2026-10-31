@@ -121,7 +121,7 @@ def _branch_memory(root: Path, branch: str, *, statuses: list[str | None]) -> Pa
 def _run_tool(memory_root: Path, *extra: str) -> tuple[int, dict]:
     proc = subprocess.run(
         [sys.executable, str(TOOL), "--memory-root", str(memory_root), "--json", *extra],
-        capture_output=True, text=True, timeout=120,
+        capture_output=True, text=True, timeout=120, encoding="utf-8", errors="replace"
     )
     try:
         return proc.returncode, json.loads(proc.stdout)

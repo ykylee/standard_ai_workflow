@@ -34,10 +34,11 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from workflow_kit.common.paths import memory_dir_for_workspace, user_home
 from workflow_kit.common.paths import memory_dir_for_workspace
 
 # === Path setup ===
-_LEGACY_REPO_ROOT = Path.home() / "repos" / "standard_ai_workflow_minimax"
+_LEGACY_REPO_ROOT = user_home() / "repos" / "standard_ai_workflow_minimax"
 _DEPRECATION_WARNED = False
 
 
@@ -94,7 +95,7 @@ def get_external_wiki_path(override: str | Path | None = None) -> Path:
     """
     if override:
         return Path(override).expanduser()
-    return Path.home() / "wiki" / "wiki" / "projects" / "standard-ai-workflow" / "sources"
+    return user_home() / "wiki" / "wiki" / "projects" / "standard-ai-workflow" / "sources"
 
 
 # === Migration logic ===

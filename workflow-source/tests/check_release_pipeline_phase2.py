@@ -58,7 +58,7 @@ def test_release_dry_run_no_dist() -> None:
     proc = subprocess.run(
         [sys.executable, str(TOOL), "release",
          "--dry-run", "--skip-validate", "--version=99.99.99", "--json"],
-        capture_output=True, text=True, timeout=60,
+        capture_output=True, text=True, timeout=60, encoding="utf-8", errors="replace"
     )
     # dist 부재 또는 notes 부재 → error 키 존재, exit 1
     assert proc.returncode == 1, f"expected 1 (graceful fail), got {proc.returncode}: {proc.stdout[-300:]}"
@@ -88,7 +88,7 @@ def test_release_skip_validate_dry_run() -> None:
     proc = subprocess.run(
         [sys.executable, str(TOOL), "release",
          "--dry-run", "--skip-validate", "--json"],
-        capture_output=True, text=True, timeout=30,
+        capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace"
     )
     out = json.loads(proc.stdout)
     # 이전에는 `assert "error" in out` 이 있었으나, 이는 dist/release note 가 저장소에
@@ -110,7 +110,7 @@ def test_verify_dry_run() -> None:
     proc = subprocess.run(
         [sys.executable, str(TOOL), "verify",
          "--tag=v0.7.9-beta", "--dry-run", "--json"],
-        capture_output=True, text=True, timeout=10,
+        capture_output=True, text=True, timeout=10, encoding="utf-8", errors="replace"
     )
     out = json.loads(proc.stdout)
     assert out["tag"] == "v0.7.9-beta"
@@ -127,7 +127,7 @@ def test_verify_apply_release_not_found() -> None:
     proc = subprocess.run(
         [sys.executable, str(TOOL), "verify",
          "--tag=v99.99.99-beta", "--apply", "--json"],
-        capture_output=True, text=True, timeout=30,
+        capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace"
     )
     # gh auth 미인증 또는 release 부재 → exit 1
     assert proc.returncode == 1
@@ -143,7 +143,7 @@ def test_rollback_dry_run() -> None:
     proc = subprocess.run(
         [sys.executable, str(TOOL), "rollback",
          "--tag=v0.7.9-beta", "--dry-run", "--json"],
-        capture_output=True, text=True, timeout=10,
+        capture_output=True, text=True, timeout=10, encoding="utf-8", errors="replace"
     )
     out = json.loads(proc.stdout)
     assert out["tag"] == "v0.7.9-beta"
@@ -178,7 +178,7 @@ def test_cli_phase2_subcommand_help() -> None:
     """main --help + 3 Phase 2 subcommand (release / verify / rollback) 노출."""
     proc = subprocess.run(
         [sys.executable, str(TOOL), "--help"],
-        capture_output=True, text=True, timeout=10,
+        capture_output=True, text=True, timeout=10, encoding="utf-8", errors="replace"
     )
     assert proc.returncode == 0
     assert "release" in proc.stdout
@@ -193,7 +193,7 @@ def test_release_skip_validate_argparse() -> None:
     """release --skip-validate 가 argparse error 없이 받아들여짐."""
     proc = subprocess.run(
         [sys.executable, str(TOOL), "release", "--skip-validate", "--dry-run"],
-        capture_output=True, text=True, timeout=10,
+        capture_output=True, text=True, timeout=10, encoding="utf-8", errors="replace"
     )
     # exit 1 (dist 부재) 이지만 *argparse error* 가 아님 (stderr 에 'unrecognized arguments' 없음)
     assert "unrecognized arguments" not in proc.stderr

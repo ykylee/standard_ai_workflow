@@ -150,7 +150,10 @@ def _production_files() -> list[Path]:
 def _violations(conv: Convention, *, files: list[Path] | None = None) -> list[str]:
     problems: list[str] = []
     for path in files if files is not None else _production_files():
-        rel = str(path.relative_to(SOURCE_ROOT))
+        # 정본 경로·면제 registry 키는 **POSIX** 다. `str(path)` 는 Windows 에서
+        # `\` 를 내므로 정본 자신과 면제 파일이 전부 '사본' 으로 오판됐다.
+        # 저장소 상대경로는 항상 POSIX (`paths.safe_relpath` 와 같은 규약).
+        rel = path.relative_to(SOURCE_ROOT).as_posix()
         if rel == conv.canonical or rel in conv.exemptions:
             continue
         try:

@@ -41,7 +41,7 @@ def _run(*args: str, env_extra: dict[str, str] | None = None) -> subprocess.Comp
         env.update(env_extra)
     return subprocess.run(
         [sys.executable, str(SCRIPT), *args],
-        cwd=str(REPO_ROOT), env=env, capture_output=True, text=True, timeout=30,
+        cwd=str(REPO_ROOT), env=env, capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace"
     )
 
 

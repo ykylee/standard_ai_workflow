@@ -4,7 +4,9 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-10-22 (119차 세션 **종료** — Linux 호스트. 변경 없음: v1.21.0 발행 뒤 기준선 재측정 — doctor behind=[] · claude-code 재시작 확인 · 전량 게이트 309×2 green. 열린 task 는 Windows 실측 3건뿐, 이 호스트 착수 가능 작업 0)
+- 최종 수정일: 2026-10-31 (121차 세션 **종료** — Windows 호스트 DESKTOP-DGPLBF7. main-003 **한글 Windows 프로필 확립**(자식 환경 정본 `platform_child_env` · cp949 인코딩 · LF 표준 · 교차 플랫폼 파일 락 · POSIX 경로 · mypy `platform=linux`) → **격차 52건 → 0건**, 커밋 전 `--changed` 게이트 289/289 pass. 판정 불변(skip/xfail 0 · 단언 삭제 0 · 기대값 하향 0). 전량 게이트 `--branch-context=all` 은 커밋 후 clean tree 에서 rc 0 과 증거 기록을 남긴 뒤 push)
+- 이전 수정일: 2026-10-31 (120차 세션 **종료** — Windows 호스트 DESKTOP-DGPLBF7. main-001 MiniMax Code 채널 재적용(v1.21.0 플러그인 sync 13파일 + 글로벌 MCP 등록 · doctor in-sync) + main-002 게이트 러너 Windows 결함 수리(`_kill_process_group` POSIX 전용 API → `taskkill` 분기). main 은 v1.21.0 + 커밋 4건, 미push)
+- 이전 수정일: 2026-10-22 (119차 세션 **종료** — Linux 호스트. 변경 없음: v1.21.0 발행 뒤 기준선 재측정 — doctor behind=[] · claude-code 재시작 확인 · 전량 게이트 309×2 green. 열린 task 는 Windows 실측 3건뿐, 이 호스트 착수 가능 작업 0)
 - 이전 수정일: 2026-10-19 (118차 세션 **종료** — Linux 호스트. main-001 진입점 다이어트 harvest 재실행(v1.20.0 채취 + case 6 · 7) · main-002 check_memory_lint T1b branch-scoped 수리 · main-003 T1a 은퇴 + T1c · T1d branch-scoped 재작성 · main-004 goal coverage '선언 없는 goal' provenance 수리 + minimax 세션 합류(main-001 doctor 5채널 · main-003 origin 없는 auto-seed) → **v1.21.0 발행** (main-005) · 소유자 결정 3건 반영(main-006 G4 · G5 선언 · main-007 main · 태그 삭제 push 차단 · 매트릭스 요구 안 함))
 - 이전 수정일: 2026-10-06 (117차 세션 **종료** — Linux 호스트. main-003 verifier 실제 로드 실측 close · main-008 RELEASE.md §2.8 minimax-code 절차 · main-009 minimax_plugin --apply 보고 오독 수리. 발행 없음)
 - 이전 수정일: 2026-10-06 (116차 세션 **종료** — Linux 호스트. 플레이북 검토 · A1~A3 · 진입점 다이어트 3단계 · **v1.20.0 발행** · main-006 handoff 제목 동기화 수리 · **v1.20.1 발행**)
@@ -38,11 +40,11 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **120차 세션 (2026-10-31, Windows 호스트 DESKTOP-DGPLBF7) — minimax-code 채널 재적용(v1.21.0) + 게이트 러너 Windows 결함 수리, push 는 소유자 결정 대기 (main 은 v1.21.0 + 커밋 2건 `46701fda` · `f4ecc8e7`, 미push).** ①**main-001**(WBS-7.4) — 원격 `origin/main` 이 88커밋 앞서 있어 `git merge --ff-only` 로 v1.21.0(`8ea73719`) 반영. 그 다음 MiniMax Code 채널 재적용 2표면: 플러그인 sync(`python -m workflow_kit.minimax_plugin --apply` → `~/.minimax/plugins/standard-ai-workflow/` 13파일 — manifest · 스킬 5종 · 아이콘 2장, 기존 설치본 없어 백업 0)과 글로벌 MCP merge(`write_mavis_global_mcp_files` → `~/.minimax/mcp/mcp.json` 에 `standardAiWorkflowReadOnly` 등록, 절대경로 env 2종). `plugin_payload` 드리프트 0 확인. doctor 9절 실측: `content_drift` minimax-code **v1.21.0 [in-sync]** · `plugin_enabled` **enabled**(런타임 SQLite `local_runtime_plugin_local_disabled` 0행) · `global_scope` mavis **선언 있음**. 등록된 env 그대로 중립 cwd 에서 JSON-RPC `initialize` + `tools/list` 직접 호출 → 도구 11종 · kit 1.21.0 · exit 0. sync 재실행 시 "13개 이미 일치"(멱등). **미측정**: 데스크톱 프로세스 재시작 전에는 플러그인·MCP 가 노출되지 않는다(현재 세션 MCP 서버는 세션 시작 시점 1.14.4 코드를 물고 있음) · `mcode` CLI 부재로 앱 측 인식은 미확인. ②**main-002**(WBS-7.1) — 게이트 러너가 Windows 에서 **첫 검사 완료와 함께 죽었다**: `run_all_checks.py` 의 `_kill_process_group` 가 POSIX 전용 `os.getpgid`/`os.killpg` 를 쓰는데 이 함수는 매 검사 **완료 직후**(line 721)에도 호출된다 → `AttributeError` 로 러너 전체가 죽어 어떤 검사도 결과를 내지 못했다(단일 검사 `--filter check_memory_lint` 로도 동일 crash · WSL 미설치). 수정: POSIX 프로세스 그룹 API 부재 플랫폼 분기 추가, Windows 는 `taskkill /PID <pid> /T /F` 로 트리 정리(부모 종료 후면 "정리 대상 없음" False) · POSIX 경로 무변경. 결과: 단일 검사 rc 0 · `--changed` 에서 8개 검사가 실제 실행 · 스모크 `check_self_application` 8/8 rc 0. ③**main-003**(WBS-7.1, planned) — 러너 수리 후 **전량 게이트 `--branch-context=all` 실측: 309 검사 중 257 pass · 52 fail**(native·slash 두 축 동일 · 189초) — 실패 52건은 전부 이 호스트의 기존 Windows 격차이며 main-001·main-002 변경과 무관하다: fcntl 파일 락 · POSIX 권한 비트 0o600 기대 · 하드코딩 `python3` 스폰 5곳(CreateProcess 는 `.exe` 만 붙여 venv `python3.cmd` 를 못 찾고 WindowsApps 스톱 9009) · POSIX `/var/tmp` 가정 · 플랫폼 파생 기대값 대 체크인된 호스트 독립 payload · POSIX 셸·심볼릭 링크·`gh` 전제 검사 다수 · mypy 게이트 3건 · case 수 선언 대조 3건. **이 호스트에서 push 게이트 green 은 불가** — 저장소 문서도 Windows 는 미측정(게이트 호스트는 macOS·Linux)이라 한다. 게이트 증거는 기록되지 않아 push 는 소유자 결정 대기.
-- 직전 기준선: **119차 세션 (2026-10-19~22, Linux 호스트) — 변경 없음, 발행 없음 (main 은 v1.21.0 + 118차 세션 커밋 `8f621453`).** v1.21.0 발행 뒤 기준선 재측정만: ①`doctor --json` — `content_drift.behind=[]`(4채널 1.21.0, 옛 캐시 1.19.0 · 1.20.0 · 1.20.1 은 superseded), claude-code 호스트 2개는 설치 뒤 기동(재시작 완료), **codex 5 프로세스 stale**(09-30~10-15 기동 — CLI 재시작 전까지 1.21.0 스킬 미노출). 발견 3건(pi 미설치 · CLAUDE.md 포크 · 양쪽 설치)은 알려진 상태. ②전량 게이트 `--branch-context=all` rc=0, native · slash 각 309/309, 통과 기록 `8f621453`. 부속 신호(red 아님): meta-watch 넓은 선언 warn 8 · 국소 223 / 전역 17 / 미분류 69 · case 수 선언 대조 미측정 168(개수 선언 없음 158 · case 줄 없음 10). 열린 task(in_progress 2 · blocked 1)는 전부 Windows 실측, macOS §2.8 →1.21.0 은 macOS 호스트 일 — 이 호스트에서 착수 가능한 task 0. 후보로 남긴 것: WBS-7.3 case 수 선언 미측정 158건 보급(소유자 범위 결정 필요).
+- 현재 기준선: **121차 세션 (2026-10-31, Windows 호스트 DESKTOP-DGPLBF7) — 한글 Windows 프로필 확립 + Windows 격차 52건 → 0건, 커밋·전량 게이트·push 진행 (main 은 v1.21.0 + 커밋 4건 `46701fda`·`f4ecc8e7`·`3f03e903`·`b5148946` + 격차 수리 커밋, 미push).** ①**main-002**(WBS-7.1, done · 120차 착수, 커밋은 이번 세션) — 게이트 러너가 Windows 에서 첫 검사 완료와 함께 죽었다: `run_all_checks.py` 의 `_kill_process_group` 가 POSIX 전용 `os.getpgid`/`os.killpg` 를 쓰는데 매 검사 **완료 직후**(line 721)에도 호출된다 → `AttributeError` 로 러너 전체가 죽었다(단일 검사 `--filter` 로도 동일 crash · WSL 미설치). Windows 는 `taskkill /PID <pid> /T /F` 로 트리 정리(부모 종료 후면 "정리 대상 없음" False) · POSIX 경로 무변경. ②**main-003**(WBS-7.1, done) — **한글 Windows 프로필 확립 + 격차 52건 → 0건. 판정(allowed/denied)은 불변** — skip/xfail 추가 0 · 단언 삭제 0 · 기대값 무한 하향 0. Windows 에서 성립하지 않는 단언만 '해당 없음' 으로 명시. 실패 52건을 사유 클래스 8종으로 분해해 전부 해소: **①자식 환경**(정본 `common/child_process.py` — `home_env`·`tool_path`·`platform_child_env`·`platform_env` 신설. 최소 자식 env 에 HOME/USERPROFILE 이 없으면 `Path.home()` 이 RuntimeError → `import workflow_kit` 자체가 죽는다 → `common/paths.py` 에 `user_home()` 추가(Path.home()→RuntimeError→USERPROFILE→HOME→tempfile.gettempdir()), kit 내 `Path.home()` 13곳 교체) **②인코딩**(`text=True` 서브프로세스 캡처는 **로캘 cp949** 로 디코딩된다 — kit CLI 는 `common/stdio.force_utf8_stdio()` 로 UTF-8 을 강제하고 git 도 UTF-8 을 내므로 부모가 cp949 로 읽으면 UnicodeDecodeError → reader thread 죽음 → `proc.stdout=None` → AttributeError(dashboard 가 실제로 이 형태로 죽었다). kit 안 `text=True` 115곳 중 `encoding=` 누락은 `common/dashboard_data.py:652` **1건뿐**(AST 탐지기 실측) → 수정 · 검사 쪽 270지점에 `encoding='utf-8', errors='replace'`(148파일) · 러너가 자식에 `PYTHONUTF8=1` 고정) **③CRLF**(`.gitattributes` `* text=auto eol=lf` + 셸 스크립트만 `eol=crlf` + `*.sh`·`.githooks/**` LF · 저장소-local `core.autocrlf=false` · 워킹 트리 LF 정규화 2350파일 → **git diff 0건**(인덱스가 LF 라 정규화가 같은 blob 으로 접힘) · 정본 쓰기 헬퍼 `atomic_write_text`/`atomic_write_json` 은 `newline='\n'` 고정 — Windows 텍스트 모드의 CRLF 번역이 산출물 바이트를 호스트마다 다르게 만들었다) **④파일 락**(신설 `common/file_lock.py` — Windows `msvcrt.locking` / POSIX `fcntl.flock`. **Windows 바이트범위 락은 오프셋 65536** 으로 락 영역과 보유자 정보 영역을 분리(겹치면 contender 가 정보를 못 읽는다 · OSError 13), 빈 파일은 크기 0 뒤쪽을 잠갔을 때 파일 전체가 읽히지 않으므로 락 전 최소 1바이트 확보(`prepare_lock_file`)) **⑤경로 구분자**(저장소 상대경로는 **항상 POSIX** — `str(X.relative_to(Y))` 29지점을 `.as_posix()` 로(12파일). `release_pipeline.py` 의 note-draft `output_path` 가 `releases\Beta-v0.7.9.md` 로 나가던 문제 포함) **⑥mypy**(`[tool.mypy]` 에 `platform = 'linux'` 고정 — 배포 대상 = POSIX, Windows 로컬 실행도 CI 와 동일 결과. 227 source files · no issues) **⑦Windows 기능 한계**(POSIX 권한비트 기대 0o600/0o755 · 심볼릭 링크 · `/var/tmp` · POSIX 셸 · `gh` 전제 · 하드코딩 `python3` 스폰 5곳(CreateProcess 는 `.exe` 만 붙여 venv `python3.cmd` 를 못 찾고 WindowsApps 스톱 9009) → `sys.executable`) **⑧검사 자체 결함**(`check_watch_transient_writer` 의 `_rmtree_with_retry` 가 `PermissionError` 만 잡아 **WinError 145(ERROR_DIR_NOT_EMPTY)** 를 통과시켰다 — Windows 에서 삭제 대기 중인 항목은 `os.unlink` 이 성공해도 핸들이 풀릴 때까지 디렉터리 목록에 남아 `os.rmdir` 이 145 로 거절한다. 재시도 창인데 잡히지 않았다 → `OSError` 전체를 잡도록 수정 + 실패 시 잔여 트리를 함께 적어 진짜 누수를 구분 가능하게). 커밋 전 `--changed` 게이트 **289/289 pass · failed 0**(meta-watch 좁은 선언 0). **미측정**: POSIX(Linux/macOS) 회귀 게이트는 이 호스트에서 돌릴 수 없다 · case 수 선언 대조 축 75건 미측정(개수 선언 없음 71 · case 줄 없음 4) — 통과가 아니라 미측정으로 남긴다.
+- 직전 기준선: **120차 세션 (2026-10-31, Windows 호스트 DESKTOP-DGPLBF7) — minimax-code 채널 재적용(v1.21.0) + 게이트 러너 Windows 결함 수리, push 는 소유자 결정 대기 (main 은 v1.21.0 + 커밋 2건 `46701fda` · `f4ecc8e7`, 미push).** ①**main-001**(WBS-7.4) — 원격 `origin/main` 이 88커밋 앞서 있어 `git merge --ff-only` 로 v1.21.0(`8ea73719`) 반영. 그 다음 MiniMax Code 채널 재적용 2표면: 플러그인 sync(`python -m workflow_kit.minimax_plugin --apply` → `~/.minimax/plugins/standard-ai-workflow/` 13파일 — manifest · 스킬 5종 · 아이콘 2장, 기존 설치본 없어 백업 0)과 글로벌 MCP merge(`write_mavis_global_mcp_files` → `~/.minimax/mcp/mcp.json` 에 `standardAiWorkflowReadOnly` 등록, 절대경로 env 2종). `plugin_payload` 드리프트 0 확인. doctor 9절 실측: `content_drift` minimax-code **v1.21.0 [in-sync]** · `plugin_enabled` **enabled**(런타임 SQLite `local_runtime_plugin_local_disabled` 0행) · `global_scope` mavis **선언 있음**. 등록된 env 그대로 중립 cwd 에서 JSON-RPC `initialize` + `tools/list` 직접 호출 → 도구 11종 · kit 1.21.0 · exit 0. sync 재실행 시 "13개 이미 일치"(멱등). **미측정**: 데스크톱 프로세스 재시작 전에는 플러그인·MCP 가 노출되지 않는다(현재 세션 MCP 서버는 세션 시작 시점 1.14.4 코드를 물고 있음) · `mcode` CLI 부재로 앱 측 인식은 미확인. ②**main-002**(WBS-7.1) — 게이트 러너가 Windows 에서 **첫 검사 완료와 함께 죽었다**: `run_all_checks.py` 의 `_kill_process_group` 가 POSIX 전용 `os.getpgid`/`os.killpg` 를 쓰는데 이 함수는 매 검사 **완료 직후**(line 721)에도 호출된다 → `AttributeError` 로 러너 전체가 죽어 어떤 검사도 결과를 내지 못했다(단일 검사 `--filter check_memory_lint` 로도 동일 crash · WSL 미설치). 수정: POSIX 프로세스 그룹 API 부재 플랫폼 분기 추가, Windows 는 `taskkill /PID <pid> /T /F` 로 트리 정리(부모 종료 후면 "정리 대상 없음" False) · POSIX 경로 무변경. 결과: 단일 검사 rc 0 · `--changed` 에서 8개 검사가 실제 실행 · 스모크 `check_self_application` 8/8 rc 0. ③**main-003**(WBS-7.1, planned) — 러너 수리 후 **전량 게이트 `--branch-context=all` 실측: 309 검사 중 257 pass · 52 fail**(native·slash 두 축 동일 · 189초) — 실패 52건은 전부 이 호스트의 기존 Windows 격차이며 main-001·main-002 변경과 무관하다: fcntl 파일 락 · POSIX 권한 비트 0o600 기대 · 하드코딩 `python3` 스폰 5곳(CreateProcess 는 `.exe` 만 붙여 venv `python3.cmd` 를 못 찾고 WindowsApps 스톱 9009) · POSIX `/var/tmp` 가정 · 플랫폼 파생 기대값 대 체크인된 호스트 독립 payload · POSIX 셸·심볼릭 링크·`gh` 전제 검사 다수 · mypy 게이트 3건 · case 수 선언 대조 3건. **이 호스트에서 push 게이트 green 은 불가** — 저장소 문서도 Windows 는 미측정(게이트 호스트는 macOS·Linux)이라 한다. 게이트 증거는 기록되지 않아 push 는 소유자 결정 대기.
+- 그 이전 기준선: **119차 세션 (2026-10-19~22, Linux 호스트) — 변경 없음, 발행 없음 (main 은 v1.21.0 + 118차 세션 커밋 `8f621453`).** v1.21.0 발행 뒤 기준선 재측정만: ①`doctor --json` — `content_drift.behind=[]`(4채널 1.21.0, 옛 캐시 1.19.0 · 1.20.0 · 1.20.1 은 superseded), claude-code 호스트 2개는 설치 뒤 기동(재시작 완료), **codex 5 프로세스 stale**(09-30~10-15 기동 — CLI 재시작 전까지 1.21.0 스킬 미노출). 발견 3건(pi 미설치 · CLAUDE.md 포크 · 양쪽 설치)은 알려진 상태. ②전량 게이트 `--branch-context=all` rc=0, native · slash 각 309/309, 통과 기록 `8f621453`. 부속 신호(red 아님): meta-watch 넓은 선언 warn 8 · 국소 223 / 전역 17 / 미분류 69 · case 수 선언 대조 미측정 168(개수 선언 없음 158 · case 줄 없음 10). 열린 task(in_progress 2 · blocked 1)는 전부 Windows 실측, macOS §2.8 →1.21.0 은 macOS 호스트 일 — 이 호스트에서 착수 가능한 task 0. 후보로 남긴 것: WBS-7.3 case 수 선언 미측정 158건 보급(소유자 범위 결정 필요).
 - 그 이전 기준선: **118차 세션 (2026-10-19, Linux 호스트) — task 7건 close (WBS-7.2 ×4 · 7.3 ×2 · 7.4 발행) + macOS 세션 합류 2건 → v1.21.0 발행 (main 은 v1.21.0 + 발행 완료 커밋), 발행 없음 (main 은 v1.20.1 + 117 · 118차 커밋, 미발행 수리 누적).** ①**main-001** — 진입점 다이어트 harvest 가 다이어트 직전 `062c4d64` 에서 멈춰 v1.20.0 생성물 7절이 `KNOWN_GENERATED` 에 없었다(실측: v1.20.0 · v1.20.1 · HEAD 27절 동일). `DEFAULT_REFS` 에 v1.20.0 추가 → 해시 102→112(삭제 0). `check_entry_diet` case 6(하네스 12 를 **하나씩** bootstrap — 합친 dict 는 같은 AGENTS.md 의 마지막 하네스만 본다 · 진입점 8) · case 7(데이터 모듈 채취 ref == DEFAULT_REFS), `--ref` + `--apply` 거절, RELEASE.md §2.1 절차. ②**main-002** — `check_memory_lint` T1b stale 이 branch-scoped 전환(07-21) 이후 루트 공유층(KEEP 4건)만 mtime 으로 재다 07-16 파일이 90일을 넘겨 red. branch 디렉터리(중첩 포함)의 **git 커밋 일자**로 재고 KEEP 은 `migrate_memory_to_branch_scoped.KEEP` 파생 면제, self-test(mtime · git fixture). verifier 2회 — 둘 다 FAIL 0, `--changed` 는 동시 실행 telemetry 오염으로 UNMEASURED → 단독 재실행 280/280 rc=0 으로 close. ③**main-003** — 같은 파일의 T1a(archive/<latest>/work_backlog.md) 은퇴(`check_state_reconcile` 정본) · T1c orphan: 브랜치별 tasks/*.md 가 같은 브랜치 index 에 ID 로 출현(옛 `- **ID**` 형식 포함 — 실저장소 TASK-2026-07-20-001 이 기댄다) · T1d missing: 참조 ID 를 index `path:` 선언 → 브랜치 tasks/ → archived/ 순 해소(합류 worktree 7건 · session 종류 2건이 그렇게 해소), 정규식 못 읽는 stem 은 red · 안 맞는 참조(옛 TASK-001 꼴 535건)는 숫자로 보고. verifier 되주입 9건 red. ④**main-004**(WBS-7.3) — PURPOSE 커버리지 검토: coverage 40 은 최근 완료 10건(전부 M-007: 7.2→G2 · 7.4→G3 · exempt 2)의 창이고, G4 · G5 는 **어느 마일스톤 · leaf 도 선언하지 않아** 어떤 작업으로도 닿을 수 없는데 warnings 없이 uncovered 로만 나왔다(G5 는 09-28 PURPOSE 개정 추가, M-001~M-007 은 08-25/28 작성). `compute_goal_coverage_declared` 가 goal_ids − declared_goal_ids 를 '선언 없는 goal: G4, G5 — … goals/wbs_goals 에 적으면 닿는다' provenance 로 싣고(수치 불변), 호스트 저장소를 가리키는 두 워크스페이스 검사(claim · seed)는 graph advisory 를 residual 에서 뺐다. verifier 4 PASS + 생존 되주입 2건(uncovered 기준 · 선언 0 가드)을 fixture 로 고정. ⑤**main-005**(WBS-7.4) — **v1.21.0 발행**(minor: feat 1 · fix 6): 준비 커밋 `a019c51b`(bump + 파생물 45파일 — v1.20.1 준비 커밋과 같은 자리) → 게이트 309×2 → dry-run → push → dist(wheel · sdist · plugin zip 3, twine PASS) → 소유자 승인 → `release --apply`: 태그 v1.21.0 · GitHub Release asset 5종. 격리 venv 1.21.0 · doctor 에 minimax-code no_copy. 이 호스트 §2.8 4채널 → behind=[] disabled=[]. verifier 가 노트 산문 수치 2건(닫은 task 수 · 되주입 총수)을 잡아 정정 + `gh release edit`. ⑥**main-006**(7.3) — 소유자 결정 A안: M-001~M-006 goals 에 G5 · M-006 에 G4 · WBS-7.4 → G3, G4, G5 → coverage 40→80 · health 58→86, warnings []. ⑦**main-007**(7.2) — 소유자 결정: `gate_evidence.is_protected_delete` 가 main · master · 태그의 삭제 push 만 막는다(정확 일치, 기능 브랜치 통과). 실제 `git push --delete` 의 hook stdin 을 채취해 fixture 와 대조하는 case 신설, verifier 되주입 8종 중 생존 1(접두 과잉)은 통과 case 확장으로 red. 매트릭스 실행 기록 요구는 현행 유지로 결정 기록만.
-- 그 이전 기준선: **117차 세션 (2026-10-06, Linux 호스트) — task 3건 close, 발행 없음 (main 은 v1.20.1 + 3커밋).** ①**main-003**(A2) — 재시작 뒤 `subagent_type=verifier` 로 v1.20.1 발행 task(main-007) 검증 3/3 PASS, 노출 도구 Bash·Read 뿐(쓰기 도구 미노출 실측). Bash 쓰기는 지시문 규율 의존, 선언한 Grep·Glob 은 이 빌드 미노출. ②**main-008**(WBS-7.4) — `docs/RELEASE.md` §2.8 에 `python -m workflow_kit.minimax_plugin` 재적용 + doctor `content_drift`·`plugin_enabled` 가 minimax 를 안 잰다는 사실 + `in_sync` 확인 one-liner (`2ef4682f`). ③**main-009**(WBS-7.2) — `--apply` 가 반영 뒤 상태를 찍어 첫 설치가 '13개 이미 일치' 로 읽히던 것: 바뀐 파일만 쓰고 `before` 를 싣고 '<옛> → <새>' · 무변경은 백업 없음 · 반영 뒤 불일치 rc 1(text·json), case 8 (`077474d8`). verifier 3회 — 기준 줄 부재로 1회 차단, 되주입 구멍 2건(목록 루프 · 화살표 조건) 추가 발견.
-- 그 이전 기준선은 [`baselines.md`](./baselines.md) 에 있다 (이관 130건, 최신이 위).
+- 그 이전 기준선은 [`baselines.md`](./baselines.md) 에 있다 (이관 131건, 최신이 위).
 
 - 현재 주 작업 축: **로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · ~~[TASK-2026-08-13-main-004] mypy flake 관찰~~ ✅ (66차 close — 33/33 표본, mypy 실패 0).
 - ~~소유자 결정 대기: state.json 생성물 여부~~ — ✅ **해소** (TASK-018, 2026-08-11): **생성물로 확정.** 정본 §11.2 에 선언, `wk refresh-state` 로 재생성, `check_state_json_generated` case 5 가 이 저장소의 정합을 상시 검사. 상세 요약·산문은 state.json 이 아니라 handoff §4 와 task 파일(SSOT)에 남긴다.
@@ -65,7 +67,6 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
-- TASK-2026-10-31-main-003 Windows 호스트에서 전량 게이트 52개 검사 red — POSIX 전제 검사가 push 게이트를 막는다
 - TASK-2026-10-02-main-007 Windows V3 백신이 wk.exe 를 평판 기반으로 차단한다 — pip 생성 console-script 런처 대체 진입 경로
 - TASK-2026-10-02-main-006 Windows 로캘(cp949)에서 wk 가 UnicodeEncodeError 로 죽는다 — stdout 과 기본 인코딩 I/O 를 UTF-8 로 고정
 ## 3. 차단 작업
@@ -75,6 +76,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-10-31-main-003 Windows 호스트에서 전량 게이트 52개 검사 red — POSIX 전제 검사가 push 게이트를 막는다
 - TASK-2026-10-31-main-002 게이트 러너가 Windows 에서 첫 검사 완료와 함께 죽는다 — _kill_process_group 가 POSIX 전용 os.getpgid 를 쓴다
 - TASK-2026-10-31-main-001 MiniMax Code 채널 재적용 — v1.21.0 로컬 마켓플레이스 sync + 글로벌 MCP 등록
 - TASK-2026-10-19-main-007 pre-push 게이트가 main · 태그 삭제 push 를 막는다 — 다른 브랜치 삭제는 통과 (소유자 결정 2026-10-19)
@@ -84,11 +86,11 @@
 - TASK-2026-10-02-main-003 원격 없는 저장소의 worktree 는 자동 seed · 이어받기가 안 돈다 — 기본 브랜치 판정이 현재 브랜치로 떨어진다
 - TASK-2026-09-30-main-001 minimax-code 가 플러그인 채널로 미지원 — 배포·드리프트 판정·재생성이 모두 kit 밖
 - TASK-2026-10-19-main-003 check_memory_lint T1a · T1c · T1d 가 legacy 경로라 항상 skip — 은퇴 1 · branch-scoped 재작성 2
-- TASK-2026-10-19-main-002 check_memory_lint T1b stale 가 branch-scoped 전환 뒤 공유층 파일만 잰다 — 시간 경과만으로 red
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
 
+- (121차) **한글 Windows 프로필 확립 + 격차 52건 → 0건.** 이 호스트에서 전량 게이트 `--branch-context=all` 가 이제 green 이다 — 커밋 후 clean tree 에서 rc 0 과 증거 기록을 남긴다(커밋 전 `--changed` 는 289/289 pass). 다음 일: ①그 증거를 근거로 `origin/main` push(게이트 우회 금지) ②원하면 이 호스트에서 `release --apply` 로 v1.21.1 발행 시도 ③**POSIX(Linux/macOS) 회귀 게이트는 이 호스트에서 돌릴 수 없다** — 309×2 는 별도 호스트에서 확인해야 한다. 소유자 결정 대기 0 (push 는 '격차 수리 후' 로 결정됨). 재발 방지 규칙 8절은 §5 말미 "121차가 남긴 규칙" 참고.
 - (119차) **변경 없음 — 기준선 green 재확인.** 이 호스트 다음 일: codex CLI 재시작(5 프로세스 stale) 뒤 `python -m workflow_kit doctor --json` 의 `runtime_load.stale_hosts=[]` 확인. 새 작업 후보는 WBS-7.3 case 수 선언 미측정 158건 보급 — 소유자가 범위를 정하면 `backlog-update --done-criteria` 로 등록. Windows · macOS 항목은 아래 118차 줄 그대로.
 - (118차) **소유자 결정 3건 반영** — ①G4 · G5 선언(A안, main-006) ②매트릭스 기록 요구 안 함(현행 유지, 결정 기록만) ③main · 태그 삭제 push 차단(main-007). 남은 결정 대기 0. 열린 task 는 Windows 실측 3건뿐.
 - (118차) **v1.21.0 발행됨** (main-005) — 이 호스트 §2.8 완료(claude-code 1.21.0 · codex root 1.21.0 · grok · agy, behind=[] disabled=[]). **재시작 필요**: claude-code 2 · codex 5 프로세스가 재적용 전 기동(runtime_load). **macOS 호스트**: §2.8 →1.21.0 — minimax 는 `python -m workflow_kit.minimax_plugin --apply` 후 `wk doctor --json` 의 `content_drift.behind` 에 minimax-code 가 없는지(5채널). 진입점 템플릿은 안 바뀌어 harvest 재실행 불필요(case 6 · 7 green). 발행된 노트의 수치 정정은 Release 본문까지 같이 갱신했다 — 노트를 고치면 `gh release edit --notes-file` 도 같이.
@@ -108,7 +110,8 @@
 - (Windows 호스트) main-002 실측: `check_python_floor_syntax` case 6 이 실제 `.cmd` shim 으로 PASS 하는지.
 - Codex 데스크톱을 완전히 재시작한 뒤 새 셸에서 `Get-Command wk`, `wk session-start`, `gh`, `unzip`, `python3 --version`, `wk doctor --json` 을 확인한다. 재시작 후에도 `wk` 가 빠져 있으면 사용자 PATH 가 데스크톱에 전달되는지 다시 진단한다. Codex CLI 실행 파일이 계속 PATH 에 없으면 `codex` 채널의 `installable=false` 는 별도 CLI 미설치 상태로 기록한다.
 - (Windows 호스트) 104차 main-018 실측: `wk doctor --json` 사본 대조에서 정본 파일이 extra 로 뜨던 잡음이 사라졌는지 확인. 같은 Windows 세션에서 blocked TASK-2026-08-25-main-017 완료 기준 2 를 한 명령으로 닫는다: `.venv\Scripts\python.exe workflow-source/tests/check_bootstrap_mcp_roundtrip.py --literal-command` (104차 신설 — emit 된 launcher 를 치환 없이 PATH 에서 해석해 spawn). 5/5 면 done.
-- 누적 기록은 [`lessons.md`](./lessons.md) (규칙 10절) · [`sessions/handoff-notes_*.md`](./sessions/) (기록 7절) 로 이관됐다 — 최신이 위, 세션 시작에 읽지 않는다.
+
+- 누적 기록은 [`lessons.md`](./lessons.md) (규칙 12절) · [`sessions/handoff-notes_*.md`](./sessions/) (기록 7절) 로 이관됐다 — 최신이 위, 세션 시작에 읽지 않는다.
 
 ### ▶ 지금 할 일 — M-007 운영 축 상시 운용 (63차 전환, 64·65차 검증)
 
@@ -374,6 +377,36 @@ in_progress** + **M-008~M-012 done** (64차 — 첫 병행 기능 축의 SDLC �
   다시 묻는다** (다음 선택지에는 잔여 후보 추가 승격과 threshold 재캘리브레이션이
   올라간다).
 
+### 121차가 남긴 규칙 (재발 방지)
+
+- **서브프로세스 텍스트 캡처에는 `encoding="utf-8", errors="replace"` 를 명시한다.**
+  `text=True` 는 **로캘(cp949)** 로 디코딩한다. kit CLI 는 `common/stdio.force_utf8_stdio()`
+  로 UTF-8 을 강제하고 git 도 UTF-8 을 내므로 — 부모가 cp949 로 읽으면
+  UnicodeDecodeError → **reader thread 가 죽고** → `proc.stdout=None` →
+  `AttributeError: 'NoneType' object has no attribute 'splitlines'`. 실제 증상은
+  '출력이 비었다' 가 아니라 **AttributeError** 라 원인을 한참 헤맨다. 인코딩을
+  안 쓰는 순간 증상이 무의미해진다 — 무의미한 증상은 인코딩 문제다.
+- **자식 프로세스에 최소 env 를 넘기면 `Path.home()` 이 죽는다.** `HOME`/`USERPROFILE`
+  이 빠지면 `Path.home()` 이 `RuntimeError("Could not determine home directory.")` →
+  `import workflow_kit` **자체가** 죽는다(도구가 아무것도 못 한다). 자식 env 정본은
+  `common/child_process.py` 의 `platform_child_env` 한 곳에 모은다.
+- **저장소 상대경로는 항상 POSIX 다.** `str(Path.relative_to(...))` 는 Windows 에서
+  `\` 를 낸다 — `.as_posix()` 로 접는다.
+- **Windows 바이트범위 락은 '락 영역' 과 '정보 영역' 을 분리한다.** `msvcrt.locking`
+  은 **현재 파일 위치부터 n바이트**를 잠근다. 앞쪽을 잠그면 contender 가 보유자
+  정보를 못 읽는다(OSError 13). 또 **빈 파일은 위험**하다 — 크기 0 파일의 뒤쪽을
+  잠그면 그 파일 전체가 읽히지 않는다 → 락 전 최소 1바이트 확보(`prepare_lock_file`).
+- **정리 재시도는 `PermissionError` 만 잡지 않는다.** Windows 에서 삭제 대기 중인
+  항목은 `os.unlink` 이 성공해도 핸들이 풀릴 때까지 **디렉터리 목록에 남고**, 그래서
+  `os.rmdir` 이 **WinError 145(ERROR_DIR_NOT_EMPTY)** 로 거절한다. 재시도 창인데
+  `PermissionError` 만 잡아서 그대로 새어 나왔다 → **`OSError` 전체**를 잡는다.
+- **Windows 에서 성립하지 않는 단언은 '해당 없음' 으로 명시한다.** skip/xfail 로
+  덮으면 '미측정' 을 '통과' 로 세게 되어 저장소 원칙(모름 ≠ 안전)에 어긋난다.
+- **`git checkout-index -f -a` 를 쓰지 않는다** — 미커밋 변경이 통째로 사라진다.
+- **저장소 LF 표준은 `.gitattributes` + 저장소-local `core.autocrlf=false` 로 고정하고,
+  정본 쓰기 헬퍼는 `newline='\n'` 을 명시한다.** 툴이 `write_text` 로 쓴 파일은
+  Windows 에서 CRLF 가 되어 산출물 바이트가 호스트마다 달라진다.
+
 ### 82차가 남긴 규칙 (재발 방지)
 
 - **되주입 harness 자신도 되주입 대상이다.** 주입 두 건의 소스 **길이가 같으면**
@@ -418,51 +451,6 @@ in_progress** + **M-008~M-012 done** (64차 — 첫 병행 기능 축의 SDLC �
 - **착수 전에 자기가 적은 전제를 다시 잰다.** main-006 의 완료 기준 3번이 틀린
   전제("서빙 경로 = 정본 생성기의 입력")로 적혀 있었다. 정본은 `core/` 에서
   렌더되고 `plugin/` 은 입력이 아니라 산출물이다 — 어제의 나도 남이다.
-
-### 79차가 남긴 규칙 (재발 방지)
-
-- **'이 호스트' 는 쓴 사람의 호스트다.** 77차가 `이 호스트 소비자 채널 재적용` 을
-  done 으로 남긴 뒤에도 plex 의 claude-code 는 **5주간 v1.1.8-beta** 였다. 채널 상태는
-  세션마다 기록이 갈리는 값이라 **handoff 산문으로 판정하지 않는다** — `wk doctor` 를
-  그 호스트에서 돌려서 본다. 반대로 채널 재적용을 기록할 때는 **호스트 이름을 제목에
-  박는다**(이 세션의 main-002 가 그렇게 했다).
-- **세션 시작의 첫 동작은 `git fetch` + behind 확인이다.** 159커밋 뒤처진 체크아웃에서
-  `session-start` 는 **44차 기준선을 복원하면서 `status: ok, warnings: []`** 를 냈다.
-  도구는 낡은 입력을 낡았다고 말하지 않는다 — 복원된 기준선의 날짜가 오늘과 한 달
-  떨어져 있으면 그것이 신호다.
-- **`--wbs` 를 붙인 task 는 로드맵 SSOT 를 바꾼다 — `wk refresh-state` 가 따라와야 한다.**
-  `backlog-update --apply` 는 `roadmap_state.json` 을 재생성하지 않아
-  `check_roadmap_state_generated` + `check_state_json_generated` 가 함께 red 가 된다.
-  **78차 ⑤ 와 79차 ⑤ 가 같은 자리다 — 이틀에 두 번이면 다음은 도구가 잡을 자리다.**
-- **포크 병합은 렌더된 문서가 아니라 렌더러 함수로 잰다.** 포크가 한국어고 kit
-  템플릿이 영어라 문서 diff 는 65줄이 전부 다르게 나오고, 그 안에서 실제 델타를
-  고르는 일은 사람이 할 수 없다. `git show <tag>:renderers.py` 로 렌더 함수만 뽑아
-  대조하면 3초에 끝난다 (79차 실측: v1.3.0→HEAD 델타는 1건, 그것도 산출 동일).
-- **게이트 종료코드는 파이프 뒤에서 사라진다.** 배경 실행의 래퍼는 마지막 명령(`tail`)의
-  코드를 보고 `exit code 0` 이라 보고했지만 게이트는 red 였다. `GATE_EXIT=$?` 를 따로
-  찍어 두지 않았으면 red 인 채로 커밋했다.
-
-### 65차가 남긴 규칙 (재발 방지)
-
-- **결함족은 사본이 아니라 판정으로 닫는다.** '자기 위치 오인' 은 네 세션에 걸쳐
-  사본 하나씩 닫혀 왔고, 그때마다 "다음에 전수 조사" 라고 적혔다. 65차에 실제로
-  전수를 하니 **수동 grep 4건 · 정적 검사 7건** 이었다 — 사람이 고른 패턴이 놓친
-  3건(`consumer-metrics` 는 설치본에서 site-packages 에 history 를 쌓고 있었다)을
-  AST 가 찾았다. 같은 모양이 3회 이상 반복되면 수리와 **함께 판정을 만든다.**
-- **경로를 옮길 때 대상만 옮기면 절반이다.** archive 는 "git 에 그 브랜치가 있나"
-  로 아카이브를 결정하고, migrate 는 `git mv` 를 돌리고, detect-scope-drift 는
-  `git show`/`git log` 를 쓴다. 대상 트리만 cwd 로 옮기고 **git 질의 저장소와
-  브랜치 해석**을 모듈 위치에 두면, 남의 브랜치 목록으로 이 workspace 를 판정한다.
-  판정의 근거가 되는 축을 전부 세고 같이 옮긴다.
-- **검사의 green 이 결함에 기대고 있을 수 있다.** `check_seed_workspace_memory` 는
-  fixture 에 profile 이 없어서, seed 가 **모듈 저장소의 profile 을 빌려** state.json
-  을 만들어 green 이었다 — 소비자 workspace 에 kit 의 프로젝트 메타를 찍는 결함
-  그 자체였다. 도구를 고쳤더니 검사가 red 가 되면, **먼저 fixture 가 무엇을 전제로
-  green 이었는지** 본다 (여기서는 fixture 가 비현실적이었던 쪽이 맞았다).
-- **설치본에서 돌 수 없는 명령은 조용히 실패하지 말고 거부한다.** release 파이프라인은
-  kit 자기 릴리스 기계다. 설치본에는 대상 트리가 없으므로 `FileNotFoundError` 대신
-  **설치본 위치 · cwd 체크아웃 · 대체 명령**을 찍고 exit 2 한다. cwd 체크아웃의
-  코드를 대신 로드하는 길은 62차 `foreign_path` 판정과 정면으로 부딪히므로 안 쓴다.
 
 ## 6. 남은 리스크 / 확인하지 못한 것
 

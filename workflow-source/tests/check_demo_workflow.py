@@ -27,7 +27,7 @@ def run_json(cmd: list[str], *, expect_success: bool) -> tuple[int, dict[str, ob
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
-        check=False,
+        check=False, encoding="utf-8", errors="replace"
     )
     if expect_success and completed.returncode != 0:
         raise AssertionError(f"Expected success but got exit code {completed.returncode}: {completed.stderr}")

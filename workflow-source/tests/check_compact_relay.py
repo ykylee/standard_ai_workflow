@@ -34,6 +34,13 @@
 
 from __future__ import annotations
 
+
+#: compact relay 는 Codex·Claude Code 훅 경로를 subprocess 로 끝까지 굴린다 — 단독 55.4s 실측(2026-10-31, Windows).
+#: 기본 60s 상한은 행(hang) 잡기용이고, 병렬 부하만 얹혀도 이 상한을 넘는다
+#: (게이트 전량 축에서 실제로 TIMEOUT 이 났다). 저장소 규칙대로 상한을 선언한다
+#: (CLAUDE.md: 단독 ~25s 초과 검사는 선언).
+CHECK_TIMEOUT_S = 150
+
 #: 이 검사의 입력 표면 (spec `core/test_impact_tiering_spec.md` §2).
 WATCHES = (
     # CLI 를 subprocess 로 띄우고 plugin_payload 를 import 해 kit 전반을 싣는다 — 좁은 선언은
@@ -105,7 +112,7 @@ def _env() -> dict[str, str]:
 def _git(ws: Path, *args: str) -> subprocess.CompletedProcess:
     return subprocess.run(
         ["git", "-c", "user.name=fixture", "-c", "user.email=f@x", "-C", str(ws), *args],
-        capture_output=True, text=True, env=_env(), check=False,
+        capture_output=True, text=True, env=_env(), check=False, encoding="utf-8", errors="replace"
     )
 
 
@@ -428,7 +435,7 @@ def case_12_budget_record_measures() -> None:
 
         def run() -> list:
             proc = subprocess.run([sys.executable, "-c", probe, profile], capture_output=True, text=True,
-                                  env=_env(), check=False)
+                                  env=_env(), check=False, encoding="utf-8", errors="replace")
             return json.loads(proc.stdout) if proc.returncode == 0 else [f"rc={proc.returncode} {proc.stderr[-200:]}"]
 
         if (got := run()) != [False, 0]:

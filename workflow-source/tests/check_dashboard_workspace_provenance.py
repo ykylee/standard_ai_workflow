@@ -74,7 +74,7 @@ def _probe_from(cwd: Path) -> dict:
     proc = subprocess.run(
         [sys.executable, "-c", PROBE],
         capture_output=True, text=True, timeout=180, cwd=str(cwd),
-        env=platform_child_env(cwd, path="/usr/bin:/bin", PYTHONPATH=str(SOURCE_ROOT)),
+        env=platform_child_env(cwd, path="/usr/bin:/bin", PYTHONPATH=str(SOURCE_ROOT)), encoding="utf-8", errors="replace"
     )
     assert proc.returncode == 0, f"exit {proc.returncode}: {proc.stderr[-800:]}"
     return json.loads(proc.stdout.strip().splitlines()[-1])

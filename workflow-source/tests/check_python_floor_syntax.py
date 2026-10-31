@@ -225,13 +225,16 @@ def case_4_scope_is_derived_not_a_hand_list() -> None:
     """
     import subprocess
     proc = subprocess.run(["git", "ls-files", "*.py"],
-                          cwd=REPO_ROOT, capture_output=True, text=True)
+                          cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace")
     if proc.returncode != 0:
         _record("case 4 (범위가 git 추적 전수와 일치)", False,
                 f"git ls-files 실패: {proc.stderr.strip()[:160]}")
         return
     tracked = {line for line in proc.stdout.split() if line}
-    swept = {str(path.relative_to(REPO_ROOT)) for path in iter_sources(COMPILE_ROOT)}
+    # git 은 POSIX 경로를 준다 — `str(path)` 는 Windows 에서 `\` 를 내므로 대조가
+    # 전부 어긋난다. 저장소 상대경로는 **항상 POSIX** (`paths.safe_relpath` 와 같은
+    # 규약) 여야 비교가 성립한다.
+    swept = {path.relative_to(REPO_ROOT).as_posix() for path in iter_sources(COMPILE_ROOT)}
     missing = sorted(tracked - swept)
     extra = len(swept - tracked)
     _record(

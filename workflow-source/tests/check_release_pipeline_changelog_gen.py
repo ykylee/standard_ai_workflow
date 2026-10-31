@@ -62,7 +62,7 @@ def test_changelog_gen_argparse() -> None:
         proc = subprocess.run(
             [sys.executable, str(TOOL), "changelog-gen"] + args,
             capture_output=True, text=True, timeout=30,
-            env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)},
+            env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)}, encoding="utf-8", errors="replace"
         )
         assert "unrecognized arguments" not in proc.stderr, \
             f"args={args} → argparse error: {proc.stderr}"
@@ -79,7 +79,7 @@ def test_changelog_gen_dry_run() -> None:
     proc = subprocess.run(
         [sys.executable, str(TOOL), "changelog-gen", "--dry-run", "--json"],
         capture_output=True, text=True, timeout=60,
-        env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)},
+        env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)}, encoding="utf-8", errors="replace"
     )
     assert proc.returncode == 0, f"exit {proc.returncode}: {proc.stderr}"
     out = json.loads(proc.stdout)
@@ -109,7 +109,7 @@ def test_changelog_gen_apply() -> None:
         proc = subprocess.run(
             [sys.executable, str(TOOL), "changelog-gen", "--output", str(out_path), "--apply", "--json"],
             capture_output=True, text=True, timeout=60,
-            env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)},
+            env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)}, encoding="utf-8", errors="replace"
         )
         assert proc.returncode == 0, f"exit {proc.returncode}: {proc.stderr}"
         out = json.loads(proc.stdout)
@@ -166,7 +166,7 @@ def test_changelog_gen_range_filter() -> None:
     proc_full = subprocess.run(
         [sys.executable, str(TOOL), "changelog-gen", "--dry-run", "--json"],
         capture_output=True, text=True, timeout=60,
-        env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)},
+        env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)}, encoding="utf-8", errors="replace"
     )
     assert proc_full.returncode == 0
     full = json.loads(proc_full.stdout)
@@ -179,7 +179,7 @@ def test_changelog_gen_range_filter() -> None:
          "--from-tag=v0.7.0-beta", "--to-tag=v0.7.10-beta",
          "--dry-run", "--json"],
         capture_output=True, text=True, timeout=60,
-        env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)},
+        env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)}, encoding="utf-8", errors="replace"
     )
     assert proc_range.returncode == 0
     rng = json.loads(proc_range.stdout)
@@ -195,7 +195,7 @@ def test_changelog_gen_range_filter() -> None:
          "--from-tag=v0.7.5-beta", "--to-tag=v0.7.8-beta",
          "--dry-run", "--json"],
         capture_output=True, text=True, timeout=60,
-        env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)},
+        env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)}, encoding="utf-8", errors="replace"
     )
     assert proc_small.returncode == 0
     small = json.loads(proc_small.stdout)
@@ -215,7 +215,7 @@ def test_changelog_gen_out_of_range_graceful() -> None:
         [sys.executable, str(TOOL), "changelog-gen",
          "--from-tag=v9.9.9-beta", "--dry-run", "--json"],
         capture_output=True, text=True, timeout=30,
-        env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)},
+        env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)}, encoding="utf-8", errors="replace"
     )
     out = json.loads(proc.stdout) if proc.stdout else {}
     if "mode" not in out and "error" in out:

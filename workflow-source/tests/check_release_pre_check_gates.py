@@ -120,7 +120,7 @@ def _run_release(*extra: str) -> dict:
             "--skip-smoke-count-check", "--json", *extra]
     proc = subprocess.run(
         argv, capture_output=True, text=True, timeout=120,
-        env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)},
+        env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)}, encoding="utf-8", errors="replace"
     )
     return json.loads(proc.stdout)
 
@@ -175,7 +175,7 @@ def main() -> int:
     dist_proc = subprocess.run(
         [sys.executable, str(PIPELINE_PY), "dist", "--json"],
         capture_output=True, text=True, timeout=120,
-        env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)},
+        env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)}, encoding="utf-8", errors="replace"
     )
     dist_out = json.loads(dist_proc.stdout)
     check(

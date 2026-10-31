@@ -27,6 +27,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
+from .paths import user_home
 from .purpose_context import (
     PURPOSE_BODY_DEFAULT_MAX_CHARS,
     find_purpose_path,
@@ -439,7 +440,7 @@ def run_purpose_refresh(
     if purpose_path is None:
         purpose_path = find_purpose_path(workspace_root)
     if wiki_log_path is None:
-        wiki_log_path = Path.home() / "wiki" / "log.md"
+        wiki_log_path = user_home() / "wiki" / "log.md"
 
     distribution = analyze_30day_distribution(wiki_log_path, today, window_days)
     prompt = generate_llm_suggest_prompt(distribution, purpose_path)

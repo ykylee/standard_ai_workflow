@@ -154,7 +154,7 @@ def _run(args: list[str]) -> subprocess.CompletedProcess:
     env = platform_child_env(path="/usr/bin:/bin:/usr/local/bin", PYTHONPATH=str(SOURCE_ROOT))
     if TELEMETRY_SKIP_ROOT_ENV in os.environ:
         env[TELEMETRY_SKIP_ROOT_ENV] = os.environ[TELEMETRY_SKIP_ROOT_ENV]
-    return subprocess.run([sys.executable, *args], capture_output=True, text=True, env=env)
+    return subprocess.run([sys.executable, *args], capture_output=True, text=True, env=env, encoding="utf-8", errors="replace")
 
 
 def case_5_refresh_state_warns_with_exit() -> None:

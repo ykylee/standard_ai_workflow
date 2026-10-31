@@ -111,7 +111,7 @@ def tracked_markdown() -> list[Path]:
     """git 이 추적하는 `*.md` 전부. 워킹 트리 쓰레기를 판정 대상에 넣지 않는다."""
     out = subprocess.run(
         ["git", "-C", str(REPO_ROOT), "ls-files", "*.md"],
-        capture_output=True, text=True, check=True,
+        capture_output=True, text=True, check=True, encoding="utf-8", errors="replace"
     ).stdout.splitlines()
     return [REPO_ROOT / line for line in out if line.strip()]
 

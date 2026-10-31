@@ -152,7 +152,7 @@ def _help_flags(subcommand: str) -> set[str]:
     env["PYTHONPATH"] = str(SOURCE_ROOT) + os.pathsep + env.get("PYTHONPATH", "")
     proc = subprocess.run(
         [sys.executable, "-m", "workflow_kit.tools.release_pipeline", subcommand, "--help"],
-        capture_output=True, text=True, timeout=60, env=env, cwd=str(REPO_ROOT),
+        capture_output=True, text=True, timeout=60, env=env, cwd=str(REPO_ROOT), encoding="utf-8", errors="replace"
     )
     if proc.returncode != 0:
         raise AssertionError(f"{subcommand} --help exit {proc.returncode}: {proc.stderr[-300:]}")

@@ -28,7 +28,7 @@ def test_doctor_pretty_default():
         cwd=str(SOURCE_ROOT),
         capture_output=True,
         text=True,
-        timeout=30,
+        timeout=30, encoding="utf-8", errors="replace"
     )
     assert result.returncode == 0, f"exit {result.returncode}: {result.stderr}"
     assert "Workflow Doctor" in result.stdout
@@ -49,7 +49,7 @@ def test_doctor_json_output():
         cwd=str(SOURCE_ROOT),
         capture_output=True,
         text=True,
-        timeout=30,
+        timeout=30, encoding="utf-8", errors="replace"
     )
     assert result.returncode == 0
     data = json.loads(result.stdout)
@@ -88,7 +88,7 @@ def test_doctor_single_baseline():
         cwd=str(SOURCE_ROOT),
         capture_output=True,
         text=True,
-        timeout=30,
+        timeout=30, encoding="utf-8", errors="replace"
     )
     assert result.returncode == 0
     data = json.loads(result.stdout)

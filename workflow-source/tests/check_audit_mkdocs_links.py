@@ -29,7 +29,7 @@ def _run_audit(docs_dir: Path, *extra_args: str) -> subprocess.CompletedProcess:
     """Run audit_mkdocs_links.py with --docs pointing to a temp dir."""
     return subprocess.run(
         [sys.executable, str(SCRIPT_PATH), f"--docs={docs_dir}", *extra_args],
-        capture_output=True, text=True, timeout=30,
+        capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace"
     )
 
 

@@ -433,7 +433,7 @@ def _probe_mcp_servers_support() -> str:
                 encoding="utf-8",
             )
             proc = subprocess.run(
-                ["mcode", "plugin", "list", "--json"], capture_output=True, text=True, timeout=120
+                ["mcode", "plugin", "list", "--json"], capture_output=True, text=True, timeout=120, encoding="utf-8", errors="replace"
             )
             try:
                 data = json.loads(proc.stdout)

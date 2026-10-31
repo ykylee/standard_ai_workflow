@@ -119,7 +119,7 @@ def _run_cli(profile: Path, extra: list[str]) -> tuple[int, dict]:
          "--project-profile-path", str(profile),
          "--task-name", "게이트 fixture task", "--task-brief", "게이트 시험",
          "--mode", "create", *extra],
-        capture_output=True, text=True, timeout=120, env=env,
+        capture_output=True, text=True, timeout=120, env=env, encoding="utf-8", errors="replace"
     )
     try:
         payload = json.loads(proc.stdout) if proc.stdout.strip() else {}

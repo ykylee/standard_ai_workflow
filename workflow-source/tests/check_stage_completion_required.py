@@ -111,7 +111,7 @@ def _run_skill_actual(skill: str, *args: str) -> dict | None:
     try:
         result = subprocess.run(
             [sys.executable, str(run_script), *args],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True, text=True, timeout=10, encoding="utf-8", errors="replace"
         )
         # JSON parse
         # stdout 의 마지막 valid JSON dict 를 찾기

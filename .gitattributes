@@ -23,6 +23,32 @@
 *.sh text eol=lf
 .githooks/** text eol=lf
 
+# workflow memory (task 파일·일일 백로그·handoff·state.json) — CRLF 예외.
+#
+# 왜: 2026-10-31 실측 — Windows 에서 쓴 CRLF task 파일이 **LF 로 뒤집혔다**.
+# 내용은 같은데 바이트가 달라지고, git 의 `text=auto` 정규화가 그 차이를 감춰
+# (blob 은 LF 로 정규) "오른 것 같고 실제로는 다른 파일" 이 됐다. 바이트 대조
+# (plugin payload → 소비측 복사, 해시 비교)는 그 차이를 본다.
+#
+# 여기서 예외를 **메모리 영역에 한정**한다:
+#   - 실행 대상(셸 훅·`.sh`) 은 LF 여야 한다 — shebang 이 `#!/bin/sh\r` 이 되면
+#     git 이 훅을 못 실행해 push 게이트가 조용히 무력화된다 (위 규칙 유지).
+#   - 소스·문서·payload 는 LF 여야 한다 — payload 는 소비측에 바이트 그대로
+#     복사되므로 LF 가 유일하게 결정적인 표현이다 (`minimax_plugin` content_drift).
+#   - workflow memory 는 **사람이 읽고 에디터로 다루는 산출물**이라, 그 파일이
+#     이미 쓰인 관례(CRLF)를 유지하는 게 맞다 — 도구가 임의로 뒤집지 않게.
+#
+# 부수 효과: `text eol=crlf` 는 blob 을 LF 로 정규화한 채 worktree 만 CRLF 로
+# 체크아웃한다 → **저장소 blob 은 LF 로 유지**(LF 우선 규약) + worktree 는 CRLF.
+# 격리 시험으로 확인했다 (2026-10-31).
+ai-workflow/memory/active/**/backlog/tasks/*.md     text eol=crlf
+ai-workflow/memory/active/**/backlog/*.md            text eol=crlf
+ai-workflow/memory/active/**/session_handoff.md      text eol=crlf
+ai-workflow/memory/active/**/state.json              text eol=crlf
+ai-workflow/memory/active/**/baselines.md            text eol=crlf
+ai-workflow/memory/active/**/roadmap_state.json      text eol=crlf
+ai-workflow/memory/active/**/PURPOSE.md              text eol=crlf
+
 # git 병합 전략 — workflow memory 전용
 #
 # 왜: 여러 호스트/에이전트가 각자 브랜치에서 작업하면, 브랜치별로 격리된

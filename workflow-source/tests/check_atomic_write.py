@@ -1,11 +1,13 @@
 """workflow_kit.common.atomic_write helper smoke test (v0.7.15+).
 
-POSIX 의 os.replace atomic guarantee 기반 JSON / text atomic write. 3 test PASS.
+POSIX 의 os.replace atomic guarantee 기반 JSON / text atomic write.
 
 Test list:
 1. test_atomic_write_json_creates_file: 부재 path → file 생성 + 내용 정합
 2. test_atomic_write_json_replaces_existing: 기존 file → 새 내용으로 replace
 3. test_atomic_write_json_atomicity: tmp file 패턴 + os.replace 사용 검증 (POSIX)
+4. test_atomic_write_preserves_existing_newline: **개행 관례 보존** — 기존 CRLF 는
+   CRLF, 기존 LF 는 LF, 신규는 LF (2026-10-31 실측 — 재발 방지)
 """
 
 from __future__ import annotations
@@ -99,6 +101,55 @@ def test_atomic_write_json_atomicity() -> None:
     assert "tmp" in text, "tmp file marker missing"
 
 
+# --- Test 4: 개행 관례 보존 (EOL 뒤집힘 재발 방지) ---
+
+
+def test_atomic_write_preserves_existing_newline() -> None:
+    """정본 writer 가 **대상 파일의 개행 관례를 지킨다**.
+
+    2026-10-31 실측 — writer 가 `newline="\\n"` 을 고정했더니, Windows 에서
+    CRLF 로 쓰여 있던 task 파일이 **LF 로 뒤집혔다**. 내용은 같은데 바이트가
+    달라졌고, git 은 정규화해 그 차이를 감췄다 — 그래서 "오른 것 같고 실제로는
+    다른 파일"이 됐다.
+
+    그래서 규칙은 하나다:
+      - **기존 파일이면 그 파일의 관례를 지킨다** (CRLF → CRLF, LF → LF).
+      - **신규 파일이면 LF** (저장소 표준).
+
+    이 검사가 red 면 writer 가 개행을 덮어쓴다 — 재발 방지 게이트다.
+    """
+    mod = _import_atomic()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+
+        # 1) 신규 파일 → LF
+        fresh = root / "fresh.txt"
+        mod.atomic_write_text(fresh, "a\nb\n")
+        assert b"\r\n" not in fresh.read_bytes(), "신규 파일은 LF 여야 한다"
+
+        # 2) 기존 CRLF 파일 → CRLF 유지
+        crlf = root / "crlf.txt"
+        crlf.write_bytes(b"old\r\n")
+        mod.atomic_write_text(crlf, "new\r\n")
+        body = crlf.read_bytes()
+        assert b"\r\n" in body, "기존 CRLF 파일의 CRLF 가 뒤집혔다"
+        assert b"\n\n" not in body.replace(b"\r\n", b""), "CRLF 파일에 혼합 개행이 생겼다"
+
+        # 3) 기존 LF 파일 → LF 유지
+        lf = root / "lf.txt"
+        lf.write_bytes(b"old\n")
+        mod.atomic_write_text(lf, "new\n")
+        assert b"\r\n" not in lf.read_bytes(), "기존 LF 파일이 CRLF 로 뒤집혔다"
+
+        # 4) JSON 도 같은 규칙 — CRLF JSON 이 CRLF 로 유지되고 여전히 유효 JSON
+        crlf_json = root / "crlf.json"
+        crlf_json.write_bytes(b'{\r\n  "a": 1\r\n}\r\n')
+        mod.atomic_write_json(crlf_json, {"a": 2})
+        raw = crlf_json.read_bytes()
+        assert b"\r\n" in raw, "기존 CRLF JSON 의 CRLF 가 뒤집혔다"
+        assert json.loads(raw.decode("utf-8")) == {"a": 2}, "CRLF JSON 이 유효하지 않다"
+
+
 # --- 메인 실행 ---
 
 
@@ -107,6 +158,7 @@ def main() -> int:
         test_atomic_write_json_creates_file,
         test_atomic_write_json_replaces_existing,
         test_atomic_write_json_atomicity,
+        test_atomic_write_preserves_existing_newline,
     ]
 
     failed: list[str] = []

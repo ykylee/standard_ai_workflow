@@ -6,6 +6,7 @@ from datetime import date
 from pathlib import Path
 import re
 
+from workflow_kit.common.atomic_write import existing_newline
 from workflow_kit.common.markdown import rel_link_from_doc
 from workflow_kit.common.project_docs import (
     RECENT_DONE_ITEMS_CAP,
@@ -32,8 +33,26 @@ def _read_lines(path: Path) -> list[str]:
 
 
 def _write_lines(path: Path, lines: list[str]) -> None:
+    """workflow markdown 을 쓴다 — **개행은 대상 파일의 관례를 따른다**.
+
+    여기서 task 파일·일일 백로그·handoff 가 실제로 쓰인다. 그래서 개행 규칙이
+    중요하다: 이전엔 `newline="\\n"` 을 고정해 **기존 CRLF 파일을 LF 로 뒤집었다**
+    (2026-10-31 실측 — Windows 에서 쓰인 task 파일의 줄바꿈이 CRLF → LF 로
+    바뀌었다). 내용은 같은데 바이트가 달라져, git 은 정규화해 감추고 소비측
+    바이트 대조만 어긋난다.
+
+    그래서 규칙은 하나다:
+      - **대상 파일이 이미 있으면 그 파일의 관례를 지킨다** (CRLF → CRLF).
+      - **신규 파일이면 LF** (저장소 표준).
+
+    구현은 `common.atomic_write.existing_newline` 을 쓴다 — 정본 writer 와
+    같은 판정이라, 어떤 경로로 쓰든 개행 관례가 갈리지 않는다.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8", newline="\n")
+    newline = existing_newline(path)
+    body = "\n".join(lines).rstrip() + "\n"
+    # `newline` 이 CRLF 면 본문의 `\n` 이 `\r\n` 으로 번역된다.
+    path.write_text(body, encoding="utf-8", newline=newline)
 
 
 def _replace_scalar_value(lines: list[str], label: str, value: str) -> list[str]:

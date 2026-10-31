@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-10-22",
+  "generated_at": "2026-10-31",
   "purpose_digest": "여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공",
   "purpose_digest_rev": "2026-09-28",
   "source_of_truth": {
@@ -10,7 +10,7 @@
     "daily_backlog_dir": "ai-workflow/memory/active/main/backlog",
     "tasks_dir": "ai-workflow/memory/active/main/backlog/tasks",
     "sessions_dir": "ai-workflow/memory/active/main/sessions",
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-10-19.md",
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-10-31.md",
     "repository_assessment_path": null
   },
   "project": {
@@ -39,6 +39,8 @@
     ],
     "planned_items": [],
     "recent_done_items": [
+      "TASK-2026-10-31-main-002 — 게이트 러너가 Windows 에서 첫 검사 완료와 함께 죽는다 — _kill_process_group 가 POSIX 전용 os.getpgid 를 쓴다",
+      "TASK-2026-10-31-main-001 — MiniMax Code 채널 재적용 — v1.21.0 로컬 마켓플레이스 sync + 글로벌 MCP 등록",
       "TASK-2026-10-19-main-007 — pre-push 게이트가 main · 태그 삭제 push 를 막는다 — 다른 브랜치 삭제는 통과 (소유자 결정 2026-10-19)",
       "TASK-2026-10-19-main-006 — G4 · G5 goal 선언 — M-001~M-006 goals 에 G5, M-006 에 G4, WBS-7.4 → G3 · G4 · G5 (소유자 결정 A안)",
       "TASK-2026-10-19-main-005 — v1.21.0 발행 — minimax-code doctor 5채널 편입 + 117 · 118차 수리 묶음",
@@ -46,32 +48,25 @@
       "TASK-2026-10-19-main-003 — check_memory_lint T1a · T1c · T1d 가 legacy 경로라 항상 skip — 은퇴 1 · branch-scoped 재작성 2",
       "TASK-2026-10-19-main-002 — check_memory_lint T1b stale 가 branch-scoped 전환 뒤 공유층 파일만 잰다 — 시간 경과만으로 red",
       "TASK-2026-10-19-main-001 — 진입점 다이어트 harvest 재실행 — v1.20.0 생성물 채취 + '현행 생성물 ⊆ 알려진 생성물' 검사로 재실행 누락 고정",
-      "TASK-2026-10-06-main-009 — minimax_plugin --apply 출력이 반영 뒤 상태를 찍어 무엇이 바뀌었는지 오독된다",
-      "TASK-2026-10-06-main-008 — RELEASE.md §2.8 에 minimax-code 재적용 · 확인 절차 보강",
-      "TASK-2026-10-06-main-007 — v1.20.1 발행 — backlog-update handoff 제목 동기화 수리 (patch)"
+      "TASK-2026-10-06-main-009 — minimax_plugin --apply 출력이 반영 뒤 상태를 찍어 무엇이 바뀌었는지 오독된다"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-10-19.md",
-    "task_count": 7,
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-10-31.md",
+    "task_count": 2,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
-      "TASK-2026-10-19-main-001 — 진입점 다이어트 harvest 재실행 — v1.20.0 생성물 채취 + '현행 생성물 ⊆ 알려진 생성물' 검사로 재실행 누락 고정",
-      "TASK-2026-10-19-main-002 — check_memory_lint T1b stale 가 branch-scoped 전환 뒤 공유층 파일만 잰다 — 시간 경과만으로 red",
-      "TASK-2026-10-19-main-003 — check_memory_lint T1a · T1c · T1d 가 legacy 경로라 항상 skip — 은퇴 1 · branch-scoped 재작성 2",
-      "TASK-2026-10-19-main-004 — goal coverage 가 '어느 마일스톤도 섬기지 않는 goal' 을 조용히 uncovered 로 센다 — 닿을 수 없는 goal 을 provenance 로 지목",
-      "TASK-2026-10-19-main-005 — v1.21.0 발행 — minimax-code doctor 5채널 편입 + 117 · 118차 수리 묶음",
-      "TASK-2026-10-19-main-006 — G4 · G5 goal 선언 — M-001~M-006 goals 에 G5, M-006 에 G4, WBS-7.4 → G3 · G4 · G5 (소유자 결정 A안)",
-      "TASK-2026-10-19-main-007 — pre-push 게이트가 main · 태그 삭제 push 를 막는다 — 다른 브랜치 삭제는 통과 (소유자 결정 2026-10-19)"
+      "TASK-2026-10-31-main-001 — MiniMax Code 채널 재적용 — v1.21.0 로컬 마켓플레이스 sync + 글로벌 MCP 등록",
+      "TASK-2026-10-31-main-002 — 게이트 러너가 Windows 에서 첫 검사 완료와 함께 죽는다 — _kill_process_group 가 POSIX 전용 os.getpgid 를 쓴다"
     ]
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",
     "ai-workflow/memory/active/main/session_handoff.md",
-    "ai-workflow/memory/active/main/backlog/2026-10-19.md",
+    "ai-workflow/memory/active/main/backlog/2026-10-31.md",
     "ai-workflow/memory/active/main/state.json",
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",

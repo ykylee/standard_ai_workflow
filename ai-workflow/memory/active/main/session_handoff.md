@@ -74,6 +74,8 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-10-31-main-002 게이트 러너가 Windows 에서 첫 검사 완료와 함께 죽는다 — _kill_process_group 가 POSIX 전용 os.getpgid 를 쓴다
+- TASK-2026-10-31-main-001 MiniMax Code 채널 재적용 — v1.21.0 로컬 마켓플레이스 sync + 글로벌 MCP 등록
 - TASK-2026-10-19-main-007 pre-push 게이트가 main · 태그 삭제 push 를 막는다 — 다른 브랜치 삭제는 통과 (소유자 결정 2026-10-19)
 - TASK-2026-10-19-main-006 G4 · G5 goal 선언 — M-001~M-006 goals 에 G5, M-006 에 G4, WBS-7.4 → G3 · G4 · G5 (소유자 결정 A안)
 - TASK-2026-10-19-main-005 v1.21.0 발행 — minimax-code doctor 5채널 편입 + 117 · 118차 수리 묶음
@@ -82,8 +84,6 @@
 - TASK-2026-09-30-main-001 minimax-code 가 플러그인 채널로 미지원 — 배포·드리프트 판정·재생성이 모두 kit 밖
 - TASK-2026-10-19-main-003 check_memory_lint T1a · T1c · T1d 가 legacy 경로라 항상 skip — 은퇴 1 · branch-scoped 재작성 2
 - TASK-2026-10-19-main-002 check_memory_lint T1b stale 가 branch-scoped 전환 뒤 공유층 파일만 잰다 — 시간 경과만으로 red
-- TASK-2026-10-19-main-001 진입점 다이어트 harvest 재실행 — v1.20.0 생성물 채취 + '현행 생성물 ⊆ 알려진 생성물' 검사로 재실행 누락 고정
-- TASK-2026-10-06-main-009 minimax_plugin --apply 출력이 반영 뒤 상태를 찍어 무엇이 바뀌었는지 오독된다
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

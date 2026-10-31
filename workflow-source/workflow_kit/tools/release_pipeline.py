@@ -2897,7 +2897,10 @@ def _append_drift_ledger_entry(args: argparse.Namespace, sr_result: dict) -> dic
         ws_override = getattr(args, "workspace_root", None)
         ledger = (Path(ws_override) if ws_override else REPO_ROOT.parent) / DRIFT_LEDGER_RELPATH
         ledger.parent.mkdir(parents=True, exist_ok=True)
-        with ledger.open("a", encoding="utf-8") as fp:
+        # `newline="\n"` — Windows 텍스트 append 는 `\n` 을 CRLF 로 번역한다.
+        # 원장은 append-only JSONL 이라 **줄 구분자가 원장 바이트**다 (2026-10-31 실측:
+        # Windows 발행 한 번에 CRLF 1줄이 섞였다).
+        with ledger.open("a", encoding="utf-8", newline="\n") as fp:
             fp.write(json.dumps(entry, ensure_ascii=False) + "\n")
         return {"status": "ok", "path": str(ledger), "entry": entry}
     except Exception as e:  # noqa: BLE001 — 원장 기록 실패가 release 를 막지 않는다

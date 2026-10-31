@@ -4,7 +4,7 @@
 - 범위: git log 에서 추출한 release 별 Added / Changed / Fixed 항목.
 - 대상 독자: maintainer, 릴리스 매니저, 외부 consumer
 - 상태: stable (자동 생성물)
-- 최종 수정일: 2026-10-19
+- 최종 수정일: 2026-10-31
 - 관련 문서: [`./releases/`](./releases/) (release note), [`../docs/RELEASE.md`](../docs/RELEASE.md) (릴리스 절차)
 
 All notable changes to this project will be documented in this file.
@@ -12,10 +12,11 @@ All notable changes to this project will be documented in this file.
 본 파일은 `tools/release_pipeline.py changelog-gen` 으로 자동 생성됩니다 (v0.7.14+).
 수동 편집은 다음 생성 시 덮어써진다 — 형식/metadata 변경은 생성기를 고칠 것.
 
-## [Unreleased] - 2026-10-19
+## [Unreleased] - 2026-10-31
 
 ### Added
 
+- feat(gate): pre-push 가 main · 태그의 삭제 push 를 막는다 — 기능 브랜치 삭제는 통과 (main-007, 소유자 결정 2026-10-19) (dd8beb36)
 - feat(minimax-code): doctor 가 이 채널을 잰다 — behind·disabled·재시작 3축 편입 (main-001) (4ab6938c)
 - feat(entrypoints): ensure-entrypoints --diet — 기존 진입점에서 과거 kit 생성 그대로인 절만 교체/제거 (진입점 다이어트 3) (14fd87be)
 - feat(bootstrap): 생성 진입점 템플릿 다이어트 + 하네스별 분량 예산 검사 (진입점 다이어트 2) (b575b670)
@@ -45,11 +46,15 @@ All notable changes to this project will be documented in this file.
 - feat(tests): 컴파일 시점 경고를 캐시와 무관하게 재는 축 (main-008) (73e781fc)
 - feat(tests): 저장소 코드가 낸 Python 경고를 게이트 신호로 (main-007) (5205ba80)
 - feat(tests): 검사를 도는 해석기를 선언 축으로 (main-006) + 82차 세션 종료 (e5f9b554)
-- feat(tests): 선언 하한 Python 을 실물 해석기로 잰다 (main-005) (9915e4ad)
-- ... (163 more)
+- ... (164 more)
 
 ### Changed
 
+- chore(session): 121차 handoff 상태 정합 — push 완료 사실 반영 (main-003) (9da03e62)
+- chore(session): 120차 세션 §1 기준선 갱신 + Windows 전량 게이트 52건 격차 등록(main-003) · baselines 롤오프 1건 · state.json 갱신 (3f03e903)
+- chore(session): 120차 세션 — minimax-code 채널 재적용(v1.21.0 플러그인 sync + 글로벌 MCP 등록, main-001) · 게이트 러너 Windows 결함 수리 기록(main-002) · handoff · state.json 갱신 (f4ecc8e7)
+- chore(session): 119차 세션 — 변경 없음: v1.21.0 발행 뒤 기준선 재측정(doctor behind=[] · 전량 게이트 309×2 green) · handoff §1 · §5 · baselines 롤오프 1건 · state.json 갱신 (8ea73719)
+- chore(session): 118차 세션 — 소유자 결정 3건 반영: G4 · G5 선언(main-006, roadmap M-001~M-007 goals) · main · 태그 삭제 차단(main-007) · 매트릭스 기록 요구 안 함(기록) · handoff · state.json 갱신 (8f621453)
 - chore(session): worktree 합류 반영 — feat/auto-20261019-a0afcf36 2건 close (be5e6da8)
 - Merge branch 'feat/auto-20261019-a0afcf36' (1b1f7519)
 - chore(session): 118차 세션 — main-004 close (goal coverage provenance) · G4 · G5 선언안 §5 · handoff · state.json 갱신 (6ca14604)
@@ -75,15 +80,13 @@ All notable changes to this project will be documented in this file.
 - chore(session): 112차 세션 종료 — main-001 · 002 close (worktree 모 브랜치 이어받기 · v1.17.0 발행) · main-003 등록 · handoff · state.json 갱신 (c44c09bf)
 - dolt remote info (1534f260)
 - chore(memory): 합류한 claude/exciting-ardinghelli-a0680d 브랜치 메모리 아카이브 · main handoff 포인터 갱신 (3c31ebb0)
-- chore(memory): 종료된 claude/session-start-e6eb83 브랜치 메모리 아카이브 · main handoff 포인터 갱신 (84761318)
-- chore(memory): main-012 close — 110차 worktree 수리(6118db3d)로 해소 · main handoff 에 worktree 합류 포인터 (1badb8bc)
-- test(branch-memory): 슬래시 브랜치 task 수집이 형제 공유 디렉터리를 오인하지 않음을 잰다 (main-012 완료 기준 4) (b963f22c)
-- merge: main(8ccd6db8·d89694b7) 을 claude/session-start-e6eb83 에 병합 (4eb71c93)
-- chore(session): 110차 세션 종료 — claude-session-start-e6eb83-002 close (worktree 자동 seed) · §2.8 재적용 · handoff · state.json 갱신 (430999f4)
-- ... (462 more)
+- ... (467 more)
 
 ### Fixed
 
+- fix(windows): Windows 격차 52건 수리 완성 — cp949 인코딩·교차 플랫폼 락·POSIX 경로·검사 결함 + 121차 세션 메모리 갱신 (main-003) (712e9414)
+- fix(windows): 한글 Windows 프로필 — 자식 환경(home·UTF-8·PATH) 통일 · python3 하드코딩 제거 · 저장소 텍스트 LF 고정 (main-003 착수) (b5148946)
+- fix(gate): 게이트 러너가 Windows 에서 첫 검사 완료와 함께 죽는다 — _kill_process_group 가 POSIX 전용 os.getpgid 를 쓴다 (main-002) (46701fda)
 - fix(auto-seed): origin 없는 저장소에서도 이어받기 — 기준 브랜치 판정을 분리 (main-003) (cbe0b88b)
 - fix(purpose_graph): 어느 마일스톤 · leaf 도 섬기지 않는 goal 을 provenance 로 지목 — 조용한 uncovered 금지 (main-004) (e88e4b48)
 - fix(memory_lint): T1a 은퇴 · T1c/T1d 를 branch-scoped 로 — index path 선언 · archived 해소, 미분류 참조는 숫자로 (main-003) (094a51ba)
@@ -111,15 +114,19 @@ All notable changes to this project will be documented in this file.
 - fix(backlog-update): update 의 명시 --kind 가 daily index 표식에 반영 + layout 검사의 session kind 오판 (09-29-main-008) (8f5619ca)
 - fix(doc-stamp): 날짜 뒤 주석 달린 스탬프를 전수 게이트가 판정 없이 건너뛰던 것 (09-29-main-007) (cad0d836)
 - fix(ensure-entrypoints,doctor): 공유 AGENTS.md 마커로 opencode 가 적용 판정돼 오버레이를 만들던 것 (09-29-main-004) (bd78a2ad)
-- fix(bootstrap): minimax-code 경로 대소문자 불일치로 session-start 가 매 세션 빈 task 를 만들던 것 (#29, 09-29-main-002) (9e4660ba)
-- fix(backlog-update): 날짜 경계 이월이 새 daily index 에 [generic] 을 적던 것 + 98차 세션 종료 (09-29-main-001) (6fd6af7c)
-- fix(plugin): antigravity MCP 도구 11개가 전부 거부되던 것 — 사본 별칭을 ro 로 + grok 목록 부재 위양성 (09-28-main-019·020) (0a232c99)
-- ... (205 more)
+- ... (208 more)
+
+## [1.22.0] - 2026-10-31
+
+### Changed
+
+- release(v1.22.0): 발행 준비 — 한글 Windows 프로필 확립 + Windows 격차 52건 수리 묶음 (minor) (a44b7d31)
 
 ## [1.21.0] - 2026-10-19
 
 ### Changed
 
+- release(v1.21.0): 발행 완료 — 태그 push + GitHub Release(asset 5종) + 발행 wheel 격리 실측 + §2.8 · 노트 수치 정정 · main-005 close (5134bac8)
 - release(v1.21.0): 발행 준비 — minimax-code doctor 5채널 편입 + 117 · 118차 수리 묶음 (minor) (a019c51b)
 
 ## [1.20.1] - 2026-10-06

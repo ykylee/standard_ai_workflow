@@ -136,3 +136,20 @@ Windows 텍스트 모드의 CRLF 번역이 **산출물 바이트를 호스트마
 - `doctor` 의 `runtime_load` 절이 `ps` 를 못 부르면 프로세스 목록을 못 얻는다(Windows 한계) — `hosts_seen: 0` 은
   통과가 아니라 **해당 없음** 이다.
 - **PyPI 업로드는 하지 않는다**(§1 각주 0 — 2026-08-14 소유자 최종 결정). 배포는 GitHub Releases 하나다.
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-10-31T10:20:05Z)_
+
+- total wiki pages: **97**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

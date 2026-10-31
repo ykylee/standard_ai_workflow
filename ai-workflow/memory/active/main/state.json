@@ -27,7 +27,7 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**119차 세션 (2026-10-19~22, Linux 호스트) — 변경 없음, 발행 없음 (main 은 v1.21.0 + 118차 세션 커밋 `8f621453`).** v1.21.0 발행 뒤 기준선 재측정만: ①`doctor --json` — `content_drift.behind=[]`(4채널 1.21.0, 옛 캐시 1.19.0 · 1.20.0 · 1.20.1 은 superseded), claude-code 호스트 2개는 설치 뒤 기동(재시작 완료), **codex 5 프로세스 stale**(09-30~10-15 기동 — CLI 재시작 전까지 1.21.0 스킬 미노출). 발견 3건(pi 미설치 · CLAUDE.md 포크 · 양쪽 설치)은 알려진 상태. ②전량 게이트 `--branch-context=all` rc=0, native · slash 각 309/309, 통과 기록 `8f621453`. 부속 신호(red 아님): meta-watch 넓은 선언 warn 8 · 국소 223 / 전역 17 / 미분류 69 · case 수 선언 대조 미측정 168(개수 선언 없음 158 · case 줄 없음 10). 열린 task(in_progress 2 · blocked 1)는 전부 Windows 실측, macOS §2.8 →1.21.0 은 macOS 호스트 일 — 이 호스트에서 착수 가능한 task 0. 후보로 남긴 것: WBS-7.3 case 수 선언 미측정 158건 보급(소유자 범위 결정 필요).",
+    "current_baseline": "**120차 세션 (2026-10-31, Windows 호스트 DESKTOP-DGPLBF7) — minimax-code 채널 재적용(v1.21.0) + 게이트 러너 Windows 결함 수리, push 는 소유자 결정 대기 (main 은 v1.21.0 + 커밋 2건 `46701fda` · `f4ecc8e7`, 미push).** ①**main-001**(WBS-7.4) — 원격 `origin/main` 이 88커밋 앞서 있어 `git merge --ff-only` 로 v1.21.0(`8ea73719`) 반영. 그 다음 MiniMax Code 채널 재적용 2표면: 플러그인 sync(`python -m workflow_kit.minimax_plugin --apply` → `~/.minimax/plugins/standard-ai-workflow/` 13파일 — manifest · 스킬 5종 · 아이콘 2장, 기존 설치본 없어 백업 0)과 글로벌 MCP merge(`write_mavis_global_mcp_files` → `~/.minimax/mcp/mcp.json` 에 `standardAiWorkflowReadOnly` 등록, 절대경로 env 2종). `plugin_payload` 드리프트 0 확인. doctor 9절 실측: `content_drift` minimax-code **v1.21.0 [in-sync]** · `plugin_enabled` **enabled**(런타임 SQLite `local_runtime_plugin_local_disabled` 0행) · `global_scope` mavis **선언 있음**. 등록된 env 그대로 중립 cwd 에서 JSON-RPC `initialize` + `tools/list` 직접 호출 → 도구 11종 · kit 1.21.0 · exit 0. sync 재실행 시 \"13개 이미 일치\"(멱등). **미측정**: 데스크톱 프로세스 재시작 전에는 플러그인·MCP 가 노출되지 않는다(현재 세션 MCP 서버는 세션 시작 시점 1.14.4 코드를 물고 있음) · `mcode` CLI 부재로 앱 측 인식은 미확인. ②**main-002**(WBS-7.1) — 게이트 러너가 Windows 에서 **첫 검사 완료와 함께 죽었다**: `run_all_checks.py` 의 `_kill_process_group` 가 POSIX 전용 `os.getpgid`/`os.killpg` 를 쓰는데 이 함수는 매 검사 **완료 직후**(line 721)에도 호출된다 → `AttributeError` 로 러너 전체가 죽어 어떤 검사도 결과를 내지 못했다(단일 검사 `--filter check_memory_lint` 로도 동일 crash · WSL 미설치). 수정: POSIX 프로세스 그룹 API 부재 플랫폼 분기 추가, Windows 는 `taskkill /PID <pid> /T /F` 로 트리 정리(부모 종료 후면 \"정리 대상 없음\" False) · POSIX 경로 무변경. 결과: 단일 검사 rc 0 · `--changed` 에서 8개 검사가 실제 실행 · 스모크 `check_self_application` 8/8 rc 0. ③**main-003**(WBS-7.1, planned) — 러너 수리 후 **전량 게이트 `--branch-context=all` 실측: 309 검사 중 257 pass · 52 fail**(native·slash 두 축 동일 · 189초) — 실패 52건은 전부 이 호스트의 기존 Windows 격차이며 main-001·main-002 변경과 무관하다: fcntl 파일 락 · POSIX 권한 비트 0o600 기대 · 하드코딩 `python3` 스폰 5곳(CreateProcess 는 `.exe` 만 붙여 venv `python3.cmd` 를 못 찾고 WindowsApps 스톱 9009) · POSIX `/var/tmp` 가정 · 플랫폼 파생 기대값 대 체크인된 호스트 독립 payload · POSIX 셸·심볼릭 링크·`gh` 전제 검사 다수 · mypy 게이트 3건 · case 수 선언 대조 3건. **이 호스트에서 push 게이트 green 은 불가** — 저장소 문서도 Windows 는 미측정(게이트 호스트는 macOS·Linux)이라 한다. 게이트 증거는 기록되지 않아 push 는 소유자 결정 대기.",
     "current_axis": "**로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · ~~[TASK-2026-08-13-main-004] mypy flake 관찰~~ ✅ (66차 close — 33/33 표본, mypy 실패 0).",
     "current_focus": "TASK-2026-10-02-main-007 Windows V3 백신이 wk.exe 를 평판 기반으로 차단한다 — pip 생성 console-script 런처 대체 진입 경로",
     "in_progress_items": [
@@ -37,7 +37,9 @@
     "blocked_items": [
       "TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다"
     ],
-    "planned_items": [],
+    "planned_items": [
+      "TASK-2026-10-31-main-003"
+    ],
     "recent_done_items": [
       "TASK-2026-10-31-main-002 — 게이트 러너가 Windows 에서 첫 검사 완료와 함께 죽는다 — _kill_process_group 가 POSIX 전용 os.getpgid 를 쓴다",
       "TASK-2026-10-31-main-001 — MiniMax Code 채널 재적용 — v1.21.0 로컬 마켓플레이스 sync + 글로벌 MCP 등록",
@@ -55,7 +57,7 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-10-31.md",
-    "task_count": 2,
+    "task_count": 3,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [

@@ -593,12 +593,44 @@ def _is_tmpfs(path: Path) -> bool:
     return best_fs == "tmpfs"
 
 
+def _kill_process_tree_windows(proc: subprocess.Popen) -> bool:
+    """Windows 용 프로세스 트리 정리 — ``taskkill /T /F``.
+
+    Windows 에는 POSIX 프로세스 그룹이 없다. ``taskkill /T`` 는 부모가 **살아 있을
+    때** 트리를 열거하므로, 이미 종료된 부모에 대해서는 할 수 있는 일이 없다 — 그때는
+    "정리 대상 없음"(False) 으로 돌려준다. 정리는 best-effort 이며 게이트 판정에는
+    영향을 주지 않는다(결과를 결정하는 것은 검사 자신의 exit code 다).
+    """
+    if proc.poll() is not None:
+        return False
+    try:
+        result = subprocess.run(
+            ["taskkill", "/PID", str(proc.pid), "/T", "/F"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=10,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return result.returncode == 0
+
+
 def _kill_process_group(proc: subprocess.Popen) -> bool:
     """자식이 만든 *프로세스 그룹 전체* 를 정리하고, 실제로 정리 대상이 있었는지 반환.
 
     `timeout` 이 부모만 죽이면 Popen 으로 띄운 손자 프로세스(MCP stdio 서버 등)가
     **고아로 잔존**한다. 이것이 수백 개 누적되어 CPU/RAM 을 잠식한 사고의 원인이었다.
+
+    **POSIX 프로세스 그룹이 없는 플랫폼(Windows) 에는 이 API 가 없다** —
+    ``os.getpgid`` 호출 자체가 ``AttributeError`` 로 러너를 죽였다. 이 함수는 매 검사
+    **완료 직후**에도 호출되므로(잔여 손자 정리), Windows 에서는 어떤 검사도 결과를
+    내지 못하고 게이트가 구조적으로 불가능했다(2026-10-31 실측 — 단일 검사
+    ``--filter check_memory_lint`` 로도 동일 crash). 그 플랫폼에서는
+    ``taskkill /T /F`` 로 대체하고, POSIX 경로는 그대로 둔다.
     """
+    if not hasattr(os, "getpgid") or not hasattr(os, "killpg"):
+        return _kill_process_tree_windows(proc)
     try:
         pgid = os.getpgid(proc.pid)
     except (ProcessLookupError, PermissionError):

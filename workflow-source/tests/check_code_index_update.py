@@ -51,6 +51,8 @@ def run_index_update(example_name: str, changed_files: list[str], change_summary
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         check=True,
     )
     return json.loads(completed.stdout)
@@ -139,6 +141,8 @@ def main() -> int:
             cwd=REPO_ROOT,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             check=True,
         )
         payload = json.loads(completed.stdout)

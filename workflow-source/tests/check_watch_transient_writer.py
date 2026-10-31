@@ -72,7 +72,7 @@ def _spawn_watcher(target: Path, log_dir: Path) -> subprocess.Popen[str]:
         [sys.executable, str(TOOL_PATH),
          "--file", str(target), "--log-dir", str(log_dir),
          "--interval", "0.02", "--duration", "30"],
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8", errors="replace",
     )
     # 고정 sleep 은 handshake 가 아니다 — CI 부하에서 기동이 늦으면 baseline 이
     # 첫 주입 "뒤"에 잡혀 변경 2건이 1건으로 접힌다 (2026-08-11 CI 실측 flake).
@@ -260,7 +260,7 @@ def test_refuses_log_inside_watched_repo(tmp: Path) -> None:
     denied = subprocess.run(
         [sys.executable, str(TOOL_PATH), "--file", str(target),
          "--log-dir", str(inside_log), "--duration", "0.1"],
-        capture_output=True, text=True,
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
     )
     assert denied.returncode == 2, \
         f"저장소 안 로그는 거부해야 한다: rc={denied.returncode} err={denied.stderr}"
@@ -269,7 +269,7 @@ def test_refuses_log_inside_watched_repo(tmp: Path) -> None:
     allowed = subprocess.run(
         [sys.executable, str(TOOL_PATH), "--file", str(target),
          "--log-dir", str(inside_log), "--duration", "0.1", "--allow-repo-log"],
-        capture_output=True, text=True,
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
     )
     assert allowed.returncode == 0, \
         f"--allow-repo-log 명시면 허용: rc={allowed.returncode} err={allowed.stderr}"
@@ -282,7 +282,7 @@ def test_quiet_run_leaves_no_auto_log(tmp: Path) -> None:
     proc = subprocess.run(
         [sys.executable, str(TOOL_PATH), "--file", str(target),
          "--interval", "0.02", "--duration", "0.4"],
-        capture_output=True, text=True, timeout=30,
+        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30,
     )
     assert proc.returncode == 0, proc.stderr
     log_lines = [ln for ln in proc.stderr.splitlines() if ln.startswith("log:")]

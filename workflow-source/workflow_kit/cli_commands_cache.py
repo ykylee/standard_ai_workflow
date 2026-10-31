@@ -225,7 +225,7 @@ def cmd_cache_decay(argv: list[str]) -> int:
         scores = _json.loads(scores_path.read_text(encoding="utf-8"))
         decayed = decay_age_scores(scores, saved_at=saved_at, half_life_seconds=half_life)
         if output_s:
-            _P(output_s).write_text(_json.dumps(decayed, indent=2, sort_keys=True), encoding="utf-8")
+            _P(output_s).write_text(_json.dumps(decayed, indent=2, sort_keys=True), encoding="utf-8", newline="\n")
             if use_json:
                 print(_json.dumps({"output": output_s, "scores_in": len(scores), "scores_out": len(decayed)}, indent=2))
             else:

@@ -54,7 +54,7 @@ def write_text(path: Path, content: str, *, force: bool) -> None:
     if path.exists() and not force:
         raise FileExistsError(f"Destination already exists: {path}")
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content, encoding="utf-8")
+    path.write_text(content, encoding="utf-8", newline="\n")
 
 
 def render_harness_readme(display_name: str, slug: str, args: argparse.Namespace) -> str:

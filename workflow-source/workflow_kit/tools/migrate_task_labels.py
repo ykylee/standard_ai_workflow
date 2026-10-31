@@ -144,11 +144,11 @@ def run(*, active_dir: Path, apply: bool) -> dict[str, object]:
             before = _aggregate(branch_dir)
             backup = {p: p.read_text(encoding="utf-8") for p in pending}
             for path, content in pending.items():
-                path.write_text(content, encoding="utf-8")
+                path.write_text(content, encoding="utf-8", newline="\n")
             after = _aggregate(branch_dir)
             if before != after:
                 for path, content in backup.items():
-                    path.write_text(content, encoding="utf-8")
+                    path.write_text(content, encoding="utf-8", newline="\n")
                 differing = [k for k in before if before[k] != after.get(k)]
                 record["applied"] = False
                 record["blocked_reason"] = (

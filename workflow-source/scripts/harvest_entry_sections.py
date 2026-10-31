@@ -127,7 +127,7 @@ def main() -> int:
     print("\n".join(log))
     print(f"제목 {len(known)}종 · 해시 {sum(len(v) for v in known.values())}개")
     if args.apply:
-        OUT.write_text(render_module(known, refs, log), encoding="utf-8")
+        OUT.write_text(render_module(known, refs, log), encoding="utf-8", newline="\n")
         print(f"WROTE: {OUT}")
     return 0
 

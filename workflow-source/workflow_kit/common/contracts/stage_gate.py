@@ -272,7 +272,7 @@ def append_audit_log(
     entry_lines.append("---")
     entry_lines.append("")
 
-    p.write_text(existing + "\n".join(entry_lines), encoding="utf-8")
+    p.write_text(existing + "\n".join(entry_lines), encoding="utf-8", newline="\n")
 
 
 def emit_completion_message(

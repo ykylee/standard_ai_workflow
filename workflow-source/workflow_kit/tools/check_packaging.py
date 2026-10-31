@@ -46,6 +46,14 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DIST = REPO_ROOT / "dist"
 
+# 이 스크립트는 **단독 실행**될 수 있다 (`python workflow_kit/tools/check_packaging.py`).
+# 정본 경로 헬퍼를 쓰려면 소스 트리가 import 경로에 있어야 한다 — 부모 프로세스에만
+# 걸고, 자식(임시 venv)은 `isolated_env()` 로 이 경로를 못 본다.
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from workflow_kit.common.paths import venv_executable  # noqa: E402
+
 # Sub-packages that must be importable — **derived from the source tree on disk**,
 # not hand-maintained.
 #
@@ -186,13 +194,16 @@ def main() -> int:
     with tempfile.TemporaryDirectory(prefix="saw-packaging-") as tmp:
         venv = Path(tmp) / "venv"
         run([sys.executable, "-m", "venv", str(venv)])
-        pip = venv / "bin" / "pip"
-        python = venv / "bin" / "python"
+        # Windows 는 `Scripts/`, POSIX 는 `bin/` — 경로를 고정하면 Windows 에서 파일이 없다.
+        python = venv_executable(venv, "python")
 
         # 1. Install the wheel. No -e, no local source — this is the
         #    scenario that revealed the v0.5.7.1 regression.
-        run([str(pip), "install", "--upgrade", "pip"])
-        run([str(pip), "install", str(wheel)])
+        # `pip.exe install --upgrade pip` 은 Windows venv 에서 **자기 자신을 못 고친다**
+        # ("To modify pip, please run: python -m pip install --upgrade pip") → rc 1.
+        # 정본 형식은 `python -m pip` 다 — POSIX/Windows 을 가리지 않는다.
+        run([str(python), "-m", "pip", "install", "--upgrade", "pip"])
+        run([str(python), "-m", "pip", "install", str(wheel)])
 
         # 2. Import smoke. Use explicit try/except per import to record
         #    exactly which module is missing — a flat ``__import__`` chain
@@ -261,7 +272,7 @@ def main() -> int:
         # 4. Package metadata smoke — confirm the version we built matches
         #    what we expect.
         completed = subprocess.run(
-            [str(pip), "show", "standard-ai-workflow"],
+            [str(python), "-m", "pip", "show", "standard-ai-workflow"],
             capture_output=True,
             text=True,
             cwd=tmp,

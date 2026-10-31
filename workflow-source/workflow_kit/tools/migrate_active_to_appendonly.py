@@ -422,12 +422,12 @@ def main() -> int:
             content = build_session_file(e)
         else:
             content = build_task_file(e)
-        e.output_path.write_text(content, encoding="utf-8")
+        e.output_path.write_text(content, encoding="utf-8", newline="\n")
 
     # 2) write daily indexes
     for date, items in sorted(by_date.items()):
         idx_path = backlog_dir / f"{date}.md"
-        idx_path.write_text(build_daily_index(date, items), encoding="utf-8")
+        idx_path.write_text(build_daily_index(date, items), encoding="utf-8", newline="\n")
 
     # 3) optional legacy backup
     if args.legacy_backup:

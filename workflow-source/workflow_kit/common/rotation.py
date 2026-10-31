@@ -118,7 +118,7 @@ def rotate_handoff_tasks(
     # 원본이 개행으로 끝났으면 그대로 유지한다 — 끝 개행이 사라지면 diff 가 마지막
     # 줄까지 통째로 바뀐 것처럼 보인다.
     trailing = "\n" if content.endswith("\n") else ""
-    handoff_path.write_text("\n".join(new_lines) + trailing, encoding="utf-8")
+    handoff_path.write_text("\n".join(new_lines) + trailing, encoding="utf-8", newline="\n")
 
     return {
         "status": "ok",

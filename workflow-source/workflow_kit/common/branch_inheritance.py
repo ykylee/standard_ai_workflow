@@ -190,7 +190,7 @@ def apply_write_back(item: WriteBackItem) -> None:
     source_path = _frontmatter_value(restored, "source_path") or ""
     backlog_path = origin_dir / source_path if source_path.startswith("backlog/") else None
     if backlog_path is None or not backlog_path.is_file():
-        item.origin_path.write_text(restored, encoding="utf-8")
+        item.origin_path.write_text(restored, encoding="utf-8", newline="\n")
         return
     upsert_backlog_entry(
         backlog_path=backlog_path,

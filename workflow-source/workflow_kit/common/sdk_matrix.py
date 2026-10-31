@@ -41,6 +41,8 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from workflow_kit.common.paths import venv_executable
+
 ROLE_FLOOR = "floor"
 ROLE_LATEST_1X = "latest-1x"
 ROLE_LATEST_2X = "latest-2x"
@@ -260,7 +262,7 @@ def run_local_matrix(
 
     for version in versions:
         venv_path = venv_root / version
-        python = venv_path / "bin" / "python"
+        python = venv_executable(venv_path, "python")
         print(f"\n=== mcp {version} ===")
         if not python.is_file():
             print(f"  venv 생성: {venv_path}")

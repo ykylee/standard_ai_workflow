@@ -126,7 +126,7 @@ def _prepend(path: Path, header: str, blocks: list[S5Block], today: str) -> None
     if prev:
         body = body + "\n\n" + prev
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(header + body + "\n", encoding="utf-8")
+    path.write_text(header + body + "\n", encoding="utf-8", newline="\n")
 
 
 def _pointer(lessons: int, notes: int) -> str:
@@ -201,7 +201,7 @@ def run(handoff_path: Path, *, limit: int, apply: bool, today: str) -> dict:
         _prepend(lessons_path, _LESSONS_HEADER, to_lessons, today)
     if to_notes:
         _prepend(notes_path, _NOTES_HEADER.format(today=today), to_notes, today)
-    handoff_path.write_text(rewrite_s5(text, moved_idx, pointer), encoding="utf-8")
+    handoff_path.write_text(rewrite_s5(text, moved_idx, pointer), encoding="utf-8", newline="\n")
     result["applied"] = True
     return result
 

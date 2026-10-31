@@ -455,7 +455,7 @@ def emit_stub(
     if atomic_write_text is not None:
         atomic_write_text(p, new_text)
     else:
-        p.write_text(new_text, encoding="utf-8")
+        p.write_text(new_text, encoding="utf-8", newline="\n")
     result["action"] = "created" if existing_text is None else "written"
     return result
 

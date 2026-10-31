@@ -216,6 +216,6 @@ def apply_robust_patch_detailed(
             )
 
     if not dry_run:
-        file_path.write_text(new_content, encoding="utf-8")
+        file_path.write_text(new_content, encoding="utf-8", newline="\n")
 
     return True, f"Successfully applied {len(blocks)} patch block(s).", applied_blocks

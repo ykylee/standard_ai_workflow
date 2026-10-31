@@ -230,7 +230,7 @@ def main() -> int:
 
     FIXTURE_PATH.write_text(
         json.dumps(fixture, ensure_ascii=False, indent=1, sort_keys=False) + "\n",
-        encoding="utf-8",
+        encoding="utf-8", newline="\n"
     )
     print(f"\nwrote {FIXTURE_PATH.relative_to(REPO_ROOT)}")
     return 0

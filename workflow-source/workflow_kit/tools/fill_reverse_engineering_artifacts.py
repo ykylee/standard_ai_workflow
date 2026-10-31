@@ -161,7 +161,7 @@ def fill_one(artifact_name: str, info: dict, output_dir: Path) -> Path:
     """단일 artifact 의 output file."""
     out = output_dir / artifact_name
     content = auto_fill(artifact_name, info)
-    out.write_text(content, encoding="utf-8")
+    out.write_text(content, encoding="utf-8", newline="\n")
     return out
 
 

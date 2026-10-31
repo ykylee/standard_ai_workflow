@@ -759,7 +759,7 @@ def _write_bundle_manifest(
     manifest_lines.append(f"integrity_hash: '{integrity}'")
     manifest_lines.append(f"page_count: {len(pages)}")
     manifest_path = out_bundle / "okf-bundle.yaml"
-    manifest_path.write_text("\n".join(manifest_lines) + "\n", encoding="utf-8")
+    manifest_path.write_text("\n".join(manifest_lines) + "\n", encoding="utf-8", newline="\n")
     return manifest_path
 
 
@@ -832,7 +832,7 @@ def export_wiki_page(
     out_text = "\n".join(mapping.frontmatter_lines) + "\n" + body_rewritten + "\n"
     if mapping.body_suffix:
         out_text += "\n".join(mapping.body_suffix) + "\n"
-    out_path.write_text(out_text, encoding="utf-8")
+    out_path.write_text(out_text, encoding="utf-8", newline="\n")
     return (1, 0)
 def export_wiki_to_okf(
     wiki_root: Path,
@@ -897,7 +897,7 @@ def export_wiki_to_okf(
     if collected_pages:
         try:
             index_content = generate_index_md(collected_pages)
-            (out_bundle / "index.md").write_text(index_content, encoding="utf-8")
+            (out_bundle / "index.md").write_text(index_content, encoding="utf-8", newline="\n")
         except Exception as e:
             errors.append(f"index.md emission failed: {e}")
 

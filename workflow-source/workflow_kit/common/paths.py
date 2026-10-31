@@ -43,6 +43,26 @@ def user_home() -> Path:
     return Path(tempfile.gettempdir())
 
 
+def venv_executable(venv: Path, name: str) -> Path:
+    """가상환경 안의 실행 파일 경로 — Windows 는 ``Scripts/<name>.exe``, POSIX 는 ``bin/<name>``.
+
+    ``python -m venv`` 는 Windows 에선 ``Scripts/`` 에 ``.exe`` 를, POSIX 에선 ``bin/`` 에
+    확장자 없는 실행 파일을 만든다. 경로를 ``bin/`` 으로 고정하면 Windows 에서 그 파일이
+    **존재하지 않아** 실행이 FileNotFoundError 로 죽는다 — 2026-10-31 실측: 발행 사전
+    점검의 ``packaging`` 이 이 한 줄 때문에 red 였다 (-wheel 자체는 멀쩡했다).
+
+    Args:
+        venv: 가상환경 루트 디렉터리.
+        name: 실행 파일 이름 (``"python"`` · ``"pip"``).
+
+    Returns:
+        플랫폼에 맞는 실행 파일 경로 (존재 여부는 호출자가 확인한다).
+    """
+    if os.name == "nt":
+        return venv / "Scripts" / f"{name}.exe"
+    return venv / "bin" / name
+
+
 def discover_project_profile_path(start: Path | None = None) -> Path | None:
     """cwd(또는 ``start``)에서 위로 거슬러 `PROJECT_PROFILE.md` 를 찾는다.
 

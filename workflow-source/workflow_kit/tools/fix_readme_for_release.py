@@ -162,7 +162,7 @@ def main() -> int:
         print("  --apply 시 실제 file 수정")
         return 0
 
-    README.write_text(new_content, encoding="utf-8")
+    README.write_text(new_content, encoding="utf-8", newline="\n")
     print(f"  ✓ {README} updated")
 
     # Drift prevention 재확인 안내.

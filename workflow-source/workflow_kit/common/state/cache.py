@@ -207,7 +207,7 @@ def refresh_workflow_state_cache(
         memory_entries=memory_entries_payload,
     )
     state_path.parent.mkdir(parents=True, exist_ok=True)
-    state_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    state_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
 
     # v0.15.0: 2nd deprecation cycle 종결 — `work_backlog.md.bak` 완전 drop.
     # 본 block 은 더 이상 emit 안 함 (legacy_bak 부재 시 자연스럽게 no-op). pre-v0.15.0
@@ -302,7 +302,7 @@ def refresh_maturity_last_updated(
         return result
     mm["last_updated"] = today
     maturity_path.write_text(
-        json.dumps(mm, ensure_ascii=False, indent=2) + "\n", encoding="utf-8",
+        json.dumps(mm, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n"
     )
     result["updated"] = True
     result["after"] = today

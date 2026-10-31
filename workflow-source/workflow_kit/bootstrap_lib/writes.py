@@ -314,7 +314,7 @@ def write_text(
     decision, _write = _resolve_write(decision, path, rel_to)
     if _write:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(stamped, encoding="utf-8")
+        path.write_text(stamped, encoding="utf-8", newline="\n")
 
     action = _make_file_action(path, decision, rel_to)
     _file_action_log.append(action)
@@ -368,7 +368,7 @@ def copy_core_docs(
         decision, _write = _resolve_write(decision, destination, rel_to)
         if _write:
             shutil.copyfile(source, destination)
-            destination.write_text(stamped, encoding="utf-8")
+            destination.write_text(stamped, encoding="utf-8", newline="\n")
 
         actions.append(_make_file_action(destination, decision, rel_to))
         _file_action_log.append(actions[-1])
@@ -414,7 +414,7 @@ def copy_core_docs(
                     nested_decision, nested_destination, rel_to)
                 if _nested_write:
                     nested_destination.parent.mkdir(parents=True, exist_ok=True)
-                    nested_destination.write_text(nested_stamped, encoding="utf-8")
+                    nested_destination.write_text(nested_stamped, encoding="utf-8", newline="\n")
 
                 actions.append(_make_file_action(nested_destination, nested_decision, rel_to))
                 _file_action_log.append(actions[-1])
@@ -450,7 +450,7 @@ def copy_core_docs(
         decision, _write = _resolve_write(decision, destination, rel_to)
         if _write:
             destination.parent.mkdir(parents=True, exist_ok=True)
-            destination.write_text(stamped, encoding="utf-8")
+            destination.write_text(stamped, encoding="utf-8", newline="\n")
 
         actions.append(_make_file_action(destination, decision, rel_to))
         _file_action_log.append(actions[-1])

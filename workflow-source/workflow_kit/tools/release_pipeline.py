@@ -743,7 +743,10 @@ def write_version(new_version: str) -> None:
         text,
         count=1,
     )
-    PYPROJECT.write_text(text, encoding="utf-8")
+    # `newline="\n"` — Windows 텍스트 모드의 CRLF 번역을 막는다. 이 파일들의 정본은
+    # LF(`.gitattributes` 의 `* text=auto eol=lf`) 이고, CRLF 가 끼면 **소비측에 복사될
+    # 바이트**가 달라진다 — 특히 plugin payload 는 `shutil.copyfile` 로 그대로 복사된다.
+    PYPROJECT.write_text(text, encoding="utf-8", newline="\n")
 
 
 def read_workflow_kit_version() -> str:
@@ -790,7 +793,7 @@ def write_workflow_kit_version(new_version: str, *, suffix: str = "-beta") -> st
             f"loud fallback literal 을 {WORKFLOW_KIT_INIT} 에서 찾지 못했다 "
             f"(포맷이 바뀌었는가?). 갱신하지 못한 채 성공을 보고할 수 없다."
         )
-    WORKFLOW_KIT_INIT.write_text(new_text, encoding="utf-8")
+    WORKFLOW_KIT_INIT.write_text(new_text, encoding="utf-8", newline="\n")
     write_pi_package_version(new_version)
     return f"{new_version}{suffix or ''}"
 
@@ -815,7 +818,7 @@ def write_pi_package_version(new_version: str) -> None:
             f'{PI_PACKAGE_JSON} 에서 "version" 필드를 찾지 못했다 (포맷이 바뀌었는가?). '
             "갱신하지 못한 채 성공을 보고할 수 없다."
         )
-    PI_PACKAGE_JSON.write_text(new_text, encoding="utf-8")
+    PI_PACKAGE_JSON.write_text(new_text, encoding="utf-8", newline="\n")
 
 def plugin_payload_status(version_label: str, *, repo_root: Path | None = None) -> dict:
     """플러그인 산출물이 주어진 버전과 정합인지 **판정만** 한다. 쓰지 않는다.
@@ -1381,7 +1384,7 @@ def cmd_note_draft(args) -> dict:
             "commits": len(commits),
             "preview_first_500": note[:500],
         }
-    output_path.write_text(note, encoding="utf-8")
+    output_path.write_text(note, encoding="utf-8", newline="\n")
     return {
         "mode": "applied",
         "output_path": rel_output,
@@ -1421,7 +1424,7 @@ def cmd_changelog_gen(args) -> dict:
     if atomic_write_text is not None:
         atomic_write_text(output_path, body)
     else:
-        output_path.write_text(body, encoding="utf-8")
+        output_path.write_text(body, encoding="utf-8", newline="\n")
     return {
         "mode": "applied",
         "output_path": str(output_path),
@@ -1619,7 +1622,7 @@ def _sync_distributed_core_mirror(dry_run: bool) -> list[str]:
             if atomic_write_text is not None:
                 atomic_write_text(copy_path, new)
             else:
-                copy_path.write_text(new, encoding="utf-8")
+                copy_path.write_text(new, encoding="utf-8", newline="\n")
         synced.append(copy_path.relative_to(REPO_ROOT.parent).as_posix())
     return synced
 
@@ -1710,7 +1713,7 @@ def cmd_doc_headers_update(args) -> dict:
         if atomic_write_text is not None:
             atomic_write_text(path, new)
         else:
-            path.write_text(new, encoding="utf-8")
+            path.write_text(new, encoding="utf-8", newline="\n")
         updated_paths.append(path.relative_to(REPO_ROOT.parent).as_posix())
 
     # core 정본을 건드렸으면 배포 사본(ai-workflow/core/)도 같이 맞춘다 —
@@ -1829,6 +1832,7 @@ def cmd_maturity_matrix_sync(args) -> dict:
         maturity_path.write_text(
             json.dumps(mm, ensure_ascii=False, indent=2) + "\n",
             encoding="utf-8",
+            newline="\n",
         )
 
     return {
@@ -1969,6 +1973,7 @@ def _fix_maturity_matrix_drift() -> dict:
             maturity_path.write_text(
                 json.dumps(mm, ensure_ascii=False, indent=2) + "\n",
                 encoding="utf-8",
+                newline="\n",
             )
         return {"ok": True, "mode": "last_updated_only", "last_updated_after": mm["last_updated"]}
     except Exception as e:  # noqa: BLE001
@@ -2855,7 +2860,7 @@ def _emit_self_recovery_log(args: argparse.Namespace, recovery_log: str) -> dict
         if atomic_write_text is not None:
             atomic_write_text(notes_file, new_body)
         else:
-            notes_file.write_text(new_body, encoding="utf-8")
+            notes_file.write_text(new_body, encoding="utf-8", newline="\n")
         return {
             "status": "ok",
             "path": str(notes_file),
@@ -2962,7 +2967,7 @@ def _emit_bidir_link_audit_log(args: argparse.Namespace, bl_log: str) -> dict:
         if atomic_write_text is not None:
             atomic_write_text(notes_file, new_body)
         else:
-            notes_file.write_text(new_body, encoding="utf-8")
+            notes_file.write_text(new_body, encoding="utf-8", newline="\n")
         return {
             "status": "ok",
             "path": str(notes_file),
@@ -3313,7 +3318,7 @@ def cmd_gen_schema(args) -> dict:
     else:
         try:
             output_path.parent.mkdir(parents=True, exist_ok=True)
-            output_path.write_text(encoded, encoding="utf-8")
+            output_path.write_text(encoded, encoding="utf-8", newline="\n")
         except OSError as e:
             results["error"] = f"write failed: {type(e).__name__}: {e}"
             results["ok"] = False

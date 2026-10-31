@@ -51,6 +51,8 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from workflow_kit.common.paths import venv_executable
+
 ROLE_CI_RUNNER = "ci-runner"
 """CI 가 검사를 돌던 해석기 (CI 폐지 후에도 role 이름은 유지 — 선언의 연속성)."""
 
@@ -167,7 +169,7 @@ def _ensure_venv(repo_root: Path, version: str) -> Path | None:
         return None
 
     venv_path = repo_root / LOCAL_MATRIX_VENV_DIR / version
-    python = venv_path / "bin" / "python"
+    python = venv_executable(venv_path, "python")
     if not python.is_file():
         print(f"  venv 생성: {venv_path} (base={base})")
         subprocess.run([base, "-m", "venv", str(venv_path)], check=True)  # noqa: S603

@@ -615,7 +615,7 @@ def update_dependencies(
                 )
                 package_json.write_text(
                     json.dumps(payload, indent=2, ensure_ascii=False) + "\n",
-                    encoding="utf-8",
+                    encoding="utf-8", newline="\n"
                 )
                 updated_files.append(rel(package_json, target_root))
         except (json.JSONDecodeError, KeyError):
@@ -1157,7 +1157,7 @@ def main() -> int:
             paths.state_path.parent.mkdir(parents=True, exist_ok=True)
             paths.state_path.write_text(
                 json.dumps(state_payload, ensure_ascii=False, indent=2) + "\n",
-                encoding="utf-8",
+                encoding="utf-8", newline="\n"
             )
 
     # 7. Build + emit the manifest

@@ -271,7 +271,7 @@ def main() -> int:
     if args.manifest_out:
         manifest_path = Path(args.manifest_out).resolve()
         manifest_path.parent.mkdir(parents=True, exist_ok=True)
-        manifest_path.write_text(payload, encoding="utf-8")
+        manifest_path.write_text(payload, encoding="utf-8", newline="\n")
     sys.stdout.write(payload)
     return 0
 

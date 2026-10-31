@@ -101,10 +101,10 @@ def _insert_next_step(handoff: Path, bullet: str) -> None:
             while at < len(lines) and not lines[at].strip():
                 at += 1
             lines.insert(at, bullet)
-            handoff.write_text("\n".join(lines), encoding="utf-8")
+            handoff.write_text("\n".join(lines), encoding="utf-8", newline="\n")
             return
     handoff.write_text(handoff.read_text(encoding="utf-8").rstrip("\n") + f"\n\n## 5. 다음 세션 시작 포인트\n\n{bullet}\n",
-                       encoding="utf-8")
+                       encoding="utf-8", newline="\n")
 
 
 def reflect_join(*, branch: str, branch_dir: Path, parent_branch: str, active_dir: Path,
@@ -144,7 +144,7 @@ def reflect_join(*, branch: str, branch_dir: Path, parent_branch: str, active_di
                 status=status or "planned",
             )
             path.write_text(inherit.insert_frontmatter_line(text, CARRIED_OVER_KEY, f"{task_id}@{parent_branch}"),
-                            encoding="utf-8")
+                            encoding="utf-8", newline="\n")
             _sync_lists(handoff, _label(text, task_id), status)
             report.carried.append(task_id)
         elif task_id in plan.done:
@@ -185,6 +185,6 @@ def reflect_join(*, branch: str, branch_dir: Path, parent_branch: str, active_di
         f"- 브랜치 기준선: {baseline or '(없음)'}",
         f"- {counts}",
         "",
-    ]) + "\n", encoding="utf-8")
+    ]) + "\n", encoding="utf-8", newline="\n")
     report.record_path = str(record)
     return report

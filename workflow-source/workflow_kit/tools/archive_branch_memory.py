@@ -251,7 +251,7 @@ def rewrite_moved_references(
             text, doc_dir=path.parent, old_root=active_branch, new_root=archived_branch,
         )
         if new_text != text:
-            path.write_text(new_text, encoding="utf-8")
+            path.write_text(new_text, encoding="utf-8", newline="\n")
             changed.append(_rel(path))
 
     # 반대 방향 — 이동한 것은 대상이 아니라 **문서 자신**이다. 위 루프의
@@ -264,7 +264,7 @@ def rewrite_moved_references(
             text, old_doc_dir=old_doc_dir, new_doc_dir=path.parent,
         )
         if new_text != text:
-            path.write_text(new_text, encoding="utf-8")
+            path.write_text(new_text, encoding="utf-8", newline="\n")
             changed.append(_rel(path))
 
     # JSON 안의 경로 문자열은 **저장소 상대**(`ai-workflow/memory/active/<b>/…`)로
@@ -279,7 +279,7 @@ def rewrite_moved_references(
         new_text = pattern.sub(seg_new, text)
         if new_text == text:
             continue
-        path.write_text(new_text, encoding="utf-8")
+        path.write_text(new_text, encoding="utf-8", newline="\n")
         changed.append(_rel(path))
 
     # 한 파일이 두 규칙(대상 이동·문서 이동)에 다 걸리면 두 번 잡힌다 — 목록은 한 번만.
@@ -404,7 +404,7 @@ def write_metadata(
             },
             ensure_ascii=False, indent=2,
         ) + "\n",
-        encoding="utf-8",
+        encoding="utf-8", newline="\n"
     )
 
 

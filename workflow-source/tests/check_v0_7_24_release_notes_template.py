@@ -43,7 +43,7 @@ def test_notes_template_default_argparse() -> None:
     import subprocess
     proc = subprocess.run(
         [sys.executable, str(TOOL), "release", "--notes-template=default", "--skip-validate", "--dry-run", "--json"],
-        capture_output=True, text=True, timeout=30,
+        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30,
     )
     assert "unrecognized arguments" not in proc.stderr, f"argparse error: {proc.stderr}"
     # output 이 valid JSON (dist 부재 error 가능)

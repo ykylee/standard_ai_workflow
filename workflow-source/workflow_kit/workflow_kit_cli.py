@@ -333,7 +333,7 @@ def cmd_dashboard(argv: list[str]) -> int:
         if output:
             out_path = _P(output)
             out_path.parent.mkdir(parents=True, exist_ok=True)
-            out_path.write_text(payload, encoding="utf-8")
+            out_path.write_text(payload, encoding="utf-8", newline="\n")
         else:
             print(payload, end="" if payload.endswith("\n") else "\n")
 
@@ -342,7 +342,7 @@ def cmd_dashboard(argv: list[str]) -> int:
             from pathlib import Path as _Pp
             publish_path = _Pp("docs/dashboard/index.html")
             publish_path.parent.mkdir(parents=True, exist_ok=True)
-            publish_path.write_text(payload, encoding="utf-8")
+            publish_path.write_text(payload, encoding="utf-8", newline="\n")
             print(f"  [publish] {publish_path}", file=sys.stderr)
 
         return 0

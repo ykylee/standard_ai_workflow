@@ -645,7 +645,7 @@ def _eval_performance_baseline(project_root: Path, *, state: dict[str, Any] | No
             for _ in range(50):
                 start = time.time()
                 try:
-                    bench_path.write_text(payload, encoding="utf-8")
+                    bench_path.write_text(payload, encoding="utf-8", newline="\n")
                     bench_path.read_text(encoding="utf-8")
                 except OSError:
                     pass

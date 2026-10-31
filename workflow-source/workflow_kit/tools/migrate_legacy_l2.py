@@ -324,7 +324,7 @@ def cmd_migrate_legacy_l2(args: argparse.Namespace) -> dict:
             action_performed = "skipped (identical)"
         elif drift["status"] == "fresh":
             inrepo_mirror.parent.mkdir(parents=True, exist_ok=True)
-            inrepo_mirror.write_text(new_content, encoding="utf-8")
+            inrepo_mirror.write_text(new_content, encoding="utf-8", newline="\n")
             action_performed = "written (fresh)"
         else:  # drift
             # hash mismatch → warning + skip (manual review 필요)

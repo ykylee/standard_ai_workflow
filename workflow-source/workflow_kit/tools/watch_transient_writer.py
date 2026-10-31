@@ -210,7 +210,7 @@ def _capture_ps(log_dir: Path, seq: int) -> str | None:
     if proc.returncode != 0:
         return None
     out = log_dir / f"event-{seq:03d}.ps.txt"
-    out.write_text(proc.stdout, encoding="utf-8")
+    out.write_text(proc.stdout, encoding="utf-8", newline="\n")
     return str(out)
 
 
@@ -234,7 +234,7 @@ def _write_diff(log_dir: Path, seq: int, before: bytes, after: bytes) -> str:
         before_text, after_text, fromfile="before", tofile="after"))
     out = log_dir / f"event-{seq:03d}.diff"
     out.write_text(diff if diff else "(binary 또는 diff 산출 불가 — snapshot 대조)\n",
-                   encoding="utf-8")
+                   encoding="utf-8", newline="\n")
     return str(out)
 
 
@@ -262,7 +262,7 @@ def write_summary(log_dir: Path, result: WatchResult) -> Path:
     payload = json.dumps(result.as_dict(), ensure_ascii=False, indent=2)
     for attempt in range(SUMMARY_WRITE_ATTEMPTS):
         try:
-            tmp_path.write_text(payload, encoding="utf-8")
+            tmp_path.write_text(payload, encoding="utf-8", newline="\n")
             os.replace(tmp_path, summary_path)
             return summary_path
         except PermissionError:
@@ -318,7 +318,7 @@ def watch(target: Path, target_source: str, log_dir: Path, interval_s: float,
     (log_dir / "watcher_ready.json").write_text(
         json.dumps({"started_at": result.started_at,
                     "baseline_present": prev is not None}, ensure_ascii=False),
-        encoding="utf-8")
+        encoding="utf-8", newline="\n")
     deadline = time.monotonic() + duration_s if duration_s > 0 else None
     seq = 0
     # 첫 폴링 직후 바로 summary 를 쓰도록 기준점을 이미 지난 값으로 시작한다 —

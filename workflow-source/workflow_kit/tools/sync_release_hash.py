@@ -125,7 +125,7 @@ def update_state_json(state_path: Path, version: str, new_hash: str, *, dry_run:
     if new_content == content:
         return False
     if not dry_run:
-        state_path.write_text(new_content, encoding="utf-8")
+        state_path.write_text(new_content, encoding="utf-8", newline="\n")
     return True
 
 
@@ -149,7 +149,7 @@ def update_backlog(backlog_path: Path, new_hash: str, *, dry_run: bool = False) 
     if new_content == content:
         return False
     if not dry_run:
-        backlog_path.write_text(new_content, encoding="utf-8")
+        backlog_path.write_text(new_content, encoding="utf-8", newline="\n")
     return True
 
 

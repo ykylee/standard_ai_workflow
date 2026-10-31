@@ -254,8 +254,8 @@ def run(handoff_path: Path, *, cap: int, apply: bool, today: str) -> dict:
         if prev:
             body = body.rstrip("\n") + "\n\n" + prev
         baselines_path.write_text(
-            _HEADER.format(cap=cap) + body.rstrip("\n") + "\n", encoding="utf-8")
-    handoff_path.write_text(new_text, encoding="utf-8")
+            _HEADER.format(cap=cap) + body.rstrip("\n") + "\n", encoding="utf-8", newline="\n")
+    handoff_path.write_text(new_text, encoding="utf-8", newline="\n")
     result["applied"] = True
     return result
 

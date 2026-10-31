@@ -98,7 +98,7 @@ def rewrite_state_paths(state_path: Path, branch: str) -> bool:
         changed = True
     if changed:
         state_path.write_text(
-            json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
     return changed
 
 

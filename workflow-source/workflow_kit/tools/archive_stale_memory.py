@@ -67,7 +67,7 @@ def get_repo_root(cli_value: str | os.PathLike[str] | None = None, *, _suppress_
         import subprocess as sp
         proc = sp.run(
             ["git", "rev-parse", "--show-toplevel"],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=5,
         )
         if proc.returncode == 0 and proc.stdout.strip():
             return Path(proc.stdout.strip()).resolve()
@@ -384,7 +384,7 @@ def rotate_log_if_needed(memory_dir: Path, *, line_threshold: int = LOG_ROTATE_L
         shutil.copyfileobj(f_in, f_out)
     archive_size = archive_path.stat().st_size
     # truncate log
-    log_path.write_text("", encoding="utf-8")
+    log_path.write_text("", encoding="utf-8", newline="\n")
     return {
         "rotated": True,
         "line_count": line_count,

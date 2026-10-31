@@ -77,4 +77,4 @@ def save_cache_with_lfu(
     if size > 4096:
         cache_file.write_bytes(_gzip.compress(serialized.encode("utf-8"), compresslevel=6))
     else:
-        cache_file.write_text(serialized, encoding="utf-8")
+        cache_file.write_text(serialized, encoding="utf-8", newline="\n")

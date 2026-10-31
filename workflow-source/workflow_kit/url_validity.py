@@ -723,6 +723,8 @@ def check_url_semantic_range_diff(
             cwd=str(repo_root) if repo_root else None,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=30,
         )
     except (FileNotFoundError, OSError, TimeoutError) as e:
@@ -1008,7 +1010,7 @@ def _save_cache(
         import gzip
         cache_file.write_bytes(gzip.compress(serialized.encode("utf-8"), compresslevel=6))
     else:
-        cache_file.write_text(serialized, encoding="utf-8")
+        cache_file.write_text(serialized, encoding="utf-8", newline="\n")
 def _cache_lookup(cache: dict[str, CacheEntry], url: str, ttl: int) -> list[UrlIssue] | None:
     entry = cache.get(url)
     if entry is None:

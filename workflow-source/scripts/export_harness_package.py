@@ -442,7 +442,7 @@ def package_apply_steps_for(harness: str) -> list[str]:
 
 def write_text(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content, encoding="utf-8")
+    path.write_text(content, encoding="utf-8", newline="\n")
 
 
 def render_package_contents(
@@ -764,7 +764,7 @@ def export_harness(
 
     version_path = bundle_root / "ai-workflow" / "VERSION"
     version_path.parent.mkdir(parents=True, exist_ok=True)
-    version_path.write_text(version, encoding="utf-8")
+    version_path.write_text(version, encoding="utf-8", newline="\n")
     included_files.append(rel(version_path, package_root))
 
     package_name = f"standard-ai-workflow-{harness}"
@@ -808,7 +808,7 @@ def export_harness(
         ],
     }
     manifest_path = package_root / "manifest.json"
-    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
 
     archive_base = package_root / f"{package_name}-{version}"
     archive_path = shutil.make_archive(str(archive_base), "zip", root_dir=package_root, base_dir=".")

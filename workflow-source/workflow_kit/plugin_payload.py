@@ -1277,7 +1277,12 @@ def write_agent_plugin(root: Path, payload: dict[str, str] | None = None) -> lis
     for relpath, content in sorted(files.items()):
         target = root / relpath
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(content, encoding="utf-8")
+        # `newline="\n"` — Windows 텍스트 모드는 `\n` 을 CRLF 로 번역한다. payload 는
+        # **소비측에 바이트 그대로 복사**된다(`minimax_plugin` 의 `shutil.copyfile`) 라,
+        # 여기서 CRLF 가 끼면 설치본이 호스트마다 달라지고 `content_drift` 가 영영
+        # 잡히지 않는다 — 파일 일치가 아니라 **바이트** 대조라 못 잡힌다.
+        # 저장소 표준은 LF(`.gitattributes` 의 `* text=auto eol=lf`) 다.
+        target.write_text(content, encoding="utf-8", newline="\n")
         written.append(target)
     return written
 

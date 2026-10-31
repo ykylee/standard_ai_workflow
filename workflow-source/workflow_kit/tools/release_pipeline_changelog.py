@@ -312,7 +312,7 @@ def _resolve_notes_file(version: str, template: str, *, dry_run: bool = False,
                                 simple_lines.append(line)
                                 blank_count = 0
                     notes_file.parent.mkdir(parents=True, exist_ok=True)
-                    notes_file.write_text("\n".join(simple_lines).rstrip() + "\n", encoding="utf-8")
+                    notes_file.write_text("\n".join(simple_lines).rstrip() + "\n", encoding="utf-8", newline="\n")
         return {"notes_file": notes_file, "source": template, "error": None}
     elif template == "changelog":
         notes_file = REPO_ROOT / "workflow-source" / "CHANGELOG.md"

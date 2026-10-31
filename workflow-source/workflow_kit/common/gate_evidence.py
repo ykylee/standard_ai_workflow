@@ -96,7 +96,7 @@ def record(repo_root: Path, sha: str, *, contexts: list[str], total: int) -> Pat
         "recorded_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
     }
     path = directory / f"{sha}.json"
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
     return path
 
 

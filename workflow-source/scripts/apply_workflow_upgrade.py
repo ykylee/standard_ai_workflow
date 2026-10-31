@@ -223,7 +223,7 @@ def apply_upgrade(
     if not dry_run:
         version_path = target_root / "ai-workflow" / "VERSION"
         version_path.parent.mkdir(parents=True, exist_ok=True)
-        version_path.write_text(WORKFLOW_KIT_VERSION, encoding="utf-8")
+        version_path.write_text(WORKFLOW_KIT_VERSION, encoding="utf-8", newline="\n")
 
     return results
 

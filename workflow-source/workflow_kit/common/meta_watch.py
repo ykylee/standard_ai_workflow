@@ -93,7 +93,7 @@ def write_sitecustomize(dir_path: Path) -> Path:
     """주입 디렉터리에 sitecustomize 를 쓴다. 러너가 spawn 전에 한 번 부른다."""
     dir_path.mkdir(parents=True, exist_ok=True)
     target = dir_path / SITECUSTOMIZE_FILENAME
-    target.write_text(SITECUSTOMIZE_SOURCE, encoding="utf-8")
+    target.write_text(SITECUSTOMIZE_SOURCE, encoding="utf-8", newline="\n")
     return target
 
 

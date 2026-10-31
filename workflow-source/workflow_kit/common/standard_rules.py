@@ -393,7 +393,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if not args.apply:
         print(f"DRIFT: 스냅샷이 정본과 다르다. `--apply` 로 재생성한다 ({path})", file=sys.stderr)
         return 1
-    _SNAPSHOT_PATH.write_text(generated, encoding="utf-8")
+    _SNAPSHOT_PATH.write_text(generated, encoding="utf-8", newline="\n")
     print(f"WROTE: {_SNAPSHOT_PATH}")
     return 0
 

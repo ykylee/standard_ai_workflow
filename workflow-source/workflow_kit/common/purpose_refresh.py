@@ -304,7 +304,7 @@ def update_last_purpose_review(
 
     # fm_text 는 regex group 1 (마지막 \n 포함 안 됨) → 명시적 newline 부착
     new_text = f"---\n{new_fm_text}\n---{body_text}"
-    purpose_path.write_text(new_text, encoding="utf-8")
+    purpose_path.write_text(new_text, encoding="utf-8", newline="\n")
 
     return {
         "updated": True,

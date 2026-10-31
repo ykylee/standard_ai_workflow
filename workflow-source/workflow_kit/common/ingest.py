@@ -127,7 +127,7 @@ def ingest_session_atomic(
 def _atomic_write(path: Path, content: str) -> None:
     """Write *content* to *path* atomically via a temp file + rename."""
     tmp = path.with_suffix(path.suffix + ".partial")
-    tmp.write_text(content, encoding="utf-8")
+    tmp.write_text(content, encoding="utf-8", newline="\n")
     tmp.replace(path)
 
 

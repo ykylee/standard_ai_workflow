@@ -39,7 +39,7 @@ def ensure_gitignore_patterns(target_root: Path, dry_run: bool) -> list[str]:
     if not gitignore_path.exists():
         if dry_run:
             return ["Create .gitignore with standard workflow patterns"]
-        gitignore_path.write_text(block + "\n", encoding="utf-8")
+        gitignore_path.write_text(block + "\n", encoding="utf-8", newline="\n")
         return ["Created .gitignore with standard workflow patterns"]
 
     content = gitignore_path.read_text(encoding="utf-8")
@@ -55,7 +55,7 @@ def ensure_gitignore_patterns(target_root: Path, dry_run: bool) -> list[str]:
         new_content = content[:start_idx] + block + content[end_idx:]
         changes.append("Updated workflow patterns block in .gitignore")
         if not dry_run:
-            gitignore_path.write_text(new_content, encoding="utf-8")
+            gitignore_path.write_text(new_content, encoding="utf-8", newline="\n")
         return changes
 
     # --- Case 3: Legacy patterns without markers → migrate to markers -------

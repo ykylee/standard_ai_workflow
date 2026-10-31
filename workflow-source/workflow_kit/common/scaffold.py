@@ -65,5 +65,5 @@ class Test{task_id.replace('-', '').capitalize()}Validation(unittest.TestCase):
 if __name__ == "__main__":
     unittest.main()
 '''
-    target_path.write_text(template, encoding="utf-8")
+    target_path.write_text(template, encoding="utf-8", newline="\n")
     return target_path

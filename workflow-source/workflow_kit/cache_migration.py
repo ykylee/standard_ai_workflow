@@ -84,7 +84,7 @@ def migrate_to_per_strategy_cache(base_path: Path | None = None) -> dict[str, ob
     }
     serialized = json.dumps(raw, indent=2, sort_keys=True)
     mixed_file.parent.mkdir(parents=True, exist_ok=True)
-    mixed_file.write_text(serialized, encoding="utf-8")
+    mixed_file.write_text(serialized, encoding="utf-8", newline="\n")
     # Delete source
     base.unlink()
     print(f"INFO: migrated {len(entries)} entries from {base} to {mixed_file}", file=sys.stderr)

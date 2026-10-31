@@ -68,4 +68,4 @@ class DocTransformer:
             optimized = content # Keep JSON/other as is for now
 
         destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_text(optimized, encoding="utf-8")
+        destination.write_text(optimized, encoding="utf-8", newline="\n")

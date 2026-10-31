@@ -226,7 +226,7 @@ def diet(project_root: Path, harnesses: list[str], *, apply: bool) -> tuple[list
                             if a.action != "keep"],
             })
             if apply and not forked and plan.changed:
-                path.write_text(plan.new_text, encoding="utf-8")
+                path.write_text(plan.new_text, encoding="utf-8", newline="\n")
                 applied.append(rel)
     return report, applied
 

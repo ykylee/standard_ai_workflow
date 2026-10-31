@@ -187,7 +187,7 @@ def ensure_compact_dir(loc: RelayLocation) -> Path:
     loc.compact_dir.mkdir(exist_ok=True)
     ignore = loc.compact_dir / ".gitignore"
     if not ignore.is_file() or ignore.read_text(encoding="utf-8") != GITIGNORE_BODY:
-        ignore.write_text(GITIGNORE_BODY, encoding="utf-8")
+        ignore.write_text(GITIGNORE_BODY, encoding="utf-8", newline="\n")
     return loc.compact_dir
 
 
@@ -225,7 +225,7 @@ def load_checkpoint(loc: RelayLocation) -> dict[str, Any] | None:
 def save_checkpoint(loc: RelayLocation, data: dict[str, Any]) -> None:
     ensure_compact_dir(loc)
     tmp = loc.checkpoint_path.with_suffix(".json.tmp")
-    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
     os.replace(tmp, loc.checkpoint_path)
 
 
@@ -387,7 +387,7 @@ def hook_post(loc: RelayLocation, payload: dict[str, Any], *, now: str) -> dict[
         save_checkpoint(loc, data)
         return data
     ensure_compact_dir(loc)
-    loc.summary_path.write_text(summary, encoding="utf-8")
+    loc.summary_path.write_text(summary, encoding="utf-8", newline="\n")
     missing = [t for t in ids if t not in summary]
     data["relay"] = {
         "summary_available": True,

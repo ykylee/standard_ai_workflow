@@ -302,7 +302,7 @@ def generate_clarification_file(
     lines.append("각 follow-up 의 답을 본 문서 또는 원본 question file 의 `[Answer]:` tag 에 추가해주세요.")
     lines.append("")
 
-    p.write_text("\n".join(lines), encoding="utf-8")
+    p.write_text("\n".join(lines), encoding="utf-8", newline="\n")
 
 
 def _ambiguity_follow_up(keyword: str) -> str:

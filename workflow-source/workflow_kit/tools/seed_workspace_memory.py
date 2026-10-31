@@ -469,7 +469,7 @@ def seed(*, memory_root: Path, branch: str, axis: str, task_title: str,
                            task_title=task_title, today=today,
                            out_of_scope=out_of_scope, task_status=task_status,
                            inherited=inherited),
-            encoding="utf-8",
+            encoding="utf-8", newline="\n"
         )
 
     if write_session:
@@ -478,7 +478,7 @@ def seed(*, memory_root: Path, branch: str, axis: str, task_title: str,
             render_seed_session_record(branch=branch, axis=axis, task_id=task_id,
                                        task_title=task_title, today=today,
                                        out_of_scope=out_of_scope, inherited=inherited),
-            encoding="utf-8",
+            encoding="utf-8", newline="\n"
         )
 
     # `state.json` 은 **생성물**이다 — 손으로 쓰지 않는다. 그렇다고 "나중에 따로"

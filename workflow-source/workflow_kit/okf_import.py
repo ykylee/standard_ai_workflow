@@ -474,7 +474,7 @@ def _stage_page(page: ParsedPage, staging: Path) -> Path:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(
         page.source_path.read_text(encoding="utf-8"),
-        encoding="utf-8",
+        encoding="utf-8", newline="\n"
     )
     return out_path
 
@@ -665,6 +665,8 @@ def audit_r2_batch_history_precise(
             cwd=str(repo_root),
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=30,
         )
     except (FileNotFoundError, OSError, TimeoutError) as e:

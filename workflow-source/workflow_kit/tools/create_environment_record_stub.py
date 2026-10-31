@@ -74,7 +74,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.output_path:
         args.output_path.parent.mkdir(parents=True, exist_ok=True)
-        args.output_path.write_text("\n".join(draft) + "\n", encoding="utf-8")
+        args.output_path.write_text("\n".join(draft) + "\n", encoding="utf-8", newline="\n")
         print(f"  ✓ written: {args.output_path} ({len(draft)} lines)", file=sys.stderr)
     else:
         for line in draft:

@@ -577,7 +577,7 @@ last_touched: {timestamp[:10]}
 - smoke: `workflow-source/tests/check_wiki_drift.py` (drift)
 - 6 dim 정의: 본 dashboard §Score 기준
 """
-    dashboard_path.write_text(md, encoding="utf-8")
+    dashboard_path.write_text(md, encoding="utf-8", newline="\n")
 
 
 def main() -> int:

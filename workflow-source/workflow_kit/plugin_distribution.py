@@ -118,7 +118,7 @@ def _write_marketplace(root: Path, spec: PluginHarnessSpec) -> None:
     }
     marketplace_path = root / ".agents" / "plugins" / "marketplace.json"
     marketplace_path.parent.mkdir(parents=True, exist_ok=True)
-    marketplace_path.write_text(json.dumps(marketplace, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    marketplace_path.write_text(json.dumps(marketplace, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
 
 
 def build_plugin_archives(

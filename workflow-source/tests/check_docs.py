@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import re
 import sys
+import tempfile
 from pathlib import Path
 
 
@@ -148,13 +149,15 @@ def _plugin_payload_dirname() -> str:
     return PAYLOAD_DIRNAME
 
 
-def iter_markdown_files() -> list[Path]:
+def iter_markdown_files(root: Path = REPO_ROOT) -> list[Path]:
+    # 제외 대조는 **root 기준 상대경로** 부분으로만 한다. 절대경로 부분을 대조하면
+    # 저장소 *바깥* 조상 이름이 걸린다 — 2026-11-12 실측: Claude Code worktree 는
+    # `<repo>/.claude/worktrees/<name>/` 에 있어 모든 `.md` 가 `.claude` 부분을 갖고,
+    # 전부 제외돼 "passed for 0 markdown files" 로 green 이었다.
     payload_dirname = _plugin_payload_dirname()
     markdown_files: list[Path] = []
-    for path in REPO_ROOT.rglob("*.md"):
-        if set(path.parts).intersection(IGNORED_PARTS):
-            continue
-        rel_parts = path.relative_to(REPO_ROOT).parts
+    for path in root.rglob("*.md"):
+        rel_parts = path.relative_to(root).parts
         if rel_parts[0] == payload_dirname:
             continue
         if any(
@@ -284,9 +287,36 @@ def check_links(path: Path) -> list[str]:
     return errors
 
 
+def check_worktree_layout() -> list[str]:
+    """저장소가 `.claude/worktrees/<name>/` 아래에 있어도 문서를 센다 (회귀 case).
+
+    worktree 경로를 흉내 낸 임시 트리에서, 저장소 안의 문서는 잡히고 저장소 안의
+    제외 디렉터리(`.claude/`) 문서는 여전히 빠지는지 잰다.
+    """
+    errors: list[str] = []
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp) / "repo" / ".claude" / "worktrees" / "wt-case"
+        (root / "docs").mkdir(parents=True)
+        (root / "docs" / "a.md").write_text("# a\n", encoding="utf-8")
+        (root / "README.md").write_text("# r\n", encoding="utf-8")
+        (root / ".claude").mkdir()
+        (root / ".claude" / "ignored.md").write_text("# i\n", encoding="utf-8")
+        found = {p.relative_to(root).as_posix() for p in iter_markdown_files(root)}
+    if found != {"README.md", "docs/a.md"}:
+        errors.append(
+            "worktree layout case: expected README.md + docs/a.md, "
+            f"got {sorted(found)}"
+        )
+    return errors
+
+
 def main() -> int:
-    failures: list[str] = []
-    for path in iter_markdown_files():
+    failures: list[str] = check_worktree_layout()
+    markdown_files = iter_markdown_files()
+    # 검사한 문서가 0개인 통과는 측정이 없었다는 뜻이지 green 이 아니다.
+    if not markdown_files:
+        failures.append(f"{REPO_ROOT}: no markdown files selected — exclusion rules dropped every doc")
+    for path in markdown_files:
         rel_path = path.relative_to(REPO_ROOT)
         missing_metadata = check_metadata(path)
         if missing_metadata:
@@ -319,7 +349,7 @@ def main() -> int:
             print(f"- {failure}")
         return 1
 
-    print(f"Document smoke check passed for {len(iter_markdown_files())} markdown files.")
+    print(f"Document smoke check passed for {len(markdown_files)} markdown files.")
     return 0
 
 

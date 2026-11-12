@@ -30,6 +30,8 @@ from pathlib import Path
 
 INHERITED_FROM_KEY = "inherited_from"
 INHERITED_HASH_KEY = "inherited_hash"
+#: handoff §1 의 원류 줄 라벨 — seed 가 쓰고 `check_memory_lint` T1d 가 읽는다 (:func:`handoff_origin_branch`).
+ORIGIN_LINE_LABEL = "원류"
 #: 옮겨 오는 task 상태 — 닫힌 task 는 모 브랜치의 이력이지 이어받을 일이 아니다.
 INHERITABLE_STATES: tuple[str, ...] = ("in_progress", "blocked", "planned")
 
@@ -164,6 +166,16 @@ def handoff_line(text: str, label: str) -> str:
         if line.startswith(prefix):
             return line[len(prefix):].strip()
     return ""
+
+
+def handoff_origin_branch(text: str) -> str | None:
+    """handoff 의 ``- 원류: `<branch>@<sha>` …`` 줄에서 모 브랜치. 이어받지 않은 handoff 면 None.
+
+    옮겨 적은 기준선 · 주 작업 축 문장은 모 브랜치의 **닫힌** task 도 인용한다 — 그 task 는 옮기지 않으므로
+    (`INHERITABLE_STATES`) 인용을 푸는 자리는 모 브랜치 네임스페이스다 (2026-11-12 실측: seed 직후 T1d red).
+    """
+    found = re.match(r"`([^`]+)`", handoff_line(text, ORIGIN_LINE_LABEL))
+    return parse_origin(found.group(1))[0] if found else None
 
 
 def insert_frontmatter_line(text: str, key: str, value: str) -> str:

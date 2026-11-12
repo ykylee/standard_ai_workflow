@@ -37,7 +37,8 @@ r"""브랜치 네임스페이스가 없는 worktree 에서 session-start 가 스
   9) 새 브랜치의 session-start 가 모 브랜치의 차단 task · 기준선을 보고하고, handoff 에 `원류: main@<sha>`
      (sha = 체크아웃 HEAD) · §5 앞머리 bullet 이 실린다. 열린 task(차단·계획)는 같은 ID 로 옮겨지고
      원류 두 줄을 걷으면 원문과 바이트가 같다. done task 는 옮기지 않는다. 모 브랜치 파일은 바이트 불변.
-     옮긴 상대 링크는 새 위치에서 풀린다
+     옮긴 상대 링크는 새 위치에서 풀린다. 옮겨 적은 축 문장이 인용하는 모 브랜치의 done task 는 옮기지 않지만
+     seed 직후 `check_memory_lint` T1d 가 red 가 아니다 (원류 줄로 모 브랜치에서 푼다 — 2026-11-12 실측)
  10) 이어받은 task 를 worktree 에서 `backlog-update` 로 갱신할 수 있고(원류 줄 유지), 다음 시작에 정합
      경고가 없으며, 모 브랜치 원본은 그대로다
  11) 로드맵 수집은 같은 ID 를 한 번만 센다 — 안 고친 사본은 원본의 그림자, 고친 사본이 원본을 대신한다
@@ -66,6 +67,7 @@ CHECK_TIMEOUT_S = 150
 WATCHES = (
     "workflow-source/pyproject.toml",
     "workflow-source/workflow_kit/*",
+    "workflow-source/tests/check_memory_lint.py",  # case 9 가 T1d 판정을 빌려 쓴다
 )
 
 import json
@@ -82,6 +84,8 @@ sys.path.insert(0, str(SOURCE_ROOT))
 from workflow_kit.common.state.memory_index import TELEMETRY_SKIP_ROOT_ENV  # noqa: E402
 from workflow_kit.common.child_process import platform_child_env  # noqa: E402
 from workflow_kit.common.branch_inheritance import strip_inherited  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from check_memory_lint import missing_entries  # noqa: E402
 from workflow_kit.common.reconcile import STATE_CONFLICT_MARKER  # noqa: E402
 from workflow_kit.common.state.roadmap import collect_task_wbs_links, resolve_task_goals  # noqa: E402
 
@@ -180,7 +184,7 @@ def _make_inherit_repo(tmp: Path) -> Path:
     (clone / "docs" / "SPEC.md").write_text("# spec\n", encoding="utf-8")
     (base / "session_handoff.md").write_text(
         "# Session Handoff\n\n## 1. 현재 작업 요약\n\n- 현재 기준선: 모 브랜치 기준선 X\n"
-        "- 현재 주 작업 축: 모 축 — [spec](../../../../docs/SPEC.md)\n\n"
+        "- 현재 주 작업 축: 모 축 — [spec](../../../../docs/SPEC.md) · ~~끝난 일~~ ✅ (TASK-2026-09-30-main-003)\n\n"
         "## 2. 진행 중 작업\n\n- 현재 `in_progress` 작업:\n-\n\n"
         "## 3. 차단 작업\n\n- 현재 `blocked` 작업:\n- TASK-2026-09-30-main-001 모 브랜치 blocked task\n\n"
         "## 5. 다음 세션 시작 포인트\n\n- 모 브랜치 다음 걸음 A\n- 모 브랜치 다음 걸음 B\n\n"
@@ -246,6 +250,12 @@ def _inheritance_cases(tmp: Path) -> None:
             problems.append(f"깨진 링크 {link}")
     if _snapshot(parent) != before:
         problems.append("모 브랜치 파일이 바뀌었다")
+    if "TASK-2026-09-30-main-003" not in handoff:
+        problems.append("fixture: 옮겨 적은 축 문장이 done task 를 인용하지 않는다 — T1d 판정이 비어 돈다")
+    lint = [e for e in missing_entries(_active(clone), clone / "ai-workflow" / "memory" / "archived")
+            if "claude/heir/" in e]
+    if lint:
+        problems.append(f"seed 직후 T1d red: {lint}")
     _record("test_seed_inherits_parent_content_with_origin", result.get("status") == "ok" and not problems,
             "; ".join(problems))
 

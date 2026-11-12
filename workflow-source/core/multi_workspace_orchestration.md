@@ -4,7 +4,7 @@
 - 범위: 3계층 워크스페이스 구분, 격리 키 결정과 근거, 하네스 동시 운영 시 lease 규약, 중앙 취합 확장 지점, 미해결 질문
 - 대상 독자: AI workflow 설계자, 멀티 에이전트 운영자, 저장소 관리자
 - 상태: draft (설계 단계 — 구현 미착수)
-- 최종 수정일: 2026-10-02
+- 최종 수정일: 2026-11-12
 - 관련 문서: `./workflow_configuration_layers.md`, `./workflow_harness_distribution.md`, `./workflow_agent_topology.md`, `./orchestrator_subagent_contract_v1.md`, `./merge_doc_reconcile_skill_spec.md`, `../MEMORY_GOVERNANCE.md`
 
 > **상태 고지**: 본 문서는 *설계* 다. §2 의 "이미 있다" 항목과 §5A~§5D 의 실측은
@@ -532,6 +532,10 @@ recommended_next_action: None
 > - 어느 시점을: **이 체크아웃의** `active/<base>/` — 분기 시점 상태이고 작업 중인 코드와 같은 커밋이다.
 > - 원류: handoff §1 에 `원류: <base>@<sha>` 줄 (sha = seed 시점 HEAD), 옮긴 task 의 frontmatter 맨 앞에
 >   `inherited_from: <base>@<sha>` · `inherited_hash: sha256:<원문 해시>`. 이 두 줄을 걷으면 원문과 바이트가 같다.
+> - 닫힌 task 인용: 옮겨 적은 기준선 · 주 작업 축 문장은 모 브랜치의 **닫힌** task ID 도 인용한다 — 그 task 는
+>   옮기지 않으므로, 메모리 lint T1d(`check_memory_lint`)는 handoff 의 `원류:` 줄이 가리키는 `active/<base>/backlog/tasks/`
+>   를 해소 경로로 본다 (`branch_inheritance.handoff_origin_branch`). 원류 줄이 없는 브랜치는 넓히지 않는다.
+>   2026-11-12 실측: 이 해소가 없어 seed 직후 T1d 가 red 였다 (`TASK-2026-08-20-main-003`).
 > - 집계: 같은 ID 가 두 네임스페이스에 있으면 하나만 센다 — 안 고친 사본은 원본의 그림자, 고친 사본이
 >   원본을 대신한다 (`common.branch_inheritance.effective_task_files`, 로드맵 수집이 쓴다).
 > - 합류: `archive-branch-memory` 가 이동 **전에** 고친 사본을 원류 줄 없이 원본 자리로 되돌려 적고

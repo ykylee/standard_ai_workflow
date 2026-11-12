@@ -229,7 +229,7 @@ def render_handoff(*, branch: str, axis: str, task_id: str, task_title: str,
         f"- 현재 주 작업 축: {axis}",
     ]
     if inherited:
-        lines.append(f"- 원류: `{origin}` — [`active/{origin_branch}/{HANDOFF_NAME}`]({origin_link}) "
+        lines.append(f"- {inherit.ORIGIN_LINE_LABEL}: `{origin}` — [`active/{origin_branch}/{HANDOFF_NAME}`]({origin_link}) "
                      f"의 기준선 · 주 작업 축 · 열린 task {len(inh_tasks)}건 · §5 를 옮겨 적었다 (모 브랜치에는 쓰지 않았다). "
                      f"옮겨 온 task 는 frontmatter `{inherit.INHERITED_FROM_KEY}` 로 원류를 갖고, 합류 아카이브 때 고친 것만 원본에 되돌려 적힌다.")
     if out_of_scope:

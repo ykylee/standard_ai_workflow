@@ -10,7 +10,9 @@
 - orphan (T1c): `active/<branch>/backlog/tasks/*.md` 가 같은 브랜치의 `backlog/<date>.md` 어디에도 안 보이면 red.
   legacy 는 `active/work_backlog.md` 를 봐서 항상 skip 됐다.
 - missing (T1d): handoff · daily index 가 참조한 TASK id 는 그 브랜치 `tasks/` 또는 `archived/**/backlog/tasks/`
-  (합류한 worktree 브랜치 — 118차 실측 7건) 에 파일이 있어야 한다. legacy 는 errors 를 채우지 않아 항상 PASS 였다.
+  (합류한 worktree 브랜치 — 118차 실측 7건) 에 파일이 있어야 한다. handoff 에 seed 의 `원류:` 줄이 있으면 모 브랜치
+  `backlog/tasks/` 도 해소 경로다 — 옮겨 적은 기준선 · 주 작업 축이 인용하는 닫힌 task 는 옮기지 않는다(2026-11-12 실측).
+  legacy 는 errors 를 채우지 않아 항상 PASS 였다.
   ID 정규식(`project_docs.TASK_ID_PATTERN`)이 못 읽는 task 파일 stem 은 따로 red — 조용한 미분류 금지.
 """
 
@@ -29,6 +31,7 @@ SOURCE_ROOT = REPO_ROOT / "workflow-source"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
+from workflow_kit.common.branch_inheritance import handoff_origin_branch  # noqa: E402
 from workflow_kit.common.project_docs import TASK_ID_PATTERN  # noqa: E402
 from workflow_kit.tools.migrate_memory_to_branch_scoped import (  # noqa: E402
     KEEP as SHARED_ROOT_ITEMS,
@@ -181,7 +184,11 @@ def missing_entries(active_dir: Path, archived_dir: Path) -> list[str]:
     """T1d — handoff · daily index 가 참조한 TASK id 의 SSOT 파일이 없으면 보고.
 
     해소 순서: index 가 `path:` 를 선언했으면 **그 파일**(브랜치 디렉터리 또는 backlog/ 기준 — session 종류는
-    `sessions/…` 를 가리킨다) → 그 브랜치 `backlog/tasks/<id>.md` → `archived/**/backlog/tasks/<id>.md`.
+    `sessions/…` 를 가리킨다) → 그 브랜치 `backlog/tasks/<id>.md` → handoff `원류:` 줄의 모 브랜치
+    `backlog/tasks/<id>.md` → `archived/**/backlog/tasks/<id>.md`.
+
+    모 브랜치를 보는 건 seed 가 옮겨 적은 문장 때문이다 — 그 문장이 인용하는 닫힌 task 는 옮기지 않는다
+    (§5A.2 "닫힌 task 는 옮기지 않는다"). 원류 줄이 없는 브랜치는 해소 경로가 넓어지지 않는다.
     """
     errors: list[str] = []
     archived_ids = {p.stem for p in archived_dir.rglob("backlog/tasks/*.md")} if archived_dir.is_dir() else set()
@@ -189,6 +196,10 @@ def missing_entries(active_dir: Path, archived_dir: Path) -> list[str]:
         rel = branch_dir.relative_to(active_dir).as_posix()
         backlog_dir = branch_dir / "backlog"
         own_ids = {p.stem for p in (backlog_dir / "tasks").glob("*.md")}
+        handoff = branch_dir / "session_handoff.md"
+        origin = handoff_origin_branch(handoff.read_text(encoding="utf-8")) if handoff.is_file() else None
+        if origin and origin != rel:
+            own_ids |= {p.stem for p in (active_dir / origin / "backlog" / "tasks").glob("*.md")}
         indexes = sorted(backlog_dir.glob("*.md"))
         declared: dict[str, str] = {}
         for index in indexes:
@@ -259,7 +270,17 @@ def check_link_selftest() -> list[str]:
             f"- **{sess_ok}** [session] 세션 기록\n  - path: `sessions/audit.md`\n"
             f"- **{sess_gone}** [session] 사라진 기록\n  - path: `sessions/gone.md`\n",
             encoding="utf-8")
-        (branch / "session_handoff.md").write_text(f"- {linked} t\n- (합류) {joined}\n- {dangling} 없는 task\n", encoding="utf-8")
+        # seed 가 이어받은 handoff — 옮겨 적은 축 문장이 모 브랜치의 닫힌 task 를 인용한다 (2026-11-12 실측).
+        parent_done = "TASK-2026-08-20-main-003"
+        (branch / "session_handoff.md").write_text(
+            f"- 현재 주 작업 축: ~~OKF 이행~~ ✅ ({parent_done})\n- 원류: `main@abc1234` — 옮겨 적었다\n"
+            f"- {linked} t\n- (합류) {joined}\n- {dangling} 없는 task\n", encoding="utf-8")
+        (active / "main" / "backlog" / "tasks").mkdir(parents=True)
+        (active / "main" / "backlog" / "tasks" / f"{parent_done}.md").write_text("# p\n", encoding="utf-8")
+        # 원류 줄이 없는 브랜치는 모 브랜치를 해소 경로로 보지 않는다 — 넓히면 아무 인용이나 통과한다.
+        stray = active / "claude" / "y"
+        (stray / "backlog").mkdir(parents=True)
+        (stray / "session_handoff.md").write_text(f"- {parent_done} 인용\n", encoding="utf-8")
         (archived / "feat" / "auto-1234abcd" / "backlog" / "tasks").mkdir(parents=True)
         (archived / "feat" / "auto-1234abcd" / "backlog" / "tasks" / f"{joined}.md").write_text("# j\n", encoding="utf-8")
         got_orphan = orphan_entries(active)
@@ -271,7 +292,9 @@ def check_link_selftest() -> list[str]:
         want_missing = {f"[T1d] Missing task file: {dangling} — claude/x/session_handoff.md 가 참조하는데 "
                         "claude/x/backlog/tasks/ 에도 archived/ 에도 없다",
                         f"[T1d] Missing task file: {sess_gone} — claude/x/backlog/2026-10-19.md 가 참조하는데 "
-                        "선언한 path `sessions/gone.md` 도 archived/ 에도 없다"}
+                        "선언한 path `sessions/gone.md` 도 archived/ 에도 없다",
+                        f"[T1d] Missing task file: {parent_done} — claude/y/session_handoff.md 가 참조하는데 "
+                        "claude/y/backlog/tasks/ 에도 archived/ 에도 없다"}
         if set(got_missing) != want_missing:
             errors.append(f"[T1d-selftest] 기대 {sorted(want_missing)} ≠ 실제 {sorted(got_missing)}")
     return errors

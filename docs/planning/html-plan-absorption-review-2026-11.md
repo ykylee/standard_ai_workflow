@@ -367,7 +367,7 @@ B 의 흐름(`plan-export` → `/html-plan` 채움 → pack → Respond → `pla
 
 - **삭제**: html-plan 형식 export(§5.2 매핑 · §5.3 번호 정합 · `html-plan-format` 메타), html-plan Respond 파싱(§5.4 의 접미사
   `kept as proposed` · `not opened; default kept` 해석), 형식 결합 위험(§5.7), 플러그인 의존(§5.8).
-- **대체**: 결정 응답은 kit 워크벤치(로컬 웹, Python)의 결정 폼이 **우리 응답 형식**으로 브랜치 받은편지함에 쓰고,
+- **대체**: 결정 응답은 kit 워크벤치(웹, Python — 접속 위치 무가정은 M-024 §11)의 결정 폼이 **우리 응답 형식**으로 브랜치 받은편지함에 쓰고,
   `plan-import` 가 그 형식을 읽는다. 하네스와 무관하다.
 - **유지**: 안 A 전부(필드 · 린트 · 게이트 · verifier 묶음), D1~D5, 응답 = 데이터(§5.6), 실패 시 닫힘(§5.5 — 대조
   대상만 우리 형식으로), 응답 원문 보존(D5).

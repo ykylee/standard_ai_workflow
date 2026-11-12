@@ -59,7 +59,7 @@
   - path: [`./M-022-claim-plan.md`](./M-022-claim-plan.md)
 - **M-023** [requirements] 주장 트리 계획 — requirements (A 계약 + B 응답 반영, 결정 D1~D5, 하네스 중립) — status: planned
   - path: [`./M-023-claim-plan-requirements.md`](./M-023-claim-plan-requirements.md)
-- **M-024** [concept] 계획·진척 워크벤치 — 로컬 웹으로 계획 검토 · 응답 반영 · 진척 조회 — status: done
+- **M-024** [concept] 계획·진척 워크벤치 — 웹으로 계획 검토 · 응답 반영 · 진척 조회 — status: done
   - path: [`./M-024-plan-workbench.md`](./M-024-plan-workbench.md)
-- **M-025** [requirements] 계획·진척 워크벤치 — requirements (로컬 웹 · 받은편지함 · 알림 층, 결정 W1~W5, 하네스 중립) — status: planned
+- **M-025** [requirements] 계획·진척 워크벤치 — requirements (웹 · 받은편지함 · 알림 층, 결정 W1~W5, 하네스 중립) — status: planned
   - path: [`./M-025-plan-workbench-requirements.md`](./M-025-plan-workbench-requirements.md)

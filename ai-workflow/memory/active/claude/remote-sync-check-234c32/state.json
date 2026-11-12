@@ -39,6 +39,7 @@
     ],
     "planned_items": [],
     "recent_done_items": [
+      "TASK-2026-11-12-claude-remote-sync-check-234c32-004 — 워크벤치 concept 정정 — 접속 위치 무가정: 노출 경로 · 항상 인증 · viewer/approver 역할",
       "TASK-2026-11-12-claude-remote-sync-check-234c32-003 — 계획·진척 워크벤치 concept 검토 — html-plan 계획 호스팅 · 사용자 응답 반영(MCP · hook · channels · A2A) · 진척 조회",
       "TASK-2026-11-12-claude-remote-sync-check-234c32-002 — html-plan 개념 흡수 concept 검토 — task Plan 주장·결정 계약(A) + 검토 브리지(B) 설계 초안",
       "TASK-2026-11-12-claude-remote-sync-check-234c32-001 — 브랜치 네임스페이스 자동 seed — `main` 에서 이어받음"
@@ -48,13 +49,14 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/claude/remote-sync-check-234c32/backlog/2026-11-12.md",
-    "task_count": 3,
+    "task_count": 4,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
       "TASK-2026-11-12-claude-remote-sync-check-234c32-001 — 브랜치 네임스페이스 자동 seed — `main` 에서 이어받음",
       "TASK-2026-11-12-claude-remote-sync-check-234c32-002 — html-plan 개념 흡수 concept 검토 — task Plan 주장·결정 계약(A) + 검토 브리지(B) 설계 초안",
-      "TASK-2026-11-12-claude-remote-sync-check-234c32-003 — 계획·진척 워크벤치 concept 검토 — html-plan 계획 호스팅 · 사용자 응답 반영(MCP · hook · channels · A2A) · 진척 조회"
+      "TASK-2026-11-12-claude-remote-sync-check-234c32-003 — 계획·진척 워크벤치 concept 검토 — html-plan 계획 호스팅 · 사용자 응답 반영(MCP · hook · channels · A2A) · 진척 조회",
+      "TASK-2026-11-12-claude-remote-sync-check-234c32-004 — 워크벤치 concept 정정 — 접속 위치 무가정: 노출 경로 · 항상 인증 · viewer/approver 역할"
     ]
   },
   "next_documents": [

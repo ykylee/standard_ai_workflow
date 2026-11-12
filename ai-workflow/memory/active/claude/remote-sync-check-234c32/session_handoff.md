@@ -26,11 +26,13 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-11-12-claude-remote-sync-check-234c32-004 워크벤치 concept 정정 — 접속 위치 무가정: 노출 경로 · 항상 인증 · viewer/approver 역할
 - TASK-2026-11-12-claude-remote-sync-check-234c32-003 계획·진척 워크벤치 concept 검토 — html-plan 계획 호스팅 · 사용자 응답 반영(MCP · hook · channels · A2A) · 진척 조회
 - TASK-2026-11-12-claude-remote-sync-check-234c32-002 html-plan 개념 흡수 concept 검토 — task Plan 주장·결정 계약(A) + 검토 브리지(B) 설계 초안
 - TASK-2026-11-12-claude-remote-sync-check-234c32-001 브랜치 네임스페이스 자동 seed — `main` 에서 이어받음
 ## 5. 다음 세션 시작 포인트
 
+- (123차) **M-024 정정 종결 — 접속 위치 무가정, W6 · W7 기본값 확정** (TASK-…-004 done, verifier PASS, 검토 문서 §11.7). 서버는 작업 공간 호스트 · 브라우저는 어디서든; 노출 경로는 사용자 몫, 서버는 `public_url` · 경로 접두사 · 신뢰 프록시 설정으로 어느 경로든 동작, 직접 노출은 명시 옵션 + TLS; loopback 이어도 항상 인증, viewer/approver + 이름 붙은 토큰, 응답자 기록, approver 충돌 시 import 닫힘. 다음: **M-023 → M-025**.
 - (123차) **M-024 [concept] 계획·진척 워크벤치 종결** — 소유자 결정 W1~W5 기본값 전부 ([`plan-workbench-review-2026-11.md`](../../../../../docs/planning/plan-workbench-review-2026-11.md) §10), task -003 done (verifier PASS). **소유자 지시: kit 에 Claude 전용 기능 금지** → html-plan 플러그인 · channels · Artifact 배제, M-022 안 B 정정 확정(concept §11 — 워크벤치 결정 폼 + 받은편지함 + `plan-import`). 순서: **M-023 requirements 먼저**, 그 뒤 **M-025** (워크벤치 requirements).
 - (123차) **다음 = M-023 requirements** (WBS-23.1, 아직 task 없음 — `backlog-update --wbs M-023/WBS-23.1` 로 연다). 먼저 concept §8 미실측: pack.mjs 를 격리 디렉터리에서 example · 뼈대로 실측(node 26.13.0 이 이 macOS 호스트에 있다), 옛 리더가 모르는 `- Claims:` 줄 처리, 주장 길이 예산(완료 기준 길이 분포), 응답 크기 상한. 산출물 `docs/planning/claim-plan-requirements-2026-11.md`.
 - (123차) **seed T1d · worktree check_docs 결함 수리를 코드만 흡수** — `bafecf74`(원본 `claude/objective-shamir-ffa258@eba4b9ca`) · `74021296`(원본 `claude/laughing-shaw-6e3ef9@53caca64`). 두 브랜치를 통째로 병합했더니 `check_branch_memory_namespace` 가 red 였다(남의 브랜치 네임스페이스를 들여옴) → 병합을 되돌리고 `workflow-source/` 만 적용. **두 수리 브랜치는 아직 main 에 미합류** — 각자의 task 기록(objective-shamir -002 done · -003 case 5 분리, laughing-shaw -002 in_progress)은 그 브랜치가 main 에 합류할 때 들어온다. 같은 코드가 양쪽에 있으니 합류 시 내용 충돌은 없다.

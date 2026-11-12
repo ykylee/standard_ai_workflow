@@ -828,7 +828,7 @@
     },
     {
       "id": "M-023",
-      "title": "주장 트리 계획 — requirements (A 계약 + B 브리지, 결정 D1~D5)",
+      "title": "주장 트리 계획 — requirements (A 계약 + B 응답 반영, 결정 D1~D5, 하네스 중립)",
       "sdlc_phase": "requirements",
       "declared_status": "planned",
       "derived_status": "planned",
@@ -842,6 +842,54 @@
         {
           "id": "WBS-23.1",
           "title": "requirements 확정 — §8 미실측 실측 + A · B 요구 사항 · 숫자 · design 진입 조건 — 산출물:",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "M-024",
+      "title": "계획·진척 워크벤치 — 로컬 웹으로 계획 검토 · 응답 반영 · 진척 조회",
+      "sdlc_phase": "concept",
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
+      "total_leaves": 1,
+      "done_leaves": 1,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-24.1",
+          "title": "concept 검토 — 호스팅 · 응답 수집 · 세션 전달(MCP · hook · channels · A2A) · 진척 화면 ·",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-12-claude-remote-sync-check-234c32-003"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "M-025",
+      "title": "계획·진척 워크벤치 — requirements (로컬 웹 · 받은편지함 · 알림 층, 결정 W1~W5, 하네스 중립)",
+      "sdlc_phase": "requirements",
+      "declared_status": "planned",
+      "derived_status": "planned",
+      "progress": 0.0,
+      "total_leaves": 1,
+      "done_leaves": 0,
+      "deliverables_missing": [
+        "docs/planning/plan-workbench-requirements-2026-11.md"
+      ],
+      "wbs": [
+        {
+          "id": "WBS-25.1",
+          "title": "requirements 확정 — concept §9 미실측 실측 + 서버 · 응답 · 알림 · 진척 요구 사항 · design 진입 조건 —",
           "derived_status": "planned",
           "linked_task_ids": [],
           "total_leaves": 1,

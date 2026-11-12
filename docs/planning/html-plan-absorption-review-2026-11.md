@@ -3,7 +3,7 @@
 - 문서 목적: Anthropic 커뮤니티 플러그인 `html-plan` 의 개념(주장 트리 · 결정 배치 · 응답 왕복)을 실측하고, task 파일 Plan 계약 흡수(안 A)와 html-plan 검토 브리지(안 B)의 설계 초안과 소유자 선택지를 판단 가능한 형태로 정리한다 (TASK-2026-11-12-claude-remote-sync-check-234c32-002, M-022/WBS-22.1).
 - 범위: html-plan 1.0.0 의 구성 · 규칙 · pack 린트 · Respond 응답 형식, 현 task `## 🧭 Plan` 계약과의 대조, A(필드 · 린트 · 게이트 · verifier) 와 B(`plan-export` · `plan-import`) 설계 초안, 정본 · 파생 영향
 - 대상 독자: 소유자 (M-022 다음 단계 결정), maintainer
-- 상태: **종결 (2026-11-12)** — 소유자 결정 = §7 기본값 D1~D5 전부 (§10). requirements 는 M-023
+- 상태: **종결 (2026-11-12)** — 소유자 결정 = §7 기본값 D1~D5 전부 (§10). **안 B 는 하네스 중립 제약으로 정정 (§11, W5 로 확정)**. requirements 는 M-023
 - 최종 수정일: 2026-11-12
 - 관련 문서: [`M-022`](../../ai-workflow/memory/active/roadmap/M-022-claim-plan.md), [`ai-native-sdlc-playbook-review-2026-10.md`](./ai-native-sdlc-playbook-review-2026-10.md) (`## 🧭 Plan` 절과 verifier 를 낳은 선행 concept), [`compact-relay-review-2026-09.md`](./compact-relay-review-2026-09.md) (같은 형식의 선행 concept), [`project_docs.py`](../../workflow-source/workflow_kit/common/project_docs.py) (task 라벨 정본), [`backlog_update.py`](../../workflow-source/workflow_kit/tools/backlog_update.py) (Plan 쓰기 · 게이트)
 
@@ -355,3 +355,21 @@ html-plan 은 주장 번호를 트리 위치로 매기고(§2.4-2), 응답은 �
 
 범위는 A + B 그대로. requirements 단계는 [`M-023`](../../ai-workflow/memory/active/roadmap/M-023-claim-plan-requirements.md) 로 이어진다 —
 §8 미실측(pack.mjs 격리 실측 · 옛 리더의 새 라벨 처리 · 주장 길이 예산 · 응답 상한)을 먼저 잰다.
+
+## 11. 정정 — 하네스 중립 제약 (2026-11-12, 123차)
+
+소유자 지시: **이 kit 은 Claude 전용이 아니므로 Claude 전용 기능은 있으면 안 된다.**
+
+안 B 는 html-plan 플러그인과 잇는 브리지였다. html-plan 은 Claude Code 플러그인(`.claude-plugin` 매니페스트만 있다)이라,
+B 의 흐름(`plan-export` → `/html-plan` 채움 → pack → Respond → `plan-import`)은 Claude Code 에서만 끝까지 간다 (§5.8 이
+이미 그렇게 적었다). 그래서 B 를 다음처럼 바꾼다 — 정정안은 [`plan-workbench-review-2026-11.md`](./plan-workbench-review-2026-11.md)
+(M-024) §8 W5 로 소유자 확인을 받았다 (2026-11-12 확정, 같은 문서 §10):
+
+- **삭제**: html-plan 형식 export(§5.2 매핑 · §5.3 번호 정합 · `html-plan-format` 메타), html-plan Respond 파싱(§5.4 의 접미사
+  `kept as proposed` · `not opened; default kept` 해석), 형식 결합 위험(§5.7), 플러그인 의존(§5.8).
+- **대체**: 결정 응답은 kit 워크벤치(로컬 웹, Python)의 결정 폼이 **우리 응답 형식**으로 브랜치 받은편지함에 쓰고,
+  `plan-import` 가 그 형식을 읽는다. 하네스와 무관하다.
+- **유지**: 안 A 전부(필드 · 린트 · 게이트 · verifier 묶음), D1~D5, 응답 = 데이터(§5.6), 실패 시 닫힘(§5.5 — 대조
+  대상만 우리 형식으로), 응답 원문 보존(D5).
+- html-plan 에서 가져오는 것은 이제 **개념뿐**이다 — PURPOSE 의 "외부 reference 의 concept 흡수, 코드 차용 ❌" 와도 맞는다.
+

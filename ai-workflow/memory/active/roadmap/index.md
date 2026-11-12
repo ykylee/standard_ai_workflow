@@ -4,7 +4,7 @@
 - 범위: 로드맵·마일스톤·WBS 기능 자체의 구현 로드맵 (스펙 §10 의 자기 적용)
 - 대상 독자: AI agent (session-start / backlog-update), 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-09-30
+- 최종 수정일: 2026-11-12
 - 관련 문서: [`roadmap_milestone_wbs_spec.md`](../../../../workflow-source/core/roadmap_milestone_wbs_spec.md), [`roadmap_state.json`](./roadmap_state.json)
 
 > 이 목록의 **순서가 곧 SDLC 순서 선언**이다 (스펙 §3.1). status 는 선언이고,
@@ -55,3 +55,7 @@
   - path: [`./M-020-compact-relay-design.md`](./M-020-compact-relay-design.md)
 - **M-021** [implementation] compact 중계 — implementation (명령 · hook · 스킬 · 검사) — status: done
   - path: [`./M-021-compact-relay-implementation.md`](./M-021-compact-relay-implementation.md)
+- **M-022** [concept] 주장 트리 계획 — html-plan 개념 흡수 (task Plan 계약 + 검토 브리지) — status: done
+  - path: [`./M-022-claim-plan.md`](./M-022-claim-plan.md)
+- **M-023** [requirements] 주장 트리 계획 — requirements (A 계약 + B 브리지, 결정 D1~D5) — status: planned
+  - path: [`./M-023-claim-plan-requirements.md`](./M-023-claim-plan-requirements.md)

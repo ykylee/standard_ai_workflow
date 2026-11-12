@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "generated_by": "workflow_kit.common.state.roadmap.generate_roadmap_state",
-  "generated_at": "2026-10-31",
+  "generated_at": "2026-11-12",
   "milestones": [
     {
       "id": "M-001",
@@ -801,10 +801,65 @@
           "children": []
         }
       ]
+    },
+    {
+      "id": "M-022",
+      "title": "주장 트리 계획 — html-plan 개념 흡수 (task Plan 계약 + 검토 브리지)",
+      "sdlc_phase": "concept",
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
+      "total_leaves": 1,
+      "done_leaves": 1,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-22.1",
+          "title": "concept 검토 — html-plan 구성 실측, task Plan 계약 흡수안(A) · 브리지안(B)",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-12-claude-remote-sync-check-234c32-002"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "M-023",
+      "title": "주장 트리 계획 — requirements (A 계약 + B 브리지, 결정 D1~D5)",
+      "sdlc_phase": "requirements",
+      "declared_status": "planned",
+      "derived_status": "planned",
+      "progress": 0.0,
+      "total_leaves": 1,
+      "done_leaves": 0,
+      "deliverables_missing": [
+        "docs/planning/claim-plan-requirements-2026-11.md"
+      ],
+      "wbs": [
+        {
+          "id": "WBS-23.1",
+          "title": "requirements 확정 — §8 미실측 실측 + A · B 요구 사항 · 숫자 · design 진입 조건 — 산출물:",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        }
+      ]
     }
   ],
   "current_milestone_id": "M-007",
   "exempt_tasks": [
+    {
+      "task_id": "TASK-2026-11-12-claude-remote-sync-check-234c32-001",
+      "task_status": "done",
+      "wbs_ref": "exempt",
+      "exempt_reason": "로드맵 밖 — worktree 브랜치 네임스페이스 자동 seed 사건 기록",
+      "source_path": "ai-workflow/memory/active/claude/remote-sync-check-234c32/backlog/tasks/TASK-2026-11-12-claude-remote-sync-check-234c32-001.md"
+    },
     {
       "task_id": "TASK-2026-08-25-main-010",
       "task_status": "done",

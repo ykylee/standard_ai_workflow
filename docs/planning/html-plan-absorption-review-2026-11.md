@@ -347,6 +347,7 @@ html-plan 은 주장 번호를 트리 위치로 매기고(§2.4-2), 응답은 �
 권장안(§7 기본값)대로:
 
 1. **D1** `Claims` 는 **선택** — 있으면 린트, `Files that change` ≥ 3 인데 비면 경고 하나.
+   (requirements Q4 로 갱신: `ai-workflow/` 경로는 세지 않고 create 와 → `in_progress` 전이에서 한 번씩 — [`claim-plan-requirements-2026-11.md`](./claim-plan-requirements-2026-11.md) R2.3.)
 2. **D2** 열리지 않은 결정 게이트 — `proposed` · `unopened` 결정이 남으면 **in_progress 전이 경고 · done 전이 거부**.
 3. **D3** 완료 기준과 주장은 **인용 연결** — 기준 줄 머리 `[C<n>]` (선택), 인용 없는 1단계 주장 경고(L7), verifier 주장별 묶음.
    주장은 완료 기준을 대체하지 않는다.

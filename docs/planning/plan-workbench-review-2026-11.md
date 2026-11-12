@@ -78,7 +78,7 @@ wk workbench  (Python stdlib, 작업 공간 호스트에서 실행, bind · 공�
    ├─ GET  /api/state         위 화면의 JSON
    └─ GET  /healthz
    ▼
-active/<branch>/plan_responses/inbox/<TASK>-<n>.md   (D5 — 커밋 대상)
+active/<branch>/plan_responses/inbox/<TASK>-<n>.md   (gitignore — 커밋은 반영 뒤 보관본만, M-023 Q1)
    │  세션 알림 (§5): ① 당겨 오기 · ② hook 머리말(조건부)
    ▼
 wk plan-import --task=<TASK>  (대조 · 닫힘 · 결정 상태만)
@@ -190,6 +190,7 @@ task 를 맡기고 결과를 받아야 할 때 — 그때 task 를 A2A Task 로,
    ② hook 머리말은 **둘 이상 하네스에 같은 의미의 프롬프트 직전 hook 이 실측될 때만** 만든다.
 2. **W2** 계획 페이지는 **최소 JS** — `<details>` 의 `toggle` 로 결정의 열림을 재서 `kept` / `unopened` 를 측정으로 구분한다.
    JS 가 꺼진 브라우저에서도 폼 제출은 되고, 그때 열림 기록이 없는 결정은 `unopened` 다.
+   (M-023 Q6 으로 좁힘: 이 규칙은 **기본값을 그대로 둔** 결정에만 적용한다 — 다른 값을 고른 결정은 열림 기록이 없어도 `changed` 다, [`claim-plan-requirements-2026-11.md`](./claim-plan-requirements-2026-11.md) R6.3.)
 3. **W3** A2A **보류** — 다시 볼 조건(다른 에이전트가 이 워크플로우에 task 를 맡길 때)만 기록.
 4. **W4** 순서 — **M-023(A + B requirements) 먼저**, 워크벤치 requirements 는
    [`M-025`](../../ai-workflow/memory/active/roadmap/M-025-plan-workbench-requirements.md) 로 그 뒤.
@@ -242,7 +243,7 @@ task 를 맡기고 결과를 받아야 할 때 — 그때 task 를 A2A Task 로,
 
 - 응답 파일 머리에 `responder` · `role` · `received_at` 이 실린다. `plan-import` 는 `approver` 응답만 결정 상태에 반영하고,
   `viewer` 는 응답 폼 자체를 보지 못한다.
-- 같은 결정에 서로 다른 approver 의 답이 오면 import 는 **그 응답 묶음 전체를 쓰지 않고** 충돌로 보고한다 — 부분 반영은 하지 않는다 (M-022 §5.5 의 닫힘과 같다). 소유자가 대화로 정하거나 한쪽 응답을 받은편지함에서 거두면 다시 import 한다.
+- 같은 결정에 서로 다른 approver 의 답이 오면 import 는 **그 응답 묶음 전체를 쓰지 않고** 충돌로 보고한다 — 부분 반영은 하지 않는다 (M-022 §5.5 의 닫힘과 같다). 소유자가 대화로 정하거나 한쪽 응답을 받은편지함에서 거두면 다시 import 한다. (M-023 requirements R6.3 으로 구체화: 자격 있는 응답은 다툼에 들어도 **원문은 보관**하고 값만 결정 상태에 채택하지 않는다 — 그 결정은 `disputed` 로 다시 열린다, Q7.)
 - 진척 화면은 viewer 에게도 열리므로 화면에 싣는 것을 다시 본다: 경로 · 브랜치 이름은 싣되, 작업 공간 절대 경로 ·
   호스트 이름은 싣지 않는다.
 

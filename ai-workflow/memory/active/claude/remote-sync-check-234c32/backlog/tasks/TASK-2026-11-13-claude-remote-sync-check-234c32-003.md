@@ -62,7 +62,7 @@ wbs: M-028/WBS-28.1
 
 ## 🛠️ Implementation / Content
 
-- Progress: 2026-11-13 verifier 1차: [C2] FAIL(린트 되주입 8건 green) + 스펙과 다른 동작 9건 → 코드 수리(명시 사유 · answered 옮겨 적기 · 겹친 사유 · 경고 되풀이 없음 · --check 우회 · verifier 한 줄) + 검사 보강(11 + 6 + 18 case). 되주입 56건 전부 red, mypy 0. 재검증 대기
+- Progress: 2026-11-13 verifier 2차: [C2] FAIL(판정 분기 단위 되주입에서 린트 32건 green) · [C3] FAIL(공백뿐인 --progress-note 로 열린 결정 제거) → 공백 사유 거부 + 린트 표(41 입력 전부 대조) · 지문 본문 · 열린 상태 · 경고 조건 · plan-status/open_decisions 범위 case. 검사 14 + 6 + 18, 되주입 106건 전부 red. 3차 검증 대기
 - Next session starting point:
 - Remaining risks:
 

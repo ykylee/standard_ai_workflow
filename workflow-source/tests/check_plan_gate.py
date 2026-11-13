@@ -296,6 +296,11 @@ def case_8_new_decisions_start_proposed() -> None:
         lines = _decision_lines(ws, task_id)
         if lines != [f"- {DECISIONS}: {DECISION_ARG} | state: proposed"]:
             problems.append(f"새 결정이 proposed · 정본 표기가 아니다: {lines}")
+        rc, out = _run(ws, "--mode", "create", "--status", "planned", "--task-name", "상태를 적어 넣음", "--task-brief", "b",
+                       "--done-criteria", "[C1] 기준", "--plan-claim", "C1 하나를 한다",
+                       "--plan-decision", DECISION_ARG + " | state: answered:warn")
+        if rc != 0 or not _warned(out, "--plan-decision D1: 줄에 적힌 상태를 버렸다"):
+            problems.append(f"상태를 버린 것을 알리지 않았다: rc={rc} {out.get('warnings')}")
         _update(ws, task_id, "--decision-state", "D1=answered:warn")
         rc, out = _update(ws, task_id, "--plan-decision", DECISION_ARG)
         after = _decision_lines(ws, task_id)
@@ -318,6 +323,14 @@ def case_9_tasks_without_decisions_are_unaffected() -> None:
         rc, out = _update(ws, claims_only, "--status", "done", "--validation-result", "v")
         if rc != 0 or _status(ws, claims_only) != "done":
             problems.append(f"결정 없는 task 의 done 이 막혔다: rc={rc} {out.get('error')}")
+        rc, out = _run(ws, "--mode", "create", "--status", "planned", "--task-name", "파일 셋 (create)", "--task-brief", "b",
+                       "--plan-file", "a.py", "--plan-file", "b.py", "--plan-file", "c.py")
+        if rc != 0 or not _warned(out, "Claims 가 없다 — 바뀌는 파일 3개 (R2.3)"):
+            problems.append(f"create 의 Claims 권고가 없다: rc={rc} {out.get('warnings')}")
+        rc, out = _run(ws, "--mode", "create", "--status", "planned", "--task-name", "파일 둘", "--task-brief", "b",
+                       "--plan-file", "a.py", "--plan-file", "b.py", "--plan-file", "ai-workflow/memory/x.md")
+        if _warned(out, "Claims 가 없다"):
+            problems.append(f"메타 경로를 빼면 둘인데 권고가 났다: {out.get('warnings')}")
         many = _create(ws, "--plan-file", "a.py", "--plan-file", "b.py", "--plan-file", "c.py",
                        "--plan-file", "ai-workflow/memory/x.md", name="파일 셋")
         rc, out = _update(ws, many, "--status", "in_progress")
@@ -511,9 +524,17 @@ def case_15_brief_is_not_a_removal_note() -> None:
         rc, out = _update(ws, task_id, "--replace-field", "plan_decisions", "--task-brief", "brief 로 채운 진행 줄")
         if rc != 1 or out.get("error_code") != "decision_removal_needs_note":
             problems.append(f"--task-brief 로 열린 결정이 걷혔다: rc={rc} {out.get('error_code')}")
+        rc, out = _update(ws, task_id, "--replace-field", "plan_decisions", "--progress-note", "   ",
+                          "--status", "done", "--validation-result", "v")
+        if rc != 1 or out.get("error_code") != "decision_removal_needs_note":
+            problems.append(f"공백뿐인 사유로 열린 결정이 걷히고 닫혔다: rc={rc} {out.get('error_code')}")
         if _snapshot(ws) != before:
             problems.append("거부인데 파일이 바뀌었다")
-    _record("case 15 (사유는 명시한 --progress-note 만)", problems)
+        # git 밖에서는 위치를 확인하지 못한다 — 그 사실을 warnings 로 남긴다 (통과로 세지 않는다).
+        rc, out = _update(ws, task_id, "--plan-claim", "C1.1 둘을 한다", "--plan-claim", "C1.1.1 @ a.py:1 · f()")
+        if rc != 0 or not _warned(out, "git 밖이라 위치 1건을 확인하지 못했다"):
+            problems.append(f"git 밖의 L5 건너뜀을 알리지 않았다: rc={rc} {out.get('warnings')}")
+    _record("case 15 (사유는 명시한 --progress-note 만 · git 밖의 L5 보고)", problems)
 
 
 def case_16_computed_values_and_scopes() -> None:
@@ -534,6 +555,16 @@ def case_16_computed_values_and_scopes() -> None:
         decision = (data.get("decisions") or [{}])[0]
         if (decision.get("state"), decision.get("column_state"), decision.get("open")) != ("proposed", "kept", True):
             problems.append(f"plan-status 가 칸으로 판정했다: {decision}")
+        expected_digest = pc.plan_digest(pc.parse_plan(_text(ws, planned).splitlines()))
+        if data.get("plan_digest") != expected_digest:
+            problems.append(f"plan-status 의 지문: {data.get('plan_digest')}")
+        _, md = _tool(ws, "workflow_kit.tools.plan_status", "--task", planned, "--format", "md")
+        if "- 열린 결정: D1 (proposed)" not in md:
+            problems.append(f"md 의 열린 결정 상태가 계산값이 아니다: {md[-80:]!r}")
+        # open_decisions 는 칸 기준이다 (생성기의 입력은 task 파일뿐) — 칸이 kept 면 세지 않는다.
+        _tool(ws, "workflow_kit.tools.refresh_state", "--project-profile-path", str(ws / "docs" / "PROJECT_PROFILE.md"))
+        if "open_decisions" in json.loads(state_path.read_text(encoding="utf-8")):
+            problems.append("open_decisions 가 칸이 아니라 계산값으로 셌다 (스펙 §11 은 칸 기준)")
         if data.get("open_decisions") != ["D1"] or data.get("status") != "warning" or \
                 not any("상태 칸이 계산값과 다르다: D1" in w for w in data.get("warnings", [])):
             problems.append(f"칸 불일치를 알리지 않았다: {data.get('status')} {data.get('warnings')} {data.get('open_decisions')}")
@@ -563,6 +594,16 @@ def case_16_computed_values_and_scopes() -> None:
         state = json.loads(state_path.read_text(encoding="utf-8"))
         if state.get("open_decisions") != {active: 1}:
             problems.append(f"open_decisions 범위: {state.get('open_decisions')}")
+        _update(ws, active, "--status", "blocked")
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        if state.get("open_decisions") != {active: 1}:
+            problems.append(f"blocked task 의 열린 결정을 세지 않았다: {state.get('open_decisions')}")
+        # 인용 없는 주장이 있으면 plan-status 의 lint 에 실린다.
+        loose = _create(ws, "--plan-claim", "C1 하나를 한다", "--plan-claim", "C2 둘을 한다",
+                        "--plan-claim", "C3 재지 않는 주장이다", name="재지 않는 주장")
+        _, out = _tool(ws, "workflow_kit.tools.plan_status", "--task", loose)
+        if not any(item.startswith("L7 C3") for item in json.loads(out).get("lint", [])):
+            problems.append(f"plan-status 의 lint 가 비었다: {json.loads(out).get('lint')}")
     _record("case 16 (계산값으로 판정 · open_decisions 와 우회의 범위)", problems)
 
 

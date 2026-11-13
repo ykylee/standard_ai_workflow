@@ -423,7 +423,8 @@ def enforce_plan_contract(
         return verdict
 
     # 사유 없이 열린 결정을 걷는 교체는 거부한다.
-    if decisions_key in replace_fields and previous_lines is not None and not removal_note:
+    # 공백뿐인 사유는 사유가 아니다.
+    if decisions_key in replace_fields and previous_lines is not None and not (removal_note or "").strip():
         previously_open = plan_claims.open_decision_ids(previous_plan)
         removed = [d for d in previously_open if plan.decision(d) is None]
         if removed:

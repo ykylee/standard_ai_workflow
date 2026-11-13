@@ -14,6 +14,9 @@
 9. 묶음 — `plan-status` 의 "재지 않는 주장" 이 L7 의 것과 같고, 주장이 없으면 절을 내지 않는다
 10. 호환(전수) — 이 저장소의 task 파일 전부가 계약을 거쳐도 한 줄도 안 바뀐다 (주장 · 결정이 없는 파일)
 11. 계약 적용 — 교체해도 `answered` 는 남고, 같은 상태를 다시 줘도 경고를 되풀이하지 않고, 오류 상태에서는 칸을 다시 적지 않는다
+12. 린트 표 — 입력마다 나와야 하는 (규칙, 강도, 대상) 을 **전부** 대조한다: 경계 · 범위 · 강도 · 문법
+13. 지문의 본문 — 스펙 §5 의 문면대로 손으로 만든 본문의 sha256 과 같다
+14. 열린 상태 — `proposed` · `unopened` · `disputed` 만 열린 결정이고, 칸 기준 계수는 못 읽는 결정도 센다
 """
 from __future__ import annotations
 
@@ -458,7 +461,145 @@ def case_11_contract_application() -> None:
     verdict = _contract(both, both, requested_status="done", status="done")
     if verdict.error_code != "plan_lint_error" or not any("열린 결정 1건 (D1)" in w for w in verdict.warnings):
         problems.append(f"겹친 거부 사유: {verdict.error_code} {verdict.warnings}")
-    _record("case 11 (계약 적용 — answered 유지 · 경고 되풀이 없음 · 오류 상태의 칸 · 겹친 사유)", problems)
+    # 경고의 조건 — 넓게 내면 읽히지 않는다.
+    quiet = _contract(WITH_DECISION, WITH_DECISION)
+    if any("answered 를 유지했다" in w for w in quiet.warnings):
+        problems.append(f"계획이 안 바뀌었는데 answered 유지를 알렸다: {quiet.warnings}")
+    fresh_before = [l.replace("state: answered:warn", "state: proposed") for l in WITH_DECISION]
+    fresh_after = [l.replace("C1 하나를 한다", "C1 하나를 정말 한다") for l in fresh_before]
+    fresh = _contract(fresh_after, fresh_before, plan_claim_args=["x"], replace_fields={pc.CLAIMS_KEY},
+                      decision_state_args=["D1=answered:warn"])
+    if any("answered 를 유지했다" in w for w in fresh.warnings):
+        problems.append(f"이번 호출에서 처음 답한 결정을 '유지' 로 알렸다: {fresh.warnings}")
+    touched_error = _contract(both, both, plan_claim_args=["x"])
+    if touched_error.error_code != "plan_lint_error" or any("도 남아 있다" in w for w in touched_error.warnings):
+        problems.append(f"done 이 아닌 거부에 열린 결정 사유를 실었다: {touched_error.warnings}")
+    open_plan = [l.replace("state: answered:warn", "state: proposed") for l in WITH_DECISION]
+    plain = _contract(open_plan, open_plan)
+    if any(w.startswith("열린 결정") for w in plain.warnings):
+        problems.append(f"전이가 아닌 쓰기에 열린 결정 경고를 냈다: {plain.warnings}")
+    entering = _contract(open_plan, open_plan, requested_status="in_progress", current_status="planned")
+    if not any(w.startswith("열린 결정 1건 (D1 proposed)") for w in entering.warnings):
+        problems.append(f"→ in_progress 에 열린 결정 경고가 없다: {entering.warnings}")
+    _record("case 11 (계약 적용 — answered 유지 · 경고의 조건 · 오류 상태의 칸 · 겹친 사유)", problems)
+
+
+D = "D1 [C1] 질문 | default: a | options: a = 가; b = 나"
+CITE1 = ["[C1] 기준"]
+
+#: (설명, 주장 줄, 결정 줄, 완료 기준, 기대 — 정확히 이 (규칙, 강도, 대상) 들).
+#: 대상이 없는 규칙은 "" 이다. `_lines_of` 는 backlog_update.py 를 100줄로 본다.
+LINT_TABLE: list[tuple[str, list[str], list[str], list[str], list[tuple[str, str, str]]]] = [
+    ("깨끗한 계획", ["C1 하나를 한다"], [D], CITE1, []),
+    # L1 — 폭의 경계와 범위.
+    ("1단계 5개는 된다", [f"C{n} 주장 {n}" for n in range(1, 6)], [], [f"[C{n}] 기준" for n in range(1, 6)], []),
+    ("1단계 6개", [f"C{n} 주장 {n}" for n in range(1, 7)], [], [f"[C{n}] 기준" for n in range(1, 7)], [("L1", "warning", "1단계")]),
+    ("자식 5개는 된다", ["C1 부모", *[f"C1.{n} 자식 {n}" for n in range(1, 6)]], [], CITE1, []),
+    ("자식 6개", ["C1 부모", *[f"C1.{n} 자식 {n}" for n in range(1, 7)]], [], CITE1, [("L1", "warning", "C1")]),
+    # L2 — ID 문법 · 유일 · 부모 · 형제 연속.
+    ("1 부터가 아니다", ["C2 하나"], [], ["[C2] 기준"], [("L2", "error", "1단계")]),
+    ("부모가 없다", ["C1 하나", "C2.1 부모 없는 둘"], [], CITE1, [("L2", "error", "C2.1")]),
+    ("4단계 ID", ["C1 하나", "C1.1.1.1 너무 깊다"], [], CITE1, [("L2", "error", "C1.1.1.1")]),
+    ("0 은 양의 정수가 아니다", ["C0 영"], [], [], [("L2", "error", "C0")]),
+    ("ID 가 겹친다", ["C1 하나", "C1 둘"], [], CITE1, [("L2", "error", "C1")]),
+    ("형제를 건너뛴다", ["C1 하나", "C1.1 @ new: a.py · f()", "C1.3 @ new: b.py · g()"], [], CITE1, [("L2", "error", "C1")]),
+    # L3 — 80자 경계, ID 는 세지 않는다, 3단계는 보지 않는다, 위치 꼴 1 · 2단계도 본다.
+    ("정확히 80자", ["C1 " + "가" * 80], [], CITE1, []),
+    ("81자", ["C1 " + "가" * 81], [], CITE1, [("L3", "warning", "C1")]),
+    ("2단계 81자", ["C1 부모", "C1.1 " + "나" * 81], [], CITE1, [("L3", "warning", "C1.1")]),
+    ("3단계 위치는 길어도 된다", ["C1 부모", "C1.1 둘", "C1.1.1 @ new: " + "d/" * 60 + "f.py · f()"], [], CITE1, []),
+    ("위치 꼴 1단계의 `;`", ["C1 @ new: a/b.py · f(); g()"], [], CITE1, [("L3", "warning", "C1")]),
+    # L4 — 1단계만, `/` 경로와 파일명, 백틱.
+    ("경로로 시작", ["C1 workflow_kit/tools/x.py 를 고친다"], [], CITE1, [("L4", "warning", "C1")]),
+    ("파일명으로 시작", ["C1 backlog_update.py 를 고친다"], [], CITE1, [("L4", "warning", "C1")]),
+    ("백틱 친 경로", ["C1 `workflow_kit/x.py` 를 고친다"], [], CITE1, [("L4", "warning", "C1")]),
+    ("2단계는 경로로 시작해도 된다", ["C1 부모", "C1.1 workflow_kit/x.py 가 읽는다"], [], CITE1, []),
+    # L5 — 줄 범위.
+    ("범위가 파일 안", ["C1 a", "C1.1 b", "C1.1.1 @ workflow-source/workflow_kit/tools/backlog_update.py:1-100 · f()"], [], CITE1, []),
+    ("끝이 한 줄 넘는다", ["C1 a", "C1.1 b", "C1.1.1 @ workflow-source/workflow_kit/tools/backlog_update.py:1-101 · f()"], [], CITE1, [("L5", "warning", "C1.1.1")]),
+    ("0 번 줄", ["C1 a", "C1.1 b", "C1.1.1 @ workflow-source/workflow_kit/tools/backlog_update.py:0 · f()"], [], CITE1, [("L5", "warning", "C1.1.1")]),
+    ("거꾸로 된 범위", ["C1 a", "C1.1 b", "C1.1.1 @ workflow-source/workflow_kit/tools/backlog_update.py:5-3 · f()"], [], CITE1, [("L5", "warning", "C1.1.1")]),
+    ("3단계가 문장", ["C1 a", "C1.1 b", "C1.1.1 위치가 아닌 문장"], [], CITE1, [("L5", "warning", "C1.1.1")]),
+    # L6 — 결정.
+    ("결정 5개는 된다", ["C1 하나"], [f"D{n} [C1] 질문 {n} | default: a | options: a = 가; b = 나" for n in range(1, 6)], CITE1, []),
+    ("결정 6개", ["C1 하나"], [f"D{n} [C1] 질문 {n} | default: a | options: a = 가; b = 나" for n in range(1, 7)], CITE1, [("L6", "error", "")]),
+    ("결정 ID 가 겹친다", ["C1 하나"], [D, D], CITE1, [("L6", "error", "D1")]),
+    ("모르는 칸", ["C1 하나"], [D + " | 참고: 메모"], CITE1, [("L6", "error", "D1")]),
+    ("`=` 없는 선택지", ["C1 하나"], ["D1 [C1] 질문 | default: a | options: a; b"], CITE1, [("L6", "error", "D1")] * 2),
+    ("값 없는 answered", ["C1 하나"], [D + " | state: answered"], CITE1, [("L6", "error", "D1")]),
+    ("모르는 상태 종류", ["C1 하나"], [D + " | state: approved:a"], CITE1, [("L6", "error", "D1")]),
+    ("값에 대문자", ["C1 하나"], ["D1 [C1] 질문 | default: a | options: a = 가; Bb = 나"], CITE1, [("L6", "error", "D1")]),
+    ("값 32자는 된다", ["C1 하나"], [f"D1 [C1] 질문 | default: a | options: a = 가; {'b' * 32} = 나"], CITE1, []),
+    ("값 33자", ["C1 하나"], [f"D1 [C1] 질문 | default: a | options: a = 가; {'b' * 33} = 나"], CITE1, [("L6", "error", "D1")]),
+    ("가리키는 주장이 없다", ["C1 하나"], ["D1 [C9] 질문 | default: a | options: a = 가; b = 나"], CITE1, [("L6", "error", "D1")]),
+    ("상태의 값이 선택지 밖", ["C1 하나"], [D + " | state: changed:z"], CITE1, [("L6", "error", "D1")]),
+    # L7 · L10 — 인용.
+    ("없는 후손을 인용", ["C1 하나"], [], ["[C1.9] 없는 주장"], [("L10", "warning", ""), ("L7", "warning", "C1")]),
+    ("후손 인용은 조상을 잰다", ["C1 a", "C1.1 b"], [], ["[C1.1] 후손"], []),
+    # L8 — 모든 단계, 공백 낀 %.
+    ("공백 낀 퍼센트", ["C1 구현을 80 % 했다"], [], CITE1, [("L8", "warning", "C1")]),
+    ("2단계의 상태 표현", ["C1 부모", "C1.1 파서 작성 완료"], [], CITE1, [("L8", "warning", "C1.1")]),
+]
+
+
+def case_12_lint_table() -> None:
+    problems: list[str] = []
+    for label, claims, decisions, criteria, expected in LINT_TABLE:
+        issues = pc.lint_plan(pc.parse_plan_values(claims, decisions), criteria=criteria, file_line_count=_lines_of)
+        got = sorted((i.rule, i.severity, i.ref) for i in issues)
+        if got != sorted(expected):
+            problems.append(f"{label}: 기대 {sorted(expected)} · 실제 {got}")
+    # L9 는 줄 배치가 입력이다 — 결정 묶음이 나뉜 경우도 오류다.
+    split_decisions = pc.parse_plan([
+        f"- {CLAIMS}: C1 하나를 한다", f"- {DECISIONS}: {D}", "- Proof: p",
+        f"- {DECISIONS}: D2 [C1] 질문 둘 | default: a | options: a = 가; b = 나"])
+    got = sorted((i.rule, i.severity) for i in pc.lint_plan(split_decisions, criteria=CITE1, file_line_count=_lines_of))
+    if got != [("L9", "error")]:
+        problems.append(f"나뉜 Decisions 묶음: {got}")
+    # git 밖에서는 L5 를 건너뛰고 그 사실을 남긴다 — 통과로 세지 않는다.
+    located = pc.parse_plan_values(["C1 a", "C1.1 b", "C1.1.1 @ a.py:1 · f()"], [])
+    got = [(i.rule, i.severity) for i in pc.lint_plan(located, criteria=CITE1, file_line_count=None)]
+    if got != [("L5", "note")]:
+        problems.append(f"git 밖의 L5: {got}")
+    _record(f"case 12 (린트 표 — {len(LINT_TABLE)} 입력의 규칙 · 강도 · 대상 전부 대조)", problems)
+
+
+def case_13_digest_body() -> None:
+    import hashlib
+
+    problems: list[str] = []
+    plan = pc.parse_plan([
+        "- 주장: C1 하나를 한다   ",
+        "- Claims: C1.1 @ new: a.py · f()",
+        "- 결정: D1 [C1] 막는가? | 선택: block = 거부한다; warn = 경고만 낸다 | 기본:  block  | 상태: kept",
+    ])
+    body = "\n".join([
+        "- Claims: C1 하나를 한다",
+        "- Claims: C1.1 @ new: a.py · f()",
+        "- Decisions: D1 [C1] 막는가? | default: block | options: block = 거부한다; warn = 경고만 낸다",
+    ])
+    expected = "sha256:" + hashlib.sha256(body.encode("utf-8")).hexdigest()
+    if pc.plan_digest(plan) != expected:
+        problems.append("지문이 스펙 §5 의 본문(정본 라벨 · 정본 칸 이름 · default → options 순서 · 상태 칸 없음 · 줄 끝 공백 없음)의 sha256 과 다르다")
+    _record("case 13 (지문의 본문 — 스펙 §5 문면대로)", problems)
+
+
+def case_14_open_states() -> None:
+    problems: list[str] = []
+    if set(pc.OPEN_STATES) != {"proposed", "unopened", "disputed"}:
+        problems.append(f"열린 상태 집합: {pc.OPEN_STATES}")
+    verdicts = {s: pc.state_is_open(s) for s in ("proposed", "unopened", "disputed", "kept", "changed:x", "answered:x")}
+    if verdicts != {"proposed": True, "unopened": True, "disputed": True, "kept": False, "changed:x": False, "answered:x": False}:
+        problems.append(f"열린 상태 판정: {verdicts}")
+    columns = pc.parse_plan_values(["C1 하나"], [
+        "D1 [C1] 가 | default: a | options: a = 가; b = 나 | state: unopened",
+        "D2 [C1] 나 | default: a | options: a = 가; b = 나 | state: disputed",
+        "D3 [C1] 다 | default: a | options: a = 가; b = 나 | state: kept",
+        "D4 [C1] 라 | default: a | options: a 가; b = 나 | state: answered:b",
+    ])
+    if pc.column_open_decision_ids(columns) != ["D1", "D2", "D4"]:
+        problems.append(f"칸 기준 열린 결정: {pc.column_open_decision_ids(columns)}")
+    _record("case 14 (열린 상태 — 셋만 열려 있고, 못 읽는 결정은 열린 것으로 센다)", problems)
 
 
 CASES = [
@@ -473,6 +614,9 @@ CASES = [
     case_9_bundles_match_l7,
     case_10_whole_corpus_is_untouched,
     case_11_contract_application,
+    case_12_lint_table,
+    case_13_digest_body,
+    case_14_open_states,
 ]
 
 

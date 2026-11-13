@@ -138,7 +138,8 @@ class _Shelf:
 
     @staticmethod
     def _key(path: Path) -> tuple[Path, str]:
-        # 같은 파일을 가리키는 두 표기(심볼릭 링크를 거친 경로 등)가 다른 열쇠가 되지 않게.
+        # 같은 항목을 가리키는 두 표기(심볼릭 링크를 거친 경로 등)가 다른 열쇠가 되지 않게 —
+        # 실제 이동의 `plan_responses.same_entry` 와 같은 규칙이다.
         return (path.parent.resolve(), path.name)
 
     def place(self, path: Path, *, rejected: bool) -> Path:

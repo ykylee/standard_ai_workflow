@@ -276,15 +276,19 @@ def _name_re(task_id: str) -> re.Pattern[str]:
     return re.compile(rf"^{re.escape(task_id)}-(?P<n>[0-9]+)(?P<rejected>\.rejected)?\.md$")
 
 
-def _numbered(directory: Path, task_id: str) -> list[tuple[int, bool, Path]]:
-    """그 디렉터리의 ``<TASK-ID>-<숫자>.md`` · ``.rejected.md`` — (번호, 거둔 것인가, 경로)."""
+def _numbered(directory: Path, task_id: str, *, any_entry: bool = False) -> list[tuple[int, bool, Path]]:
+    """그 디렉터리의 ``<TASK-ID>-<숫자>.md`` · ``.rejected.md`` — (번호, 거둔 것인가, 경로).
+
+    읽을 응답은 파일만이다. ``any_entry`` 면 그 이름의 **무엇이든**(디렉터리 · 깨진 링크) 센다 — 번호가 쓰였는가는
+    "그 이름에 무엇이 있는가" 이고, 배타 생성(`os.link`)도 그렇게 판정한다.
+    """
     if not directory.is_dir():
         return []
     pattern = _name_re(task_id)
     found: list[tuple[int, bool, Path]] = []
     for entry in directory.iterdir():
         match = pattern.match(entry.name)
-        if match is not None and entry.is_file():
+        if match is not None and (any_entry or entry.is_file()):
             found.append((int(match["n"]), match["rejected"] is not None, entry))
     return sorted(found)
 
@@ -336,9 +340,15 @@ def pending_warning(branch_dir: Path) -> str | None:
     return (f"계획 응답 {sum(counts.values())}건 미반영 ({', '.join(sorted(counts))}) — plan-import 로 확인")
 
 
+def same_entry(a: Path, b: Path) -> bool:
+    """같은 디렉터리 항목인가 — 디렉터리는 실제 경로로, 이름은 그대로 비교한다 (심볼릭 링크를 거친 표기)."""
+    return a.name == b.name and a.parent.resolve() == b.parent.resolve()
+
+
 def taken_numbers(branch_dir: Path, task_id: str, *, ignore: Path | None = None) -> set[int]:
     """그 task 에 이미 쓰인 번호 — 접미사를 통틀어, 받은편지함과 보관 양쪽에서 (스펙 §7-1)."""
-    return {number for path, number in numbered_paths(branch_dir, task_id).items() if ignore is None or path != ignore}
+    return {number for path, number in numbered_paths(branch_dir, task_id).items()
+            if ignore is None or not same_entry(path, ignore)}
 
 
 def numbered_paths(branch_dir: Path, task_id: str) -> dict[Path, int]:
@@ -349,7 +359,7 @@ def numbered_paths(branch_dir: Path, task_id: str) -> dict[Path, int]:
     return {
         path: number
         for directory in (inbox_dir(branch_dir), responses_dir(branch_dir))
-        for number, _, path in _numbered(directory, task_id)
+        for number, _, path in _numbered(directory, task_id, any_entry=True)
     }
 
 

@@ -61,7 +61,7 @@ wbs: M-028/WBS-28.2
 
 ## 🛠️ Implementation / Content
 
-- Progress: 2026-11-13 verifier 2차: FAIL 3 — dry-run 이 같은 번호를 쥔 두 파일에서 틀린 이름 예고 / carry_discards 가 다시 받은 유효 응답까지 거둠 / 범위 안 되주입 10건(received_at 경계 · shelf). 수리: _Shelf 를 경로 단위로 · 브랜치 보관에 있는 내용은 거두지 않음 · 경계 case. 되주입 18건 red. D1 소유자 답 carry (answered). verifier 3차 대기
+- Progress: 2026-11-13 verifier 3차: FAIL 1 — 브랜치 안 plan_responses/ · inbox/ 가 심볼릭 링크면 --discard · --response 의 dry-run 과 apply 이름이 갈림(자기 자신을 다른 파일로 셈). 수리: 항목 비교를 실제 경로로(same_entry) · 비파일 항목도 번호를 쥔다 + 링크 · 비파일 case. 되주입 5건 red. verifier 4차 대기
 - Next session starting point:
 - Remaining risks:
 

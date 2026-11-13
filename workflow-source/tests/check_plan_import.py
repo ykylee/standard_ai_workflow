@@ -859,7 +859,56 @@ def case_6b_dry_run_predicts_placement() -> None:
                 problems.append(f"{label}: 보고한 이름과 실제로 생긴 파일이 다르다: {landed} / {sorted(set(after) - set(before))}")
             if not set(before) <= set(after) and command == "all":
                 problems.append(f"{label}: 있던 보관 파일이 사라졌다")
-    _record(f"case 6b (dry-run 이 예고한 이름 == 실제로 놓인 이름 — {len(PLACEMENT_LAYOUTS)} 모양)", problems)
+    # 브랜치 안의 디렉터리가 심볼릭 링크인 경우 · 번호 자리에 파일이 아닌 항목이 있는 경우.
+    for label, link_dir, extra in (
+        ("plan_responses/ 가 링크", "responses", None),
+        ("inbox/ 가 링크", "inbox", None),
+        ("보관에 같은 번호의 디렉터리", None, "dir"),
+        ("보관에 같은 번호의 깨진 링크", None, "broken"),
+    ):
+        for command in ("all", "discard-inbox", "discard-archive", "response"):
+            with tempfile.TemporaryDirectory() as td, tempfile.TemporaryDirectory() as elsewhere:
+                ws = _workspace(td)
+                task_id = _create(ws)
+                branch = _branch(ws)
+                responses = branch / pr.RESPONSES_DIRNAME
+                if link_dir == "responses":
+                    (Path(elsewhere) / "r").mkdir()
+                    responses.symlink_to(Path(elsewhere) / "r", target_is_directory=True)
+                pr.ensure_inbox(branch) if link_dir != "inbox" else None
+                if link_dir == "inbox":
+                    responses.mkdir(exist_ok=True)
+                    (Path(elsewhere) / "i").mkdir()
+                    pr.inbox_dir(branch).symlink_to(Path(elsewhere) / "i", target_is_directory=True)
+                    pr.ensure_inbox(branch)
+                for n in (5, 7):
+                    (pr.inbox_dir(branch) / f"{task_id}-{n}.md").write_bytes(
+                        _response(ws, task_id, f"in{n}", n, values={"D1": "warn"}))
+                (responses / f"{task_id}-6.md").write_bytes(_response(ws, task_id, "ar6", 6, values={"D1": "warn"}))
+                if extra == "dir":
+                    (responses / f"{task_id}-7.md").mkdir()   # 받은편지함 7 과 같은 번호
+                elif extra == "broken":
+                    (responses / f"{task_id}-7.md").symlink_to(Path(elsewhere) / "nowhere")
+                if command == "all":
+                    args: tuple[str, ...] = ("--task", task_id)
+                elif command == "response":
+                    args = ("--task", task_id, "--response", f"{task_id}-7.md")
+                elif command == "discard-inbox":
+                    args = ("--discard", str(pr.inbox_dir(branch) / f"{task_id}-5.md"), "--reason", "r")
+                else:
+                    args = ("--discard", str(responses / f"{task_id}-6.md"), "--reason", "r")
+                _, dry = _import(ws, *args)
+                rc, out = _import(ws, *args, "--apply")
+                told = [r.get("moved_to") for r in dry.get("responses", [])]
+                did = [r.get("moved_to") for r in out.get("responses", [])]
+                if rc != 0 or told != did or dry.get("progress_line") != out.get("progress_line"):
+                    problems.append(f"{label} · {command}: dry-run {told} / 실제 {did} rc={rc}")
+                # 번호는 그대로 간다 — 자기 번호를 다른 파일로 세지 않는다 (§7-5).
+                if command == "discard-inbox" and not any((m or "").endswith(f"{task_id}-5.rejected.md") for m in did):
+                    problems.append(f"{label}: 받은편지함 5 를 거둔 이름이 5 가 아니다: {did}")
+                if command == "discard-archive" and not any((m or "").endswith(f"{task_id}-6.rejected.md") for m in did):
+                    problems.append(f"{label}: 보관 6 을 거둔 이름이 6 이 아니다: {did}")
+    _record(f"case 6b (dry-run 이 예고한 이름 == 실제로 놓인 이름 — {len(PLACEMENT_LAYOUTS)} 모양 + 링크 · 비파일 항목)", problems)
 
 
 # --------------------------------------------------------------------------- case 7 · 8

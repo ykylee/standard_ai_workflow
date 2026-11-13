@@ -16,11 +16,12 @@
 
 from __future__ import annotations
 
+import errno
 import hashlib
 import os
 import re
 import secrets
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
@@ -276,6 +277,11 @@ def _name_re(task_id: str) -> re.Pattern[str]:
     return re.compile(rf"^{re.escape(task_id)}-(?P<n>[0-9]+)(?P<rejected>\.rejected)?\.md$")
 
 
+def _is_plain_file(entry: Path) -> bool:
+    """응답으로 읽는 항목 — 링크가 아닌 보통 파일. 링크는 쓰는 쪽(`publish`)이 만들지 않는다."""
+    return entry.is_file() and not entry.is_symlink()
+
+
 def _numbered(directory: Path, task_id: str, *, any_entry: bool = False) -> list[tuple[int, bool, Path]]:
     """그 디렉터리의 ``<TASK-ID>-<숫자>.md`` · ``.rejected.md`` — (번호, 거둔 것인가, 경로).
 
@@ -288,7 +294,7 @@ def _numbered(directory: Path, task_id: str, *, any_entry: bool = False) -> list
     found: list[tuple[int, bool, Path]] = []
     for entry in directory.iterdir():
         match = pattern.match(entry.name)
-        if match is not None and (any_entry or entry.is_file()):
+        if match is not None and (any_entry or _is_plain_file(entry)):
             found.append((int(match["n"]), match["rejected"] is not None, entry))
     return sorted(found)
 
@@ -304,13 +310,18 @@ def archive_files(branch_dir: Path, task_id: str) -> list[Path]:
 
 
 def unknown_inbox_files(branch_dir: Path) -> list[str]:
-    """받은편지함의 ``.md`` 중 응답 이름 꼴이 아닌 것 — 보고만 한다, 게이트는 막지 않는다."""
+    """받은편지함의 ``.md`` 중 응답으로 세지 않는 것 — 보고만 한다, 게이트는 막지 않는다.
+
+    응답 이름 꼴이 아닌 파일, 그리고 응답 이름을 가졌지만 보통 파일이 아닌 항목(디렉터리 · 링크)이다.
+    그래서 받은편지함의 ``.md`` 항목은 "건수" 와 "알 수 없는 것" 중 정확히 한쪽에 든다.
+    """
     inbox = inbox_dir(branch_dir)
     if not inbox.is_dir():
         return []
     return sorted(
         entry.name for entry in inbox.iterdir()
-        if entry.is_file() and entry.name.endswith(".md") and not _ANY_RESPONSE_NAME_RE.match(entry.name))
+        if entry.name.endswith(".md") and not entry.name.startswith(".") and not entry.name.endswith(REJECTED_SUFFIX)
+        and (not _ANY_RESPONSE_NAME_RE.match(entry.name) or not _is_plain_file(entry)))
 
 
 def task_of_response_name(name: str) -> str | None:
@@ -327,7 +338,7 @@ def pending_by_task(branch_dir: Path) -> dict[str, int]:
         return counts
     for entry in sorted(inbox.iterdir()):
         match = _ANY_RESPONSE_NAME_RE.match(entry.name)
-        if match is not None and entry.is_file():
+        if match is not None and _is_plain_file(entry):
             counts[match["task"]] = counts.get(match["task"], 0) + 1
     return counts
 
@@ -380,10 +391,14 @@ def _place_exclusive(source: Path, directory: Path, task_id: str, number: int, *
             number += 1
         target = directory / f"{task_id}-{number}{suffix}"
         try:
-            os.link(source, target)
+            os.link(source, target, follow_symlinks=False)
         except FileExistsError:
             number += 1
             continue
+        except OSError as exc:
+            if exc.errno == errno.EXDEV:
+                raise LayoutError(f"받은편지함과 보관이 다른 파일시스템에 있다 — {source.parent} · {directory}") from exc
+            raise
         return target
 
 
@@ -423,6 +438,27 @@ def move_exclusive(source: Path, branch_dir: Path, task_id: str, *, rejected: bo
         branch_dir=branch_dir, ignore=source)
     source.unlink()
     return target
+
+
+class LayoutError(RuntimeError):
+    """받은편지함 · 보관의 배치가 배타 이동을 할 수 없는 모양이다 (스펙 §7)."""
+
+
+def layout_problem(branch_dir: Path, *, device_of: Callable[[Path], int] | None = None) -> str | None:
+    """받은편지함과 보관의 배치를 본다 — 배타 이동(`os.link`)이 성립하지 않는 모양이면 사유를, 아니면 ``None``.
+
+    둘 중 하나라도 없으면 볼 것이 없다 (읽는 길은 디렉터리를 만들지 않는다). ``device_of`` 는 검사가 바꿔 끼운다.
+    """
+    inbox, archive = inbox_dir(branch_dir), responses_dir(branch_dir)
+    if not (inbox.is_dir() and archive.is_dir()):
+        return None
+    real_inbox, real_archive = inbox.resolve(), archive.resolve()
+    if real_inbox == real_archive:
+        return "받은편지함과 보관이 같은 디렉터리다 — 옮긴 응답이 받은편지함에 그대로 남는다"
+    device = device_of or (lambda path: path.stat().st_dev)
+    if device(real_inbox) != device(real_archive):
+        return "받은편지함과 보관이 다른 파일시스템에 있다 — 배타 이동(하드 링크)을 할 수 없다"
+    return None
 
 
 @contextmanager

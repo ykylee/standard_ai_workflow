@@ -23,6 +23,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -246,6 +247,10 @@ def _load_task(ctx: Context) -> tuple[plan_tasks.TaskPlan | None, int | None]:
     task = plan_tasks.read_task_plan(ctx.task_path) if ctx.task_path.is_file() else None
     if task is None:
         return None, _error(ctx.task_id, ctx.mode, f"task 파일이 없거나 읽을 수 없다: {ctx.task_path}", "task_not_found", 2)
+    problem = plan_responses.layout_problem(ctx.branch_dir)
+    if problem is not None:
+        # dry-run 도 같은 판정이다 — 옮길 수 없는 배치에서 "옮긴다" 를 예고하지 않는다.
+        return None, _error(ctx.task_id, ctx.mode, problem + " — 아무것도 옮기지 않았다", "plan_responses_layout", 1)
     if plan_claims.has_error_rules(task.plan):
         errors = plan_claims.lint_errors(plan_claims.lint_plan(task.plan, criteria=task.criteria))
         return None, _error(
@@ -308,8 +313,16 @@ def run_import(ctx: Context, *, response: str | None, apply: bool) -> int:
 
     if not apply:
         return body()
-    with plan_responses.inbox_lock(ctx.branch_dir) as held:
-        return body() if held else _busy(ctx)
+    return _locked(ctx, body)
+
+
+def _locked(ctx: Context, body: Callable[[], int]) -> int:
+    """잠금을 쥐고 돈다. 배치 판정을 지난 뒤에도 이동이 파일시스템 경계에 막히면 오류로 낸다 (잃는 것은 없다)."""
+    try:
+        with plan_responses.inbox_lock(ctx.branch_dir) as held:
+            return body() if held else _busy(ctx)
+    except plan_responses.LayoutError as exc:
+        return _error(ctx.task_id, ctx.mode, f"{exc} — 옮기지 못한 응답은 제자리에 있다", "plan_responses_layout", 1)
 
 
 def run_discard(ctx: Context, target_path: Path, *, reason: str, apply: bool) -> int:
@@ -342,8 +355,7 @@ def run_discard(ctx: Context, target_path: Path, *, reason: str, apply: bool) ->
 
     if not apply:
         return body()
-    with plan_responses.inbox_lock(ctx.branch_dir) as held:
-        return body() if held else _busy(ctx)
+    return _locked(ctx, body)
 
 
 def main(argv: list[str] | None = None) -> int:

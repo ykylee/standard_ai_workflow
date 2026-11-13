@@ -15,6 +15,7 @@
 11. 읽는 길은 디렉터리를 만들지 않는다 — dry-run · `plan-status` 뒤에도 `plan_responses/` 가 없다
 12. 출력 계약 · 인자 — family `plan_import` 로 검증되고, 모르는 인자 · 접두 축약 · 받은편지함 밖의 경로는 거절된다
 13. dry-run 이 예고한 보관 이름이 실제와 같다 — 같은 번호를 여러 파일이 쥔 모양들 (case 6b)
+14. 받은편지함의 비파일 항목 · 링크는 응답이 아니고 번호는 쥔다; 받은편지함 · 보관이 같은 디렉터리 · 다른 파일시스템이면 거절 (case 6c)
 """
 
 from __future__ import annotations
@@ -911,6 +912,108 @@ def case_6b_dry_run_predicts_placement() -> None:
     _record(f"case 6b (dry-run 이 예고한 이름 == 실제로 놓인 이름 — {len(PLACEMENT_LAYOUTS)} 모양 + 링크 · 비파일 항목)", problems)
 
 
+def case_6c_inbox_entries_and_layout() -> None:
+    """받은편지함의 비파일 항목 · 링크, 받은편지함 · 보관의 배치."""
+    problems: list[str] = []
+    for kind in ("dir", "broken", "file-link"):
+        with tempfile.TemporaryDirectory() as td, tempfile.TemporaryDirectory() as elsewhere:
+            ws = _workspace(td)
+            task_id = _create(ws)
+            _backlog(ws, "--mode", "update", "--task-id", task_id, "--task-name", "응답을 받는 task",
+                     "--decision-state", "D1=answered:warn", "--decision-state", "D2=answered:a")
+            branch = _branch(ws)
+            inbox = pr.ensure_inbox(branch)
+            odd = inbox / f"{task_id}-7.md"
+            if kind == "dir":
+                odd.mkdir()
+            elif kind == "broken":
+                odd.symlink_to(Path(elsewhere) / "nowhere")
+            else:
+                real = Path(elsewhere) / "real.md"
+                real.write_bytes(_response(ws, task_id, "link", 7, values={"D1": "warn"}))
+                odd.symlink_to(real)
+            # 응답으로 세지 않는다 — 건수 0, 게이트 무영향, "알 수 없는 것" 으로 보고된다.
+            if pr.inbox_files(branch, task_id) or pr.pending_by_task(branch) or pr.unknown_inbox_files(branch) != [odd.name]:
+                problems.append(f"{kind}: 건수 {len(pr.inbox_files(branch, task_id))} · 미반영 {pr.pending_by_task(branch)}"
+                                f" · 알 수 없는 것 {pr.unknown_inbox_files(branch)}")
+            rc, status = _cli(ws, ["-m", "workflow_kit", "plan-status"], "--task", task_id)
+            if rc != 0 or status.get("pending_responses") != 0 or status.get("unknown_inbox_files") != [odd.name]:
+                problems.append(f"{kind}: plan-status rc={rc} 건수 {status.get('pending_responses')} {status.get('unknown_inbox_files')}")
+            rc, out = _backlog(ws, "--mode", "update", "--task-id", task_id, "--task-name", "응답을 받는 task",
+                               "--status", "done", "--validation-result", "v", "--apply")
+            if rc != 0:
+                problems.append(f"{kind}: 비파일 항목 때문에 done 이 막혔다: {out.get('error_code')}")
+            # 그 번호는 쓰인 것이다 — 같은 번호의 파일(-07)은 8 로 옮겨지고 dry-run 도 그렇게 예고한다.
+            (inbox / f"{task_id}-07.md").write_bytes(_response(ws, task_id, "zero", 3, values={"D1": "warn"}))
+            for args in (("--task", task_id), ("--task", task_id, "--response", f"{task_id}-07.md"),
+                         ("--discard", f"{task_id}-07.md", "--reason", "r")):
+                _, dry = _import(ws, *args)
+                if [r.get("moved_to", "").rsplit("/", 1)[-1] for r in dry.get("responses", [])] not in (
+                        [f"{task_id}-8.md"], [f"{task_id}-8.rejected.md"]):
+                    problems.append(f"{kind} {args[-1]}: 비파일 항목의 번호를 쓰인 것으로 보지 않았다: "
+                                    f"{[r.get('moved_to') for r in dry.get('responses', [])]}")
+            rc, out = _import(ws, "--task", task_id, "--apply")
+            if rc != 0 or not (branch / pr.RESPONSES_DIRNAME / f"{task_id}-8.md").is_file() or (odd.exists() != (kind != "broken")):
+                problems.append(f"{kind}: --apply rc={rc} {[r.get('moved_to') for r in out.get('responses', [])]}")
+            if kind == "file-link" and not real.is_file():
+                problems.append("링크가 가리키던 파일이 사라졌다")
+    # 배치 — 받은편지함과 보관이 같은 디렉터리 · 다른 파일시스템이면 dry-run 도 --apply 도 옮기지 않는다.
+    for label in ("같은 디렉터리", "다른 파일시스템"):
+        with tempfile.TemporaryDirectory() as td:
+            ws = _workspace(td)
+            task_id = _create(ws)
+            branch = _branch(ws)
+            _publish(ws, task_id, _response(ws, task_id, "kim", 1, values={"D1": "warn"}))
+            archive = branch / pr.RESPONSES_DIRNAME
+            if label == "같은 디렉터리":
+                moved_inbox = archive / "moved-inbox"
+                pr.inbox_dir(branch).rename(moved_inbox)
+                pr.inbox_dir(branch).symlink_to(archive, target_is_directory=True)
+                for item in moved_inbox.iterdir():
+                    item.rename(archive / item.name)
+                moved_inbox.rmdir()
+                found = pr.layout_problem(branch)
+            else:
+                devices = {pr.inbox_dir(branch).resolve(): 1, archive.resolve(): 2}
+                found = pr.layout_problem(branch, device_of=lambda path: devices[path])
+            if found is None:
+                problems.append(f"{label}: 배치 문제를 판정하지 않았다")
+            if label == "같은 디렉터리":
+                before = _snapshot(ws)
+                for apply in (False, True):
+                    rc, out = _import(ws, "--task", task_id, *(("--apply",) if apply else ()))
+                    if rc != 1 or out.get("error_code") != "plan_responses_layout" or _snapshot(ws) != before:
+                        problems.append(f"{label} apply={apply}: rc={rc} {out.get('error_code')}")
+        if pr.layout_problem(Path(td)) is not None:
+            problems.append("디렉터리가 없는 브랜치에 배치 문제가 있다고 했다")
+    # 판정을 지나 이동이 파일시스템 경계에 막혀도 오류로 내고 응답은 제자리다 (os.link 의 EXDEV).
+    with tempfile.TemporaryDirectory() as td:
+        ws = _workspace(td)
+        task_id = _create(ws)
+        path = _publish(ws, task_id, _response(ws, task_id, "kim", 1, values={"D1": "warn"}))
+        import errno as _errno  # noqa: PLC0415
+        from workflow_kit.tools import plan_import  # noqa: PLC0415
+
+        real_link = os.link
+
+        def cross_device(*args: object, **kwargs: object) -> None:
+            raise OSError(_errno.EXDEV, "Invalid cross-device link")
+
+        os.link = cross_device  # type: ignore[assignment]
+        buffer = io.StringIO()
+        try:
+            os.environ["CODEX_WORKFLOW_BRANCH"] = BRANCH
+            with contextlib.redirect_stdout(buffer):
+                rc = plan_import.main(["--project-profile-path", str(ws / "docs" / "PROJECT_PROFILE.md"),
+                                       "--task", task_id, "--apply"])
+        finally:
+            os.link = real_link  # type: ignore[assignment]
+        out = json.loads(buffer.getvalue())
+        if rc != 1 or out.get("error_code") != "plan_responses_layout" or not path.is_file() or _archive(ws, task_id):
+            problems.append(f"이동이 파일시스템 경계에 막혔을 때: rc={rc} {out.get('error_code')} 제자리={path.is_file()}")
+    _record("case 6c (받은편지함의 비파일 항목 · 링크는 응답이 아니다 · 옮길 수 없는 배치는 거절)", problems)
+
+
 # --------------------------------------------------------------------------- case 7 · 8
 
 
@@ -1260,7 +1363,7 @@ def case_12_contract_and_arguments() -> None:
 CASES = (
     case_1_qualification_table, case_2_ineligible_stays_and_stage_zero, case_3_import_archives_and_records,
     case_4_order_independence, case_5_discard, case_6_numbers_and_exclusive_move, case_6b_dry_run_predicts_placement,
-    case_7_lock_busy,
+    case_6c_inbox_entries_and_layout, case_7_lock_busy,
     case_8_inbox_ignores_itself, case_9_race, case_10_inheritance, case_11_reads_do_not_create_directories,
     case_12_contract_and_arguments,
 )

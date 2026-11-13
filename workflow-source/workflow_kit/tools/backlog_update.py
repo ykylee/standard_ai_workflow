@@ -262,12 +262,13 @@ def _existing_task_lines(path: Path) -> list[str] | None:
     return path.read_text(encoding="utf-8").splitlines() if path.is_file() else None
 
 
-#: 글자로 분류되지만 화면에는 빈칸으로 찍히는 채움 문자 — 사유의 글자로 세지 않는다.
-_BLANK_LETTERS = frozenset("\u115f\u1160\u3164\uffa0")
+#: 글자로 분류되지만 빈칸으로 정의된 문자 — 사유의 글자로 세지 않는다. 스펙 §2.5 가 **열거한** 여섯이다
+#: (한글 채움 넷 + 이집트 상형 빈칸 둘). "보이는가" 는 기계로 판정하지 못한다 — 목록이 계약이다.
+_BLANK_LETTERS = frozenset("\u115f\u1160\u3164\uffa0\U00013441\U00013442")
 
 
 def is_readable_note(note: str | None) -> bool:
-    """사유로 받을 수 있는가 — 눈에 보이는 글자나 숫자가 하나는 있어야 한다 (스펙 §2.5)."""
+    """사유로 받을 수 있는가 — 글자나 숫자(`str.isalnum`)가 하나는 있어야 한다, 빈칸 글자 여섯은 빼고 (스펙 §2.5)."""
     return any(ch.isalnum() and ch not in _BLANK_LETTERS for ch in (note or ""))
 
 
@@ -442,7 +443,7 @@ def enforce_plan_contract(
         return verdict
 
     # 사유 없이 열린 결정을 없애는 쓰기는 거부한다 — 교체든, 같은 ID 로 task 를 다시 만드는 것이든.
-    # 사유는 읽을 수 있는 글이어야 한다: 눈에 보이는 글자 · 숫자가 없는 값은 사유가 아니다.
+    # 사유는 읽을 수 있는 글이어야 한다: 글자 · 숫자가 없는 값은 사유가 아니다.
     if previous_lines is not None and not is_readable_note(removal_note):
         previously_open = plan_claims.open_decision_ids(previous_plan)
         removed = [d for d in previously_open if plan.decision(d) is None]

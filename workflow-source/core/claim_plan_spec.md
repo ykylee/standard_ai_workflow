@@ -76,7 +76,7 @@
 | `--plan-claim <줄>` (반복) | 주장 한 줄 (`C1 …`) |
 | `--plan-decision <줄>` (반복) | 결정 한 줄. 줄에 `proposed` 가 아닌 `state:` 가 있으면 경고하고 버린다 — 새 결정은 `proposed` 다 |
 | `--decision-state D<n>=<state>` (반복) | `answered:<value>` 또는 `proposed` 만. 다른 상태 · 모르는 결정 ID · 선택지 밖의 값은 거부 (`decision_state_rejected`) |
-| `--replace-field plan_claims\|plan_decisions` | 묶음을 교체한다. **열린 결정을 없애는** 쓰기(교체든, 같은 ID 로 task 를 다시 만드는 create 든)는 같은 호출에 `--progress-note` 가 있어야 한다 — 읽을 수 있는 글이어야 한다: 눈에 보이는 글자나 숫자가 하나는 있어야 하고, 공백 · 기호 · 폭 없는 문자 · 빈칸으로 찍히는 채움 문자(U+115F · U+1160 · U+3164 · U+FFA0)뿐이면 사유가 아니다 (없으면 거부 — `decision_removal_needs_note`) |
+| `--replace-field plan_claims\|plan_decisions` | 묶음을 교체한다. **열린 결정을 없애는** 쓰기(교체든, 같은 ID 로 task 를 다시 만드는 create 든)는 같은 호출에 `--progress-note` 가 있어야 한다 — 사유에는 글자나 숫자(유니코드의 글자 · 숫자 — Python `str.isalnum`)가 하나는 있어야 한다: 공백 · 기호 · 폭 없는 문자뿐이면 사유가 아니고, 글자로 분류되지만 빈칸으로 정의된 여섯(U+115F · U+1160 · U+3164 · U+FFA0 · U+13441 · U+13442)은 글자로 세지 않는다. 판정은 이 열거가 전부다 — 사유는 제거의 흔적을 남기게 하는 장치이지 내용을 심사하는 방벽이 아니다 (없으면 거부 — `decision_removal_needs_note`) |
 
 ## 3. 린트 (R2)
 

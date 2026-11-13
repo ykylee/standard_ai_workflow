@@ -557,7 +557,7 @@ def case_15_brief_is_not_a_removal_note() -> None:
         if rc != 1 or out.get("error_code") != "decision_removal_needs_note":
             problems.append(f"폭 없는 문자뿐인 사유로 닫혔다: rc={rc} {out.get('error_code')}")
         # 눈에 보이는 글자 · 숫자가 없으면 사유가 아니다 — 빈칸으로 찍히는 채움 문자, 기호뿐인 값.
-        for note in ("\u3164", "\u115f", "\u1160", "\uffa0", "\u3164 \u200b", "-", ".", "—"):
+        for note in ("\u3164", "\u115f", "\u1160", "\uffa0", "\U00013441", "\U00013442", "\u3164 \u200b", "-", ".", "—"):
             rc, out = _update(ws, task_id, "--replace-field", "plan_decisions", "--progress-note", note,
                               "--status", "done", "--validation-result", "v")
             if rc != 1 or out.get("error_code") != "decision_removal_needs_note":

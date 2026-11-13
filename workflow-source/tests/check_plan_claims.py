@@ -110,6 +110,9 @@ def case_1_parser() -> None:
     indented = pc.parse_plan([f"    - {CLAIMS}: C1 들여쓴 줄", f"\t- {DECISIONS}: {GOOD_DECISION}"])
     if len(indented.claims) != 1 or len(indented.decisions) != 1:
         problems.append("들여쓴 주장 · 결정 줄을 못 읽었다 — 들여쓴 열린 결정이 게이트에 안 보인다")
+    glued = pc.parse_plan([f"- {CLAIMS}:C1 하나", f"- {DECISIONS}:{GOOD_DECISION}"])
+    if glued.claims or glued.decisions or glued.claim_runs or glued.decision_runs:
+        problems.append("콜론 뒤 공백이 없는 줄을 라벨 줄로 읽었다 — 라벨 줄은 `- 라벨: 값` 이다")
     placeholder = pc.parse_plan([f"- {CLAIMS}:", f"- {CLAIMS}: C1 하나", "- Proof: p", f"- {CLAIMS}:"])
     if placeholder.claim_runs != 1 or len(placeholder.claims) != 1:
         problems.append(f"값 없는 라벨 줄을 묶음으로 셌다: runs={placeholder.claim_runs}")

@@ -82,6 +82,38 @@
 결론: **상대 경로**(링크 · 폼 action · `Location`)와 **`Path` = `public_url` 의 경로**가 요구 사항이다 (R2.3 · R3.4). 둘 다 서버가
 자기 주소를 추측하지 않고 `public_url` 하나에서만 얻는다.
 
+### 1.4 실물 프록시 · 실제 브라우저 (design 전 실측, 2026-11-13, TASK-2026-11-13-claude-remote-sync-check-234c32-006)
+
+R11 의 "design 전" 둘째 행이다. §1.3 과 같은 프로토타입 서버(표준 라이브러리, 측정 전용 — 저장소에 남기지 않는다)를 구성별로 띄우고,
+그 앞에 **실물** 프록시를, 뒤에서 **실제 브라우저**로 로그인 → 계획 → 제출 → 다른 앱 → 다른 사이트의 링크 · 폼 순서로 잰다.
+
+- 프록시: `nginx:1.27.5-alpine` (`sha256:65645c7b…2a10`) — `location /workbench/ { proxy_pass http://127.0.0.1:<port>/; }`,
+  `caddy:2.10.0-alpine` (`sha256:ae445863…a3c`) — `handle_path /workbench/* { reverse_proxy 127.0.0.1:<port> }`. 둘 다 `Set-Cookie` · `Location` 을 고치지 않는다.
+- 브라우저: Google Chrome 154.0.8037.57 (headless). 조작은 `playwright-core` 1.63.0 이 하고, 쿠키를 실을지는 **브라우저가** 판정한다.
+- 같은 호스트의 다른 앱 = 같은 프록시의 `/other/` (받은 `Cookie` 머리를 그대로 돌려준다). 다른 사이트 = `http://localhost:<port>` 의 페이지
+  (서버는 `127.0.0.1` — 둘은 다른 사이트다).
+- 9 구성 × 2 회, 두 회의 결과가 같았다. 표는 nginx 와 Caddy 가 같았던 열을 합친 것이다.
+
+| 구성 | 세션 없이 루트 | 로그인 뒤 | 쿠키 | 제출 뒤 | 다른 앱에 쿠키 | 다른 사이트의 링크 | 다른 사이트의 POST |
+|---|---|---|---|---|---|---|---|
+| 직접 | `/login` 200 | `/` 200 | `Path=/` · `Strict` | `/task/T1?ok=1` 200 | 실린다 (접두사 없음) | `/login` (쿠키 안 실림) | 403 · 쿠키 안 실림 |
+| 상대 리다이렉트 + `Path` = 접두사 · `Strict` | `/workbench/login` 200 | `/workbench/` 200 | `Path=/workbench/` · `Strict` | `/workbench/task/T1?ok=1` 200 | **실리지 않는다** | `/workbench/login` (쿠키 안 실림) | 403 · 쿠키 안 실림 |
+| **절대** `Location` (음성 대조) | `/login` — nginx 404, Caddy **빈 200** (접두사 밖) | `/` 접두사 밖 | `Path=/wb-abs/` | `/task/T1?ok=1` 접두사 밖 | 실리지 않는다 | `/login` 접두사 밖 | 403 |
+| 쿠키 `Path=/` (음성 대조) | 200 | 200 | `Path=/` | 200 | **실린다** | 로그인 화면 | 403 · 쿠키 안 실림 |
+| 상대 리다이렉트 + `Path` = 접두사 · **`Lax`** | 200 | 200 | `Path=/wb-lax/` · `Lax` | 200 | 실리지 않는다 | **`/wb-lax/task/T1` 200 (쿠키 실림)** | 403 · 쿠키 안 실림 |
+
+- §1.3 의 네 열은 실물 프록시 · 실제 브라우저에서도 같다. 상대 경로 + `Path` = 접두사가 요구 사항이라는 결론은 그대로다.
+- **새로 본 것 — `SameSite=Strict` 와 다른 사이트의 링크**: 웹 채팅 · 코드 리뷰 댓글 같은 **다른 사이트의 링크**로 계획 화면에 들어오면
+  `Strict` 쿠키는 실리지 않아 로그인 화면으로 떨어진다 (로그인한 상태여도). 주소창에 치거나 같은 사이트 안에서 이동하면 실린다 (마지막 행의
+  "다시 열기" 200). `Lax` 는 다른 사이트의 **링크(GET)** 에는 쿠키를 싣고 **POST** 에는 싣지 않는다 — 두 설정 모두 다른 사이트의 POST 는
+  쿠키 없이 왔고 `Origin` 대조가 403 으로 막았다. → design 결정 (ADR-032).
+- **Caddy 는 매치되지 않는 경로에 빈 200 을 준다** (nginx 는 404) — 접두사 밖으로 떨어져도 상태 코드로는 드러나지 않는다. 검사는 상태가
+  아니라 도착 경로로 판정해야 한다.
+- **끝 슬래시 없는 접두사**: nginx 는 `/workbench` → `/workbench/` 301 (위 `location` 으로 자동), Caddy 는 `handle_path /workbench/*` 가
+  `/workbench` 를 매치하지 않아 빈 200 이다 — Caddy 예시에는 `redir /workbench /workbench/` 한 줄이 필요하다. `public_url` 은 끝 슬래시를 갖는다.
+- 재지 않은 것: TLS 뒤의 `Secure` 쿠키(로컬 인증서 없음 — `Secure` 는 `https` `public_url` 에서만 붙이는 규칙이라 경로 판정과 독립),
+  Firefox · Safari(이 표는 Chrome 하나다), 클라우드 작업 공간의 포트 공유.
+
 ## 2. 불변 조건 (R0)
 
 1. **Claude 전용 표면에 기대지 않는다.** 서버 · 화면 · 알림은 파일 · CLI · MCP · 표준 HTTP 로만 선다.
@@ -370,8 +402,8 @@ R4.1 을 통과한 뒤:
 
 | 항목 | 언제 |
 |---|---|
-| Codex `UserPromptSubmit` 출력의 모델 컨텍스트 주입 (격리 `CODEX_HOME` + 신뢰한 hook — compact_relay_spec §7 의 방법) — R8.2 의 조건 | design 전 |
-| nginx 또는 Caddy 실물 뒤에서 §1.3 의 네 열 (프로토타입 프록시와 같은 결과인지), 그리고 실제 브라우저에서 쿠키 `Path` · `SameSite=Strict` 가 로그인 뒤 리다이렉트와 폼 제출에 맞는지 | design 전 |
+| Codex `UserPromptSubmit` 출력의 모델 컨텍스트 주입 (격리 `CODEX_HOME` + 신뢰한 hook — compact_relay_spec §7 의 방법) — R8.2 의 조건 | ~~design 전~~ **재지 않는다 (소유자 결정 2026-11-13)** — ② 는 보류, 나중에 별도 task |
+| ~~nginx 또는 Caddy 실물 뒤에서 §1.3 의 네 열, 실제 브라우저에서 쿠키 `Path` · `SameSite=Strict`~~ — **완료 (§1.4)**: 같은 결과 + `Strict` 는 다른 사이트의 링크에서 로그인으로 떨어진다 | design 전 |
 | 임시 이름 → `os.link` 공개 · 배타 이동 · `common/file_lock.py` 잠금(R5.5)이 한글 Windows(NTFS)에서 같은 성질인지, 안 되면 대체 수단 | 구현 뒤, Windows 호스트 |
 | 한글 Windows: 포트 bind · 토큰 파일 모드 판정(POSIX 모드가 없다) · 경로 · 콘솔 출력 인코딩 | 구현 뒤, Windows 호스트 |
 | 클라우드 작업 공간의 포트 공유가 자체 인증 페이지를 앞에 둘 때 우리 쿠키 · 리다이렉트 | 그 환경을 쓰는 사용자가 생길 때 |

@@ -962,23 +962,23 @@
       "id": "M-028",
       "title": "주장 트리 계획 — implementation (라벨 · 린트 · 게이트 · plan-status · plan-import · 검사)",
       "sdlc_phase": "implementation",
-      "declared_status": "planned",
-      "derived_status": "planned",
+      "declared_status": "in_progress",
+      "derived_status": "in_progress",
       "progress": 0.0,
       "total_leaves": 2,
       "done_leaves": 0,
       "deliverables_missing": [
-        "workflow-source/workflow_kit/common/plan_claims.py",
         "workflow-source/workflow_kit/common/plan_responses.py",
-        "workflow-source/workflow_kit/tools/plan_status.py",
         "workflow-source/workflow_kit/tools/plan_import.py"
       ],
       "wbs": [
         {
           "id": "WBS-28.1",
           "title": "1 단계 — 라벨 · `PLAN_FIELD_KEYS` · 파서 · 린트 L1~L10 · 게이트 · `--decision-state` · `plan-status` · `open_decisions` · 정본 §1 개정 ·",
-          "derived_status": "planned",
-          "linked_task_ids": [],
+          "derived_status": "in_progress",
+          "linked_task_ids": [
+            "TASK-2026-11-13-claude-remote-sync-check-234c32-003"
+          ],
           "total_leaves": 1,
           "done_leaves": 0,
           "children": []

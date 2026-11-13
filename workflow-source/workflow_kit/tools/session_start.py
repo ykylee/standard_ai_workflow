@@ -27,6 +27,7 @@ from workflow_kit.common.paths import (
     memory_active_dir,
     resolve_existing_path,
     workflow_backlog_dir,
+    workflow_branch_dir,
     workflow_handoff_path,
     workflow_state_path,
 )
@@ -648,6 +649,14 @@ def main() -> int:
         except Exception as roadmap_exc:  # noqa: BLE001 — 로드맵 결함이 세션 진입을 막으면 안 된다
             roadmap_context = None
             warnings.append(f"roadmap 컨텍스트 계산 실패 ({type(roadmap_exc).__name__}) — roadmap/ 형식을 점검하라.")
+
+        # ADR-031 (`core/claim_plan_spec.md` §4): done 인데 열린 결정이 있는 task — 게이트를 모르는
+        # kit 이 닫았거나 손으로 닫은 것이다. 읽기 전용 판정이라 파일은 고치지 않는다.
+        try:
+            from workflow_kit.common.plan_tasks import bypass_warnings
+            warnings.extend(bypass_warnings(workflow_branch_dir(project_profile_path) / "backlog" / "tasks"))
+        except Exception as plan_exc:  # noqa: BLE001 — 계획 판정의 결함이 세션 진입을 막으면 안 된다
+            warnings.append(f"결정 상태 판정 실패 ({type(plan_exc).__name__}) — task 의 Decisions 줄을 점검하라.")
 
         graph_result = run_graph_insights(workspace_root=workspace_root)
         graph_insights = SessionGraphInsightsOutput(

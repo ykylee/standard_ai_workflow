@@ -8,7 +8,7 @@
 - 범위: 세션 복원, 작업 원칙, 세션 종료 순서, 실행 · 검증 명령
 - 대상 독자: Claude Code, 저장소 관리자
 - 상태: beta
-- 최종 수정일: 2026-10-06
+- 최종 수정일: 2026-11-13
 - 관련 문서: `docs/PROJECT_PROFILE.md`, `docs/LOCAL_GATE.md`, `ai-workflow/memory/active/<branch>/session_handoff.md`
 
 > 아래 `## Working Principles` · `## Session Close Order` · `## Memory Update Paths` 는
@@ -27,9 +27,10 @@
 <!-- generated-from: core/global_workflow_standard.md §1 · §3 · §8 · §11 — do not edit this block directly; edit the standard document and regenerate. -->
 
 - Read the state summary documents first, every session.
-- Before starting work, state its purpose, scope, deliverables, and affected documents, and record the plan in the task file (files, order of work, risks, proof).
+- Before starting work, state its purpose, scope, deliverables, and affected documents, and record the plan in the task file (claims, open decisions, files, order of work, risks, proof).
 - Track work in the state documents with exactly one status: `planned`, `in_progress`, `blocked`, `done`.
 - Never mark an unverified result as done.
+- A decision the owner has not opened is not agreed — never close a task with open decisions.
 - Before ending a session, leave a state summary the next session can resume from.
 - With multiple agents: sync with the remote first, check what the others are doing, and pick work that does not overlap.
 - Never decide irreversible actions alone — deleting or overwriting another agent's work needs the user's confirmation.

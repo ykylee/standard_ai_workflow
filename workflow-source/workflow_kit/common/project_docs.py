@@ -93,11 +93,34 @@ TASK_FIELD_LABELS: dict[str, str] = {
     "follow_up": "Follow-up",
     # 작업 전 계획 (TASK-2026-10-05-main-002 — AI-native SDLC 플레이북 plan.md 대응).
     # `Remaining risks` 와 섞이지 않게 위험은 `Plan risks` 로 구분한다.
+    # 주장 트리 계획 (ADR-031, `core/claim_plan_spec.md` §2). 두 라벨은 **선택**이다 —
+    # 값이 없으면 줄 자체를 쓰지 않는다 (`PLAN_OPTIONAL_KEYS`).
+    "plan_claims": "Claims",
+    "plan_decisions": "Decisions",
     "plan_files": "Files that change",
     "plan_order": "Order of work",
     "plan_risks": "Plan risks",
     "plan_proof": "Proof",
 }
+
+#: `## 🧭 Plan` 절의 필드 (의미 key) — **쓰는 순서**이고 유일한 목록이다 (ADR-031 결정 2).
+#:
+#: `workflow_writes` 와 `backlog_update` 가 같은 튜플을 한 벌씩 들고 있었고 둘을 대조하는
+#: 검사가 없었다. 여기 하나만 두고 둘 다 import 한다.
+PLAN_FIELD_KEYS: tuple[str, ...] = (
+    "plan_claims",
+    "plan_decisions",
+    "plan_files",
+    "plan_order",
+    "plan_risks",
+    "plan_proof",
+)
+
+#: 값이 없으면 라벨 줄을 **쓰지 않는** Plan 필드. 나머지는 빈 placeholder 줄을 둔다.
+#:
+#: 주장 · 결정이 없는 task 파일은 도입 전과 바이트가 같아야 한다 (스펙 §1-1) — 빈
+#: `- Claims:` 줄을 모든 새 task 에 심으면 그 약속이 깨진다.
+PLAN_OPTIONAL_KEYS: tuple[str, ...] = ("plan_claims", "plan_decisions")
 
 #: 읽을 때 **받아들이는** 표기들. 정본이 바뀌어도 옛 문서를 계속 읽기 위한 창구다.
 #:
@@ -122,6 +145,8 @@ TASK_FIELD_ALIASES: dict[str, tuple[str, ...]] = {
     "result": ("작업 결과", "Result"),
     "validation": ("검증 결과", "Verification"),
     "follow_up": ("후속 작업", "Follow-up"),
+    "plan_claims": ("주장", "Claims"),
+    "plan_decisions": ("결정", "Decisions"),
     "plan_files": ("바뀌는 파일", "Files that change"),
     "plan_order": ("작업 순서", "Order of work"),
     "plan_risks": ("계획 위험", "Plan risks"),

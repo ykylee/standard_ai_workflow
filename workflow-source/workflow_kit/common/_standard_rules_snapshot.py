@@ -13,9 +13,10 @@ from __future__ import annotations
 
 PRINCIPLES: tuple[str, ...] = (
     'Read the state summary documents first, every session.',
-    'Before starting work, state its purpose, scope, deliverables, and affected documents, and record the plan in the task file (files, order of work, risks, proof).',
+    'Before starting work, state its purpose, scope, deliverables, and affected documents, and record the plan in the task file (claims, open decisions, files, order of work, risks, proof).',
     'Track work in the state documents with exactly one status: `planned`, `in_progress`, `blocked`, `done`.',
     'Never mark an unverified result as done.',
+    'A decision the owner has not opened is not agreed — never close a task with open decisions.',
     'Before ending a session, leave a state summary the next session can resume from.',
     'With multiple agents: sync with the remote first, check what the others are doing, and pick work that does not overlap.',
     "Never decide irreversible actions alone — deleting or overwriting another agent's work needs the user's confirmation.",

@@ -3,7 +3,7 @@
 - 문서 목적: task 파일 Plan 의 주장 · 결정 계약과, 결정 응답을 데이터로 받아 반영하는 kit 계약(필드 · 린트 · 게이트 · 계획 지문 · 응답 파일 · 받은편지함 · 결정 상태 계산 · 명령 · 생성물)을 정의한다.
 - 범위: task 라벨 `Claims` · `Decisions`, 린트 L1~L10, `backlog-update` 의 추가 인자와 상태 전이 게이트, 응답 형식 `workflow-kit-plan-response/1`, `plan_responses/` 디렉터리, `plan-import` · `plan-status` 명령, `state.json` 의 `open_decisions`, 브랜치 이어받기, 검증
 - 대상 독자: workflow 설계자, AI agent, kit 소비 프로젝트
-- 상태: draft (ADR-031 accepted 2026-11-13, 구현 전)
+- 상태: draft (ADR-031 accepted 2026-11-13 — 1단계 구현됨: §2~§5 · §8 의 계산 · §10 · §11 의 `open_decisions`; 응답 파일 · 받은편지함 · `plan-import`(§6 · §7 · §9)는 2단계)
 - 최종 수정일: 2026-11-13
 - 관련 문서: `../../ai-workflow/wiki/decisions/adr-031-claim-plan.md`, `../../docs/planning/claim-plan-requirements-2026-11.md`, `../../docs/planning/plan-workbench-requirements-2026-11.md`, `./backlog_update_skill_spec.md`, `./global_workflow_standard.md`
 

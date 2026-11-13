@@ -714,6 +714,57 @@
       "title": "ErrorOutput",
       "type": "object"
     },
+    "plan_status": {
+      "description": "Standard payload for failed tool executions.",
+      "properties": {
+        "error": {
+          "description": "Human-readable error message",
+          "title": "Error",
+          "type": "string"
+        },
+        "error_code": {
+          "description": "Stable machine-readable error code",
+          "title": "Error Code",
+          "type": "string"
+        },
+        "source_context": {
+          "additionalProperties": true,
+          "description": "Arbitrary context data to help diagnose the error",
+          "title": "Source Context",
+          "type": "object"
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "tool_version": {
+          "description": "Version of the tool that generated this output",
+          "title": "Tool Version",
+          "type": "string"
+        },
+        "warnings": {
+          "description": "List of non-fatal warnings encountered",
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "tool_version",
+        "error",
+        "error_code",
+        "source_context"
+      ],
+      "title": "ErrorOutput",
+      "type": "object"
+    },
     "project_status_assessment": {
       "description": "Standard payload for failed tool executions.",
       "properties": {
@@ -3062,6 +3113,211 @@
         "source_context"
       ],
       "title": "ReconcileOutput",
+      "type": "object"
+    },
+    "plan_status": {
+      "description": "`plan-status` — 주장별 묶음과 결정 상태. 읽기 전용이다.",
+      "properties": {
+        "claims": {
+          "items": {
+            "description": "1단계 주장 하나와 그것(또는 후손)을 인용한 완료 기준.",
+            "properties": {
+              "criteria": {
+                "description": "인용한 완료 기준의 번호 (1부터)",
+                "items": {
+                  "type": "integer"
+                },
+                "title": "Criteria",
+                "type": "array"
+              },
+              "id": {
+                "title": "Id",
+                "type": "string"
+              },
+              "text": {
+                "title": "Text",
+                "type": "string"
+              },
+              "unmeasured": {
+                "description": "인용한 기준이 하나도 없다 — 재지 않는 주장",
+                "title": "Unmeasured",
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "id",
+              "text",
+              "unmeasured"
+            ],
+            "title": "PlanClaimBundle",
+            "type": "object"
+          },
+          "title": "Claims",
+          "type": "array"
+        },
+        "decisions": {
+          "items": {
+            "properties": {
+              "claim_id": {
+                "title": "Claim Id",
+                "type": "string"
+              },
+              "column_state": {
+                "description": "task 파일의 상태 칸에 적힌 값",
+                "title": "Column State",
+                "type": "string"
+              },
+              "default": {
+                "title": "Default",
+                "type": "string"
+              },
+              "id": {
+                "title": "Id",
+                "type": "string"
+              },
+              "open": {
+                "title": "Open",
+                "type": "boolean"
+              },
+              "options": {
+                "items": {
+                  "type": "string"
+                },
+                "title": "Options",
+                "type": "array"
+              },
+              "question": {
+                "title": "Question",
+                "type": "string"
+              },
+              "state": {
+                "description": "계산한 상태 (스펙 §8) — 판정의 정본",
+                "title": "State",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "claim_id",
+              "question",
+              "default",
+              "state",
+              "column_state",
+              "open"
+            ],
+            "title": "PlanDecisionStatus",
+            "type": "object"
+          },
+          "title": "Decisions",
+          "type": "array"
+        },
+        "has_plan": {
+          "title": "Has Plan",
+          "type": "boolean"
+        },
+        "lint": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Lint",
+          "type": "array"
+        },
+        "markdown": {
+          "default": "",
+          "description": "검증 보고에 붙일 `### 주장별` 절 — 주장이 없으면 빈 문자열",
+          "title": "Markdown",
+          "type": "string"
+        },
+        "open_decisions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Open Decisions",
+          "type": "array"
+        },
+        "pending_responses": {
+          "default": 0,
+          "description": "받은편지함의 미반영 응답 건수",
+          "title": "Pending Responses",
+          "type": "integer"
+        },
+        "plan_digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Plan Digest"
+        },
+        "source_context": {
+          "properties": {
+            "task_id": {
+              "title": "Task Id",
+              "type": "string"
+            },
+            "task_path": {
+              "title": "Task Path",
+              "type": "string"
+            }
+          },
+          "required": [
+            "task_id",
+            "task_path"
+          ],
+          "title": "PlanStatusSourceContext",
+          "type": "object"
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "task_id": {
+          "title": "Task Id",
+          "type": "string"
+        },
+        "task_status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Task Status"
+        },
+        "tool_version": {
+          "description": "Version of the tool that generated this output",
+          "title": "Tool Version",
+          "type": "string"
+        },
+        "warnings": {
+          "description": "List of non-fatal warnings encountered",
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "status",
+        "tool_version",
+        "task_id",
+        "has_plan",
+        "source_context"
+      ],
+      "title": "PlanStatusOutput",
       "type": "object"
     },
     "project_status_assessment": {

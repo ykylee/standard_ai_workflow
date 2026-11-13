@@ -397,6 +397,34 @@
         "kind": "list"
       }
     },
+    "plan_status": {
+      "error": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "error_code": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "source_context": {
+        "allow_null": false,
+        "item_kind": "string",
+        "kind": "object"
+      },
+      "status": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "tool_version": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "warnings": {
+        "allow_null": false,
+        "item_kind": "string",
+        "kind": "list"
+      }
+    },
     "project_status_assessment": {
       "error": {
         "allow_null": false,
@@ -745,6 +773,11 @@
       "source_context"
     ],
     "merge_doc_reconcile": [
+      "error",
+      "error_code",
+      "source_context"
+    ],
+    "plan_status": [
       "error",
       "error_code",
       "source_context"
@@ -1439,6 +1472,69 @@
         "kind": "list"
       }
     },
+    "plan_status": {
+      "claims": {
+        "allow_null": false,
+        "item_kind": "PlanClaimBundle",
+        "kind": "list"
+      },
+      "decisions": {
+        "allow_null": false,
+        "item_kind": "PlanDecisionStatus",
+        "kind": "list"
+      },
+      "has_plan": {
+        "allow_null": false,
+        "kind": "boolean"
+      },
+      "lint": {
+        "allow_null": false,
+        "item_kind": "string",
+        "kind": "list"
+      },
+      "markdown": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "open_decisions": {
+        "allow_null": false,
+        "item_kind": "string",
+        "kind": "list"
+      },
+      "pending_responses": {
+        "allow_null": false,
+        "kind": "integer"
+      },
+      "plan_digest": {
+        "allow_null": true,
+        "kind": "string"
+      },
+      "source_context": {
+        "allow_null": false,
+        "kind": "PlanStatusSourceContext"
+      },
+      "status": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "task_id": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "task_status": {
+        "allow_null": true,
+        "kind": "string"
+      },
+      "tool_version": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "warnings": {
+        "allow_null": false,
+        "item_kind": "string",
+        "kind": "list"
+      }
+    },
     "project_status_assessment": {
       "assessment": {
         "allow_null": false,
@@ -1929,6 +2025,14 @@
       "reconcile_targets",
       "source_context",
       "state_conflicts"
+    ],
+    "plan_status": [
+      "claims",
+      "decisions",
+      "has_plan",
+      "open_decisions",
+      "source_context",
+      "task_id"
     ],
     "project_status_assessment": [],
     "read_only_entrypoint": [],

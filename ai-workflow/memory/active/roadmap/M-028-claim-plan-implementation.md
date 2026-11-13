@@ -2,7 +2,7 @@
 id: M-028
 title: 주장 트리 계획 — implementation (라벨 · 린트 · 게이트 · plan-status · plan-import · 검사)
 sdlc_phase: implementation
-status: planned
+status: in_progress
 order: 28
 parallel_allowed:
   - M-007

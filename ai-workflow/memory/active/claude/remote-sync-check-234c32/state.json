@@ -29,8 +29,9 @@
   "session": {
     "current_baseline": "**124차 세션 끝 (2026-11-13, Linux 호스트) — M-026 design 종결: ADR-031 accepted.** [`adr-031-claim-plan.md`](../../../../wiki/decisions/adr-031-claim-plan.md) (결정 29 · requirements 대비 변경 V1~V10 · 실측 M1~M5) + [`claim_plan_spec.md`](../../../../../workflow-source/core/claim_plan_spec.md) (계약 §1~§13). 소유자 결정: design 은 **ADR 둘로 순차**(워크벤치는 M-027 / ADR-032) · Codex hook 주입 실측은 하지 않는다(② 보류) · 프록시 실측은 docker 로. 핵심 결정: 보관 번호 = `received_at` 의 epoch 마이크로초(카운터는 두 호스트에서 add/add 충돌) · import 잠금은 `common/file_lock.py` 비차단(120회 중복 0 · 유실 0) · 주장별 묶음은 읽기 전용 `plan-status` · 이어받기가 보관 응답을 옮긴다 · 오류 상태 task 는 칸을 다시 적지 않고 `done` 거부. task 11-13-002 done (verifier 5회 — 5차 5/5 PASS). M-026 done · **M-027 [design] · M-028 [implementation] planned** (병행 가능). wiki 색인에 ADR-027~031. roadmap issues [].",
     "current_axis": "**로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · ~~[TASK-2026-08-13-main-004] mypy flake 관찰~~ ✅ (66차 close — 33/33 표본, mypy 실패 0).",
-    "current_focus": "TASK-2026-10-02-main-006 Windows 로캘(cp949)에서 wk 가 UnicodeEncodeError 로 죽는다 — stdout 과 기본 인코딩 I/O 를 UTF-8 로 고정",
+    "current_focus": "TASK-2026-11-13-claude-remote-sync-check-234c32-003 주장 트리 계획 구현 1단계 — 라벨 · 파서 · 린트 · 게이트 · --decision-state · plan-status · open_decisions · 정본 §1",
     "in_progress_items": [
+      "TASK-2026-11-13-claude-remote-sync-check-234c32-003 주장 트리 계획 구현 1단계 — 라벨 · 파서 · 린트 · 게이트 · --decision-state · plan-status · open_decisions · 정본 §1",
       "TASK-2026-10-02-main-006 Windows 로캘(cp949)에서 wk 가 UnicodeEncodeError 로 죽는다 — stdout 과 기본 인코딩 I/O 를 UTF-8 로 고정",
       "TASK-2026-10-02-main-007 Windows V3 백신이 wk.exe 를 평판 기반으로 차단한다 — pip 생성 console-script 런처 대체 진입 경로"
     ],
@@ -52,8 +53,10 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/claude/remote-sync-check-234c32/backlog/2026-11-13.md",
-    "task_count": 2,
-    "in_progress_items": [],
+    "task_count": 3,
+    "in_progress_items": [
+      "TASK-2026-11-13-claude-remote-sync-check-234c32-003 — 주장 트리 계획 구현 1단계 — 라벨 · 파서 · 린트 · 게이트 · --decision-state · plan-status · open_decisions · 정본 §1"
+    ],
     "blocked_items": [],
     "done_items": [
       "TASK-2026-11-13-claude-remote-sync-check-234c32-001 — 계획·진척 워크벤치 requirements — 미실측 실측 + 서버 · 응답 쓰기 · 알림 · 진척 화면 요구 사항 · design 진입 조건 확정",

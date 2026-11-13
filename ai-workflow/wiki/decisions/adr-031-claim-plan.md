@@ -211,6 +211,18 @@ git 무시와 잠금의 수단 · 보관 번호 · 브랜치 이어받기 · req
   `disputed` 로 연다 — 병합이 조용히 한쪽을 고르지 않는다.
 - Windows(NTFS)에서의 `os.link` 공개 · 배타 이동 · 잠금은 재지 않았다. `file_lock` 은 Windows 백엔드가 있으나 이 조합은 미실측이다.
 
+## Implementation Notes
+
+**1단계 (2026-11-13, TASK-2026-11-13-claude-remote-sync-check-234c32-003, M-028/WBS-28.1)** — 결정 26 의 ①.
+
+- 결정 1 의 모듈에 **`workflow_kit/common/plan_tasks.py` 가 하나 더 있다** — task 파일을 읽어 `plan_claims` 에 넘기는 얇은 I/O 층이다
+  (게이트 · `plan-status` · state 생성기 · 우회 검출이 "task 파일을 어떻게 읽는가" 를 각자 정하지 않게). `plan_claims` 는 순수 함수로 남는다.
+  보관 응답을 읽는 자리는 `plan_tasks.archived_responses` 하나로 모았고 1단계에서는 빈 목록이다 — 2단계가 그 함수만 채운다.
+- 받은편지함 게이트(`pending_plan_responses`), 응답 자격, `plan-import`, 이어받기, §11.1 한 줄과 스킬은 2단계다.
+  1단계의 상태 계산은 응답이 없으므로 `answered` 가 아닌 결정을 전부 `proposed` 로 본다.
+- 정본 §1 개정은 1단계에 넣었다 (진입점 +181 바이트). 진입점 템플릿이 바뀌어 `harvest_entry_sections.py` 의 `DEFAULT_REFS` 에 그 커밋을 더했다.
+- 되주입 27건(린트 · 지문 · 다툼 · 게이트 · 칸 고쳐 쓰기 · `open_decisions` · 우회 검출)이 전부 red 였다.
+
 ## References
 
 - `docs/planning/html-plan-absorption-review-2026-11.md` (concept, §10 D1~D5 · §11 정정)

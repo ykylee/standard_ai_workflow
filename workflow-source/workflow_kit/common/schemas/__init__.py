@@ -38,6 +38,12 @@ from workflow_kit.common.schemas.automated_repro_scaffold import (
     AutomatedReproScaffoldOutput,
     AutomatedReproScaffoldSourceContext,
 )
+from workflow_kit.common.schemas.plan import (
+    PlanClaimBundle,
+    PlanDecisionStatus,
+    PlanStatusOutput,
+    PlanStatusSourceContext,
+)
 from workflow_kit.common.schemas.read_only import (
     LatestBacklogOutput,
     CheckDocMetadataOutput,
@@ -116,5 +122,9 @@ __all__ = [
     "CreateSessionHandoffDraftOutput",
     "CreateEnvironmentRecordStubOutput",
     "SmartContextReaderOutput",
+    "PlanClaimBundle",
+    "PlanDecisionStatus",
+    "PlanStatusOutput",
+    "PlanStatusSourceContext",
     "CreateBacklogEntryOutput",
 ]

@@ -7,7 +7,9 @@ import argparse
 import json
 import datetime as dt
 import re
+import subprocess
 import sys
+from dataclasses import dataclass, field
 from datetime import date, datetime
 from pathlib import Path
 from collections.abc import Iterable
@@ -39,7 +41,10 @@ from workflow_kit.common.planning import (
     DEMOTION_REVERTS_DONE,
     determine_conservative_task_status,
 )
+from workflow_kit.common import plan_claims
 from workflow_kit.common.project_docs import (
+    PLAN_FIELD_KEYS,
+    PLAN_OPTIONAL_KEYS,
     TASK_ID_CAPTURE_RE,
     parse_backlog_task_entries,
     is_empty_label_line,
@@ -66,7 +71,10 @@ from workflow_kit.common.workflow_writes import (
 #: AI-native SDLC 플레이북 Stage 3 의 `plan.md` 대응이다. 정본 §1 의 "작업 전 목적·범위·
 #: 산출물 진술" 이 대화에만 남아 compact · 세션 경계에서 사라지고, 병합된 결과를 계획과
 #: 대조할 근거도 없었다. 새 파일을 만들지 않고 task SSOT 에 절 하나로 둔다.
-PLAN_FIELDS: tuple[str, ...] = ("plan_files", "plan_order", "plan_risks", "plan_proof")
+#:
+#: 목록의 정본은 `project_docs.PLAN_FIELD_KEYS` 하나다 (ADR-031 결정 2) — 여기서 튜플을 다시
+#: 적으면 `workflow_writes` 의 것과 갈라진다.
+PLAN_FIELDS: tuple[str, ...] = PLAN_FIELD_KEYS
 
 #: `--replace-field` 로 지정할 수 있는 **누적 성격** 필드들 (의미 key → 라벨 key).
 #:
@@ -239,8 +247,213 @@ def plan_section_lines(plan: dict[str, list[str]] | None = None) -> list[str]:
     plan = plan or {}
     lines = [PLAN_HEADING, ""]
     for key in PLAN_FIELDS:
+        if key in PLAN_OPTIONAL_KEYS and not plan.get(key):
+            # 주장 · 결정은 선택이다 — 값이 없으면 줄을 쓰지 않는다 (스펙 §1-1).
+            continue
         lines.extend(_label_lines(task_label(key), plan.get(key)))
     return lines
+
+
+@dataclass
+class PlanVerdict:
+    """주장 · 결정 계약(`core/claim_plan_spec.md` §3 · §4 · §8.6)을 적용한 결과."""
+
+    lines: list[str]
+    warnings: list[str] = field(default_factory=list)
+    error_code: str | None = None
+    error: str | None = None
+
+
+def _head_line_counter(root: Path) -> Any:
+    """HEAD 의 파일 줄 수를 돌려주는 함수 — git 밖이면 ``None`` (L5 를 건너뛴다)."""
+    try:
+        probe = subprocess.run(
+            ["git", "-C", str(root), "rev-parse", "--verify", "--quiet", "HEAD"],
+            capture_output=True, check=False)
+    except OSError:
+        return None
+    if probe.returncode != 0:
+        return None
+
+    def count(path: str) -> int | None:
+        shown = subprocess.run(
+            ["git", "-C", str(root), "show", f"HEAD:{path}"], capture_output=True, check=False)
+        if shown.returncode != 0:
+            return None
+        data = shown.stdout
+        return data.count(b"\n") + (1 if data and not data.endswith(b"\n") else 0)
+
+    return count
+
+
+def normalize_plan_decision_args(values: list[str]) -> tuple[list[str], list[str]]:
+    """`--plan-decision` 값을 정본 표기로 고치고 상태 칸을 버린다 (ADR-031 결정 9)."""
+    normalized: list[str] = []
+    notes: list[str] = []
+    for value in values:
+        fixed, dropped = plan_claims.normalize_new_decision(value)
+        normalized.append(fixed)
+        if dropped:
+            decision_id = fixed.split(" ", 1)[0]
+            notes.append(
+                f"--plan-decision {decision_id}: 줄에 적힌 상태를 버렸다 — 새 결정은 proposed 로 시작한다 "
+                f"(답은 --decision-state {decision_id}=answered:<value> 로 기록한다)")
+    return normalized, notes
+
+
+def enforce_plan_contract(
+    draft_lines: list[str],
+    *,
+    previous_lines: list[str] | None,
+    plan_claim_args: list[str],
+    plan_decision_args: list[str],
+    decision_state_args: list[str],
+    replace_fields: set[str],
+    requested_status: str | None,
+    status: str,
+    current_status: str | None,
+    progress_note: str | None,
+    workspace_root: Path,
+) -> PlanVerdict:
+    """task 파일에 쓰기 **전에** 주장 · 결정 계약을 적용한다.
+
+    하는 일은 넷이다: ① `--decision-state` 반영 ② 린트 — 오류 규칙이면 거부 ③ 결정 상태를 다시
+    계산해 칸을 고쳐 쓴다 ④ 상태 전이 게이트. 거부는 ``error_code`` 로 돌려주고 호출자가 쓰기
+    블록에 닿기 전에 끝낸다 — 거부인데 파일이 바뀌면 안 된다.
+
+    2단계(응답 파일) 전이라 응답 목록은 비어 있다. 상태는 `answered` 가 아니면 `proposed` 로
+    계산된다 — 손으로 적은 `kept` · `changed` 는 뒷받침이 없다.
+    """
+    lines = list(draft_lines)
+    verdict = PlanVerdict(lines=lines)
+    claims_key, decisions_key = plan_claims.CLAIMS_KEY, plan_claims.DECISIONS_KEY
+    is_create = previous_lines is None
+    to_in_progress = status == "in_progress" and current_status != "in_progress"
+
+    # 교체인데 새 값이 없다 = 그 라벨을 걷는다 (선택 라벨은 placeholder 를 남기지 않는다).
+    for key, values in ((claims_key, plan_claim_args), (decisions_key, plan_decision_args)):
+        if key in replace_fields and not values and not is_create:
+            before = len(lines)
+            lines = plan_claims.remove_label_lines(lines, key)
+            if len(lines) != before:
+                verdict.warnings.append(
+                    f"--replace-field {key}: 기존 값 {before - len(lines)}건을 걷었다")
+
+    plan = plan_claims.parse_plan(lines)
+    previous_plan = plan_claims.parse_plan(previous_lines) if previous_lines else plan_claims.Plan()
+
+    # 권고 (스펙 §3, R2.3) — 주장이 없어도 본다.
+    if not plan.claims and (is_create or to_in_progress):
+        files = [v for v in read_task_list_field(lines, task_label("plan_files"))
+                 if not v.strip().strip("`").startswith("ai-workflow/")]
+        if len(files) >= 3:
+            verdict.warnings.append(f"Claims 가 없다 — 바뀌는 파일 {len(files)}개 (R2.3)")
+
+    if plan.empty and previous_plan.empty and not decision_state_args:
+        verdict.lines = lines
+        return verdict
+
+    touched = bool(
+        plan_claim_args or plan_decision_args or decision_state_args
+        or ({claims_key, decisions_key} & replace_fields))
+
+    # ① --decision-state — answered:<value> 와 proposed 만 (스펙 §2.5).
+    requested_states: dict[str, str] = {}
+    for item in decision_state_args:
+        decision_id, sep, raw_state = item.partition("=")
+        decision_id, raw_state = decision_id.strip(), raw_state.strip()
+        decision = plan.decision(decision_id)
+        parsed = plan_claims.parse_state(raw_state)
+        reason: str | None = None
+        if not sep or decision is None:
+            reason = f"모르는 결정 `{decision_id}`" if sep else "`D<n>=<state>` 꼴이 아니다"
+        elif decision.problems:
+            reason = f"`{decision_id}` 줄을 읽을 수 없다 (L6) — 먼저 줄을 고친다"
+        elif parsed is None or parsed[0] not in (plan_claims.STATE_ANSWERED, plan_claims.STATE_PROPOSED):
+            reason = (f"`{raw_state}` 는 지정할 수 없다 — `answered:<value>` 또는 `proposed` 만 받는다 "
+                      "(`kept` · `changed` · `unopened` · `disputed` 는 계산만이 만든다)")
+        elif parsed[1] is not None and parsed[1] not in decision.option_values:
+            reason = f"`{parsed[1]}` 은 `{decision_id}` 의 선택지({', '.join(decision.option_values)})에 없다"
+        if reason is not None:
+            verdict.error_code = "decision_state_rejected"
+            verdict.error = f"--decision-state {item}: {reason}"
+            return verdict
+        requested_states[decision_id] = raw_state
+    if requested_states:
+        lines, _ = plan_claims.rewrite_decision_states(lines, requested_states)
+        plan = plan_claims.parse_plan(lines)
+
+    # ② 린트.
+    criteria = read_task_list_field(lines, task_label("done_criteria"))
+    issues = plan_claims.lint_plan(
+        plan, criteria=criteria, file_line_count=_head_line_counter(workspace_root))
+    errors = plan_claims.lint_errors(issues)
+    if errors:
+        rendered = [issue.render() for issue in errors]
+        if touched or requested_status == "done":
+            verdict.error_code = "plan_lint_error"
+            verdict.error = (
+                ("done 거부: " if requested_status == "done" and not touched else "")
+                + f"주장 · 결정이 오류 규칙을 어긴다 ({len(errors)}건) — " + " / ".join(rendered))
+            verdict.warnings = rendered
+            return verdict
+        # 이미 오류 상태인 파일 — 주장 · 결정을 건드리지 않는 쓰기는 통과시키고, 칸은 다시 적지 않는다.
+        verdict.warnings.append(
+            f"주장 · 결정이 오류 규칙을 어긴 상태다 ({len(errors)}건: {rendered[0]}) — 고치기 전에는 "
+            "결정 상태 칸을 다시 적지 않고, done 전이는 거부된다")
+        verdict.lines = lines
+        return verdict
+
+    # 사유 없이 열린 결정을 걷는 교체는 거부한다.
+    if decisions_key in replace_fields and previous_lines is not None and not progress_note:
+        previously_open = plan_claims.open_decision_ids(previous_plan)
+        removed = [d for d in previously_open if plan.decision(d) is None]
+        if removed:
+            verdict.error_code = "decision_removal_needs_note"
+            verdict.error = (
+                f"열린 결정 {len(removed)}건({', '.join(removed)})을 걷는 교체는 같은 호출에 "
+                "--progress-note 로 사유를 적어야 한다")
+            return verdict
+
+    if touched or requested_status is not None:
+        verdict.warnings.extend(
+            issue.render() for issue in issues if issue.severity in ("warning", "note"))
+
+    # 질문이 바뀐 answered 는 유지하고 알린다 (ADR-031 결정 12).
+    for decision in plan.decisions:
+        earlier = previous_plan.decision(decision.id)
+        if (decision.answered and earlier is not None and earlier.answered
+                and plan_claims.decision_identity(earlier.raw) != plan_claims.decision_identity(decision.raw)):
+            verdict.warnings.append(f"질문이 바뀌었다 — answered 를 유지했다: {decision.id}")
+
+    # ③ 다시 계산해 칸을 고쳐 쓴다 (스펙 §8.6).
+    result = plan_claims.compute_states(plan, ())
+    lines, changes = plan_claims.rewrite_decision_states(lines, result.states)
+    mismatch = [
+        f"뒷받침 없는 상태를 되돌렸다: {decision_id} {old} → {new}"
+        for decision_id, old, new in changes if decision_id not in requested_states
+        and (previous_plan.decision(decision_id) is not None)
+    ]
+    plan = plan_claims.parse_plan(lines)
+
+    # ④ 게이트 (스펙 §4) — 칸이 아니라 계산값으로.
+    open_ids = plan_claims.open_decision_ids(plan)
+    if requested_status == "done" and open_ids:
+        verdict.error_code = "open_decisions"
+        verdict.error = (
+            f"done 거부: 열린 결정 {len(open_ids)}건 ({', '.join(open_ids)}). "
+            f"--decision-state {open_ids[0]}=answered:<value> 로 답을 기록하거나, "
+            "--replace-field plan_decisions 로 결정을 걷고 사유를 Progress 에 남긴다.")
+        verdict.warnings = mismatch
+        return verdict
+    verdict.warnings.extend(mismatch)
+    if to_in_progress and open_ids:
+        described = ", ".join(f"{d} {result.states.get(d, plan_claims.STATE_PROPOSED)}" for d in open_ids)
+        verdict.warnings.append(
+            f"열린 결정 {len(open_ids)}건 ({described}) — 묻지 않았거나, 열리지 않았거나, 답이 갈렸다. "
+            "기본값은 동의가 아니다.")
+    verdict.lines = lines
+    return verdict
 
 
 def _one(label: str, value: str | None) -> str:
@@ -345,6 +558,16 @@ def parse_args() -> argparse.Namespace:
                         help="후속 작업 (반복 지정 가능)")
     parser.add_argument("--validation-result")
     # 작업 전 계획 (TASK-2026-10-05-main-002). 구현 **전에** 적고, 벗어나면 갱신한다.
+    # 주장 트리 계획 (ADR-031, `core/claim_plan_spec.md` §2.5).
+    parser.add_argument("--plan-claim", action="append", dest="plan_claims", default=[],
+                        help="Plan: 주장 한 줄 — `C1 <문장>` · `C1.1.1 @ path:line · symbol` (반복 지정 가능)")
+    parser.add_argument("--plan-decision", action="append", dest="plan_decisions", default=[],
+                        help="Plan: 결정 한 줄 — `D1 [C1] <질문> | default: v | options: v = 설명; w = 설명`. "
+                             "새 결정은 항상 proposed 로 시작한다 (반복 지정 가능)")
+    parser.add_argument("--decision-state", action="append", dest="decision_states", default=[],
+                        metavar="D<n>=<state>",
+                        help="결정의 답을 기록한다 — `D1=answered:<value>` 또는 `D1=proposed`(답을 걷는다). "
+                             "다른 상태는 지정할 수 없다 (반복 지정 가능)")
     parser.add_argument("--plan-file", action="append", dest="plan_files", default=[],
                         help="Plan: 바뀌는 파일 (반복 지정 가능)")
     parser.add_argument("--plan-step", action="append", dest="plan_order", default=[],
@@ -748,6 +971,9 @@ def main() -> int:
                 )
         progress_note = args.progress_note[0] if args.progress_note else None
         next_step = args.next_step[0] if args.next_step else None
+        # 새 결정은 항상 proposed 로 시작한다 — 줄에 적힌 상태는 버리고 알린다.
+        args.plan_decisions, _decision_notes = normalize_plan_decision_args(args.plan_decisions)
+        warnings.extend(_decision_notes)
         if not progress_note and args.task_brief is not None:
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
             progress_note = f"`{timestamp}` 기준 {args.task_brief}"
@@ -879,6 +1105,11 @@ def main() -> int:
                             f"교체로 버렸다 — {dropped}"
                         )
                     continue
+                if field_key == plan_claims.DECISIONS_KEY:
+                    # 같은 결정을 다시 넣은 것은 중복이 아니다 — 기존 줄(과 그 상태)을 그대로 둔다.
+                    known = {plan_claims.decision_identity(v) for v in previous}
+                    list_updates[label] = [
+                        v for v in list_updates[label] if plan_claims.decision_identity(v) not in known]
                 list_updates[label] = merge_preserving_order(previous, list_updates[label])
 
             merged_docs = args.affected_documents or None
@@ -948,6 +1179,34 @@ def main() -> int:
                 wbs=args.wbs,
                 wbs_exempt_reason=args.wbs_exempt_reason,
             )
+
+        # 주장 트리 계획 (ADR-031): 린트 · 결정 상태 재계산 · 전이 게이트. 쓰기 블록보다 **앞**이다 —
+        # 거부는 파일을 하나도 건드리지 않는다 (WBS 게이트와 같은 방식).
+        plan_verdict = enforce_plan_contract(
+            draft_entry,
+            previous_lines=existing_lines if update_merge else None,
+            plan_claim_args=_as_list(args.plan_claims),
+            plan_decision_args=_as_list(args.plan_decisions),
+            decision_state_args=_as_list(args.decision_states),
+            replace_fields=set(args.replace_fields or []),
+            requested_status=args.status,
+            status=status,
+            current_status=current_status,
+            progress_note=progress_note,
+            workspace_root=project_workspace_root(project_profile_path),
+        )
+        if plan_verdict.error_code is not None:
+            result = build_error_result(
+                tool_version=TOOL_VERSION,
+                error=plan_verdict.error or plan_verdict.error_code,
+                error_code=plan_verdict.error_code,
+                warnings=plan_verdict.warnings,
+                source_context=source_context | {"task_id": task_id},
+            )
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            return 1
+        draft_entry = plan_verdict.lines
+        warnings.extend(plan_verdict.warnings)
 
         if operation_type == "create_daily_backlog":
             warnings.append("대상 날짜 backlog 파일이 없어 새 파일 초안 생성이 필요하다.")

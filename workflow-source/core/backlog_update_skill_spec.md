@@ -4,7 +4,7 @@
 - 범위: 목표, 입력 계약, 출력 계약, 신규 작업 생성 규칙, 상태 갱신 규칙, 실패 규칙, 쓰기 권한 제한, 수동 대체 절차
 - 대상 독자: AI agent 설계자, skill 구현자, 운영자, 프로젝트 온보딩 담당자
 - 상태: draft
-- 최종 수정일: 2026-08-20
+- 최종 수정일: 2026-11-13
 - 관련 문서: `./workflow_skill_catalog.md`, `./global_workflow_standard.md`, `./workflow_agent_topology.md`, `../templates/daily_backlog_template.md`, `../templates/work_backlog_template.md`, `./llm_wiki_concept_purpose_spec.md` (v0.9.5 part 2)
 
 ## 1. 목적
@@ -349,3 +349,18 @@ backlog-update 통합 가이드. v0.9.5 의 backlog-update 는 두 가지 책임
 - 공통 표준: [./global_workflow_standard.md](./global_workflow_standard.md)
 - agent 토폴로지: [./workflow_agent_topology.md](./workflow_agent_topology.md)
 - Purpose spec: [./llm_wiki_concept_purpose_spec.md](./llm_wiki_concept_purpose_spec.md) (v0.9.5 part 2)
+
+## 13. 주장 · 결정 (ADR-031)
+
+task Plan 의 주장(`Claims`) · 결정(`Decisions`) 필드, 린트 L1~L10, 상태 전이 게이트의 **정본은
+[`claim_plan_spec.md`](./claim_plan_spec.md)** 다. 같은 규칙을 여기에 다시 적지 않는다 — 이 스펙에는 인자만 둔다.
+
+| 인자 | 뜻 |
+|---|---|
+| `--plan-claim <줄>` (반복) | 주장 한 줄. 문법 · 린트는 `claim_plan_spec.md` §2.2 · §3 |
+| `--plan-decision <줄>` (반복) | 결정 한 줄. 새 결정은 항상 `proposed` 로 시작한다 (§2.3 · §2.5) |
+| `--decision-state D<n>=<state>` (반복) | `answered:<value>` 또는 `proposed` 만 (§2.5) |
+| `--replace-field plan_claims` · `plan_decisions` | 묶음을 교체한다. 열린 결정을 걷는 교체는 `--progress-note` 가 필요하다 |
+
+거부(`plan_lint_error` · `open_decisions` · `decision_state_rejected` · `decision_removal_needs_note`)는 파일을 쓰기 전에
+판정되고 `status: error` 와 종료 코드 1 로 나간다 (`claim_plan_spec.md` §4).

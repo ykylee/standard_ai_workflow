@@ -42,6 +42,7 @@ from workflow_kit.common.schemas import (
     CreateSessionHandoffDraftOutput,
     CreateEnvironmentRecordStubOutput,
     SmartContextReaderOutput,
+    PlanStatusOutput,
     ErrorOutput,
 )
 
@@ -70,6 +71,7 @@ _SUCCESS_REQUIRED_FIELDS_BY_MODEL: dict[Type[BaseModel], frozenset[str]] = {
     CreateSessionHandoffDraftOutput: frozenset({"draft_handoff", "source_context"}),
     CreateEnvironmentRecordStubOutput: frozenset({"draft_record", "source_context"}),
     SmartContextReaderOutput: frozenset({"extracted_content", "not_found_symbols"}),
+    PlanStatusOutput: frozenset({"task_id", "has_plan", "claims", "decisions", "open_decisions", "source_context"}),
     CreateBacklogEntryOutput: frozenset({"draft_entry"}),
     BacklogUpdateOutput: frozenset({
         "operation_type",
@@ -239,6 +241,7 @@ PYDANTIC_MODEL_REGISTRY: dict[str, Type[BaseModel]] = {
     "create_session_handoff_draft": CreateSessionHandoffDraftOutput,
     "create_environment_record_stub": CreateEnvironmentRecordStubOutput,
     "smart_context_reader": SmartContextReaderOutput,
+    "plan_status": PlanStatusOutput,
 }
 
 

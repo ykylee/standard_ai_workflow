@@ -24,6 +24,13 @@ and `./tasks/<TASK-ID>.md`.
    `--plan-file` (files that change), `--plan-step` (order of work, citing the completion
    criteria), `--plan-risk`, and `--plan-proof` (what will prove it is done). Plan fields
    merge on update; when the plan changes, replace with `--replace-field plan_files` etc.
+   For work that changes behaviour, state it as **claims** — `--plan-claim "C1 <one sentence
+   that can be true or false>"` (`C1.1` under it, `C1.1.1 @ path:line · symbol` for where) —
+   and put what the owner must decide next to the claim it changes:
+   `--plan-decision "D1 [C1] <question> | default: <value> | options: <value> = <what it means>; …"`.
+   A decision the owner has not answered is **open**: moving to `in_progress` warns and moving
+   to `done` is refused. Record the owner's answer with `--decision-state D1=answered:<value>` —
+   never close a decision on the default alone.
 6. **roadmap gate** (ADR-027 §6) — when the project has
    `ai-workflow/memory/active/roadmap/`, creating a task **requires**
    `--wbs M-NNN/WBS-N.N` (a leaf of the roadmap; the SDLC-order and done-milestone

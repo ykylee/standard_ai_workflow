@@ -533,4 +533,11 @@ def build_workflow_state_payload(
     if memory_entries:
         payload["memory_entries"] = memory_entries
         payload["memory_entries_count"] = len(memory_entries)
+    # ADR-031 (`core/claim_plan_spec.md` §11): 열린 결정이 있는 진행 중 · 차단 · 계획 task 만 숫자 하나.
+    # 비어 있으면 key 를 내지 않는다 — 주장이 없는 저장소의 state.json 은 바이트가 같다.
+    from workflow_kit.common.plan_tasks import column_open_decisions
+
+    open_decisions = column_open_decisions(tasks_dir)
+    if open_decisions:
+        payload["open_decisions"] = open_decisions
     return payload

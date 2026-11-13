@@ -35,9 +35,11 @@ from workflow_kit.common.context_budget import measure as measure_context_budget
 from workflow_kit.common.paths import (
     discover_project_profile_path,
     project_workspace_root,
+    workflow_branch_dir,
     workflow_handoff_path,
     workflow_state_path,
 )
+from workflow_kit.common.plan_tasks import bypass_warnings
 from workflow_kit.common.state.roadmap import (
     generate_roadmap_state,
     state_matches_regeneration,
@@ -123,6 +125,8 @@ def main() -> int:
             "warnings": [
                 *refresh_result.get("deprecation_warnings", []),
                 *(m.message() for m in budget if m.over),
+                # ADR-031: 게이트를 모르는 kit 이 닫은 task 를 사후에 드러낸다 (재생성은 막지 않는다).
+                *bypass_warnings(workflow_branch_dir(project_profile_path) / "backlog" / "tasks"),
             ],
             "context_budget": [m.as_dict() for m in budget],
         }, ensure_ascii=False, indent=2))

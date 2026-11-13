@@ -67,5 +67,5 @@
   - path: [`./M-026-claim-plan-design.md`](./M-026-claim-plan-design.md)
 - **M-027** [design] 계획·진척 워크벤치 — design (ADR-032 + core 스펙) — status: planned
   - path: [`./M-027-plan-workbench-design.md`](./M-027-plan-workbench-design.md)
-- **M-028** [implementation] 주장 트리 계획 — implementation (라벨 · 린트 · 게이트 · plan-status · plan-import · 검사) — status: planned
+- **M-028** [implementation] 주장 트리 계획 — implementation (라벨 · 린트 · 게이트 · plan-status · plan-import · 검사) — status: in_progress
   - path: [`./M-028-claim-plan-implementation.md`](./M-028-claim-plan-implementation.md)

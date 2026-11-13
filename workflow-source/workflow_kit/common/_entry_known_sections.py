@@ -1,8 +1,8 @@
 """과거 kit 버전이 생성한 진입점 절의 해시 — **생성물, 직접 고치지 않는다.**
 
 생성: ``python3 workflow-source/scripts/harvest_entry_sections.py --tmp-dir <경로> --apply``
-채취 ref: v1.2.0-beta, 825478bc, v1.3.0, v1.5.0, v1.7.0, v1.9.4, v1.12.0, v1.14.4, v1.16.0, v1.19.0, 062c4d64, v1.20.0
-결과: v1.2.0-beta: bootstrap 13/13 · 825478bc: bootstrap 13/13 · v1.3.0: bootstrap 13/13 · v1.5.0: bootstrap 13/13 · v1.7.0: bootstrap 13/13 · v1.9.4: bootstrap 12/13 · v1.12.0: bootstrap 12/13 · v1.14.4: bootstrap 12/13 · v1.16.0: bootstrap 12/13 · v1.19.0: bootstrap 12/13 · 062c4d64: bootstrap 12/13 · v1.20.0: bootstrap 12/13
+채취 ref: v1.2.0-beta, 825478bc, v1.3.0, v1.5.0, v1.7.0, v1.9.4, v1.12.0, v1.14.4, v1.16.0, v1.19.0, 062c4d64, v1.20.0, f45c6da1
+결과: v1.2.0-beta: bootstrap 13/13 · 825478bc: bootstrap 13/13 · v1.3.0: bootstrap 13/13 · v1.5.0: bootstrap 13/13 · v1.7.0: bootstrap 13/13 · v1.9.4: bootstrap 12/13 · v1.12.0: bootstrap 12/13 · v1.14.4: bootstrap 12/13 · v1.16.0: bootstrap 12/13 · v1.19.0: bootstrap 12/13 · 062c4d64: bootstrap 12/13 · v1.20.0: bootstrap 12/13 · f45c6da1: bootstrap 12/13
 
 키는 절 제목(`## ` 뒤), 값은 정규화 본문(공백 묶음 → 한 칸)의 SHA-256 앞 16자.
 """
@@ -54,7 +54,7 @@ KNOWN_GENERATED: dict[str, frozenset[str]] = {
     'Subagent principles (Grok Build multi-agent topology)': frozenset({'4fad4327b0926fe5', 'b9a6ee2c7ed0ab35'}),
     'Subagent 운영 원칙 (Grok Build Multi-Agent Topology)': frozenset({'f434504de718af97'}),
     'What this file is for': frozenset({'cd0cf37793025101'}),
-    'Working Principles': frozenset({'1d77de58921b774a', '25c6e7398d7121cf'}),
+    'Working Principles': frozenset({'1d77de58921b774a', '25c6e7398d7121cf', '28e95232c51d2ff8'}),
     'self-bootstrap (PURPOSE.md / state.json 부재 시)': frozenset({'d5f1a047f7f48da5'}),
     'self-bootstrap (when PURPOSE.md / state.json are absent)': frozenset({'9e39a65e374f8013'}),
     '다음에 읽을 문서': frozenset({'8791b2b3ae7c4265', 'ea665d921a7b3c46'}),

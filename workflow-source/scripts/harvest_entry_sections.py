@@ -38,6 +38,8 @@ OUT = REPO / "workflow-source" / "workflow_kit" / "common" / "_entry_known_secti
 DEFAULT_REFS = (
     "v1.2.0-beta", "825478bc", "v1.3.0", "v1.5.0", "v1.7.0", "v1.9.4", "v1.12.0",
     "v1.14.4", "v1.16.0", "v1.19.0", "062c4d64", "v1.20.0",
+    # ADR-031 1단계 — 정본 §1 에 claims · open decisions 가 들어가 `Working Principles` 절이 바뀌었다.
+    "f45c6da1",
 )
 HARNESSES = ("codex", "opencode", "pi-dev", "antigravity", "minimax-code", "claude-code",
              "aider", "goose", "grok-build", "gemini-cli", "codewhale", "custom", "mavis")

@@ -61,7 +61,7 @@ wbs: M-028/WBS-28.2
 
 ## 🛠️ Implementation / Content
 
-- Progress: 2026-11-13 verifier 4차: FAIL 2 — 받은편지함이 다른 파일시스템으로 가는 링크면 --apply 가 EXDEV 로 죽음(dry-run 은 이동 예고) / 받은편지함 쪽 비파일 항목 case 없음(되주입 4건 green). 수리: 배치 판정(같은 디렉터리 · 다른 fs → plan_responses_layout, dry-run 도) · EXDEV 를 오류로 · 링크 · 비파일 항목은 응답이 아니고 알 수 없는 것으로 보고 + case 6c. 되주입 13건 중 12 red · 1 동치. verifier 5차 대기
+- Progress: 2026-11-13 verifier 5차: FAIL 3 — 받은편지함 안의 링크를 --response · --discard 로 지정하면 링크가 보관으로 / 4차 수리가 받은편지함 .rejected.md · 숨은 .md 를 보고에서 지움(회귀) / discard 경로의 배치 · EXDEV case 없음. 수리 + case. 되주입 6건 중 5 red · 1 동치
 - Next session starting point:
 - Remaining risks:
 

@@ -912,6 +912,24 @@ def case_6b_dry_run_predicts_placement() -> None:
     _record(f"case 6b (dry-run 이 예고한 이름 == 실제로 놓인 이름 — {len(PLACEMENT_LAYOUTS)} 모양 + 링크 · 비파일 항목)", problems)
 
 
+def _in_process(ws: Path, args: list[str]) -> tuple[int, dict]:
+    """plan-import 를 이 프로세스에서 — 모듈의 함수를 바꿔 끼운 상태로 재야 할 때."""
+    from workflow_kit.tools import plan_import  # noqa: PLC0415
+
+    buffer = io.StringIO()
+    previous = os.environ.get("CODEX_WORKFLOW_BRANCH")
+    os.environ["CODEX_WORKFLOW_BRANCH"] = BRANCH
+    try:
+        with contextlib.redirect_stdout(buffer):
+            rc = plan_import.main(["--project-profile-path", str(ws / "docs" / "PROJECT_PROFILE.md"), *args])
+    finally:
+        if previous is None:
+            os.environ.pop("CODEX_WORKFLOW_BRANCH", None)
+        else:
+            os.environ["CODEX_WORKFLOW_BRANCH"] = previous
+    return rc, json.loads(buffer.getvalue())
+
+
 def case_6c_inbox_entries_and_layout() -> None:
     """받은편지함의 비파일 항목 · 링크, 받은편지함 · 보관의 배치."""
     problems: list[str] = []
@@ -957,6 +975,30 @@ def case_6c_inbox_entries_and_layout() -> None:
                 problems.append(f"{kind}: --apply rc={rc} {[r.get('moved_to') for r in out.get('responses', [])]}")
             if kind == "file-link" and not real.is_file():
                 problems.append("링크가 가리키던 파일이 사라졌다")
+        # 받은편지함 안의 응답을 가리키는 링크 — 지정해도 받지 않는다 (링크가 보관으로 옮겨지면 안 된다).
+        with tempfile.TemporaryDirectory() as td:
+            ws = _workspace(td)
+            task_id = _create(ws)
+            branch = _branch(ws)
+            target = _publish(ws, task_id, _response(ws, task_id, "kim", 1, values={"D1": "warn"}))
+            alias = pr.inbox_dir(branch) / f"{task_id}-7.md"
+            alias.symlink_to(target.name)
+            (pr.inbox_dir(branch) / f"{task_id}-9.rejected.md").write_text("x", encoding="utf-8")
+            (pr.inbox_dir(branch) / ".note.md").write_text("x", encoding="utf-8")
+            before = _snapshot(ws)
+            for args in (("--task", task_id, "--response", alias.name), ("--discard", alias.name, "--reason", "r"),
+                         ("--task", task_id, "--response", str(alias)), ("--discard", str(alias), "--reason", "r")):
+                for apply in (False, True):
+                    rc, out = _import(ws, *args, *(("--apply",) if apply else ()))
+                    if rc != 2 or out.get("error_code") != "response_not_found" or _snapshot(ws) != before:
+                        problems.append(f"받은편지함 안의 링크 {args[-2] if args[0] == '--discard' else args[-1]} "
+                                        f"apply={apply}: rc={rc} {out.get('error_code')}")
+            want = sorted([".note.md", alias.name, f"{task_id}-9.rejected.md"])
+            if pr.unknown_inbox_files(branch) != want:
+                problems.append(f"받은편지함의 링크 · .rejected.md · 숨은 .md 를 보고하지 않았다: {pr.unknown_inbox_files(branch)}")
+            _, status = _cli(ws, ["-m", "workflow_kit", "plan-status"], "--task", task_id)
+            if status.get("unknown_inbox_files") != want or status.get("pending_responses") != 1:
+                problems.append(f"plan-status 의 알 수 없는 것 · 건수: {status.get('unknown_inbox_files')} {status.get('pending_responses')}")
     # 배치 — 받은편지함과 보관이 같은 디렉터리 · 다른 파일시스템이면 dry-run 도 --apply 도 옮기지 않는다.
     for label in ("같은 디렉터리", "다른 파일시스템"):
         with tempfile.TemporaryDirectory() as td:
@@ -978,12 +1020,32 @@ def case_6c_inbox_entries_and_layout() -> None:
                 found = pr.layout_problem(branch, device_of=lambda path: devices[path])
             if found is None:
                 problems.append(f"{label}: 배치 문제를 판정하지 않았다")
+            if label == "다른 파일시스템":
+                (archive / f"{task_id}-3.md").write_bytes(_response(ws, task_id, "lee", 3))
+                real_problem = pr.layout_problem
+                pr.layout_problem = lambda b, device_of=None: real_problem(  # type: ignore[assignment]
+                    b, device_of=lambda path: 1 if path == pr.inbox_dir(b).resolve() else 2)
+                before = _snapshot(ws)
+                inbox_name = pr.inbox_files(branch, task_id)[0].name
+                try:
+                    for args in (["--task", task_id], ["--task", task_id, "--response", inbox_name],
+                                 ["--discard", inbox_name, "--reason", "r"],
+                                 ["--discard", f"{task_id}-3.md", "--reason", "r"]):
+                        for apply in (False, True):
+                            rc, out = _in_process(ws, [*args, *(["--apply"] if apply else [])])
+                            if rc != 1 or out.get("error_code") != "plan_responses_layout" or _snapshot(ws) != before:
+                                problems.append(f"{label} {args[-2]} apply={apply}: rc={rc} {out.get('error_code')}")
+                finally:
+                    pr.layout_problem = real_problem  # type: ignore[assignment]
             if label == "같은 디렉터리":
                 before = _snapshot(ws)
-                for apply in (False, True):
-                    rc, out = _import(ws, "--task", task_id, *(("--apply",) if apply else ()))
-                    if rc != 1 or out.get("error_code") != "plan_responses_layout" or _snapshot(ws) != before:
-                        problems.append(f"{label} apply={apply}: rc={rc} {out.get('error_code')}")
+                name = pr.inbox_files(branch, task_id)[0].name
+                for args in (("--task", task_id), ("--task", task_id, "--response", name),
+                             ("--discard", name, "--reason", "r")):
+                    for apply in (False, True):
+                        rc, out = _import(ws, *args, *(("--apply",) if apply else ()))
+                        if rc != 1 or out.get("error_code") != "plan_responses_layout" or _snapshot(ws) != before:
+                            problems.append(f"{label} {args[-2]} apply={apply}: rc={rc} {out.get('error_code')}")
         if pr.layout_problem(Path(td)) is not None:
             problems.append("디렉터리가 없는 브랜치에 배치 문제가 있다고 했다")
     # 판정을 지나 이동이 파일시스템 경계에 막혀도 오류로 내고 응답은 제자리다 (os.link 의 EXDEV).
@@ -992,25 +1054,25 @@ def case_6c_inbox_entries_and_layout() -> None:
         task_id = _create(ws)
         path = _publish(ws, task_id, _response(ws, task_id, "kim", 1, values={"D1": "warn"}))
         import errno as _errno  # noqa: PLC0415
-        from workflow_kit.tools import plan_import  # noqa: PLC0415
 
         real_link = os.link
 
         def cross_device(*args: object, **kwargs: object) -> None:
             raise OSError(_errno.EXDEV, "Invalid cross-device link")
 
+        archived = pr.responses_dir(_branch(ws)) / f"{task_id}-2.md"
+        archived.write_bytes(_response(ws, task_id, "lee", 2))
         os.link = cross_device  # type: ignore[assignment]
-        buffer = io.StringIO()
         try:
-            os.environ["CODEX_WORKFLOW_BRANCH"] = BRANCH
-            with contextlib.redirect_stdout(buffer):
-                rc = plan_import.main(["--project-profile-path", str(ws / "docs" / "PROJECT_PROFILE.md"),
-                                       "--task", task_id, "--apply"])
+            for args in (["--task", task_id, "--apply"], ["--discard", path.name, "--reason", "r", "--apply"],
+                         ["--discard", archived.name, "--reason", "r", "--apply"]):
+                rc, out = _in_process(ws, args)
+                if rc != 1 or out.get("error_code") != "plan_responses_layout" or not path.is_file() or \
+                        not archived.is_file() or _archive(ws, task_id) != [archived.name]:
+                    problems.append(f"이동이 파일시스템 경계에 막혔을 때 {args[0]} {args[1][:12]}: rc={rc} "
+                                    f"{out.get('error_code')} 제자리={path.is_file()}")
         finally:
             os.link = real_link  # type: ignore[assignment]
-        out = json.loads(buffer.getvalue())
-        if rc != 1 or out.get("error_code") != "plan_responses_layout" or not path.is_file() or _archive(ws, task_id):
-            problems.append(f"이동이 파일시스템 경계에 막혔을 때: rc={rc} {out.get('error_code')} 제자리={path.is_file()}")
     _record("case 6c (받은편지함의 비파일 항목 · 링크는 응답이 아니다 · 옮길 수 없는 배치는 거절)", problems)
 
 

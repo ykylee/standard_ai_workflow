@@ -320,7 +320,7 @@ def unknown_inbox_files(branch_dir: Path) -> list[str]:
         return []
     return sorted(
         entry.name for entry in inbox.iterdir()
-        if entry.name.endswith(".md") and not entry.name.startswith(".") and not entry.name.endswith(REJECTED_SUFFIX)
+        if entry.name.endswith(".md")
         and (not _ANY_RESPONSE_NAME_RE.match(entry.name) or not _is_plain_file(entry)))
 
 

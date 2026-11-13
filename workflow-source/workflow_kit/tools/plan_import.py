@@ -102,7 +102,9 @@ def _resolve_response(raw: str, branch_dir: Path, *, inbox_only: bool) -> Path |
     candidates = [Path(raw)] if Path(raw).is_file() else []
     candidates += [directory / Path(raw).name for directory in allowed]
     for candidate in candidates:
-        if candidate.is_file() and any(candidate.resolve().parent == d.resolve() for d in allowed):
+        # 응답은 링크가 아닌 보통 파일이다 (스펙 §7-7) — 링크를 받으면 링크가 보관으로 옮겨진다.
+        if candidate.is_file() and not candidate.is_symlink() and \
+                any(candidate.resolve().parent == d.resolve() for d in allowed):
             return candidate.resolve().parent / candidate.name
     return None
 

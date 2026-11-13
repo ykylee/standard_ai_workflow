@@ -964,9 +964,9 @@
       "sdlc_phase": "implementation",
       "declared_status": "in_progress",
       "derived_status": "in_progress",
-      "progress": 0.0,
+      "progress": 0.5,
       "total_leaves": 2,
-      "done_leaves": 0,
+      "done_leaves": 1,
       "deliverables_missing": [
         "workflow-source/workflow_kit/common/plan_responses.py",
         "workflow-source/workflow_kit/tools/plan_import.py"
@@ -975,12 +975,12 @@
         {
           "id": "WBS-28.1",
           "title": "1 단계 — 라벨 · `PLAN_FIELD_KEYS` · 파서 · 린트 L1~L10 · 게이트 · `--decision-state` · `plan-status` · `open_decisions` · 정본 §1 개정 ·",
-          "derived_status": "in_progress",
+          "derived_status": "done",
           "linked_task_ids": [
             "TASK-2026-11-13-claude-remote-sync-check-234c32-003"
           ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         },
         {

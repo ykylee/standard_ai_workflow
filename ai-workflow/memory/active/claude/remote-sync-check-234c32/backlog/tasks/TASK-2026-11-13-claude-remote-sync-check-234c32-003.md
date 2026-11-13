@@ -1,6 +1,6 @@
 ---
 id: TASK-2026-11-13-claude-remote-sync-check-234c32-003
-status: in_progress
+status: done
 created_at: 2026-11-13
 source_anchor: generic-task-2026-11-13-claude-remote-sync-check-234c32-003
 source_path: backlog/2026-11-13.md
@@ -12,7 +12,7 @@ wbs: M-028/WBS-28.1
 
 ## 📝 Description
 
-- Status: in_progress
+- Status: done
 - Priority: high
 - Request date: 2026-11-13
 - Owner:
@@ -62,11 +62,12 @@ wbs: M-028/WBS-28.1
 
 ## 🛠️ Implementation / Content
 
-- Progress: 2026-11-13 verifier 4차: [C2] FAIL 2건(· 없는 위치 행이 무력화 / 빈 Decisions 줄 case 없음) · [C3] FAIL(빈칸으로 찍히는 채움 문자 사유) → 사유는 보이는 글자 · 숫자 필수, 다시 만드는 create 의 R2.3 권고 복원, 못 읽는 기존 파일은 예외로. 검사: 표 행 경로 수정 · 빈 결정 줄 · 일부 제거 · create(planned) 덮어쓰기 · 머리 깨진 줄 지문. 되주입 8건 red. 5차 검증 대기
+- Progress: 2026-11-13 verifier 5차: [C3] FAIL(U+13441 · U+13442 사유) → 스펙 §2.5 사유 판정을 열거(빈칸 글자 여섯)로 고정. 6차: FAIL 0 (스펙 ↔ 구현 전 코드포인트 대조 불일치 0, 되주입 7/7 red). 전량 게이트 81b74577 에서 native 312 · slash 312 rc 0
 - Next session starting point:
 - Remaining risks:
 
 ## ✅ Outcome
 
-- Result:
+- Result: verifier 6회 — 6차 [C1]~[C5] · 여섯째(전파 · 진입 파일 6,783B ≤ 8,192 · mypy 0) PASS, 전량 게이트 --branch-context=all rc 0 (native 312 · slash 312, HEAD 81b74577). 검증자 되주입 432건 + 추가 변형 중 스펙 판정을 바꾸는 것 전부 red
+- Verification: verifier 6회 — 6차 [C1]~[C5] · 여섯째(전파 · 진입 파일 6,783B ≤ 8,192 · mypy 0) PASS, 전량 게이트 --branch-context=all rc 0 (native 312 · slash 312, HEAD 81b74577). 검증자 되주입 432건 + 추가 변형 중 스펙 판정을 바꾸는 것 전부 red
 - Follow-up:

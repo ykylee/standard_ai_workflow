@@ -3,7 +3,7 @@ type: decision
 status: proposed
 adr_id: ADR-032
 decided_at: 2026-11-13
-alternatives_considered: [samesite-strict, strict-with-next-param, single-module-in-common, jinja-templates, token-config-file, root-gitignore-entry, mcp-tools-later, docker-proxy-in-gate, server-calls-plan-import, counter-numbering]
+alternatives_considered: [samesite-strict, strict-with-next-param, single-module-in-common, cli-only-console-script, signed-cookie-sessions, file-backed-sessions, jinja-templates, token-config-file, assets-as-python-strings, assets-outside-package, root-gitignore-entry, no-workbench-skill, skill-drives-server, mcp-tools-later, docker-proxy-in-gate, server-calls-plan-import, counter-numbering]
 related_pages: [decisions/adr-031-claim-plan, decisions/adr-030-compact-relay, decisions/adr-027-roadmap-wbs-sdlc]
 created: 2026-11-13
 updated: 2026-11-13
@@ -40,7 +40,7 @@ ADR-031 이 넘긴 것: MCP 도구 `plan_inbox` · `plan_import` (결정 23), �
 |---|---|---|---|
 | M1 | nginx 1.27.5 · Caddy 2.10.0 실물(docker, digest 기록) 뒤에서 Chrome 154 로 §1.3 의 네 구성 | 프로토타입 프록시와 같다 — 상대 경로 + `Path` = 접두사만 접두사 안에 머물고 다른 앱에 쿠키가 가지 않는다 | 결정 6 · 7 그대로 |
 | M2 | 같은 측정, 다른 사이트(`localhost`)의 링크 · 폼으로 들어오기 | `SameSite=Strict` 는 로그인해 둔 상태에서도 다른 사이트의 링크에서 로그인 화면으로 떨어진다. `Lax` 는 그 링크에 쿠키를 싣고, 두 설정 모두 다른 사이트의 POST 에는 싣지 않았다(Origin 대조가 403) | 결정 8 (V1) |
-| M3 | 매치되지 않는 경로 · 끝 슬래시 없는 접두사 | nginx 404 · `/workbench` → 301, Caddy 는 둘 다 **빈 200** | 결정 21 (Caddy 예시에 `redir`), 결정 19 (검사는 도착 경로로 판정) |
+| M3 | 매치되지 않는 경로 · 끝 슬래시 없는 접두사 | nginx 404 · `/workbench` → 301, Caddy 는 둘 다 **빈 200**. Caddy 에 `redir /workbench /workbench/` 를 더하면 302 → `/workbench/` → 200 (따로 잼) | 결정 21 (Caddy 예시에 `redir`), 결정 22 (검사는 도착 경로로 판정) |
 | M4 | 9 구성 × 2 회 | 두 회가 같았다 | — |
 
 재지 않은 것: TLS 뒤의 `Secure` 쿠키, Firefox · Safari, 클라우드 작업 공간의 포트 공유, Codex hook 주입(소유자 결정 — 재지 않는다),
@@ -57,9 +57,11 @@ Windows(NTFS) — 구현 뒤 (결정 22).
    돈다 (`--changed` 의 단위가 파일이다).
 2. **계산은 전부 기존 함수다.** 주장 · 결정 읽기 · 지문 · 결정 상태는 `plan_claims` · `plan_tasks`, 응답 파일의 렌더 · 공개 · 번호 ·
    받은편지함 건수는 `plan_responses` (requirements R0-8 · 주장 R0-6). `workbench/` 는 이 함수를 부르기만 한다 —
-   `check_plan_claims` 의 파서 단일성 case 가 `workbench/` 를 소비자 목록에 더한다.
+   `check_plan_claims` case 6(파서 단일성)이 `workbench/` 를 소비자 목록에 더한다 — 파서 단일성은 그 case 한 곳에서 잰다.
 3. **CLI 는 requirements R1.1 그대로**다 (`--bind` · `--port` 8766 · `--public-url` · `--token` · `--trusted-proxy` · `--tls-cert` ·
-   `--tls-key` · `--allow-plain-http` · `--status` · `--new-token … --out`). `allow_abbrev=False`.
+   `--tls-key` · `--allow-plain-http` · `--status` · `--new-token … --out`). `allow_abbrev=False`. 진입은 `python -m workflow_kit workbench`
+   (dispatcher) 와 console script `workflow-workbench` 둘 — 다른 명령과 같다. 대안 — console script 만: Windows 의 `wk.exe` · console script 는
+   백신 평판 차단을 받는다 (handoff 의 Windows 메모) — 하네스 문구는 `python -m` 이어야 한다.
 
 ### 토큰 · 세션 · 쿠키
 
@@ -68,6 +70,8 @@ Windows(NTFS) — 구현 뒤 (결정 22).
    값을 바꾸고 다시 띄우는 것 하나다.
 5. **세션 표는 프로세스 메모리의 사전 하나**다 — 세션 id(`secrets.token_urlsafe(32)`) → 이름 · 역할 · CSRF 값 · 만료 시각.
    `threading.Lock` 아래에서 읽고 쓴다. 만료는 12시간, 요청 때 지난 것을 걷는다. 로그인 실패 표도 같은 방식이다 (주소 → 최근 실패 시각들).
+   대안 — 서명한 쿠키(상태 없는 세션): 세션을 끊는 길이 서명 키 교체뿐이고 CSRF 값을 어디 둘지 다시 정해야 한다. 대안 — 파일에 저장:
+   checkout 안에 세션 비밀이 남고(R1.3 은 세션을 싣지 않는다) 다시 띄워도 로그인이 살아 "값을 바꾸고 다시 띄우면 끊긴다" 가 깨진다.
 6. **쿠키 `Path` 와 출처는 `public_url` 하나에서만** 얻는다 (R3.4 — M1). 서버는 `Host` 로 자기 주소를 추측하지 않는다.
 7. **모든 링크 · 폼 action · `Location` 은 상대 경로다** (R2.3 — M1). 렌더러는 현재 경로의 깊이에서 상대 경로를 만드는 함수 하나를 쓴다
    (`task/<ID>` 에서 루트는 `../`, 루트에서 task 는 `task/<ID>`).
@@ -87,6 +91,8 @@ Windows(NTFS) — 구현 뒤 (결정 22).
 11. **정적 자원은 패키지 데이터**(`workflow_kit/workbench/static/*.css` · `*.js`)이고, 서버는 시작할 때 **고정 목록**만 읽어 메모리에 두고
     `static/<이름>` 으로 낸다. 목록 밖은 404 — 경로 조각으로 파일을 가리킬 수 없다. `pyproject` 의 `package-data` 에 더하고, wheel 에
     실리는지를 검사가 본다 (kit 은 패키지 밖 자산이 설치본에서 사라진 선례가 있다 — `assets/hooks`).
+    대안 — 파이썬 문자열로 내장: CSS · JS 를 따로 고치고 검사(문법 · 크기)하기 어렵다. 대안 — 저장소 경로(`workflow-source/…`)에서 읽기:
+    wheel 설치본에 없다 (`assets/hooks` 의 선례 그대로).
 
 ### 쓰기 · 받은편지함
 
@@ -122,7 +128,9 @@ Windows(NTFS) — 구현 뒤 (결정 22).
     같은 커밋에서 다시 만든다. 대안 — 나중으로: 받은편지함에 응답이 생기는 것은 워크벤치가 있을 때뿐이라 둘은 같이 쓰인다.
 20. **정본 §11.1 에 한 줄**: `Review plans and progress in a browser | python -m workflow_kit workbench` (R1.2). 스킬 `workbench` 하나
     (+ bootstrap slash command `/workflow-workbench`) — 본문은 서버를 띄우는 법 · 토큰을 만드는 법 · URL 을 사용자에게 알리는 것까지이고,
-    모델이 서버를 대신 조작하지 않는다.
+    모델이 서버를 대신 조작하지 않는다. 대안 — 스킬 없이 명령만: 플러그인 스킬은 §11.1 과 1:1 이라는 기존 검사가 요구한다
+    (`check_agent_plugin_payload`). 대안 — 스킬이 MCP 로 서버를 띄우고 멈춘다: 서버는 사용자의 브라우저와 토큰에 묶이고, 서버를 다루는 MCP 도구는
+    두지 않는다 (requirements R9).
 21. **`.workbench/` 는 자기 무시 디렉터리**다 — 안에 `*\n` 인 `.gitignore` 를 두고 서버가 시작할 때마다 확인한다 (ADR-030 의 `.compact/`,
     ADR-031 결정 14 의 받은편지함과 같은 수단). 대안 — 저장소 루트 `.gitignore` 에 줄: 재적용 전의 소비 프로젝트가 무방비다.
     프록시 예시(nginx · Caddy 각 한 덩어리)는 core 스펙 §9 에 M1 · M3 에서 잰 그대로 싣는다 — Caddy 에는 `redir /workbench /workbench/`.
@@ -139,6 +147,15 @@ Windows(NTFS) — 구현 뒤 (결정 22).
     Windows 호스트에서 잰다 (M-028 의 task -005 와 같은 호스트 · 같은 세션).
 23. **구현은 마일스톤 하나**(M-029 — 이 ADR 이 accepted 되면 선언한다)로, 두 단계다: ① 이월 항목 정리(결정 16 · 17 · 18) — 서버 없이도
     값이 있고 작다 ② 서버 · 화면 · MCP · 정본 · 스킬 · 검사 넷.
+24. **ADR-031 1 · 2단계 구현이 넘긴 정리 거리도 M-029 ① 에서 한다** (주장 트리 계획 코드의 검사 · 경계):
+    1단계 검증의 넷 — `backlog_update._existing_task_lines` 의 예외 경로를 재는 case 가 없음 · `state: answered:`(빈 값)를 열린 결정으로 세는가
+    (`plan-status` · `open_decisions` 의 계수) · `check_plan_gate` case 15 의 반복문이 workspace 하나를 재사용해 red 메시지 둘째 줄부터 연쇄 잡음 ·
+    `--progress-note` 를 여러 번 주면 첫 값만 사유로 봄. 2단계 검증의 셋 — 배치 판정이 0 단계보다 먼저라는 순서를 재는 case 없음 ·
+    EXDEV · `LayoutError` 되주입이 FAIL 줄이 아니라 traceback 으로만 red · `check_plan_import.py` 단독 mypy 의 남은 `type: ignore`.
+    각각 case 하나 또는 한 줄 수정이라 서버와 섞지 않고 ① 에서 닫는다.
+25. **게이트(`backlog-update` 의 → `done`)는 배치 문제로 막지 않는다** — `inbox_census` 의 `layout_problem` 을 `warnings` 에 싣기만 한다.
+    받은편지함 행(미반영 응답이 있으면 거부)은 배치와 무관하게 센 건수로 판정한다 — 배치가 틀려도 응답이 있으면 닫히지 않는다.
+    대안 — 배치 문제면 `done` 거부: 배치는 손으로 만든 상태라(주장 스펙 §7-9) 결정과 무관한 task 까지 막는다.
 
 ## Requirements 대비 변경
 
@@ -148,12 +165,19 @@ Windows(NTFS) — 구현 뒤 (결정 22).
 | V2 | R5.3-7 번호 = 받은편지함 · 보관의 가장 큰 번호 + 1 | `received_at` 의 epoch 마이크로초, 접미사를 통틀어 유일 (결정 12) | ADR-031 결정 13 · 24 (두 호스트의 add/add 충돌) — 이미 구현됨 |
 | V3 | R5.3-5 같은 응답자의 가장 늦은 `received_at` | **자격 있는** 파일만 본다 (결정 13) | 손으로 놓인 미래 시각 파일이 응답자의 시계를 끌고 가지 않게 |
 | V4 | R6.1 "미반영 응답 건수 = 받은편지함을 요청 시점에 센 값" | 그 셈은 `inbox_census` 하나로 (결정 16) | 2단계 검증 — 세는 길이 여럿이면 보고가 갈린다 |
+| V6 | R0-2 "그 밖에 쓰는 것은 자기 실행 기록 한 파일뿐" | `.workbench/server.json` 과 그 디렉터리의 `.gitignore` 둘 (결정 21) | R1.3 이 무시 수단을 design 에 맡겼다 — 자기 무시 파일이 그 수단이다 |
+| V7 | R10-4 "동시 제출에서 번호 연속" | 유실 0 · 덜 쓰인 파일 0 만 (번호는 연속이 아니다) | V2 의 귀결 — 번호가 시각에서 출발한다 |
 | V5 | (없음) | 쓰기 전 배치 판정 409 (결정 14) · task 파일이 오류 규칙을 어기면 409 (주장 스펙 §8.1 의 0 단계 — 어차피 자격이 없는 응답을 쓰지 않는다) · 우회 검출에 받은편지함 행 (결정 18) | ADR-031 2단계 구현이 넘긴 것 |
 
 ## Alternatives Considered
 
 - **SameSite=Strict 유지 · Strict + `next`** — 결정 8.
 - **모듈 하나(`common/workbench.py`)** — 결정 1.
+- **console script 만** — 결정 3.
+- **서명 쿠키 · 파일 세션** — 결정 5.
+- **정적 자원을 파이썬 문자열로 · 저장소 경로에서** — 결정 11.
+- **스킬 없음 · 스킬이 서버를 조작** — 결정 20.
+- **배치 문제로 `done` 거부** — 결정 25.
 - **템플릿 엔진** — 결정 9.
 - **토큰 설정 파일** — 결정 4.
 - **루트 `.gitignore` 줄** — 결정 21.

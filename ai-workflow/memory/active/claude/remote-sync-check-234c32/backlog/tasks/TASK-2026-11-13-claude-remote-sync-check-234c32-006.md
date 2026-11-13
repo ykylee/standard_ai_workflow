@@ -50,7 +50,7 @@ wbs: M-027/WBS-27.1
 
 ## 🛠️ Implementation / Content
 
-- Progress: 2026-11-13 ADR-032 (proposed, 결정 23 · 변경 V1~V5) + core 스펙 plan_workbench_spec.md (§1~§12) 초안. verifier 대기
+- Progress: 2026-11-13 verifier 1차: FAIL 3 (대안 없는 결정 대상 넷 · 스펙에 없는 requirements 문장 넷 · 1단계에서 넘긴 4건 기록 소실 + 게이트의 배치 동작 미정). 수리: 대안 · 결정 24(정리 거리를 M-029 ① 로) · 25(게이트는 배치로 막지 않는다) · V6 · V7 · 스펙 보강 · 모순 넷. 2차 대기
 - Next session starting point:
 - Remaining risks:
 

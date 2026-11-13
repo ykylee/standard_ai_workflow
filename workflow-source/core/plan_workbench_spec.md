@@ -21,7 +21,8 @@
 5. loopback 요청도 인증한다. 서버는 자기 공개 주소를 추측하지 않는다 — `public_url` 하나.
 6. 페이지는 외부 자원을 부르지 않는다.
 7. 모델 호출이 없다.
-8. 주장 · 결정 읽기 · 지문 · 결정 상태 · 응답 렌더 · 공개 · 받은편지함 건수는 `plan_claims` · `plan_tasks` · `plan_responses` 의 함수만 쓴다.
+8. 주장 · 결정 읽기 · 지문 · 결정 상태 · 응답 렌더 · 공개 · 받은편지함 건수는 `plan_claims` · `plan_tasks` · `plan_responses` 의 함수만 쓴다
+   (`inbox_census` 는 M-029 ① 에서 새로 만든다 — §8.1).
 
 ## 2. 명령 (R1.1 · R1.2)
 
@@ -39,6 +40,9 @@ python -m workflow_kit workbench --new-token <role>:<name> --out <path>
   같은 checkout 에 살아 있는 서버가 있다 (그 `public_url` 을 알린다).
 - `public_url` 은 끝 슬래시를 갖는다 — 없으면 붙인다. 기본 `http://127.0.0.1:<port>/`. 시작할 때 `public_url` 을 출력하고, loopback 이 아닌 bind 면 경고 한 줄.
 - `--new-token` 은 `secrets.token_urlsafe(32)` 를 `0600` 파일로 쓰고 값은 출력하지 않는다. 있는 파일은 덮지 않는다.
+- TLS 는 표준 `ssl`, 최소 판 TLS 1.2 (`ssl.TLSVersion.TLSv1_2`). 인증서는 kit 이 만들지 않는다.
+- `--status` 는 `.workbench/server.json` 을 읽어 `{"running": bool, "pid": …, "port": …, "public_url": …, "started_at": …}` JSON 한 덩어리를 내고 끝난다
+  (기록이 없거나 `pid` 가 죽었으면 `running: false`).
 - 정본 §11.1 에 `Review plans and progress in a browser | python -m workflow_kit workbench`. 스킬 `workbench` (+ bootstrap `/workflow-workbench`) —
   띄우는 법 · 토큰 만드는 법 · URL 을 사용자에게 알리는 것까지. 모델은 서버를 조작하지 않는다.
 
@@ -80,8 +84,8 @@ python -m workflow_kit workbench --new-token <role>:<name> --out <path>
 ### 4.4 계획 화면
 
 task 파일에 있는 것만 그린다: 주장 트리(`<details>`, 접힌 상태 = 1단계 목록, ID 그대로) · 3단계 위치(경로와 줄만) · 주장별 완료 기준과 검증 줄
-(`plan_claims.claim_bundles` 의 묶음) · 결정(가리키는 주장 안에 닫힌 `<details>` 하나씩 — 질문 · 선택지 radio · 기본값에 "추천" · **계산한**
-상태, 칸이 다르면 "task 파일의 칸은 <값>") · 머리의 "열린 결정 n건" · "미반영 응답 n건" · 배치 문제(있으면) · `Out of scope`.
+(`plan_claims.claim_bundles` 의 묶음 — `Verification` 줄의 글은 그대로 보이고 판정을 추론하지 않는다) · 결정(가리키는 주장 안에 닫힌 `<details>` 하나씩 — 질문 · 선택지 radio · 기본값에 "추천" 과 `checked` · **계산한**
+상태, 칸이 다르면 "task 파일의 칸은 <값>") · 머리의 "열린 결정 n건" · "미반영 응답 n건" · 배치 문제(있으면) · 끝에 `Out of scope`.
 `answered` 결정은 읽기 전용(답과 함께). 주장이 없는 task 는 Description · 완료 기준 · Plan 나머지 필드를 그대로(폼 없음). viewer 에게는 폼이 없다.
 
 ## 5. 인증 (R3 · R4)
@@ -121,6 +125,7 @@ task 파일에 있는 것만 그린다: 주장 트리(`<details>`, 접힌 상태
 
 폼 필드: `csrf` · `plan_digest`(페이지를 그릴 때 계산) · 결정마다 `value_<D>` · `opened_<D>`(`yes` 만 yes) · 주석 `comment_<C 또는 D 또는 ->`(빈 칸은 싣지 않는다).
 폼은 그 task 의 **모든** 결정을 싣는다. 스크립트 `static/workbench.js` 는 결정의 `<details>` 가 처음 열릴 때 그 `opened_<D>` 를 `yes` 로 바꾸는 일 하나만 한다.
+스크립트가 꺼진 브라우저도 열고 제출할 수 있다 — 열림 기록만 없어 `opened: no` 다 (기본값 그대로면 `unopened`, 다른 값이면 `changed` — 서버는 가르지 않는다).
 
 §5.4 를 통과한 뒤:
 
@@ -174,7 +179,9 @@ task 파일에 있는 것만 그린다: 주장 트리(`<details>`, 접힌 상태
 ### 8.1 받은편지함 건수의 정본
 
 `plan_responses.inbox_census(branch_dir) -> InboxCensus(pending: dict[task, int], unknown: list[name], layout_problem: str | None)` 하나가 정본이다.
-`backlog-update` 게이트 · `session-start` · `plan-status` · `plan-import` · 워크벤치 · `plan_inbox` 가 이것만 부른다 (ADR-032 결정 16).
+**M-029 ① 에서 새로 만든다** — 지금은 `inbox_files` · `pending_by_task` · `unknown_inbox_files` · `layout_problem` 을 부르는 쪽이 조합한다.
+`backlog-update` 게이트 · `session-start` · `refresh-state` · `plan-status` · `plan-import` · 워크벤치 · `plan_inbox` 가 이것만 부른다 (ADR-032 결정 16).
+게이트는 `layout_problem` 을 `warnings` 에 싣기만 하고 막지 않는다 — 받은편지함 행은 배치와 무관하게 센 건수로 판정한다 (결정 25).
 
 ### 8.2 당겨 오기 (①)
 
@@ -194,7 +201,7 @@ hook 머리말(②)은 만들지 않는다 (requirements R8.2 — 소유자 결�
 | read-only | `plan_inbox` | `task_id`(선택) | `inbox_census` + 파일별 `{task, name, responder, received_at, stage, reason}` — 주석 본문 없음 |
 | write | `plan_import` | `task_id` 또는 `discard` + `reason`, `response`(선택), `apply`(기본 false) | `plan-import` 의 출력 계약 family `plan_import` 그대로 |
 
-서버를 띄우거나 멈추는 MCP 도구는 없다. 체크인 생성물(descriptor · JSON-RPC fixture · 하네스 MCP 예시)은 도구와 같은 커밋에서 다시 만든다.
+서버를 띄우거나 멈추는 MCP 도구는 없다. write 번들을 받지 않는 하네스(Codex)의 반영 경로는 CLI `plan-import` 다. 체크인 생성물(descriptor · JSON-RPC fixture · 하네스 MCP 예시)은 도구와 같은 커밋에서 다시 만든다.
 
 ## 9. 노출 경로 (R7)
 
@@ -205,7 +212,8 @@ hook 머리말(②)은 만들지 않는다 (requirements R8.2 — 소유자 결�
 | 리버스 프록시 (접두사) | `--public-url https://host/prefix/` · `--trusted-proxy <주소>` | 상대 경로만, `X-Forwarded-For` 는 신뢰 프록시에서만, `https` 면 `Secure` |
 | 직접 노출 | `--bind <주소>` + TLS 또는 `--allow-plain-http` | 둘 다 없으면 시작하지 않는다, 경고 |
 
-프록시 예시 — requirements §1.4 에서 잰 그대로 (프록시는 `Set-Cookie` · `Location` 을 고치지 않는다):
+프록시 예시 — requirements §1.4 에서 잰 구성이다 (프록시는 `Set-Cookie` · `Location` 을 고치지 않는다). Caddy 의 `redir` 줄은 측정 구성에 없던 것을
+따로 더해 302 → `/workbench/` → 200 을 확인했다:
 
 ```nginx
 location /workbench/ { proxy_pass http://127.0.0.1:8766/; }      # /workbench → /workbench/ 는 nginx 가 301
@@ -238,8 +246,11 @@ handle_path /workbench/* {
 |---|---|
 | `check_workbench_auth.py` | 시작 거절(토큰 없음 · 짧음 · 모드 넓음 · 이름 겹침 · 평문 노출) · 세션 없는 요청 401 · viewer POST 403 · 로그인 실패 제한 429 · 질의 토큰 400 · §5.4 네 단계마다 어긋난 요청 → 받은편지함 무변경 · 응답 머리 (§4.2) · 쿠키 속성 (`Lax` · `Path` · `HttpOnly` · `https` 의 `Secure`) |
 | `check_workbench_proxy.py` | 검사 안의 접두사를 벗기는 프록시 뒤에서 로그인 → 계획 → 제출 → 도착이 전부 접두사 안 (판정은 도착 경로), 쿠키 `Path` = 접두사. 되주입: 절대 `Location` · `Path=/` |
-| `check_workbench_write.py` | 왕복 — 서버가 쓴 응답이 `plan-import` 의 1~6 단계를 통과하고 상태에 든다 · 동시 제출 유실 0 · 413 · 422(선택지 밖 · 한도 · 제어 문자) · 409(지문 · 배치 · 오류 규칙) — 전부 받은편지함 무변경 · `answered` 결정의 조작된 값 무시 · 같은 응답자의 `received_at` 단조 증가 |
-| `check_workbench_views.py` | 선언 ≠ 파생 둘 다 · 잎 0 "미측정" · 절대 경로 · 호스트 이름이 어느 응답에도 없음 (`api/state` 포함) · 이스케이프 (task 파일의 `<script>` 가 글자로) · 읽기 전용 (`git status` 전후 동일) · 파서 단일성 · 정적 자원이 wheel 에 실림 |
+| `check_workbench_write.py` | 왕복 — 서버가 쓴 응답이 `plan-import` 의 1~6 단계를 통과하고 상태에 든다 · 동시 제출(스레드 · 프로세스)에서 유실 0 · 독자가 덜 쓰인 파일을 보지 않는다 (번호는 연속이 아니다 — ADR-032 V7) · 되주입: `publish` 를 배타 생성 없이 · 임시 이름 없이 이어 쓰기(만들기와 쓰기 사이의 정해진 멈춤으로 결정적으로) · 413 · 422(선택지 밖 · 한도 · 제어 문자) · 409(지문 · 배치 · 오류 규칙) — 전부 받은편지함 무변경 · `answered` 결정의 조작된 값 무시 · 같은 응답자의 `received_at` 단조 증가 |
+| `check_workbench_views.py` | 선언 ≠ 파생 둘 다 · 잎 0 "미측정" · 절대 경로 · 호스트 이름이 어느 응답에도 없음 (`api/state` 포함) · 이스케이프 (task 파일의 `<script>` 가 글자로) · 읽기 전용 (`git status` 전후 동일) · 정적 자원이 wheel 에 실림 |
+
+파서 단일성은 `check_plan_claims` case 6 의 소비자 목록에 `workbench/` 를 더해 그 한 곳에서 잰다 (ADR-032 결정 2).
+쓰는 쪽 × 옮기는 쪽 · 옮기는 쪽 둘의 경합(requirements R10-4 의 뒤 절반)은 `check_plan_import` case 9 가 이미 잰다 — 서버는 같은 `publish` 를 쓴다.
 
 실물 프록시(nginx · Caddy)와 실제 브라우저는 게이트에 넣지 않는다 — requirements §1.4 의 절차로 서버의 경로 · 쿠키 코드를 바꿀 때 다시 잰다.
 Windows(NTFS) 의 포트 bind · 토큰 파일 모드(POSIX 모드 없음) · 콘솔 인코딩은 구현 뒤 Windows 호스트에서 잰다.
@@ -248,7 +259,7 @@ Windows(NTFS) 의 포트 bind · 토큰 파일 모드(POSIX 모드 없음) · �
 
 | requirements | 이 문서 | 비고 |
 |---|---|---|
-| R0 | §1 | |
+| R0 | §1 | 쓰는 파일이 둘 (ADR-032 V6) |
 | R1.1 · R1.2 | §2 | |
 | R1.3 | §3 | `.workbench/` 는 자기 무시 (ADR-032 결정 21) |
 | R2.1 · R2.2 · R2.3 · R2.4 | §4 | |
@@ -261,6 +272,6 @@ Windows(NTFS) 의 포트 bind · 토큰 파일 모드(POSIX 모드 없음) · �
 | R7 | §9 | 프록시 예시는 requirements §1.4 의 실측 |
 | R8.1 · R8.2 | §8.2 | 우회 검출의 받은편지함 행 (V5) |
 | R9 | §8.3 | |
-| R10 | §11 | 실물 프록시 · 브라우저는 게이트 밖 |
+| R10 | §11 | 실물 프록시 · 브라우저는 게이트 밖, 번호 연속은 없다 (V7), 경합의 뒤 절반은 `check_plan_import` case 9 |
 | R11 | requirements §1.4 · §10 | design 전 둘: 프록시 · 브라우저 완료, Codex 주입은 재지 않는다 (소유자 결정) |
 | R12 | ADR-032 Status | |

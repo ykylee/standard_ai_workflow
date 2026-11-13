@@ -1,6 +1,6 @@
 ---
 id: TASK-2026-11-13-claude-remote-sync-check-234c32-004
-status: in_progress
+status: done
 created_at: 2026-11-13
 source_anchor: generic-task-2026-11-13-claude-remote-sync-check-234c32-004
 source_path: backlog/2026-11-13.md
@@ -12,7 +12,7 @@ wbs: M-028/WBS-28.2
 
 ## 📝 Description
 
-- Status: in_progress
+- Status: done
 - Priority: high
 - Request date: 2026-11-13
 - Owner:
@@ -62,11 +62,12 @@ wbs: M-028/WBS-28.2
 
 ## 🛠️ Implementation / Content
 
-- Progress: 2026-11-13 소유자 결정: 검증 범위에 배치 전제를 둔다 (스펙 §7-9, 완료 기준에 전제 한 줄). 6차는 5차 수리분 한정
+- Progress: 2026-11-13 verifier 6차: FAIL 0 (UNMEASURED 는 전량 게이트 절뿐 — 닫기 직전 작업 세션이 단독 실행). 스펙 §7-8 문구를 코드 순서대로 좁힘. 넘긴 것: N15 순서 case · N11/N14 traceback red · pending_responses 의미 둘 · 같은 디렉터리 배치의 plan-status 보고 · 원본 받은편지함 미반영 + 되돌려 적기 → M-027/ADR-032
 - Next session starting point:
 - Remaining risks:
 
 ## ✅ Outcome
 
-- Result:
+- Result: verifier 6회 — 6차 #1~#8 PASS (FAIL 0), 전량 게이트 --branch-context=all 은 닫은 뒤 커밋에서 실행. 되주입 누적 약 200건 중 전제(스펙 §7-9) 안에서 관측값을 바꾸는 것 전부 red. D1 소유자 답 carry
+- Verification: verifier 6회 — 6차 #1~#8 PASS (FAIL 0), 전량 게이트 --branch-context=all 은 닫은 뒤 커밋에서 실행. 되주입 누적 약 200건 중 전제(스펙 §7-9) 안에서 관측값을 바꾸는 것 전부 red. D1 소유자 답 carry
 - Follow-up:

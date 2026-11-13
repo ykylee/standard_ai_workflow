@@ -964,9 +964,9 @@
       "sdlc_phase": "implementation",
       "declared_status": "in_progress",
       "derived_status": "in_progress",
-      "progress": 0.5,
-      "total_leaves": 2,
-      "done_leaves": 1,
+      "progress": 0.6666666666666666,
+      "total_leaves": 3,
+      "done_leaves": 2,
       "deliverables_missing": [],
       "wbs": [
         {
@@ -983,9 +983,20 @@
         {
           "id": "WBS-28.2",
           "title": "2 단계 — 응답 형식 · 받은편지함(자기 무시 · 잠금) · `plan-import` · 이어받기 · 정본 §11.1 · 스킬 `plan-import` · verifier 한 줄 ·",
-          "derived_status": "in_progress",
+          "derived_status": "done",
           "linked_task_ids": [
             "TASK-2026-11-13-claude-remote-sync-check-234c32-004"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        },
+        {
+          "id": "WBS-28.3",
+          "title": "Windows(NTFS) 실측 — `os.link` 공개 · 배타 이동 · 잠금 (`check_plan_import` 를 Windows 호스트에서), 결과를 ADR-031 Implementation Notes 에",
+          "derived_status": "planned",
+          "linked_task_ids": [
+            "TASK-2026-11-13-claude-remote-sync-check-234c32-005"
           ],
           "total_leaves": 1,
           "done_leaves": 0,

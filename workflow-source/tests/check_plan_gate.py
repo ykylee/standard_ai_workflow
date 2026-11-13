@@ -843,6 +843,14 @@ def case_19_inbox_gate_and_reports() -> None:
             problems.append(f"결정이 없는 task 가 받은편지함 때문에 막혔다: rc={rc} {out.get('error_code')}")
         if not _warned(out, "계획 응답 2건 미반영"):
             problems.append(f"브랜치의 미반영 건수를 알리지 않았다: {out.get('warnings')}")
+        # 결정이 있어도 **그 task 의** 받은편지함만 본다 — 다른 task 의 미반영 응답은 막지 않는다.
+        other = _create(ws, "--plan-claim", "C1 열린 결정이 남으면 닫히지 않는다",
+                        "--plan-claim", "C2 옛 task 는 그대로 읽힌다", "--plan-decision", DECISION_ARG, name="다른 task")
+        _run(ws, "--mode", "update", "--task-id", other, "--task-name", "다른 task", "--decision-state", "D1=answered:warn")
+        rc, out = _run(ws, "--mode", "update", "--task-id", other, "--task-name", "다른 task",
+                       "--status", "done", "--validation-result", "v")
+        if rc != 0 or _status(ws, other) != "done":
+            problems.append(f"다른 task 의 받은편지함 때문에 막혔다: rc={rc} {out.get('error_code')}")
     _record("case 19 (받은편지함 — done 거부 · 사유의 순서 · 미반영 보고 · 옛 계획 경고)", problems)
 
 

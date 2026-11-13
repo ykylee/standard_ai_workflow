@@ -60,7 +60,7 @@ wbs: M-028/WBS-28.2
 
 ## 🛠️ Implementation / Content
 
-- Progress: `2026-11-13 08:29` 기준 ADR-031 결정 26 의 2단계를 구현한다 (계약은 workflow-source/core/claim_plan_spec.md §6 · §7 · §8.1~§8.3 · §8.6 · §9 · §10 의 받은편지함 · §11). 응답 파일을 읽어 자격을 판정하고, plan-import 로 받은편지함의 응답을 보관으로 옮겨 결정 상태를 다시 계산하고, 미반영 응답이 있으면 done 을 거부하고, 이어받기가 보관 응답을 옮긴다. MCP 도구 · 워크벤치는 범위 밖 (ADR-032).
+- Progress: 2026-11-13 구현 · 검사 완료 (c4c14c6b · 668051b3 + 검사 보강). check_plan_import 12 · check_plan_gate 20. 내 되주입 95건: 1차 green 10 → 검사 보강 뒤 동치 1(BOM) 만 남음. 경합 검사가 반쯤 쓴 task 파일 읽기를 드러내 원자적 쓰기로 수리. verifier 대기
 - Next session starting point:
 - Remaining risks:
 

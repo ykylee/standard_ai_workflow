@@ -355,26 +355,25 @@ def parse_plan(lines: Sequence[str]) -> Plan:
         stripped = line.strip()
         current: str | None = None
         claim_value = _match_label(stripped, claim_prefixes)
+        decision_value = _match_label(stripped, decision_prefixes) if claim_value is None else None
+        if claim_value == "" or decision_value == "":
+            # 값 없는 라벨 줄(placeholder)은 묶음이 아니다 — 세지도, 묶음을 끊지도 않는다.
+            continue
         if claim_value is not None:
             current = CLAIMS_KEY
-            if claim_value:
-                claims.append(parse_claim_value(claim_value))
-                ordered.append((CLAIMS_KEY, claim_value))
-        else:
-            decision_value = _match_label(stripped, decision_prefixes)
-            if decision_value is not None:
-                current = DECISIONS_KEY
-                if decision_value:
-                    decisions.append(parse_decision_value(decision_value))
-                    ordered.append((DECISIONS_KEY, decision_value))
+            claims.append(parse_claim_value(claim_value))
+            ordered.append((CLAIMS_KEY, claim_value))
+        elif decision_value is not None:
+            current = DECISIONS_KEY
+            decisions.append(parse_decision_value(decision_value))
+            ordered.append((DECISIONS_KEY, decision_value))
         if current is not None and current != previous:
             runs[current] += 1
         previous = current
-    # 값이 하나도 없는 라벨(빈 `- Claims:` 줄뿐)은 묶음으로 세지 않는다.
     return Plan(
         claims=tuple(claims), decisions=tuple(decisions),
-        claim_runs=runs[CLAIMS_KEY] if claims else 0,
-        decision_runs=runs[DECISIONS_KEY] if decisions else 0,
+        claim_runs=runs[CLAIMS_KEY],
+        decision_runs=runs[DECISIONS_KEY],
         ordered_values=tuple(ordered),
     )
 
@@ -404,9 +403,10 @@ def render_decision_value(decision: Decision, *, state: str | None = None) -> st
 def _digest_value(key: str, value: str) -> str:
     if key == CLAIMS_KEY:
         return value.rstrip()
-    head, columns, problems = _split_columns(value)
-    if problems:
+    # 읽을 수 없는 결정 줄(L6)은 원문 그대로다 (스펙 §5-2) — 반쯤 읽은 줄을 다시 쓰지 않는다.
+    if parse_decision_value(value).problems:
         return value.rstrip()
+    head, columns, _ = _split_columns(value)
     parts = [head]
     for name in ("default", "options"):
         if name in columns:

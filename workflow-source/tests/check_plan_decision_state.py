@@ -56,6 +56,21 @@ def _record(name: str, problems: list[str]) -> None:
         print(f"  PASS  {name}")
 
 
+def stance_rows() -> list[str]:
+    """입장 표(스펙 §8.2)의 세 행 — 계산을 거치지 않고 직접 본다."""
+    problems: list[str] = []
+    table = {
+        ("x", "d", True): "x", ("x", "d", False): "x",       # 다른 값은 열림과 무관하게 입장이다
+        ("d", "d", True): "d",                               # 열어 보고 기본값
+        ("d", "d", False): None,                             # 열리지 않은 기본값은 입장이 아니다
+    }
+    for (value, default, opened), want in table.items():
+        got = pc.ResponseDecision(decision_id="D1", value=value, default=default, opened=opened).stance
+        if got != want:
+            problems.append(f"입장({value}, default={default}, opened={opened}) = {got!r}, 기대 {want!r}")
+    return problems
+
+
 def response(responder: str, second: int, **stances: str | None) -> pc.Response:
     """응답 한 건. ``D1="x"`` 는 그 값을 고름, ``D1="d"`` 는 열어 보고 기본값, ``D1=None`` 은 안 열림."""
     lines = []
@@ -416,6 +431,17 @@ def case_4_expected_outcomes() -> None:
 
 def case_5_all_state_kinds_seen() -> None:
     kinds = _real()[3]
+    rows = stance_rows()
+    # JS 가 꺼진 브라우저 — 열림 기록 없이 다른 값을 고른 응답도 그 값이 입장이다 (requirements Q6).
+    unopened_choice = pc.Response(
+        responder="alice", received_at="2026-11-13T10:00:01+09:00",
+        decisions=(pc.ResponseDecision("D1", "x", "d", False), pc.ResponseDecision("D2", "d", "d", False)))
+    states = pc.compute_states(plan_with({"D1": None, "D2": None}, {}), [unopened_choice]).states
+    if states != {"D1": "changed:x", "D2": "unopened"}:
+        rows.append(f"열림 기록 없는 다른 값: {states}")
+    if rows:
+        _record("case 5 (입장 세 행 · 상태 여섯 종)", rows)
+        return
     wanted = {pc.STATE_PROPOSED, pc.STATE_UNOPENED, pc.STATE_DISPUTED, pc.STATE_KEPT, pc.STATE_CHANGED, pc.STATE_ANSWERED}
     _record("case 5 (상태 여섯 종이 전부 나온다)",
             [] if wanted <= kinds else [f"안 나온 상태: {sorted(wanted - kinds)}"])

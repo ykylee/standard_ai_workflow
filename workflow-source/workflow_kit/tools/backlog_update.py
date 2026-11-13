@@ -254,6 +254,14 @@ def plan_section_lines(plan: dict[str, list[str]] | None = None) -> list[str]:
     return lines
 
 
+def _existing_task_lines(path: Path) -> list[str] | None:
+    """그 경로에 task 파일이 있으면 줄들을, 없거나 읽을 수 없으면 ``None`` 을 돌려준다."""
+    try:
+        return path.read_text(encoding="utf-8").splitlines() if path.is_file() else None
+    except (OSError, UnicodeDecodeError):
+        return None
+
+
 @dataclass
 class PlanVerdict:
     """주장 · 결정 계약(`core/claim_plan_spec.md` §3 · §4 · §8.6)을 적용한 결과."""
@@ -422,15 +430,15 @@ def enforce_plan_contract(
         verdict.lines = lines
         return verdict
 
-    # 사유 없이 열린 결정을 걷는 교체는 거부한다.
-    # 공백뿐인 사유는 사유가 아니다.
-    if decisions_key in replace_fields and previous_lines is not None and not (removal_note or "").strip():
+    # 사유 없이 열린 결정을 없애는 쓰기는 거부한다 — 교체든, 같은 ID 로 task 를 다시 만드는 것이든.
+    # 사유는 읽을 수 있는 글이어야 한다: 공백 · 폭 없는 문자뿐인 값은 사유가 아니다.
+    if previous_lines is not None and not any(ch.isalnum() for ch in (removal_note or "")):
         previously_open = plan_claims.open_decision_ids(previous_plan)
         removed = [d for d in previously_open if plan.decision(d) is None]
         if removed:
             verdict.error_code = "decision_removal_needs_note"
             verdict.error = (
-                f"열린 결정 {len(removed)}건({', '.join(removed)})을 걷는 교체는 같은 호출에 "
+                f"열린 결정 {len(removed)}건({', '.join(removed)})을 걷는 쓰기는 같은 호출에 "
                 "--progress-note 로 사유를 적어야 한다")
             return verdict
 
@@ -1206,7 +1214,9 @@ def main() -> int:
         # 거부는 파일을 하나도 건드리지 않는다 (WBS 게이트와 같은 방식).
         plan_verdict = enforce_plan_contract(
             draft_entry,
-            previous_lines=existing_lines if update_merge else None,
+            # update 가 아니어도 그 ID 의 task 파일이 이미 있으면 그것이 "이전" 이다 — 같은 ID 로 다시
+            # 만드는 create 가 열린 결정을 통째로 덮어쓰고 닫는 길이 되면 안 된다.
+            previous_lines=existing_lines if update_merge else _existing_task_lines(task_ssot_path),
             plan_claim_args=_as_list(args.plan_claims),
             plan_decision_args=_as_list(args.plan_decisions),
             decision_state_args=_as_list(args.decision_states),

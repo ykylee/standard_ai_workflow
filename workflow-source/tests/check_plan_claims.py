@@ -107,6 +107,15 @@ def case_1_parser() -> None:
     split = pc.parse_plan([f"- {CLAIMS}: C1 하나", "- Files that change: a.py", f"- {CLAIMS}: C2 둘"])
     if split.claim_runs != 2 or len(split.claims) != 2:
         problems.append(f"나뉜 묶음을 전부 읽고 세어야 한다: runs={split.claim_runs} n={len(split.claims)}")
+    indented = pc.parse_plan([f"    - {CLAIMS}: C1 들여쓴 줄", f"\t- {DECISIONS}: {GOOD_DECISION}"])
+    if len(indented.claims) != 1 or len(indented.decisions) != 1:
+        problems.append("들여쓴 주장 · 결정 줄을 못 읽었다 — 들여쓴 열린 결정이 게이트에 안 보인다")
+    placeholder = pc.parse_plan([f"- {CLAIMS}:", f"- {CLAIMS}: C1 하나", "- Proof: p", f"- {CLAIMS}:"])
+    if placeholder.claim_runs != 1 or len(placeholder.claims) != 1:
+        problems.append(f"값 없는 라벨 줄을 묶음으로 셌다: runs={placeholder.claim_runs}")
+    between = pc.parse_plan([f"- {CLAIMS}: C1 하나", f"- {CLAIMS}:", f"- {CLAIMS}: C2 둘"])
+    if between.claim_runs != 1:
+        problems.append(f"값 없는 라벨 줄이 묶음을 끊었다: runs={between.claim_runs}")
     alias = pc.parse_plan(["- 주장: C1 한국어 라벨", "- 결정: " + GOOD_DECISION])
     if len(alias.claims) != 1 or len(alias.decisions) != 1:
         problems.append("한국어 라벨 별칭을 못 읽었다")
@@ -202,6 +211,11 @@ def case_3_severity() -> None:
         problems.append(f"오류로 난 규칙: {sorted(errors)}")
     if not {"L3", "L4", "L7", "L8", "L10"} <= warnings or warnings & pc.ERROR_RULES:
         problems.append(f"경고로 난 규칙: {sorted(warnings)}")
+    if {i.rule for i in pc.lint_errors(everything)} != {"L2", "L6", "L9"}:
+        problems.append(f"lint_errors 가 오류 규칙 셋을 다 돌려주지 않는다: {sorted({i.rule for i in pc.lint_errors(everything)})}")
+    split_only = pc.parse_plan([f"- {CLAIMS}: C1 하나", "- Proof: p", f"- {CLAIMS}: C2 둘"])
+    if not pc.has_error_rules(split_only):
+        problems.append("나뉜 묶음(L9)을 오류 규칙 위반으로 보지 않는다 — 쓰기를 막지 못한다")
     if not pc.has_error_rules(_plan(["C1 하나", "C1 겹침"], [])) or pc.has_error_rules(_plan()):
         problems.append("has_error_rules 가 오류 규칙과 어긋난다")
     _record("case 3 (강도 — L2 · L6 · L9 만 오류)", problems)
@@ -338,6 +352,9 @@ def case_8_write_notation() -> None:
     untouched, none = pc.rewrite_decision_states([f"- {DECISIONS}: D1 깨진 줄"], {"D1": "kept"})
     if none or untouched != [f"- {DECISIONS}: D1 깨진 줄"]:
         problems.append("읽을 수 없는 줄을 고쳐 썼다")
+    same, dropped = pc.normalize_new_decision(GOOD_DECISION)
+    if dropped or same != GOOD_DECISION:
+        problems.append(f"`state: proposed` 는 버릴 것이 없다 — 경고할 일이 아니다: dropped={dropped}")
     if pc.decision_identity(GOOD_DECISION) != pc.decision_identity(GOOD_DECISION.replace("proposed", "kept")):
         problems.append("상태만 다른 결정을 다른 결정으로 본다")
     _record("case 8 (쓰기 표기 — 새 결정은 proposed, 고쳐 쓰기는 정본 표기)", problems)
@@ -481,10 +498,60 @@ def case_11_contract_application() -> None:
     entering = _contract(open_plan, open_plan, requested_status="in_progress", current_status="planned")
     if not any(w.startswith("열린 결정 1건 (D1 proposed)") for w in entering.warnings):
         problems.append(f"→ in_progress 에 열린 결정 경고가 없다: {entering.warnings}")
-    _record("case 11 (계약 적용 — answered 유지 · 경고의 조건 · 오류 상태의 칸 · 겹친 사유)", problems)
+    # 열린 결정을 없애는 쓰기는 사유가 있어야 한다 — 어떤 길로 없애든.
+    no_plan = [l for l in open_plan if not l.startswith((f"- {CLAIMS}:", f"- {DECISIONS}:"))]
+    for label, note, expect_refused in (
+            ("사유 없음", None, True), ("공백", "   ", True), ("폭 없는 문자", "\u200b\ufeff\u2060", True),
+            ("전각 공백", "\u3000", True), ("읽을 수 있는 사유", "소유자와 대화로 확인", False)):
+        verdict = _contract(no_plan, open_plan, replace_fields={pc.CLAIMS_KEY, pc.DECISIONS_KEY},
+                            removal_note=note, requested_status="done", status="done")
+        if (verdict.error_code == "decision_removal_needs_note") != expect_refused:
+            problems.append(f"주장 · 결정을 함께 걷기 ({label}): {verdict.error_code}")
+    # 같은 ID 로 task 를 다시 만드는 쓰기(교체 표시 없음)도 마찬가지다.
+    recreated = _contract(no_plan, open_plan, requested_status="done", status="done")
+    if recreated.error_code != "decision_removal_needs_note":
+        problems.append(f"교체 표시 없이 열린 결정이 사라졌는데 통과했다: {recreated.error_code}")
+    hand_kept = [l.replace("state: proposed", "state: kept") for l in open_plan]
+    verdict = _contract(no_plan, hand_kept, replace_fields={pc.DECISIONS_KEY, pc.CLAIMS_KEY})
+    if verdict.error_code != "decision_removal_needs_note":
+        problems.append(f"손으로 kept 로 적은 열린 결정을 사유 없이 걷었다: {verdict.error_code}")
+    # 이미 done 인 task 에 done 을 다시 줘도 게이트는 돈다.
+    redone = _contract(open_plan, open_plan, requested_status="done", status="done", current_status="done")
+    if redone.error_code != "open_decisions":
+        problems.append(f"이미 done 인 task 의 done 재요청이 통과했다: {redone.error_code}")
+    # 주장 · 결정을 건드리는 인자는 무엇이든 린트 오류에서 쓰기를 막는다.
+    for label, overrides in (
+            ("깨진 --plan-decision", dict(plan_decision_args=["x"])),
+            ("오류 상태 파일의 --decision-state", dict(decision_state_args=["D1=answered:warn"])),
+            ("주장 교체", dict(replace_fields={pc.CLAIMS_KEY}))):
+        verdict = _contract(both, both, **overrides)
+        if verdict.error_code != "plan_lint_error":
+            problems.append(f"{label}: 오류 규칙을 어긴 채 통과했다 ({verdict.error_code})")
+        elif not verdict.warnings:
+            problems.append(f"{label}: 거부 사유의 목록이 비었다")
+    unknown = _contract(LEGACY_LINES, LEGACY_LINES, decision_state_args=["D1=answered:a"])
+    if unknown.error_code != "decision_state_rejected":
+        problems.append(f"결정이 없는 task 의 --decision-state 가 통과했다: {unknown.error_code}")
+    three_files = [*WITH_DECISION[:-1], "- Files that change: b.py", "- Files that change: c.py", ""]
+    with_claims = _contract(three_files, None, requested_status="in_progress", status="in_progress", current_status=None)
+    if any("Claims 가 없다" in w for w in with_claims.warnings):
+        problems.append(f"주장이 있는데 Claims 권고를 냈다: {with_claims.warnings}")
+    without_claims = [l for l in three_files if not l.startswith((f"- {CLAIMS}:", f"- {DECISIONS}:"))]
+    advised = _contract(without_claims, None, requested_status="in_progress", status="in_progress", current_status=None)
+    if not any("Claims 가 없다 — 바뀌는 파일 3개 (R2.3)" in w for w in advised.warnings):
+        problems.append(f"파일 셋인데 Claims 권고가 없다: {advised.warnings}")
+    unreadable_line = [l.replace("options: block = 거부한다; warn = 경고만 낸다", "options: block 거부한다; warn = 경고") for l in open_plan]
+    verdict = _contract(unreadable_line, unreadable_line, decision_state_args=["D1=answered:warn"])
+    if verdict.error_code != "decision_state_rejected":
+        problems.append(f"읽을 수 없는 결정에 답을 적으려는 호출의 오류 코드: {verdict.error_code}")
+    dropped = _contract(open_plan, open_plan, replace_fields={pc.DECISIONS_KEY}, removal_note="불필요")
+    if not any("기존 값 1건을 걷었다" in w for w in dropped.warnings):
+        problems.append(f"걷은 것을 알리지 않았다: {dropped.warnings}")
+    _record("case 11 (계약 적용 — answered 유지 · 경고의 조건 · 오류 상태의 칸 · 겹친 사유 · 사유 없는 제거)", problems)
 
 
 D = "D1 [C1] 질문 | default: a | options: a = 가; b = 나"
+LOC = "workflow-source/workflow_kit/tools/backlog_update.py"
 CITE1 = ["[C1] 기준"]
 
 #: (설명, 주장 줄, 결정 줄, 완료 기준, 기대 — 정확히 이 (규칙, 강도, 대상) 들).
@@ -533,6 +600,37 @@ LINT_TABLE: list[tuple[str, list[str], list[str], list[str], list[tuple[str, str
     ("값 33자", ["C1 하나"], [f"D1 [C1] 질문 | default: a | options: a = 가; {'b' * 33} = 나"], CITE1, [("L6", "error", "D1")]),
     ("가리키는 주장이 없다", ["C1 하나"], ["D1 [C9] 질문 | default: a | options: a = 가; b = 나"], CITE1, [("L6", "error", "D1")]),
     ("상태의 값이 선택지 밖", ["C1 하나"], [D + " | state: changed:z"], CITE1, [("L6", "error", "D1")]),
+    # 문법 (스펙 §2.2 · §2.3 · §2.4).
+    ("값에 밑줄 · 하이픈 · 숫자", ["C1 하나"], ["D1 [C1] 질문 | default: a_1 | options: a_1 = 가; b-2 = 나; 3 = 다"], CITE1, []),
+    ("빈 default 값", ["C1 하나"], ["D1 [C1] 질문 | default:  | options: a = 가; b = 나"], CITE1, [("L6", "error", "D1")]),
+    ("질문이 없다", ["C1 하나"], ["D1 [C1] | default: a | options: a = 가; b = 나"], CITE1, [("L6", "error", "D1")]),
+    ("주장을 대괄호 없이", ["C1 하나"], ["D1 C1 질문 | default: a | options: a = 가; b = 나"], CITE1, [("L6", "error", "D1")]),
+    ("ID 뒤에 공백이 없다", ["C1하나"], [], [], [("L2", "error", "C1하나")]),
+    ("`·` 없는 위치", ["C1 a", "C1.1 b", "C1.1.1 @ a.py:1 f()"], [], CITE1, [("L5", "warning", "C1.1.1")]),
+    ("`@ new:` 뒤에 공백이 없다", ["C1 a", "C1.1 b", "C1.1.1 @ new:a.py · f()"], [], CITE1, [("L5", "warning", "C1.1.1")]),
+    ("unopened 는 읽힌다", ["C1 하나"], [D + " | state: unopened"], CITE1, []),
+    ("disputed 는 읽힌다", ["C1 하나"], [D + " | state: disputed"], CITE1, []),
+    ("changed:<값> 은 읽힌다", ["C1 하나"], [D + " | state: changed:b"], CITE1, []),
+    ("kept 에는 값이 없다", ["C1 하나"], [D + " | state: kept:a"], CITE1, [("L6", "error", "D1")]),
+    ("공백 없는 `;`", ["C1 하나를 한다;둘을 한다"], [], CITE1, [("L3", "warning", "C1")]),
+    ("80 code point (UTF-16 으로는 160)", ["C1 " + "\U0001F600" * 80], [], CITE1, []),
+    ("한 줄 위치 — 마지막 줄", ["C1 a", "C1.1 b", f"C1.1.1 @ {LOC}:100 · f()"], [], CITE1, []),
+    ("한 줄 위치 — 한 줄 넘음", ["C1 a", "C1.1 b", f"C1.1.1 @ {LOC}:101 · f()"], [], CITE1, [("L5", "warning", "C1.1.1")]),
+    ("결정이 없는 후손을 가리킨다", ["C1 하나"], ["D1 [C1.1] 질문 | default: a | options: a = 가; b = 나"], CITE1, [("L6", "error", "D1")]),
+    ("닫는 대괄호 없는 인용", ["C1 하나"], [], ["[C1 기준"], [("L7", "warning", "C1")]),
+    ("결정 ID 는 인용이 아니다", ["C1 하나"], [], ["[D1] 기준"], [("L7", "warning", "C1")]),
+    ("줄 머리가 아닌 인용", ["C1 하나"], [], ["기준 [C1]"], [("L7", "warning", "C1")]),
+    ("한 자리 퍼센트", ["C1 구현을 5% 했다"], [], CITE1, [("L8", "warning", "C1")]),
+    ("3단계의 상태 표현", ["C1 a", "C1.1 b", "C1.1.1 @ new: a.py · f() 완료"], [], CITE1, [("L8", "warning", "C1.1.1")]),
+    ("주장이 없으면 인용도 보지 않는다", [], [], ["[C9] 없는 주장"], []),
+    ("빈 선택지 값", ["C1 하나"], ["D1 [C1] 질문 | default: a | options: a = 가; = 나"], CITE1, [("L6", "error", "D1")]),
+    ("둘째 단계의 0", ["C1 a", "C1.0 b"], [], CITE1, [("L2", "error", "C1.0")]),
+    ("셋째 단계의 0", ["C1 a", "C1.1 b", "C1.1.0 @ new: a.py · f()"], [], CITE1, [("L2", "error", "C1.1.0")]),
+    ("부모가 다 있어도 4단계는 안 된다", ["C1 a", "C1.1 b", "C1.1.1 @ new: a.py · f()", "C1.1.1.1 깊다"], [], CITE1, [("L2", "error", "C1.1.1.1")]),
+    ("결정 번호 0", ["C1 하나"], ["D0 [C1] 질문 | default: a | options: a = 가; b = 나"], CITE1, [("L6", "error", "D0")]),
+    ("선택지가 하나", ["C1 하나"], ["D1 [C1] 질문 | default: a | options: a = 가"], CITE1, [("L6", "error", "D1")]),
+    ("기본값이 선택지 밖", ["C1 하나"], ["D1 [C1] 질문 | default: z | options: a = 가; b = 나"], CITE1, [("L6", "error", "D1")]),
+    ("2단계의 위치도 줄 범위를 본다", ["C1 a", f"C1.1 @ {LOC}:101 · f()"], [], CITE1, [("L5", "warning", "C1.1")]),
     # L7 · L10 — 인용.
     ("없는 후손을 인용", ["C1 하나"], [], ["[C1.9] 없는 주장"], [("L10", "warning", ""), ("L7", "warning", "C1")]),
     ("후손 인용은 조상을 잰다", ["C1 a", "C1.1 b"], [], ["[C1.1] 후손"], []),
@@ -556,6 +654,10 @@ def case_12_lint_table() -> None:
     got = sorted((i.rule, i.severity) for i in pc.lint_plan(split_decisions, criteria=CITE1, file_line_count=_lines_of))
     if got != [("L9", "error")]:
         problems.append(f"나뉜 Decisions 묶음: {got}")
+    # 위치가 없으면 git 밖이어도 남길 말이 없다.
+    nothing = pc.lint_plan(pc.parse_plan_values(["C1 하나를 한다"], []), criteria=CITE1, file_line_count=None)
+    if nothing:
+        problems.append(f"위치가 없는데 git 밖 보고를 냈다: {[i.render() for i in nothing]}")
     # git 밖에서는 L5 를 건너뛰고 그 사실을 남긴다 — 통과로 세지 않는다.
     located = pc.parse_plan_values(["C1 a", "C1.1 b", "C1.1.1 @ a.py:1 · f()"], [])
     got = [(i.rule, i.severity) for i in pc.lint_plan(located, criteria=CITE1, file_line_count=None)]
@@ -581,6 +683,17 @@ def case_13_digest_body() -> None:
     expected = "sha256:" + hashlib.sha256(body.encode("utf-8")).hexdigest()
     if pc.plan_digest(plan) != expected:
         problems.append("지문이 스펙 §5 의 본문(정본 라벨 · 정본 칸 이름 · default → options 순서 · 상태 칸 없음 · 줄 끝 공백 없음)의 sha256 과 다르다")
+    # 파일 순서 그대로다 — 정렬하지 않는다.
+    reordered = pc.parse_plan(["- Claims: C2 둘을 한다", "- Claims: C1 하나를 한다"])
+    body = "- Claims: C2 둘을 한다\n- Claims: C1 하나를 한다"
+    if pc.plan_digest(reordered) != "sha256:" + hashlib.sha256(body.encode("utf-8")).hexdigest():
+        problems.append("지문이 파일 순서를 지키지 않는다")
+    # 읽을 수 없는 결정 줄은 원문 그대로다 — 반쯤 읽은 줄을 정본 표기로 다시 쓰지 않는다.
+    raw = "D1 [C1] 막는가? | 기본: block | 선택: block 거부한다; warn = 경고 | 상태: kept"
+    broken = pc.parse_plan(["- Claims: C1 하나를 한다", f"- Decisions: {raw}"])
+    body = f"- Claims: C1 하나를 한다\n- Decisions: {raw}"
+    if pc.plan_digest(broken) != "sha256:" + hashlib.sha256(body.encode("utf-8")).hexdigest():
+        problems.append("읽을 수 없는 결정 줄의 지문이 원문이 아니다")
     _record("case 13 (지문의 본문 — 스펙 §5 문면대로)", problems)
 
 

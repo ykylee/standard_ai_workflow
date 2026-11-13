@@ -62,7 +62,7 @@ wbs: M-028/WBS-28.1
 
 ## 🛠️ Implementation / Content
 
-- Progress: 2026-11-13 verifier 2차: [C2] FAIL(판정 분기 단위 되주입에서 린트 32건 green) · [C3] FAIL(공백뿐인 --progress-note 로 열린 결정 제거) → 공백 사유 거부 + 린트 표(41 입력 전부 대조) · 지문 본문 · 열린 상태 · 경고 조건 · plan-status/open_decisions 범위 case. 검사 14 + 6 + 18, 되주입 106건 전부 red. 3차 검증 대기
+- Progress: 2026-11-13 verifier 3차: [C2] FAIL(261건 중 스펙 판정을 바꾸는 26건 green) · [C3] FAIL(create 덮어쓰기 · 폭 없는 문자 사유) → 열린 결정을 없애는 쓰기는 경로 무관 사유 필수 · 지문 원문 · 빈 라벨 줄 + 린트 표 73행 · 사유 없는 제거 경로들. verifier 하네스 432건 재실행: 스펙 판정을 바꾸는 것 전부 red. 4차 검증 대기
 - Next session starting point:
 - Remaining risks:
 

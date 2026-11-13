@@ -31,7 +31,7 @@
 
 - `## 🧭 Plan` 절의 맨 앞: `Claims` 묶음 → `Decisions` 묶음 → `Files that change` → `Order of work` → `Plan risks` → `Proof`.
   순서의 정본은 `project_docs.PLAN_FIELD_KEYS` 다.
-- 묶음은 연속한 같은 라벨 줄이다. 한 라벨의 묶음이 둘 이상으로 나뉜 파일은 L9 오류다.
+- 묶음은 연속한 같은 라벨 줄이다. 한 라벨의 묶음이 둘 이상으로 나뉜 파일은 L9 오류다. 값 없는 라벨 줄은 묶음이 아니다 — 세지도, 끊지도 않는다.
 - Plan 절이 있고 그 라벨 줄이 없는 파일에 값을 쓰면 도구가 제자리에 줄을 넣는다. 값이 없으면 넣지 않는다.
 - `Out of scope` 는 지금 자리(Description 절)에 그대로 둔다.
 
@@ -74,9 +74,9 @@
 | 인자 | 뜻 |
 |---|---|
 | `--plan-claim <줄>` (반복) | 주장 한 줄 (`C1 …`) |
-| `--plan-decision <줄>` (반복) | 결정 한 줄. 줄에 `state:` 가 있으면 경고하고 버린다 — 새 결정은 `proposed` 다 |
+| `--plan-decision <줄>` (반복) | 결정 한 줄. 줄에 `proposed` 가 아닌 `state:` 가 있으면 경고하고 버린다 — 새 결정은 `proposed` 다 |
 | `--decision-state D<n>=<state>` (반복) | `answered:<value>` 또는 `proposed` 만. 다른 상태 · 모르는 결정 ID · 선택지 밖의 값은 거부 (`decision_state_rejected`) |
-| `--replace-field plan_claims\|plan_decisions` | 묶음을 교체한다. **열린 결정을 없애는** 교체는 같은 호출에 `--progress-note` 가 있어야 한다 (없으면 거부 — `decision_removal_needs_note`) |
+| `--replace-field plan_claims\|plan_decisions` | 묶음을 교체한다. **열린 결정을 없애는** 쓰기(교체든, 같은 ID 로 task 를 다시 만드는 create 든)는 같은 호출에 `--progress-note` 가 있어야 한다 — 읽을 수 있는 글이어야 하고 공백 · 폭 없는 문자뿐이면 사유가 아니다 (없으면 거부 — `decision_removal_needs_note`) |
 
 ## 3. 린트 (R2)
 
@@ -86,7 +86,7 @@
 | L2 | 주장 ID 가 유일하고, 형제 사이에서 1 부터 연속이고, 부모가 있다 | 오류 |
 | L3 | 1 · 2단계 주장에 `;` 가 없고 80자 이내다 | 경고 |
 | L4 | 1단계 주장이 경로 · 파일명으로 시작한다 | 경고 |
-| L5 | 3단계 `@ path:line` 의 파일이 HEAD 에 있고 줄이 파일 길이 안이다 (`@ new:` 면제, git 밖이면 건너뛰고 보고) | 경고 |
+| L5 | `@ path:line` 위치의 파일이 HEAD 에 있고 줄이 파일 길이 안이다 (`@ new:` 면제, git 밖이면 건너뛰고 보고); 3단계 주장은 위치여야 한다 | 경고 |
 | L6 | 결정 ≤ 5, 결정 ID 유일, 가리키는 주장이 있다, 선택지 ≥ 2, `default` 와 상태의 값이 선택지 안, 값 문법 · 칸 형식이 맞다 | 오류 |
 | L7 | 자신 또는 후손을 인용한 완료 기준이 없는 1단계 주장 | 경고 |
 | L8 | 주장에 진척률(`\d+\s*%`)이 있거나 `완료` · `done` · `✅` 로 끝난다 | 경고 |

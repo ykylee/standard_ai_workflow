@@ -167,6 +167,16 @@ def case_1_lint_error_blocks_write_warning_does_not() -> None:
             problems.append(f"L3 경고가 쓰기를 막았거나 warnings 에 없다: rc={rc} {out.get('warnings')}")
         if f"- {CLAIMS}: C3 " not in _text(ws, task_id):
             problems.append("경고 규칙인데 쓰지 않았다")
+        # L9 — 묶음이 나뉜 파일에 주장을 쓰려 하면 거부된다.
+        path = _tasks(ws) / f"{task_id}.md"
+        split = _text(ws, task_id).replace("- Files that change:", f"- Files that change:\n- {CLAIMS}: C4 떨어진 주장", 1)
+        path.write_text(split, encoding="utf-8")
+        before = _snapshot(ws)
+        rc, out = _update(ws, task_id, "--plan-claim", "C5 하나 더")
+        if rc != 1 or out.get("error_code") != "plan_lint_error" or "L9" not in out.get("error", ""):
+            problems.append(f"나뉜 묶음(L9)이 쓰기를 막지 않았다: rc={rc} {out.get('error_code')} {out.get('error')}")
+        if _snapshot(ws) != before:
+            problems.append("거부인데 파일이 바뀌었다")
     _record("case 1 (오류 규칙은 쓰지 않고, 경고 규칙은 쓴다)", problems)
 
 
@@ -534,7 +544,19 @@ def case_15_brief_is_not_a_removal_note() -> None:
         rc, out = _update(ws, task_id, "--plan-claim", "C1.1 둘을 한다", "--plan-claim", "C1.1.1 @ a.py:1 · f()")
         if rc != 0 or not _warned(out, "git 밖이라 위치 1건을 확인하지 못했다"):
             problems.append(f"git 밖의 L5 건너뜀을 알리지 않았다: rc={rc} {out.get('warnings')}")
-    _record("case 15 (사유는 명시한 --progress-note 만 · git 밖의 L5 보고)", problems)
+        # 같은 ID 로 task 를 다시 만드는 create 가 열린 결정을 덮어쓰고 닫지 못한다.
+        before = _snapshot(ws)
+        rc, out = _run(ws, "--mode", "create", "--task-id", task_id, "--status", "done", "--validation-result", "v",
+                       "--task-name", "덮어쓰기", "--task-brief", "b")
+        if rc != 1 or out.get("error_code") != "decision_removal_needs_note":
+            problems.append(f"create 로 열린 결정이 있는 task 를 덮어쓰고 닫았다: rc={rc} {out.get('error_code')}")
+        if _snapshot(ws) != before:
+            problems.append("거부인데 파일이 바뀌었다")
+        rc, out = _update(ws, task_id, "--replace-field", "plan_decisions", "--progress-note", "\u200b\ufeff",
+                          "--status", "done", "--validation-result", "v")
+        if rc != 1 or out.get("error_code") != "decision_removal_needs_note":
+            problems.append(f"폭 없는 문자뿐인 사유로 닫혔다: rc={rc} {out.get('error_code')}")
+    _record("case 15 (사유는 명시한 --progress-note 만 · git 밖의 L5 보고 · create 덮어쓰기)", problems)
 
 
 def case_16_computed_values_and_scopes() -> None:
@@ -547,6 +569,20 @@ def case_16_computed_values_and_scopes() -> None:
         state = json.loads(state_path.read_text(encoding="utf-8"))
         if state.get("open_decisions") != {planned: 1}:
             problems.append(f"planned task 의 열린 결정을 세지 않았다: {state.get('open_decisions')}")
+        two = _create(ws, "--plan-claim", "C1 하나를 한다", "--plan-claim", "C2 둘을 한다", "--plan-claim", "C3 재지 않는다",
+                      "--plan-decision", DECISION_ARG,
+                      "--plan-decision", "D2 [C2] 둘째 질문 | default: a | options: a = 가; b = 나", name="결정 둘")
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        if state.get("open_decisions", {}).get(two) != 2:
+            problems.append(f"열린 결정의 수: {state.get('open_decisions')}")
+        _, out = _tool(ws, "workflow_kit.tools.plan_status", "--task", two)
+        flags = [(c["id"], c["unmeasured"]) for c in json.loads(out).get("claims", [])]
+        if flags != [("C1", False), ("C2", False), ("C3", True)]:
+            problems.append(f"plan-status 의 재지 않는 주장 표시: {flags}")
+        _update(ws, two, "--decision-state", "D1=answered:warn", "--decision-state", "D2=answered:a")
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        if state.get("open_decisions") != {planned: 1}:
+            problems.append(f"둘 다 답한 뒤의 open_decisions: {state.get('open_decisions')}")
         # 손으로 kept 로 고친 칸 — plan-status 는 계산값을 내고 칸도 함께 보인다.
         path = _tasks(ws) / f"{planned}.md"
         path.write_text(_text(ws, planned).replace("state: proposed", "state: kept"), encoding="utf-8")

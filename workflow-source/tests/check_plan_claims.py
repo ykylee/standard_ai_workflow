@@ -288,6 +288,8 @@ def case_6_single_parser() -> None:
     problems: list[str] = []
     owned = {"parse_plan", "parse_claim_value", "parse_decision_value", "lint_plan", "plan_digest",
              "compute_states", "effective_responses", "open_decision_ids", "claim_bundles"}
+    response_owned = {"parse_response", "qualify", "qualified_archive", "move_exclusive", "publish",
+                      "inbox_files", "archive_files", "taken_numbers", "copy_archive"}
     for path in sorted((SOURCE_ROOT / "workflow_kit").rglob("*.py")):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         defined = {n.name for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
@@ -297,6 +299,13 @@ def case_6_single_parser() -> None:
                 problems.append(f"plan_claims 에 없는 함수: {sorted(missing)}")
         elif owned & defined:
             problems.append(f"{path.relative_to(SOURCE_ROOT)} 가 같은 이름을 또 정의한다: {sorted(owned & defined)}")
+        # 응답 파일의 형식 · 자격 · 이동도 한 곳이다 (2단계).
+        if path.name == "plan_responses.py":
+            if response_owned - defined:
+                problems.append(f"plan_responses 에 없는 함수: {sorted(response_owned - defined)}")
+        elif response_owned & defined:
+            problems.append(
+                f"{path.relative_to(SOURCE_ROOT)} 가 응답 함수를 또 정의한다: {sorted(response_owned & defined)}")
     # 소비자가 그 모듈을 실제로 부르는가.
     consumers = {
         "tools/backlog_update.py": "plan_claims",
@@ -305,7 +314,20 @@ def case_6_single_parser() -> None:
         "common/state/builder.py": "plan_tasks",
         "tools/refresh_state.py": "plan_tasks",
         "tools/session_start.py": "plan_tasks",
+        "tools/plan_import.py": "plan_claims.compute_states",
+        "common/plan_responses.py": "plan_claims.plan_digest",
     }
+    response_consumers = {
+        "tools/plan_import.py": "plan_responses.qualified_archive",
+        "tools/backlog_update.py": "plan_responses.qualified_archive",
+        "common/plan_tasks.py": "plan_responses.qualified_archive",
+        "tools/plan_status.py": "plan_responses.judge",
+        "tools/seed_workspace_memory.py": "plan_responses.copy_archive",
+        "common/branch_join.py": "plan_responses.copy_archive",
+    }
+    for rel, needle in response_consumers.items():
+        if needle not in (SOURCE_ROOT / "workflow_kit" / rel).read_text(encoding="utf-8"):
+            problems.append(f"{rel} 가 {needle} 를 쓰지 않는다")
     for rel, module in consumers.items():
         if module not in (SOURCE_ROOT / "workflow_kit" / rel).read_text(encoding="utf-8"):
             problems.append(f"{rel} 가 {module} 를 쓰지 않는다")

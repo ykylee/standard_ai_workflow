@@ -25,6 +25,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from workflow_kit.common import branch_inheritance as inherit
+from workflow_kit.common import plan_responses
 from workflow_kit.common.paths import HANDOFF_FILENAME, path_in_active
 
 MERGED_FROM_KEY = "merged_from"
@@ -122,6 +123,8 @@ def reflect_join(*, branch: str, branch_dir: Path, parent_branch: str, active_di
         if item.action != inherit.WRITE_BACK:
             continue
         inherit.apply_write_back(item)
+        # 브랜치에서 보관한 응답도 원본 쪽으로 — task 만 돌아가면 상태의 근거가 남는다 (ADR-031 결정 20).
+        plan_responses.copy_archive(branch_dir, active_dir / item.origin_branch, item.task_id)
         report.written_back.append(item.task_id)
         if item.origin_branch == parent_branch:
             restored = item.origin_path.read_text(encoding="utf-8")
@@ -145,6 +148,7 @@ def reflect_join(*, branch: str, branch_dir: Path, parent_branch: str, active_di
             )
             path.write_text(inherit.insert_frontmatter_line(text, CARRIED_OVER_KEY, f"{task_id}@{parent_branch}"),
                             encoding="utf-8", newline="\n")
+            plan_responses.copy_archive(branch_dir, parent_dir, task_id)
             _sync_lists(handoff, _label(text, task_id), status)
             report.carried.append(task_id)
         elif task_id in plan.done:

@@ -4,8 +4,8 @@
 그 함수에 넘기기만 한다 — 게이트 · ``plan-status`` · state 생성기 · 우회 검출이 "task 파일을 어떻게
 읽는가" 를 각자 정하면 갈라진다 (`core/claim_plan_spec.md` §1-6).
 
-1단계(ADR-031 결정 26)에는 응답 파일이 없다. 보관 응답을 읽는 자리는 :func:`archived_responses`
-하나로 모아 두었고 지금은 빈 목록을 돌려준다 — 2단계가 이 함수만 채운다.
+보관 응답을 읽는 자리는 :func:`archived_responses` 하나다 — 자격(스펙 §8.1)을 매번 다시 본 것만 돌려준다.
+응답 파일의 형식과 디렉터리는 :mod:`workflow_kit.common.plan_responses` 가 안다.
 """
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
-from workflow_kit.common import plan_claims
+from workflow_kit.common import plan_claims, plan_responses
 from workflow_kit.common.project_docs import task_label, task_label_aliases
 from workflow_kit.common.workflow_writes import read_task_list_field
 
@@ -88,10 +88,19 @@ def iter_task_plans(tasks_dir: Path | None) -> Iterator[TaskPlan]:
             yield task
 
 
+def branch_dir_of(task: TaskPlan) -> Path:
+    """그 task 파일이 속한 브랜치 네임스페이스 — ``<branch>/backlog/tasks/<id>.md`` 의 ``<branch>``."""
+    return task.path.parent.parent.parent
+
+
 def archived_responses(task: TaskPlan) -> tuple[plan_claims.Response, ...]:
-    """그 task 의 자격 있는 보관 응답 (스펙 §8.1). 1단계에는 응답 파일이 없다."""
-    del task
-    return ()
+    """그 task 의 자격 있는 보관 응답 (스펙 §8.1). task 파일이 오류 규칙을 어기면 하나도 없다 (0 단계)."""
+    return plan_responses.qualified_archive(branch_dir_of(task), task.task_id, task.plan)
+
+
+def pending_responses(task: TaskPlan) -> list[Path]:
+    """그 task 의 받은편지함 응답 (스펙 §7-7)."""
+    return plan_responses.inbox_files(branch_dir_of(task), task.task_id)
 
 
 def computed_states(task: TaskPlan) -> plan_claims.StateResult:

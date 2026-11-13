@@ -18,7 +18,7 @@ import sys
 from pathlib import Path
 
 from workflow_kit import __version__ as TOOL_VERSION
-from workflow_kit.common import plan_claims, plan_tasks
+from workflow_kit.common import plan_claims, plan_responses, plan_tasks
 from workflow_kit.common.errors import build_error_result
 from workflow_kit.common.paths import (
     discover_project_profile_path,
@@ -28,6 +28,7 @@ from workflow_kit.common.paths import (
 from workflow_kit.common.schemas import (
     PlanClaimBundle,
     PlanDecisionStatus,
+    PlanResponseVerdict,
     PlanStatusOutput,
     PlanStatusSourceContext,
 )
@@ -65,6 +66,15 @@ def render_markdown(
     return "\n".join(lines)
 
 
+def response_verdict(
+    path: Path, parsed: plan_responses.ParsedResponse, verdict: plan_responses.Verdict, *, location: str,
+) -> PlanResponseVerdict:
+    """응답 파일 한 건의 판정을 출력 모양으로 — `plan-import` 와 같은 모양이다."""
+    return PlanResponseVerdict(
+        name=path.name, location=location, eligible=verdict.eligible, stage=verdict.stage, reason=verdict.reason,
+        responder=parsed.responder, received_at=parsed.received_at, comments=len(parsed.comments))
+
+
 def build_status(task: plan_tasks.TaskPlan, workspace_root: Path) -> PlanStatusOutput:
     plan = task.plan
     bundles = plan_claims.claim_bundles(plan, task.criteria)
@@ -88,6 +98,18 @@ def build_status(task: plan_tasks.TaskPlan, workspace_root: Path) -> PlanStatusO
         f"상태 칸이 계산값과 다르다: {d.id} 칸 {d.column_state} · 계산 {d.state}"
         for d in decisions if d.column_state != d.state
     ]
+    branch_dir = plan_tasks.branch_dir_of(task)
+    inbox = [
+        response_verdict(path, parsed, verdict, location="inbox")
+        for path in plan_tasks.pending_responses(task)
+        for parsed, verdict in [plan_responses.judge(
+            path, plan, task.task_id, plan_has_errors=plan_claims.has_error_rules(plan))]
+    ]
+    unknown = plan_responses.unknown_inbox_files(branch_dir)
+    if inbox:
+        warnings.append(f"계획 응답 {len(inbox)}건 미반영 ({task.task_id}) — plan-import 로 확인")
+    if unknown:
+        warnings.append(f"받은편지함에 알 수 없는 파일 {len(unknown)}건: {', '.join(unknown)}")
     try:
         relative = task.path.resolve().relative_to(workspace_root.resolve()).as_posix()
     except ValueError:
@@ -108,7 +130,11 @@ def build_status(task: plan_tasks.TaskPlan, workspace_root: Path) -> PlanStatusO
         decisions=decisions,
         open_decisions=open_ids,
         lint=[issue.render() for issue in issues if issue.rule != "L5" or issue.severity != "note"],
-        pending_responses=0,
+        pending_responses=len(inbox),
+        inbox=inbox,
+        unknown_inbox_files=unknown,
+        disputed_responses=list(result.disputed_responses),
+        superseded_responses=list(result.superseded_responses),
         markdown=render_markdown(
             bundles, [(d, result.states.get(d, plan_claims.STATE_PROPOSED)) for d in open_ids]),
         source_context=PlanStatusSourceContext(task_id=task.task_id, task_path=relative),

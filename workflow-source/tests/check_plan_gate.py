@@ -21,6 +21,9 @@ CLI 를 subprocess 로 끝까지 돌린다. 거부는 **파일을 하나도 바�
 16. `plan-status` · 우회 검출 · `open_decisions` 의 범위 — 계산값으로 판정하고, 진행 중 · 차단 · 계획만 세고, done 만 우회로 본다
 17. L5 는 git 저장소에서 실제 HEAD 를 읽는다
 18. 겹친 사유 — 검증 결과 없는 done 과 열린 결정이 겹치면 거부가 이기고 강등 사유도 싣는다
+19. 받은편지함 — 결정이 있는 task 에 미반영 응답이 있으면 → `done` 거부 (`pending_plan_responses`), 겹친 사유의 순서,
+    결정이 없는 task 는 무관, `backlog-update` · `session-start` · `plan-status` 의 미반영 보고, 지문을 바꾸는 쓰기의 경고
+20. 보관 응답으로 판정한다 — `kept` · `changed` 는 닫히고 `unopened` · `disputed` 는 거부되며, 지문이 바뀌면 옛 응답은 세지 않는다
 """
 from __future__ import annotations
 
@@ -45,6 +48,7 @@ SOURCE_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit.common import plan_claims as pc  # noqa: E402
+from workflow_kit.common import plan_responses as pr  # noqa: E402
 from workflow_kit.common.project_docs import task_label  # noqa: E402
 
 BRANCH = "plan-gate"
@@ -723,6 +727,191 @@ def case_18_overlapping_reasons() -> None:
     _record("case 18 (겹친 사유 — 거부가 이기고 강등 사유도 싣는다)", problems)
 
 
+AT = "2026-11-13T21:04:11.{:06d}+09:00"
+
+
+def _branch_dir(ws: Path) -> Path:
+    return ws / "ai-workflow" / "memory" / "active" / BRANCH
+
+
+def _respond(ws: Path, task_id: str, responder: str, micro: int, *, value: str | None = None,
+             opened: bool = False, archive: bool = False) -> Path:
+    """응답 한 건을 받은편지함에 놓는다. ``archive`` 면 보관에 직접 놓는다 (plan-import 가 옮긴 모양)."""
+    plan = pc.parse_plan(_text(ws, task_id).splitlines())
+    data = pr.render_response(
+        task_id=task_id, plan=plan, responder=responder, received_at=AT.format(micro),
+        values={"D1": value} if value else None, opened={"D1": opened}).encode("utf-8")
+    path = pr.publish(_branch_dir(ws), task_id, data)
+    if archive:
+        path = pr.move_exclusive(path, _branch_dir(ws), task_id)
+    return path
+
+
+def _plan_status(ws: Path, task_id: str) -> dict:
+    _, out = _tool(ws, "workflow_kit.tools.plan_status", "--task", task_id,
+                   "--project-profile-path", str(ws / "docs" / "PROJECT_PROFILE.md"))
+    return json.loads(out)
+
+
+def case_19_inbox_gate_and_reports() -> None:
+    problems: list[str] = []
+    with tempfile.TemporaryDirectory() as td:
+        ws = _workspace(td)
+        task_id = _with_decision(ws)
+        _update(ws, task_id, "--decision-state", "D1=answered:warn")   # 열린 결정은 없다 — 받은편지함만 남긴다
+        _respond(ws, task_id, "kim", 1, value="warn")
+        _respond(ws, task_id, "lee", 2)
+        before = _snapshot(ws)
+        for apply in (True, False):
+            rc, out = _update(ws, task_id, "--status", "done", "--validation-result", "v", apply=apply)
+            refusal = "done 거부: 계획 응답 2건 미반영 — plan-import 로 반영하거나 --discard 로 거둔다."
+            if rc != 1 or out.get("error_code") != "pending_plan_responses" or out.get("error") != refusal:
+                problems.append(f"apply={apply}: 미반영 응답이 있는데 rc={rc} {out.get('error_code')} {out.get('error')!r}")
+            if _snapshot(ws) != before:
+                problems.append(f"apply={apply}: 거부인데 파일이 바뀌었다")
+        # 다른 전이 · 진행 메모는 막지 않고 건수를 알린다 (내용은 싣지 않는다).
+        rc, out = _update(ws, task_id, "--status", "in_progress")
+        note = f"계획 응답 2건 미반영 ({task_id}) — plan-import 로 확인"
+        if rc != 0 or note not in out.get("warnings", []):
+            problems.append(f"backlog-update 가 미반영 건수를 알리지 않았다: rc={rc} {out.get('warnings')}")
+        if any("kim" in w or "lee" in w for w in out.get("warnings", [])):
+            problems.append("미반영 경고에 응답의 내용이 실렸다")
+        for status in ("blocked", "planned"):
+            rc, out = _update(ws, task_id, "--status", status)
+            if rc != 0:
+                problems.append(f"→ {status} 가 받은편지함 때문에 막혔다: {out.get('error_code')}")
+        # 겹친 사유 — pending_plan_responses > open_decisions, 나머지는 warnings 에.
+        _update(ws, task_id, "--decision-state", "D1=proposed")
+        rc, out = _update(ws, task_id, "--status", "done", "--validation-result", "v")
+        if rc != 1 or out.get("error_code") != "pending_plan_responses" or not _warned(out, "열린 결정 1건 (D1)"):
+            problems.append(f"미반영 + 열린 결정: {out.get('error_code')} {out.get('warnings')}")
+        # plan_lint_error > pending_plan_responses.
+        healthy = _text(ws, task_id)
+        path = _tasks(ws) / f"{task_id}.md"
+        path.write_text(healthy.replace("- Claims: C2 ", "- Claims: C1 ", 1), encoding="utf-8")
+        rc, out = _update(ws, task_id, "--status", "done", "--validation-result", "v")
+        if rc != 1 or out.get("error_code") != "plan_lint_error" or not _warned(out, "계획 응답 2건 미반영"):
+            problems.append(f"오류 규칙 + 미반영: {out.get('error_code')} {out.get('warnings')}")
+        path.write_text(healthy, encoding="utf-8")
+        # plan-status — 건수 · 파일별 자격 · 알 수 없는 파일.
+        (pr.inbox_dir(_branch_dir(ws)) / "memo.md").write_text("x", encoding="utf-8")
+        bad = pr.inbox_dir(_branch_dir(ws)) / f"{task_id}-5.md"
+        bad.write_text("x", encoding="utf-8")
+        status = _plan_status(ws, task_id)
+        stages = sorted((r["stage"] is None, r["stage"]) for r in status.get("inbox", []))
+        if status.get("pending_responses") != 3 or stages != [(False, 1), (True, None), (True, None)]:
+            problems.append(f"plan-status 의 받은편지함: {status.get('pending_responses')} {status.get('inbox')}")
+        if status.get("unknown_inbox_files") != ["memo.md"]:
+            problems.append(f"plan-status 의 알 수 없는 파일: {status.get('unknown_inbox_files')}")
+        bad.unlink()
+        # session-start 도 건수를 알린다.
+        handoff = _branch_dir(ws) / "session_handoff.md"
+        if not handoff.is_file():
+            handoff.write_text("# Session Handoff\n", encoding="utf-8")
+        _, raw = _tool(ws, "workflow_kit.tools.session_start",
+                       "--project-profile-path", str(ws / "docs" / "PROJECT_PROFILE.md"))
+        if note not in json.loads(raw).get("warnings", []):
+            problems.append(f"session-start 가 미반영 건수를 알리지 않았다: {json.loads(raw).get('warnings')}")
+        # 지문을 바꾸는 쓰기는 받은편지함의 응답이 옛 계획에 대한 것이 됐음을 알린다. 거두지는 않는다.
+        rc, out = _update(ws, task_id, "--plan-claim", "C3 새 주장을 더한다")
+        if rc != 0 or "받은편지함 2건이 옛 계획에 대한 것이다 — plan-import --discard" not in out.get("warnings", []):
+            problems.append(f"지문을 바꾸는 쓰기의 경고: rc={rc} {out.get('warnings')}")
+        if len(pr.inbox_files(_branch_dir(ws), task_id)) != 2:
+            problems.append("지문을 바꾸는 쓰기가 받은편지함을 건드렸다")
+        rc, out = _update(ws, task_id, "--progress-note", "메모")
+        if _warned(out, "옛 계획에 대한 것이다"):
+            problems.append("지문을 바꾸지 않는 쓰기가 옛 계획 경고를 냈다")
+        # 받은편지함을 비우면 닫힌다.
+        for name in [p.name for p in pr.inbox_files(_branch_dir(ws), task_id)]:
+            pr.move_exclusive(pr.inbox_dir(_branch_dir(ws)) / name, _branch_dir(ws), task_id, rejected=True)
+        _update(ws, task_id, "--decision-state", "D1=answered:warn")
+        rc, out = _update(ws, task_id, "--status", "done", "--validation-result", "v")
+        if rc != 0 or _status(ws, task_id) != "done" or _warned(out, "미반영"):
+            problems.append(f"받은편지함을 비웠는데 닫히지 않았다: rc={rc} {out.get('error_code')} {out.get('warnings')}")
+
+    # 결정이 없는 task 는 받은편지함 행의 영향을 받지 않는다. 다른 task 의 받은편지함도 막지 않는다.
+    with tempfile.TemporaryDirectory() as td:
+        ws = _workspace(td)
+        with_decision = _with_decision(ws)
+        plain = _create(ws, "--plan-claim", "C1 열린 결정이 남으면 닫히지 않는다",
+                        "--plan-claim", "C2 옛 task 는 그대로 읽힌다", name="주장만 있는 task")
+        _respond(ws, with_decision, "kim", 1, value="warn")
+        (pr.inbox_dir(_branch_dir(ws)) / f"{plain}-1.md").write_text("x", encoding="utf-8")
+        rc, out = _run(ws, "--mode", "update", "--task-id", plain, "--task-name", "주장만 있는 task",
+                       "--status", "done", "--validation-result", "v")
+        if rc != 0 or _status(ws, plain) != "done":
+            problems.append(f"결정이 없는 task 가 받은편지함 때문에 막혔다: rc={rc} {out.get('error_code')}")
+        if not _warned(out, "계획 응답 2건 미반영"):
+            problems.append(f"브랜치의 미반영 건수를 알리지 않았다: {out.get('warnings')}")
+    _record("case 19 (받은편지함 — done 거부 · 사유의 순서 · 미반영 보고 · 옛 계획 경고)", problems)
+
+
+def case_20_archived_responses_decide() -> None:
+    problems: list[str] = []
+    #: (보관한 응답들, 계산 상태, → done 이 통하는가)
+    rows: list[tuple[str, list[tuple[str, int, str | None, bool]], str, bool]] = [
+        ("기본값을 열어 봤다", [("kim", 1, None, True)], "kept", True),
+        ("값을 바꿨다", [("kim", 1, "warn", False)], "changed:warn", True),
+        ("열지 않았다", [("kim", 1, None, False)], "unopened", False),
+        ("둘이 갈렸다", [("kim", 1, "warn", False), ("lee", 2, None, True)], "disputed", False),
+        ("둘이 같다", [("kim", 1, "warn", False), ("lee", 2, "warn", True)], "changed:warn", True),
+        ("말을 바꿨다", [("kim", 1, "warn", False), ("kim", 2, None, True)], "kept", True),
+    ]
+    for label, responses, state, closes in rows:
+        with tempfile.TemporaryDirectory() as td:
+            ws = _workspace(td)
+            task_id = _with_decision(ws)
+            for responder, micro, value, opened in responses:
+                _respond(ws, task_id, responder, micro, value=value, opened=opened, archive=True)
+            status = _plan_status(ws, task_id)
+            got = {d["id"]: d["state"] for d in status.get("decisions", [])}
+            if got != {"D1": state} or status.get("open_decisions") != ([] if closes else ["D1"]):
+                problems.append(f"{label}: plan-status {got} 열린 {status.get('open_decisions')} (기대 {state})")
+            rc, out = _update(ws, task_id, "--status", "in_progress")
+            column = pc.parse_plan(_text(ws, task_id).splitlines()).decisions[0].state
+            if rc != 0 or column != state:
+                problems.append(f"{label}: 쓰기가 칸을 계산값으로 적지 않았다: {column}")
+            if closes == _warned(out, f"열린 결정 1건 (D1 {state})"):
+                problems.append(f"{label}: → in_progress 경고가 계산 상태와 맞지 않는다: {out.get('warnings')}")
+            before = _snapshot(ws)
+            rc, out = _update(ws, task_id, "--status", "done", "--validation-result", "v")
+            if closes and (rc != 0 or _status(ws, task_id) != "done"):
+                problems.append(f"{label}: 닫혀야 하는데 rc={rc} {out.get('error_code')}")
+            if not closes and (rc != 1 or out.get("error_code") != "open_decisions" or _snapshot(ws) != before):
+                problems.append(f"{label}: 거부돼야 하는데 rc={rc} {out.get('error_code')}")
+    # 지문이 바뀌면 보관된 응답은 세지 않는다 — 닫히던 task 가 다시 열린다. 우회 검출도 보관 응답으로 계산한다.
+    with tempfile.TemporaryDirectory() as td:
+        ws = _workspace(td)
+        task_id = _with_decision(ws)
+        _respond(ws, task_id, "kim", 1, value="warn", archive=True)
+        rc, _ = _update(ws, task_id, "--status", "done", "--validation-result", "v")
+        handoff = _branch_dir(ws) / "session_handoff.md"
+        if not handoff.is_file():
+            handoff.write_text("# Session Handoff\n", encoding="utf-8")
+        _, raw = _tool(ws, "workflow_kit.tools.refresh_state",
+                       "--project-profile-path", str(ws / "docs" / "PROJECT_PROFILE.md"))
+        if rc != 0 or any("done 인데 열린 결정" in w for w in json.loads(raw).get("warnings", [])):
+            problems.append("보관 응답으로 닫힌 task 를 우회로 보고했다 — 우회 검출이 응답을 읽지 않는다")
+        path = _tasks(ws) / f"{task_id}.md"
+        path.write_text(_text(ws, task_id).replace("막는가?", "정말 막는가?", 1), encoding="utf-8")   # 손으로 질문을 바꿨다
+        _, raw = _tool(ws, "workflow_kit.tools.refresh_state",
+                       "--project-profile-path", str(ws / "docs" / "PROJECT_PROFILE.md"))
+        if f"done 인데 열린 결정이 있다: {task_id} (D1)" not in json.loads(raw).get("warnings", []):
+            problems.append(f"지문이 바뀐 뒤에도 옛 응답을 셌다: {json.loads(raw).get('warnings')}")
+        status = _plan_status(ws, task_id)
+        if status["decisions"][0]["state"] != "proposed" or status["decisions"][0]["column_state"] != "changed:warn":
+            problems.append(f"plan-status 가 옛 응답을 셌다: {status['decisions'][0]}")
+        # 사유 없이 걷을 수 없는 "열린 결정" 도 보관 응답으로 계산한다 — kept 인 결정은 사유 없이 걷힌다.
+    with tempfile.TemporaryDirectory() as td:
+        ws = _workspace(td)
+        task_id = _with_decision(ws)
+        _respond(ws, task_id, "kim", 1, opened=True, archive=True)
+        rc, out = _update(ws, task_id, "--replace-field", "plan_decisions")
+        if rc != 0:
+            problems.append(f"kept 인 결정을 걷는 데 사유를 요구했다: {out.get('error_code')}")
+    _record(f"case 20 (보관 응답으로 판정 — {len(rows)} 행의 상태 · 닫힘, 지문이 바뀌면 세지 않는다)", problems)
+
+
 CASES = [
     case_1_lint_error_blocks_write_warning_does_not,
     case_2_open_decision_gates_transitions,
@@ -742,6 +931,8 @@ CASES = [
     case_16_computed_values_and_scopes,
     case_17_l5_reads_head,
     case_18_overlapping_reasons,
+    case_19_inbox_gate_and_reports,
+    case_20_archived_responses_decide,
 ]
 
 

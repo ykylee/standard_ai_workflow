@@ -3,7 +3,7 @@
 - 문서 목적: task 파일 Plan 의 주장 · 결정 계약과, 결정 응답을 데이터로 받아 반영하는 kit 계약(필드 · 린트 · 게이트 · 계획 지문 · 응답 파일 · 받은편지함 · 결정 상태 계산 · 명령 · 생성물)을 정의한다.
 - 범위: task 라벨 `Claims` · `Decisions`, 린트 L1~L10, `backlog-update` 의 추가 인자와 상태 전이 게이트, 응답 형식 `workflow-kit-plan-response/1`, `plan_responses/` 디렉터리, `plan-import` · `plan-status` 명령, `state.json` 의 `open_decisions`, 브랜치 이어받기, 검증
 - 대상 독자: workflow 설계자, AI agent, kit 소비 프로젝트
-- 상태: draft (ADR-031 accepted 2026-11-13 — 1단계 구현됨: §2~§5 · §8 의 계산 · §10 · §11 의 `open_decisions`; 응답 파일 · 받은편지함 · `plan-import`(§6 · §7 · §9)는 2단계)
+- 상태: draft (ADR-031 accepted 2026-11-13 — 1 · 2단계 구현됨; MCP 도구 · 워크벤치는 ADR-032)
 - 최종 수정일: 2026-11-13
 - 관련 문서: `../../ai-workflow/wiki/decisions/adr-031-claim-plan.md`, `../../docs/planning/claim-plan-requirements-2026-11.md`, `../../docs/planning/plan-workbench-requirements-2026-11.md`, `./backlog_update_skill_spec.md`, `./global_workflow_standard.md`
 
@@ -163,6 +163,7 @@ received_at: 2026-11-13T21:04:11.482913+09:00
 
 - `## Decisions` 는 응답 시점 task 의 모든 결정을 ID 순으로 한 줄씩 싣는다. `opened` 는 `yes` · `no`.
 - `## Comments` 는 선택. 대상은 주장 ID · 결정 ID · `[-]`.
+- 머리말의 키는 위 여섯뿐이고 한 번씩이다 — 모르는 키 · 겹친 키 · 머리말이 없는 파일은 `format` 을 읽을 수 없는 것으로 본다 (자격 2 단계). `responder` 가 비었거나 `received_at` 이 위 꼴이 아니면 1 단계다.
 - `received_at` 은 ISO 8601 이고 시간대 오프셋이 있다. 소수 초(마이크로초까지)가 올 수 있다.
 - 줄 끝 LF, UTF-8, BOM 없음. 읽는 쪽은 줄바꿈을 고치지 않는다 — CR 은 제어 문자로 자격 1 단계에서 떨어진다 (고치는 것은 쓰는 쪽이다).
 - 읽기 · 쓰기는 `encoding="utf-8"` · `newline="\n"` 을 명시한다 (`check_text_io_encoding` 의 대상).
@@ -188,6 +189,7 @@ received_at: 2026-11-13T21:04:11.482913+09:00
 5. **배타 이동**: 보관(과 `.rejected.md`)으로의 이동은 있는 파일을 덮지 않는다. 그 번호가 이미 있으면(1 의 뜻으로) 1 을 더해 옮긴다.
 6. 쓰는 쪽은 잠금을 쥐지 않는다.
 7. 받은편지함의 "건수" 는 `inbox/<TASK-ID>-<숫자>.md` 의 수다 (1 의 패턴 — 임시 파일 · 숨은 파일 · 그 밖의 이름은 세지 않는다).
+   `<TASK-ID>` 는 task ID 문법(`project_docs.TASK_ID_PATTERN`)에 맞는 것이다.
    패턴에 맞지 않는 `.md` 가 받은편지함에 있으면 `plan-import` 와 `plan-status` 가 "알 수 없는 파일" 로 보고한다 — 게이트는 그것으로 막지 않는다.
 
 ## 8. 결정 상태 계산 (R6.2 · R6.3)
@@ -279,6 +281,10 @@ python -m workflow_kit plan-import --discard=<파일> --reason=<사유> [--apply
   응답을 지우는 명령은 없다.
 - 응답 이동 없이 칸만 바뀌어도 Progress 에 한 줄을 남긴다 — `결정 상태 재계산: D2 changed:x → proposed`.
 - task 의 상태(`status`)는 건드리지 않는다. `done` 인 task 도 받는다.
+- dry-run 은 잠금을 쥐지 않고 받은편지함 디렉터리도 만들지 않는다. 읽기만 하는 명령(`plan-status` · 게이트 · `session-start`)도 만들지 않는다.
+- `--response` 는 그 task 의 받은편지함 파일이어야 하고, `--discard` 는 받은편지함 또는 보관의 `<TASK-ID>-<숫자>.md` 여야 한다 (이미 거둔
+  `.rejected.md` 는 다시 거두지 않는다). `--discard` 에는 글자 · 숫자가 있는 `--reason` 이 필요하다. 어긋나면 rc 2 로 거절하고 아무것도 바꾸지 않는다.
+- 출력의 `outcome` 은 `imported` · `discarded` · `nothing_to_do` · `import_busy` · `dry_run` 중 하나다.
 - 출력 계약 family `plan_import` 를 등록한다.
 
 ## 10. `plan-status`
@@ -288,7 +294,7 @@ python -m workflow_kit plan-status --task=<TASK-ID> [--format=json|md]
 ```
 
 읽기 전용이다. 내는 것: 1단계 주장마다 자신 · 후손을 인용한 완료 기준의 번호 목록(없으면 "재지 않는 주장" — L7 과 같은 판정), 결정마다
-계산한 상태와 칸의 값(다르면 둘 다), 열린 결정 목록, 받은편지함 건수와 파일별 자격. `md` 형식은 검증 보고에 붙일 표다:
+계산한 상태와 칸의 값(다르면 둘 다), 열린 결정 목록, 받은편지함 건수와 파일별 자격(처음 어긋난 단계), 알 수 없는 받은편지함 파일, 다툼에 든 · 대체된 응답. `md` 형식은 검증 보고에 붙일 표다:
 
 ```
 ### 주장별
@@ -314,11 +320,12 @@ python -m workflow_kit plan-status --task=<TASK-ID> [--format=json|md]
   `계획 응답 n건 미반영 (<TASK-ID> …) — plan-import 로 확인`. 응답의 내용은 싣지 않는다.
 - **지문을 바꾸는 쓰기**는 받은편지함에 그 task 의 응답이 있으면 `받은편지함 n건이 옛 계획에 대한 것이다 — plan-import --discard` 를 경고한다.
 - **이어받기**: `seed` 가 `inherited_from` 으로 옮기는 task 마다 모 브랜치의 보관 응답(`plan_responses/<TASK-ID>-<숫자>.md`, `.rejected.md` 제외)을
-  함께 복사한다. 받은편지함은 옮기지 않는다. 합류 반영이 task 를 이월할 때도 같다. 브랜치 합류 아카이브는 `plan_responses/` 를
+  함께 복사한다. 받은편지함은 옮기지 않는다. 합류 반영이 task 를 이월할 때도, 이어받은 task 를 원본 쪽에 되돌려 적을 때도 같다
+  (브랜치에서 보관한 응답이 task 와 함께 돌아간다). 같은 이름이 이미 있으면 덮지 않는다. 브랜치 합류 아카이브는 `plan_responses/` 를
   브랜치 디렉터리의 다른 파일과 같게 다룬다 — 별도 규칙이 없다.
 - **정본**: `global_workflow_standard.md` §11.1 에 `Apply plan responses | python -m workflow_kit plan-import`, §1 의 계획 문장에
   `claims, open decisions` 와 "A decision the owner has not opened is not agreed — never close a task with open decisions." 한 줄.
-- **스킬**: `plan-import` 하나. **verifier**: `plan-status --format=md` 의 출력을 보고에 붙인다.
+- **스킬**: `plan-import` 하나 (bootstrap 채널의 slash command `/workflow-plan-import` 도 같은 본문이다). **verifier**: `plan-status --format=md` 의 출력을 보고에 붙인다.
 - **`backlog_update_skill_spec.md`**: 필드 · 린트 · 게이트의 정본은 이 문서다. 그 스펙에는 새 인자 넷(§2.5)과 이 문서로의 포인터만 더한다 — 규칙을 두 곳에 적지 않는다.
 
 ## 12. 검증 (R11)

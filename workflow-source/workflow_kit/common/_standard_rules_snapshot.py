@@ -41,6 +41,7 @@ MEMORY_COMMANDS: tuple[tuple[str, str], ...] = (
     ('Roll off handoff §5 notes over budget', 'python -m workflow_kit rollover-handoff-notes'),
     ('Propose memory_index entries at close (advisory)', 'python -m workflow_kit suggest-memory-entries'),
     ('Relay working state across compaction', 'python -m workflow_kit compact-checkpoint'),
+    ('Apply plan responses', 'python -m workflow_kit plan-import'),
 )
 
 PARSE_CONTRACT: tuple[str, ...] = (

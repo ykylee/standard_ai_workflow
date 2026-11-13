@@ -53,6 +53,7 @@ TOOL_MODULES: Final[dict[str, str]] = {
     # TASK-2026-09-30-main-006 (ADR-030) — compact 중계. hook 3종과 스킬 compact-relay 가 부른다.
     "compact-checkpoint": "workflow_kit.tools.compact_checkpoint",
     "plan-status": "workflow_kit.tools.plan_status",
+    "plan-import": "workflow_kit.tools.plan_import",
     "consumer-metrics": "workflow_kit.tools.consumer_metrics",
     "create-environment-record-stub": "workflow_kit.tools.create_environment_record_stub",
     "detect-scope-drift": "workflow_kit.tools.detect_scope_drift",

@@ -41,7 +41,7 @@ from workflow_kit.common.planning import (
     DEMOTION_REVERTS_DONE,
     determine_conservative_task_status,
 )
-from workflow_kit.common import plan_claims
+from workflow_kit.common import plan_claims, plan_responses
 from workflow_kit.common.project_docs import (
     PLAN_FIELD_KEYS,
     PLAN_OPTIONAL_KEYS,
@@ -333,6 +333,8 @@ def enforce_plan_contract(
     removal_note: str | None,
     workspace_root: Path,
     creating: bool | None = None,
+    branch_dir: Path | None = None,
+    task_id: str | None = None,
 ) -> PlanVerdict:
     """task 파일에 쓰기 **전에** 주장 · 결정 계약을 적용한다.
 
@@ -348,6 +350,15 @@ def enforce_plan_contract(
     claims_key, decisions_key = plan_claims.CLAIMS_KEY, plan_claims.DECISIONS_KEY
     # create 인가는 호출 방식이다 — 같은 ID 로 다시 만드는 create 는 "이전" 이 있어도 create 다 (R2.3 권고).
     is_create = previous_lines is None if creating is None else creating
+
+    def responses_for(target: plan_claims.Plan) -> tuple[plan_claims.Response, ...]:
+        """그 계획에 자격이 있는 보관 응답 — **쓰기 뒤의** 계획으로 본다 (지문을 바꾸는 쓰기는 옛 응답을 잃는다)."""
+        if branch_dir is None or not task_id:
+            return ()
+        return plan_responses.qualified_archive(branch_dir, task_id, target)
+
+    #: 그 task 의 받은편지함 건수 (스펙 §7-7). 읽기만 한다 — 디렉터리를 만들지 않는다.
+    pending = len(plan_responses.inbox_files(branch_dir, task_id)) if branch_dir is not None and task_id else 0
     to_in_progress = status == "in_progress" and current_status != "in_progress"
     #: 실제 전이인가 — 같은 상태를 다시 준 호출은 전이가 아니다 (경고를 되풀이하지 않는다, 스펙 §3).
     transition = requested_status is not None and requested_status != current_status
@@ -433,7 +444,9 @@ def enforce_plan_contract(
             also_open = plan_claims.open_decision_ids(plan)
             verdict.warnings = rendered + (
                 [f"열린 결정 {len(also_open)}건 ({', '.join(also_open)}) 도 남아 있다"]
-                if requested_status == "done" and also_open else [])
+                if requested_status == "done" and also_open else []) + (
+                [f"계획 응답 {pending}건 미반영 도 남아 있다"]
+                if requested_status == "done" and plan.decisions and pending else [])
             return verdict
         # 이미 오류 상태인 파일 — 주장 · 결정을 건드리지 않는 쓰기는 통과시키고, 칸은 다시 적지 않는다.
         verdict.warnings.append(
@@ -445,7 +458,7 @@ def enforce_plan_contract(
     # 사유 없이 열린 결정을 없애는 쓰기는 거부한다 — 교체든, 같은 ID 로 task 를 다시 만드는 것이든.
     # 사유는 읽을 수 있는 글이어야 한다: 글자 · 숫자가 없는 값은 사유가 아니다.
     if previous_lines is not None and not is_readable_note(removal_note):
-        previously_open = plan_claims.open_decision_ids(previous_plan)
+        previously_open = plan_claims.open_decision_ids(previous_plan, responses_for(previous_plan))
         removed = [d for d in previously_open if plan.decision(d) is None]
         if removed:
             verdict.error_code = "decision_removal_needs_note"
@@ -466,9 +479,13 @@ def enforce_plan_contract(
         ]
         if kept_answers:
             verdict.warnings.append(f"질문이 바뀌었다 — answered 를 유지했다: {', '.join(kept_answers)}")
+        # 지문이 바뀌면 받은편지함의 응답은 옛 계획에 대한 것이 된다 — 거두는 것은 사람이 본 뒤다 (결정 18).
+        if pending:
+            verdict.warnings.append(f"받은편지함 {pending}건이 옛 계획에 대한 것이다 — plan-import --discard")
 
     # ③ 다시 계산해 칸을 고쳐 쓴다 (스펙 §8.6).
-    result = plan_claims.compute_states(plan, ())
+    responses = responses_for(plan)
+    result = plan_claims.compute_states(plan, responses)
     lines, changes = plan_claims.rewrite_decision_states(lines, result.states)
     mismatch = [
         f"뒷받침 없는 상태를 되돌렸다: {decision_id} {old} → {new}"
@@ -479,7 +496,15 @@ def enforce_plan_contract(
     plan = plan_claims.parse_plan(lines)
 
     # ④ 게이트 (스펙 §4) — 칸이 아니라 계산값으로.
-    open_ids = plan_claims.open_decision_ids(plan)
+    open_ids = plan_claims.open_decision_ids(plan, responses)
+    if requested_status == "done" and plan.decisions and pending:
+        # 겹친 사유는 plan_lint_error > pending_plan_responses > open_decisions 순으로 고른다 (스펙 §4).
+        verdict.error_code = "pending_plan_responses"
+        verdict.error = (
+            f"done 거부: 계획 응답 {pending}건 미반영 — plan-import 로 반영하거나 --discard 로 거둔다.")
+        verdict.warnings = mismatch + (
+            [f"열린 결정 {len(open_ids)}건 ({', '.join(open_ids)}) 도 남아 있다"] if open_ids else [])
+        return verdict
     if requested_status == "done" and open_ids:
         verdict.error_code = "open_decisions"
         verdict.error = (
@@ -1240,6 +1265,8 @@ def main() -> int:
             removal_note=args.progress_note[0] if args.progress_note else None,
             workspace_root=project_workspace_root(project_profile_path),
             creating=not update_merge,
+            branch_dir=task_ssot_path.parent.parent.parent,
+            task_id=task_id,
         )
         if plan_verdict.error_code is not None:
             result = build_error_result(
@@ -1254,6 +1281,10 @@ def main() -> int:
             return 1
         draft_entry = plan_verdict.lines
         warnings.extend(plan_verdict.warnings)
+        # 받은편지함의 미반영 응답은 명령 시점에 세어 알린다 (스펙 §11) — state.json 에는 싣지 않는다.
+        pending_note = plan_responses.pending_warning(task_ssot_path.parent.parent.parent)
+        if pending_note:
+            warnings.append(pending_note)
 
         if operation_type == "create_daily_backlog":
             warnings.append("대상 날짜 backlog 파일이 없어 새 파일 초안 생성이 필요하다.")

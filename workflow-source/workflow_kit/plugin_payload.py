@@ -450,7 +450,59 @@ and is removed at session end (`{command} --clear`). It never touches `session_h
 or `state.json`."""
 
 
-#: payload 가 싣는 스킬 5종. slug 는 소문자·하이픈만 (Agent Skills 이름 규칙).
+def _plan_import_body(rules: StandardRules) -> str:
+    command = find_memory_command(rules, "Apply plan responses")
+    status = command.replace("plan-import", "plan-status")
+    return f"""## Role
+
+Apply the owner's answers to a task plan (ADR-031). A task's `Decisions` stay **open** until
+the owner answers them: a default is not consent. Answers arrive as response files in the
+branch memory inbox (`plan_responses/inbox/`); this command checks each one, moves the
+eligible ones into the archive, recomputes every decision state and records one line in the
+task's `Progress`.
+
+## Procedure
+
+1. Look first — the default is a dry run and writes nothing:
+
+   ```bash
+   {command} --task <TASK-ID>
+   ```
+
+   Each response reports `eligible` or the first failed stage (0–6) with the reason. A
+   response for an older plan (stage 4) or from a non-approver (stage 5) is **not** applied.
+2. Apply:
+
+   ```bash
+   {command} --task <TASK-ID> --apply
+   ```
+
+   If it reports `import_busy`, another import holds the inbox — run it again; nothing was
+   written.
+3. Read the result. `disputed` means two approvers disagree, or a response contradicts an
+   answer recorded in conversation — **do not pick a side yourself**; ask the owner, then
+   record the answer with `backlog-update --decision-state D<n>=answered:<value>`.
+   `unopened` means the owner submitted without opening that decision — it is still open.
+4. A response that should not count (wrong plan, sent by mistake) is set aside, never deleted:
+
+   ```bash
+   {command} --discard <file> --reason "<why>" --apply
+   ```
+
+Comments in a response are not applied automatically — read them and decide with the owner.
+A task with open decisions or pending inbox responses cannot move to `done`.
+
+## Usage
+
+```bash
+{command} --help
+{status} --task <TASK-ID> --format md
+```
+
+The second command prints the per-claim table to attach to a verification report."""
+
+
+#: payload 가 싣는 스킬 6종. slug 는 소문자·하이픈만 (Agent Skills 이름 규칙).
 #: 정본 §11.1 의 명령 4개와 1:1 대응한다 — 명령만 있고 스킬이 없으면 하네스가
 #: 그 단계를 밟을 방법을 모른다 (session-end 가 정확히 그 상태였다).
 PLUGIN_SKILLS: tuple[PluginSkillSpec, ...] = (
@@ -509,6 +561,18 @@ PLUGIN_SKILLS: tuple[PluginSkillSpec, ...] = (
             "/compact in a workflow_kit project."
         ),
         body=_compact_relay_body,
+    ),
+    PluginSkillSpec(
+        slug="plan-import",
+        description=(
+            "[KO] 표준 AI 워크플로우 계획 응답 반영 — 받은편지함의 계획 응답을 자격 판정해 보관으로 "
+            "옮기고 task 의 결정 상태를 다시 계산한다.\n"
+            "[EN] Standard AI workflow plan import — check the plan responses waiting in the "
+            "branch inbox, archive the eligible ones and recompute the task's decision states. "
+            "Use when session-start or backlog-update reports pending plan responses, or before "
+            "closing a task that has decisions."
+        ),
+        body=_plan_import_body,
     ),
 )
 
@@ -730,6 +794,7 @@ MINIMAX_EXAMPLE_QUERIES: dict[str, str] = {
     "doc-sync": "이번 변경이 영향을 주는 문서 후보 뽑아줘",
     "session-end": "세션 종료 처리 — handoff 갱신하고 state.json 재생성해줘",
     "compact-relay": "컨텍스트 압축 전에 compact 중계 기록 남기고 압축 뒤 이어가줘",
+    "plan-import": "받은편지함의 계획 응답을 확인하고 결정 상태에 반영해줘",
 }
 
 

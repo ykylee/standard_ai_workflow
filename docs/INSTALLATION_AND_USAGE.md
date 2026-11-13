@@ -16,7 +16,7 @@
 - 저장소를 clone한 뒤 `workflow-source/` 를 editable mode로 설치하는 방법
 - 의존성 (`pydantic`, `anyio`, `mcp[cli]`) 설치
 - `workflow_kit` (하위: `workflow_kit.bootstrap_lib`) 임포트와 기본 사용 예
-- 312개 스모크 테스트 (`workflow-source/tests/check_*.py`) 실행 방법 (v1.1.6+ 정합)
+- 313개 스모크 테스트 (`workflow-source/tests/check_*.py`) 실행 방법 (v1.1.6+ 정합)
 - `bootstrap_workflow_kit.py` 와 `generate_workflow_state.py` 실행
 - MCP 서버 (jsonrpc-bridge / stdio-sdk) 실행
 - 자주 만나는 문제 해결
@@ -273,7 +273,7 @@ print('all critical imports OK')
 
 소비 프로젝트가 워크플로우를 얻는 **권장 경로**다 (소유자 판정 2026-08-13,
 근거: [`planning/plugin-transition-plan-2026-08.md`](./planning/plugin-transition-plan-2026-08.md)
-§3-P5). 스킬 5종 (session-start / backlog-update / doc-sync / session-end / compact-relay) +
+§3-P5). 스킬 6종 (session-start / backlog-update / doc-sync / session-end / compact-relay / plan-import) +
 read-only MCP 번들 + 세션 경계 hook 2종 + compact 중계 hook 3종이 설치 1명령으로 들어온다.
 compact 중계(압축 전 작업 상태 기록 → 압축 뒤 재주입)는 hook 이 `wk compact-checkpoint` 를 부르므로
 **설치된 kit 이 플러그인과 같은 버전이어야** 한다 — 옛 kit 이면 압축 때 한 줄 안내가 뜨고 중계는 건너뛴다.

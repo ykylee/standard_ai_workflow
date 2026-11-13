@@ -3,7 +3,7 @@
   "name": "standard-ai-workflow",
   "displayName": "Standard AI Workflow",
   "version": "1.22.0",
-  "description": "세션 시작 / 백로그 갱신 / 문서 동기화 / 세션 종료 / compact 중계를 표준 AI 워크플로우 절차로 수행하는 스킬 5종과 read-only MCP 도구 번들.",
+  "description": "세션 시작 / 백로그 갱신 / 문서 동기화 / 세션 종료 / compact 중계를 표준 AI 워크플로우 절차로 수행하는 스킬 6종과 read-only MCP 도구 번들.",
   "author": "ykylee",
   "icon": "icon.png",
   "darkIcon": "icon-dark.png",
@@ -13,7 +13,8 @@
     "이 작업을 오늘 백로그에 등록하고 scope creep 경고까지 확인해줘",
     "이번 변경이 영향을 주는 문서 후보 뽑아줘",
     "세션 종료 처리 — handoff 갱신하고 state.json 재생성해줘",
-    "컨텍스트 압축 전에 compact 중계 기록 남기고 압축 뒤 이어가줘"
+    "컨텍스트 압축 전에 compact 중계 기록 남기고 압축 뒤 이어가줘",
+    "받은편지함의 계획 응답을 확인하고 결정 상태에 반영해줘"
   ],
   "apps": [],
   "mcpServers": [],
@@ -22,6 +23,7 @@
     "skills/backlog-update/SKILL.md",
     "skills/doc-sync/SKILL.md",
     "skills/session-end/SKILL.md",
-    "skills/compact-relay/SKILL.md"
+    "skills/compact-relay/SKILL.md",
+    "skills/plan-import/SKILL.md"
   ]
 }

@@ -967,10 +967,7 @@
       "progress": 0.5,
       "total_leaves": 2,
       "done_leaves": 1,
-      "deliverables_missing": [
-        "workflow-source/workflow_kit/common/plan_responses.py",
-        "workflow-source/workflow_kit/tools/plan_import.py"
-      ],
+      "deliverables_missing": [],
       "wbs": [
         {
           "id": "WBS-28.1",
@@ -986,8 +983,10 @@
         {
           "id": "WBS-28.2",
           "title": "2 단계 — 응답 형식 · 받은편지함(자기 무시 · 잠금) · `plan-import` · 이어받기 · 정본 §11.1 · 스킬 `plan-import` · verifier 한 줄 ·",
-          "derived_status": "planned",
-          "linked_task_ids": [],
+          "derived_status": "in_progress",
+          "linked_task_ids": [
+            "TASK-2026-11-13-claude-remote-sync-check-234c32-004"
+          ],
           "total_leaves": 1,
           "done_leaves": 0,
           "children": []

@@ -41,6 +41,10 @@ from workflow_kit.common.schemas.automated_repro_scaffold import (
 from workflow_kit.common.schemas.plan import (
     PlanClaimBundle,
     PlanDecisionStatus,
+    PlanImportOutput,
+    PlanImportSourceContext,
+    PlanResponseVerdict,
+    PlanStateChange,
     PlanStatusOutput,
     PlanStatusSourceContext,
 )
@@ -124,6 +128,10 @@ __all__ = [
     "SmartContextReaderOutput",
     "PlanClaimBundle",
     "PlanDecisionStatus",
+    "PlanImportOutput",
+    "PlanImportSourceContext",
+    "PlanResponseVerdict",
+    "PlanStateChange",
     "PlanStatusOutput",
     "PlanStatusSourceContext",
     "CreateBacklogEntryOutput",

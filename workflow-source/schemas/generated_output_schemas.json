@@ -714,6 +714,57 @@
       "title": "ErrorOutput",
       "type": "object"
     },
+    "plan_import": {
+      "description": "Standard payload for failed tool executions.",
+      "properties": {
+        "error": {
+          "description": "Human-readable error message",
+          "title": "Error",
+          "type": "string"
+        },
+        "error_code": {
+          "description": "Stable machine-readable error code",
+          "title": "Error Code",
+          "type": "string"
+        },
+        "source_context": {
+          "additionalProperties": true,
+          "description": "Arbitrary context data to help diagnose the error",
+          "title": "Source Context",
+          "type": "object"
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "tool_version": {
+          "description": "Version of the tool that generated this output",
+          "title": "Tool Version",
+          "type": "string"
+        },
+        "warnings": {
+          "description": "List of non-fatal warnings encountered",
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "tool_version",
+        "error",
+        "error_code",
+        "source_context"
+      ],
+      "title": "ErrorOutput",
+      "type": "object"
+    },
     "plan_status": {
       "description": "Standard payload for failed tool executions.",
       "properties": {
@@ -3115,6 +3166,232 @@
       "title": "ReconcileOutput",
       "type": "object"
     },
+    "plan_import": {
+      "description": "`plan-import` — 받은편지함의 응답을 보관으로 옮기고 결정 상태를 다시 계산한다.",
+      "properties": {
+        "applied": {
+          "description": "`--apply` 로 실제로 썼는가 (dry-run · import_busy 는 false)",
+          "title": "Applied",
+          "type": "boolean"
+        },
+        "open_decisions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Open Decisions",
+          "type": "array"
+        },
+        "outcome": {
+          "description": "`imported` · `discarded` · `nothing_to_do` · `import_busy` · `dry_run`",
+          "title": "Outcome",
+          "type": "string"
+        },
+        "pending_responses": {
+          "default": 0,
+          "description": "이 호출 뒤 받은편지함에 남는 그 task 의 응답 건수",
+          "title": "Pending Responses",
+          "type": "integer"
+        },
+        "progress_line": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "task `Progress` 에 적은(적을) 한 줄",
+          "title": "Progress Line"
+        },
+        "responses": {
+          "items": {
+            "description": "응답 파일 한 건의 자격 판정 (스펙 §8.1) 과, `plan-import` 가 그것에 한 일.",
+            "properties": {
+              "action": {
+                "default": "none",
+                "description": "`archived` · `rejected` · `kept_in_inbox` · `none` (dry-run 은 하려던 일)",
+                "title": "Action",
+                "type": "string"
+              },
+              "comments": {
+                "default": 0,
+                "title": "Comments",
+                "type": "integer"
+              },
+              "eligible": {
+                "title": "Eligible",
+                "type": "boolean"
+              },
+              "location": {
+                "description": "`inbox` 또는 `archive`",
+                "title": "Location",
+                "type": "string"
+              },
+              "moved_to": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "옮긴(옮길) 경로 — 작업 공간 기준",
+                "title": "Moved To"
+              },
+              "name": {
+                "title": "Name",
+                "type": "string"
+              },
+              "reason": {
+                "default": "",
+                "title": "Reason",
+                "type": "string"
+              },
+              "received_at": {
+                "default": "",
+                "title": "Received At",
+                "type": "string"
+              },
+              "responder": {
+                "default": "",
+                "title": "Responder",
+                "type": "string"
+              },
+              "stage": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "처음 어긋난 자격 단계 (0~6) — 자격이 있으면 null",
+                "title": "Stage"
+              }
+            },
+            "required": [
+              "name",
+              "location",
+              "eligible"
+            ],
+            "title": "PlanResponseVerdict",
+            "type": "object"
+          },
+          "title": "Responses",
+          "type": "array"
+        },
+        "source_context": {
+          "properties": {
+            "mode": {
+              "description": "`import` 또는 `discard`",
+              "title": "Mode",
+              "type": "string"
+            },
+            "task_id": {
+              "title": "Task Id",
+              "type": "string"
+            },
+            "task_path": {
+              "title": "Task Path",
+              "type": "string"
+            }
+          },
+          "required": [
+            "task_id",
+            "task_path",
+            "mode"
+          ],
+          "title": "PlanImportSourceContext",
+          "type": "object"
+        },
+        "state_changes": {
+          "items": {
+            "properties": {
+              "after": {
+                "description": "다시 계산한 값",
+                "title": "After",
+                "type": "string"
+              },
+              "before": {
+                "description": "상태 칸에 적혀 있던 값",
+                "title": "Before",
+                "type": "string"
+              },
+              "id": {
+                "title": "Id",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "before",
+              "after"
+            ],
+            "title": "PlanStateChange",
+            "type": "object"
+          },
+          "title": "State Changes",
+          "type": "array"
+        },
+        "states": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "결정마다 다시 계산한 상태",
+          "title": "States",
+          "type": "object"
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "task_id": {
+          "title": "Task Id",
+          "type": "string"
+        },
+        "tool_version": {
+          "description": "Version of the tool that generated this output",
+          "title": "Tool Version",
+          "type": "string"
+        },
+        "unknown_inbox_files": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Unknown Inbox Files",
+          "type": "array"
+        },
+        "warnings": {
+          "description": "List of non-fatal warnings encountered",
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "status",
+        "tool_version",
+        "task_id",
+        "applied",
+        "outcome",
+        "source_context"
+      ],
+      "title": "PlanImportOutput",
+      "type": "object"
+    },
     "plan_status": {
       "description": "`plan-status` — 주장별 묶음과 결정 상태. 읽기 전용이다.",
       "properties": {
@@ -3211,9 +3488,99 @@
           "title": "Decisions",
           "type": "array"
         },
+        "disputed_responses": {
+          "description": "다툼에 든 유효 응답",
+          "items": {
+            "type": "string"
+          },
+          "title": "Disputed Responses",
+          "type": "array"
+        },
         "has_plan": {
           "title": "Has Plan",
           "type": "boolean"
+        },
+        "inbox": {
+          "description": "받은편지함 파일별 자격",
+          "items": {
+            "description": "응답 파일 한 건의 자격 판정 (스펙 §8.1) 과, `plan-import` 가 그것에 한 일.",
+            "properties": {
+              "action": {
+                "default": "none",
+                "description": "`archived` · `rejected` · `kept_in_inbox` · `none` (dry-run 은 하려던 일)",
+                "title": "Action",
+                "type": "string"
+              },
+              "comments": {
+                "default": 0,
+                "title": "Comments",
+                "type": "integer"
+              },
+              "eligible": {
+                "title": "Eligible",
+                "type": "boolean"
+              },
+              "location": {
+                "description": "`inbox` 또는 `archive`",
+                "title": "Location",
+                "type": "string"
+              },
+              "moved_to": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "옮긴(옮길) 경로 — 작업 공간 기준",
+                "title": "Moved To"
+              },
+              "name": {
+                "title": "Name",
+                "type": "string"
+              },
+              "reason": {
+                "default": "",
+                "title": "Reason",
+                "type": "string"
+              },
+              "received_at": {
+                "default": "",
+                "title": "Received At",
+                "type": "string"
+              },
+              "responder": {
+                "default": "",
+                "title": "Responder",
+                "type": "string"
+              },
+              "stage": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "처음 어긋난 자격 단계 (0~6) — 자격이 있으면 null",
+                "title": "Stage"
+              }
+            },
+            "required": [
+              "name",
+              "location",
+              "eligible"
+            ],
+            "title": "PlanResponseVerdict",
+            "type": "object"
+          },
+          "title": "Inbox",
+          "type": "array"
         },
         "lint": {
           "items": {
@@ -3280,6 +3647,14 @@
           "title": "Status",
           "type": "string"
         },
+        "superseded_responses": {
+          "description": "같은 응답자의 뒤 응답 때문에 세지 않은 응답",
+          "items": {
+            "type": "string"
+          },
+          "title": "Superseded Responses",
+          "type": "array"
+        },
         "task_id": {
           "title": "Task Id",
           "type": "string"
@@ -3300,6 +3675,14 @@
           "description": "Version of the tool that generated this output",
           "title": "Tool Version",
           "type": "string"
+        },
+        "unknown_inbox_files": {
+          "description": "받은편지함의 응답 이름 꼴이 아닌 `.md`",
+          "items": {
+            "type": "string"
+          },
+          "title": "Unknown Inbox Files",
+          "type": "array"
         },
         "warnings": {
           "description": "List of non-fatal warnings encountered",

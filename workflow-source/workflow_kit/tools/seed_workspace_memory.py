@@ -68,6 +68,7 @@ from workflow_kit.common.paths import (  # noqa: E402
     state_path_in_active,
 )
 from workflow_kit.common import branch_inheritance as inherit  # noqa: E402
+from workflow_kit.common import plan_responses  # noqa: E402
 from workflow_kit.common.git import remote_known_task_ids  # noqa: E402
 from workflow_kit.common.project_docs import task_label  # noqa: E402
 from workflow_kit.common.workflow_writes import (  # noqa: E402
@@ -462,6 +463,10 @@ def seed(*, memory_root: Path, branch: str, axis: str, task_title: str,
             kind=t["kind"],
             status=t["status"],
         )
+        # 상태의 근거도 함께 온다 — 보관 응답을 안 옮기면 이어받은 kept · changed 가 새 브랜치의 첫
+        # 재계산에서 근거 없이 proposed 로 돌아간다 (ADR-031 결정 20). 받은편지함 · 거둔 응답은 아니다.
+        if inherit_from:
+            plan_responses.copy_archive(active_dir / inherit_from, branch_dir, t["id"])
 
     if write_handoff:
         handoff_path.write_text(

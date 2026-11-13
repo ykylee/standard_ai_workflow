@@ -30,6 +30,7 @@ Close a session in the order **update memory → commit → push** — the memor
 - Roll off handoff §5 notes over budget: `python -m workflow_kit rollover-handoff-notes`
 - Propose memory_index entries at close (advisory): `python -m workflow_kit suggest-memory-entries`
 - Relay working state across compaction: `python -m workflow_kit compact-checkpoint`
+- Apply plan responses: `python -m workflow_kit plan-import`
 
 - Run them with the Python that has `workflow_kit` installed (`python` on Windows, usually `python3` elsewhere) — not a `wk` executable, which Windows antivirus blocks.
 - Empty handoff `in_progress` / `blocked` lists hold an **empty bullet `-`** — prose there is parsed as a work item.

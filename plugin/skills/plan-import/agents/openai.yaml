@@ -1,0 +1,6 @@
+interface:
+  display_name: "Plan Import"
+  short_description: "[KO] 표준 AI 워크플로우 계획 응답 반영 — 받은편지함의 계획 응답을 자격 판정해 보관으로 옮기고 task 의 결정 상태를 다시 계산한다.\n[EN] Standard AI workflow plan import — check the plan responses waiting in the branch inbox, archive the eligible ones and recompute the task's decision states. Use when session-start or backlog-update reports pending plan responses, or before closing a task that has decisions."
+  default_prompt: "Use $plan-import to follow the standard AI workflow."
+policy:
+  allow_implicit_invocation: true

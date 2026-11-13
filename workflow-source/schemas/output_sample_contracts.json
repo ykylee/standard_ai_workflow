@@ -397,6 +397,34 @@
         "kind": "list"
       }
     },
+    "plan_import": {
+      "error": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "error_code": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "source_context": {
+        "allow_null": false,
+        "item_kind": "string",
+        "kind": "object"
+      },
+      "status": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "tool_version": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "warnings": {
+        "allow_null": false,
+        "item_kind": "string",
+        "kind": "list"
+      }
+    },
     "plan_status": {
       "error": {
         "allow_null": false,
@@ -773,6 +801,11 @@
       "source_context"
     ],
     "merge_doc_reconcile": [
+      "error",
+      "error_code",
+      "source_context"
+    ],
+    "plan_import": [
       "error",
       "error_code",
       "source_context"
@@ -1472,6 +1505,70 @@
         "kind": "list"
       }
     },
+    "plan_import": {
+      "applied": {
+        "allow_null": false,
+        "kind": "boolean"
+      },
+      "open_decisions": {
+        "allow_null": false,
+        "item_kind": "string",
+        "kind": "list"
+      },
+      "outcome": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "pending_responses": {
+        "allow_null": false,
+        "kind": "integer"
+      },
+      "progress_line": {
+        "allow_null": true,
+        "kind": "string"
+      },
+      "responses": {
+        "allow_null": false,
+        "item_kind": "PlanResponseVerdict",
+        "kind": "list"
+      },
+      "source_context": {
+        "allow_null": false,
+        "kind": "PlanImportSourceContext"
+      },
+      "state_changes": {
+        "allow_null": false,
+        "item_kind": "PlanStateChange",
+        "kind": "list"
+      },
+      "states": {
+        "allow_null": false,
+        "item_kind": "string",
+        "kind": "object"
+      },
+      "status": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "task_id": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "tool_version": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "unknown_inbox_files": {
+        "allow_null": false,
+        "item_kind": "string",
+        "kind": "list"
+      },
+      "warnings": {
+        "allow_null": false,
+        "item_kind": "string",
+        "kind": "list"
+      }
+    },
     "plan_status": {
       "claims": {
         "allow_null": false,
@@ -1483,9 +1580,19 @@
         "item_kind": "PlanDecisionStatus",
         "kind": "list"
       },
+      "disputed_responses": {
+        "allow_null": false,
+        "item_kind": "string",
+        "kind": "list"
+      },
       "has_plan": {
         "allow_null": false,
         "kind": "boolean"
+      },
+      "inbox": {
+        "allow_null": false,
+        "item_kind": "PlanResponseVerdict",
+        "kind": "list"
       },
       "lint": {
         "allow_null": false,
@@ -1517,6 +1624,11 @@
         "allow_null": false,
         "kind": "string"
       },
+      "superseded_responses": {
+        "allow_null": false,
+        "item_kind": "string",
+        "kind": "list"
+      },
       "task_id": {
         "allow_null": false,
         "kind": "string"
@@ -1528,6 +1640,11 @@
       "tool_version": {
         "allow_null": false,
         "kind": "string"
+      },
+      "unknown_inbox_files": {
+        "allow_null": false,
+        "item_kind": "string",
+        "kind": "list"
       },
       "warnings": {
         "allow_null": false,
@@ -2025,6 +2142,14 @@
       "reconcile_targets",
       "source_context",
       "state_conflicts"
+    ],
+    "plan_import": [
+      "applied",
+      "outcome",
+      "responses",
+      "source_context",
+      "state_changes",
+      "task_id"
     ],
     "plan_status": [
       "claims",

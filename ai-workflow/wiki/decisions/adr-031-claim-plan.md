@@ -233,6 +233,21 @@ git 무시와 잠금의 수단 · 보관 번호 · 브랜치 이어받기 · req
 - 검증자가 넣은 되주입 432건(판정 분기 단위) 중 스펙의 판정을 바꾸는 것은 전부 red 다. 남은 green 은 다른 판정이 같은 규칙 · 강도 ·
   대상으로 잡는 동치이거나 스펙 밖(메시지 문구)이다. "N건 전부 red" 는 그 N건에 대한 말이다 — 표본을 넓힐 때마다 빈 곳이 나왔다.
 
+**2단계 (2026-11-13, TASK-2026-11-13-claude-remote-sync-check-234c32-004, M-028/WBS-28.2)** — 결정 26 의 ②.
+
+- 응답 파일의 형식 · 자격 · 디렉터리는 `workflow_kit/common/plan_responses.py` 한 곳이다 (읽기 · 1~6 단계 · 자기 무시 · 번호 · 공개 ·
+  배타 이동 · 잠금). 상태 계산은 여전히 `plan_claims` 다. `plan_tasks.archived_responses` 가 자격을 다시 본 보관 응답을 돌려주고,
+  게이트 · `plan-status` · 우회 검출이 그것으로 계산한다. **읽는 길은 디렉터리를 만들지 않는다** — 응답이 없는 저장소의 트리는 그대로다.
+- 배타 이동은 `os.link`(있으면 실패) + `unlink` 다. 쓰는 쪽의 공개도 같은 호출이다 — 같은 `received_at` 으로 쓰는 쪽 넷 × 옮기는 쪽 둘에서
+  중복 0 · 유실 0 (`check_plan_import` case 9).
+- `backlog-update` 는 자격을 **쓰기 뒤의 계획**(초안의 지문)으로 본다 — 지문을 바꾸는 쓰기는 같은 쓰기에서 옛 응답을 잃는다.
+- 판정 순서: 0 단계 → 잠금 → 쥔 뒤 task 와 받은편지함을 다시 읽는다 (design 검증이 넘긴 ①). dry-run 의 0 단계도 rc 1 이다 (②).
+- 결정 20 에 한 가지를 더했다: 합류가 이어받은 task 를 원본 쪽에 **되돌려 적을 때도** 브랜치에서 보관한 응답을 함께 복사한다 —
+  task 만 돌아가면 그 상태의 근거가 아카이브에만 남는다 (스펙 §11).
+- 스킬 `plan-import` 는 bootstrap 채널의 slash command(`/workflow-plan-import`)로도 나간다 — 두 채널의 스킬 집합을 맞추는 기존 검사가 요구한다.
+- 응답 파일 이름의 task ID 는 정본 문법(`project_docs.TASK_ID_PATTERN`)으로 읽는다 — 그 문법이 아닌 이름은 "알 수 없는 파일" 이다.
+- Windows(NTFS)의 `os.link` · 잠금은 이번에도 재지 못했다 — 구현 뒤 Windows 호스트에서 잰다 (M-028 의 남은 항목).
+
 ## References
 
 - `docs/planning/html-plan-absorption-review-2026-11.md` (concept, §10 D1~D5 · §11 정정)

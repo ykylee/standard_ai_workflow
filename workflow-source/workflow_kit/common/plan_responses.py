@@ -338,17 +338,19 @@ def pending_warning(branch_dir: Path) -> str | None:
 
 def taken_numbers(branch_dir: Path, task_id: str, *, ignore: Path | None = None) -> set[int]:
     """그 task 에 이미 쓰인 번호 — 접미사를 통틀어, 받은편지함과 보관 양쪽에서 (스펙 §7-1)."""
-    taken: set[int] = set()
-    for directory in (inbox_dir(branch_dir), responses_dir(branch_dir)):
-        for number, _, path in _numbered(directory, task_id):
-            if ignore is None or path != ignore:
-                taken.add(number)
-    return taken
+    return {number for path, number in numbered_paths(branch_dir, task_id).items() if ignore is None or path != ignore}
 
 
-def numbers_in(directory: Path, task_id: str) -> set[int]:
-    """그 디렉터리에서 그 task 가 쓴 번호 — 접미사를 통틀어."""
-    return {number for number, _, _ in _numbered(directory, task_id)}
+def numbered_paths(branch_dir: Path, task_id: str) -> dict[Path, int]:
+    """그 task 의 번호 붙은 파일 전부 — 받은편지함과 보관, 접미사를 통틀어. 경로 → 번호.
+
+    번호가 아니라 **경로**가 단위다: 같은 번호를 두 파일이 쥘 수 있다 (`-5.md` 와 `-5.rejected.md`, `-05.md` 와 `-5.md`).
+    """
+    return {
+        path: number
+        for directory in (inbox_dir(branch_dir), responses_dir(branch_dir))
+        for number, _, path in _numbered(directory, task_id)
+    }
 
 
 def number_of(path: Path, task_id: str) -> int | None:
@@ -477,10 +479,15 @@ def carry_discards(source_branch_dir: Path, target_branch_dir: Path, task_id: st
 
     거둔 응답은 처음부터 없던 것이다 (§8.3). task 만 돌아가고 거둠이 안 따라가면 원본 쪽 보관에 그 응답이
     `.md` 로 남아, 브랜치에서 `proposed` 로 되돌린 결정이 다시 `kept` · `changed` 로 계산된다.
-    짝은 **내용이 같은** 보관 응답이다 (번호는 옮기면서 바뀔 수 있다). 짝이 없으면 아무것도 하지 않는다.
+
+    짝은 **내용이 같은** 보관 응답이다 (번호는 옮기면서 바뀔 수 있다). 단, 브랜치가 같은 내용을 **보관에도**
+    들고 있으면 거두지 않는다 — 거뒀다가 다시 받아들였거나, 같은 응답 둘 중 하나만 거둔 것이다. 그 응답은
+    브랜치에서 유효하다. 짝이 없으면 아무것도 하지 않는다.
     """
+    kept_bodies = {path.read_bytes() for path in archive_files(source_branch_dir, task_id)}
     rejected_bodies = {
-        path.read_bytes() for _, rejected, path in _numbered(responses_dir(source_branch_dir), task_id) if rejected}
+        path.read_bytes() for _, rejected, path in _numbered(responses_dir(source_branch_dir), task_id) if rejected
+    } - kept_bodies
     moved: list[Path] = []
     for path in archive_files(target_branch_dir, task_id):
         if path.read_bytes() in rejected_bodies:

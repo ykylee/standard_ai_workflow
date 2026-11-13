@@ -38,7 +38,7 @@ wbs: M-028/WBS-28.2
 - Claims: C3 미반영 응답이 남은 task 는 닫히지 않고 그 사실이 보고에 드러난다
 - Claims: C4 이어받은 task 는 상태의 근거인 보관 응답과 함께 온다
 - Claims: C5 응답이 없는 저장소는 1단계와 같게 동작한다
-- Decisions: D1 [C4] 합류의 되돌려 적기가 브랜치에서 거둔 응답을 원본 쪽 보관에서도 거두는가? | default: carry | options: carry = 내용이 같은 원본 쪽 보관 응답을 .rejected.md 로 옮긴다; keep = 옮기지 않고 원본 쪽 보관을 그대로 둔다 | state: proposed
+- Decisions: D1 [C4] 합류의 되돌려 적기가 브랜치에서 거둔 응답을 원본 쪽 보관에서도 거두는가? | default: carry | options: carry = 내용이 같은 원본 쪽 보관 응답을 .rejected.md 로 옮긴다; keep = 옮기지 않고 원본 쪽 보관을 그대로 둔다 | state: answered:carry
 - Files that change: workflow-source/workflow_kit/common/plan_responses.py (신규 — 응답 파서 · 자격 · 받은편지함 · 보관 · 잠금 · 배타 이동)
 - Files that change: workflow-source/workflow_kit/tools/plan_import.py (신규) · common/tool_dispatch.py · pyproject.toml (명령 등록)
 - Files that change: workflow-source/workflow_kit/common/plan_tasks.py · tools/plan_status.py · tools/backlog_update.py · tools/session_start.py (보관 응답으로 계산 · 받은편지함 게이트 · 경고)
@@ -61,7 +61,7 @@ wbs: M-028/WBS-28.2
 
 ## 🛠️ Implementation / Content
 
-- Progress: 2026-11-13 verifier 1차: FAIL 3 — dry-run 예고가 apply 와 다름(번호 충돌 · discard Progress) / 브랜치의 discard 가 되돌려 적기에서 사라짐 / 범위 안 되주입 8건. 수리: _Shelf(이동과 같은 규칙) · carry_discards · received_at 을 스펙의 한 꼴로 직접 읽기 · 이름 패턴(WORK_ITEM_ID · ASCII 숫자) + case 보강. 되주입 31건 red. D1(결정 20 확장) 소유자 확인 대기 · verifier 2차 대기
+- Progress: 2026-11-13 verifier 2차: FAIL 3 — dry-run 이 같은 번호를 쥔 두 파일에서 틀린 이름 예고 / carry_discards 가 다시 받은 유효 응답까지 거둠 / 범위 안 되주입 10건(received_at 경계 · shelf). 수리: _Shelf 를 경로 단위로 · 브랜치 보관에 있는 내용은 거두지 않음 · 경계 case. 되주입 18건 red. D1 소유자 답 carry (answered). verifier 3차 대기
 - Next session starting point:
 - Remaining risks:
 

@@ -14,6 +14,7 @@
 10. 이어받기 — seed · 합류 이월 · 되돌려 적기가 보관 응답(`.md`)을 옮기고, 받은편지함 · `.rejected.md` 는 옮기지 않는다
 11. 읽는 길은 디렉터리를 만들지 않는다 — dry-run · `plan-status` 뒤에도 `plan_responses/` 가 없다
 12. 출력 계약 · 인자 — family `plan_import` 로 검증되고, 모르는 인자 · 접두 축약 · 받은편지함 밖의 경로는 거절된다
+13. dry-run 이 예고한 보관 이름이 실제와 같다 — 같은 번호를 여러 파일이 쥔 모양들 (case 6b)
 """
 
 from __future__ import annotations
@@ -242,6 +243,14 @@ QUALIFY_TABLE: list[tuple[str, bytes, int | None]] = [
     ("received_at 이 없는 날짜", _swap(AT.format(1), "2026-02-30T21:04:11+09:00"), 1),
     ("received_at 의 시가 24", _swap(AT.format(1), "2026-11-13T24:04:11+09:00"), 1),
     ("received_at 이 전각 숫자", _swap(AT.format(1), "２０２６-11-13T21:04:11+09:00"), 1),
+    ("received_at 의 분이 60", _swap(AT.format(1), "2026-11-13T21:60:11+09:00"), 1),
+    ("received_at 의 초가 60", _swap(AT.format(1), "2026-11-13T21:04:60+09:00"), 1),
+    ("received_at 의 오프셋 시가 24", _swap(AT.format(1), "2026-11-13T21:04:11+24:00"), 1),
+    ("received_at 의 오프셋 분이 60", _swap(AT.format(1), "2026-11-13T21:04:11+09:60"), 1),
+    ("received_at 의 구분자가 소문자 t", _swap(AT.format(1), "2026-11-13t21:04:11+09:00"), 1),
+    ("received_at 뒤에 글자가 더 있다", _swap(AT.format(1), "2026-11-13T21:04:11+09:00x"), 1),
+    ("received_at 의 월 · 일이 한 자리", _swap(AT.format(1), "2026-1-3T21:04:11+09:00"), 1),
+    ("received_at 의 경계값 (23:59:59 · +23:59)", _swap(AT.format(1), "2026-11-13T23:59:59.999999+23:59"), None),
     ("received_at 이 epoch 이전 (꼴은 맞다)", _swap(AT.format(1), "1969-12-31T23:59:59+00:00"), None),
     ("received_at 줄 없음", _swap(f"received_at: {AT.format(1)}\n", ""), 1),
     # 2 단계 — format
@@ -315,6 +324,15 @@ def case_1_qualification_table() -> None:
         problems.append("번호가 시간대 오프셋을 반영하지 않는다")
     if pr.received_micros("2026-11-13T21:04:11.5-05:00") != pr.received_micros("2026-11-14T02:04:11.500000+00:00"):
         problems.append("소수 초 한 자리 · 음수 오프셋을 다르게 읽었다")
+    if pr.received_micros("1970-01-01T05:30:00+05:30") != 0 or pr.received_micros("1970-01-01T00:00:00-00:45") != 45 * 60 * 1_000_000:
+        problems.append("오프셋의 분을 반영하지 않는다")
+    # 유효 응답은 **순간**이 늦은 것이다 — 문자열이 큰 것이 아니다 (오프셋이 다르면 둘이 갈린다).
+    early = pc.Response(responder="kim", received_at="2026-11-13T21:04:11+09:00", decisions=(), name="early")
+    late = pc.Response(responder="kim", received_at="2026-11-13T13:00:00+00:00", decisions=(), name="late")
+    for pair in ([early, late], [late, early]):
+        effective, superseded = pc.effective_responses(pair)
+        if [r.name for r in effective] != ["late"] or [r.name for r in superseded] != ["early"]:
+            problems.append(f"유효 응답을 순간이 아니라 표기로 골랐다: {[r.name for r in effective]}")
     with tempfile.TemporaryDirectory() as td:
         # epoch 이전의 시각 — 이름의 `-<숫자>` 가 깨지면 그 응답은 건수에서 빠진다.
         old = pr.publish(Path(td), TASK, _swap(AT.format(1), "1969-12-31T23:59:59+00:00"))
@@ -788,6 +806,62 @@ def case_6_numbers_and_exclusive_move() -> None:
     _record("case 6 (번호는 접미사를 통틀어 유일 · 이동은 덮지 않는다 · 보관도 자격을 다시 본다)", problems)
 
 
+#: (설명, 받은편지함에 놓을 이름 접미, 보관에 놓을 이름 접미, 명령) — `{n}` 은 번호다. 응답은 전부 자격이 있다.
+#: 명령: "all" = 일괄, ("response", 접미) = 그 파일만, ("discard", "inbox"|"archive", 접미) = 거둔다.
+PLACEMENT_LAYOUTS: list[tuple[str, list[str], list[str], object]] = [
+    ("받은편지함 5 · 보관 5", ["5.md"], ["5.md"], "all"),
+    ("받은편지함 5 · 보관 5.rejected", ["5.md"], ["5.rejected.md"], "all"),
+    ("받은편지함 5 · 6 · 보관 5 · 6", ["5.md", "6.md"], ["5.md", "6.md"], "all"),
+    ("받은편지함 0", ["0.md"], [], "all"),
+    ("받은편지함 0 · 보관 0", ["0.md"], ["0.md"], "all"),
+    ("받은편지함 9 · 받은편지함 9.rejected", ["9.md", "9.rejected.md"], [], "all"),
+    ("받은편지함 9 · 받은편지함 9.rejected — 하나만", ["9.md", "9.rejected.md"], [], ("response", "9.md")),
+    ("받은편지함 9 · 받은편지함 9.rejected — 거둔다", ["9.md", "9.rejected.md"], [], ("discard", "inbox", "9.md")),
+    ("보관 5 · 보관 5.rejected — 거둔다", [], ["5.md", "5.rejected.md"], ("discard", "archive", "5.md")),
+    ("받은편지함 05 · 5", ["05.md", "5.md"], [], "all"),
+    ("보관 05 · 5 — 거둔다", [], ["05.md", "5.md"], ("discard", "archive", "05.md")),
+    ("받은편지함 5 · 보관 5 · 6.rejected · 7", ["5.md"], ["5.md", "6.rejected.md", "7.md"], "all"),
+    ("받은편지함 5 — 거둔다 · 보관 5", ["5.md"], ["5.md"], ("discard", "inbox", "5.md")),
+]
+
+
+def case_6b_dry_run_predicts_placement() -> None:
+    problems: list[str] = []
+    for label, inbox_names, archive_names, command in PLACEMENT_LAYOUTS:
+        with tempfile.TemporaryDirectory() as td:
+            ws = _workspace(td)
+            task_id = _create(ws)
+            branch = _branch(ws)
+            pr.ensure_inbox(branch)
+            for index, suffix in enumerate(inbox_names):
+                (pr.inbox_dir(branch) / f"{task_id}-{suffix}").write_bytes(
+                    _response(ws, task_id, f"in{index}", 10 + index, values={"D1": "warn"}))
+            for index, suffix in enumerate(archive_names):
+                (branch / pr.RESPONSES_DIRNAME / f"{task_id}-{suffix}").write_bytes(
+                    _response(ws, task_id, f"ar{index}", 20 + index, values={"D1": "warn"}))
+            if command == "all":
+                args: tuple[str, ...] = ("--task", task_id)
+            elif command[0] == "response":  # type: ignore[index]
+                args = ("--task", task_id, "--response", f"{task_id}-{command[1]}")  # type: ignore[index]
+            else:
+                where = pr.inbox_dir(branch) if command[1] == "inbox" else branch / pr.RESPONSES_DIRNAME  # type: ignore[index]
+                args = ("--discard", str(where / f"{task_id}-{command[2]}"), "--reason", "r")  # type: ignore[index]
+            before = sorted(p.name for p in (branch / pr.RESPONSES_DIRNAME).iterdir() if p.is_file())
+            rc_dry, dry = _import(ws, *args)
+            rc, out = _import(ws, *args, "--apply")
+            after = sorted(p.name for p in (branch / pr.RESPONSES_DIRNAME).iterdir() if p.is_file())
+            told = [(r["name"], r["moved_to"]) for r in dry.get("responses", [])]
+            did = [(r["name"], r["moved_to"]) for r in out.get("responses", [])]
+            if rc_dry != 0 or rc != 0 or told != did or dry.get("progress_line") != out.get("progress_line"):
+                problems.append(f"{label}: dry-run {[m for _, m in told]} / 실제 {[m for _, m in did]}")
+            landed = sorted(m.rsplit("/", 1)[1] for _, m in did if m)
+            if sorted(set(after) - set(before)) != landed and command == "all":
+                problems.append(f"{label}: 보고한 이름과 실제로 생긴 파일이 다르다: {landed} / {sorted(set(after) - set(before))}")
+            if not set(before) <= set(after) and command == "all":
+                problems.append(f"{label}: 있던 보관 파일이 사라졌다")
+    _record(f"case 6b (dry-run 이 예고한 이름 == 실제로 놓인 이름 — {len(PLACEMENT_LAYOUTS)} 모양)", problems)
+
+
 # --------------------------------------------------------------------------- case 7 · 8
 
 
@@ -1003,6 +1077,25 @@ def case_10_inheritance() -> None:
             problems.append("합류가 모 브랜치의 받은편지함을 건드렸다")
         if not (parent / "backlog" / "tasks" / f"{own_id}.md").is_file():
             problems.append("fixture: task 가 이월되지 않았다")
+    # 거둠을 나르는 규칙 — 브랜치가 보관에도 들고 있는 내용은 거두지 않는다 (거뒀다가 다시 받아들인 것).
+    with tempfile.TemporaryDirectory() as td:
+        child, origin = Path(td) / "child", Path(td) / "origin"
+        for side in (child, origin):
+            (side / pr.RESPONSES_DIRNAME).mkdir(parents=True)
+        bodies = {name: f"body-{name}".encode() for name in ("again", "gone1", "gone2", "stay")}
+        for index, name in enumerate(bodies):
+            (origin / pr.RESPONSES_DIRNAME / f"{TASK}-{index + 1}.md").write_bytes(bodies[name])
+        (child / pr.RESPONSES_DIRNAME / f"{TASK}-1.rejected.md").write_bytes(bodies["again"])   # 거뒀다가
+        (child / pr.RESPONSES_DIRNAME / f"{TASK}-9.md").write_bytes(bodies["again"])            # 다시 받았다
+        (child / pr.RESPONSES_DIRNAME / f"{TASK}-2.rejected.md").write_bytes(bodies["gone1"])
+        (child / pr.RESPONSES_DIRNAME / f"{TASK}-3.rejected.md").write_bytes(bodies["gone2"])
+        (child / pr.RESPONSES_DIRNAME / f"{TASK}-4.md").write_bytes(bodies["stay"])
+        (child / pr.RESPONSES_DIRNAME / f"{TASK}-7.rejected.md").write_bytes(b"never-in-origin")
+        pr.carry_discards(child, origin, TASK)
+        left = sorted(p.read_bytes().decode() for p in pr.archive_files(origin, TASK))
+        gone = sorted(p.read_bytes().decode() for _, r, p in pr._numbered(origin / pr.RESPONSES_DIRNAME, TASK) if r)
+        if left != ["body-again", "body-stay"] or gone != ["body-gone1", "body-gone2"]:
+            problems.append(f"거둠을 나른 뒤 원본 쪽 보관 {left} · 거둔 것 {gone}")
     # copy_archive 는 있는 파일을 덮지 않는다.
     with tempfile.TemporaryDirectory() as td:
         src, dst = Path(td) / "a", Path(td) / "b"
@@ -1117,7 +1210,8 @@ def case_12_contract_and_arguments() -> None:
 
 CASES = (
     case_1_qualification_table, case_2_ineligible_stays_and_stage_zero, case_3_import_archives_and_records,
-    case_4_order_independence, case_5_discard, case_6_numbers_and_exclusive_move, case_7_lock_busy,
+    case_4_order_independence, case_5_discard, case_6_numbers_and_exclusive_move, case_6b_dry_run_predicts_placement,
+    case_7_lock_busy,
     case_8_inbox_ignores_itself, case_9_race, case_10_inheritance, case_11_reads_do_not_create_directories,
     case_12_contract_and_arguments,
 )

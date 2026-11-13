@@ -673,6 +673,7 @@ def parse_received_at(value: str) -> int | None:
     """``received_at`` 을 epoch 마이크로초로 (스펙 §6). 그 꼴이 아니면 ``None``.
 
     받는 꼴은 하나다: ``YYYY-MM-DDTHH:MM:SS[.ffffff]±HH:MM`` — 소수 초는 1~6 자리, 시간대는 숫자 오프셋.
+    시 00~23 · 분 00~59 · 초 00~59 (윤초 60 은 받지 않는다), 오프셋 시 00~23 · 분 00~59.
     ``datetime.fromisoformat`` 에 맡기지 않는다 — 받는 범위가 Python 판마다 다르고(3.10 은 ``.5`` · ``Z`` 를
     거절한다) 스펙보다 넓다(주 날짜 · 기본형 · 초 생략 · 7 자리 이상의 소수).
     """

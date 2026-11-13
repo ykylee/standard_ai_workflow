@@ -123,27 +123,34 @@ def _verdict(
 
 
 class _Shelf:
-    """dry-run — 번호가 어디에 쓰였는지의 사본. 실제 이동과 **같은 규칙**으로 놓일 이름을 고른다.
+    """dry-run — 번호 붙은 파일들의 사본. 실제 이동과 **같은 규칙**으로 놓일 이름을 고른다.
 
-    실제 이동(`plan_responses.move_exclusive`)은 옮기는 파일 **자신만** 빼고 받은편지함 · 보관의 번호를 본다.
-    그 번호를 보관의 다른 파일이 쓰고 있으면 자신을 뺀 뒤에도 쓰인 번호다 — 두 자리를 따로 센다.
+    실제 이동(`plan_responses.move_exclusive`)은 옮기는 **그 경로 하나만** 빼고 받은편지함 · 보관의 번호를 본다.
+    그래서 단위는 번호가 아니라 경로다 — 같은 번호를 다른 파일이 쥐고 있으면 자신을 뺀 뒤에도 쓰인 번호다.
     """
 
     def __init__(self, ctx: Context) -> None:
         self.ctx = ctx
-        self.inbox = plan_responses.numbers_in(plan_responses.inbox_dir(ctx.branch_dir), ctx.task_id)
-        self.archive = plan_responses.numbers_in(plan_responses.responses_dir(ctx.branch_dir), ctx.task_id)
+        self.files = {
+            self._key(path): number
+            for path, number in plan_responses.numbered_paths(ctx.branch_dir, ctx.task_id).items()
+        }
+
+    @staticmethod
+    def _key(path: Path) -> tuple[Path, str]:
+        # 같은 파일을 가리키는 두 표기(심볼릭 링크를 거친 경로 등)가 다른 열쇠가 되지 않게.
+        return (path.parent.resolve(), path.name)
 
     def place(self, path: Path, *, rejected: bool) -> Path:
         number = plan_responses.number_of(path, self.ctx.task_id) or 0
-        home = self.inbox if path.parent.resolve() == plan_responses.inbox_dir(self.ctx.branch_dir).resolve() \
-            else self.archive
-        home.discard(number)
-        while number in self.inbox or number in self.archive:
+        self.files.pop(self._key(path), None)
+        taken = set(self.files.values())
+        while number in taken:
             number += 1
-        self.archive.add(number)
         suffix = plan_responses.REJECTED_SUFFIX if rejected else ".md"
-        return plan_responses.responses_dir(self.ctx.branch_dir) / f"{self.ctx.task_id}-{number}{suffix}"
+        target = plan_responses.responses_dir(self.ctx.branch_dir) / f"{self.ctx.task_id}-{number}{suffix}"
+        self.files[self._key(target)] = number
+        return target
 
 
 def _read_lines(path: Path) -> tuple[list[str], bool]:

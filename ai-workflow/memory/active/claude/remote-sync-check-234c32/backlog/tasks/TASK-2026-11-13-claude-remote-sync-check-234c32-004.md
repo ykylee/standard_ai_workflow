@@ -25,6 +25,7 @@ wbs: M-028/WBS-28.2
 - Completion criteria: [C1] 스펙 §8.1 의 0~6 단계마다 어긋난 응답은 옮겨지지 않고 받은편지함에 남으며 파일별 결과에 단계 번호가 나온다; 0 단계에서는 plan-import 의 --apply · --discard 가 rc 1 · plan_lint_error · 무변경이고 task 를 고친 뒤 같은 호출이 통한다; 보관에 있는 응답도 자격을 잃으면(지문 변경 · 손 편집) 계산에 들지 않는다 (check_plan_import 의 자격 표)
 - Completion criteria: [C2] plan-import --apply 가 자격 있는 응답을 보관으로 옮기고 상태 칸을 다시 적고 Progress 에 한 줄을 남기며, dry-run 은 같은 판정을 내고 아무것도 쓰지 않는다; --discard 는 .rejected.md 로 옮기고 다시 계산한다; 같은 응답 집합을 일괄 · 하나씩 · 어느 순서로 반영해도 끝 상태 칸이 같고 다시 불러도 바뀌지 않는다
 - Completion criteria: [C2] 번호는 접미사를 통틀어 유일하고 이동은 있는 파일을 덮지 않는다; 잠금을 못 쥔 plan-import 는 import_busy (rc 0 · 무변경)다; 쓰는 쪽 × 옮기는 쪽 둘의 경합에서 중복 0 · 유실 0 이고, 잠금 무력화 · 배타 이동 제거 되주입이 red 다; inbox/.gitignore 가 매번 복구된다
+- Completion criteria: [C2] 전제 (소유자 결정 2026-11-13): 위 두 [C2] 기준과 [C1] 되주입 기준은 스펙 §7-9 의 배치 — 받은편지함 · 보관이 브랜치 디렉터리 안의 같은 파일시스템의 보통 디렉터리이고 그 안의 응답은 쓰는 쪽이 만든 보통 파일 — 에서 잰다. 그 밖의 배치는 plan-import 가 plan_responses_layout · response_not_found 로 거절하거나 알 수 없는 파일로 보고하는 것까지만 재고, 남은 모양은 M-027 / ADR-032 로 넘긴다
 - Completion criteria: [C3] 결정이 있는 task 의 받은편지함 건수가 1 이상이면 → done 이 거부되고(pending_plan_responses · 무변경 · rc 1) 겹친 사유의 error_code 는 plan_lint_error > pending_plan_responses > open_decisions 순이며 결정이 없는 task 는 영향이 없다; backlog-update · session-start 가 미반영 건수를, 지문을 바꾸는 쓰기가 옛 계획 응답을 warnings 에 싣는다; plan-status 가 받은편지함 건수 · 파일별 자격 · 알 수 없는 파일을 낸다; 게이트 · plan-status · 우회 검출이 보관 응답으로 계산한 상태(kept · changed · unopened · disputed)로 판정한다
 - Completion criteria: [C4] seed 가 이어받는 task 의 보관 응답(<TASK-ID>-<숫자>.md)을 새 브랜치로 복사하고 받은편지함 · .rejected.md 는 옮기지 않는다; 합류 반영이 task 를 이월 · 되돌려 적을 때도 보관 응답이 함께 간다
 - Completion criteria: [C5] 응답 파일이 없는 저장소에서 1단계 검사 셋이 그대로 통과하고 추적된 task 파일 전수의 게이트 판정 · state.json 이 구현 전과 같다
@@ -61,7 +62,7 @@ wbs: M-028/WBS-28.2
 
 ## 🛠️ Implementation / Content
 
-- Progress: 2026-11-13 verifier 5차: FAIL 3 — 받은편지함 안의 링크를 --response · --discard 로 지정하면 링크가 보관으로 / 4차 수리가 받은편지함 .rejected.md · 숨은 .md 를 보고에서 지움(회귀) / discard 경로의 배치 · EXDEV case 없음. 수리 + case. 되주입 6건 중 5 red · 1 동치
+- Progress: 2026-11-13 소유자 결정: 검증 범위에 배치 전제를 둔다 (스펙 §7-9, 완료 기준에 전제 한 줄). 6차는 5차 수리분 한정
 - Next session starting point:
 - Remaining risks:
 

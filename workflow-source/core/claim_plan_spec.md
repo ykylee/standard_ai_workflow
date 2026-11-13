@@ -163,8 +163,11 @@ received_at: 2026-11-13T21:04:11.482913+09:00
 
 - `## Decisions` 는 응답 시점 task 의 모든 결정을 ID 순으로 한 줄씩 싣는다. `opened` 는 `yes` · `no`.
 - `## Comments` 는 선택. 대상은 주장 ID · 결정 ID · `[-]`.
-- 머리말의 키는 위 여섯뿐이고 한 번씩이다 — 모르는 키 · 겹친 키 · 머리말이 없는 파일은 `format` 을 읽을 수 없는 것으로 본다 (자격 2 단계). `responder` 가 비었거나 `received_at` 이 위 꼴이 아니면 1 단계다.
-- `received_at` 은 ISO 8601 이고 시간대 오프셋이 있다. 소수 초(마이크로초까지)가 올 수 있다.
+- 머리말의 키는 위 여섯뿐이고 한 번씩이다 — 모르는 키 · 겹친 키는 `format` 을 읽을 수 없는 것으로 본다 (자격 2 단계).
+  `responder` 가 비었거나 `received_at` 이 아래 꼴이 아니면 1 단계다 — 그래서 머리말이 아예 없는 파일 · 빈 파일도 1 단계다.
+- `received_at` 은 ISO 8601 의 한 꼴이다: `YYYY-MM-DDTHH:MM:SS[.f…]±HH:MM` — 날짜와 시각 사이는 `T`, 초까지 적고, 소수 초는 1~6 자리,
+  시간대는 숫자 오프셋(`Z` 아님), 숫자는 ASCII. 그 밖의 표기(기본형 · 주 날짜 · 초 생략 · 7 자리 이상의 소수)는 받지 않는다 —
+  읽는 쪽이 라이브러리의 파서에 맡기면 받는 범위가 실행 환경마다 달라진다.
 - 줄 끝 LF, UTF-8, BOM 없음. 읽는 쪽은 줄바꿈을 고치지 않는다 — CR 은 제어 문자로 자격 1 단계에서 떨어진다 (고치는 것은 쓰는 쪽이다).
 - 읽기 · 쓰기는 `encoding="utf-8"` · `newline="\n"` 을 명시한다 (`check_text_io_encoding` 의 대상).
 - **한도 (R5.3)** — 각각 적용한다: 파일 전체 65,536 바이트 이하 · 주석 20건 이하 · 주석 한 건 1,000 code point 이하(줄바꿈을 센다, 접두 `  > ` 는
@@ -189,7 +192,8 @@ received_at: 2026-11-13T21:04:11.482913+09:00
 5. **배타 이동**: 보관(과 `.rejected.md`)으로의 이동은 있는 파일을 덮지 않는다. 그 번호가 이미 있으면(1 의 뜻으로) 1 을 더해 옮긴다.
 6. 쓰는 쪽은 잠금을 쥐지 않는다.
 7. 받은편지함의 "건수" 는 `inbox/<TASK-ID>-<숫자>.md` 의 수다 (1 의 패턴 — 임시 파일 · 숨은 파일 · 그 밖의 이름은 세지 않는다).
-   `<TASK-ID>` 는 task ID 문법(`project_docs.TASK_ID_PATTERN`)에 맞는 것이다.
+   `<TASK-ID>` 는 작업 항목 ID 문법(`project_docs.WORK_ITEM_ID_PATTERN`)에 맞는 것이고 `<숫자>` 는 ASCII `0-9` 다. 게이트가 세는 이름과
+   보고가 "알 수 없는 파일" 로 치는 이름은 서로 여집합이다. epoch 이전의 `received_at` 은 번호 0 에서 출발한다.
    패턴에 맞지 않는 `.md` 가 받은편지함에 있으면 `plan-import` 와 `plan-status` 가 "알 수 없는 파일" 로 보고한다 — 게이트는 그것으로 막지 않는다.
 
 ## 8. 결정 상태 계산 (R6.2 · R6.3)
@@ -321,7 +325,10 @@ python -m workflow_kit plan-status --task=<TASK-ID> [--format=json|md]
 - **지문을 바꾸는 쓰기**는 받은편지함에 그 task 의 응답이 있으면 `받은편지함 n건이 옛 계획에 대한 것이다 — plan-import --discard` 를 경고한다.
 - **이어받기**: `seed` 가 `inherited_from` 으로 옮기는 task 마다 모 브랜치의 보관 응답(`plan_responses/<TASK-ID>-<숫자>.md`, `.rejected.md` 제외)을
   함께 복사한다. 받은편지함은 옮기지 않는다. 합류 반영이 task 를 이월할 때도, 이어받은 task 를 원본 쪽에 되돌려 적을 때도 같다
-  (브랜치에서 보관한 응답이 task 와 함께 돌아간다). 같은 이름이 이미 있으면 덮지 않는다. 브랜치 합류 아카이브는 `plan_responses/` 를
+  (브랜치에서 보관한 응답이 task 와 함께 돌아간다). 같은 이름이 이미 있으면 덮지 않는다.
+  되돌려 적기는 **거둠도 나른다**: 브랜치에서 거둔 응답과 내용이 같은 원본 쪽 보관 응답을 `.rejected.md` 로 옮긴다 (§7-5) —
+  거둔 응답은 처음부터 없던 것이므로(§8.3), task 만 돌아가면 브랜치에서 `proposed` 로 되돌린 결정이 원본 쪽에서 다시 닫힌다.
+  반대 방향(모 브랜치가 seed 뒤에 거둔 응답)은 나르지 않는다 — 이어받은 사본은 seed 시점의 것이다. 브랜치 합류 아카이브는 `plan_responses/` 를
   브랜치 디렉터리의 다른 파일과 같게 다룬다 — 별도 규칙이 없다.
 - **정본**: `global_workflow_standard.md` §11.1 에 `Apply plan responses | python -m workflow_kit plan-import`, §1 의 계획 문장에
   `claims, open decisions` 와 "A decision the owner has not opened is not agreed — never close a task with open decisions." 한 줄.

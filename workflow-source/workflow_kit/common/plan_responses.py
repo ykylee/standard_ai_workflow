@@ -23,11 +23,10 @@ import secrets
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
 
 from workflow_kit.common import file_lock, plan_claims
-from workflow_kit.common.project_docs import TASK_ID_PATTERN
+from workflow_kit.common.project_docs import WORK_ITEM_ID_PATTERN
 
 FORMAT = "workflow-kit-plan-response/1"
 ROLE_APPROVER = "approver"
@@ -45,12 +44,14 @@ LOCK_FILENAME = ".lock"
 REJECTED_SUFFIX = ".rejected.md"
 
 _DECISION_LINE_RE = re.compile(
-    r"^- (?P<id>D[1-9]\d*) \[(?P<claim>C[0-9.]+)\] value: (?P<value>\S+) \| default: (?P<default>\S+)"
+    r"^- (?P<id>D[1-9][0-9]*) \[(?P<claim>C[0-9.]+)\] value: (?P<value>\S+) \| default: (?P<default>\S+)"
     r" \| opened: (?P<opened>\S+)$")
 _COMMENT_HEAD_RE = re.compile(r"^- \[(?P<target>[^\]]+)\]$")
 _COMMENT_PREFIX = "  > "
-#: 응답 파일 이름 — `<TASK-ID>-<숫자>.md`. task ID 문법의 정본은 `project_docs.TASK_ID_PATTERN` 이다.
-_ANY_RESPONSE_NAME_RE = re.compile(rf"^(?P<task>{TASK_ID_PATTERN})-(?P<n>\d+)\.md$")
+#: 응답 파일 이름 — `<작업 항목 ID>-<숫자>.md`. ID 문법의 정본은 `project_docs.WORK_ITEM_ID_PATTERN` 이다
+#: (게이트가 세는 `_name_re` 와 같은 집합을 봐야 한다 — 좁으면 세어진 파일이 "알 수 없는 파일" 이 된다).
+#: 숫자는 ASCII `0-9` 다.
+_ANY_RESPONSE_NAME_RE = re.compile(rf"^(?P<task>{WORK_ITEM_ID_PATTERN})-(?P<n>[0-9]+)\.md$")
 _FRONTMATTER_KEYS = ("format", "task", "plan_digest", "responder", "role", "received_at")
 
 
@@ -95,23 +96,9 @@ class Verdict:
 # --------------------------------------------------------------------------- 읽기
 
 
-def _valid_received_at(value: str) -> bool:
-    """ISO 8601 이고 시간대 오프셋이 있다 (스펙 §6)."""
-    try:
-        stamp = datetime.fromisoformat(value)
-    except ValueError:
-        return False
-    return stamp.tzinfo is not None and "T" in value
-
-
 def received_micros(value: str) -> int | None:
-    """``received_at`` 의 epoch 마이크로초 — 번호의 출발값 (스펙 §7-1)."""
-    if not _valid_received_at(value):
-        return None
-    stamp = datetime.fromisoformat(value)
-    epoch = datetime.fromtimestamp(0, tz=stamp.tzinfo)
-    delta = stamp - epoch
-    return (delta.days * 86_400 + delta.seconds) * 1_000_000 + delta.microseconds
+    """``received_at`` 의 epoch 마이크로초 — 번호의 출발값 (스펙 §7-1). 스펙 §6 의 꼴이 아니면 ``None``."""
+    return plan_claims.parse_received_at(value)
 
 
 def parse_response(data: bytes, *, name: str = "") -> ParsedResponse:
@@ -154,8 +141,8 @@ def parse_response(data: bytes, *, name: str = "") -> ParsedResponse:
         limits.append("responder 가 없다")
     elif len(responder) > MAX_RESPONDER_CHARS:
         limits.append(f"responder 가 {len(responder)}자다 (한도 {MAX_RESPONDER_CHARS})")
-    if not _valid_received_at(fields.get("received_at", "")):
-        limits.append("received_at 이 시간대 오프셋이 있는 ISO 8601 이 아니다")
+    if received_micros(fields.get("received_at", "")) is None:
+        limits.append("received_at 이 `YYYY-MM-DDTHH:MM:SS[.ffffff]±HH:MM` 꼴이 아니다")
 
     decisions: list[plan_claims.ResponseDecision] = []
     opened_raw: list[str] = []
@@ -286,7 +273,7 @@ def ensure_inbox(branch_dir: Path) -> Path:
 
 def _name_re(task_id: str) -> re.Pattern[str]:
     # `<TASK-ID>-*` 는 접두가 겹치는 다른 task 를 잡는다 — 숫자와 접미사까지 맞춘다 (결정 24).
-    return re.compile(rf"^{re.escape(task_id)}-(?P<n>\d+)(?P<rejected>\.rejected)?\.md$")
+    return re.compile(rf"^{re.escape(task_id)}-(?P<n>[0-9]+)(?P<rejected>\.rejected)?\.md$")
 
 
 def _numbered(directory: Path, task_id: str) -> list[tuple[int, bool, Path]]:
@@ -359,6 +346,11 @@ def taken_numbers(branch_dir: Path, task_id: str, *, ignore: Path | None = None)
     return taken
 
 
+def numbers_in(directory: Path, task_id: str) -> set[int]:
+    """그 디렉터리에서 그 task 가 쓴 번호 — 접미사를 통틀어."""
+    return {number for number, _, _ in _numbered(directory, task_id)}
+
+
 def number_of(path: Path, task_id: str) -> int | None:
     match = _name_re(task_id).match(path.name)
     return int(match["n"]) if match is not None else None
@@ -391,7 +383,8 @@ def publish(branch_dir: Path, task_id: str, data: bytes) -> Path:
     """
     inbox = ensure_inbox(branch_dir)
     parsed = parse_response(data)
-    number = received_micros(parsed.received_at) or 0
+    # epoch 이전의 시각은 음수다 — 이름의 `-<숫자>` 가 깨지지 않게 0 에서 시작한다.
+    number = max(received_micros(parsed.received_at) or 0, 0)
     temp = inbox / f".tmp-{os.getpid()}-{secrets.token_hex(8)}"
     with open(temp, "wb") as handle:
         handle.write(data)
@@ -477,6 +470,22 @@ def copy_archive(source_branch_dir: Path, target_branch_dir: Path, task_id: str)
         target.write_bytes(path.read_bytes())
         copied.append(target)
     return copied
+
+
+def carry_discards(source_branch_dir: Path, target_branch_dir: Path, task_id: str) -> list[Path]:
+    """되돌려 적기 — 브랜치에서 **거둔** 응답을 원본 쪽 보관에서도 거둔다 (스펙 §11).
+
+    거둔 응답은 처음부터 없던 것이다 (§8.3). task 만 돌아가고 거둠이 안 따라가면 원본 쪽 보관에 그 응답이
+    `.md` 로 남아, 브랜치에서 `proposed` 로 되돌린 결정이 다시 `kept` · `changed` 로 계산된다.
+    짝은 **내용이 같은** 보관 응답이다 (번호는 옮기면서 바뀔 수 있다). 짝이 없으면 아무것도 하지 않는다.
+    """
+    rejected_bodies = {
+        path.read_bytes() for _, rejected, path in _numbered(responses_dir(source_branch_dir), task_id) if rejected}
+    moved: list[Path] = []
+    for path in archive_files(target_branch_dir, task_id):
+        if path.read_bytes() in rejected_bodies:
+            moved.append(move_exclusive(path, target_branch_dir, task_id, rejected=True))
+    return moved
 
 
 # --------------------------------------------------------------------------- 쓰는 쪽을 위한 렌더

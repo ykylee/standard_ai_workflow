@@ -122,14 +122,28 @@ def _verdict(
         action=action, moved_to=moved_to)
 
 
-def _predict_name(ctx: Context, path: Path, taken: set[int], *, rejected: bool) -> Path:
-    """dry-run — 옮기면 놓일 이름. 실제 이동과 같은 규칙으로 번호를 고른다 (접미사를 통틀어 유일)."""
-    number = plan_responses.number_of(path, ctx.task_id) or 0
-    while number in taken:
-        number += 1
-    taken.add(number)
-    suffix = plan_responses.REJECTED_SUFFIX if rejected else ".md"
-    return plan_responses.responses_dir(ctx.branch_dir) / f"{ctx.task_id}-{number}{suffix}"
+class _Shelf:
+    """dry-run — 번호가 어디에 쓰였는지의 사본. 실제 이동과 **같은 규칙**으로 놓일 이름을 고른다.
+
+    실제 이동(`plan_responses.move_exclusive`)은 옮기는 파일 **자신만** 빼고 받은편지함 · 보관의 번호를 본다.
+    그 번호를 보관의 다른 파일이 쓰고 있으면 자신을 뺀 뒤에도 쓰인 번호다 — 두 자리를 따로 센다.
+    """
+
+    def __init__(self, ctx: Context) -> None:
+        self.ctx = ctx
+        self.inbox = plan_responses.numbers_in(plan_responses.inbox_dir(ctx.branch_dir), ctx.task_id)
+        self.archive = plan_responses.numbers_in(plan_responses.responses_dir(ctx.branch_dir), ctx.task_id)
+
+    def place(self, path: Path, *, rejected: bool) -> Path:
+        number = plan_responses.number_of(path, self.ctx.task_id) or 0
+        home = self.inbox if path.parent.resolve() == plan_responses.inbox_dir(self.ctx.branch_dir).resolve() \
+            else self.archive
+        home.discard(number)
+        while number in self.inbox or number in self.archive:
+            number += 1
+        self.archive.add(number)
+        suffix = plan_responses.REJECTED_SUFFIX if rejected else ".md"
+        return plan_responses.responses_dir(self.ctx.branch_dir) / f"{self.ctx.task_id}-{number}{suffix}"
 
 
 def _read_lines(path: Path) -> tuple[list[str], bool]:
@@ -162,7 +176,7 @@ def _finish(
     if headline is not None:
         progress: str | None = headline.replace("{superseded}", str(len(result.superseded_responses))).replace(
             "{tally}", _tally(task.plan, result))
-        if changes and outcome == "discarded":
+        if changes and ctx.mode == MODE_DISCARD:
             progress = f"{progress} · {_recalc_note(changes)}"
     else:
         progress = _recalc_note(changes) if changes else None
@@ -256,7 +270,7 @@ def run_import(ctx: Context, *, response: str | None, apply: bool) -> int:
             for path in paths if path.is_file()
         ]
         judged.sort(key=lambda item: _order_key(item, ctx.task_id))
-        taken = plan_responses.taken_numbers(ctx.branch_dir, ctx.task_id)
+        shelf = _Shelf(ctx)
         verdicts: list[PlanResponseVerdict] = []
         incoming: list[plan_claims.Response] = []
         moved: list[tuple[plan_responses.ParsedResponse, Path]] = []
@@ -267,8 +281,7 @@ def run_import(ctx: Context, *, response: str | None, apply: bool) -> int:
             if apply:
                 target = plan_responses.move_exclusive(path, ctx.branch_dir, ctx.task_id)
             else:
-                taken.discard(plan_responses.number_of(path, ctx.task_id) or 0)
-                target = _predict_name(ctx, path, taken, rejected=False)
+                target = shelf.place(path, rejected=False)
                 incoming.append(plan_claims.Response(
                     responder=parsed.responder, received_at=parsed.received_at, decisions=parsed.decisions,
                     content_sha256=parsed.content_sha256, name=target.name))
@@ -307,8 +320,7 @@ def run_discard(ctx: Context, target_path: Path, *, reason: str, apply: bool) ->
         if apply:
             rejected = plan_responses.move_exclusive(target_path, ctx.branch_dir, ctx.task_id, rejected=True)
         else:
-            taken = plan_responses.taken_numbers(ctx.branch_dir, ctx.task_id, ignore=target_path)
-            rejected = _predict_name(ctx, target_path, taken, rejected=True)
+            rejected = _Shelf(ctx).place(target_path, rejected=True)
         responses = [
             r for r in plan_responses.qualified_archive(ctx.branch_dir, ctx.task_id, fresh.plan)
             if apply or location != "archive" or r.name != target_path.name

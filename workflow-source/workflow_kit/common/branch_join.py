@@ -125,6 +125,8 @@ def reflect_join(*, branch: str, branch_dir: Path, parent_branch: str, active_di
         inherit.apply_write_back(item)
         # 브랜치에서 보관한 응답도 원본 쪽으로 — task 만 돌아가면 상태의 근거가 남는다 (ADR-031 결정 20).
         plan_responses.copy_archive(branch_dir, active_dir / item.origin_branch, item.task_id)
+        # 브랜치에서 거둔 응답은 원본 쪽에서도 거둔다 — 거둔 응답은 처음부터 없던 것이다 (스펙 §8.3).
+        plan_responses.carry_discards(branch_dir, active_dir / item.origin_branch, item.task_id)
         report.written_back.append(item.task_id)
         if item.origin_branch == parent_branch:
             restored = item.origin_path.read_text(encoding="utf-8")

@@ -233,6 +233,16 @@ QUALIFY_TABLE: list[tuple[str, bytes, int | None]] = [
     ("received_at 이 날짜뿐", _swap(AT.format(1), "2026-11-13"), 1),
     ("received_at 의 날짜와 시각 사이가 공백", _swap(AT.format(1), "2026-11-13 21:04:11+09:00"), 1),
     ("received_at 이 시각이 아니다", _swap(AT.format(1), "어제"), 1),
+    ("received_at 의 시간대가 Z", _swap(AT.format(1), "2026-11-13T21:04:11Z"), 1),
+    ("received_at 에 초가 없다", _swap(AT.format(1), "2026-11-13T21:04+09:00"), 1),
+    ("received_at 이 기본형", _swap(AT.format(1), "20261113T210411+0900"), 1),
+    ("received_at 이 주 날짜", _swap(AT.format(1), "2026-W46-5T21:04:11+09:00"), 1),
+    ("received_at 의 소수 초가 7 자리", _swap(AT.format(1), "2026-11-13T21:04:11.0000001+09:00"), 1),
+    ("received_at 의 오프셋에 콜론이 없다", _swap(AT.format(1), "2026-11-13T21:04:11+0900"), 1),
+    ("received_at 이 없는 날짜", _swap(AT.format(1), "2026-02-30T21:04:11+09:00"), 1),
+    ("received_at 의 시가 24", _swap(AT.format(1), "2026-11-13T24:04:11+09:00"), 1),
+    ("received_at 이 전각 숫자", _swap(AT.format(1), "２０２６-11-13T21:04:11+09:00"), 1),
+    ("received_at 이 epoch 이전 (꼴은 맞다)", _swap(AT.format(1), "1969-12-31T23:59:59+00:00"), None),
     ("received_at 줄 없음", _swap(f"received_at: {AT.format(1)}\n", ""), 1),
     # 2 단계 — format
     ("format 이 다른 판", _swap(pr.FORMAT, "workflow-kit-plan-response/2"), 2),
@@ -268,6 +278,10 @@ QUALIFY_TABLE: list[tuple[str, bytes, int | None]] = [
     # 겹치면 앞 단계
     ("1 과 2 가 겹친다", _swap(pr.FORMAT, "x").replace(b"\n", b"\r\n"), 1),
     ("2 와 5 가 겹친다", _swap(pr.FORMAT, "x").replace(b"role: approver", b"role: viewer"), 2),
+    ("1 과 3 이 겹친다", _swap(f"task: {TASK}", "task: T").replace(b"\n", b"\r\n"), 1),
+    ("2 와 3 이 겹친다", _swap(pr.FORMAT, "x").replace(f"task: {TASK}".encode(), b"task: T"), 2),
+    ("4 와 5 가 겹친다", _swap(DIGEST, "sha256:0").replace(b"role: approver", b"role: viewer"), 4),
+    ("3 과 5 가 겹친다", _swap(f"task: {TASK}", "task: T").replace(b"role: approver", b"role: viewer"), 3),
     ("3 과 4 가 겹친다", _swap(f"task: {TASK}", "task: T").replace(DIGEST.encode(), b"sha256:0"), 3),
     ("4 와 6 이 겹친다", _swap(DIGEST, "sha256:0").replace(b"value: block |", b"value: nope |"), 4),
     ("5 와 6 이 겹친다", _base(role="viewer").encode().replace(b"value: block |", b"value: nope |"), 5),
@@ -299,6 +313,21 @@ def case_1_qualification_table() -> None:
         problems.append("번호의 출발값이 epoch 마이크로초가 아니다")
     if pr.received_micros("1970-01-01T09:00:00+09:00") != 0:
         problems.append("번호가 시간대 오프셋을 반영하지 않는다")
+    if pr.received_micros("2026-11-13T21:04:11.5-05:00") != pr.received_micros("2026-11-14T02:04:11.500000+00:00"):
+        problems.append("소수 초 한 자리 · 음수 오프셋을 다르게 읽었다")
+    with tempfile.TemporaryDirectory() as td:
+        # epoch 이전의 시각 — 이름의 `-<숫자>` 가 깨지면 그 응답은 건수에서 빠진다.
+        old = pr.publish(Path(td), TASK, _swap(AT.format(1), "1969-12-31T23:59:59+00:00"))
+        if old.name != f"{TASK}-0.md" or pr.inbox_files(Path(td), TASK) != [old]:
+            problems.append(f"epoch 이전 응답의 받은편지함 이름: {old.name}")
+        # 숫자는 ASCII 다. 작업 항목 ID 가 TASK- 가 아니어도(WF-) 같은 집합을 센다.
+        (pr.inbox_dir(Path(td)) / f"{TASK}-٥١.md").write_bytes(b"x")
+        (pr.inbox_dir(Path(td)) / "WF-2026-11-13-001-5.md").write_bytes(b"x")
+        if len(pr.inbox_files(Path(td), TASK)) != 1 or pr.unknown_inbox_files(Path(td)) != [f"{TASK}-٥١.md"]:
+            problems.append(f"ASCII 가 아닌 숫자의 이름을 응답으로 셌다: {pr.unknown_inbox_files(Path(td))}")
+        if pr.pending_by_task(Path(td)) != {TASK: 1, "WF-2026-11-13-001": 1} or \
+                len(pr.inbox_files(Path(td), "WF-2026-11-13-001")) != 1:
+            problems.append(f"TASK- 가 아닌 작업 항목 ID 의 응답을 다르게 셌다: {pr.pending_by_task(Path(td))}")
     # 오류 규칙을 어긴 계획에서는 보관 응답이 하나도 자격이 없다 (0 단계).
     broken = pc.parse_plan_values(["C1 하나", "C1 겹친다"], [D1])
     with tempfile.TemporaryDirectory() as td:
@@ -634,6 +663,8 @@ def case_5_discard() -> None:
         progress = _progress(ws, task_id)
         if "잘못 눌렀다" not in progress or rejected not in progress or "D1 kept → changed:warn" not in progress:
             problems.append(f"Progress 에 사유 · 경로 · 재계산이 없다: {progress}")
+        if dry.get("progress_line") != out.get("progress_line"):
+            problems.append(f"--discard 의 dry-run 이 예고한 Progress 가 다르다: {dry.get('progress_line')!r}")
         if dry.get("state_changes") != out.get("state_changes") or dry["responses"][0]["moved_to"] != out["responses"][0]["moved_to"]:
             problems.append("--discard 의 dry-run 과 --apply 가 다르다")
         # 받은편지함의 응답도 거둔다 — 상태는 그대로다.
@@ -699,7 +730,15 @@ def case_6_numbers_and_exclusive_move() -> None:
         # 받은편지함에 손으로 놓인 파일의 번호가 보관에 이미 있다 → 옮길 때 1 을 더한다.
         clash = pr.inbox_dir(branch) / f"{task_id}-{number}.md"
         clash.write_bytes(_response(ws, task_id, "park", 9, values={"D1": "warn"}))
+        _, dry = _import(ws, "--task", task_id)
         rc, out = _import(ws, "--task", task_id, "--apply")
+        if [(r["name"], r["moved_to"]) for r in dry.get("responses", [])] != \
+                [(r["name"], r["moved_to"]) for r in out.get("responses", [])] or \
+                dry.get("progress_line") != out.get("progress_line"):
+            problems.append(f"번호가 겹칠 때 dry-run 의 예고가 실제와 다르다: {[r['moved_to'] for r in dry.get('responses', [])]}"
+                            f" / {[r['moved_to'] for r in out.get('responses', [])]}")
+        if "plan 응답 3건 (kim, lee, park)" not in (out.get("progress_line") or ""):
+            problems.append(f"여러 건을 반영한 Progress 의 건수 · 응답자: {out.get('progress_line')}")
         moved = {r["name"]: r["moved_to"].rsplit("/", 1)[1] for r in out.get("responses", []) if r["action"] == "archived"}
         if rc != 0 or moved.get(clash.name) != f"{task_id}-{number + 4}.md":
             problems.append(f"쓰인 번호로 옮겼다: {moved}")
@@ -772,6 +811,9 @@ def case_7_lock_busy() -> None:
                     problems.append(f"{label}: 잠금을 못 쥐었는데 rc={rc} {out.get('outcome')}")
                 if _snapshot(ws) != before:
                     problems.append(f"{label}: import_busy 인데 무엇인가 바뀌었다")
+            rc, out = _import(ws, "--discard", archived, "--reason", "r")
+            if rc != 0 or out.get("outcome") != "dry_run":
+                problems.append(f"--discard 의 dry-run 이 잠금에 막혔다: {out.get('outcome')}")
             # dry-run 은 잠금을 쥐지 않는다.
             rc, out = _import(ws, "--task", task_id)
             if rc != 0 or out.get("outcome") != "dry_run":
@@ -940,6 +982,8 @@ def case_10_inheritance() -> None:
             "- Progress:", "- Progress: 브랜치에서 진행", 1), encoding="utf-8")
         (child / pr.RESPONSES_DIRNAME / f"{task_id}-99.md").write_bytes(
             _response(ws, task_id, "choi", 99, values={"D1": "warn"}))
+        # 이어받은 보관 응답을 브랜치에서 거뒀다 — 되돌려 적으면 원본 쪽에서도 거둔 것이어야 한다.
+        pr.move_exclusive(child / pr.RESPONSES_DIRNAME / kept, child, task_id, rejected=True)
         branch_join.reflect_join(branch="child", branch_dir=child, parent_branch=BRANCH,
                                  active_dir=memory_root / "active", sha="def5678", today="2026-11-13")
         parent_files = sorted(p.name for p in (parent / pr.RESPONSES_DIRNAME).iterdir() if p.is_file())
@@ -949,6 +993,14 @@ def case_10_inheritance() -> None:
             problems.append(f"되돌려 적은 task 의 보관 응답이 따라오지 않았다: {parent_files}")
         if f"{own_id}-8.rejected.md" in parent_files or (pr.inbox_dir(parent) / f"{own_id}-9.md").exists():
             problems.append("합류가 거둔 응답 · 받은편지함을 옮겼다")
+        if kept in parent_files or kept.replace(".md", pr.REJECTED_SUFFIX) not in parent_files:
+            problems.append(f"브랜치에서 거둔 응답이 원본 쪽 보관에 그대로 남았다: {parent_files}")
+        back = plan_tasks.read_task_plan(parent / "backlog" / "tasks" / f"{task_id}.md")
+        if back is None or plan_tasks.computed_states(back).states != {"D1": "changed:warn", "D2": "unopened"}:
+            # kim 의 응답(D1 warn · D2 열어 본 기본값)은 거뒀고, choi 의 응답(D1 warn)만 남는다.
+            problems.append(f"되돌려 적은 task 의 계산 상태: {plan_tasks.computed_states(back).states if back else None}")
+        if not waiting.is_file():
+            problems.append("합류가 모 브랜치의 받은편지함을 건드렸다")
         if not (parent / "backlog" / "tasks" / f"{own_id}.md").is_file():
             problems.append("fixture: task 가 이월되지 않았다")
     # copy_archive 는 있는 파일을 덮지 않는다.
@@ -984,6 +1036,13 @@ def case_11_reads_do_not_create_directories() -> None:
         pr.unknown_inbox_files(_branch(ws))
         if target.exists():
             problems.append("읽는 길이 plan_responses/ 를 만들었다 — 응답이 없는 저장소의 트리가 바뀐다")
+        # 보관만 있고 받은편지함이 없는 브랜치 (이어받은 모양) — dry-run 은 받은편지함도 잠금 파일도 만들지 않는다.
+        target.mkdir()
+        (target / f"{task_id}-5.md").write_bytes(_response(ws, task_id, "kim", 5, values={"D1": "warn"}))
+        for args in (("--task", task_id), ("--discard", f"{task_id}-5.md", "--reason", "r")):
+            rc, out = _import(ws, *args)
+            if rc != 0 or out.get("outcome") != "dry_run" or pr.inbox_dir(_branch(ws)).exists():
+                problems.append(f"dry-run {args[0]} 이 받은편지함을 만들었다: rc={rc} {out.get('outcome')}")
     _record("case 11 (읽는 길은 디렉터리를 만들지 않는다)", problems)
 
 
@@ -1019,6 +1078,9 @@ def case_12_contract_and_arguments() -> None:
         profile = str(ws / "docs" / "PROJECT_PROFILE.md")
         outside = ws / "elsewhere.md"
         outside.write_bytes(_response(ws, task_id, "lee", 2))
+        waiting = _publish(ws, task_id, _response(ws, task_id, "wait", 77))
+        other_task = _create(ws, name="다른 task")
+        foreign = _publish(ws, other_task, _response(ws, other_task, "kim", 78))
         (ws / "elsewhere").mkdir()
         named = ws / "elsewhere" / f"{task_id}-5.md"                # 이름은 응답 꼴이지만 받은편지함 밖이다
         named.write_bytes(_response(ws, task_id, "lee", 2))
@@ -1027,7 +1089,9 @@ def case_12_contract_and_arguments() -> None:
             "접두 축약": ("--task", task_id, "--resp", "x.md"),
             "인자 없음": (),
             "--reason 만": ("--task", task_id, "--reason", "r"),
-            "--discard 와 --response": ("--discard", "a.md", "--reason", "r", "--response", "b.md"),
+            "--discard 와 --response": ("--discard", _archive(ws, task_id)[0], "--reason", "r",
+                                        "--response", waiting.name),
+            "다른 task 의 받은편지함 파일을 --response 로": ("--task", task_id, "--response", foreign.name),
             "받은편지함 밖의 --response": ("--task", task_id, "--response", str(outside)),
             "받은편지함 밖의 --discard": ("--discard", str(outside), "--reason", "r"),
             "이름만 맞는 밖의 --response": ("--task", task_id, "--response", str(named)),
@@ -1045,6 +1109,9 @@ def case_12_contract_and_arguments() -> None:
                 problems.append(f"{label}: rc {proc.returncode} (기대 2)")
         if _snapshot(ws) != before or not named.is_file():
             problems.append("거절된 호출이 무엇인가 바꿨다")
+        rc, out = _import(ws, "--task", other_task, "--discard", _archive(ws, task_id)[0], "--reason", "r", "--apply")
+        if rc != 2 or out.get("error_code") != "response_not_found":
+            problems.append(f"--task 와 맞지 않는 --discard: rc={rc} {out.get('error_code')} {out.get('_err', '')[-120:]}")
     _record("case 12 (출력 계약 · 모르는 인자 · 받은편지함 밖의 경로는 거절)", problems)
 
 

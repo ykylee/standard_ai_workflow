@@ -665,19 +665,43 @@ def state_is_open(state: str) -> bool:
     return state.split(":", 1)[0] in OPEN_STATES
 
 
-def _received_key(response: Response) -> tuple[int, float, str, str]:
+_RECEIVED_AT_RE = re.compile(
+    r"^([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})(?:\.([0-9]{1,6}))?([+-])([0-9]{2}):([0-9]{2})$")
+
+
+def parse_received_at(value: str) -> int | None:
+    """``received_at`` 을 epoch 마이크로초로 (스펙 §6). 그 꼴이 아니면 ``None``.
+
+    받는 꼴은 하나다: ``YYYY-MM-DDTHH:MM:SS[.ffffff]±HH:MM`` — 소수 초는 1~6 자리, 시간대는 숫자 오프셋.
+    ``datetime.fromisoformat`` 에 맡기지 않는다 — 받는 범위가 Python 판마다 다르고(3.10 은 ``.5`` · ``Z`` 를
+    거절한다) 스펙보다 넓다(주 날짜 · 기본형 · 초 생략 · 7 자리 이상의 소수).
+    """
+    match = _RECEIVED_AT_RE.match(value)
+    if match is None:
+        return None
+    year, month, day, hour, minute, second = (int(match.group(i)) for i in range(1, 7))
+    offset_hours, offset_minutes = int(match.group(9)), int(match.group(10))
+    if hour > 23 or minute > 59 or second > 59 or offset_hours > 23 or offset_minutes > 59:
+        return None
+    try:
+        days = (datetime(year, month, day, tzinfo=timezone.utc) - datetime(1970, 1, 1, tzinfo=timezone.utc)).days
+    except ValueError:
+        return None
+    offset = (offset_hours * 3600 + offset_minutes * 60) * (1 if match.group(8) == "+" else -1)
+    micros = int((match.group(7) or "").ljust(6, "0") or 0)
+    return (days * 86_400 + hour * 3600 + minute * 60 + second - offset) * 1_000_000 + micros
+
+
+def _received_key(response: Response) -> tuple[int, int, str, str]:
     """유효 응답을 고를 때의 순서 — ``received_at`` 이 늦을수록, 같으면 sha256 이 클수록 뒤.
 
-    시각을 읽을 수 있으면 epoch 초로, 못 읽으면 문자열로 가른다 (읽을 수 있는 쪽이 뒤).
-    시간대가 없는 값은 UTC 로 본다 — 결정적이기만 하면 된다.
+    시각을 읽을 수 있으면 epoch 마이크로초로, 못 읽으면 문자열로 가른다 (읽을 수 있는 쪽이 뒤).
+    자격 있는 응답의 시각은 언제나 읽힌다 — 문자열 쪽은 결정적이기만 하면 된다.
     """
-    try:
-        stamp = datetime.fromisoformat(response.received_at)
-    except ValueError:
-        return (0, 0.0, response.received_at, response.content_sha256)
-    if stamp.tzinfo is None:
-        stamp = stamp.replace(tzinfo=timezone.utc)
-    return (1, stamp.timestamp(), "", response.content_sha256)
+    micros = parse_received_at(response.received_at)
+    if micros is None:
+        return (0, 0, response.received_at, response.content_sha256)
+    return (1, micros, "", response.content_sha256)
 
 
 def _later(a: Response, b: Response) -> Response:

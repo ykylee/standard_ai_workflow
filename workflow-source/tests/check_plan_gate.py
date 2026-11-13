@@ -769,6 +769,16 @@ def case_19_inbox_gate_and_reports() -> None:
                 problems.append(f"apply={apply}: 미반영 응답이 있는데 rc={rc} {out.get('error_code')} {out.get('error')!r}")
             if _snapshot(ws) != before:
                 problems.append(f"apply={apply}: 거부인데 파일이 바뀌었다")
+        # 거부도 칸 불일치를 함께 알린다 (쓰지는 않는다).
+        tampered = _text(ws, task_id).replace("state: answered:warn", "state: kept", 1)
+        (_tasks(ws) / f"{task_id}.md").write_text(tampered, encoding="utf-8")
+        rc, out = _update(ws, task_id, "--status", "done", "--validation-result", "v")
+        if rc != 1 or out.get("error_code") != "pending_plan_responses" or \
+                not _warned(out, "뒷받침 없는 상태를 되돌렸다: D1 kept → proposed") or not _warned(out, "열린 결정 1건 (D1)"):
+            problems.append(f"미반영 거부가 칸 불일치를 알리지 않았다: {out.get('error_code')} {out.get('warnings')}")
+        if _text(ws, task_id) != tampered:
+            problems.append("거부인데 칸을 고쳐 썼다")
+        _update(ws, task_id, "--decision-state", "D1=answered:warn")
         # 다른 전이 · 진행 메모는 막지 않고 건수를 알린다 (내용은 싣지 않는다).
         rc, out = _update(ws, task_id, "--status", "in_progress")
         note = f"계획 응답 2건 미반영 ({task_id}) — plan-import 로 확인"
@@ -821,6 +831,12 @@ def case_19_inbox_gate_and_reports() -> None:
         rc, out = _update(ws, task_id, "--progress-note", "메모")
         if _warned(out, "옛 계획에 대한 것이다"):
             problems.append("지문을 바꾸지 않는 쓰기가 옛 계획 경고를 냈다")
+        # 받은편지함에 놓인 `.rejected.md` 는 미반영 응답이 아니다 — 건수에도 경고에도 들지 않는다.
+        stray = pr.inbox_dir(_branch_dir(ws)) / f"{task_id}-9.rejected.md"
+        stray.write_text("x", encoding="utf-8")
+        if len(pr.inbox_files(_branch_dir(ws), task_id)) != 2 or \
+                pr.pending_by_task(_branch_dir(ws)) != {task_id: 2}:
+            problems.append(f"받은편지함의 .rejected.md 를 미반영으로 셌다: {pr.pending_by_task(_branch_dir(ws))}")
         # 받은편지함을 비우면 닫힌다.
         for name in [p.name for p in pr.inbox_files(_branch_dir(ws), task_id)]:
             pr.move_exclusive(pr.inbox_dir(_branch_dir(ws)) / name, _branch_dir(ws), task_id, rejected=True)
@@ -837,6 +853,15 @@ def case_19_inbox_gate_and_reports() -> None:
                         "--plan-claim", "C2 옛 task 는 그대로 읽힌다", name="주장만 있는 task")
         _respond(ws, with_decision, "kim", 1, value="warn")
         (pr.inbox_dir(_branch_dir(ws)) / f"{plain}-1.md").write_text("x", encoding="utf-8")
+        # 결정이 없는 task 가 오류 규칙을 어겨 거부될 때 — 받은편지함은 그 task 의 사유가 아니다.
+        plain_path = _tasks(ws) / f"{plain}.md"
+        healthy_plain = plain_path.read_text(encoding="utf-8")
+        plain_path.write_text(healthy_plain.replace("- Claims: C2 ", "- Claims: C1 ", 1), encoding="utf-8")
+        rc, out = _run(ws, "--mode", "update", "--task-id", plain, "--task-name", "주장만 있는 task",
+                       "--status", "done", "--validation-result", "v")
+        if rc != 1 or out.get("error_code") != "plan_lint_error" or _warned(out, "미반영 도 남아 있다"):
+            problems.append(f"결정이 없는 task 의 거부에 받은편지함 사유가 붙었다: {out.get('error_code')} {out.get('warnings')}")
+        plain_path.write_text(healthy_plain, encoding="utf-8")
         rc, out = _run(ws, "--mode", "update", "--task-id", plain, "--task-name", "주장만 있는 task",
                        "--status", "done", "--validation-result", "v")
         if rc != 0 or _status(ws, plain) != "done":

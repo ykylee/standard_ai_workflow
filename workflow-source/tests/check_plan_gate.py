@@ -15,10 +15,16 @@ CLI 를 subprocess 로 끝까지 돌린다. 거부는 **파일을 하나도 바�
 10. 4필드 Plan 절이 있는 옛 task 에 주장을 쓰면 절의 맨 앞에 들어간다
 11. `plan-status` 는 계산값을 내고 아무것도 쓰지 않는다; `state.json` 의 `open_decisions` 는 열린 결정이 있을 때만 나온다
 12. `done` 인데 열린 결정이 있는 task 를 `refresh-state` 와 `session-start` 가 warning 으로 싣는다 (옛 kit 의 우회)
+13. dry-run 도 같은 판정을 낸다 — 오류 규칙 · 열린 결정의 거부가 `--apply` 없이도 rc 1 이다
+14. 문구 — 경고와 거부의 문장이 스펙 §4 와 글자까지 같다
+15. 사유는 명시한 `--progress-note` 만이다 — `--task-brief` 로는 열린 결정을 걷지 못한다
+16. `plan-status` · 우회 검출 · `open_decisions` 의 범위 — 계산값으로 판정하고, 진행 중 · 차단 · 계획만 세고, done 만 우회로 본다
+17. L5 는 git 저장소에서 실제 HEAD 를 읽는다
+18. 겹친 사유 — 검증 결과 없는 done 과 열린 결정이 겹치면 거부가 이기고 강등 사유도 싣는다
 """
 from __future__ import annotations
 
-#: CLI 를 30 회 남짓 subprocess 로 띄운다 — 병렬 부하에서 기본 상한을 넘을 수 있다.
+#: CLI 를 60 회 남짓 subprocess 로 띄운다 — 병렬 부하에서 기본 상한을 넘을 수 있다.
 CHECK_TIMEOUT_S = 150
 
 WATCHES = (
@@ -91,10 +97,10 @@ def _snapshot(ws: Path) -> str:
     return digest.hexdigest()
 
 
-def _run(ws: Path, *extra: str) -> tuple[int, dict]:
+def _run(ws: Path, *extra: str, apply: bool = True) -> tuple[int, dict]:
     proc = subprocess.run(
         [sys.executable, str(SCRIPT), "--project-profile-path", str(ws / "docs" / "PROJECT_PROFILE.md"),
-         "--target-date", "2026-11-13", "--apply", *extra],
+         "--target-date", "2026-11-13", *(("--apply",) if apply else ()), *extra],
         capture_output=True, encoding="utf-8", errors="replace", check=False, env=_env(), cwd=str(ws),
     )
     try:
@@ -125,8 +131,8 @@ def _with_decision(ws: Path) -> str:
                    "--plan-claim", "C2 옛 task 는 그대로 읽힌다", "--plan-decision", DECISION_ARG)
 
 
-def _update(ws: Path, task_id: str, *extra: str) -> tuple[int, dict]:
-    return _run(ws, "--mode", "update", "--task-id", task_id, "--task-name", "주장 있는 task", *extra)
+def _update(ws: Path, task_id: str, *extra: str, apply: bool = True) -> tuple[int, dict]:
+    return _run(ws, "--mode", "update", "--task-id", task_id, "--task-name", "주장 있는 task", *extra, apply=apply)
 
 
 def _text(ws: Path, task_id: str) -> str:
@@ -432,6 +438,9 @@ def case_12_bypass_is_reported() -> None:
         expected = f"done 인데 열린 결정이 있다: {task_id} (D1)"
         if expected not in warnings:
             problems.append(f"우회가 보고되지 않았다: rc={rc} {warnings} {out[:200]}")
+        state_path = ws / "ai-workflow" / "memory" / "active" / BRANCH / "state.json"
+        if "open_decisions" in json.loads(state_path.read_text(encoding="utf-8")):
+            problems.append("done task 의 열린 결정을 state.json open_decisions 에 셌다 (진행 중 · 차단 · 계획만 센다)")
         rc, out = _tool(ws, "workflow_kit.tools.session_start",
                         "--project-profile-path", str(ws / "docs" / "PROJECT_PROFILE.md"))
         try:
@@ -447,6 +456,153 @@ def case_12_bypass_is_reported() -> None:
     _record("case 12 (done 인데 열린 결정 — refresh-state · session-start warning)", problems)
 
 
+def case_13_dry_run_gives_the_same_verdict() -> None:
+    problems: list[str] = []
+    with tempfile.TemporaryDirectory() as td:
+        ws = _workspace(td)
+        task_id = _with_decision(ws)
+        before = _snapshot(ws)
+        rc, out = _update(ws, task_id, "--plan-claim", "C2 같은 ID 를 또 쓴다", apply=False)
+        if rc != 1 or out.get("error_code") != "plan_lint_error":
+            problems.append(f"dry-run 이 오류 규칙을 거부하지 않았다: rc={rc} {out.get('error_code')}")
+        rc, out = _update(ws, task_id, "--status", "done", "--validation-result", "v", apply=False)
+        if rc != 1 or out.get("error_code") != "open_decisions":
+            problems.append(f"dry-run 이 열린 결정의 done 을 거부하지 않았다: rc={rc} {out.get('error_code')}")
+        rc, out = _run(ws, "--mode", "create", "--status", "done", "--validation-result", "v", "--task-name", "닫힌 채 생성",
+                       "--task-brief", "b", "--plan-claim", "C1 하나를 한다", "--plan-decision", DECISION_ARG, apply=False)
+        if rc != 1 or out.get("error_code") != "open_decisions":
+            problems.append(f"열린 결정이 있는 task 를 done 으로 create 할 수 있다: rc={rc} {out.get('error_code')}")
+        if _snapshot(ws) != before:
+            problems.append("dry-run 이 파일을 바꿨다")
+    _record("case 13 (dry-run 도 같은 판정)", problems)
+
+
+def case_14_messages_match_the_spec() -> None:
+    problems: list[str] = []
+    with tempfile.TemporaryDirectory() as td:
+        ws = _workspace(td)
+        task_id = _with_decision(ws)
+        _, out = _update(ws, task_id, "--status", "in_progress")
+        warn = "열린 결정 1건 (D1 proposed) — 묻지 않았거나, 열리지 않았거나, 답이 갈렸다. 기본값은 동의가 아니다."
+        if warn not in out.get("warnings", []):
+            problems.append(f"in_progress 경고 문구: {out.get('warnings')}")
+        _, out = _update(ws, task_id, "--status", "done", "--validation-result", "v")
+        refusal = ("done 거부: 열린 결정 1건 (D1). --decision-state D1=answered:<value> 로 답을 기록하거나, "
+                   "--replace-field plan_decisions 로 결정을 걷고 사유를 Progress 에 남긴다.")
+        if out.get("error") != refusal:
+            problems.append(f"done 거부 문구: {out.get('error')!r}")
+        # 전이가 아닌 update 는 린트 경고를 되풀이하지 않는다.
+        _update(ws, task_id, "--replace-field", "done_criteria", "--done-criteria", "인용 없는 기준")
+        _, out = _update(ws, task_id, "--status", "in_progress")
+        if any(w.startswith("L7") for w in out.get("warnings", [])):
+            problems.append(f"같은 상태를 다시 줬는데 린트 경고가 되풀이됐다: {out.get('warnings')}")
+        _, out = _update(ws, task_id, "--progress-note", "메모")
+        if any(w.startswith("L7") for w in out.get("warnings", [])):
+            problems.append(f"진행 메모에 린트 경고가 붙었다: {out.get('warnings')}")
+    _record("case 14 (경고 · 거부 문구가 스펙과 같다, 되풀이하지 않는다)", problems)
+
+
+def case_15_brief_is_not_a_removal_note() -> None:
+    problems: list[str] = []
+    with tempfile.TemporaryDirectory() as td:
+        ws = _workspace(td)
+        task_id = _with_decision(ws)
+        before = _snapshot(ws)
+        rc, out = _update(ws, task_id, "--replace-field", "plan_decisions", "--task-brief", "brief 로 채운 진행 줄")
+        if rc != 1 or out.get("error_code") != "decision_removal_needs_note":
+            problems.append(f"--task-brief 로 열린 결정이 걷혔다: rc={rc} {out.get('error_code')}")
+        if _snapshot(ws) != before:
+            problems.append("거부인데 파일이 바뀌었다")
+    _record("case 15 (사유는 명시한 --progress-note 만)", problems)
+
+
+def case_16_computed_values_and_scopes() -> None:
+    problems: list[str] = []
+    with tempfile.TemporaryDirectory() as td:
+        ws = _workspace(td)
+        base = ws / "ai-workflow" / "memory" / "active" / BRANCH
+        state_path = base / "state.json"
+        planned = _with_decision(ws)
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        if state.get("open_decisions") != {planned: 1}:
+            problems.append(f"planned task 의 열린 결정을 세지 않았다: {state.get('open_decisions')}")
+        # 손으로 kept 로 고친 칸 — plan-status 는 계산값을 내고 칸도 함께 보인다.
+        path = _tasks(ws) / f"{planned}.md"
+        path.write_text(_text(ws, planned).replace("state: proposed", "state: kept"), encoding="utf-8")
+        rc, out = _tool(ws, "workflow_kit.tools.plan_status", "--task", planned)
+        data = json.loads(out) if rc == 0 else {}
+        decision = (data.get("decisions") or [{}])[0]
+        if (decision.get("state"), decision.get("column_state"), decision.get("open")) != ("proposed", "kept", True):
+            problems.append(f"plan-status 가 칸으로 판정했다: {decision}")
+        if data.get("open_decisions") != ["D1"] or data.get("status") != "warning" or \
+                not any("상태 칸이 계산값과 다르다: D1" in w for w in data.get("warnings", [])):
+            problems.append(f"칸 불일치를 알리지 않았다: {data.get('status')} {data.get('warnings')} {data.get('open_decisions')}")
+        # 같은 손 편집 + frontmatter done — 칸은 닫혀 보이지만 우회다.
+        path.write_text(_text(ws, planned).replace("status: planned", "status: done", 1), encoding="utf-8")
+        handoff = base / "session_handoff.md"
+        if not handoff.is_file():
+            handoff.write_text("# Session Handoff\n", encoding="utf-8")
+        profile = str(ws / "docs" / "PROJECT_PROFILE.md")
+        _, out = _tool(ws, "workflow_kit.tools.refresh_state", "--project-profile-path", profile)
+        warnings = json.loads(out).get("warnings", [])
+        if f"done 인데 열린 결정이 있다: {planned} (D1)" not in warnings:
+            problems.append(f"칸이 kept 인 done task 의 우회를 못 봤다: {warnings}")
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        if "open_decisions" in state:
+            problems.append(f"done task 를 open_decisions 에 셌다: {state['open_decisions']}")
+        _, out = _tool(ws, "workflow_kit.tools.refresh_state", "--project-profile-path", profile, "--check")
+        if f"done 인데 열린 결정이 있다: {planned} (D1)" not in json.loads(out).get("warnings", []):
+            problems.append("--check 가 우회를 싣지 않았다")
+        # 진행 중인 task 의 열린 결정은 우회가 아니다.
+        active = _with_decision(ws)
+        _update(ws, active, "--status", "in_progress")
+        _, out = _tool(ws, "workflow_kit.tools.refresh_state", "--project-profile-path", profile)
+        warnings = json.loads(out).get("warnings", [])
+        if any(active in w for w in warnings):
+            problems.append(f"진행 중 task 를 우회로 보고했다: {warnings}")
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        if state.get("open_decisions") != {active: 1}:
+            problems.append(f"open_decisions 범위: {state.get('open_decisions')}")
+    _record("case 16 (계산값으로 판정 · open_decisions 와 우회의 범위)", problems)
+
+
+def case_17_l5_reads_head() -> None:
+    problems: list[str] = []
+    with tempfile.TemporaryDirectory() as td:
+        ws = _workspace(td)
+        (ws / "src").mkdir()
+        (ws / "src" / "a.py").write_text("one\ntwo\nthree\n", encoding="utf-8")
+        git_env = dict(os.environ, GIT_CONFIG_NOSYSTEM="1", GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t",
+                       GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@t")
+        for command in (["git", "init", "-q", "-b", BRANCH], ["git", "add", "-A"], ["git", "commit", "-q", "-m", "base"]):
+            subprocess.run(command, cwd=str(ws), env=git_env, check=True, capture_output=True)
+        rc, out = _run(ws, "--mode", "create", "--status", "planned", "--task-name", "위치", "--task-brief", "b",
+                       "--done-criteria", "[C1] 기준",
+                       "--plan-claim", "C1 하나를 한다", "--plan-claim", "C1.1 둘을 한다",
+                       "--plan-claim", "C1.1.1 @ src/a.py:2-3 · f()", "--plan-claim", "C1.1.2 @ src/a.py:3-9 · g()",
+                       "--plan-claim", "C1.1.3 @ src/none.py:1 · h()", "--plan-claim", "C1.1.4 @ new: src/b.py · k()")
+        l5 = sorted(w for w in out.get("warnings", []) if w.startswith("L5"))
+        if rc != 0 or len(l5) != 2 or "C1.1.2" not in l5[0] or "3줄" not in l5[0] or "C1.1.3" not in l5[1]:
+            problems.append(f"L5 가 HEAD 를 읽지 않았다: rc={rc} {l5} {[w for w in out.get('warnings', []) if 'L5' in w]}")
+    _record("case 17 (L5 — git 저장소에서 HEAD 의 줄 수를 읽는다)", problems)
+
+
+def case_18_overlapping_reasons() -> None:
+    problems: list[str] = []
+    with tempfile.TemporaryDirectory() as td:
+        ws = _workspace(td)
+        task_id = _with_decision(ws)
+        before = _snapshot(ws)
+        rc, out = _update(ws, task_id, "--status", "done")   # 검증 결과 없음 → 강등 대상이기도 하다
+        if rc != 1 or out.get("error_code") != "open_decisions":
+            problems.append(f"강등과 겹치면 거부가 이겨야 한다: rc={rc} {out.get('error_code')} {out.get('status')}")
+        if not any("검증 결과" in w for w in out.get("warnings", [])):
+            problems.append(f"강등 사유를 함께 싣지 않았다: {out.get('warnings')}")
+        if _snapshot(ws) != before:
+            problems.append("거부인데 파일이 바뀌었다")
+    _record("case 18 (겹친 사유 — 거부가 이기고 강등 사유도 싣는다)", problems)
+
+
 CASES = [
     case_1_lint_error_blocks_write_warning_does_not,
     case_2_open_decision_gates_transitions,
@@ -460,6 +616,12 @@ CASES = [
     case_10_claims_go_first_in_existing_plan_section,
     case_11_plan_status_and_state_json,
     case_12_bypass_is_reported,
+    case_13_dry_run_gives_the_same_verdict,
+    case_14_messages_match_the_spec,
+    case_15_brief_is_not_a_removal_note,
+    case_16_computed_values_and_scopes,
+    case_17_l5_reads_head,
+    case_18_overlapping_reasons,
 ]
 
 

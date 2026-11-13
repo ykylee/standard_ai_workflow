@@ -22,6 +22,9 @@ subagent, `docs/planning/ai-native-sdlc-playbook-review-2026-10.md` §4.A2).
    - `Completion criteria` 줄 하나하나가 판정 단위다.
    - `## 🧭 Plan` 의 `Proof` 가 있으면 그것이 기준별 측정 방법이다. `Files that change` 와
      실제 변경(`git status --short`, `git diff --stat`, 최근 커밋의 `git show --stat`)을 대조한다.
+   - task 에 주장(`Claims`) · 결정(`Decisions`)이 있으면 묶음을 kit 에서 받는다 (읽기 전용):
+     `python -m workflow_kit plan-status --task <TASK-ID> --format md`. 그 표의 판정 칸을 기준별 판정으로 채워
+     보고의 기준 표 뒤에 붙인다. "재지 않는 주장" 과 열린 결정은 최종 판정 옆에 **따로** 적는다 — 판정 규칙은 그대로다.
 3. 기준마다 **직접 다시 잰다.** 검사는 저장소 `.venv` 로 돌린다:
    `.venv/bin/python3 workflow-source/tests/run_all_checks.py --filter=<이름조각> --tmp-dir=<실디스크경로>`
    또는 `--changed`. 명령 출력은 파일로 받고 종료 코드를 따로 읽는다 (파이프 뒤 exit 0 에 속지 않는다).

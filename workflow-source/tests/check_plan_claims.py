@@ -12,12 +12,18 @@
 7. 호환 — 두 라벨이 없는 task 줄은 계약을 거쳐도 그대로이고, 새 task 는 빈 `Claims` 줄을 갖지 않는다
 8. 쓰기 표기 — 새 결정은 `proposed` 로, 상태 칸 고쳐 쓰기는 정본 표기로
 9. 묶음 — `plan-status` 의 "재지 않는 주장" 이 L7 의 것과 같고, 주장이 없으면 절을 내지 않는다
+10. 호환(전수) — 이 저장소의 task 파일 전부가 계약을 거쳐도 한 줄도 안 바뀐다 (주장 · 결정이 없는 파일)
+11. 계약 적용 — 교체해도 `answered` 는 남고, 같은 상태를 다시 줘도 경고를 되풀이하지 않고, 오류 상태에서는 칸을 다시 적지 않는다
 """
 from __future__ import annotations
+
+#: case 10 이 이 저장소의 task 파일을 읽는다 — 다른 쓰기와 겹치면 반쯤 쓰인 파일을 볼 수 있다.
+REQUIRES_QUIET_REPO = True
 
 WATCHES = (
     "workflow-source/workflow_kit/*",
     "workflow-source/pyproject.toml",
+    "ai-workflow/memory/*",
 )
 
 import ast
@@ -117,6 +123,9 @@ def case_2_each_rule_fires() -> None:
             problems.append(f"{rule} 가 안 났다: {[i.render() for i in issues]}")
 
     expect("L1", _plan([f"C{n} 주장 {n}" for n in range(1, 7)], []), [])
+    expect("L1", _plan(["C1 부모", *[f"C1.{n} 자식 {n}" for n in range(1, 7)]], []), [])
+    expect("L2", _plan(["C1 하나", "C1.1 둘", "C1.1.1 @ new: a.py · f()", "C1.1.3 @ new: b.py · g()"], []))
+    expect("L3", _plan(["C1 부모", "C1.1 " + "나" * 81], []))
     expect("L2", _plan(["C1 하나", "C1 겹침"], []))
     expect("L2", _plan(["C1 하나", "C3 건너뜀"], []))
     expect("L2", _plan(["C1.1 부모 없음"], []))
@@ -133,11 +142,39 @@ def case_2_each_rule_fires() -> None:
     expect("L6", _plan(decisions=["D1 [C1] 질문 | 안에 구분자 | default: a | options: a = 가; b = 나"]))
     expect("L6", _plan(decisions=["D1 [C1] 상태 값이 밖 | default: a | options: a = 가; b = 나 | state: answered:z"]))
     expect("L6", _plan(decisions=["D1 [C1] 값 문법 | default: A값 | options: A값 = 가; b = 나"]))
+    expect("L6", _plan(decisions=["D1 [C1] 선택지 값 문법 | default: a | options: a = 가; B값 = 나; c = 다"]))
+    expect("L6", _plan(decisions=["D1 [C1] 상태를 못 읽음 | default: a | options: a = 가; b = 나 | state: maybe"]))
+    expect("L6", _plan(decisions=["D1 [C1] 칸이 두 번 | default: a | default: b | options: a = 가; b = 나"]))
+    expect("L6", _plan(decisions=["D1 [C1] 선택지가 겹침 | default: a | options: a = 가; a = 나"]))
+    expect("L5", _plan(["C1 하나", "C1.1 둘", "C1.1.1 위치가 아니라 문장이다"], []))
     expect("L6", _plan(decisions=[f"D{n} [C1] 질문 {n} | default: a | options: a = 가; b = 나" for n in range(1, 7)]))
     expect("L6", _plan(decisions=[GOOD_DECISION, GOOD_DECISION]))
     expect("L7", _plan(), ["인용 없는 기준"])
     expect("L8", _plan(["C1 구현을 80% 마쳤다"], []))
     expect("L8", _plan(["C1 파서 작성 완료"], []))
+    expect("L8", _plan(["C1 the parser is done."], []))
+    expect("L8", _plan(["C1 파서를 썼다 ✅"], []))
+
+    # 규칙마다 **그 규칙만** 어긴 입력이 그 규칙 하나로 잡히는가 — 다른 규칙이 대신 잡으면 판정이 죽어도 모른다.
+    def only(rule: str, plan: pc.Plan, criteria: list[str]) -> None:
+        got = _rules(pc.lint_plan(plan, criteria=criteria, file_line_count=_lines_of))
+        if got != {rule}:
+            problems.append(f"{rule} 만 나야 하는데 {sorted(got)}")
+
+    only("L6", _plan(["C1 하나"], ["D1 [C1] 선택지 값 문법 | default: a | options: a = 가; B값 = 나"]), ["[C1] 기준"])
+    only("L6", _plan(["C1 하나"], ["D1 [C1] 상태를 못 읽음 | default: a | options: a = 가; b = 나 | state: maybe"]), ["[C1] 기준"])
+    only("L6", _plan(["C1 하나"], ["D1 [C1] 선택지가 겹침 | default: a | options: a = 가; a = 나"]), ["[C1] 기준"])
+    only("L1", _plan(["C1 부모", *[f"C1.{n} 자식 {n}" for n in range(1, 7)]], []), ["[C1] 기준"])
+    only("L3", _plan(["C1 부모", "C1.1 " + "나" * 81], []), ["[C1] 기준"])
+    only("L8", _plan(["C1 the parser is done."], []), ["[C1] 기준"])
+    only("L8", _plan(["C1 파서를 썼다 ✅"], []), ["[C1] 기준"])
+    unreadable = _plan(["C1 하나"], ["D1 [C1] 상태를 못 읽음 | default: a | options: a = 가; b = 나 | state: maybe"])
+    if pc.open_decision_ids(unreadable) != ["D1"]:
+        problems.append(f"읽을 수 없는 결정은 열린 것으로 세어야 한다: {pc.open_decision_ids(unreadable)}")
+    # 상태는 answered 로 읽히지만 줄의 다른 칸이 깨진 결정 — 닫힌 것으로 치면 안 된다.
+    half_read = _plan(["C1 하나"], ["D1 [C1] 선택지가 깨짐 | default: a | options: a 가; b = 나 | state: answered:b"])
+    if not half_read.decisions[0].problems or pc.open_decision_ids(half_read) != ["D1"]:
+        problems.append(f"칸이 깨진 answered 결정을 닫힌 것으로 셌다: {pc.open_decision_ids(half_read)}")
     expect("L9", pc.parse_plan([f"- {CLAIMS}: C1 하나", "- Proof: p", f"- {CLAIMS}: C2 둘"]))
     expect("L10", _plan(), ["[C9] 없는 주장을 인용", *GOOD_CRITERIA])
     _record("case 2 (린트 L1~L10 — 규칙마다 최소 위반이 잡힌다)", problems)
@@ -262,7 +299,7 @@ def case_7_compat() -> None:
     verdict = backlog_update.enforce_plan_contract(
         list(LEGACY_LINES), previous_lines=list(LEGACY_LINES), plan_claim_args=[], plan_decision_args=[],
         decision_state_args=[], replace_fields=set(), requested_status=None, status="in_progress",
-        current_status="in_progress", progress_note="메모", workspace_root=SOURCE_ROOT)
+        current_status="in_progress", removal_note=None, workspace_root=SOURCE_ROOT)
     if verdict.lines != LEGACY_LINES or verdict.warnings or verdict.error_code:
         problems.append(f"두 라벨이 없는 task 가 계약을 거쳐 바뀌었다: {verdict.warnings} {verdict.error_code}")
     empty_plan = backlog_update.plan_section_lines({})
@@ -328,6 +365,102 @@ def case_9_bundles_match_l7() -> None:
     _record("case 9 (묶음 — 재지 않는 주장은 L7 과 같은 판정)", problems)
 
 
+def _contract(lines: list[str], previous: list[str] | None, **overrides: object) -> backlog_update.PlanVerdict:
+    args: dict[str, object] = dict(
+        previous_lines=previous, plan_claim_args=[], plan_decision_args=[], decision_state_args=[],
+        replace_fields=set(), requested_status=None, status="in_progress", current_status="in_progress",
+        removal_note=None, workspace_root=SOURCE_ROOT)
+    args.update(overrides)
+    return backlog_update.enforce_plan_contract(list(lines), **args)  # type: ignore[arg-type]
+
+
+def case_10_whole_corpus_is_untouched() -> None:
+    problems: list[str] = []
+    repo = SOURCE_ROOT.parent
+    files = sorted((repo / "ai-workflow" / "memory").rglob("tasks/TASK-*.md"))
+    scanned = with_plan = 0
+    for path in files:
+        try:
+            lines = path.read_text(encoding="utf-8").splitlines()
+        except (OSError, UnicodeDecodeError):
+            continue
+        if not pc.parse_plan(lines).empty:
+            with_plan += 1      # 주장 · 결정이 있는 파일은 계약의 대상이다 — 이 case 가 재는 것이 아니다.
+            continue
+        scanned += 1
+        for requested in (None, "done"):
+            verdict = _contract(lines, lines, requested_status=requested, status="done" if requested else "in_progress")
+            if verdict.lines != lines or verdict.error_code:
+                problems.append(f"{path.name}: 바뀌었거나 거부됐다 ({verdict.error_code}) requested={requested}")
+                break
+    if scanned < 100:
+        problems.append(f"표본이 너무 적다 — task 파일 {scanned}개 (경로가 바뀌었는가)")
+    _record(f"case 10 (호환 전수 — task 파일 {scanned}개 무변화, 주장 있는 파일 {with_plan}개 제외)", problems)
+
+
+WITH_DECISION = [
+    "## 📝 Description", "", "- Completion criteria: [C1] 기준", "",
+    "## 🧭 Plan", "", f"- {CLAIMS}: C1 하나를 한다",
+    f"- {DECISIONS}: {GOOD_DECISION.replace('state: proposed', 'state: answered:warn')}",
+    "- Files that change: a.py", "",
+]
+
+
+def case_11_contract_application() -> None:
+    problems: list[str] = []
+    decision_at = next(i for i, l in enumerate(WITH_DECISION) if l.startswith(f"- {DECISIONS}:"))
+
+    # 결정 줄을 교체해도 대화의 답은 남는다 (ADR-031 결정 12).
+    replaced = list(WITH_DECISION)
+    replaced[decision_at] = f"- {DECISIONS}: " + GOOD_DECISION.replace("막는가?", "막을까?")
+    verdict = _contract(replaced, WITH_DECISION, plan_decision_args=["x"], replace_fields={pc.DECISIONS_KEY})
+    if verdict.error_code or not verdict.lines[decision_at].endswith("| state: answered:warn"):
+        problems.append(f"교체로 answered 가 사라졌다: {verdict.error_code} {verdict.lines[decision_at]}")
+    if not any("질문이 바뀌었다 — answered 를 유지했다: D1" in w for w in verdict.warnings):
+        problems.append(f"answered 유지 경고가 없다: {verdict.warnings}")
+    gone = list(WITH_DECISION)
+    gone[decision_at] = f"- {DECISIONS}: D1 [C1] 막는가? | default: block | options: block = 거부한다; stop = 멈춘다 | state: proposed"
+    verdict = _contract(gone, WITH_DECISION, plan_decision_args=["x"], replace_fields={pc.DECISIONS_KEY})
+    if verdict.error_code != "plan_lint_error":
+        problems.append(f"답한 값이 새 선택지에 없는데 거부되지 않았다: {verdict.error_code} {verdict.lines[decision_at]}")
+    claim_changed = [l.replace("C1 하나를 한다", "C1 하나를 정말 한다") for l in WITH_DECISION]
+    verdict = _contract(claim_changed, WITH_DECISION, plan_claim_args=["x"], replace_fields={pc.CLAIMS_KEY})
+    if not any("answered 를 유지했다: D1" in w for w in verdict.warnings):
+        problems.append(f"주장이 바뀌어 지문이 달라졌는데 알리지 않았다: {verdict.warnings}")
+
+    # 같은 상태를 다시 준 호출은 전이가 아니다 — 경고를 되풀이하지 않는다 (스펙 §3).
+    unmeasured = [l for l in WITH_DECISION if "Completion criteria" not in l]
+    again = _contract(unmeasured, unmeasured, requested_status="in_progress")
+    if any(w.startswith("L7") for w in again.warnings):
+        problems.append(f"전이가 아닌데 린트 경고를 되풀이했다: {again.warnings}")
+    moved = _contract(unmeasured, unmeasured, requested_status="in_progress", current_status="planned")
+    if not any(w.startswith("L7") for w in moved.warnings):
+        problems.append(f"전이인데 린트 경고가 없다: {moved.warnings}")
+
+    # 오류 규칙을 어긴 동안에는 칸을 다시 적지 않는다 (스펙 §8.6) — 손으로 적은 kept 가 그대로 남는다.
+    broken = [l.replace("state: answered:warn", "state: kept") for l in WITH_DECISION]
+    broken.insert(decision_at, f"- {CLAIMS}: C1 같은 ID 를 또 쓴다")
+    verdict = _contract(broken, broken)
+    if verdict.error_code or verdict.lines != broken:
+        problems.append(f"오류 상태 파일의 칸을 다시 적었다: {verdict.error_code}")
+    if not any("오류 규칙을 어긴 상태다" in w for w in verdict.warnings):
+        problems.append(f"오류 상태를 알리지 않았다: {verdict.warnings}")
+    # 통과한 쓰기는 뒷받침 없는 칸을 고치고 알린다.
+    hand = [l.replace("state: answered:warn", "state: kept") for l in WITH_DECISION]
+    verdict = _contract(hand, hand)
+    if not verdict.lines[decision_at].endswith("| state: proposed") or \
+            "뒷받침 없는 상태를 되돌렸다: D1 kept → proposed" not in verdict.warnings:
+        problems.append(f"뒷받침 없는 칸: {verdict.lines[decision_at]} {verdict.warnings}")
+
+    # 거부 사유가 겹치면 나머지도 싣는다 (스펙 §4).
+    both = [l.replace("state: answered:warn", "state: proposed") for l in WITH_DECISION]
+    both.insert(decision_at, f"- {CLAIMS}: C1 같은 ID 를 또 쓴다")
+    verdict = _contract(both, both, requested_status="done", status="done")
+    if verdict.error_code != "plan_lint_error" or not any("열린 결정 1건 (D1)" in w for w in verdict.warnings):
+        problems.append(f"겹친 거부 사유: {verdict.error_code} {verdict.warnings}")
+    _record("case 11 (계약 적용 — answered 유지 · 경고 되풀이 없음 · 오류 상태의 칸 · 겹친 사유)", problems)
+
+
 CASES = [
     case_1_parser,
     case_2_each_rule_fires,
@@ -338,6 +471,8 @@ CASES = [
     case_7_compat,
     case_8_write_notation,
     case_9_bundles_match_l7,
+    case_10_whole_corpus_is_untouched,
+    case_11_contract_application,
 ]
 
 

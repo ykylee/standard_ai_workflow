@@ -49,6 +49,7 @@ wbs: M-028/WBS-28.1
 - Files that change: workflow-source/core/claim_plan_spec.md (상태 줄) · ai-workflow/wiki/decisions/adr-031-claim-plan.md (Implementation Notes)
 - Files that change: workflow-source/workflow_kit/plugin_payload.py · plugin/** (backlog-update 스킬 본문) · docs/CODE_INDEX.md · docs/INSTALLATION_AND_USAGE.md (검사 수 312)
 - Files that change: workflow-source/scripts/harvest_entry_sections.py · workflow_kit/common/_entry_known_sections.py (진입점 템플릿 변경 → 재채취)
+- Files that change: workflow-source/core/backlog_update_skill_spec.md + ai-workflow/core 사본 (§13 포인터) · .claude/agents/verifier.md (plan-status 한 줄)
 - Order of work: [C2][C4] plan_claims.py (파서 · 린트 · 지문 · 상태 계산, 순수 함수) → check_plan_claims · check_plan_decision_state
 - Order of work: [C1][C2][C3] 라벨 · PLAN_FIELD_KEYS · _ensure_plan_section · backlog-update 인자 · 린트 · 게이트 · 칸 고쳐 쓰기 → check_plan_gate
 - Order of work: [C5] plan-status · 출력 계약 · open_decisions · 우회 검출 warning
@@ -61,7 +62,7 @@ wbs: M-028/WBS-28.1
 
 ## 🛠️ Implementation / Content
 
-- Progress: 2026-11-13 1단계 구현 — plan_claims(순수) · plan_tasks(I/O) · backlog-update 인자/린트/게이트/칸 고쳐 쓰기 · plan-status · open_decisions · 우회 warning · 정본 §1. 신규 검사 9+6+12 case PASS, 되주입 27건 전부 red, mypy 231 files 0. 남은 것: 커밋 뒤 엔트리 해시 재채취(check_entry_diet case 6) · verifier · 전량 게이트
+- Progress: 2026-11-13 verifier 1차: [C2] FAIL(린트 되주입 8건 green) + 스펙과 다른 동작 9건 → 코드 수리(명시 사유 · answered 옮겨 적기 · 겹친 사유 · 경고 되풀이 없음 · --check 우회 · verifier 한 줄) + 검사 보강(11 + 6 + 18 case). 되주입 56건 전부 red, mypy 0. 재검증 대기
 - Next session starting point:
 - Remaining risks:
 

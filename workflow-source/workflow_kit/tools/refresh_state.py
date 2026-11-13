@@ -192,6 +192,8 @@ def main() -> int:
         "roadmap_drift_reason": "" if roadmap_ok else roadmap_reason,
         "generated_at_used": generated_at,
         "refresh_command": refresh_result["refresh_command"],
+        # ADR-031: 우회 검출은 --check 에서도 낸다 — drift 판정(rc)에는 넣지 않는다 (이미 일어난 일이다).
+        "warnings": bypass_warnings(workflow_branch_dir(project_profile_path) / "backlog" / "tasks"),
         "recovery_hint": "" if not any_drift else "state.json / roadmap_state.json 은 생성물이다 — 손으로 고치지 말고 `python -m workflow_kit refresh-state` 로 재생성하라 (정본 §11, ADR-027 §7).",
     }, ensure_ascii=False, indent=2))
     return 0 if not any_drift else 1

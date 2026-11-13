@@ -221,7 +221,11 @@ git 무시와 잠금의 수단 · 보관 번호 · 브랜치 이어받기 · req
 - 받은편지함 게이트(`pending_plan_responses`), 응답 자격, `plan-import`, 이어받기, §11.1 한 줄과 스킬은 2단계다.
   1단계의 상태 계산은 응답이 없으므로 `answered` 가 아닌 결정을 전부 `proposed` 로 본다.
 - 정본 §1 개정은 1단계에 넣었다 (진입점 +181 바이트). 진입점 템플릿이 바뀌어 `harvest_entry_sections.py` 의 `DEFAULT_REFS` 에 그 커밋을 더했다.
-- 되주입 27건(린트 · 지문 · 다툼 · 게이트 · 칸 고쳐 쓰기 · `open_decisions` · 우회 검출)이 전부 red 였다.
+- 검증(새 컨텍스트)이 스펙과 다른 동작 9건과 검사가 못 보던 되주입 24건을 찾았다 — 코드와 검사를 고쳤다: 사유는 명시한
+  `--progress-note` 만(brief 로 채운 진행 줄은 사유가 아니다) · 결정 줄을 교체해도 `answered` 를 옮겨 적는다(결정 12) · 겹친 거부 사유를
+  함께 싣는다 · 같은 상태를 다시 준 호출에는 린트 경고를 되풀이하지 않는다 · `refresh-state --check` 도 우회를 싣는다 ·
+  `.claude/agents/verifier.md` 에 `plan-status` 한 줄(결정 4).
+- 되주입 56건(린트 규칙별 · 지문 · 다툼 · 게이트 · 문구 · 칸 고쳐 쓰기 · `open_decisions` 범위 · 우회 검출 · `plan-status`)이 전부 red 다.
 
 ## References
 

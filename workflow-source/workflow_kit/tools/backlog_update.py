@@ -312,7 +312,7 @@ def enforce_plan_contract(
     requested_status: str | None,
     status: str,
     current_status: str | None,
-    progress_note: str | None,
+    removal_note: str | None,
     workspace_root: Path,
 ) -> PlanVerdict:
     """task 파일에 쓰기 **전에** 주장 · 결정 계약을 적용한다.
@@ -329,6 +329,8 @@ def enforce_plan_contract(
     claims_key, decisions_key = plan_claims.CLAIMS_KEY, plan_claims.DECISIONS_KEY
     is_create = previous_lines is None
     to_in_progress = status == "in_progress" and current_status != "in_progress"
+    #: 실제 전이인가 — 같은 상태를 다시 준 호출은 전이가 아니다 (경고를 되풀이하지 않는다, 스펙 §3).
+    transition = requested_status is not None and requested_status != current_status
 
     # 교체인데 새 값이 없다 = 그 라벨을 걷는다 (선택 라벨은 placeholder 를 남기지 않는다).
     for key, values in ((claims_key, plan_claim_args), (decisions_key, plan_decision_args)):
@@ -383,6 +385,18 @@ def enforce_plan_contract(
         lines, _ = plan_claims.rewrite_decision_states(lines, requested_states)
         plan = plan_claims.parse_plan(lines)
 
+    # 결정 줄을 교체해도 대화의 답은 남는다 (ADR-031 결정 12). 새 줄은 proposed 로 들어오므로
+    # 이전의 answered 를 옮겨 적는다 — 값이 새 선택지에 없으면 아래 린트(L6)가 거부한다.
+    carried: dict[str, str] = {}
+    for decision in plan.decisions:
+        earlier = previous_plan.decision(decision.id)
+        if (earlier is not None and earlier.answered and not decision.answered
+                and not decision.problems and decision.id not in requested_states):
+            carried[decision.id] = earlier.state
+    if carried:
+        lines, _ = plan_claims.rewrite_decision_states(lines, carried)
+        plan = plan_claims.parse_plan(lines)
+
     # ② 린트.
     criteria = read_task_list_field(lines, task_label("done_criteria"))
     issues = plan_claims.lint_plan(
@@ -395,7 +409,11 @@ def enforce_plan_contract(
             verdict.error = (
                 ("done 거부: " if requested_status == "done" and not touched else "")
                 + f"주장 · 결정이 오류 규칙을 어긴다 ({len(errors)}건) — " + " / ".join(rendered))
-            verdict.warnings = rendered
+            # 거부 사유가 겹치면 나머지도 함께 싣는다 (스펙 §4) — 읽을 수 없는 결정은 열린 것으로 센다.
+            also_open = plan_claims.open_decision_ids(plan)
+            verdict.warnings = rendered + (
+                [f"열린 결정 {len(also_open)}건 ({', '.join(also_open)}) 도 남아 있다"]
+                if requested_status == "done" and also_open else [])
             return verdict
         # 이미 오류 상태인 파일 — 주장 · 결정을 건드리지 않는 쓰기는 통과시키고, 칸은 다시 적지 않는다.
         verdict.warnings.append(
@@ -405,7 +423,7 @@ def enforce_plan_contract(
         return verdict
 
     # 사유 없이 열린 결정을 걷는 교체는 거부한다.
-    if decisions_key in replace_fields and previous_lines is not None and not progress_note:
+    if decisions_key in replace_fields and previous_lines is not None and not removal_note:
         previously_open = plan_claims.open_decision_ids(previous_plan)
         removed = [d for d in previously_open if plan.decision(d) is None]
         if removed:
@@ -415,16 +433,18 @@ def enforce_plan_contract(
                 "--progress-note 로 사유를 적어야 한다")
             return verdict
 
-    if touched or requested_status is not None:
+    if touched or transition or is_create:
         verdict.warnings.extend(
             issue.render() for issue in issues if issue.severity in ("warning", "note"))
 
-    # 질문이 바뀐 answered 는 유지하고 알린다 (ADR-031 결정 12).
-    for decision in plan.decisions:
-        earlier = previous_plan.decision(decision.id)
-        if (decision.answered and earlier is not None and earlier.answered
-                and plan_claims.decision_identity(earlier.raw) != plan_claims.decision_identity(decision.raw)):
-            verdict.warnings.append(f"질문이 바뀌었다 — answered 를 유지했다: {decision.id}")
+    # 계획(지문)이 바뀌었는데 남은 answered 는 유지하고 알린다 (ADR-031 결정 12, 스펙 §8.6).
+    if not previous_plan.empty and plan_claims.plan_digest(previous_plan) != plan_claims.plan_digest(plan):
+        kept_answers = [
+            d.id for d in plan.decisions
+            if d.answered and (earlier := previous_plan.decision(d.id)) is not None and earlier.answered
+        ]
+        if kept_answers:
+            verdict.warnings.append(f"질문이 바뀌었다 — answered 를 유지했다: {', '.join(kept_answers)}")
 
     # ③ 다시 계산해 칸을 고쳐 쓴다 (스펙 §8.6).
     result = plan_claims.compute_states(plan, ())
@@ -433,6 +453,7 @@ def enforce_plan_contract(
         f"뒷받침 없는 상태를 되돌렸다: {decision_id} {old} → {new}"
         for decision_id, old, new in changes if decision_id not in requested_states
         and (previous_plan.decision(decision_id) is not None)
+        and decision_id not in carried
     ]
     plan = plan_claims.parse_plan(lines)
 
@@ -1192,7 +1213,8 @@ def main() -> int:
             requested_status=args.status,
             status=status,
             current_status=current_status,
-            progress_note=progress_note,
+            # 사유는 **명시한** `--progress-note` 만이다 — brief 로 자동으로 채워진 진행 줄은 사유가 아니다.
+            removal_note=args.progress_note[0] if args.progress_note else None,
             workspace_root=project_workspace_root(project_profile_path),
         )
         if plan_verdict.error_code is not None:
@@ -1200,7 +1222,8 @@ def main() -> int:
                 tool_version=TOOL_VERSION,
                 error=plan_verdict.error or plan_verdict.error_code,
                 error_code=plan_verdict.error_code,
-                warnings=plan_verdict.warnings,
+                # 강등 사유(검증 결과 없는 done)와 겹치면 둘 다 싣는다 — 거부가 이긴다 (스펙 §4).
+                warnings=[*plan_verdict.warnings, *status_warnings],
                 source_context=source_context | {"task_id": task_id},
             )
             print(json.dumps(result, ensure_ascii=False, indent=2))

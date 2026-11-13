@@ -576,7 +576,7 @@ def lint_plan(
 
     # L3 · L4 · L8 — 문장.
     for claim in valid:
-        if claim.depth <= 2 and claim.location is None:
+        if claim.depth <= 2:
             if ";" in claim.text:
                 issues.append(LintIssue("L3", "warning", "한 주장에 두 사실이 `;` 로 이어져 있다", claim.id))
             if len(claim.text) > CLAIM_MAX_CHARS:

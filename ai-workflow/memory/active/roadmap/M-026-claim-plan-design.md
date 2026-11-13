@@ -2,7 +2,7 @@
 id: M-026
 title: 주장 트리 계획 — design (ADR-031 + core 스펙)
 sdlc_phase: design
-status: planned
+status: done
 order: 26
 parallel_allowed:
   - M-007
@@ -16,8 +16,9 @@ goals: [G2, G5]
 
 requirements sign-off ([`M-023`](./M-023-claim-plan-requirements.md) →
 [`requirements 문서`](../../../../docs/planning/claim-plan-requirements-2026-11.md) §12, 2026-11-12) 를 받는 design 단계.
-**[`M-025`](./M-025-plan-workbench-requirements.md) 뒤에 연다** — 응답 파일을 쓰는 쪽(워크벤치)의 요구 사항이 확정돼야
-`plan-import` 와 응답 형식의 설계가 한 번에 선다.
+M-025 종결(2026-11-13) 뒤에 열었다. 소유자 결정(2026-11-13): design 은 **ADR 둘로 순차** — 이 마일스톤의 ADR-031 이 응답 형식 ·
+받은편지함 · `plan-import` 계약까지 정하고, 워크벤치 서버는 [`M-027`](./M-027-plan-workbench-design.md) 의 ADR-032 가 그 계약을 소비한다.
+워크벤치 없이도 안 A(대화로 결정을 닫는 경로)가 먼저 구현 · 발행될 수 있다.
 
 - **ADR-031 결정 대상**: 공용 파서 모듈 배치 · 결정 줄 칸 이름의 쓰기 표기 · 주장별 묶음을 내는 명령(새 명령 또는 기존 명령의
   출력 필드, requirements Q5) · §11.1 문구와 스킬 수 · `open_decisions` 의 state.json 스키마 · `.gitignore` 를 누가 보장하는가
@@ -31,6 +32,11 @@ requirements sign-off ([`M-023`](./M-023-claim-plan-requirements.md) →
   R5.5; 비차단 잠금 `common/file_lock.py` 로의 재현 · 잠금 파일 위치 · 배타 판정을 이름이 아니라 번호로 할지는 미정) · 응답 파일의
   `received_at` 은 소수 초 · 줄바꿈은 쓰는 쪽이 LF 로 고친다 · design 을 워크벤치와 한 ADR 묶음으로 낼지 (워크벤치 R12-③).
 - **불변**: requirements R0.
+
+**종결 (2026-11-13)**: 소유자 승인 — ADR-031 accepted (requirements 대비 변경 V1~V10 포함: 보관 번호를 시각 기반으로 · 결정 줄 칸의 영어
+쓰기 표기 · MCP 도구는 ADR-032 로 · 이어받기가 보관 응답을 옮김 · 스킬은 하나 · Progress 는 호출당 한 줄 · Plan 키 목록 하나 · 유효 응답은
+자격을 다시 본 것 · 오류 상태 파일은 칸을 다시 적지 않고 `done` 거부 · 규칙의 정본은 새 스펙 하나), core 스펙 draft. 구현은
+[`M-028`](./M-028-claim-plan-implementation.md) 로 이어진다.
 
 ## WBS
 

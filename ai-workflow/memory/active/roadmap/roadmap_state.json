@@ -913,19 +913,79 @@
       "id": "M-026",
       "title": "주장 트리 계획 — design (ADR-031 + core 스펙)",
       "sdlc_phase": "design",
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
+      "total_leaves": 1,
+      "done_leaves": 1,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-26.1",
+          "title": "design 확정 — ADR-031 + core 스펙",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-13-claude-remote-sync-check-234c32-002"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "M-027",
+      "title": "계획·진척 워크벤치 — design (ADR-032 + core 스펙)",
+      "sdlc_phase": "design",
       "declared_status": "planned",
       "derived_status": "planned",
       "progress": 0.0,
       "total_leaves": 1,
       "done_leaves": 0,
       "deliverables_missing": [
-        "ai-workflow/wiki/decisions/adr-031-claim-plan.md",
-        "workflow-source/core/claim_plan_spec.md"
+        "ai-workflow/wiki/decisions/adr-032-plan-workbench.md",
+        "workflow-source/core/plan_workbench_spec.md"
       ],
       "wbs": [
         {
-          "id": "WBS-26.1",
-          "title": "design 확정 — ADR-031 + core 스펙",
+          "id": "WBS-27.1",
+          "title": "design 확정 — ADR-032 + core 스펙",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "M-028",
+      "title": "주장 트리 계획 — implementation (라벨 · 린트 · 게이트 · plan-status · plan-import · 검사)",
+      "sdlc_phase": "implementation",
+      "declared_status": "planned",
+      "derived_status": "planned",
+      "progress": 0.0,
+      "total_leaves": 2,
+      "done_leaves": 0,
+      "deliverables_missing": [
+        "workflow-source/workflow_kit/common/plan_claims.py",
+        "workflow-source/workflow_kit/common/plan_responses.py",
+        "workflow-source/workflow_kit/tools/plan_status.py",
+        "workflow-source/workflow_kit/tools/plan_import.py"
+      ],
+      "wbs": [
+        {
+          "id": "WBS-28.1",
+          "title": "1 단계 — 라벨 · `PLAN_FIELD_KEYS` · 파서 · 린트 L1~L10 · 게이트 · `--decision-state` · `plan-status` · `open_decisions` · 정본 §1 개정 ·",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        },
+        {
+          "id": "WBS-28.2",
+          "title": "2 단계 — 응답 형식 · 받은편지함(자기 무시 · 잠금) · `plan-import` · 이어받기 · 정본 §11.1 · 스킬 `plan-import` · verifier 한 줄 ·",
           "derived_status": "planned",
           "linked_task_ids": [],
           "total_leaves": 1,

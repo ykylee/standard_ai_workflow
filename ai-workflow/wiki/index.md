@@ -57,6 +57,11 @@
 ### [[decisions/adr-024-per-strategy-cache-file]] {#adr-024-per-strategy-cache-file}
 ### [[decisions/adr-025-okf-consumer-quickstart-tutorial]] {#adr-025-okf-consumer-quickstart-tutorial}
 ### [[decisions/adr-026-okf-v02-migration]] {#adr-026-okf-v02-migration}
+### [[decisions/adr-027-roadmap-wbs-sdlc]] {#adr-027-roadmap-wbs-sdlc}
+### [[decisions/adr-028-test-impact-meta-validation]] {#adr-028-test-impact-meta-validation}
+### [[decisions/adr-029-session-context-budget]] {#adr-029-session-context-budget}
+### [[decisions/adr-030-compact-relay]] {#adr-030-compact-relay}
+### [[decisions/adr-031-claim-plan]] {#adr-031-claim-plan}
 ### [[patterns/r4-anchor-index]] {#r4-anchor-index}
 ### [[patterns/frozen-archive-immutability]] {#frozen-archive-immutability}
 ### [[patterns/wiki-stub-emit]] {#wiki-stub-emit}

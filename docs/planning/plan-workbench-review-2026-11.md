@@ -4,7 +4,7 @@
 - 범위: 호스팅 위치, 계획 페이지 렌더링, 응답 수집, 작업 세션으로의 전달(MCP · hook · A2A), 진척 화면의 원천, 보안, 기존 자산 재사용, M-022 결정과의 정합 — **하네스 중립 제약 아래에서** (§1-1)
 - 대상 독자: 소유자 (M-024 다음 단계 결정), maintainer
 - 상태: **종결 (2026-11-12)** — 소유자 결정 = §8 기본값 W1~W5 전부 (§10). **§11 정정: 접속 위치를 가정하지 않는다 — W6 · W7 기본값 확정 (§11.7).** requirements 는 M-025 (M-023 뒤)
-- 최종 수정일: 2026-11-12
+- 최종 수정일: 2026-11-13
 - 관련 문서: [`M-024`](../../ai-workflow/memory/active/roadmap/M-024-plan-workbench.md), [`html-plan-absorption-review-2026-11.md`](./html-plan-absorption-review-2026-11.md) (선행 concept — 결정 D1~D5, §11 정정), [`registry_server.py`](../../workflow-source/workflow_kit/common/registry_server.py) (HTTP 서빙 선례), [`dashboard_render_html.py`](../../workflow-source/workflow_kit/common/dashboard_render_html.py) (기존 HTML 대시보드), [`compact-relay-review-2026-09.md`](./compact-relay-review-2026-09.md) (이식 층 + 가속 층 분리 선례)
 
 ## 0. 한 줄 결론
@@ -234,7 +234,7 @@ task 를 맡기고 결과를 받아야 할 때 — 그때 task 를 A2A Task 로,
 - 토큰에 **이름**을 붙인다 (`owner`, `alice` …). 응답 파일에 응답자 이름과 시각이 실린다 — 여러 사람이 볼 때 누가 답했는지가
   남아야 "열지 않은 기본값 ≠ 동의" 가 사람 단위로 성립한다.
 - 브라우저 세션은 토큰을 한 번 받은 뒤 `HttpOnly` · `SameSite=Strict` 쿠키(TLS 이면 `Secure`)로 이어 간다. 토큰을 URL 에
-  남기지 않는다(첫 진입 뒤 리다이렉트로 지운다).
+  남기지 않는다(첫 진입 뒤 리다이렉트로 지운다). (M-025 requirements Q1 로 갱신: 토큰은 URL 로 받지 않고 로그인 폼의 본문으로만 받는다 — [`plan-workbench-requirements-2026-11.md`](./plan-workbench-requirements-2026-11.md) R3.2.)
 - 위임 인증(선택): 사내 프록시가 이미 사용자를 인증한다면, **설정한 프록시 주소에서 온** 지정 헤더의 사용자 이름을 믿고
   역할 표에 매핑한다. 기본은 꺼짐.
 - 남용 방지: 실패한 인증 시도 속도 제한, POST 본문 상한 256KB, 받은편지함 밖 쓰기 없음.

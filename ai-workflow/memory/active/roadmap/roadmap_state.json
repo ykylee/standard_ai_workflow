@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "generated_by": "workflow_kit.common.state.roadmap.generate_roadmap_state",
-  "generated_at": "2026-11-12",
+  "generated_at": "2026-11-13",
   "milestones": [
     {
       "id": "M-001",
@@ -889,22 +889,22 @@
       "id": "M-025",
       "title": "계획·진척 워크벤치 — requirements (웹 · 받은편지함 · 알림 층, 결정 W1~W5, 하네스 중립)",
       "sdlc_phase": "requirements",
-      "declared_status": "planned",
-      "derived_status": "planned",
-      "progress": 0.0,
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
       "total_leaves": 1,
-      "done_leaves": 0,
-      "deliverables_missing": [
-        "docs/planning/plan-workbench-requirements-2026-11.md"
-      ],
+      "done_leaves": 1,
+      "deliverables_missing": [],
       "wbs": [
         {
           "id": "WBS-25.1",
           "title": "requirements 확정 — concept §9 미실측 실측 + 서버 · 응답 · 알림 · 진척 요구 사항 · design 진입 조건 —",
-          "derived_status": "planned",
-          "linked_task_ids": [],
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-13-claude-remote-sync-check-234c32-001"
+          ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         }
       ]

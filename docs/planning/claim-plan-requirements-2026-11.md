@@ -4,7 +4,7 @@
 - 범위: task 파일 라벨 2개, 공용 파서 · 린트, `backlog-update` 쓰기 · 상태 전이 게이트, verifier 보고, 응답 파일 형식, `plan-import` 명령 계약. 워크벤치 서버의 동작(화면 · 인증 · 노출 경로)은 [`M-025`](../../ai-workflow/memory/active/roadmap/M-025-plan-workbench-requirements.md) 몫이다 — 여기서는 서버가 **쓰는 파일의 형식**까지만 정한다.
 - 대상 독자: 소유자 (sign-off), design 단계 작성자
 - 상태: **종결 (2026-11-12)** — 소유자 sign-off: Q1~Q7 권고안대로 (§12). design 은 다음 마일스톤
-- 최종 수정일: 2026-11-12
+- 최종 수정일: 2026-11-13
 - 관련 문서: [`html-plan-absorption-review-2026-11.md`](./html-plan-absorption-review-2026-11.md) (concept — §10 결정 D1~D5, §11 정정), [`plan-workbench-review-2026-11.md`](./plan-workbench-review-2026-11.md) (워크벤치 concept — W1~W7), [`M-023`](../../ai-workflow/memory/active/roadmap/M-023-claim-plan-requirements.md), [`project_docs.py`](../../workflow-source/workflow_kit/common/project_docs.py) (task 라벨 정본), [`workflow_writes.py`](../../workflow-source/workflow_kit/common/workflow_writes.py) (묶음 읽기 · 쓰기), [`backlog_update.py`](../../workflow-source/workflow_kit/tools/backlog_update.py)
 
 ## 0. 요약
@@ -294,6 +294,8 @@ received_at: 2026-11-12T21:04:11+09:00
 - `opened` 는 화면에서 그 결정이 열렸는지의 기록이다 (W2 — `toggle` 측정). 기록이 없으면 `no`.
 - `## Comments` 는 선택. 대상은 주장 ID · 결정 ID · 대상 없음(`[-]`) 중 하나.
 - 줄 끝은 LF, 인코딩은 UTF-8 (BOM 없음).
+- `received_at` 은 ISO 8601 이고 시간대 오프셋이 있다. 소수 초(마이크로초까지)가 올 수 있고 읽는 쪽은 받는다 — 쓰는 쪽이 응답자별로
+  겹치지 않게 쓰려면 초 단위로는 모자란다 (워크벤치 R5.3, 2026-11-13 추가).
 
 ### R5.2 계획 지문 `plan_digest`
 
@@ -432,8 +434,11 @@ received_at: 2026-11-12T21:04:11+09:00
 
 - `<n>` 은 task 별 1 부터 — 받은편지함과 보관을 **합쳐** 가장 큰 번호 + 1. 파일명은 쓰는 쪽(워크벤치)이 정하고, 이미 있는
   이름으로는 쓰지 않는다 (배타 생성).
-- 이동은 같은 파일 시스템 안의 원자적 rename 이다 — 같은 브랜치에 세션이 둘이면 먼저 옮긴 쪽이 이기고, 진 쪽은
-  "이미 반영됨" 을 보고한다 (워크벤치 §9).
+- **import 는 잠금 아래에서 한 번에 하나만 돈다**, 그리고 이동은 **배타**다 — 보관에 있는 이름을 덮지 않고, 이름이 이미 있으면 그 응답에
+  다음 번호를 주고 옮긴다 (받은편지함의 번호는 임시, 보관의 번호가 정본). 같은 브랜치에 세션이 둘이면 잠금을 못 쥔 쪽은 "다른 import 가
+  돌고 있다" 를 보고하고, 뒤에 돈 쪽에게 이미 옮겨진 응답은 받은편지함에 없다 — 그것이 "이미 반영됨" 이다. 평범한 rename 은 쓰는 쪽이
+  살아 있을 때 보관 파일을 조용히 덮어쓰고, 잠금 없는 배타 이동은 같은 응답을 두 번 보관한다 —
+  [`plan-workbench-requirements-2026-11.md`](./plan-workbench-requirements-2026-11.md) §1.2 행 7~11 실측 · R5.5 (2026-11-13 수정).
 - 브랜치 합류 아카이브는 `plan_responses/` 를 브랜치 디렉터리의 다른 파일과 같게 다룬다 (별도 규칙 없음).
 
 ### R8.2 받은편지함을 커밋하지 않는 이유 (Q1)
@@ -487,7 +492,7 @@ received_at: 2026-11-12T21:04:11+09:00
    {alice x(D1) · p(D2)} 에 `answered D1=y` 를 import 앞 / 뒤에 적기(둘 다 D2 가 물리고 done 거부) ·
    {alice x, alice y(뒤)} · {alice x, alice 입장 없음(뒤)} · {alice x 반영 뒤 `--discard`} 와 {`--discard` 뒤 import} · {alice x, alice y(뒤)} 에서 y 를 import 전 / 후에 `--discard`.
 6. 지문: 상태 칸만 바꾸면 같고, 주장 · 질문 · 선택지 · 기본값 중 하나를 바꾸면 다르다.
-7. 경합: 같은 응답을 두 프로세스가 동시에 import → 한쪽만 반영.
+7. 경합: 같은 받은편지함을 두 프로세스가 동시에 import → 응답마다 한 번만 보관되고(중복 0 · 유실 0), 잠금을 못 쥔 쪽은 그렇게 보고한다. 쓰는 쪽이 살아 있는 동안에도 같다 (워크벤치 R10-4).
 8. 파서 단일성: 린트 · 게이트 · 주장별 묶음 · import · state 생성기가 같은 함수를 부른다 (호출 그래프 또는 import 대조). 워크벤치 렌더러는 M-025 의 검사가 같은 대조를 한다.
 9. 주장별 묶음(R4): 주장 · 인용 · 열린 결정이 있는 fixture 에서 출력이 기대 표와 같고, 주장이 없는 task 는 절을 내지 않는다; L7 의 "재지 않는 주장" 집합과 묶음의 그것이 같다.
 10. CLI 한정(R1.6): `--decision-state D1=kept` 거절 · 사유 없는 열린 결정 제거 거절.
@@ -503,7 +508,7 @@ received_at: 2026-11-12T21:04:11+09:00
 | `opened` 기록의 실제 측정 · 응답 파일을 쓰는 쪽의 배타 생성 | M-025 (워크벤치) |
 | 브랜치 이어받기(seed)가 열린 task 의 `plan_responses/` 를 함께 옮기는지 — 안 옮기면 이어받은 `kept` · `changed` 가 첫 import 에서 되돌려진다 | design 전 |
 | 같은 브랜치를 두 호스트가 쓸 때 보관 번호 `<n>` 충돌 (받은편지함은 호스트별이라 서로의 번호를 모른다 — 합류 때 같은 파일명이 만난다) | design 전 |
-| 한글 Windows 에서 rename 원자성 (대상 파일이 열려 있을 때) | 구현 뒤, Windows 호스트 |
+| 한글 Windows 에서 배타 이동 · import 잠금의 성질 (R8.1 — 대상 파일이 열려 있을 때 포함) | 구현 뒤, Windows 호스트 |
 
 ## 11. 소유자 결정 항목 (권고 포함) — 전부 확정, §12
 

@@ -61,7 +61,7 @@
   - path: [`./M-023-claim-plan-requirements.md`](./M-023-claim-plan-requirements.md)
 - **M-024** [concept] 계획·진척 워크벤치 — 웹으로 계획 검토 · 응답 반영 · 진척 조회 — status: done
   - path: [`./M-024-plan-workbench.md`](./M-024-plan-workbench.md)
-- **M-025** [requirements] 계획·진척 워크벤치 — requirements (웹 · 받은편지함 · 알림 층, 결정 W1~W5, 하네스 중립) — status: planned
+- **M-025** [requirements] 계획·진척 워크벤치 — requirements (웹 · 받은편지함 · 알림 층, 결정 W1~W5, 하네스 중립) — status: done
   - path: [`./M-025-plan-workbench-requirements.md`](./M-025-plan-workbench-requirements.md)
 - **M-026** [design] 주장 트리 계획 — design (ADR-031 + core 스펙) — status: planned
   - path: [`./M-026-claim-plan-design.md`](./M-026-claim-plan-design.md)

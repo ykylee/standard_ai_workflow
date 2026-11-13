@@ -255,11 +255,20 @@ def plan_section_lines(plan: dict[str, list[str]] | None = None) -> list[str]:
 
 
 def _existing_task_lines(path: Path) -> list[str] | None:
-    """그 경로에 task 파일이 있으면 줄들을, 없거나 읽을 수 없으면 ``None`` 을 돌려준다."""
-    try:
-        return path.read_text(encoding="utf-8").splitlines() if path.is_file() else None
-    except (OSError, UnicodeDecodeError):
-        return None
+    """그 경로에 task 파일이 있으면 줄들을, 없으면 ``None`` 을 돌려준다.
+
+    읽지 못하는 파일은 "없음" 이 아니다 — 예외를 그대로 올린다 (없다고 보면 게이트를 건너뛴다).
+    """
+    return path.read_text(encoding="utf-8").splitlines() if path.is_file() else None
+
+
+#: 글자로 분류되지만 화면에는 빈칸으로 찍히는 채움 문자 — 사유의 글자로 세지 않는다.
+_BLANK_LETTERS = frozenset("\u115f\u1160\u3164\uffa0")
+
+
+def is_readable_note(note: str | None) -> bool:
+    """사유로 받을 수 있는가 — 눈에 보이는 글자나 숫자가 하나는 있어야 한다 (스펙 §2.5)."""
+    return any(ch.isalnum() and ch not in _BLANK_LETTERS for ch in (note or ""))
 
 
 @dataclass
@@ -322,6 +331,7 @@ def enforce_plan_contract(
     current_status: str | None,
     removal_note: str | None,
     workspace_root: Path,
+    creating: bool | None = None,
 ) -> PlanVerdict:
     """task 파일에 쓰기 **전에** 주장 · 결정 계약을 적용한다.
 
@@ -335,7 +345,8 @@ def enforce_plan_contract(
     lines = list(draft_lines)
     verdict = PlanVerdict(lines=lines)
     claims_key, decisions_key = plan_claims.CLAIMS_KEY, plan_claims.DECISIONS_KEY
-    is_create = previous_lines is None
+    # create 인가는 호출 방식이다 — 같은 ID 로 다시 만드는 create 는 "이전" 이 있어도 create 다 (R2.3 권고).
+    is_create = previous_lines is None if creating is None else creating
     to_in_progress = status == "in_progress" and current_status != "in_progress"
     #: 실제 전이인가 — 같은 상태를 다시 준 호출은 전이가 아니다 (경고를 되풀이하지 않는다, 스펙 §3).
     transition = requested_status is not None and requested_status != current_status
@@ -431,8 +442,8 @@ def enforce_plan_contract(
         return verdict
 
     # 사유 없이 열린 결정을 없애는 쓰기는 거부한다 — 교체든, 같은 ID 로 task 를 다시 만드는 것이든.
-    # 사유는 읽을 수 있는 글이어야 한다: 공백 · 폭 없는 문자뿐인 값은 사유가 아니다.
-    if previous_lines is not None and not any(ch.isalnum() for ch in (removal_note or "")):
+    # 사유는 읽을 수 있는 글이어야 한다: 눈에 보이는 글자 · 숫자가 없는 값은 사유가 아니다.
+    if previous_lines is not None and not is_readable_note(removal_note):
         previously_open = plan_claims.open_decision_ids(previous_plan)
         removed = [d for d in previously_open if plan.decision(d) is None]
         if removed:
@@ -1227,6 +1238,7 @@ def main() -> int:
             # 사유는 **명시한** `--progress-note` 만이다 — brief 로 자동으로 채워진 진행 줄은 사유가 아니다.
             removal_note=args.progress_note[0] if args.progress_note else None,
             workspace_root=project_workspace_root(project_profile_path),
+            creating=not update_merge,
         )
         if plan_verdict.error_code is not None:
             result = build_error_result(

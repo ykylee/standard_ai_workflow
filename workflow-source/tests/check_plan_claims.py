@@ -116,6 +116,14 @@ def case_1_parser() -> None:
     between = pc.parse_plan([f"- {CLAIMS}: C1 하나", f"- {CLAIMS}:", f"- {CLAIMS}: C2 둘"])
     if between.claim_runs != 1:
         problems.append(f"값 없는 라벨 줄이 묶음을 끊었다: runs={between.claim_runs}")
+    for label in (DECISIONS, "결정"):
+        blank = pc.parse_plan([f"- {CLAIMS}: C1 하나", f"- {label}:", f"- {DECISIONS}: {GOOD_DECISION}", f"- {label}:   "])
+        if len(blank.decisions) != 1 or blank.decision_runs != 1 or pc.open_decision_ids(blank) != ["D1"]:
+            problems.append(f"값 없는 `- {label}:` 줄을 결정 · 묶음으로 셌다: n={len(blank.decisions)} runs={blank.decision_runs}")
+        only_blank = pc.parse_plan([f"- {CLAIMS}: C1 하나", f"- {label}:"])
+        if only_blank.decisions or pc.open_decision_ids(only_blank) or pc.lint_errors(
+                pc.lint_plan(only_blank, criteria=["[C1] 기준"], file_line_count=_lines_of)):
+            problems.append(f"값 없는 `- {label}:` 줄이 결정으로 읽혔다")
     alias = pc.parse_plan(["- 주장: C1 한국어 라벨", "- 결정: " + GOOD_DECISION])
     if len(alias.claims) != 1 or len(alias.decisions) != 1:
         problems.append("한국어 라벨 별칭을 못 읽었다")
@@ -606,7 +614,7 @@ LINT_TABLE: list[tuple[str, list[str], list[str], list[str], list[tuple[str, str
     ("질문이 없다", ["C1 하나"], ["D1 [C1] | default: a | options: a = 가; b = 나"], CITE1, [("L6", "error", "D1")]),
     ("주장을 대괄호 없이", ["C1 하나"], ["D1 C1 질문 | default: a | options: a = 가; b = 나"], CITE1, [("L6", "error", "D1")]),
     ("ID 뒤에 공백이 없다", ["C1하나"], [], [], [("L2", "error", "C1하나")]),
-    ("`·` 없는 위치", ["C1 a", "C1.1 b", "C1.1.1 @ a.py:1 f()"], [], CITE1, [("L5", "warning", "C1.1.1")]),
+    ("`·` 없는 위치", ["C1 a", "C1.1 b", f"C1.1.1 @ {LOC}:1 f()"], [], CITE1, [("L5", "warning", "C1.1.1")]),
     ("`@ new:` 뒤에 공백이 없다", ["C1 a", "C1.1 b", "C1.1.1 @ new:a.py · f()"], [], CITE1, [("L5", "warning", "C1.1.1")]),
     ("unopened 는 읽힌다", ["C1 하나"], [D + " | state: unopened"], CITE1, []),
     ("disputed 는 읽힌다", ["C1 하나"], [D + " | state: disputed"], CITE1, []),
@@ -694,6 +702,12 @@ def case_13_digest_body() -> None:
     body = f"- Claims: C1 하나를 한다\n- Decisions: {raw}"
     if pc.plan_digest(broken) != "sha256:" + hashlib.sha256(body.encode("utf-8")).hexdigest():
         problems.append("읽을 수 없는 결정 줄의 지문이 원문이 아니다")
+    # 머리(ID · 인용)를 못 읽는 줄도 마찬가지다.
+    raw = "D1 C1 막는가?  | 기본: block | 선택: block = 거부한다; warn = 경고만 낸다"
+    headless = pc.parse_plan(["- Claims: C1 하나를 한다", f"- 결정: {raw}"])
+    body = f"- Claims: C1 하나를 한다\n- Decisions: {raw}"
+    if pc.plan_digest(headless) != "sha256:" + hashlib.sha256(body.encode("utf-8")).hexdigest():
+        problems.append("머리를 못 읽는 결정 줄의 지문이 원문이 아니다")
     _record("case 13 (지문의 본문 — 스펙 §5 문면대로)", problems)
 
 

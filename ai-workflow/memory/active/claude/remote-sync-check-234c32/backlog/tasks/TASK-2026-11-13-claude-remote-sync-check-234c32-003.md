@@ -62,7 +62,7 @@ wbs: M-028/WBS-28.1
 
 ## 🛠️ Implementation / Content
 
-- Progress: 2026-11-13 verifier 3차: [C2] FAIL(261건 중 스펙 판정을 바꾸는 26건 green) · [C3] FAIL(create 덮어쓰기 · 폭 없는 문자 사유) → 열린 결정을 없애는 쓰기는 경로 무관 사유 필수 · 지문 원문 · 빈 라벨 줄 + 린트 표 73행 · 사유 없는 제거 경로들. verifier 하네스 432건 재실행: 스펙 판정을 바꾸는 것 전부 red. 4차 검증 대기
+- Progress: 2026-11-13 verifier 4차: [C2] FAIL 2건(· 없는 위치 행이 무력화 / 빈 Decisions 줄 case 없음) · [C3] FAIL(빈칸으로 찍히는 채움 문자 사유) → 사유는 보이는 글자 · 숫자 필수, 다시 만드는 create 의 R2.3 권고 복원, 못 읽는 기존 파일은 예외로. 검사: 표 행 경로 수정 · 빈 결정 줄 · 일부 제거 · create(planned) 덮어쓰기 · 머리 깨진 줄 지문. 되주입 8건 red. 5차 검증 대기
 - Next session starting point:
 - Remaining risks:
 

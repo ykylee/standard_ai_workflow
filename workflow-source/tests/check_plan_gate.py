@@ -556,6 +556,49 @@ def case_15_brief_is_not_a_removal_note() -> None:
                           "--status", "done", "--validation-result", "v")
         if rc != 1 or out.get("error_code") != "decision_removal_needs_note":
             problems.append(f"폭 없는 문자뿐인 사유로 닫혔다: rc={rc} {out.get('error_code')}")
+        # 눈에 보이는 글자 · 숫자가 없으면 사유가 아니다 — 빈칸으로 찍히는 채움 문자, 기호뿐인 값.
+        for note in ("\u3164", "\u115f", "\u1160", "\uffa0", "\u3164 \u200b", "-", ".", "—"):
+            rc, out = _update(ws, task_id, "--replace-field", "plan_decisions", "--progress-note", note,
+                              "--status", "done", "--validation-result", "v")
+            if rc != 1 or out.get("error_code") != "decision_removal_needs_note":
+                problems.append(f"보이지 않는 사유 {note!r} 로 닫혔다: rc={rc} {out.get('error_code')}")
+        # 다시 만드는 create 는 닫지 않을 때도 사유가 필요하다 — planned 로 덮어쓴 뒤 닫는 두 단계 길.
+        rc, out = _run(ws, "--mode", "create", "--task-id", task_id, "--status", "planned",
+                       "--task-name", "덮어쓰기", "--task-brief", "b")
+        if rc != 1 or out.get("error_code") != "decision_removal_needs_note":
+            problems.append(f"create(planned) 로 열린 결정을 사유 없이 덮어썼다: rc={rc} {out.get('error_code')}")
+        if _snapshot(ws) != before:
+            problems.append("거부인데 파일이 바뀌었다 (사유 판정)")
+        # 숫자 한 글자 · 글자 한 글자는 사유다 (흔적이지 방벽이 아니다).
+        for note in ("1", "가"):
+            with tempfile.TemporaryDirectory() as td2:
+                ws2 = _workspace(td2)
+                tid2 = _with_decision(ws2)
+                rc, out = _update(ws2, tid2, "--replace-field", "plan_decisions", "--progress-note", note)
+                if rc != 0 or _decision_lines(ws2, tid2):
+                    problems.append(f"글자 · 숫자가 있는 사유 {note!r} 가 거부됐다: rc={rc} {out.get('error_code')}")
+    # 열린 결정 둘 중 하나만 걷어도 사유가 필요하다 — 남은 것이 있다고 통과하지 않는다.
+    with tempfile.TemporaryDirectory() as td:
+        ws = _workspace(td)
+        second = DECISION_ARG.replace("D1 [C1]", "D2 [C2]", 1)
+        task_id = _create(ws, "--plan-claim", "C1 열린 결정이 남으면 닫히지 않는다",
+                          "--plan-claim", "C2 옛 task 는 그대로 읽힌다",
+                          "--plan-decision", DECISION_ARG, "--plan-decision", second)
+        before = _snapshot(ws)
+        rc, out = _update(ws, task_id, "--replace-field", "plan_decisions", "--plan-decision", DECISION_ARG)
+        if rc != 1 or out.get("error_code") != "decision_removal_needs_note" or "D2" not in str(out.get("error")):
+            problems.append(f"열린 결정 일부를 사유 없이 걷었다: rc={rc} {out.get('error_code')} {out.get('error')}")
+        if _snapshot(ws) != before:
+            problems.append("거부인데 파일이 바뀌었다 (일부 제거)")
+    # 다시 만드는 create 도 create 다 — 주장 없이 파일 셋이면 R2.3 권고가 나온다.
+    with tempfile.TemporaryDirectory() as td:
+        ws = _workspace(td)
+        files = ("--plan-file", "a.py", "--plan-file", "b.py", "--plan-file", "c.py")
+        task_id = _create(ws, *files)
+        rc, out = _run(ws, "--mode", "create", "--task-id", task_id, "--status", "planned",
+                       "--task-name", "다시", "--task-brief", "b", *files)
+        if rc != 0 or not _warned(out, "(R2.3)"):
+            problems.append(f"다시 만드는 create 에서 R2.3 권고가 사라졌다: rc={rc} {out.get('warnings')}")
     _record("case 15 (사유는 명시한 --progress-note 만 · git 밖의 L5 보고 · create 덮어쓰기)", problems)
 
 

@@ -38,7 +38,8 @@
       "TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다"
     ],
     "planned_items": [
-      "TASK-2026-11-13-claude-remote-sync-check-234c32-005"
+      "TASK-2026-11-13-claude-remote-sync-check-234c32-005",
+      "TASK-2026-11-14-claude-remote-sync-check-234c32-003"
     ],
     "recent_done_items": [
       "TASK-2026-11-14-claude-remote-sync-check-234c32-002 — M-029 ② 워크벤치 서버 · 화면 · 검사 넷 · 스킬 (MCP 두 도구는 다음 task)",
@@ -57,7 +58,7 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/claude/remote-sync-check-234c32/backlog/2026-11-14.md",
-    "task_count": 2,
+    "task_count": 3,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [

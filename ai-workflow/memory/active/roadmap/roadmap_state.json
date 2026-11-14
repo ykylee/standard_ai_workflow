@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "generated_by": "workflow_kit.common.state.roadmap.generate_roadmap_state",
-  "generated_at": "2026-11-13",
+  "generated_at": "2026-11-14",
   "milestones": [
     {
       "id": "M-001",
@@ -937,22 +937,22 @@
       "id": "M-027",
       "title": "계획·진척 워크벤치 — design (ADR-032 + core 스펙)",
       "sdlc_phase": "design",
-      "declared_status": "in_progress",
-      "derived_status": "in_progress",
-      "progress": 0.0,
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
       "total_leaves": 1,
-      "done_leaves": 0,
+      "done_leaves": 1,
       "deliverables_missing": [],
       "wbs": [
         {
           "id": "WBS-27.1",
           "title": "design 확정 — ADR-032 + core 스펙",
-          "derived_status": "in_progress",
+          "derived_status": "done",
           "linked_task_ids": [
             "TASK-2026-11-13-claude-remote-sync-check-234c32-006"
           ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         }
       ]
@@ -997,6 +997,40 @@
           "linked_task_ids": [
             "TASK-2026-11-13-claude-remote-sync-check-234c32-005"
           ],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "M-029",
+      "title": "계획·진척 워크벤치 — implementation (이월 정리 · 서버 · 화면 · MCP · 검사)",
+      "sdlc_phase": "implementation",
+      "declared_status": "planned",
+      "derived_status": "planned",
+      "progress": 0.0,
+      "total_leaves": 2,
+      "done_leaves": 0,
+      "deliverables_missing": [
+        "workflow-source/workflow_kit/workbench/server.py",
+        "workflow-source/workflow_kit/tools/workbench.py"
+      ],
+      "wbs": [
+        {
+          "id": "WBS-29.1",
+          "title": "① 이월 정리 — `plan_responses.inbox_census` 와 호출자 전환(결정 16) · `plan-import` 의 `pending_responses` / `remaining_after`(결정 17) ·",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        },
+        {
+          "id": "WBS-29.2",
+          "title": "② 서버 · 화면 · MCP `plan_inbox` · `plan_import` · 정본 §11.1 · 스킬 `workbench` · 검사 넷",
+          "derived_status": "planned",
+          "linked_task_ids": [],
           "total_leaves": 1,
           "done_leaves": 0,
           "children": []

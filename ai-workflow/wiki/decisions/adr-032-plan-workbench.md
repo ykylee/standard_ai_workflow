@@ -1,12 +1,12 @@
 ---
 type: decision
-status: proposed
+status: accepted
 adr_id: ADR-032
 decided_at: 2026-11-13
 alternatives_considered: [samesite-strict, strict-with-next-param, single-module-in-common, cli-only-console-script, signed-cookie-sessions, file-backed-sessions, jinja-templates, token-config-file, assets-as-python-strings, assets-outside-package, root-gitignore-entry, no-workbench-skill, skill-drives-server, mcp-tools-later, docker-proxy-in-gate, server-calls-plan-import, counter-numbering]
 related_pages: [decisions/adr-031-claim-plan, decisions/adr-030-compact-relay, decisions/adr-027-roadmap-wbs-sdlc]
 created: 2026-11-13
-updated: 2026-11-13
+updated: 2026-11-14
 r9_skip: true
 ---
 
@@ -14,7 +14,7 @@ r9_skip: true
 
 ## Status
 
-**Proposed** (2026-11-13, design 단계 — TASK-2026-11-13-claude-remote-sync-check-234c32-006, M-027/WBS-27.1).
+**Accepted** (2026-11-13 소유자 승인 — requirements 대비 변경 V1~V7 포함, design 단계 — TASK-2026-11-13-claude-remote-sync-check-234c32-006, M-027/WBS-27.1). 구현은 M-029.
 requirements 정본은 `docs/planning/plan-workbench-requirements-2026-11.md` (sign-off Q1 · Q2, design 전 실측 §1.4),
 kit 계약 정본은 `workflow-source/core/plan_workbench_spec.md`. 응답 파일 형식 · 받은편지함 · `plan-import` 는 ADR-031 과
 `workflow-source/core/claim_plan_spec.md` 가 정본이고 이 ADR 은 그것을 **소비**한다 — 다시 정하지 않는다.
@@ -60,8 +60,9 @@ Windows(NTFS) — 구현 뒤 (결정 22).
    `check_plan_claims` case 6(파서 단일성)이 `workbench/` 를 소비자 목록에 더한다 — 파서 단일성은 그 case 한 곳에서 잰다.
 3. **CLI 는 requirements R1.1 그대로**다 (`--bind` · `--port` 8766 · `--public-url` · `--token` · `--trusted-proxy` · `--tls-cert` ·
    `--tls-key` · `--allow-plain-http` · `--status` · `--new-token … --out`). `allow_abbrev=False`. 진입은 `python -m workflow_kit workbench`
-   (dispatcher) 와 console script `workflow-workbench` 둘 — 다른 명령과 같다. 대안 — console script 만: Windows 의 `wk.exe` · console script 는
-   백신 평판 차단을 받는다 (handoff 의 Windows 메모) — 하네스 문구는 `python -m` 이어야 한다.
+   (dispatcher) 와 console script `workflow-workbench` 둘 — 다른 명령과 같다. 대안 — console script 만: Windows 의 `wk.exe` 가 백신(AhnLab V3)
+   평판 차단을 받았다 (`docs/INSTALLATION_AND_USAGE.md` · TASK-2026-10-02-main-007) — 같은 기전(pip 가 설치마다 만드는 서명 없는 런처)이라
+   `workflow-*.exe` 도 같을 것으로 본다 (추론). 하네스 문구는 `python -m` 이어야 한다.
 
 ### 토큰 · 세션 · 쿠키
 
@@ -110,7 +111,7 @@ Windows(NTFS) — 구현 뒤 (결정 22).
 ### 받은편지함 보고 · 이월 항목 (2단계 구현이 넘긴 것)
 
 16. **받은편지함 건수의 정본은 `plan_responses.inbox_census(branch_dir)` 하나**로 접는다 — task 별 건수 · 알 수 없는 항목 · 배치 문제를 한 번에
-    돌려준다. 게이트(`backlog-update`) · `session-start` · `plan-status` · `plan-import` · 워크벤치 · MCP `plan_inbox` 가 이것만 부른다.
+    돌려준다. 게이트(`backlog-update`) · `session-start` · `refresh-state`(결정 18) · `plan-status` · `plan-import` · 워크벤치 · MCP `plan_inbox` 가 이것만 부른다.
     지금은 `inbox_files` · `pending_by_task` · `unknown_inbox_files` 를 각자 조합한다 — 하나가 바뀌면 보고가 갈린다 (2단계 검증 4차에서 실제로 갈렸다).
 17. **`plan-import` 출력의 `pending_responses` 는 "지금의 건수" 로 맞추고, 반영 뒤 남을 건수는 `remaining_after` 로 따로 낸다.**
     `plan-status` 의 같은 이름 필드와 뜻이 같아야 한다. 두 필드 모두 아직 발행되지 않아 이름을 바꾸는 비용이 없다.
@@ -118,7 +119,8 @@ Windows(NTFS) — 구현 뒤 (결정 22).
     미반영 응답이 있으면 `done 인데 계획 응답 n건 미반영: <TASK-ID>` 를 싣는다. 2단계 검증이 찾은 길 — 원본 받은편지함에 응답이 온 뒤
     브랜치가 닫고 합류의 되돌려 적기로 원본 task 가 `done` 이 되는 것 — 은 `backlog-update` 전이를 거치지 않아 게이트로는 막을 수 없다.
     막지 않고 드러낸다 (열린 결정의 우회 검출과 같은 방식). 같은 자리에서 `plan-status` 는 `layout_problem` 과 보관의 링크 · 비파일 항목을
-    `warnings` 에 싣는다.
+    `warnings` 에 싣는다. 이 둘과 결정 25 는 `claim_plan_spec.md` §4 · §10 의 동작을 바꾸므로 구현 때 그 절에 적는다 (포인터가 아니라 문면 —
+    게이트 계약의 정본은 그 문서다).
 
 ### MCP · 정본 · 스킬 · 검사
 
@@ -128,8 +130,8 @@ Windows(NTFS) — 구현 뒤 (결정 22).
     같은 커밋에서 다시 만든다. 대안 — 나중으로: 받은편지함에 응답이 생기는 것은 워크벤치가 있을 때뿐이라 둘은 같이 쓰인다.
 20. **정본 §11.1 에 한 줄**: `Review plans and progress in a browser | python -m workflow_kit workbench` (R1.2). 스킬 `workbench` 하나
     (+ bootstrap slash command `/workflow-workbench`) — 본문은 서버를 띄우는 법 · 토큰을 만드는 법 · URL 을 사용자에게 알리는 것까지이고,
-    모델이 서버를 대신 조작하지 않는다. 대안 — 스킬 없이 명령만: 플러그인 스킬은 §11.1 과 1:1 이라는 기존 검사가 요구한다
-    (`check_agent_plugin_payload`). 대안 — 스킬이 MCP 로 서버를 띄우고 멈춘다: 서버는 사용자의 브라우저와 토큰에 묶이고, 서버를 다루는 MCP 도구는
+    모델이 서버를 대신 조작하지 않는다. 대안 — 스킬 없이 명령만: requirements R1.2 가 `workbench` 스킬을 요구한다 (소유자 sign-off).
+    서버를 띄우는 일은 사용자에게 URL 과 토큰을 알리는 절차가 붙어 명령 한 줄로 끝나지 않는다. 대안 — 스킬이 MCP 로 서버를 띄우고 멈춘다: 서버는 사용자의 브라우저와 토큰에 묶이고, 서버를 다루는 MCP 도구는
     두지 않는다 (requirements R9).
 21. **`.workbench/` 는 자기 무시 디렉터리**다 — 안에 `*\n` 인 `.gitignore` 를 두고 서버가 시작할 때마다 확인한다 (ADR-030 의 `.compact/`,
     ADR-031 결정 14 의 받은편지함과 같은 수단). 대안 — 저장소 루트 `.gitignore` 에 줄: 재적용 전의 소비 프로젝트가 무방비다.
@@ -145,16 +147,18 @@ Windows(NTFS) — 구현 뒤 (결정 22).
     docker · 실제 브라우저는 게이트에 넣지 않는다 — 게이트가 docker 와 Chrome 에 묶이면 그것이 없는 호스트에서 돌지 않는다. 실물 측정(M1~M4)은
     requirements §1.4 의 절차로 남기고, 서버를 바꿀 때 다시 잰다. Windows(NTFS)의 포트 bind · 토큰 파일 모드 · 콘솔 인코딩은 구현 뒤
     Windows 호스트에서 잰다 (M-028 의 task -005 와 같은 호스트 · 같은 세션).
-23. **구현은 마일스톤 하나**(M-029 — 이 ADR 이 accepted 되면 선언한다)로, 두 단계다: ① 이월 항목 정리(결정 16 · 17 · 18) — 서버 없이도
+23. **구현은 마일스톤 하나**(M-029 — 이 ADR 이 accepted 되면 선언한다)로, 두 단계다: ① 이월 항목 정리(결정 16 · 17 · 18 · 24 · 25) — 서버 없이도
     값이 있고 작다 ② 서버 · 화면 · MCP · 정본 · 스킬 · 검사 넷.
 24. **ADR-031 1 · 2단계 구현이 넘긴 정리 거리도 M-029 ① 에서 한다** (주장 트리 계획 코드의 검사 · 경계):
     1단계 검증의 넷 — `backlog_update._existing_task_lines` 의 예외 경로를 재는 case 가 없음 · `state: answered:`(빈 값)를 열린 결정으로 세는가
     (`plan-status` · `open_decisions` 의 계수) · `check_plan_gate` case 15 의 반복문이 workspace 하나를 재사용해 red 메시지 둘째 줄부터 연쇄 잡음 ·
     `--progress-note` 를 여러 번 주면 첫 값만 사유로 봄. 2단계 검증의 셋 — 배치 판정이 0 단계보다 먼저라는 순서를 재는 case 없음 ·
-    EXDEV · `LayoutError` 되주입이 FAIL 줄이 아니라 traceback 으로만 red · `check_plan_import.py` 단독 mypy 의 남은 `type: ignore`.
+    EXDEV · `LayoutError` 되주입이 FAIL 줄이 아니라 traceback 으로만 red · `check_plan_import.py` 단독 mypy 의 남은 `type: ignore` (2단계 5차 검증의 남은 메모 — `type: ignore` 10곳).
     각각 case 하나 또는 한 줄 수정이라 서버와 섞지 않고 ① 에서 닫는다.
 25. **게이트(`backlog-update` 의 → `done`)는 배치 문제로 막지 않는다** — `inbox_census` 의 `layout_problem` 을 `warnings` 에 싣기만 한다.
-    받은편지함 행(미반영 응답이 있으면 거부)은 배치와 무관하게 센 건수로 판정한다 — 배치가 틀려도 응답이 있으면 닫히지 않는다.
+    배치 문제 **자체**는 거부 사유가 아니고, 게이트는 `inbox_census` 의 미반영 건수로만 판정한다 — 배치가 틀려도 응답이 있으면 닫히지 않는다.
+    같은 디렉터리 배치(지원 밖, 주장 스펙 §7-9)에서는 보관된 응답도 받은편지함에 보여 그 건수에 들고, 그래서 `done` 이 막힐 수 있다 —
+    막히는 쪽(fail-closed)이라 받아들인다. census 는 배치 문제가 있어도 받은편지함의 보통 파일을 센 그대로 낸다.
     대안 — 배치 문제면 `done` 거부: 배치는 손으로 만든 상태라(주장 스펙 §7-9) 결정과 무관한 task 까지 막는다.
 
 ## Requirements 대비 변경

@@ -65,7 +65,9 @@
   - path: [`./M-025-plan-workbench-requirements.md`](./M-025-plan-workbench-requirements.md)
 - **M-026** [design] 주장 트리 계획 — design (ADR-031 + core 스펙) — status: done
   - path: [`./M-026-claim-plan-design.md`](./M-026-claim-plan-design.md)
-- **M-027** [design] 계획·진척 워크벤치 — design (ADR-032 + core 스펙) — status: in_progress
+- **M-027** [design] 계획·진척 워크벤치 — design (ADR-032 + core 스펙) — status: done
   - path: [`./M-027-plan-workbench-design.md`](./M-027-plan-workbench-design.md)
 - **M-028** [implementation] 주장 트리 계획 — implementation (라벨 · 린트 · 게이트 · plan-status · plan-import · 검사) — status: in_progress
   - path: [`./M-028-claim-plan-implementation.md`](./M-028-claim-plan-implementation.md)
+- **M-029** [implementation] 계획·진척 워크벤치 — implementation (이월 정리 · 서버 · 화면 · MCP · 검사) — status: planned
+  - path: [`./M-029-plan-workbench-implementation.md`](./M-029-plan-workbench-implementation.md)

@@ -9,6 +9,10 @@
 > 이 파일은 **읽기 대상이 아니라 조회 대상**이다. 세션 시작에 읽지 않는다 —
 > handoff §1 이 최근 4개만 들고 있고, 그 이전이 필요할 때만 여기를 본다.
 
+## 롤오프 2026-11-14
+
+- **124차 세션 후반 (2026-11-13, Linux 호스트) — M-025 워크벤치 requirements 종결.** [`plan-workbench-requirements-2026-11.md`](../../../../../docs/planning/plan-workbench-requirements-2026-11.md) — 실측(프롬프트 직전 hook 의 주입이 실측된 하네스는 Claude Code 하나 → W1 ② 보류 / 받은편지함은 다 쓴 뒤 공개, import 는 잠금 아래 배타 이동 / 접두사 프록시 뒤 상대 경로 + 쿠키 `Path` = 접두사) + R0~R12, 소유자 sign-off **Q1 · Q2 권고안** (토큰은 로그인 폼으로만 · 위임 인증은 첫 구현 밖). 실측이 주장 requirements R8.1 · R5.1 · R11-7 을 고쳤다 (이동은 rename 이 아니라 잠금 + 배타). task 11-13-001 done (verifier 3회 — 3차 5/5 PASS). M-025 done. 같은 날 main 에 11-04 미커밋 메모리를 반영 · push (`origin/main@39a50a11`) — 이 브랜치는 그 커밋을 아직 받지 않았다. roadmap issues [].
+
 ## 롤오프 2026-11-13
 
 - **124차 세션 (2026-11-12, Linux 호스트, 같은 브랜치를 checkout) — M-023 requirements 종결.** [`claim-plan-requirements-2026-11.md`](../../../../../docs/planning/claim-plan-requirements-2026-11.md) — 실측 3건(옛 리더는 모르는 `- Claims:` · `- Decisions:` 줄을 무시 · 보존 → 리더 · 라이터 같은 릴리스 / 주장 80자 / 응답 64KiB) + 요구 사항 R0~R13, 소유자 sign-off **Q1~Q7 전부 권고안** (문서 §12). 핵심: 결정 상태 = 보관된 응답 집합 + `answered` 기록의 함수(순서 무관 · 멱등), 다른 approver 의 반대는 `disputed` 로 결정을 다시 연다, 게이트는 상태 칸이 아니라 계산값으로 판정, 받은편지함은 gitignore. task -005 done (verifier 9회 — 기준 4 가 R6.3 에서 2~8차 매회 1건 FAIL → 수리, 9차 5/5 PASS). M-023 done · **M-026 [design] planned** (M-025 뒤). roadmap issues [].

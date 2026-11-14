@@ -1,6 +1,6 @@
 ---
 id: TASK-2026-11-13-claude-remote-sync-check-234c32-006
-status: in_progress
+status: done
 created_at: 2026-11-13
 source_anchor: generic-task-2026-11-13-claude-remote-sync-check-234c32-006
 source_path: backlog/2026-11-13.md
@@ -12,7 +12,7 @@ wbs: M-027/WBS-27.1
 
 ## 📝 Description
 
-- Status: in_progress
+- Status: done
 - Priority: high
 - Request date: 2026-11-13
 - Owner:
@@ -50,11 +50,12 @@ wbs: M-027/WBS-27.1
 
 ## 🛠️ Implementation / Content
 
-- Progress: 2026-11-13 verifier 1차: FAIL 3 (대안 없는 결정 대상 넷 · 스펙에 없는 requirements 문장 넷 · 1단계에서 넘긴 4건 기록 소실 + 게이트의 배치 동작 미정). 수리: 대안 · 결정 24(정리 거리를 M-029 ① 로) · 25(게이트는 배치로 막지 않는다) · V6 · V7 · 스펙 보강 · 모순 넷. 2차 대기
+- Progress: 2026-11-13 verifier 2차: 5/5 PASS. 승인 전 고칠 문안 넷(결정 20 사유 · 결정 16 의 refresh-state · 결정 25 의 같은 디렉터리 배치 · 결정 24 출처)과 메모(결정 3 근거 · 결정 23 범위 · claim_plan_spec §4 · §10 반영)를 고침. ADR-032 는 proposed — 소유자 승인 대기
 - Next session starting point:
 - Remaining risks:
 
 ## ✅ Outcome
 
-- Result:
+- Result: verifier 2회 — 2차 [C1]~[C4] · 다섯째 PASS (문서 메타 · 링크 35/35, --changed 134/134). 실측 결과 JSON 재실행 바이트 동일
+- Verification: verifier 2회 — 2차 [C1]~[C4] · 다섯째 PASS (문서 메타 · 링크 35/35, --changed 134/134). 실측 결과 JSON 재실행 바이트 동일
 - Follow-up:

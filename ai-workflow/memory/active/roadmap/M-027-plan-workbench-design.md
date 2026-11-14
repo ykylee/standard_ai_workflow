@@ -2,7 +2,7 @@
 id: M-027
 title: 계획·진척 워크벤치 — design (ADR-032 + core 스펙)
 sdlc_phase: design
-status: in_progress
+status: done
 order: 27
 parallel_allowed:
   - M-007

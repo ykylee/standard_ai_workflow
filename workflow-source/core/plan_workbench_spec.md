@@ -3,8 +3,8 @@
 - 문서 목적: 브라우저에서 task 의 계획(주장 · 결정)과 진척을 읽고 결정에 답하는 `workbench` 서버의 kit 계약(명령 · 수명 · 경로 · 인증 · 응답 쓰기 · 진척 값 · 알림 · MCP · 노출 · 모듈 · 검증)을 정의한다.
 - 범위: `python -m workflow_kit workbench`, 서버가 서빙하는 경로와 화면, 서버가 받은편지함에 쓰는 응답, 받은편지함 건수의 정본 함수, MCP 도구 `plan_inbox` · `plan_import`, §11.1 한 줄과 스킬, 검사 넷
 - 대상 독자: workflow 설계자, AI agent, kit 소비 프로젝트
-- 상태: draft (ADR-032 proposed 2026-11-13 — 구현 전)
-- 최종 수정일: 2026-11-13
+- 상태: draft (ADR-032 accepted 2026-11-13 — 구현 전, M-029)
+- 최종 수정일: 2026-11-14
 - 관련 문서: `../../ai-workflow/wiki/decisions/adr-032-plan-workbench.md`, `../../docs/planning/plan-workbench-requirements-2026-11.md`, `./claim_plan_spec.md`, `./global_workflow_standard.md`
 
 > **결정 근거는 ADR-032 에, 숫자의 실측은 requirements 에 있다.** 이 문서는 *계약* 만 적는다.
@@ -181,7 +181,8 @@ task 파일에 있는 것만 그린다: 주장 트리(`<details>`, 접힌 상태
 `plan_responses.inbox_census(branch_dir) -> InboxCensus(pending: dict[task, int], unknown: list[name], layout_problem: str | None)` 하나가 정본이다.
 **M-029 ① 에서 새로 만든다** — 지금은 `inbox_files` · `pending_by_task` · `unknown_inbox_files` · `layout_problem` 을 부르는 쪽이 조합한다.
 `backlog-update` 게이트 · `session-start` · `refresh-state` · `plan-status` · `plan-import` · 워크벤치 · `plan_inbox` 가 이것만 부른다 (ADR-032 결정 16).
-게이트는 `layout_problem` 을 `warnings` 에 싣기만 하고 막지 않는다 — 받은편지함 행은 배치와 무관하게 센 건수로 판정한다 (결정 25).
+게이트는 `layout_problem` 을 `warnings` 에 싣기만 하고 그것으로 막지 않는다 — 받은편지함 행은 census 의 미반영 건수로만 판정한다 (결정 25).
+census 는 배치 문제가 있어도 받은편지함의 보통 파일을 센 그대로 낸다 — 같은 디렉터리 배치(지원 밖)에서는 보관된 응답도 세어져 `done` 이 막힐 수 있다.
 
 ### 8.2 당겨 오기 (①)
 

@@ -27,11 +27,10 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**128차 세션 (2026-11-14, Linux 호스트) — M-029/WBS-29.2 ② 워크벤치 서버 · 화면 · 검사 넷 · 스킬 종결 (MCP 두 도구는 남음).** `workflow_kit/workbench/`(auth · server · respond · state_view · views · static) + `python -m workflow_kit workbench`(시작 거절 rc 2 · `.workbench/server.json` 자기 무시 · `--status` · `--new-token` 은 `~` 전개 · 부모 0700) · `session-start` summary 의 `워크벤치 실행 중: <public_url>` · 정본 §11.1 · 스킬 `workbench`(+ `/workflow-workbench`) · `plan_responses.sweep_dead_temp_files` · `check_packaging` 이 static 자원을 wheel 에서 잰다. 검사 넷: auth 12 · write 6 · views 7 · proxy 2. verifier 7회(1차 C3 · C4 · C6 → 7차 전부 PASS) — 제품 결함 넷(§7.2 미측정 미구현 · 스킬 명령 실패 · 모르는 메서드 501 · 시계 주입 기본값이 정의 시점에 묶임)은 2차까지, 3~6차는 전부 write case 3(덜 쓰인 파일 비노출) 측정의 구멍. 한계: mmap 쓰기 · 다른 프로세스의 받은편지함 밖 하드링크 별칭 · main 의 비loopback 경고 출력 배선 · Windows(inotify 층 미측정). 커밋 a2e3b495 · abf2143f · d74cf2a6 · 5442851b · 4219728d · ef7cfab0 · 9230ae82 · d536de9d",
+    "current_baseline": "**129차 세션 (2026-11-14, Linux 호스트) — M-029 종결: WBS-29.2 의 MCP `plan_inbox`(read-only) · `plan_import`(write) 완료, M-029 done.** `common/plan_mcp.py` — `plan_inbox` 는 `inbox_census` + 파일별 자격(주석 본문 없음, 쓰지 않음), `plan_import` 는 서버 인터프리터로 CLI `plan-import` 를 하위 프로세스로(출력 계약이 CLI 와 같다 — stdio 서버는 표준 출력이 전송로), 값은 `--flag=value`, argparse 거절은 `invalid_tool_arguments`, 사유 없는 discard 는 `missing_discard_reason`. registry 에 boolean 입력(`apply` — true · false 만) · `requires_any_of` · `WRITE_CAPABLE_TOOL_NAMES`. 생성물 5종 · minimax 예시 재생성, 옛 매니페스트 검사의 손 숫자 13 을 registry 파생으로. 검사 `check_plan_mcp_tools` 5 case, verifier 3회(측정 공백 → 오류 규칙 분기 → PASS). Windows 실측(워크벤치 항목 포함)은 M-028/WBS-28.3 이 가져간다. 커밋 f3223d6a · fb3bdc48 · 5d7b7e6d",
     "current_axis": "**로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · ~~[TASK-2026-08-13-main-004] mypy flake 관찰~~ ✅ (66차 close — 33/33 표본, mypy 실패 0).",
-    "current_focus": "TASK-2026-11-14-claude-remote-sync-check-234c32-003 M-029 ② MCP plan_inbox · plan_import + 체크인 생성물",
+    "current_focus": "TASK-2026-10-02-main-006 Windows 로캘(cp949)에서 wk 가 UnicodeEncodeError 로 죽는다 — stdout 과 기본 인코딩 I/O 를 UTF-8 로 고정",
     "in_progress_items": [
-      "TASK-2026-11-14-claude-remote-sync-check-234c32-003 M-029 ② MCP plan_inbox · plan_import + 체크인 생성물",
       "TASK-2026-10-02-main-006 Windows 로캘(cp949)에서 wk 가 UnicodeEncodeError 로 죽는다 — stdout 과 기본 인코딩 I/O 를 UTF-8 로 고정",
       "TASK-2026-10-02-main-007 Windows V3 백신이 wk.exe 를 평판 기반으로 차단한다 — pip 생성 console-script 런처 대체 진입 경로"
     ],
@@ -42,6 +41,7 @@
       "TASK-2026-11-13-claude-remote-sync-check-234c32-005"
     ],
     "recent_done_items": [
+      "TASK-2026-11-14-claude-remote-sync-check-234c32-003 — M-029 ② MCP plan_inbox · plan_import + 체크인 생성물",
       "TASK-2026-11-14-claude-remote-sync-check-234c32-002 — M-029 ② 워크벤치 서버 · 화면 · 검사 넷 · 스킬 (MCP 두 도구는 다음 task)",
       "TASK-2026-11-14-claude-remote-sync-check-234c32-001 — M-029 ① 이월 정리 — inbox_census 단일 출처 · plan-import 건수 두 필드 · 받은편지함 우회 검출 · 정리 일곱",
       "TASK-2026-11-13-claude-remote-sync-check-234c32-006 — 계획·진척 워크벤치 design — 프록시 · 브라우저 실측 + ADR-032 + core 스펙",
@@ -50,8 +50,7 @@
       "TASK-2026-11-13-claude-remote-sync-check-234c32-002 — 주장 트리 계획 design — ADR-031 + core 스펙 (필드 · 린트 · 게이트 · 응답 형식 · plan-import · 받은편지함 계약)",
       "TASK-2026-11-13-claude-remote-sync-check-234c32-001 — 계획·진척 워크벤치 requirements — 미실측 실측 + 서버 · 응답 쓰기 · 알림 · 진척 화면 요구 사항 · design 진입 조건 확정",
       "TASK-2026-11-12-claude-remote-sync-check-234c32-005 — 주장 트리 계획 requirements — 미실측 3건 실측 + A · B 요구 사항 · 숫자 · design 진입 조건 확정",
-      "TASK-2026-11-12-claude-remote-sync-check-234c32-004 — 워크벤치 concept 정정 — 접속 위치 무가정: 노출 경로 · 항상 인증 · viewer/approver 역할",
-      "TASK-2026-11-12-claude-remote-sync-check-234c32-003 — 계획·진척 워크벤치 concept 검토 — html-plan 계획 호스팅 · 사용자 응답 반영(MCP · hook · channels · A2A) · 진척 조회"
+      "TASK-2026-11-12-claude-remote-sync-check-234c32-004 — 워크벤치 concept 정정 — 접속 위치 무가정: 노출 경로 · 항상 인증 · viewer/approver 역할"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
@@ -59,13 +58,12 @@
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/claude/remote-sync-check-234c32/backlog/2026-11-14.md",
     "task_count": 3,
-    "in_progress_items": [
-      "TASK-2026-11-14-claude-remote-sync-check-234c32-003 — M-029 ② MCP plan_inbox · plan_import + 체크인 생성물"
-    ],
+    "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
       "TASK-2026-11-14-claude-remote-sync-check-234c32-001 — M-029 ① 이월 정리 — inbox_census 단일 출처 · plan-import 건수 두 필드 · 받은편지함 우회 검출 · 정리 일곱",
-      "TASK-2026-11-14-claude-remote-sync-check-234c32-002 — M-029 ② 워크벤치 서버 · 화면 · 검사 넷 · 스킬 (MCP 두 도구는 다음 task)"
+      "TASK-2026-11-14-claude-remote-sync-check-234c32-002 — M-029 ② 워크벤치 서버 · 화면 · 검사 넷 · 스킬 (MCP 두 도구는 다음 task)",
+      "TASK-2026-11-14-claude-remote-sync-check-234c32-003 — M-029 ② MCP plan_inbox · plan_import + 체크인 생성물"
     ]
   },
   "next_documents": [

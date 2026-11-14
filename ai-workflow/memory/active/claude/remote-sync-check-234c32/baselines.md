@@ -11,6 +11,10 @@
 
 ## 롤오프 2026-11-14
 
+- **125차 세션 후반 (2026-11-13, Linux 호스트) — M-028/WBS-28.2 주장 트리 계획 구현 2단계 종결.** `common/plan_responses.py`(응답 파서 · 자격 1~6 · 받은편지함 자기 무시 · 번호 · 배타 이동 `os.link` · 잠금 · 배치 판정) + `plan-import`(dry-run 기본 · `--apply` · `--response` · `--discard`, 0 단계 · 배치 판정을 먼저) + 받은편지함 게이트(`pending_plan_responses`) · 미반영 경고 · 옛 계획 경고 · 게이트 · `plan-status` · 우회 검출이 보관 응답으로 계산 + 이어받기(seed · 이월 · 되돌려 적기, 되돌려 적기는 거둠도 나른다 — 소유자 결정 D1=carry) + 정본 §11.1 · 스킬 `plan-import` · bootstrap `/workflow-plan-import`. 검사 `check_plan_import` 14 · `check_plan_gate` 20 — 전량 313. task 11-13-004 done (verifier 6회 — 6차 FAIL 0). 소유자 결정: 검증 범위는 스펙 §7-9 의 배치(브랜치 안 같은 파일시스템 보통 디렉터리 + 도구가 만든 보통 파일). M-028 은 Windows(NTFS) 실측만 남아 in_progress. 미발행. roadmap issues [].
+
+## 롤오프 2026-11-14
+
 - **125차 세션 (2026-11-13, Linux 호스트) — M-028/WBS-28.1 주장 트리 계획 구현 1단계 종결.** task `## 🧭 Plan` 에 `Claims` · `Decisions` 라벨, `common/plan_claims.py`(파서 · 린트 L1~L10 · 지문 · 상태 계산, 순수 함수) · `common/plan_tasks.py`(I/O), `backlog-update --plan-claim · --plan-decision · --decision-state`(쓰기 전 린트 — L2 · L6 · L9 는 거부, 열린 결정이 있으면 → done 거부, 상태는 칸이 아니라 계산값), 읽기 전용 `plan-status`, state.json `open_decisions`, 우회 warning(`refresh-state` · `session-start`), 정본 §1 두 줄 개정. 검사 셋(`check_plan_claims` 14 · `check_plan_decision_state` 6 · `check_plan_gate` 18) — 전량 312 × native/slash green. task 11-13-003 done (verifier 6회 — 6차 FAIL 0). 2단계 전이라 응답 파일은 없다: 상태는 `answered` 가 아니면 `proposed`. M-028 은 WBS-28.2 가 남아 in_progress. 미발행. roadmap issues [].
 
 ## 롤오프 2026-11-14

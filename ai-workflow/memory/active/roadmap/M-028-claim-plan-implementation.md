@@ -32,4 +32,5 @@ design 승인 ([`M-026`](./M-026-claim-plan-design.md) → ADR-031 accepted 2026
   검사 `check_plan_claims` · `check_plan_decision_state` · `check_plan_gate` — 이것만으로 안 A 가 완결된다
 - **WBS-28.2** 2 단계 — 응답 형식 · 받은편지함(자기 무시 · 잠금) · `plan-import` · 이어받기 · 정본 §11.1 · 스킬 `plan-import` · verifier 한 줄 ·
   검사 `check_plan_import`
-- **WBS-28.3** Windows(NTFS) 실측 — `os.link` 공개 · 배타 이동 · 잠금 (`check_plan_import` 를 Windows 호스트에서), 결과를 ADR-031 Implementation Notes 에
+- **WBS-28.3** Windows(NTFS) 실측 — `os.link` 공개 · 배타 이동 · 잠금 (`check_plan_import` 를 Windows 호스트에서), 결과를 ADR-031 Implementation Notes 에.
+  같은 세션에서 M-029 워크벤치의 포트 bind · 토큰 파일 모드 · 콘솔 인코딩 · `check_workbench_write` 의 inotify 층(Windows 는 미측정 출력)도 잰다

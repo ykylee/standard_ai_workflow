@@ -69,5 +69,5 @@
   - path: [`./M-027-plan-workbench-design.md`](./M-027-plan-workbench-design.md)
 - **M-028** [implementation] 주장 트리 계획 — implementation (라벨 · 린트 · 게이트 · plan-status · plan-import · 검사) — status: in_progress
   - path: [`./M-028-claim-plan-implementation.md`](./M-028-claim-plan-implementation.md)
-- **M-029** [implementation] 계획·진척 워크벤치 — implementation (이월 정리 · 서버 · 화면 · MCP · 검사) — status: in_progress
+- **M-029** [implementation] 계획·진척 워크벤치 — implementation (이월 정리 · 서버 · 화면 · MCP · 검사) — status: done
   - path: [`./M-029-plan-workbench-implementation.md`](./M-029-plan-workbench-implementation.md)

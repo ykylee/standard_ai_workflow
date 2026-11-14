@@ -2,7 +2,7 @@
 id: M-029
 title: 계획·진척 워크벤치 — implementation (이월 정리 · 서버 · 화면 · MCP · 검사)
 sdlc_phase: implementation
-status: in_progress
+status: done
 order: 29
 parallel_allowed:
   - M-007
@@ -21,6 +21,7 @@ design 승인 ([`M-027`](./M-027-plan-workbench-design.md) → ADR-032 accepted 
 - **불변**: 스펙 §1. 서버가 쓰는 워크플로우 상태는 받은편지함 하나다.
 - **실물 측정은 게이트 밖**: 서버의 경로 · 쿠키 코드를 바꾸면 requirements §1.4 의 절차(nginx · Caddy docker + 실제 브라우저)를 다시 돌린다.
 - **Windows(NTFS)**: 포트 bind · 토큰 파일 모드 · 콘솔 인코딩은 구현 뒤 Windows 호스트에서 잰다 — M-028 의 WBS-28.3 과 같은 호스트 · 같은 세션.
+  2026-11-14 WBS-29.1 · 29.2 종결로 M-029 를 done 으로 닫는다 — Windows 실측은 WBS-28.3 이 가져간다 (워크벤치 항목을 그 task 에 함께 적는다).
 
 ## WBS
 

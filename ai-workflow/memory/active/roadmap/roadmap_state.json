@@ -992,7 +992,7 @@
         },
         {
           "id": "WBS-28.3",
-          "title": "Windows(NTFS) 실측 — `os.link` 공개 · 배타 이동 · 잠금 (`check_plan_import` 를 Windows 호스트에서), 결과를 ADR-031 Implementation Notes 에",
+          "title": "Windows(NTFS) 실측 — `os.link` 공개 · 배타 이동 · 잠금 (`check_plan_import` 를 Windows 호스트에서), 결과를 ADR-031 Implementation Notes 에.",
           "derived_status": "planned",
           "linked_task_ids": [
             "TASK-2026-11-13-claude-remote-sync-check-234c32-005"
@@ -1007,11 +1007,11 @@
       "id": "M-029",
       "title": "계획·진척 워크벤치 — implementation (이월 정리 · 서버 · 화면 · MCP · 검사)",
       "sdlc_phase": "implementation",
-      "declared_status": "in_progress",
-      "derived_status": "in_progress",
-      "progress": 0.5,
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
       "total_leaves": 2,
-      "done_leaves": 1,
+      "done_leaves": 2,
       "deliverables_missing": [],
       "wbs": [
         {
@@ -1028,13 +1028,13 @@
         {
           "id": "WBS-29.2",
           "title": "② 서버 · 화면 · MCP `plan_inbox` · `plan_import` · 정본 §11.1 · 스킬 `workbench` · 검사 넷",
-          "derived_status": "in_progress",
+          "derived_status": "done",
           "linked_task_ids": [
             "TASK-2026-11-14-claude-remote-sync-check-234c32-002",
             "TASK-2026-11-14-claude-remote-sync-check-234c32-003"
           ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         }
       ]

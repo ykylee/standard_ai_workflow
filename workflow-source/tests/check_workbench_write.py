@@ -3,7 +3,8 @@
 
 1. 왕복 — 서버가 쓴 응답이 `plan-import` 의 1~6 단계를 통과해 보관으로 가고 결정 상태에 든다
 2. 동시 제출 — 서버 스레드(여러 클라이언트) · 여러 프로세스의 `build_and_publish` 에서 유실 0 · 이름 중복 0 · 전부 자격
-3. 독자는 덜 쓰인 파일을 보지 않는다 — 공개 도중(쓰기와 fsync 사이)에 받은편지함을 훑어도 응답이 없다;
+3. 독자는 덜 쓰인 파일을 보지 않는다 — 공개 도중(파일을 열고 · 쓰고 · 이름을 붙이는 audit 이벤트마다, fsync 앞)
+   받은편지함을 훑어도 응답이 없다;
    같은 바이트를 두 번 공개하면 두 파일이다 (배타 생성)
 4. 거절은 받은편지함을 바꾸지 않는다 — 413 · 422(선택지 밖 · 한도 · 제어 문자) · 409(지문 · 배치 · 오류 규칙)
 5. `answered` 결정은 폼이 무엇을 보냈든 기본값 · `opened: no` 로 적힌다
@@ -231,9 +232,15 @@ def case_no_partial_reads() -> list[str]:
                 return Paused(handle)
             return handle
 
-        with mock.patch.object(pr.os, "fsync", paused_fsync), \
-                mock.patch.object(pr, "open", paused_open, create=True):
-            pr.publish(branch, task_id, body)
+        # 쓰는 쪽이 어떤 API 를 쓰든 파일을 열거나 이름을 붙이는 순간은 audit 이벤트다 — 그때마다 훑는다.
+        WATCH["look"] = look
+        WATCH["on"] = True
+        try:
+            with mock.patch.object(pr.os, "fsync", paused_fsync), \
+                    mock.patch.object(pr, "open", paused_open, create=True):
+                pr.publish(branch, task_id, body)
+        finally:
+            WATCH["on"] = False
         if seen:
             problems.append(f"공개가 끝나기 전에 독자가 응답을 봤다: {seen}")
         pr.publish(branch, task_id, body)
@@ -244,6 +251,24 @@ def case_no_partial_reads() -> list[str]:
         if leftovers:
             problems.append(f"임시 파일이 남았다: {leftovers}")
     return problems
+
+
+#: audit hook 은 지울 수 없다 — 한 번만 걸고 스위치로 켠다.
+WATCH: dict[str, Any] = {"on": False, "look": None, "busy": False}
+_AUDITED = {"open", "os.link", "os.rename", "os.replace", "os.symlink"}
+
+
+def _audit(event: str, args: tuple[Any, ...]) -> None:
+    if not WATCH["on"] or WATCH["busy"] or event not in _AUDITED:
+        return
+    WATCH["busy"] = True  # 훑는 동안의 open 은 다시 걸리지 않게
+    try:
+        WATCH["look"](f"audit {event}")
+    finally:
+        WATCH["busy"] = False
+
+
+sys.addaudithook(_audit)
 
 
 def fx_at(micro: int) -> str:

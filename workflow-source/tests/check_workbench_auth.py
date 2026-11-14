@@ -289,7 +289,7 @@ def case_routes_and_headers() -> list[str]:
             for path in ("/", f"/task/{task_id}", "/api/state", "/login", "/healthz"):
                 _check_headers(f"GET {path}", browser.get(path), problems)
             _check_headers("GET 세션 없음", fx.request(srv.port, "GET", "/"), problems)
-            for method in ("HEAD", "PUT", "DELETE", "OPTIONS", "PATCH"):
+            for method in ("HEAD", "PUT", "DELETE", "OPTIONS", "PATCH", "TRACE", "FOO"):
                 reply = fx.request(srv.port, method, "/", body=b"" if method in ("PUT", "PATCH") else None)
                 if reply.status != 404:
                     problems.append(f"{method} /: {reply.status} (기대 404 — 경로 표 밖)")

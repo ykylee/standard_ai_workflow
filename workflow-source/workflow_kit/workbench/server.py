@@ -164,6 +164,8 @@ class Handler(BaseHTTPRequestHandler):
     def send_error(self, code: int, message: str | None = None, explain: str | None = None) -> None:
         """표준 처리기가 내는 오류(잘못된 요청 · 모르는 메서드)도 같은 머리를 갖는다 (스펙 §4.2)."""
         self.close_connection = True
+        if code == HTTPStatus.NOT_IMPLEMENTED:  # 모르는 메서드 — 경로 표(§4.1) 밖이므로 404
+            code = HTTPStatus.NOT_FOUND
         try:
             phrase = HTTPStatus(code).phrase
         except ValueError:

@@ -233,7 +233,7 @@ def case_no_partial_reads() -> list[str]:
             return handle
 
         # 쓰는 쪽이 어떤 API 를 쓰든 파일을 열거나 이름을 붙이는 순간은 audit 이벤트다 — 그때마다 훑는다.
-        WATCH["look"] = look
+        WATCH.update(look=look, inbox=pr.ensure_inbox(branch), body=body, violations=[])
         WATCH["on"] = True
         try:
             with mock.patch.object(pr.os, "fsync", paused_fsync), \
@@ -243,6 +243,8 @@ def case_no_partial_reads() -> list[str]:
             WATCH["on"] = False
         if seen:
             problems.append(f"공개가 끝나기 전에 독자가 응답을 봤다: {seen}")
+        if WATCH["violations"]:
+            problems.append(f"공개 방식이 원자적이지 않다: {WATCH['violations']}")
         pr.publish(branch, task_id, body)
         names = sorted(fx.inbox_snapshot(ws))
         if len(names) != 2:
@@ -254,15 +256,47 @@ def case_no_partial_reads() -> list[str]:
 
 
 #: audit hook 은 지울 수 없다 — 한 번만 걸고 스위치로 켠다.
-WATCH: dict[str, Any] = {"on": False, "look": None, "busy": False}
+WATCH: dict[str, Any] = {"on": False, "look": None, "busy": False, "inbox": None, "body": b"", "violations": []}
 _AUDITED = {"open", "os.link", "os.rename", "os.replace", "os.symlink"}
 
 
+_WRITE_FLAGS = os.O_WRONLY | os.O_RDWR | os.O_CREAT | os.O_APPEND | os.O_TRUNC
+
+
+def _is_response_name(path: object) -> bool:
+    try:
+        target = Path(os.fsdecode(path))  # type: ignore[arg-type]
+    except TypeError:
+        return False
+    inbox = WATCH.get("inbox")
+    return (inbox is not None and target.name.endswith(".md")
+            and target.parent.resolve() == inbox.resolve())
+
+
 def _audit(event: str, args: tuple[Any, ...]) -> None:
+    """구조 판정 — 쓰는 쪽이 어떤 API 를 쓰든 (스펙 §6-8 · 주장 스펙 §7-2):
+
+    - 받은편지함의 응답 이름(``*.md``)을 쓰기 · 생성 플래그로 여는 것 자체가 위반이다 — 이름이 생긴 뒤 쓰는 길이다.
+    - 응답 이름을 붙이는 순간(``os.link`` · ``os.rename`` · ``os.replace``) 원본은 이미 완성된 바이트여야 한다.
+    - 그 밖의 열기 · 이름 붙이기마다 독자가 받은편지함을 훑는다.
+    """
     if not WATCH["on"] or WATCH["busy"] or event not in _AUDITED:
         return
     WATCH["busy"] = True  # 훑는 동안의 open 은 다시 걸리지 않게
     try:
+        if event == "open" and len(args) >= 3 and _is_response_name(args[0]):
+            mode, flags = args[1], args[2]
+            writing = (isinstance(mode, str) and any(c in mode for c in "wxa+")) or \
+                (isinstance(flags, int) and flags & _WRITE_FLAGS)
+            if writing:
+                WATCH["violations"].append(f"응답 이름을 쓰기로 열었다: {Path(os.fsdecode(args[0])).name}")
+        if event in ("os.link", "os.rename", "os.replace") and len(args) >= 2 and _is_response_name(args[1]):
+            try:
+                data = Path(os.fsdecode(args[0])).read_bytes()
+            except OSError:
+                data = b""
+            if data != WATCH["body"]:
+                WATCH["violations"].append(f"덜 쓰인 원본({len(data)}B)에 응답 이름을 붙였다")
         WATCH["look"](f"audit {event}")
     finally:
         WATCH["busy"] = False

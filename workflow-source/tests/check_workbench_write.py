@@ -5,8 +5,9 @@
 2. 동시 제출 — 서버 스레드(여러 클라이언트) · 여러 프로세스의 `build_and_publish` 에서 유실 0 · 이름 중복 0 · 전부 자격
 3. 독자는 덜 쓰인 파일을 보지 않는다 — 세 층으로 잰다: (a) 공개 도중 파일을 열고 · 쓰고 · 이름을 붙이는 audit 이벤트마다
    받은편지함을 훑는다, (b) 응답 이름 꼴을 쓰기로 열거나 덜 쓰인 원본에 응답 이름을 붙이면 위반 (audit), (c) Linux 에서는
-   inotify 로 응답 이름이 생긴 뒤의 쓰기를 커널 쪽에서 본다 (다른 프로세스 · fd 쓰기 포함, mmap 쓰기는 못 본다 — 한계;
-   inotify 가 없는 OS 는 (c) 를 미측정으로 출력한다);
+   inotify 로 응답 이름이 생긴 뒤의 쓰기를 커널 쪽에서 본다, (d) 이름을 붙이는 원본은 받은편지함 안이고 이 프로세스에 그
+   inode 의 쓰기 fd 가 남아 있지 않다. 한계: mmap 쓰기 · 다른 프로세스가 받은편지함 밖 하드링크 별칭으로 고쳐 쓰는 길은
+   재지 못한다; inotify · /proc 가 없는 OS 는 (c) · (d) 를 미측정으로 출력한다;
    같은 바이트를 두 번 공개하면 두 파일이다 (배타 생성)
 4. 거절은 받은편지함을 바꾸지 않는다 — 413 · 422(선택지 밖 · 한도 · 제어 문자) · 409(지문 · 배치 · 오류 규칙)
 5. `answered` 결정은 폼이 무엇을 보냈든 기본값 · `opened: no` 로 적힌다
@@ -210,8 +211,8 @@ def case_no_partial_reads() -> list[str]:
                 self._handle = handle
 
             def write(self, data: bytes) -> int:
+                # flush 하지 않는다 — 계측이 "link 전 flush 누락" 결함을 고쳐 가리면 안 된다 (verifier Y4).
                 n = int(self._handle.write(data))
-                self._handle.flush()
                 look("쓰기 뒤")
                 return n
 
@@ -340,6 +341,28 @@ def _is_response_name(path: object) -> bool:
             and target.parent.resolve() == inbox.resolve())
 
 
+def _write_fds_on(path: Path) -> list[int]:
+    """이 프로세스에서 ``path`` 의 inode 를 쓰기 모드로 연 fd (Linux ``/proc``). 다른 OS 는 빈 목록."""
+    proc = Path("/proc/self/fd")
+    if not proc.is_dir():
+        return []
+    try:
+        target = path.stat()
+    except OSError:
+        return []
+    found: list[int] = []
+    for entry in proc.iterdir():
+        try:
+            fd = int(entry.name)
+            info = os.fstat(fd)
+            flags = int((Path("/proc/self/fdinfo") / entry.name).read_text().split("flags:")[1].split()[0], 8)
+        except (OSError, ValueError, IndexError):
+            continue
+        if (info.st_ino, info.st_dev) == (target.st_ino, target.st_dev) and flags & (os.O_WRONLY | os.O_RDWR):
+            found.append(fd)
+    return found
+
+
 def _audit(event: str, args: tuple[Any, ...]) -> None:
     """구조 판정 — 쓰는 쪽이 어떤 API 를 쓰든 (스펙 §6-8 · 주장 스펙 §7-2):
 
@@ -372,6 +395,16 @@ def _audit(event: str, args: tuple[Any, ...]) -> None:
                 data = b""
             if data != WATCH["body"]:
                 WATCH["violations"].append(f"덜 쓰인 원본({len(data)}B)에 응답 이름을 붙였다")
+            # 원본은 받은편지함 안의 임시 이름이다 — 밖의 별칭이 남으면 그 별칭으로 고쳐 쓸 수 있다 (verifier Y2).
+            try:
+                same_dir = source.resolve().parent == WATCH["inbox"].resolve()
+            except OSError:
+                same_dir = False
+            if not same_dir:
+                WATCH["violations"].append(f"받은편지함 밖의 원본에 응답 이름을 붙였다: {source.name}")
+            # 이름을 붙이는 순간 이 프로세스가 그 inode 를 쓰기로 쥐고 있으면 안 된다 (link 뒤 고쳐 쓰기 — Y2 · Y4).
+            for held in _write_fds_on(source):
+                WATCH["violations"].append(f"원본을 쓰기로 연 fd {held} 가 열린 채 응답 이름을 붙였다")
         WATCH["look"](f"audit {event}")
     finally:
         WATCH["busy"] = False

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Workbench"
+  short_description: "[KO] 표준 AI 워크플로우 워크벤치 — 계획 · 진척을 브라우저로 보고 결정에 답하는 서버를 소유자가 띄우는 법(토큰 · 시작 · URL)을 안내한다.\n[EN] Standard AI workflow workbench — guide the owner to start the browser server for reading task plans and progress and answering open decisions (token, start, URL). Use when the owner wants to review or answer a plan outside the terminal."
+  default_prompt: "Use $workbench to follow the standard AI workflow."
+policy:
+  allow_implicit_invocation: true

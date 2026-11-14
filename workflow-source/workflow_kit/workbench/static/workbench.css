@@ -1,0 +1,17 @@
+/* 워크벤치 — 외부 자원 없음 (스펙 §1-6). */
+:root { color-scheme: light dark; --fg: #1d1d1f; --bg: #ffffff; --muted: #6b6b70; --line: #d9d9de; --warn: #8a5a00; --error: #b00020; --ok: #1b6e3a; }
+@media (prefers-color-scheme: dark) { :root { --fg: #ececf0; --bg: #17171a; --muted: #a0a0a8; --line: #3a3a40; --warn: #e0b050; --error: #ff6b7f; --ok: #6bd08f; } }
+body { margin: 0; font: 15px/1.5 system-ui, sans-serif; color: var(--fg); background: var(--bg); }
+header.top { display: flex; gap: 1rem; align-items: center; padding: .6rem 1rem; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+header.top .logout { margin-left: auto; }
+main { padding: 1rem; max-width: 72rem; }
+table { border-collapse: collapse; width: 100%; }
+th, td { border-bottom: 1px solid var(--line); padding: .35rem .5rem; text-align: left; vertical-align: top; }
+.unmeasured, .generated, .location { color: var(--muted); }
+.warn { color: var(--warn); }
+.error { color: var(--error); }
+.flash { color: var(--ok); }
+details { margin: .3rem 0 .3rem 1rem; }
+details.decision { border-left: 3px solid var(--line); padding-left: .5rem; }
+textarea { width: 100%; max-width: 40rem; }
+progress { vertical-align: middle; }

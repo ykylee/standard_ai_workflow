@@ -3,7 +3,7 @@
 - 문서 목적: 브라우저에서 task 의 계획(주장 · 결정)과 진척을 읽고 결정에 답하는 `workbench` 서버의 kit 계약(명령 · 수명 · 경로 · 인증 · 응답 쓰기 · 진척 값 · 알림 · MCP · 노출 · 모듈 · 검증)을 정의한다.
 - 범위: `python -m workflow_kit workbench`, 서버가 서빙하는 경로와 화면, 서버가 받은편지함에 쓰는 응답, 받은편지함 건수의 정본 함수, MCP 도구 `plan_inbox` · `plan_import`, §11.1 한 줄과 스킬, 검사 넷
 - 대상 독자: workflow 설계자, AI agent, kit 소비 프로젝트
-- 상태: draft (ADR-032 accepted 2026-11-13 — 구현 전, M-029)
+- 상태: draft (ADR-032 accepted 2026-11-13 — M-029 ② 서버 · 화면 · 검사 구현 2026-11-14, MCP 두 도구는 다음 task)
 - 최종 수정일: 2026-11-14
 - 관련 문서: `../../ai-workflow/wiki/decisions/adr-032-plan-workbench.md`, `../../docs/planning/plan-workbench-requirements-2026-11.md`, `./claim_plan_spec.md`, `./global_workflow_standard.md`
 
@@ -39,7 +39,7 @@ python -m workflow_kit workbench --new-token <role>:<name> --out <path>
   겹친다 · 포트가 사용 중이다 · TLS 를 켰는데 `public_url` 이 `http` 다 · `--bind` 가 loopback 이 아닌데 TLS 도 `--allow-plain-http` 도 없다 ·
   같은 checkout 에 살아 있는 서버가 있다 (그 `public_url` 을 알린다).
 - `public_url` 은 끝 슬래시를 갖는다 — 없으면 붙인다. 기본 `http://127.0.0.1:<port>/`. 시작할 때 `public_url` 을 출력하고, loopback 이 아닌 bind 면 경고 한 줄.
-- `--new-token` 은 `secrets.token_urlsafe(32)` 를 `0600` 파일로 쓰고 값은 출력하지 않는다. 있는 파일은 덮지 않는다.
+- `--new-token` 은 `secrets.token_urlsafe(32)` 를 `0600` 파일로 쓰고 값은 출력하지 않는다 (출력은 경로와 `--token` 에 줄 인자 한 줄). 있는 파일은 덮지 않는다.
 - TLS 는 표준 `ssl`, 최소 판 TLS 1.2 (`ssl.TLSVersion.TLSv1_2`). 인증서는 kit 이 만들지 않는다.
 - `--status` 는 `.workbench/server.json` 을 읽어 `{"running": bool, "pid": …, "port": …, "public_url": …, "started_at": …}` JSON 한 덩어리를 내고 끝난다
   (기록이 없거나 `pid` 가 죽었으면 `running: false`).
@@ -53,7 +53,7 @@ python -m workflow_kit workbench --new-token <role>:<name> --out <path>
 - checkout 하나에 서버 하나 — 기록의 `pid` 가 살아 있으면 시작을 거절한다. 죽은 `pid` 의 기록은 덮어쓴다. 정상 종료 때 기록을 지운다.
 - 요청마다 현재 브랜치를 다시 읽는다 — 화면 머리에 브랜치 이름을 보인다.
 - 세션 · 로그인 실패 표는 메모리에만 있다. 다시 띄우면 다시 로그인한다.
-- `session-start` 는 서버를 띄우지 않는다. 기록의 `pid` 가 살아 있으면 보고에 `public_url` 한 줄.
+- `session-start` 는 서버를 띄우지 않는다. 기록의 `pid` 가 살아 있으면 보고의 `summary` 에 `워크벤치 실행 중: <public_url>` 한 줄.
 
 ## 4. 경로 · 머리 · 화면 (R2)
 
@@ -140,7 +140,7 @@ task 파일에 있는 것만 그린다: 주장 트리(`<details>`, 접힌 상태
 8. `plan_responses.publish` 로 받은편지함에 공개한다 (다 쓴 뒤 한 번에, 번호는 주장 스펙 §7-1).
 9. 303 `../<TASK-ID>` (계획 화면) — "<응답자> 의 응답을 <received_at> 에 받았다 — 작업 세션이 `plan-import` 로 반영한다". 번호는 보이지 않는다 (보관 때 바뀔 수 있다).
 
-서버는 `plan-import` 를 부르지 않고 task 파일을 고치지 않는다. 서버는 시작할 때 받은편지함의 자기 임시 파일(`.tmp-<pid>-*`, 죽은 pid)을 지운다.
+서버는 `plan-import` 를 부르지 않고 task 파일을 고치지 않는다. 서버는 시작할 때 받은편지함의 자기 임시 파일(`.tmp-<pid>-*`, 죽은 pid)을 지운다 — 임시 이름을 아는 `plan_responses.sweep_dead_temp_files` 로.
 
 ## 7. 진척 (R6)
 
@@ -168,11 +168,14 @@ task 파일에 있는 것만 그린다: 주장 트리(`<details>`, 접힌 상태
  "milestones": [{"id": "M-0NN", "title": "…", "declared": "<status>", "derived": "<status>",
                  "leaves_done": 3, "leaves_total": 4, "issues": ["…"]}],
  "tasks": {"in_progress": [{"id": "…", "title": "…"}], "blocked": […], "planned": […], "recent_done": […]},
- "plans": [{"task": "<TASK-ID>", "open_decisions": ["D1"], "pending_responses": 1}],
+ "issues": ["<code>: <detail>"],
+ "plans": [{"task": "<TASK-ID>", "title": "…", "status": "<status>", "open_decisions": ["D1"], "pending_responses": 1}],
  "inbox": {"pending": {"<TASK-ID>": 1}, "unknown": ["<name>"], "layout_problem": "<사유|null>"}}
 ```
 
 진척 화면이 그리는 값과 같은 원천 · 같은 규칙이고 화면에 없는 값을 더 싣지 않는다. `leaves_total` 이 0 이면 `leaves_done` 도 `null` 이다 ("미측정").
+생성물에 없는 목록(예: `state.json` 에 `planned_items` 가 없다)은 빈 목록이 아니라 `null` 이다. roadmap issue 는 `where` 에 마일스톤 ID 가 든
+마일스톤의 `issues` 에, 나머지는 최상위 `issues` 에 싣는다 — `where`(경로) 자체는 싣지 않는다. `plans` 는 진행 중 · 차단 · 계획 task 와 미반영 응답이 있는 task 다.
 
 ## 8. 알림 · 받은편지함 보고 · MCP (R8 · R9)
 

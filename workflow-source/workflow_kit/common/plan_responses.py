@@ -457,6 +457,26 @@ def publish(branch_dir: Path, task_id: str, data: bytes) -> Path:
         temp.unlink(missing_ok=True)
 
 
+_TEMP_NAME_RE = re.compile(r"^\.tmp-(?P<pid>[0-9]+)-[0-9a-f]+$")
+
+
+def sweep_dead_temp_files(branch_dir: Path, *, alive: Callable[[int], bool]) -> list[str]:
+    """받은편지함의 :func:`publish` 임시 파일 중 쓰던 프로세스가 죽은 것을 지운다 (워크벤치 스펙 §6 끝).
+
+    임시 이름은 ``*.md`` 가 아니라 census 가 세지 않는다 — 남아도 판정은 안 바뀌지만 디렉터리에 쌓인다.
+    """
+    inbox = inbox_dir(branch_dir)
+    removed: list[str] = []
+    if not inbox.is_dir():
+        return removed
+    for entry in inbox.iterdir():
+        match = _TEMP_NAME_RE.match(entry.name)
+        if match and _is_plain_file(entry) and not alive(int(match["pid"])):
+            entry.unlink(missing_ok=True)
+            removed.append(entry.name)
+    return sorted(removed)
+
+
 def move_exclusive(source: Path, branch_dir: Path, task_id: str, *, rejected: bool = False) -> Path:
     """받은편지함 또는 보관의 응답을 보관(또는 ``.rejected.md``)으로 옮긴다 — 있는 파일을 덮지 않는다 (스펙 §7-5).
 

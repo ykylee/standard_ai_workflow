@@ -112,6 +112,24 @@ def derive_required_imports(package_root: Path = PACKAGE_ROOT) -> tuple[str, ...
 
 REQUIRED_IMPORTS: tuple[str, ...] = derive_required_imports()
 
+#: 런타임이 ``importlib.resources`` 로 읽는 비 ``.py`` 자원의 디렉터리 (패키지 기준).
+#: 목록은 디스크에서 파생한다 — 위 import 목록과 같은 이유로 손 목록을 두지 않는다.
+#: M-029/WBS-29.2: 워크벤치 서버의 내장 자원 (``plan_workbench_spec`` §10).
+RUNTIME_DATA_DIRS: tuple[str, ...] = ("workbench/static",)
+
+
+def derive_required_data(package_root: Path = PACKAGE_ROOT) -> tuple[str, ...]:
+    """``RUNTIME_DATA_DIRS`` 아래 파일 전부 — ``workflow_kit`` 기준 상대 경로."""
+    return tuple(sorted(
+        path.relative_to(package_root).as_posix()
+        for directory in RUNTIME_DATA_DIRS
+        for path in (package_root / directory).rglob("*")
+        if path.is_file() and "__pycache__" not in path.parts
+    ))
+
+
+REQUIRED_DATA: tuple[str, ...] = derive_required_data()
+
 # v1.2.0 (TASK-2026-08-13-main-005): 구경로 shim (top-level tools /
 # bootstrap_lib) 은 2nd deprecation cycle 로 wheel 에서 drop 됐다 —
 # 아래 NEGATIVE 목록이 재유입을 막는다 (PyPI 차단 사유였던 일반명).
@@ -227,6 +245,13 @@ def main() -> int:
                 f"    forbidden.append({mod!r})\n"
                 "except ImportError:\n"
                 "    pass\n"
+            )
+        # 런타임 자원 — import 는 되는데 ``package-data`` 선언이 빠져 파일이 없는 wheel 을 잡는다.
+        import_payload += "from importlib import resources\n"
+        for rel in REQUIRED_DATA:
+            import_payload += (
+                f"if not resources.files('workflow_kit').joinpath({rel!r}).is_file():\n"
+                f"    missing.append({{'module': {rel!r}, 'error': 'package data missing'}})\n"
             )
         import_payload += (
             "print(json.dumps({'ok': ok, 'missing': missing, 'forbidden': forbidden}))\n"

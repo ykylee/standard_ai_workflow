@@ -54,6 +54,7 @@ TOOL_MODULES: Final[dict[str, str]] = {
     "compact-checkpoint": "workflow_kit.tools.compact_checkpoint",
     "plan-status": "workflow_kit.tools.plan_status",
     "plan-import": "workflow_kit.tools.plan_import",
+    "workbench": "workflow_kit.tools.workbench",
     "consumer-metrics": "workflow_kit.tools.consumer_metrics",
     "create-environment-record-stub": "workflow_kit.tools.create_environment_record_stub",
     "detect-scope-drift": "workflow_kit.tools.detect_scope_drift",

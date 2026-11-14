@@ -38,6 +38,7 @@ python -m workflow_kit doc-sync --help
 - Propose memory_index entries at close (advisory): `python -m workflow_kit suggest-memory-entries`
 - Relay working state across compaction: `python -m workflow_kit compact-checkpoint`
 - Apply plan responses: `python -m workflow_kit plan-import`
+- Review plans and progress in a browser: `python -m workflow_kit workbench`
 
 - Run them with the Python that has `workflow_kit` installed (`python` on Windows, usually `python3` elsewhere) — not a `wk` executable, which Windows antivirus blocks.
 - Empty handoff `in_progress` / `blocked` lists hold an **empty bullet `-`** — prose there is parsed as a work item.

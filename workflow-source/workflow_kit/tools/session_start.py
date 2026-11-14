@@ -662,6 +662,17 @@ def main() -> int:
         except Exception as plan_exc:  # noqa: BLE001 — 계획 판정의 결함이 세션 진입을 막으면 안 된다
             warnings.append(f"결정 상태 판정 실패 ({type(plan_exc).__name__}) — task 의 Decisions 줄을 점검하라.")
 
+        # ADR-032 (`core/plan_workbench_spec.md` §3 · §8.2): 살아 있는 워크벤치가 있으면 그 주소 한 줄.
+        # session-start 는 서버를 띄우지 않는다 — 실행 기록을 읽기만 한다.
+        workbench_line: str | None = None
+        try:
+            from workflow_kit.tools.workbench import running_public_url
+            workbench_url = running_public_url(workspace_root)
+            if workbench_url:
+                workbench_line = f"워크벤치 실행 중: {workbench_url}"
+        except Exception as wb_exc:  # noqa: BLE001 — 기록 읽기 결함이 세션 진입을 막으면 안 된다
+            warnings.append(f"워크벤치 실행 기록을 읽지 못했다 ({type(wb_exc).__name__})")
+
         graph_result = run_graph_insights(workspace_root=workspace_root)
         graph_insights = SessionGraphInsightsOutput(
             coverage_pct=(graph_result.coverage.coverage_pct if graph_result.coverage else 0.0),
@@ -707,7 +718,7 @@ def main() -> int:
         output_model = SessionStartOutput(
             status="warning" if self_bootstrap_suggested else "ok",
             tool_version=TOOL_VERSION,
-            summary=build_session_summary(handoff, backlog, profile),
+            summary=[*build_session_summary(handoff, backlog, profile), *([workbench_line] if workbench_line else [])],
             in_progress_items=dedupe_normalized_backticked(
                 handoff.get("in_progress_items", []) + backlog.get("in_progress_items", [])
             ),

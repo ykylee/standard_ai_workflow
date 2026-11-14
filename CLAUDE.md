@@ -8,7 +8,7 @@
 - 범위: 세션 복원, 작업 원칙, 세션 종료 순서, 실행 · 검증 명령
 - 대상 독자: Claude Code, 저장소 관리자
 - 상태: beta
-- 최종 수정일: 2026-11-13
+- 최종 수정일: 2026-11-14
 - 관련 문서: `docs/PROJECT_PROFILE.md`, `docs/LOCAL_GATE.md`, `ai-workflow/memory/active/<branch>/session_handoff.md`
 
 > 아래 `## Working Principles` · `## Session Close Order` · `## Memory Update Paths` 는
@@ -53,6 +53,7 @@ Close a session in the order **update memory → commit → push** — the memor
 - Propose memory_index entries at close (advisory): `python -m workflow_kit suggest-memory-entries`
 - Relay working state across compaction: `python -m workflow_kit compact-checkpoint`
 - Apply plan responses: `python -m workflow_kit plan-import`
+- Review plans and progress in a browser: `python -m workflow_kit workbench`
 
 - Run them with the Python that has `workflow_kit` installed (`python` on Windows, usually `python3` elsewhere) — not a `wk` executable, which Windows antivirus blocks.
 - Empty handoff `in_progress` / `blocked` lists hold an **empty bullet `-`** — prose there is parsed as a work item.

@@ -289,7 +289,8 @@ def case_6_single_parser() -> None:
     owned = {"parse_plan", "parse_claim_value", "parse_decision_value", "lint_plan", "plan_digest",
              "compute_states", "effective_responses", "open_decision_ids", "claim_bundles"}
     response_owned = {"parse_response", "qualify", "qualified_archive", "move_exclusive", "publish",
-                      "inbox_files", "archive_files", "taken_numbers", "copy_archive", "inbox_census"}
+                      "inbox_files", "archive_files", "taken_numbers", "copy_archive", "inbox_census",
+                      "render_response", "sweep_dead_temp_files"}
     for path in sorted((SOURCE_ROOT / "workflow_kit").rglob("*.py")):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         defined = {n.name for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
@@ -330,6 +331,16 @@ def case_6_single_parser() -> None:
         ("common/plan_tasks.py", "plan_responses.inbox_census"),
         ("tools/seed_workspace_memory.py", "plan_responses.copy_archive"),
         ("common/branch_join.py", "plan_responses.copy_archive"),
+        # 워크벤치는 같은 함수로 판정 · 렌더 · 공개 · 센다 (ADR-032 결정 2, 워크벤치 스펙 §1-8).
+        ("workbench/respond.py", "plan_responses.publish"),
+        ("workbench/respond.py", "plan_responses.render_response"),
+        ("workbench/respond.py", "plan_responses.qualify"),
+        ("workbench/respond.py", "plan_responses.judge"),
+        ("workbench/respond.py", "plan_responses.layout_problem"),
+        ("workbench/state_view.py", "plan_responses.inbox_census"),
+        ("workbench/state_view.py", "plan_tasks.computed_states"),
+        ("workbench/state_view.py", "plan_claims.claim_bundles"),
+        ("tools/workbench.py", "plan_responses.sweep_dead_temp_files"),
     ]
     for rel, needle in response_consumers:
         if needle not in (SOURCE_ROOT / "workflow_kit" / rel).read_text(encoding="utf-8"):

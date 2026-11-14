@@ -502,7 +502,52 @@ A task with open decisions or pending inbox responses cannot move to `done`.
 The second command prints the per-claim table to attach to a verification report."""
 
 
-#: payload 가 싣는 스킬 6종. slug 는 소문자·하이픈만 (Agent Skills 이름 규칙).
+
+def _workbench_body(rules: StandardRules) -> str:
+    command = find_memory_command(rules, "Review plans and progress in a browser")
+    return f"""## Role
+
+Let the owner read task plans and progress in a browser and answer open decisions there
+(ADR-032). The server only ever writes answers into the branch memory inbox; the work session
+applies them with `plan-import`. **Do not start, stop or drive the server yourself** — give
+the owner the commands and the URL. No model is called by the server.
+
+## Procedure
+
+1. The owner makes a token file once per person (`0600`, the value is never printed):
+
+   ```bash
+   {command} --new-token approver:<name> --out ~/.config/workbench/<name>.token
+   ```
+
+   Use `viewer:<name>` for someone who only reads. Names are `[A-Za-z0-9_-]{{1,32}}` and become
+   the `responder` of an answer.
+2. The owner starts the server in their own terminal (it prints the URL and keeps running):
+
+   ```bash
+   {command} --token approver:<name>=file:~/.config/workbench/<name>.token
+   ```
+
+   It binds `127.0.0.1:8766` by default. Behind a tunnel or reverse proxy, pass the address
+   the browser uses: `--public-url https://host/prefix/` (plus `--trusted-proxy <addr>`).
+   A non-loopback `--bind` needs TLS (`--tls-cert`/`--tls-key`) or `--allow-plain-http`.
+3. Tell the owner the URL to open — `{command} --status` prints it while the server runs, and
+   `session-start` reports it too.
+4. When answers arrive, `session-start` and `backlog-update` report pending plan responses.
+   Apply them with `plan-import`; a task with pending responses cannot move to `done`.
+
+## Usage
+
+```bash
+{command} --help
+{command} --status
+```
+
+One server per checkout. Its run record lives in `.workbench/server.json` at the checkout
+root, which ignores itself in git; sessions live only in memory, so a restart means logging in
+again."""
+
+#: payload 가 싣는 스킬 7종. slug 는 소문자·하이픈만 (Agent Skills 이름 규칙).
 #: 정본 §11.1 의 명령 4개와 1:1 대응한다 — 명령만 있고 스킬이 없으면 하네스가
 #: 그 단계를 밟을 방법을 모른다 (session-end 가 정확히 그 상태였다).
 PLUGIN_SKILLS: tuple[PluginSkillSpec, ...] = (
@@ -573,6 +618,17 @@ PLUGIN_SKILLS: tuple[PluginSkillSpec, ...] = (
             "closing a task that has decisions."
         ),
         body=_plan_import_body,
+    ),
+    PluginSkillSpec(
+        slug="workbench",
+        description=(
+            "[KO] 표준 AI 워크플로우 워크벤치 — 계획 · 진척을 브라우저로 보고 결정에 답하는 서버를 "
+            "소유자가 띄우는 법(토큰 · 시작 · URL)을 안내한다.\n"
+            "[EN] Standard AI workflow workbench — guide the owner to start the browser server for "
+            "reading task plans and progress and answering open decisions (token, start, URL). "
+            "Use when the owner wants to review or answer a plan outside the terminal."
+        ),
+        body=_workbench_body,
     ),
 )
 
@@ -795,6 +851,7 @@ MINIMAX_EXAMPLE_QUERIES: dict[str, str] = {
     "session-end": "세션 종료 처리 — handoff 갱신하고 state.json 재생성해줘",
     "compact-relay": "컨텍스트 압축 전에 compact 중계 기록 남기고 압축 뒤 이어가줘",
     "plan-import": "받은편지함의 계획 응답을 확인하고 결정 상태에 반영해줘",
+    "workbench": "계획을 브라우저에서 보고 답하고 싶어 — 워크벤치 띄우는 법 알려줘",
 }
 
 

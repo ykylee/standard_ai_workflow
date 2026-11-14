@@ -29,8 +29,9 @@
   "session": {
     "current_baseline": "**127차 세션 (2026-11-14, Linux 호스트) — M-029/WBS-29.1 ① 이월 정리 종결.** `plan_responses.inbox_census`(받은편지함 한 번 훑기 — task 별 경로 · 건수 · 알 수 없는 항목 · 배치 문제)가 건수의 정본, 옛 조합 함수 셋(`pending_by_task` · `unknown_inbox_files` · `pending_warning`) 접음 · 게이트 · `session-start` · `refresh-state` · `plan-status` · `plan-import` 전환. `plan-import` 출력 `pending_responses`(호출 시점) + `remaining_after`(반영 뒤). 우회 검출 받은편지함 행 `done 인데 계획 응답 n건 미반영: <ID>`. 배치 문제는 게이트 · `session-start` · `plan-status` 가 warnings 에만(막지 않음, 거부 응답에도). `plan-status` 는 보관의 비파일 응답 이름 항목도 보고. 결정 24 정리 일곱 + `claim_plan_spec` §4 · §9 · §10 · §11 문면. 검사 `check_plan_gate` 22 · `check_plan_import` 14(단독 strict mypy 0 · `type: ignore` 0). task 11-14-001 done (verifier 2회 — 2차 6/6 PASS). M-029 in_progress (② 남음). 미발행. roadmap issues [].",
     "current_axis": "**로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · ~~[TASK-2026-08-13-main-004] mypy flake 관찰~~ ✅ (66차 close — 33/33 표본, mypy 실패 0).",
-    "current_focus": "TASK-2026-10-02-main-006 Windows 로캘(cp949)에서 wk 가 UnicodeEncodeError 로 죽는다 — stdout 과 기본 인코딩 I/O 를 UTF-8 로 고정",
+    "current_focus": "TASK-2026-11-14-claude-remote-sync-check-234c32-002 M-029 ② 워크벤치 서버 · 화면 · 검사 넷 · 스킬 (MCP 두 도구는 다음 task)",
     "in_progress_items": [
+      "TASK-2026-11-14-claude-remote-sync-check-234c32-002 M-029 ② 워크벤치 서버 · 화면 · 검사 넷 · 스킬 (MCP 두 도구는 다음 task)",
       "TASK-2026-10-02-main-006 Windows 로캘(cp949)에서 wk 가 UnicodeEncodeError 로 죽는다 — stdout 과 기본 인코딩 I/O 를 UTF-8 로 고정",
       "TASK-2026-10-02-main-007 Windows V3 백신이 wk.exe 를 평판 기반으로 차단한다 — pip 생성 console-script 런처 대체 진입 경로"
     ],
@@ -57,8 +58,10 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/claude/remote-sync-check-234c32/backlog/2026-11-14.md",
-    "task_count": 1,
-    "in_progress_items": [],
+    "task_count": 2,
+    "in_progress_items": [
+      "TASK-2026-11-14-claude-remote-sync-check-234c32-002 — M-029 ② 워크벤치 서버 · 화면 · 검사 넷 · 스킬 (MCP 두 도구는 다음 task)"
+    ],
     "blocked_items": [],
     "done_items": [
       "TASK-2026-11-14-claude-remote-sync-check-234c32-001 — M-029 ① 이월 정리 — inbox_census 단일 출처 · plan-import 건수 두 필드 · 받은편지함 우회 검출 · 정리 일곱"

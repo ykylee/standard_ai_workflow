@@ -852,14 +852,14 @@ def write_opencode_harness_files(
 #: 나온다 (아래 fallback). 고치려던 결함이 정확히 *누락* 이므로, 설명을 빠뜨려
 #: 명령이 통째로 사라지는 일은 구조적으로 못 하게 한다.
 _ENTRY_COMMAND_BLURBS: dict[str, str] = {
-    "session-start": (
-        "restore the `state.json` + `session_handoff.md` + `work_backlog.md` baseline"
-    ),
-    "backlog-update": "register/update a task + scope-creep warning",
+    # 짧게 쓴다 — 절 크기는 `check_entry_diet` case 1 의 줄어듦 기준(옛 생성물 대비 15%)에 든다.
+    "session-start": "restore the session baseline",
+    "backlog-update": "register or update a task",
     "doc-sync": "sync affected documents (advisory)",
-    "session-end": "update handoff + backlog and regenerate `state.json` at session close",
-    "compact-relay": "record verified / unverified facts and the next step before a context compaction",
-    "plan-import": "apply plan responses to a task's decisions",
+    "session-end": "update memory and regenerate `state.json` at close",
+    "compact-relay": "record working state before a compaction",
+    "plan-import": "apply plan responses",
+    "workbench": "read plans and answer decisions in a browser",
 }
 
 
@@ -1038,6 +1038,27 @@ description: Standard AI workflow plan import — check the plan responses waiti
 # /workflow-plan-import
 
 > Claude Code slash command. The *plan-import* entry point of the standard AI workflow.
+
+{spec.body(load_standard_rules())}
+"""
+
+
+def render_claude_code_workbench_command(args: argparse.Namespace, context: dict[str, object]) -> str:
+    """Render ``.claude/commands/workflow-workbench.md`` slash command (ADR-032).
+
+    본문은 플러그인 스킬 ``workbench`` 의 렌더러를 그대로 쓴다 — compact-relay 와 같은 이유다
+    (두 채널이 같은 절차를 다른 사본으로 들고 있으면 갈라진다).
+    """
+    from workflow_kit.plugin_payload import PLUGIN_SKILLS  # noqa: PLC0415
+
+    spec = next(s for s in PLUGIN_SKILLS if s.slug == "workbench")
+    return f"""---
+description: Standard AI workflow workbench — guide the owner to start the browser server for reading task plans and progress and answering open decisions.
+---
+
+# /workflow-workbench
+
+> Claude Code slash command. The *workbench* entry point of the standard AI workflow.
 
 {spec.body(load_standard_rules())}
 """
@@ -1246,7 +1267,7 @@ description: The standard AI workflow entry point for this repository. Use it wh
 - **Role**: the entry skill that covers session start, backlog update, document sync, and session close in one place.
 - **Location**: `.claude/skills/standard-ai-workflow/SKILL.md`
 - **Invocation**: the model selects it automatically when the situation matches the `description` above. To invoke it directly,
-  `/workflow-session-start`, `/workflow-backlog-update`, `/workflow-doc-sync`, `/workflow-session-end`, `/workflow-compact-relay`, `/workflow-plan-import` slash command.
+  `/workflow-session-start`, `/workflow-backlog-update`, `/workflow-doc-sync`, `/workflow-session-end`, `/workflow-compact-relay`, `/workflow-plan-import`, `/workflow-workbench` slash command.
 - Last updated: {args.today}
 
 ## 1. Session start — always read these first
@@ -1313,6 +1334,7 @@ def write_claude_code_harness_files(
     - ``workflow-session-end`` — 세션 종료 (handoff/backlog 갱신 + state 재생성)
     - ``workflow-compact-relay`` — 압축 전 작업 상태 기록 (ADR-030, hook 없는 채널 경로)
     - ``workflow-plan-import`` — 계획 응답 반영 (ADR-031)
+    - ``workflow-workbench`` — 계획·진척 워크벤치 띄우는 법 (ADR-032)
 
     1 skill (v1.0.4+):
     - ``standard-ai-workflow`` — 위 4종의 *모델 호출* 진입점. opencode / grok-build 는
@@ -1327,6 +1349,7 @@ def write_claude_code_harness_files(
     session_end_cmd = claude_root / "workflow-session-end.md"
     compact_relay_cmd = claude_root / "workflow-compact-relay.md"
     plan_import_cmd = claude_root / "workflow-plan-import.md"
+    workbench_cmd = claude_root / "workflow-workbench.md"
     skill_file = paths.target_root / ".claude" / "skills" / "standard-ai-workflow" / "SKILL.md"
 
     write_text(session_start_cmd, render_claude_code_session_start_command(args, context), force=args.force, rel_to=paths.target_root)
@@ -1341,6 +1364,8 @@ def write_claude_code_harness_files(
     generated["claude_code_compact_relay_command"] = str(compact_relay_cmd)
     write_text(plan_import_cmd, render_claude_code_plan_import_command(args, context), force=args.force, rel_to=paths.target_root)
     generated["claude_code_plan_import_command"] = str(plan_import_cmd)
+    write_text(workbench_cmd, render_claude_code_workbench_command(args, context), force=args.force, rel_to=paths.target_root)
+    generated["claude_code_workbench_command"] = str(workbench_cmd)
     write_text(skill_file, render_claude_code_skill(args, context), force=args.force, rel_to=paths.target_root)
     generated["claude_code_skill"] = str(skill_file)
 

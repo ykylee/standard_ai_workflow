@@ -43,6 +43,7 @@ from workflow_kit.common.schemas import (
     CreateEnvironmentRecordStubOutput,
     SmartContextReaderOutput,
     PlanImportOutput,
+    PlanInboxOutput,
     PlanStatusOutput,
     ErrorOutput,
 )
@@ -74,6 +75,7 @@ _SUCCESS_REQUIRED_FIELDS_BY_MODEL: dict[Type[BaseModel], frozenset[str]] = {
     SmartContextReaderOutput: frozenset({"extracted_content", "not_found_symbols"}),
     PlanStatusOutput: frozenset({"task_id", "has_plan", "claims", "decisions", "open_decisions", "source_context"}),
     PlanImportOutput: frozenset({"task_id", "applied", "outcome", "responses", "state_changes", "source_context"}),
+    PlanInboxOutput: frozenset({"pending", "files", "unknown", "layout_problem", "source_context"}),
     CreateBacklogEntryOutput: frozenset({"draft_entry"}),
     BacklogUpdateOutput: frozenset({
         "operation_type",
@@ -245,6 +247,7 @@ PYDANTIC_MODEL_REGISTRY: dict[str, Type[BaseModel]] = {
     "smart_context_reader": SmartContextReaderOutput,
     "plan_status": PlanStatusOutput,
     "plan_import": PlanImportOutput,
+    "plan_inbox": PlanInboxOutput,
 }
 
 

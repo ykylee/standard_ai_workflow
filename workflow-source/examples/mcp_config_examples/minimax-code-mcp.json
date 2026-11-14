@@ -28,7 +28,8 @@
         "check_quickstart_stale_links",
         "summarize_git_history",
         "assess_milestone_progress",
-        "smart_context_reader"
+        "smart_context_reader",
+        "plan_inbox"
       ]
     },
     "standardAiWorkflowWrite": {
@@ -50,7 +51,8 @@
       "description": "Write-capable MCP tools (apply_robust_patch, rotate_workflow_logs). Explicit opt-in only — these tools modify the filesystem.",
       "tools": [
         "rotate_workflow_logs",
-        "apply_robust_patch"
+        "apply_robust_patch",
+        "plan_import"
       ]
     }
   }

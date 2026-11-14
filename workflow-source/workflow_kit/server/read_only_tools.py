@@ -18,6 +18,7 @@ from workflow_kit.common.read_only_bundle import (
     assess_milestone_progress_payload,
     smart_context_reader_payload,
 )
+from workflow_kit.common.plan_mcp import plan_import_payload, plan_inbox_payload
 from workflow_kit.common.writing_bundle import (
     apply_robust_patch_payload,
 )
@@ -105,6 +106,22 @@ def invoke_read_only_tool(*, tool_name: str, payload: dict[str, Any], tool_versi
         return apply_robust_patch_payload(
             file_path=str(payload["file_path"]),
             patch_content=str(payload["patch_content"]),
+            tool_version=tool_version,
+        )
+    if tool_name == "plan_inbox":
+        return plan_inbox_payload(
+            workspace_root=payload.get("workspace_root"),
+            task_id=payload.get("task_id"),
+            tool_version=tool_version,
+        )
+    if tool_name == "plan_import":
+        return plan_import_payload(
+            workspace_root=payload.get("workspace_root"),
+            task_id=payload.get("task_id"),
+            discard=payload.get("discard"),
+            reason=payload.get("reason"),
+            response=payload.get("response"),
+            apply=payload.get("apply") is True,
             tool_version=tool_version,
         )
     raise KeyError(tool_name)

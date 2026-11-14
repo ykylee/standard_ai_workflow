@@ -3,7 +3,7 @@
 - 문서 목적: 브라우저에서 task 의 계획(주장 · 결정)과 진척을 읽고 결정에 답하는 `workbench` 서버의 kit 계약(명령 · 수명 · 경로 · 인증 · 응답 쓰기 · 진척 값 · 알림 · MCP · 노출 · 모듈 · 검증)을 정의한다.
 - 범위: `python -m workflow_kit workbench`, 서버가 서빙하는 경로와 화면, 서버가 받은편지함에 쓰는 응답, 받은편지함 건수의 정본 함수, MCP 도구 `plan_inbox` · `plan_import`, §11.1 한 줄과 스킬, 검사 넷
 - 대상 독자: workflow 설계자, AI agent, kit 소비 프로젝트
-- 상태: draft (ADR-032 accepted 2026-11-13 — M-029 ② 서버 · 화면 · 검사 구현 2026-11-14, MCP 두 도구는 다음 task)
+- 상태: draft (ADR-032 accepted 2026-11-13 — M-029 ② 서버 · 화면 · 검사 · MCP 두 도구 구현 2026-11-14, Windows 실측 전)
 - 최종 수정일: 2026-11-14
 - 관련 문서: `../../ai-workflow/wiki/decisions/adr-032-plan-workbench.md`, `../../docs/planning/plan-workbench-requirements-2026-11.md`, `./claim_plan_spec.md`, `./global_workflow_standard.md`
 
@@ -206,6 +206,10 @@ hook 머리말(②)은 만들지 않는다 (requirements R8.2 — 소유자 결�
 |---|---|---|---|
 | read-only | `plan_inbox` | `task_id`(선택) | `inbox_census` + 파일별 `{task, name, responder, received_at, stage, reason}` — 주석 본문 없음 |
 | write | `plan_import` | `task_id` 또는 `discard` + `reason`, `response`(선택), `apply`(기본 false) | `plan-import` 의 출력 계약 family `plan_import` 그대로 |
+
+구현: `workflow_kit/common/plan_mcp.py`. `plan_import` 는 서버 인터프리터로 CLI `plan-import` 를 하위 프로세스로 부른다 —
+stdio 서버는 표준 출력이 전송로라 같은 프로세스에서 CLI 출력을 가로채지 않는다. 입력 `apply` 는 boolean 이다(문자열은 거절).
+도구가 돌려준 오류 결과(없는 task 등)는 다른 도구처럼 `status: error` · `error_code` 다. 검사: `check_plan_mcp_tools`.
 
 서버를 띄우거나 멈추는 MCP 도구는 없다. write 번들을 받지 않는 하네스(Codex)의 반영 경로는 CLI `plan-import` 다. 체크인 생성물(descriptor · JSON-RPC fixture · 하네스 MCP 예시)은 도구와 같은 커밋에서 다시 만든다.
 

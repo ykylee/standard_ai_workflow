@@ -341,6 +341,8 @@ def case_6_single_parser() -> None:
         ("workbench/state_view.py", "plan_tasks.computed_states"),
         ("workbench/state_view.py", "plan_claims.claim_bundles"),
         ("tools/workbench.py", "plan_responses.sweep_dead_temp_files"),
+        ("common/plan_mcp.py", "plan_responses.inbox_census"),
+        ("common/plan_mcp.py", "plan_responses.judge"),
     ]
     for rel, needle in response_consumers:
         if needle not in (SOURCE_ROOT / "workflow_kit" / rel).read_text(encoding="utf-8"):

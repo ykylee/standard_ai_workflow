@@ -27,7 +27,9 @@
         "rotate_workflow_logs",
         "assess_milestone_progress",
         "smart_context_reader",
-        "apply_robust_patch"
+        "apply_robust_patch",
+        "plan_inbox",
+        "plan_import"
       ]
     }
   }

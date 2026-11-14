@@ -15,7 +15,7 @@ unmodeled family" fallback in the descriptor because they have no Pydantic
 contract. The test verifies that pattern is preserved (no surprise schema changes).
 
 Pass criteria (4 tests):
-1. All 13 descriptor tools have an `outputSchema` field
+1. Every descriptor tool (registry count) has an `outputSchema` field
 2. Modeled tools (9 of 13) have byte-identical `outputSchema` to gen.outputs[name]
 3. Unmodeled tools (4 of 13) all use the same "generic schema" pattern
 4. No gen.outputs entries are missing from the descriptor (drift check)
@@ -26,6 +26,9 @@ from __future__ import annotations
 #: 게이트 채취 실측에서 뽑아 넓은 쪽으로 올렸다 — 좁으면 meta-watch 가 red 로 잡는다.
 WATCHES = (
     "workflow-source/schemas/*",
+    # 도구 수를 registry 에서 파생한다 — registry 를 import 하면 패키지 전체가 입력이다.
+    "workflow-source/pyproject.toml",
+    "workflow-source/workflow_kit/*",
 )
 
 import json
@@ -71,11 +74,17 @@ def _expected_generic_schema(family: str) -> dict[str, object]:
 
 
 def test_descriptor_tools_have_output_schema_v0_8_10() -> None:
-    """All 13 descriptor tools have an outputSchema field (v0.8.10+)."""
+    """Every descriptor tool has an outputSchema field (v0.8.10+).
+
+    도구 수는 registry 에서 파생한다 — 손으로 적은 13 은 도구를 더할 때마다 낡는 사본이었다 (M-029 MCP 두 도구).
+    """
+    from workflow_kit.server.read_only_registry import BUNDLE_ALL, tool_specs_for_bundle
+
     desc = _load_json(DESCRIPTOR)
     tools = desc.get("tools", [])
     assert isinstance(tools, list)
-    assert len(tools) == 13, f"expected 13 descriptor tools, got {len(tools)}"
+    expected = len(tool_specs_for_bundle(BUNDLE_ALL))
+    assert len(tools) == expected, f"expected {expected} descriptor tools (registry), got {len(tools)}"
     for tool in tools:
         name = tool.get("name", "<unnamed>")
         assert "outputSchema" in tool, f"tool {name!r} missing outputSchema"

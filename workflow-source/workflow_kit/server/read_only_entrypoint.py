@@ -92,6 +92,10 @@ def validate_payload(spec: Any, payload: dict[str, Any]) -> list[str]:
                 errors.append(f"`{field.name}` field list 항목은 문자열로 변환 가능한 scalar 여야 한다.")
             continue
 
+        if field.value_type == "boolean":
+            if not isinstance(value, bool):
+                errors.append(f"`{field.name}` field 는 true · false 여야 한다.")
+            continue
         if isinstance(value, (dict, list, bool)):
             errors.append(f"`{field.name}` field 는 단일 scalar 값이어야 한다.")
 

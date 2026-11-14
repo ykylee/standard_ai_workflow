@@ -96,3 +96,29 @@ class PlanImportOutput(BaseOutput):
         0, description="이 호출이 반영한 뒤 받은편지함에 남는 그 task 의 응답 건수 — dry-run 은 예측, --apply 는 실측")
     unknown_inbox_files: list[str] = Field(default_factory=list)
     source_context: PlanImportSourceContext
+
+
+class PlanInboxFile(BaseModel):
+    """받은편지함 응답 한 건 — 이름 · 응답자 · 시각 · 자격만 (워크벤치 스펙 §8.3). 주석 본문은 싣지 않는다."""
+
+    task: str
+    name: str
+    responder: str = ""
+    received_at: str = ""
+    stage: int | None = Field(None, description="처음 어긋난 자격 단계 (0~6) — 자격이 있으면 null")
+    reason: str = ""
+
+
+class PlanInboxSourceContext(BaseModel):
+    branch: str
+    task_id: str | None = Field(None, description="요청한 task — 없으면 받은편지함 전체")
+
+
+class PlanInboxOutput(BaseOutput):
+    """MCP `plan_inbox` — 받은편지함의 미반영 응답 (읽기 전용). 건수의 정본은 `plan_responses.inbox_census`."""
+
+    pending: dict[str, int] = Field(default_factory=dict, description="task 별 미반영 건수 — inbox_census.pending")
+    files: list[PlanInboxFile] = Field(default_factory=list, description="응답 파일별 자격 — 번호 순")
+    unknown: list[str] = Field(default_factory=list, description="받은편지함의 응답 이름 꼴이 아닌 `.md`")
+    layout_problem: str | None = Field(None, description="받은편지함 · 보관 배치 문제 (claim_plan_spec §7-9)")
+    source_context: PlanInboxSourceContext

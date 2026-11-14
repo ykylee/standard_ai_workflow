@@ -3,7 +3,7 @@
   "descriptor_target": "mcp_tools_list_draft",
   "server_name": "workflow_read_only_bundle",
   "status": "ok",
-  "tool_count": 13,
+  "tool_count": 15,
   "tool_version": "1.22.0",
   "tools": [
     {
@@ -945,6 +945,461 @@
       "name": "apply_robust_patch",
       "outputSchema": {
         "description": "Generic schema for unmodeled family 'apply_robust_patch'.",
+        "type": "object"
+      }
+    },
+    {
+      "_meta": {
+        "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+        "bundle_phase": "direct_call_adapter",
+        "descriptor_target": "mcp_tools_list_draft"
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "description": "Report plan responses waiting in the branch inbox (counts, per-file eligibility; no comment bodies).",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "task_id": {
+            "description": "Only this task's responses. Omit for the whole inbox.",
+            "type": "string"
+          },
+          "workspace_root": {
+            "description": "Workspace root of a workflow_kit project. Defaults to the server cwd.",
+            "type": "string"
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "name": "plan_inbox",
+      "outputSchema": {
+        "description": "MCP `plan_inbox` — 받은편지함의 미반영 응답 (읽기 전용). 건수의 정본은 `plan_responses.inbox_census`.",
+        "properties": {
+          "files": {
+            "description": "응답 파일별 자격 — 번호 순",
+            "items": {
+              "description": "받은편지함 응답 한 건 — 이름 · 응답자 · 시각 · 자격만 (워크벤치 스펙 §8.3). 주석 본문은 싣지 않는다.",
+              "properties": {
+                "name": {
+                  "title": "Name",
+                  "type": "string"
+                },
+                "reason": {
+                  "default": "",
+                  "title": "Reason",
+                  "type": "string"
+                },
+                "received_at": {
+                  "default": "",
+                  "title": "Received At",
+                  "type": "string"
+                },
+                "responder": {
+                  "default": "",
+                  "title": "Responder",
+                  "type": "string"
+                },
+                "stage": {
+                  "anyOf": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "description": "처음 어긋난 자격 단계 (0~6) — 자격이 있으면 null",
+                  "title": "Stage"
+                },
+                "task": {
+                  "title": "Task",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "task",
+                "name"
+              ],
+              "title": "PlanInboxFile",
+              "type": "object"
+            },
+            "title": "Files",
+            "type": "array"
+          },
+          "layout_problem": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "받은편지함 · 보관 배치 문제 (claim_plan_spec §7-9)",
+            "title": "Layout Problem"
+          },
+          "pending": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "task 별 미반영 건수 — inbox_census.pending",
+            "title": "Pending",
+            "type": "object"
+          },
+          "source_context": {
+            "properties": {
+              "branch": {
+                "title": "Branch",
+                "type": "string"
+              },
+              "task_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "요청한 task — 없으면 받은편지함 전체",
+                "title": "Task Id"
+              }
+            },
+            "required": [
+              "branch"
+            ],
+            "title": "PlanInboxSourceContext",
+            "type": "object"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "warning",
+              "error"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "tool_version": {
+            "description": "Version of the tool that generated this output",
+            "title": "Tool Version",
+            "type": "string"
+          },
+          "unknown": {
+            "description": "받은편지함의 응답 이름 꼴이 아닌 `.md`",
+            "items": {
+              "type": "string"
+            },
+            "title": "Unknown",
+            "type": "array"
+          },
+          "warnings": {
+            "description": "List of non-fatal warnings encountered",
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "status",
+          "tool_version",
+          "source_context"
+        ],
+        "title": "PlanInboxOutput",
+        "type": "object"
+      }
+    },
+    {
+      "_meta": {
+        "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+        "bundle_phase": "direct_call_adapter",
+        "descriptor_target": "mcp_tools_list_draft"
+      },
+      "annotations": {
+        "readOnlyHint": false
+      },
+      "description": "Apply plan responses from the branch inbox to a task (dry run unless apply is true), or discard one.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "task_id"
+            ]
+          },
+          {
+            "required": [
+              "discard"
+            ]
+          }
+        ],
+        "properties": {
+          "apply": {
+            "description": "Actually move and write. Default false — a dry run that writes nothing.",
+            "type": "boolean"
+          },
+          "discard": {
+            "description": "Response file (inbox or archive) to set aside as .rejected.md.",
+            "type": "string"
+          },
+          "reason": {
+            "description": "Why the response is discarded — recorded in the task Progress.",
+            "type": "string"
+          },
+          "response": {
+            "description": "Apply only this inbox response file.",
+            "type": "string"
+          },
+          "task_id": {
+            "description": "Task whose inbox responses to apply.",
+            "type": "string"
+          },
+          "workspace_root": {
+            "description": "Workspace root of a workflow_kit project. Defaults to the server cwd.",
+            "type": "string"
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "name": "plan_import",
+      "outputSchema": {
+        "description": "`plan-import` — 받은편지함의 응답을 보관으로 옮기고 결정 상태를 다시 계산한다.",
+        "properties": {
+          "applied": {
+            "description": "`--apply` 로 실제로 썼는가 (dry-run · import_busy 는 false)",
+            "title": "Applied",
+            "type": "boolean"
+          },
+          "open_decisions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Open Decisions",
+            "type": "array"
+          },
+          "outcome": {
+            "description": "`imported` · `discarded` · `nothing_to_do` · `import_busy` · `dry_run`",
+            "title": "Outcome",
+            "type": "string"
+          },
+          "pending_responses": {
+            "default": 0,
+            "description": "호출 시점 받은편지함의 그 task 응답 건수 — plan-status 의 같은 필드와 같은 뜻 (ADR-032 결정 17)",
+            "title": "Pending Responses",
+            "type": "integer"
+          },
+          "progress_line": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "task `Progress` 에 적은(적을) 한 줄",
+            "title": "Progress Line"
+          },
+          "remaining_after": {
+            "default": 0,
+            "description": "이 호출이 반영한 뒤 받은편지함에 남는 그 task 의 응답 건수 — dry-run 은 예측, --apply 는 실측",
+            "title": "Remaining After",
+            "type": "integer"
+          },
+          "responses": {
+            "items": {
+              "description": "응답 파일 한 건의 자격 판정 (스펙 §8.1) 과, `plan-import` 가 그것에 한 일.",
+              "properties": {
+                "action": {
+                  "default": "none",
+                  "description": "`archived` · `rejected` · `kept_in_inbox` · `none` (dry-run 은 하려던 일)",
+                  "title": "Action",
+                  "type": "string"
+                },
+                "comments": {
+                  "default": 0,
+                  "title": "Comments",
+                  "type": "integer"
+                },
+                "eligible": {
+                  "title": "Eligible",
+                  "type": "boolean"
+                },
+                "location": {
+                  "description": "`inbox` 또는 `archive`",
+                  "title": "Location",
+                  "type": "string"
+                },
+                "moved_to": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "description": "옮긴(옮길) 경로 — 작업 공간 기준",
+                  "title": "Moved To"
+                },
+                "name": {
+                  "title": "Name",
+                  "type": "string"
+                },
+                "reason": {
+                  "default": "",
+                  "title": "Reason",
+                  "type": "string"
+                },
+                "received_at": {
+                  "default": "",
+                  "title": "Received At",
+                  "type": "string"
+                },
+                "responder": {
+                  "default": "",
+                  "title": "Responder",
+                  "type": "string"
+                },
+                "stage": {
+                  "anyOf": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "description": "처음 어긋난 자격 단계 (0~6) — 자격이 있으면 null",
+                  "title": "Stage"
+                }
+              },
+              "required": [
+                "name",
+                "location",
+                "eligible"
+              ],
+              "title": "PlanResponseVerdict",
+              "type": "object"
+            },
+            "title": "Responses",
+            "type": "array"
+          },
+          "source_context": {
+            "properties": {
+              "mode": {
+                "description": "`import` 또는 `discard`",
+                "title": "Mode",
+                "type": "string"
+              },
+              "task_id": {
+                "title": "Task Id",
+                "type": "string"
+              },
+              "task_path": {
+                "title": "Task Path",
+                "type": "string"
+              }
+            },
+            "required": [
+              "task_id",
+              "task_path",
+              "mode"
+            ],
+            "title": "PlanImportSourceContext",
+            "type": "object"
+          },
+          "state_changes": {
+            "items": {
+              "properties": {
+                "after": {
+                  "description": "다시 계산한 값",
+                  "title": "After",
+                  "type": "string"
+                },
+                "before": {
+                  "description": "상태 칸에 적혀 있던 값",
+                  "title": "Before",
+                  "type": "string"
+                },
+                "id": {
+                  "title": "Id",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "before",
+                "after"
+              ],
+              "title": "PlanStateChange",
+              "type": "object"
+            },
+            "title": "State Changes",
+            "type": "array"
+          },
+          "states": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "결정마다 다시 계산한 상태",
+            "title": "States",
+            "type": "object"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "warning",
+              "error"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          },
+          "tool_version": {
+            "description": "Version of the tool that generated this output",
+            "title": "Tool Version",
+            "type": "string"
+          },
+          "unknown_inbox_files": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unknown Inbox Files",
+            "type": "array"
+          },
+          "warnings": {
+            "description": "List of non-fatal warnings encountered",
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "status",
+          "tool_version",
+          "task_id",
+          "applied",
+          "outcome",
+          "source_context"
+        ],
+        "title": "PlanImportOutput",
         "type": "object"
       }
     }

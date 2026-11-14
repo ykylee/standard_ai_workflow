@@ -1,6 +1,6 @@
 ---
 id: TASK-2026-11-14-claude-remote-sync-check-234c32-003
-status: planned
+status: in_progress
 created_at: 2026-11-14
 source_anchor: generic-task-2026-11-14-claude-remote-sync-check-234c32-003
 source_path: backlog/2026-11-14.md
@@ -12,7 +12,7 @@ wbs: M-029/WBS-29.2
 
 ## 📝 Description
 
-- Status: planned
+- Status: in_progress
 - Priority: high
 - Request date: 2026-11-14
 - Owner:
@@ -39,7 +39,7 @@ wbs: M-029/WBS-29.2
 
 ## 🛠️ Implementation / Content
 
-- Progress: `2026-11-14 14:12` 기준 plan_workbench_spec §8.3 — read-only 번들 plan_inbox(task_id 선택, inbox_census + 파일별 판정, 주석 본문 없음), write 번들 plan_import(plan-import 출력 계약 그대로), descriptor · JSON-RPC fixture · 하네스 MCP 예시를 같은 커밋에서 재생성
+- Progress: 2026-11-14 구현: common/plan_mcp.py(plan_inbox — census · judge, 주석 본문 없음 / plan_import — 서버 인터프리터로 CLI 하위 프로세스) · registry 두 spec(boolean 입력 · requires_any_of · WRITE_CAPABLE) · runner 둘 · MCP.md 둘 · 생성물 5종 재생성 · minimax 예시 · 옛 매니페스트 검사의 도구 수를 registry 파생으로. check_plan_mcp_tools 5/5, 되주입 16/16 red, --changed 301/301 · smoke 8/8
 - Next session starting point:
 - Remaining risks:
 

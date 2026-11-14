@@ -447,12 +447,81 @@ READ_ONLY_TOOL_SPECS: tuple[ReadOnlyToolSpec, ...] = (
         # 대상 파일을 실제로 write 한다 (patching.py, dry_run 입력 없음).
         read_only=False,
     ),
+    ReadOnlyToolSpec(
+        name="plan_inbox",
+        # 워크벤치 스펙 §8.3 — 건수의 정본은 plan_responses.inbox_census (ADR-032 결정 16).
+        description="Report plan responses waiting in the branch inbox (counts, per-file eligibility; no comment bodies).",
+        script_path=SOURCE_ROOT / "mcp_servers" / "plan-inbox" / "scripts" / "run_plan_inbox.py",
+        input_fields=(
+            ReadOnlyToolFieldSpec(
+                name="workspace_root",
+                cli_flag="--workspace-root",
+                value_type="path",
+                description="Workspace root of a workflow_kit project. Defaults to the server cwd.",
+            ),
+            ReadOnlyToolFieldSpec(
+                name="task_id",
+                cli_flag="--task-id",
+                value_type="string",
+                description="Only this task's responses. Omit for the whole inbox.",
+            ),
+        ),
+        payload_example={"workspace_root": "."},
+    ),
+    ReadOnlyToolSpec(
+        name="plan_import",
+        # 워크벤치 스펙 §8.3 — CLI `plan-import` 와 같은 출력 계약 (family plan_import). 기본 dry-run.
+        description="Apply plan responses from the branch inbox to a task (dry run unless apply is true), or discard one.",
+        script_path=SOURCE_ROOT / "mcp_servers" / "plan-import" / "scripts" / "run_plan_import.py",
+        input_fields=(
+            ReadOnlyToolFieldSpec(
+                name="workspace_root",
+                cli_flag="--workspace-root",
+                value_type="path",
+                description="Workspace root of a workflow_kit project. Defaults to the server cwd.",
+            ),
+            ReadOnlyToolFieldSpec(
+                name="task_id",
+                cli_flag="--task-id",
+                value_type="string",
+                description="Task whose inbox responses to apply.",
+            ),
+            ReadOnlyToolFieldSpec(
+                name="discard",
+                cli_flag="--discard",
+                value_type="string",
+                description="Response file (inbox or archive) to set aside as .rejected.md.",
+            ),
+            ReadOnlyToolFieldSpec(
+                name="reason",
+                cli_flag="--reason",
+                value_type="string",
+                description="Why the response is discarded — recorded in the task Progress.",
+            ),
+            ReadOnlyToolFieldSpec(
+                name="response",
+                cli_flag="--response",
+                value_type="string",
+                description="Apply only this inbox response file.",
+            ),
+            ReadOnlyToolFieldSpec(
+                name="apply",
+                cli_flag="--apply",
+                value_type="boolean",
+                description="Actually move and write. Default false — a dry run that writes nothing.",
+            ),
+        ),
+        requires_any_of=("task_id", "discard"),
+        payload_example={"workspace_root": ".", "task_id": "TASK-2026-01-01-main-001"},
+        # 받은편지함 → 보관 이동과 task 파일 쓰기 (apply=true 일 때).
+        read_only=False,
+    ),
 )
 
 #: 파일시스템을 변경하는 도구의 **사실 목록** — 검사가 registry 선언과 대조한다.
 #: 새 write 도구를 추가하면 여기와 spec 의 `read_only=False` 를 같이 갱신해야 하고,
 #: 어느 한쪽만 고치면 `check_read_only_mcp_server` 가 잡는다.
-WRITE_CAPABLE_TOOL_NAMES: frozenset[str] = frozenset({"apply_robust_patch", "rotate_workflow_logs"})
+WRITE_CAPABLE_TOOL_NAMES: frozenset[str] = frozenset({"apply_robust_patch", "rotate_workflow_logs", "plan_import"})
 
 
 def get_tool_spec(tool_name: str) -> ReadOnlyToolSpec | None:
@@ -471,6 +540,11 @@ def input_json_schema_for_spec(spec: ReadOnlyToolSpec) -> dict[str, object]:
             field_schema = {
                 "type": "array",
                 "items": {"type": "string"},
+                "description": field.description,
+            }
+        elif field.value_type == "boolean":
+            field_schema = {
+                "type": "boolean",
                 "description": field.description,
             }
         else:

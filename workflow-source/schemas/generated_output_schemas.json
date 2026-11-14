@@ -765,6 +765,57 @@
       "title": "ErrorOutput",
       "type": "object"
     },
+    "plan_inbox": {
+      "description": "Standard payload for failed tool executions.",
+      "properties": {
+        "error": {
+          "description": "Human-readable error message",
+          "title": "Error",
+          "type": "string"
+        },
+        "error_code": {
+          "description": "Stable machine-readable error code",
+          "title": "Error Code",
+          "type": "string"
+        },
+        "source_context": {
+          "additionalProperties": true,
+          "description": "Arbitrary context data to help diagnose the error",
+          "title": "Source Context",
+          "type": "object"
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "tool_version": {
+          "description": "Version of the tool that generated this output",
+          "title": "Tool Version",
+          "type": "string"
+        },
+        "warnings": {
+          "description": "List of non-fatal warnings encountered",
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "tool_version",
+        "error",
+        "error_code",
+        "source_context"
+      ],
+      "title": "ErrorOutput",
+      "type": "object"
+    },
     "plan_status": {
       "description": "Standard payload for failed tool executions.",
       "properties": {
@@ -3396,6 +3447,147 @@
         "source_context"
       ],
       "title": "PlanImportOutput",
+      "type": "object"
+    },
+    "plan_inbox": {
+      "description": "MCP `plan_inbox` — 받은편지함의 미반영 응답 (읽기 전용). 건수의 정본은 `plan_responses.inbox_census`.",
+      "properties": {
+        "files": {
+          "description": "응답 파일별 자격 — 번호 순",
+          "items": {
+            "description": "받은편지함 응답 한 건 — 이름 · 응답자 · 시각 · 자격만 (워크벤치 스펙 §8.3). 주석 본문은 싣지 않는다.",
+            "properties": {
+              "name": {
+                "title": "Name",
+                "type": "string"
+              },
+              "reason": {
+                "default": "",
+                "title": "Reason",
+                "type": "string"
+              },
+              "received_at": {
+                "default": "",
+                "title": "Received At",
+                "type": "string"
+              },
+              "responder": {
+                "default": "",
+                "title": "Responder",
+                "type": "string"
+              },
+              "stage": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "처음 어긋난 자격 단계 (0~6) — 자격이 있으면 null",
+                "title": "Stage"
+              },
+              "task": {
+                "title": "Task",
+                "type": "string"
+              }
+            },
+            "required": [
+              "task",
+              "name"
+            ],
+            "title": "PlanInboxFile",
+            "type": "object"
+          },
+          "title": "Files",
+          "type": "array"
+        },
+        "layout_problem": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "받은편지함 · 보관 배치 문제 (claim_plan_spec §7-9)",
+          "title": "Layout Problem"
+        },
+        "pending": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "description": "task 별 미반영 건수 — inbox_census.pending",
+          "title": "Pending",
+          "type": "object"
+        },
+        "source_context": {
+          "properties": {
+            "branch": {
+              "title": "Branch",
+              "type": "string"
+            },
+            "task_id": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "요청한 task — 없으면 받은편지함 전체",
+              "title": "Task Id"
+            }
+          },
+          "required": [
+            "branch"
+          ],
+          "title": "PlanInboxSourceContext",
+          "type": "object"
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "tool_version": {
+          "description": "Version of the tool that generated this output",
+          "title": "Tool Version",
+          "type": "string"
+        },
+        "unknown": {
+          "description": "받은편지함의 응답 이름 꼴이 아닌 `.md`",
+          "items": {
+            "type": "string"
+          },
+          "title": "Unknown",
+          "type": "array"
+        },
+        "warnings": {
+          "description": "List of non-fatal warnings encountered",
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "status",
+        "tool_version",
+        "source_context"
+      ],
+      "title": "PlanInboxOutput",
       "type": "object"
     },
     "plan_status": {

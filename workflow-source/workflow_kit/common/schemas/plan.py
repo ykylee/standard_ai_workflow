@@ -64,7 +64,7 @@ class PlanStatusOutput(BaseOutput):
     decisions: list[PlanDecisionStatus] = Field(default_factory=list)
     open_decisions: list[str] = Field(default_factory=list)
     lint: list[str] = Field(default_factory=list)
-    pending_responses: int = Field(0, description="받은편지함의 미반영 응답 건수")
+    pending_responses: int = Field(0, description="받은편지함의 미반영 응답 건수 — plan_responses.inbox_census 의 그 task 몫")
     inbox: list[PlanResponseVerdict] = Field(default_factory=list, description="받은편지함 파일별 자격")
     unknown_inbox_files: list[str] = Field(default_factory=list, description="받은편지함의 응답 이름 꼴이 아닌 `.md`")
     disputed_responses: list[str] = Field(default_factory=list, description="다툼에 든 유효 응답")
@@ -90,6 +90,9 @@ class PlanImportOutput(BaseOutput):
     states: dict[str, str] = Field(default_factory=dict, description="결정마다 다시 계산한 상태")
     open_decisions: list[str] = Field(default_factory=list)
     progress_line: str | None = Field(None, description="task `Progress` 에 적은(적을) 한 줄")
-    pending_responses: int = Field(0, description="이 호출 뒤 받은편지함에 남는 그 task 의 응답 건수")
+    pending_responses: int = Field(
+        0, description="호출 시점 받은편지함의 그 task 응답 건수 — plan-status 의 같은 필드와 같은 뜻 (ADR-032 결정 17)")
+    remaining_after: int = Field(
+        0, description="이 호출이 반영한 뒤 받은편지함에 남는 그 task 의 응답 건수 — dry-run 은 예측, --apply 는 실측")
     unknown_inbox_files: list[str] = Field(default_factory=list)
     source_context: PlanImportSourceContext

@@ -99,17 +99,26 @@ def build_status(task: plan_tasks.TaskPlan, workspace_root: Path) -> PlanStatusO
         for d in decisions if d.column_state != d.state
     ]
     branch_dir = plan_tasks.branch_dir_of(task)
+    census = plan_responses.inbox_census(branch_dir)
     inbox = [
         response_verdict(path, parsed, verdict, location="inbox")
-        for path in plan_tasks.pending_responses(task)
+        for path in census.paths(task.task_id)
         for parsed, verdict in [plan_responses.judge(
             path, plan, task.task_id, plan_has_errors=plan_claims.has_error_rules(plan))]
     ]
-    unknown = plan_responses.unknown_inbox_files(branch_dir)
+    unknown = list(census.unknown)
     if inbox:
         warnings.append(f"계획 응답 {len(inbox)}건 미반영 ({task.task_id}) — plan-import 로 확인")
     if unknown:
         warnings.append(f"받은편지함에 알 수 없는 파일 {len(unknown)}건: {', '.join(unknown)}")
+    # 배치 문제와 보관의 비파일 항목은 보고만 한다 (ADR-032 결정 18 · 25, 주장 스펙 §7-9).
+    layout_note = census.layout_warning()
+    if layout_note:
+        warnings.append(layout_note)
+    odd_archive = plan_responses.odd_archive_entries(branch_dir)
+    if odd_archive:
+        warnings.append(f"보관에 보통 파일이 아닌 응답 이름 항목 {len(odd_archive)}건(응답으로 읽지 않는다): "
+                        + ", ".join(odd_archive))
     try:
         relative = task.path.resolve().relative_to(workspace_root.resolve()).as_posix()
     except ValueError:
@@ -130,7 +139,7 @@ def build_status(task: plan_tasks.TaskPlan, workspace_root: Path) -> PlanStatusO
         decisions=decisions,
         open_decisions=open_ids,
         lint=[issue.render() for issue in issues if issue.rule != "L5" or issue.severity != "note"],
-        pending_responses=len(inbox),
+        pending_responses=census.count(task.task_id),
         inbox=inbox,
         unknown_inbox_files=unknown,
         disputed_responses=list(result.disputed_responses),

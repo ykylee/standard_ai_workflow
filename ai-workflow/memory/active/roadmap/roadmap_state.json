@@ -1007,11 +1007,11 @@
       "id": "M-029",
       "title": "계획·진척 워크벤치 — implementation (이월 정리 · 서버 · 화면 · MCP · 검사)",
       "sdlc_phase": "implementation",
-      "declared_status": "planned",
-      "derived_status": "planned",
-      "progress": 0.0,
+      "declared_status": "in_progress",
+      "derived_status": "in_progress",
+      "progress": 0.5,
       "total_leaves": 2,
-      "done_leaves": 0,
+      "done_leaves": 1,
       "deliverables_missing": [
         "workflow-source/workflow_kit/workbench/server.py",
         "workflow-source/workflow_kit/tools/workbench.py"
@@ -1020,10 +1020,12 @@
         {
           "id": "WBS-29.1",
           "title": "① 이월 정리 — `plan_responses.inbox_census` 와 호출자 전환(결정 16) · `plan-import` 의 `pending_responses` / `remaining_after`(결정 17) ·",
-          "derived_status": "planned",
-          "linked_task_ids": [],
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-14-claude-remote-sync-check-234c32-001"
+          ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         },
         {

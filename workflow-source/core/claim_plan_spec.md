@@ -4,7 +4,7 @@
 - 범위: task 라벨 `Claims` · `Decisions`, 린트 L1~L10, `backlog-update` 의 추가 인자와 상태 전이 게이트, 응답 형식 `workflow-kit-plan-response/1`, `plan_responses/` 디렉터리, `plan-import` · `plan-status` 명령, `state.json` 의 `open_decisions`, 브랜치 이어받기, 검증
 - 대상 독자: workflow 설계자, AI agent, kit 소비 프로젝트
 - 상태: draft (ADR-031 accepted 2026-11-13 — 1 · 2단계 구현됨; MCP 도구 · 워크벤치는 ADR-032)
-- 최종 수정일: 2026-11-13
+- 최종 수정일: 2026-11-14
 - 관련 문서: `../../ai-workflow/wiki/decisions/adr-031-claim-plan.md`, `../../docs/planning/claim-plan-requirements-2026-11.md`, `../../docs/planning/plan-workbench-requirements-2026-11.md`, `./backlog_update_skill_spec.md`, `./global_workflow_standard.md`
 
 > **결정 근거는 ADR-031 에, 숫자의 실측은 requirements 에 있다.** 이 문서는 *계약* 만 적는다.
@@ -111,7 +111,7 @@
 |---|---|---|
 | → `in_progress` | 열린 결정 n ≥ 1 | 쓰고 경고: `열린 결정 n건 (D1 proposed, D3 disputed) — 묻지 않았거나, 열리지 않았거나, 답이 갈렸다. 기본값은 동의가 아니다.` |
 | → `done` | 열린 결정 n ≥ 1 | **거부** (`open_decisions`): 파일 무변경, rc 1 — `done 거부: 열린 결정 n건 (D1, D3). --decision-state D1=answered:<value> 로 답을 기록하거나, --replace-field plan_decisions 로 결정을 걷고 사유를 Progress 에 남긴다.` |
-| → `done` | 그 task 의 받은편지함 건수(§7-7)가 1 이상이다 | **거부** (`pending_plan_responses`): `done 거부: 계획 응답 n건 미반영 — plan-import 로 반영하거나 --discard 로 거둔다.` |
+| → `done` | 그 task 의 받은편지함 건수(§7-7 — `plan_responses.inbox_census`)가 1 이상이다 | **거부** (`pending_plan_responses`): `done 거부: 계획 응답 n건 미반영 — plan-import 로 반영하거나 --discard 로 거둔다.` |
 | → `done` | task 파일이 오류 규칙(L2 · L6 · L9)을 어긴다 | **거부** (`plan_lint_error`) |
 | → `blocked` · `planned` | — | 영향 없음 |
 
@@ -121,11 +121,17 @@
   `warnings` 에 나머지 사유를 함께 싣는다.
 - 거부는 검증 결과 없는 `done` 의 강등(`determine_conservative_task_status`)보다 먼저 판정하고, 거부가 이긴다. 두 사유를 함께 보고한다.
 - 거부는 `build_error_result` 의 JSON 과 rc 1 로 나간다. 쓰기 블록에 닿지 않는다.
+- **배치 문제(§7-9)는 거부 사유가 아니다** (ADR-032 결정 25): 받은편지함과 보관이 같은 디렉터리이거나 다른 파일시스템이면 `warnings` 에
+  `계획 응답 배치: <사유> (claim_plan_spec §7-9)` 를 싣기만 한다 — 거부 응답에도 싣는다. 받은편지함 행은 `inbox_census` 의 건수로만 판정하고,
+  census 는 배치가 틀려도 받은편지함의 보통 파일을 센 그대로 낸다. 그래서 같은 디렉터리 배치에서는 보관된 응답도 그 건수에 들어 `done` 이
+  막힐 수 있다 — 막히는 쪽(fail-closed)이라 받아들인다.
 - **칸 고쳐 쓰기**: `--apply` 가 붙어 실제로 쓰는 호출은 (task 파일이 오류 규칙을 어기지 않은 한 — §8.6) 계산값과 다른 상태 칸을 고치고 경고한다 —
   `뒷받침 없는 상태를 되돌렸다: D<n> changed:x → proposed`. 거부된 전이와 읽기 전용 명령은 쓰지 않고 **같은 경고만** 낸다
   (거부된 `done` 은 파일 무변경이다).
-- **우회 검출 (R3.4)**: `refresh-state` 와 `session-start` 는 `done` 인데 계산한 열린 결정이 있는 task 를 `warnings` 에 싣는다 —
-  `done 인데 열린 결정이 있다: <TASK-ID> (D1)`. 재생성은 막지 않고 파일도 고치지 않는다.
+- **우회 검출 (R3.4)**: `refresh-state`(`--check` 포함) 와 `session-start` 는 두 행을 `warnings` 에 싣는다. 재생성은 막지 않고 파일도 고치지 않는다.
+  - 열린 결정 행 — `done` 인데 계산한 열린 결정이 있는 task: `done 인데 열린 결정이 있다: <TASK-ID> (D1)`.
+  - 받은편지함 행 (ADR-032 결정 18) — `done` 인데 그 task 의 받은편지함에 미반영 응답이 있는 task: `done 인데 계획 응답 n건 미반영: <TASK-ID>`.
+    결정이 없는 task 도 싣는다. 합류의 되돌려 적기로 원본 task 가 `done` 이 되는 길처럼 `backlog-update` 전이를 거치지 않은 `done` 을 드러낸다.
 
 ## 5. 계획 지문 (R5.2)
 
@@ -301,6 +307,8 @@ python -m workflow_kit plan-import --discard=<파일> --reason=<사유> [--apply
 - `--response` 는 그 task 의 받은편지함 파일이어야 하고, `--discard` 는 받은편지함 또는 보관의 `<TASK-ID>-<숫자>.md` 여야 한다 (이미 거둔
   `.rejected.md` 는 다시 거두지 않는다). `--discard` 에는 글자 · 숫자가 있는 `--reason` 이 필요하다. 어긋나면 rc 2 로 거절하고 아무것도 바꾸지 않는다.
 - 출력의 `outcome` 은 `imported` · `discarded` · `nothing_to_do` · `import_busy` · `dry_run` 중 하나다.
+- 출력의 건수 둘 (ADR-032 결정 17): `pending_responses` 는 **호출 시점** 그 task 의 받은편지함 건수(`plan-status` 의 같은 필드와 같은 뜻 ·
+  같은 값), `remaining_after` 는 이 호출이 반영한 뒤 남는 건수다 — dry-run 은 예측, `--apply` 는 실측이고 둘이 같다. `import_busy` 는 둘 다 지금의 건수다.
 - 출력 계약 family `plan_import` 를 등록한다.
 
 ## 10. `plan-status`
@@ -310,7 +318,10 @@ python -m workflow_kit plan-status --task=<TASK-ID> [--format=json|md]
 ```
 
 읽기 전용이다. 내는 것: 1단계 주장마다 자신 · 후손을 인용한 완료 기준의 번호 목록(없으면 "재지 않는 주장" — L7 과 같은 판정), 결정마다
-계산한 상태와 칸의 값(다르면 둘 다), 열린 결정 목록, 받은편지함 건수와 파일별 자격(처음 어긋난 단계), 알 수 없는 받은편지함 파일, 다툼에 든 · 대체된 응답. `md` 형식은 검증 보고에 붙일 표다:
+계산한 상태와 칸의 값(다르면 둘 다), 열린 결정 목록, 받은편지함 건수와 파일별 자격(처음 어긋난 단계), 알 수 없는 받은편지함 파일, 다툼에 든 · 대체된 응답.
+`warnings` 에는 미반영 응답 · 알 수 없는 받은편지함 파일과 함께 배치 문제(§7-9 — `계획 응답 배치: <사유> …`)와 보관의 응답 이름 항목 중
+보통 파일이 아닌 것(링크 · 디렉터리 — `보관에 보통 파일이 아닌 응답 이름 항목 n건(응답으로 읽지 않는다): …`)을 싣는다 (ADR-032 결정 18).
+건수와 알 수 없는 파일은 `plan_responses.inbox_census` 의 값이다. `md` 형식은 검증 보고에 붙일 표다:
 
 ```
 ### 주장별
@@ -333,7 +344,9 @@ python -m workflow_kit plan-status --task=<TASK-ID> [--format=json|md]
 - **`state.json`**: `open_decisions: {"<TASK-ID>": n}` — `in_progress` · `blocked` · `planned` task 중 **상태 칸 기준** 열린 결정이 있는 것만.
   비어 있으면 키를 내지 않는다. 주장 · 결정 전문은 싣지 않는다. 생성기의 입력은 늘지 않는다 (task 파일뿐).
 - **받은편지함 건수**는 `state.json` 에 싣지 않는다. `session-start` 와 `backlog-update` 가 명령 시점에 세어 `warnings` 에 싣는다 —
-  `계획 응답 n건 미반영 (<TASK-ID> …) — plan-import 로 확인`. 응답의 내용은 싣지 않는다.
+  `계획 응답 n건 미반영 (<TASK-ID> …) — plan-import 로 확인`. 응답의 내용은 싣지 않는다. 배치 문제가 있으면 둘 다 그 줄도 싣는다 (§4).
+  건수 · 알 수 없는 항목 · 배치 문제의 정본은 `plan_responses.inbox_census(branch_dir)` 하나다 — 게이트 · `session-start` · `refresh-state` ·
+  `plan-status` · `plan-import` 가 이것만 부른다 (ADR-032 결정 16).
 - **지문을 바꾸는 쓰기**는 받은편지함에 그 task 의 응답이 있으면 `받은편지함 n건이 옛 계획에 대한 것이다 — plan-import --discard` 를 경고한다.
 - **이어받기**: `seed` 가 `inherited_from` 으로 옮기는 task 마다 모 브랜치의 보관 응답(`plan_responses/<TASK-ID>-<숫자>.md`, `.rejected.md` 제외)을
   함께 복사한다. 받은편지함은 옮기지 않는다. 합류 반영이 task 를 이월할 때도, 이어받은 task 를 원본 쪽에 되돌려 적을 때도 같다

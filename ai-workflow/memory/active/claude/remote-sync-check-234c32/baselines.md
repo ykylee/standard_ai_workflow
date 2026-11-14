@@ -11,6 +11,10 @@
 
 ## 롤오프 2026-11-14
 
+- **124차 세션 끝 (2026-11-13, Linux 호스트) — M-026 design 종결: ADR-031 accepted.** [`adr-031-claim-plan.md`](../../../../wiki/decisions/adr-031-claim-plan.md) (결정 29 · requirements 대비 변경 V1~V10 · 실측 M1~M5) + [`claim_plan_spec.md`](../../../../../workflow-source/core/claim_plan_spec.md) (계약 §1~§13). 소유자 결정: design 은 **ADR 둘로 순차**(워크벤치는 M-027 / ADR-032) · Codex hook 주입 실측은 하지 않는다(② 보류) · 프록시 실측은 docker 로. 핵심 결정: 보관 번호 = `received_at` 의 epoch 마이크로초(카운터는 두 호스트에서 add/add 충돌) · import 잠금은 `common/file_lock.py` 비차단(120회 중복 0 · 유실 0) · 주장별 묶음은 읽기 전용 `plan-status` · 이어받기가 보관 응답을 옮긴다 · 오류 상태 task 는 칸을 다시 적지 않고 `done` 거부. task 11-13-002 done (verifier 5회 — 5차 5/5 PASS). M-026 done · **M-027 [design] · M-028 [implementation] planned** (병행 가능). wiki 색인에 ADR-027~031. roadmap issues [].
+
+## 롤오프 2026-11-14
+
 - **124차 세션 후반 (2026-11-13, Linux 호스트) — M-025 워크벤치 requirements 종결.** [`plan-workbench-requirements-2026-11.md`](../../../../../docs/planning/plan-workbench-requirements-2026-11.md) — 실측(프롬프트 직전 hook 의 주입이 실측된 하네스는 Claude Code 하나 → W1 ② 보류 / 받은편지함은 다 쓴 뒤 공개, import 는 잠금 아래 배타 이동 / 접두사 프록시 뒤 상대 경로 + 쿠키 `Path` = 접두사) + R0~R12, 소유자 sign-off **Q1 · Q2 권고안** (토큰은 로그인 폼으로만 · 위임 인증은 첫 구현 밖). 실측이 주장 requirements R8.1 · R5.1 · R11-7 을 고쳤다 (이동은 rename 이 아니라 잠금 + 배타). task 11-13-001 done (verifier 3회 — 3차 5/5 PASS). M-025 done. 같은 날 main 에 11-04 미커밋 메모리를 반영 · push (`origin/main@39a50a11`) — 이 브랜치는 그 커밋을 아직 받지 않았다. roadmap issues [].
 
 ## 롤오프 2026-11-13

@@ -22,7 +22,7 @@
 6. 페이지는 외부 자원을 부르지 않는다.
 7. 모델 호출이 없다.
 8. 주장 · 결정 읽기 · 지문 · 결정 상태 · 응답 렌더 · 공개 · 받은편지함 건수는 `plan_claims` · `plan_tasks` · `plan_responses` 의 함수만 쓴다
-   (`inbox_census` 는 M-029 ① 에서 새로 만든다 — §8.1).
+   (`inbox_census` — §8.1).
 
 ## 2. 명령 (R1.1 · R1.2)
 
@@ -178,8 +178,9 @@ task 파일에 있는 것만 그린다: 주장 트리(`<details>`, 접힌 상태
 
 ### 8.1 받은편지함 건수의 정본
 
-`plan_responses.inbox_census(branch_dir) -> InboxCensus(pending: dict[task, int], unknown: list[name], layout_problem: str | None)` 하나가 정본이다.
-**M-029 ① 에서 새로 만든다** — 지금은 `inbox_files` · `pending_by_task` · `unknown_inbox_files` · `layout_problem` 을 부르는 쪽이 조합한다.
+`plan_responses.inbox_census(branch_dir) -> InboxCensus` 하나가 정본이다 — 받은편지함을 한 번 훑어 task 별 응답 경로(`files`, 번호 순)와
+그 건수(`pending: dict[task, int]`), 알 수 없는 항목(`unknown`), 배치 문제(`layout_problem: str | None`)를 낸다 (M-029 ① 에서 구현 — 옛 조합 함수
+`pending_by_task` · `unknown_inbox_files` · `pending_warning` 은 접었고, `inbox_files` 는 census 의 그 task 몫이다).
 `backlog-update` 게이트 · `session-start` · `refresh-state` · `plan-status` · `plan-import` · 워크벤치 · `plan_inbox` 가 이것만 부른다 (ADR-032 결정 16).
 게이트는 `layout_problem` 을 `warnings` 에 싣기만 하고 그것으로 막지 않는다 — 받은편지함 행은 census 의 미반영 건수로만 판정한다 (결정 25).
 census 는 배치 문제가 있어도 받은편지함의 보통 파일을 센 그대로 낸다 — 같은 디렉터리 배치(지원 밖)에서는 보관된 응답도 세어져 `done` 이 막힐 수 있다.

@@ -53,6 +53,7 @@ _COMMENT_PREFIX = "  > "
 #: (게이트가 세는 `_name_re` 와 같은 집합을 봐야 한다 — 좁으면 세어진 파일이 "알 수 없는 파일" 이 된다).
 #: 숫자는 ASCII `0-9` 다.
 _ANY_RESPONSE_NAME_RE = re.compile(rf"^(?P<task>{WORK_ITEM_ID_PATTERN})-(?P<n>[0-9]+)\.md$")
+_ANY_RESPONSE_NAME_OR_REJECTED_RE = re.compile(rf"^(?P<task>{WORK_ITEM_ID_PATTERN})-(?P<n>[0-9]+)(?:\.rejected)?\.md$")
 _FRONTMATTER_KEYS = ("format", "task", "plan_digest", "responder", "role", "received_at")
 
 
@@ -299,9 +300,68 @@ def _numbered(directory: Path, task_id: str, *, any_entry: bool = False) -> list
     return sorted(found)
 
 
+@dataclass(frozen=True)
+class InboxCensus:
+    """받은편지함 건수의 정본 (ADR-032 결정 16, 워크벤치 스펙 §8.1) — 디렉터리를 **한 번** 훑은 결과.
+
+    받은편지함의 ``.md`` 항목은 "그 task 의 응답" 과 "알 수 없는 것" 중 정확히 한쪽에 든다. 응답은 이름이
+    ``<TASK-ID>-<숫자>.md`` 이고 링크가 아닌 보통 파일인 것이다 — 이름만 본다 (내용은 읽지 않는다).
+    ``layout_problem`` 은 보고만 한다 — census 는 배치가 틀려도 받은편지함의 보통 파일을 센 그대로 낸다 (결정 25).
+    """
+
+    files: dict[str, tuple[Path, ...]]
+    unknown: tuple[str, ...]
+    layout_problem: str | None
+
+    @property
+    def pending(self) -> dict[str, int]:
+        """task 별 미반영 건수 — 0 인 task 는 없다."""
+        return {task_id: len(paths) for task_id, paths in sorted(self.files.items())}
+
+    def count(self, task_id: str) -> int:
+        return len(self.files.get(task_id, ()))
+
+    def paths(self, task_id: str) -> list[Path]:
+        """그 task 의 응답 — 번호 순 (스펙 §7-7). "건수" 는 이 목록의 길이다."""
+        return list(self.files.get(task_id, ()))
+
+    def warning(self) -> str | None:
+        """``session-start`` · ``backlog-update`` 가 싣는 한 줄 (스펙 §11). 응답의 내용은 싣지 않는다."""
+        counts = self.pending
+        if not counts:
+            return None
+        return f"계획 응답 {sum(counts.values())}건 미반영 ({', '.join(counts)}) — plan-import 로 확인"
+
+    def layout_warning(self) -> str | None:
+        """배치 문제의 보고 줄 — 막지 않는다 (결정 25)."""
+        return f"계획 응답 배치: {self.layout_problem} (claim_plan_spec §7-9)" if self.layout_problem else None
+
+
+def inbox_census(branch_dir: Path) -> InboxCensus:
+    """받은편지함을 한 번 훑는다 — 게이트 · ``session-start`` · ``refresh-state`` · ``plan-status`` ·
+    ``plan-import`` 가 받은편지함 건수와 알 수 없는 항목을 이것으로만 얻는다 (ADR-032 결정 16)."""
+    inbox = inbox_dir(branch_dir)
+    found: dict[str, list[tuple[int, str, Path]]] = {}
+    unknown: list[str] = []
+    if inbox.is_dir():
+        for entry in inbox.iterdir():
+            if not entry.name.endswith(".md"):
+                continue
+            match = _ANY_RESPONSE_NAME_RE.match(entry.name)
+            if match is not None and _is_plain_file(entry):
+                found.setdefault(match["task"], []).append((int(match["n"]), entry.name, entry))
+            else:
+                unknown.append(entry.name)
+    return InboxCensus(
+        files={task_id: tuple(path for _, _, path in sorted(items)) for task_id, items in found.items()},
+        unknown=tuple(sorted(unknown)),
+        layout_problem=layout_problem(branch_dir),
+    )
+
+
 def inbox_files(branch_dir: Path, task_id: str) -> list[Path]:
-    """받은편지함의 그 task 응답 — "건수" 는 이 목록의 길이다 (스펙 §7-7)."""
-    return [path for _, rejected, path in _numbered(inbox_dir(branch_dir), task_id) if not rejected]
+    """받은편지함의 그 task 응답 — :func:`inbox_census` 의 그 task 몫이다."""
+    return inbox_census(branch_dir).paths(task_id)
 
 
 def archive_files(branch_dir: Path, task_id: str) -> list[Path]:
@@ -309,46 +369,20 @@ def archive_files(branch_dir: Path, task_id: str) -> list[Path]:
     return [path for _, rejected, path in _numbered(responses_dir(branch_dir), task_id) if not rejected]
 
 
-def unknown_inbox_files(branch_dir: Path) -> list[str]:
-    """받은편지함의 ``.md`` 중 응답으로 세지 않는 것 — 보고만 한다, 게이트는 막지 않는다.
-
-    응답 이름 꼴이 아닌 파일, 그리고 응답 이름을 가졌지만 보통 파일이 아닌 항목(디렉터리 · 링크)이다.
-    그래서 받은편지함의 ``.md`` 항목은 "건수" 와 "알 수 없는 것" 중 정확히 한쪽에 든다.
-    """
-    inbox = inbox_dir(branch_dir)
-    if not inbox.is_dir():
+def odd_archive_entries(branch_dir: Path) -> list[str]:
+    """보관의 응답 이름 항목 중 보통 파일이 아닌 것(링크 · 디렉터리) — 응답으로 읽지 않는다, 보고만 한다 (스펙 §7-9)."""
+    archive = responses_dir(branch_dir)
+    if not archive.is_dir():
         return []
     return sorted(
-        entry.name for entry in inbox.iterdir()
-        if entry.name.endswith(".md")
-        and (not _ANY_RESPONSE_NAME_RE.match(entry.name) or not _is_plain_file(entry)))
+        entry.name for entry in archive.iterdir()
+        if _ANY_RESPONSE_NAME_OR_REJECTED_RE.match(entry.name) and not _is_plain_file(entry))
 
 
 def task_of_response_name(name: str) -> str | None:
     """``<TASK-ID>-<숫자>.md`` 의 task ID — 그 꼴이 아니면(``.rejected.md`` 포함) ``None``."""
     match = _ANY_RESPONSE_NAME_RE.match(name)
     return match["task"] if match is not None else None
-
-
-def pending_by_task(branch_dir: Path) -> dict[str, int]:
-    """받은편지함의 미반영 응답 수 — task 별. 이름만 본다 (내용은 읽지 않는다)."""
-    inbox = inbox_dir(branch_dir)
-    counts: dict[str, int] = {}
-    if not inbox.is_dir():
-        return counts
-    for entry in sorted(inbox.iterdir()):
-        match = _ANY_RESPONSE_NAME_RE.match(entry.name)
-        if match is not None and _is_plain_file(entry):
-            counts[match["task"]] = counts.get(match["task"], 0) + 1
-    return counts
-
-
-def pending_warning(branch_dir: Path) -> str | None:
-    """``session-start`` · ``backlog-update`` 가 싣는 한 줄 (스펙 §11). 응답의 내용은 싣지 않는다."""
-    counts = pending_by_task(branch_dir)
-    if not counts:
-        return None
-    return (f"계획 응답 {sum(counts.values())}건 미반영 ({', '.join(sorted(counts))}) — plan-import 로 확인")
 
 
 def same_entry(a: Path, b: Path) -> bool:

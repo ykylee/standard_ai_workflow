@@ -3188,7 +3188,7 @@
         },
         "pending_responses": {
           "default": 0,
-          "description": "이 호출 뒤 받은편지함에 남는 그 task 의 응답 건수",
+          "description": "호출 시점 받은편지함의 그 task 응답 건수 — plan-status 의 같은 필드와 같은 뜻 (ADR-032 결정 17)",
           "title": "Pending Responses",
           "type": "integer"
         },
@@ -3204,6 +3204,12 @@
           "default": null,
           "description": "task `Progress` 에 적은(적을) 한 줄",
           "title": "Progress Line"
+        },
+        "remaining_after": {
+          "default": 0,
+          "description": "이 호출이 반영한 뒤 받은편지함에 남는 그 task 의 응답 건수 — dry-run 은 예측, --apply 는 실측",
+          "title": "Remaining After",
+          "type": "integer"
         },
         "responses": {
           "items": {
@@ -3604,7 +3610,7 @@
         },
         "pending_responses": {
           "default": 0,
-          "description": "받은편지함의 미반영 응답 건수",
+          "description": "받은편지함의 미반영 응답 건수 — plan_responses.inbox_census 의 그 task 몫",
           "title": "Pending Responses",
           "type": "integer"
         },

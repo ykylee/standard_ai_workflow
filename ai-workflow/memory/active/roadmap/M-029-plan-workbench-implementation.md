@@ -2,7 +2,7 @@
 id: M-029
 title: 계획·진척 워크벤치 — implementation (이월 정리 · 서버 · 화면 · MCP · 검사)
 sdlc_phase: implementation
-status: planned
+status: in_progress
 order: 29
 parallel_allowed:
   - M-007

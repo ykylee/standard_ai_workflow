@@ -335,6 +335,7 @@ def enforce_plan_contract(
     creating: bool | None = None,
     branch_dir: Path | None = None,
     task_id: str | None = None,
+    census: plan_responses.InboxCensus | None = None,
 ) -> PlanVerdict:
     """task 파일에 쓰기 **전에** 주장 · 결정 계약을 적용한다.
 
@@ -357,8 +358,10 @@ def enforce_plan_contract(
             return ()
         return plan_responses.qualified_archive(branch_dir, task_id, target)
 
-    #: 그 task 의 받은편지함 건수 (스펙 §7-7). 읽기만 한다 — 디렉터리를 만들지 않는다.
-    pending = len(plan_responses.inbox_files(branch_dir, task_id)) if branch_dir is not None and task_id else 0
+    #: 그 task 의 받은편지함 건수 (스펙 §7-7, ADR-032 결정 16). 읽기만 한다 — 디렉터리를 만들지 않는다.
+    if census is None and branch_dir is not None:
+        census = plan_responses.inbox_census(branch_dir)
+    pending = census.count(task_id) if census is not None and task_id else 0
     to_in_progress = status == "in_progress" and current_status != "in_progress"
     #: 실제 전이인가 — 같은 상태를 다시 준 호출은 전이가 아니다 (경고를 되풀이하지 않는다, 스펙 §3).
     transition = requested_status is not None and requested_status != current_status
@@ -1249,6 +1252,10 @@ def main() -> int:
 
         # 주장 트리 계획 (ADR-031): 린트 · 결정 상태 재계산 · 전이 게이트. 쓰기 블록보다 **앞**이다 —
         # 거부는 파일을 하나도 건드리지 않는다 (WBS 게이트와 같은 방식).
+        # 받은편지함은 한 번 센다 — 게이트와 warnings 가 같은 census 를 본다 (ADR-032 결정 16).
+        inbox = plan_responses.inbox_census(task_ssot_path.parent.parent.parent)
+        # 배치 문제는 거부 사유가 아니다 — 싣기만 한다, 거부 응답에도 (ADR-032 결정 25).
+        layout_notes = [note for note in (inbox.layout_warning(),) if note]
         plan_verdict = enforce_plan_contract(
             draft_entry,
             # update 가 아니어도 그 ID 의 task 파일이 이미 있으면 그것이 "이전" 이다 — 같은 ID 로 다시
@@ -1267,6 +1274,7 @@ def main() -> int:
             creating=not update_merge,
             branch_dir=task_ssot_path.parent.parent.parent,
             task_id=task_id,
+            census=inbox,
         )
         if plan_verdict.error_code is not None:
             result = build_error_result(
@@ -1274,7 +1282,7 @@ def main() -> int:
                 error=plan_verdict.error or plan_verdict.error_code,
                 error_code=plan_verdict.error_code,
                 # 강등 사유(검증 결과 없는 done)와 겹치면 둘 다 싣는다 — 거부가 이긴다 (스펙 §4).
-                warnings=[*plan_verdict.warnings, *status_warnings],
+                warnings=[*plan_verdict.warnings, *status_warnings, *layout_notes],
                 source_context=source_context | {"task_id": task_id},
             )
             print(json.dumps(result, ensure_ascii=False, indent=2))
@@ -1282,9 +1290,10 @@ def main() -> int:
         draft_entry = plan_verdict.lines
         warnings.extend(plan_verdict.warnings)
         # 받은편지함의 미반영 응답은 명령 시점에 세어 알린다 (스펙 §11) — state.json 에는 싣지 않는다.
-        pending_note = plan_responses.pending_warning(task_ssot_path.parent.parent.parent)
+        pending_note = inbox.warning()
         if pending_note:
             warnings.append(pending_note)
+        warnings.extend(layout_notes)
 
         if operation_type == "create_daily_backlog":
             warnings.append("대상 날짜 backlog 파일이 없어 새 파일 초안 생성이 필요하다.")

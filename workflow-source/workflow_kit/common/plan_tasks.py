@@ -98,11 +98,6 @@ def archived_responses(task: TaskPlan) -> tuple[plan_claims.Response, ...]:
     return plan_responses.qualified_archive(branch_dir_of(task), task.task_id, task.plan)
 
 
-def pending_responses(task: TaskPlan) -> list[Path]:
-    """그 task 의 받은편지함 응답 (스펙 §7-7)."""
-    return plan_responses.inbox_files(branch_dir_of(task), task.task_id)
-
-
 def computed_states(task: TaskPlan) -> plan_claims.StateResult:
     """결정 상태의 **계산값** (스펙 §8). 게이트와 ``plan-status`` 는 칸이 아니라 이것으로 판정한다."""
     return plan_claims.compute_states(task.plan, archived_responses(task))
@@ -143,8 +138,28 @@ def bypassed_done_tasks(tasks_dir: Path | None) -> list[tuple[str, list[str]]]:
     return found
 
 
+def done_with_pending_responses(tasks_dir: Path | None) -> list[tuple[str, int]]:
+    """``done`` 인데 받은편지함에 미반영 응답이 있는 task (ADR-032 결정 18, 스펙 §4 우회 검출의 받은편지함 행).
+
+    게이트를 거치지 않은 ``done`` — 합류의 되돌려 적기로 원본 task 가 ``done`` 이 되는 길 — 을 드러낸다. 막지 않는다.
+    결정이 없는 task 도 센다 — 응답이 왔다는 사실이 보고 대상이다. 건수는 :func:`plan_responses.inbox_census` 다.
+    """
+    if tasks_dir is None or not tasks_dir.is_dir():
+        return []
+    census = plan_responses.inbox_census(tasks_dir.parent.parent)
+    found: list[tuple[str, int]] = []
+    for task_id, count in census.pending.items():
+        task = read_task_plan(tasks_dir / f"{task_id}.md")
+        if task is not None and task.status == "done":
+            found.append((task_id, count))
+    return found
+
+
 def bypass_warnings(tasks_dir: Path | None) -> list[str]:
+    """우회 검출 보고 — 열린 결정 행과 받은편지함 행 (스펙 §4). 읽기 전용이다."""
     return [
-        f"done 인데 열린 결정이 있다: {task_id} ({', '.join(opened)})"
-        for task_id, opened in bypassed_done_tasks(tasks_dir)
+        *(f"done 인데 열린 결정이 있다: {task_id} ({', '.join(opened)})"
+          for task_id, opened in bypassed_done_tasks(tasks_dir)),
+        *(f"done 인데 계획 응답 {count}건 미반영: {task_id}"
+          for task_id, count in done_with_pending_responses(tasks_dir)),
     ]

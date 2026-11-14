@@ -289,7 +289,7 @@ def case_6_single_parser() -> None:
     owned = {"parse_plan", "parse_claim_value", "parse_decision_value", "lint_plan", "plan_digest",
              "compute_states", "effective_responses", "open_decision_ids", "claim_bundles"}
     response_owned = {"parse_response", "qualify", "qualified_archive", "move_exclusive", "publish",
-                      "inbox_files", "archive_files", "taken_numbers", "copy_archive"}
+                      "inbox_files", "archive_files", "taken_numbers", "copy_archive", "inbox_census"}
     for path in sorted((SOURCE_ROOT / "workflow_kit").rglob("*.py")):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         defined = {n.name for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
@@ -317,20 +317,37 @@ def case_6_single_parser() -> None:
         "tools/plan_import.py": "plan_claims.compute_states",
         "common/plan_responses.py": "plan_claims.plan_digest",
     }
-    response_consumers = {
-        "tools/plan_import.py": "plan_responses.qualified_archive",
-        "tools/backlog_update.py": "plan_responses.qualified_archive",
-        "common/plan_tasks.py": "plan_responses.qualified_archive",
-        "tools/plan_status.py": "plan_responses.judge",
-        "tools/seed_workspace_memory.py": "plan_responses.copy_archive",
-        "common/branch_join.py": "plan_responses.copy_archive",
-    }
-    for rel, needle in response_consumers.items():
+    response_consumers = [
+        ("tools/plan_import.py", "plan_responses.qualified_archive"),
+        ("tools/backlog_update.py", "plan_responses.qualified_archive"),
+        ("common/plan_tasks.py", "plan_responses.qualified_archive"),
+        ("tools/plan_status.py", "plan_responses.judge"),
+        # 받은편지함 건수의 정본은 inbox_census 하나다 (ADR-032 결정 16).
+        ("tools/plan_import.py", "plan_responses.inbox_census"),
+        ("tools/plan_status.py", "plan_responses.inbox_census"),
+        ("tools/backlog_update.py", "plan_responses.inbox_census"),
+        ("tools/session_start.py", "inbox_census("),
+        ("common/plan_tasks.py", "plan_responses.inbox_census"),
+        ("tools/seed_workspace_memory.py", "plan_responses.copy_archive"),
+        ("common/branch_join.py", "plan_responses.copy_archive"),
+    ]
+    for rel, needle in response_consumers:
         if needle not in (SOURCE_ROOT / "workflow_kit" / rel).read_text(encoding="utf-8"):
             problems.append(f"{rel} 가 {needle} 를 쓰지 않는다")
     for rel, module in consumers.items():
         if module not in (SOURCE_ROOT / "workflow_kit" / rel).read_text(encoding="utf-8"):
             problems.append(f"{rel} 가 {module} 를 쓰지 않는다")
+    # 받은편지함을 직접 훑어 세는 옛 조합 함수는 없다 — 건수 · 알 수 없는 항목은 census 만 낸다.
+    folded = {"pending_by_task", "unknown_inbox_files", "pending_warning"}
+    for path in sorted((SOURCE_ROOT / "workflow_kit").rglob("*.py")):
+        text = path.read_text(encoding="utf-8")
+        tree = ast.parse(text)
+        names = {n.name for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
+        called = {n.attr for n in ast.walk(tree) if isinstance(n, ast.Attribute)}
+        if folded & (names | called):
+            problems.append(f"{path.relative_to(SOURCE_ROOT)} 가 접은 받은편지함 함수를 쓴다: {sorted(folded & (names | called))}")
+        if path.name != "plan_responses.py" and "inbox_dir(" in text and ".iterdir()" in text and "plan_responses" in text:
+            problems.append(f"{path.relative_to(SOURCE_ROOT)} 가 받은편지함을 직접 훑는다 — inbox_census 를 쓴다")
     _record("case 6 (파서 단일성 — 계산 함수는 plan_claims 에만 있다)", problems)
 
 

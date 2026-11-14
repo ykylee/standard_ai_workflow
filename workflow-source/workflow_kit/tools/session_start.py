@@ -654,12 +654,11 @@ def main() -> int:
         # kit 이 닫았거나 손으로 닫은 것이다. 읽기 전용 판정이라 파일은 고치지 않는다.
         try:
             from workflow_kit.common.plan_tasks import bypass_warnings
-            from workflow_kit.common.plan_responses import pending_warning
+            from workflow_kit.common.plan_responses import inbox_census
             warnings.extend(bypass_warnings(workflow_branch_dir(project_profile_path) / "backlog" / "tasks"))
-            # 받은편지함의 미반영 응답 — 명령 시점에 센다, 내용은 싣지 않는다 (스펙 §11).
-            pending_note = pending_warning(workflow_branch_dir(project_profile_path))
-            if pending_note:
-                warnings.append(pending_note)
+            # 받은편지함의 미반영 응답 — 명령 시점에 센다, 내용은 싣지 않는다 (스펙 §11, ADR-032 결정 16).
+            census = inbox_census(workflow_branch_dir(project_profile_path))
+            warnings.extend(note for note in (census.warning(), census.layout_warning()) if note)
         except Exception as plan_exc:  # noqa: BLE001 — 계획 판정의 결함이 세션 진입을 막으면 안 된다
             warnings.append(f"결정 상태 판정 실패 ({type(plan_exc).__name__}) — task 의 Decisions 줄을 점검하라.")
 

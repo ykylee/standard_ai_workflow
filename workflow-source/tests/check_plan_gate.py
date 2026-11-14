@@ -24,6 +24,10 @@ CLI 를 subprocess 로 끝까지 돌린다. 거부는 **파일을 하나도 바�
 19. 받은편지함 — 결정이 있는 task 에 미반영 응답이 있으면 → `done` 거부 (`pending_plan_responses`), 겹친 사유의 순서,
     결정이 없는 task 는 무관, `backlog-update` · `session-start` · `plan-status` 의 미반영 보고, 지문을 바꾸는 쓰기의 경고
 20. 보관 응답으로 판정한다 — `kept` · `changed` 는 닫히고 `unopened` · `disputed` 는 거부되며, 지문이 바뀌면 옛 응답은 세지 않는다
+21. 받은편지함의 우회 검출 · 배치 (ADR-032 결정 18 · 25) — `done` 인데 미반영 응답이 있으면 `refresh-state` · `session-start` 가
+    싣고, 배치 문제는 게이트가 warnings 에만 싣고 막지 않으며 미반영 건수로는 막는다, `plan-status` 는 배치와 보관의 비파일 항목을 싣는다
+22. 1단계 검증이 넘긴 경계 (ADR-032 결정 24) — `state: answered:`(빈 값)는 열린 결정이다, 읽지 못하는 task 파일을 다시 만드는
+    create 는 "없음" 으로 보지 않는다, `--progress-note` 를 두 번 주면 거부한다
 """
 from __future__ import annotations
 
@@ -561,11 +565,15 @@ def case_15_brief_is_not_a_removal_note() -> None:
         if rc != 1 or out.get("error_code") != "decision_removal_needs_note":
             problems.append(f"폭 없는 문자뿐인 사유로 닫혔다: rc={rc} {out.get('error_code')}")
         # 눈에 보이는 글자 · 숫자가 없으면 사유가 아니다 — 빈칸으로 찍히는 채움 문자, 기호뿐인 값.
+        # 값마다 새 workspace 다 — 하나가 통과해 결정이 걷히면 뒤의 값이 모두 연쇄로 red 가 되지 않게 (ADR-032 결정 24).
         for note in ("\u3164", "\u115f", "\u1160", "\uffa0", "\U00013441", "\U00013442", "\u3164 \u200b", "-", ".", "—"):
-            rc, out = _update(ws, task_id, "--replace-field", "plan_decisions", "--progress-note", note,
-                              "--status", "done", "--validation-result", "v")
-            if rc != 1 or out.get("error_code") != "decision_removal_needs_note":
-                problems.append(f"보이지 않는 사유 {note!r} 로 닫혔다: rc={rc} {out.get('error_code')}")
+            with tempfile.TemporaryDirectory() as td_note:
+                ws_note = _workspace(td_note)
+                tid_note = _with_decision(ws_note)
+                rc, out = _update(ws_note, tid_note, "--replace-field", "plan_decisions", "--progress-note", note,
+                                  "--status", "done", "--validation-result", "v")
+                if rc != 1 or out.get("error_code") != "decision_removal_needs_note":
+                    problems.append(f"보이지 않는 사유 {note!r} 로 닫혔다: rc={rc} {out.get('error_code')}")
         # 다시 만드는 create 는 닫지 않을 때도 사유가 필요하다 — planned 로 덮어쓴 뒤 닫는 두 단계 길.
         rc, out = _run(ws, "--mode", "create", "--task-id", task_id, "--status", "planned",
                        "--task-name", "덮어쓰기", "--task-brief", "b")
@@ -835,8 +843,8 @@ def case_19_inbox_gate_and_reports() -> None:
         stray = pr.inbox_dir(_branch_dir(ws)) / f"{task_id}-9.rejected.md"
         stray.write_text("x", encoding="utf-8")
         if len(pr.inbox_files(_branch_dir(ws), task_id)) != 2 or \
-                pr.pending_by_task(_branch_dir(ws)) != {task_id: 2}:
-            problems.append(f"받은편지함의 .rejected.md 를 미반영으로 셌다: {pr.pending_by_task(_branch_dir(ws))}")
+                pr.inbox_census(_branch_dir(ws)).pending != {task_id: 2}:
+            problems.append(f"받은편지함의 .rejected.md 를 미반영으로 셌다: {pr.inbox_census(_branch_dir(ws)).pending}")
         # 받은편지함을 비우면 닫힌다.
         for name in [p.name for p in pr.inbox_files(_branch_dir(ws), task_id)]:
             pr.move_exclusive(pr.inbox_dir(_branch_dir(ws)) / name, _branch_dir(ws), task_id, rejected=True)
@@ -945,6 +953,180 @@ def case_20_archived_responses_decide() -> None:
     _record(f"case 20 (보관 응답으로 판정 — {len(rows)} 행의 상태 · 닫힘, 지문이 바뀌면 세지 않는다)", problems)
 
 
+def _same_directory_layout(ws: Path) -> None:
+    """받은편지함이 보관을 가리키는 배치 (지원 밖, 주장 스펙 §7-9) — 손으로 만든 모양이다."""
+    archive = pr.responses_dir(_branch_dir(ws))
+    archive.mkdir(parents=True, exist_ok=True)
+    inbox = pr.inbox_dir(_branch_dir(ws))
+    if inbox.exists():
+        for entry in inbox.iterdir():
+            entry.unlink()
+        inbox.rmdir()
+    inbox.symlink_to(archive, target_is_directory=True)
+
+
+def case_21_inbox_bypass_and_layout() -> None:
+    problems: list[str] = []
+    # 1) done 인데 받은편지함에 미반영 응답 — 결정이 있는 task 와 없는 task 둘 다 보고한다 (막지 않는다).
+    with tempfile.TemporaryDirectory() as td:
+        ws = _workspace(td)
+        with_decision = _with_decision(ws)
+        _respond(ws, with_decision, "kim", 1, value="warn")
+        _respond(ws, with_decision, "lee", 2, value="warn")
+        plain = _create(ws, "--plan-claim", "C1 결정 없는 task", name="결정 없는 task")
+        (pr.inbox_dir(_branch_dir(ws)) / f"{plain}-7.md").write_bytes(b"x")
+        for task_id in (with_decision, plain):
+            path = _tasks(ws) / f"{task_id}.md"
+            path.write_text(_text(ws, task_id).replace("status: planned", "status: done", 1), encoding="utf-8")
+        handoff = _branch_dir(ws) / "session_handoff.md"
+        if not handoff.is_file():
+            handoff.write_text("# Session Handoff\n", encoding="utf-8")
+        args = ("--project-profile-path", str(ws / "docs" / "PROJECT_PROFILE.md"))
+        for label, module, extra in (("refresh-state", "workflow_kit.tools.refresh_state", ()),
+                                     ("refresh-state --check", "workflow_kit.tools.refresh_state", ("--check",)),
+                                     ("session-start", "workflow_kit.tools.session_start", ())):
+            rc, out = _tool(ws, module, *args, *extra)
+            try:
+                warnings = json.loads(out).get("warnings", [])
+            except json.JSONDecodeError:
+                warnings = []
+            for task_id, count in ((with_decision, 2), (plain, 1)):
+                expected = f"done 인데 계획 응답 {count}건 미반영: {task_id}"
+                if expected not in warnings:
+                    problems.append(f"{label} 가 받은편지함 우회를 싣지 않았다: {expected} / {warnings}")
+        if "status: done" not in _text(ws, with_decision) or len(pr.inbox_files(_branch_dir(ws), with_decision)) != 2:
+            problems.append("읽기 전용 보고가 task 나 받은편지함을 바꿨다")
+        # 진행 중 task 의 미반영 응답은 우회가 아니다.
+        path = _tasks(ws) / f"{with_decision}.md"
+        path.write_text(_text(ws, with_decision).replace("status: done", "status: in_progress", 1), encoding="utf-8")
+        _, out = _tool(ws, "workflow_kit.tools.refresh_state", *args)
+        if any(with_decision in w and "미반영:" in w for w in json.loads(out).get("warnings", [])):
+            problems.append("진행 중 task 의 미반영 응답을 우회로 보고했다")
+    # 2) 배치 문제는 게이트를 막지 않는다 — warnings 에만 싣는다 (결정 25).
+    with tempfile.TemporaryDirectory() as td:
+        ws = _workspace(td)
+        task_id = _with_decision(ws)
+        _same_directory_layout(ws)
+        rc, out = _update(ws, task_id, "--decision-state", "D1=answered:warn", "--status", "done",
+                          "--validation-result", "v")
+        if rc != 0 or _status(ws, task_id) != "done":
+            problems.append(f"배치 문제로 done 을 막았다: rc={rc} {out.get('error_code')} {out.get('error')}")
+        if not _warned(out, "계획 응답 배치: 받은편지함과 보관이 같은 디렉터리다"):
+            problems.append(f"게이트가 배치 문제를 warnings 에 싣지 않았다: {out.get('warnings')}")
+        status = _plan_status(ws, task_id)
+        if not any("계획 응답 배치:" in w for w in status.get("warnings", [])):
+            problems.append(f"plan-status 가 배치 문제를 싣지 않았다: {status.get('warnings')}")
+        handoff = _branch_dir(ws) / "session_handoff.md"
+        if not handoff.is_file():
+            handoff.write_text("# Session Handoff\n", encoding="utf-8")
+        _, start = _tool(ws, "workflow_kit.tools.session_start",
+                         "--project-profile-path", str(ws / "docs" / "PROJECT_PROFILE.md"))
+        if not any("계획 응답 배치:" in w for w in json.loads(start).get("warnings", [])):
+            problems.append("session-start 가 배치 문제를 싣지 않았다")
+    # 3) 배치가 틀려도 미반영 응답이 있으면 막는다 — 같은 디렉터리에서는 보관된 응답도 세어진다 (fail-closed).
+    with tempfile.TemporaryDirectory() as td:
+        ws = _workspace(td)
+        task_id = _with_decision(ws)
+        _same_directory_layout(ws)
+        (pr.responses_dir(_branch_dir(ws)) / f"{task_id}-3.md").write_bytes(b"x")
+        before = _snapshot(ws)
+        rc, out = _update(ws, task_id, "--decision-state", "D1=answered:warn", "--status", "done",
+                          "--validation-result", "v")
+        if rc != 1 or out.get("error_code") != "pending_plan_responses" or _snapshot(ws) != before:
+            problems.append(f"배치가 틀린 받은편지함의 응답이 done 을 막지 않았다: rc={rc} {out.get('error_code')}")
+        if not _warned(out, "계획 응답 배치:"):
+            problems.append(f"거부에도 배치 문제를 싣지 않았다: {out.get('warnings')}")
+    # 4) 보관의 링크 · 디렉터리는 응답이 아니다 — plan-status 가 warnings 에 싣는다.
+    with tempfile.TemporaryDirectory() as td:
+        ws = _workspace(td)
+        task_id = _with_decision(ws)
+        archive = pr.responses_dir(_branch_dir(ws))
+        archive.mkdir(parents=True, exist_ok=True)
+        (archive / f"{task_id}-5.md").mkdir()
+        (archive / f"{task_id}-6.md").symlink_to(Path(td) / "nowhere")
+        (archive / f"{task_id}-8.rejected.md").symlink_to(Path(td) / "nowhere")
+        status = _plan_status(ws, task_id)
+        want = f"보관에 보통 파일이 아닌 응답 이름 항목 3건(응답으로 읽지 않는다): {task_id}-5.md, {task_id}-6.md, {task_id}-8.rejected.md"
+        if want not in status.get("warnings", []):
+            problems.append(f"plan-status 가 보관의 비파일 항목을 싣지 않았다: {status.get('warnings')}")
+        if status.get("pending_responses") != 0:
+            problems.append(f"보관의 비파일 항목을 미반영으로 셌다: {status.get('pending_responses')}")
+    _record("case 21 (받은편지함의 우회 검출 · 배치는 막지 않고 싣는다 · 보관의 비파일 항목)", problems)
+
+
+def _raw_update(ws: Path, *extra: str, date: str = "2026-11-13") -> tuple[int, str]:
+    """JSON 이 아닌 거절(argparse · SystemExit)도 받는다."""
+    proc = subprocess.run(
+        [sys.executable, str(SCRIPT), "--project-profile-path", str(ws / "docs" / "PROJECT_PROFILE.md"),
+         "--target-date", date, "--apply", *extra],
+        capture_output=True, encoding="utf-8", errors="replace", check=False, env=_env(), cwd=str(ws))
+    return proc.returncode, proc.stdout + proc.stderr
+
+
+def case_22_phase_one_edges() -> None:
+    problems: list[str] = []
+    # 1) `state: answered:` (빈 값) — 읽을 수 없는 결정이라 열린 것으로 센다 (plan-status · state.json · 게이트).
+    with tempfile.TemporaryDirectory() as td:
+        ws = _workspace(td)
+        task_id = _with_decision(ws)
+        path = _tasks(ws) / f"{task_id}.md"
+        text = _text(ws, task_id)
+        if "state: proposed" not in text:
+            problems.append("fixture: 결정 줄에 state: proposed 가 없다")
+        path.write_text(text.replace("state: proposed", "state: answered:", 1), encoding="utf-8")
+        status = _plan_status(ws, task_id)
+        if status.get("open_decisions") != ["D1"]:
+            problems.append(f"plan-status 가 빈 answered 를 열린 결정으로 세지 않았다: {status.get('open_decisions')}")
+        handoff = _branch_dir(ws) / "session_handoff.md"
+        if not handoff.is_file():
+            handoff.write_text("# Session Handoff\n", encoding="utf-8")
+        _tool(ws, "workflow_kit.tools.refresh_state", "--project-profile-path", str(ws / "docs" / "PROJECT_PROFILE.md"))
+        state = json.loads((_branch_dir(ws) / "state.json").read_text(encoding="utf-8"))
+        if state.get("open_decisions", {}).get(task_id) != 1:
+            problems.append(f"state.json 이 빈 answered 를 열린 결정으로 세지 않았다: {state.get('open_decisions')}")
+        before = _snapshot(ws)
+        rc, out = _update(ws, task_id, "--status", "done", "--validation-result", "v")
+        if rc != 1 or out.get("error_code") not in ("plan_lint_error", "open_decisions") or _snapshot(ws) != before:
+            problems.append(f"빈 answered 로 닫혔다: rc={rc} {out.get('error_code')}")
+    # 2) 읽지 못하는 task 파일을 같은 ID 로 다시 만드는 create — "없음" 으로 보고 게이트를 건너뛰지 않는다.
+    #    **다른 날짜**로 부른다 — 같은 날짜면 daily backlog 파서가 task 파일을 먼저 읽고 실패해 이 경로에 닿지 않는다
+    #    (`backlog_update._existing_task_lines` 의 예외 경로 — 되주입으로 확인).
+    with tempfile.TemporaryDirectory() as td:
+        ws = _workspace(td)
+        task_id = _with_decision(ws)
+        path = _tasks(ws) / f"{task_id}.md"
+        path.write_bytes(path.read_bytes() + b"\n\xff\xfe\n")
+        before = _snapshot(ws)
+        for status in ("planned", "done"):
+            rc, out_text = _raw_update(ws, "--mode", "create", "--task-id", task_id, "--status", status,
+                                       "--validation-result", "v", "--task-name", "덮어쓰기", "--task-brief", "b",
+                                       date="2026-11-20")
+            if rc == 0 or "UnicodeDecodeError" not in out_text or _snapshot(ws) != before:
+                problems.append(f"읽지 못하는 task 를 create({status}) 가 없는 것으로 봤다: rc={rc} {out_text[-200:]}")
+        # CLI 의 rc 는 뒤의 다른 읽기(그래프 인사이트)도 같은 파일에서 실패해 함께 1 이 된다 — 그것만으로는 이 경로를 재지 못한다
+        # (되주입으로 확인). 그래서 함수를 직접 부른다: 읽지 못하는 파일은 예외다, "없음" (None) 이 아니다.
+        from workflow_kit.tools import backlog_update as bu  # noqa: PLC0415
+        try:
+            got = bu._existing_task_lines(path)
+            problems.append(f"_existing_task_lines 가 읽지 못하는 파일을 예외 없이 돌려줬다: {got!r:.60}")
+        except UnicodeDecodeError:
+            pass
+        if bu._existing_task_lines(_tasks(ws) / "TASK-없는-것.md") is not None:
+            problems.append("_existing_task_lines 가 없는 파일에 None 이 아닌 값을 돌려줬다")
+    # 3) `--progress-note` 두 번 — 첫 값만 사유로 보지 않고 거부한다 (무변경).
+    with tempfile.TemporaryDirectory() as td:
+        ws = _workspace(td)
+        task_id = _with_decision(ws)
+        before = _snapshot(ws)
+        rc, out_text = _raw_update(ws, "--mode", "update", "--task-id", task_id, "--task-name", "주장 있는 task",
+                                   "--replace-field", "plan_decisions", "--progress-note", "사유 하나",
+                                   "--progress-note", "\u3164")
+        if rc == 0 or "--progress-note 를 2번 지정했다" not in out_text or _snapshot(ws) != before or \
+                not _decision_lines(ws, task_id):
+            problems.append(f"--progress-note 두 번을 받았다: rc={rc} {out_text[-200:]}")
+    _record("case 22 (빈 answered 는 열린 결정 · 읽지 못하는 task 의 create · --progress-note 두 번)", problems)
+
+
 CASES = [
     case_1_lint_error_blocks_write_warning_does_not,
     case_2_open_decision_gates_transitions,
@@ -966,6 +1148,8 @@ CASES = [
     case_18_overlapping_reasons,
     case_19_inbox_gate_and_reports,
     case_20_archived_responses_decide,
+    case_21_inbox_bypass_and_layout,
+    case_22_phase_one_edges,
 ]
 
 

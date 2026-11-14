@@ -39,7 +39,10 @@ import subprocess
 import sys
 import tempfile
 import time
+import traceback
+from typing import Any
 from pathlib import Path
+from unittest import mock
 
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SOURCE_ROOT))
@@ -100,7 +103,7 @@ def _snapshot(ws: Path) -> str:
     return digest.hexdigest()
 
 
-def _cli(ws: Path, script_or_module: list[str], *args: str) -> tuple[int, dict]:
+def _cli(ws: Path, script_or_module: list[str], *args: str) -> tuple[int, dict[str, Any]]:
     proc = subprocess.run(
         [sys.executable, *script_or_module, "--project-profile-path", str(ws / "docs" / "PROJECT_PROFILE.md"), *args],
         capture_output=True, encoding="utf-8", errors="replace", check=False, env=_env(), cwd=str(ws))
@@ -110,11 +113,11 @@ def _cli(ws: Path, script_or_module: list[str], *args: str) -> tuple[int, dict]:
         return proc.returncode, {"_raw": proc.stdout[-300:], "_err": proc.stderr[-600:]}
 
 
-def _backlog(ws: Path, *args: str) -> tuple[int, dict]:
+def _backlog(ws: Path, *args: str) -> tuple[int, dict[str, Any]]:
     return _cli(ws, [str(BACKLOG_UPDATE)], "--target-date", "2026-11-13", "--apply", *args)
 
 
-def _import(ws: Path, *args: str) -> tuple[int, dict]:
+def _import(ws: Path, *args: str) -> tuple[int, dict[str, Any]]:
     return _cli(ws, ["-m", "workflow_kit", "plan-import"], *args)
 
 
@@ -178,7 +181,7 @@ PLAN = pc.parse_plan_values(["C1 하나를 한다", "C2 둘을 한다"], [D1, D2
 
 
 def _base(**kw: object) -> str:
-    args: dict = dict(task_id=TASK, plan=PLAN, responder="kim", received_at=AT.format(1))
+    args: dict[str, Any] = dict(task_id=TASK, plan=PLAN, responder="kim", received_at=AT.format(1))
     args.update(kw)
     return pr.render_response(**args)
 
@@ -342,11 +345,19 @@ def case_1_qualification_table() -> None:
         # 숫자는 ASCII 다. 작업 항목 ID 가 TASK- 가 아니어도(WF-) 같은 집합을 센다.
         (pr.inbox_dir(Path(td)) / f"{TASK}-٥١.md").write_bytes(b"x")
         (pr.inbox_dir(Path(td)) / "WF-2026-11-13-001-5.md").write_bytes(b"x")
-        if len(pr.inbox_files(Path(td), TASK)) != 1 or pr.unknown_inbox_files(Path(td)) != [f"{TASK}-٥١.md"]:
-            problems.append(f"ASCII 가 아닌 숫자의 이름을 응답으로 셌다: {pr.unknown_inbox_files(Path(td))}")
-        if pr.pending_by_task(Path(td)) != {TASK: 1, "WF-2026-11-13-001": 1} or \
+        if len(pr.inbox_files(Path(td), TASK)) != 1 or list(pr.inbox_census(Path(td)).unknown) != [f"{TASK}-٥١.md"]:
+            problems.append(f"ASCII 가 아닌 숫자의 이름을 응답으로 셌다: {list(pr.inbox_census(Path(td)).unknown)}")
+        # census 의 그 task 몫은 번호 순이다 — 글자 순(10 < 9)이 아니다 (ADR-032 결정 16, 스펙 §7-7).
+        for number in (100, 9, 10):
+            (pr.inbox_dir(Path(td)) / f"{TASK}-{number}.md").write_bytes(b"x")
+        order = [pr.number_of(path, TASK) or 0 for path in pr.inbox_census(Path(td)).paths(TASK)]
+        if order != sorted(order) or len(order) != 4:
+            problems.append(f"census 의 응답 순서가 번호 순이 아니다: {order}")
+        for number in (100, 9, 10):
+            (pr.inbox_dir(Path(td)) / f"{TASK}-{number}.md").unlink()
+        if pr.inbox_census(Path(td)).pending != {TASK: 1, "WF-2026-11-13-001": 1} or \
                 len(pr.inbox_files(Path(td), "WF-2026-11-13-001")) != 1:
-            problems.append(f"TASK- 가 아닌 작업 항목 ID 의 응답을 다르게 셌다: {pr.pending_by_task(Path(td))}")
+            problems.append(f"TASK- 가 아닌 작업 항목 ID 의 응답을 다르게 셌다: {pr.inbox_census(Path(td)).pending}")
     # 오류 규칙을 어긴 계획에서는 보관 응답이 하나도 자격이 없다 (0 단계).
     broken = pc.parse_plan_values(["C1 하나", "C1 겹친다"], [D1])
     with tempfile.TemporaryDirectory() as td:
@@ -400,8 +411,9 @@ def case_2_ineligible_stays_and_stage_zero() -> None:
             want = {name: (stage, False, "kept_in_inbox") for name, stage in names.items()}
             if rc != 0 or got != want:
                 problems.append(f"apply={apply}: 파일별 단계가 다르다 rc={rc} {got}")
-            if out.get("applied") or out.get("pending_responses") != 6:
-                problems.append(f"apply={apply}: applied={out.get('applied')} pending={out.get('pending_responses')}")
+            if out.get("applied") or out.get("pending_responses") != 6 or out.get("remaining_after") != 6:
+                problems.append(f"apply={apply}: applied={out.get('applied')} pending={out.get('pending_responses')}"
+                                f" remaining_after={out.get('remaining_after')}")
             if _snapshot(ws) != before or _archive(ws, task_id):
                 problems.append(f"apply={apply}: 자격 없는 응답뿐인데 무엇인가 바뀌었다")
         # 자격 없는 응답은 다른 응답의 판정에 영향이 없다.
@@ -437,14 +449,14 @@ def case_2_ineligible_stays_and_stage_zero() -> None:
                 problems.append(f"0 단계 {label}: rc={rc} {out.get('error_code')}")
             if _snapshot(ws) != before:
                 problems.append(f"0 단계 {label}: 거부인데 무엇인가 바뀌었다")
-        if plan_tasks.archived_responses(plan_tasks.read_task_plan(path)):  # type: ignore[arg-type]
+        if plan_tasks.archived_responses(_plan_of(path)):
             problems.append("0 단계인데 보관 응답이 계산에 들었다")
         # 오류 계획의 지문에 맞춘 응답 — 1~6 단계를 통과하므로 0 단계만이 떨어뜨린다.
         fits = pr.inbox_dir(_branch(ws)) / f"{task_id}-3.md"
         fits.write_bytes(_response(ws, task_id, "han", 3))
         archived_fits = _branch(ws) / pr.RESPONSES_DIRNAME / f"{task_id}-4.md"
         archived_fits.write_bytes(_response(ws, task_id, "han", 4, values={"D1": "warn"}))
-        if plan_tasks.archived_responses(plan_tasks.read_task_plan(path)):  # type: ignore[arg-type]
+        if plan_tasks.archived_responses(_plan_of(path)):
             problems.append("0 단계인데 오류 계획에 맞춘 보관 응답이 계산에 들었다")
         _, status = _cli(ws, ["-m", "workflow_kit", "plan-status"], "--task", task_id)
         stages = {r["name"]: r["stage"] for r in status.get("inbox", [])}
@@ -483,6 +495,12 @@ def case_3_import_archives_and_records() -> None:
         rc, dry = _import(ws, "--task", task_id)
         if rc != 0 or _snapshot(ws) != before or dry.get("applied") is not False or dry.get("outcome") != "dry_run":
             problems.append(f"dry-run 이 무엇인가 썼다: rc={rc} applied={dry.get('applied')}")
+        # 반영 전 plan-status 의 건수와 plan-import 의 pending_responses 는 같은 뜻 · 같은 값이다 (ADR-032 결정 17).
+        rc, before_status = _cli(ws, ["-m", "workflow_kit", "plan-status"], "--task", task_id)
+        if rc != 0 or before_status.get("pending_responses") != dry.get("pending_responses") or \
+                dry.get("pending_responses") != 1:
+            problems.append(f"plan-status 와 plan-import 의 pending_responses 가 다르다: "
+                            f"{before_status.get('pending_responses')} / {dry.get('pending_responses')}")
         rc, out = _import(ws, "--task", task_id, "--apply")
         archive_rel = f"ai-workflow/memory/active/{BRANCH}/plan_responses/{task_id}-{number}.md"
         if rc != 0 or out.get("outcome") != "imported" or out.get("applied") is not True:
@@ -497,7 +515,7 @@ def case_3_import_archives_and_records() -> None:
         if _progress(ws, task_id) != want or out.get("progress_line") != want:
             problems.append(f"Progress 한 줄이 스펙 §9 와 다르다: {_progress(ws, task_id)}")
         # dry-run 과 --apply 의 판정이 같다.
-        for key in ("states", "open_decisions", "state_changes", "progress_line"):
+        for key in ("states", "open_decisions", "state_changes", "progress_line", "pending_responses", "remaining_after"):
             if dry.get(key) != out.get(key):
                 problems.append(f"dry-run 과 --apply 의 {key} 가 다르다: {dry.get(key)} / {out.get(key)}")
         if [(r["name"], r["action"], r["moved_to"]) for r in dry["responses"]] != [
@@ -506,8 +524,10 @@ def case_3_import_archives_and_records() -> None:
         if out.get("state_changes") != [{"id": "D1", "before": "proposed", "after": "changed:warn"},
                                         {"id": "D2", "before": "proposed", "after": "unopened"}]:
             problems.append(f"state_changes: {out.get('state_changes')}")
-        if out.get("open_decisions") != ["D2"] or out.get("pending_responses") != 0:
-            problems.append(f"open_decisions={out.get('open_decisions')} pending={out.get('pending_responses')}")
+        # pending_responses 는 호출 시점의 건수, remaining_after 는 반영 뒤 (ADR-032 결정 17).
+        if out.get("open_decisions") != ["D2"] or out.get("pending_responses") != 1 or out.get("remaining_after") != 0:
+            problems.append(f"open_decisions={out.get('open_decisions')} pending={out.get('pending_responses')}"
+                            f" remaining_after={out.get('remaining_after')}")
         # 다시 불러도 그대로다.
         before = _snapshot(ws)
         rc, again = _import(ws, "--task", task_id, "--apply")
@@ -545,7 +565,7 @@ def case_3_import_archives_and_records() -> None:
 # --------------------------------------------------------------------------- case 4
 
 
-def _spec(responder: str, micro: int, d1: str | None, d2: str | None = None) -> dict:
+def _spec(responder: str, micro: int, d1: str | None, d2: str | None = None) -> dict[str, Any]:
     """응답 한 건 — 값이 ``None`` 이면 열지 않은 기본값, ``"="`` 이면 열어 본 기본값."""
     values, opened = {}, {}
     for decision, value, default in (("D1", d1, "block"), ("D2", d2, "a")):
@@ -556,7 +576,7 @@ def _spec(responder: str, micro: int, d1: str | None, d2: str | None = None) -> 
     return {"responder": responder, "micro": micro, "values": values, "opened": opened}
 
 
-ORDER_SETS: dict[str, list[dict]] = {
+ORDER_SETS: dict[str, list[dict[str, Any]]] = {
     "둘이 갈린다": [_spec("a", 1, "warn"), _spec("b", 2, "=")],
     "같은 값 뒤 반대": [_spec("a", 1, "warn"), _spec("b", 2, "warn"), _spec("b", 3, "=")],
     "한 사람이 말을 바꾼다": [_spec("a", 1, "warn"), _spec("a", 2, "=")],
@@ -580,7 +600,7 @@ EXPECTED_END: dict[str, dict[str, str]] = {
 
 
 def _final_state(
-    specs: list[dict], order: tuple[int, ...], mode: str,
+    specs: list[dict[str, Any]], order: tuple[int, ...], mode: str,
 ) -> tuple[dict[str, str], dict[str, str], list[str]]:
     """(끝 상태 칸, 같은 응답 바이트의 순수 계산, 문제)."""
     with tempfile.TemporaryDirectory() as td:
@@ -726,9 +746,8 @@ def case_6_numbers_and_exclusive_move() -> None:
         if first.name != f"{task_id}-{number + 2}.md":
             problems.append(f"쓰는 쪽이 쓰인 번호를 피하지 않았다: {first.name}")
         # 번호를 확인한 뒤 · 놓기 전에 같은 이름이 생겨도 덮지 않는다 — "없으면 만든다" 가 한 번의 호출이어야 한다.
-        real_taken = pr.taken_numbers
-        pr.taken_numbers = lambda *a, **k: set()  # type: ignore[assignment]  # 낡은 확인 — 아무 번호도 안 쓰였다고 답한다
-        try:
+        # 낡은 확인 — 아무 번호도 안 쓰였다고 답한다.
+        with mock.patch.object(pr, "taken_numbers", lambda *a, **k: set()):
             raced = _publish(ws, task_id, _response(ws, task_id, "race", 9, values={"D1": "warn"}))
             victim = pr.inbox_dir(branch) / f"{task_id}-{number + 2}.md"
             if raced.name == victim.name or pr.read_response(victim).responder != "kim":
@@ -739,8 +758,6 @@ def case_6_numbers_and_exclusive_move() -> None:
             if (archive / f"{task_id}-{number + 1}.md").read_bytes() != b"hand" or landed.name == f"{task_id}-{number + 1}.md":
                 problems.append(f"이동이 있는 파일을 덮었다 (낡은 번호 확인): {landed.name}")
             landed.unlink()
-        finally:
-            pr.taken_numbers = real_taken  # type: ignore[assignment]
         raced.unlink()
         # 같은 received_at 의 두 번째 응답 — 받은편지함에서도 번호가 겹치지 않는다.
         second = _publish(ws, task_id, _response(ws, task_id, "lee", 9, values={"D1": "warn"}))
@@ -770,7 +787,7 @@ def case_6_numbers_and_exclusive_move() -> None:
             problems.append(f"번호가 접미사를 통틀어 유일하지 않다: {names}")
         # 보관에 손으로 놓인 파일(자격 없음)은 세지 않는다.
         if _columns(ws, task_id).get("D1") != "changed:warn" or len(plan_tasks.archived_responses(
-                plan_tasks.read_task_plan(_task_path(ws, task_id)))) != 3:  # type: ignore[arg-type]
+                _plan_of(_task_path(ws, task_id)))) != 3:
             problems.append(f"손으로 놓인 보관 파일이 계산에 들었다: {_columns(ws, task_id)}")
         # 응답 이동 없이 칸만 바뀌어도 Progress 에 한 줄을 남긴다 — 보관에 직접 놓인 자격 있는 응답.
         (archive / f"{task_id}-777.md").write_bytes(
@@ -792,10 +809,10 @@ def case_6_numbers_and_exclusive_move() -> None:
         (pr.inbox_dir(branch) / f".tmp-{task_id}-1").write_bytes(b"x")
         if _inbox(ws, task_id) or len(_archive(ws, task_id)) != 4:  # 손으로 놓인 것 하나 + 옮긴 셋
             problems.append(f"다른 이름의 파일을 그 task 의 응답으로 셌다: {_inbox(ws, task_id)}")
-        if pr.pending_by_task(branch) != {other: 1}:
-            problems.append(f"받은편지함의 task 별 건수: {pr.pending_by_task(branch)}")
-        if pr.unknown_inbox_files(branch) != sorted([f"{task_id}-x.md", "notes.md"]):
-            problems.append(f"알 수 없는 파일: {pr.unknown_inbox_files(branch)}")
+        if pr.inbox_census(branch).pending != {other: 1}:
+            problems.append(f"받은편지함의 task 별 건수: {pr.inbox_census(branch).pending}")
+        if list(pr.inbox_census(branch).unknown) != sorted([f"{task_id}-x.md", "notes.md"]):
+            problems.append(f"알 수 없는 파일: {list(pr.inbox_census(branch).unknown)}")
         rc, out = _import(ws, "--task", task_id)
         if sorted(out.get("unknown_inbox_files", [])) != sorted([f"{task_id}-x.md", "notes.md"]):
             problems.append(f"plan-import 가 알 수 없는 파일을 보고하지 않았다: {out.get('unknown_inbox_files')}")
@@ -809,7 +826,7 @@ def case_6_numbers_and_exclusive_move() -> None:
 
 #: (설명, 받은편지함에 놓을 이름 접미, 보관에 놓을 이름 접미, 명령) — `{n}` 은 번호다. 응답은 전부 자격이 있다.
 #: 명령: "all" = 일괄, ("response", 접미) = 그 파일만, ("discard", "inbox"|"archive", 접미) = 거둔다.
-PLACEMENT_LAYOUTS: list[tuple[str, list[str], list[str], object]] = [
+PLACEMENT_LAYOUTS: list[tuple[str, list[str], list[str], str | tuple[str, ...]]] = [
     ("받은편지함 5 · 보관 5", ["5.md"], ["5.md"], "all"),
     ("받은편지함 5 · 보관 5.rejected", ["5.md"], ["5.rejected.md"], "all"),
     ("받은편지함 5 · 6 · 보관 5 · 6", ["5.md", "6.md"], ["5.md", "6.md"], "all"),
@@ -840,13 +857,13 @@ def case_6b_dry_run_predicts_placement() -> None:
             for index, suffix in enumerate(archive_names):
                 (branch / pr.RESPONSES_DIRNAME / f"{task_id}-{suffix}").write_bytes(
                     _response(ws, task_id, f"ar{index}", 20 + index, values={"D1": "warn"}))
-            if command == "all":
+            if isinstance(command, str):
                 args: tuple[str, ...] = ("--task", task_id)
-            elif command[0] == "response":  # type: ignore[index]
-                args = ("--task", task_id, "--response", f"{task_id}-{command[1]}")  # type: ignore[index]
+            elif command[0] == "response":
+                args = ("--task", task_id, "--response", f"{task_id}-{command[1]}")
             else:
-                where = pr.inbox_dir(branch) if command[1] == "inbox" else branch / pr.RESPONSES_DIRNAME  # type: ignore[index]
-                args = ("--discard", str(where / f"{task_id}-{command[2]}"), "--reason", "r")  # type: ignore[index]
+                where = pr.inbox_dir(branch) if command[1] == "inbox" else branch / pr.RESPONSES_DIRNAME
+                args = ("--discard", str(where / f"{task_id}-{command[2]}"), "--reason", "r")
             before = sorted(p.name for p in (branch / pr.RESPONSES_DIRNAME).iterdir() if p.is_file())
             rc_dry, dry = _import(ws, *args)
             rc, out = _import(ws, *args, "--apply")
@@ -891,7 +908,7 @@ def case_6b_dry_run_predicts_placement() -> None:
                 elif extra == "broken":
                     (responses / f"{task_id}-7.md").symlink_to(Path(elsewhere) / "nowhere")
                 if command == "all":
-                    args: tuple[str, ...] = ("--task", task_id)
+                    args = ("--task", task_id)
                 elif command == "response":
                     args = ("--task", task_id, "--response", f"{task_id}-7.md")
                 elif command == "discard-inbox":
@@ -900,19 +917,46 @@ def case_6b_dry_run_predicts_placement() -> None:
                     args = ("--discard", str(responses / f"{task_id}-6.md"), "--reason", "r")
                 _, dry = _import(ws, *args)
                 rc, out = _import(ws, *args, "--apply")
-                told = [r.get("moved_to") for r in dry.get("responses", [])]
-                did = [r.get("moved_to") for r in out.get("responses", [])]
-                if rc != 0 or told != did or dry.get("progress_line") != out.get("progress_line"):
-                    problems.append(f"{label} · {command}: dry-run {told} / 실제 {did} rc={rc}")
+                told_to = [r.get("moved_to") for r in dry.get("responses", [])]
+                did_to = [r.get("moved_to") for r in out.get("responses", [])]
+                if rc != 0 or told_to != did_to or dry.get("progress_line") != out.get("progress_line"):
+                    problems.append(f"{label} · {command}: dry-run {told_to} / 실제 {did_to} rc={rc}")
                 # 번호는 그대로 간다 — 자기 번호를 다른 파일로 세지 않는다 (§7-5).
-                if command == "discard-inbox" and not any((m or "").endswith(f"{task_id}-5.rejected.md") for m in did):
-                    problems.append(f"{label}: 받은편지함 5 를 거둔 이름이 5 가 아니다: {did}")
-                if command == "discard-archive" and not any((m or "").endswith(f"{task_id}-6.rejected.md") for m in did):
-                    problems.append(f"{label}: 보관 6 을 거둔 이름이 6 이 아니다: {did}")
+                if command == "discard-inbox" and not any((m or "").endswith(f"{task_id}-5.rejected.md") for m in did_to):
+                    problems.append(f"{label}: 받은편지함 5 를 거둔 이름이 5 가 아니다: {did_to}")
+                if command == "discard-archive" and not any((m or "").endswith(f"{task_id}-6.rejected.md") for m in did_to):
+                    problems.append(f"{label}: 보관 6 을 거둔 이름이 6 이 아니다: {did_to}")
     _record(f"case 6b (dry-run 이 예고한 이름 == 실제로 놓인 이름 — {len(PLACEMENT_LAYOUTS)} 모양 + 링크 · 비파일 항목)", problems)
 
 
-def _in_process(ws: Path, args: list[str]) -> tuple[int, dict]:
+def _in_process_tool(ws: Path, module: str, args: list[str]) -> tuple[int, dict[str, Any]]:
+    """다른 명령(plan-status · backlog-update · session-start)을 이 프로세스에서 — 바꿔 끼운 배치 판정을 보게."""
+    import importlib  # noqa: PLC0415
+
+    tool = importlib.import_module(f"workflow_kit.tools.{module}")
+    argv = ["--project-profile-path", str(ws / "docs" / "PROJECT_PROFILE.md"), *args]
+    buffer = io.StringIO()
+    try:
+        with mock.patch.dict(os.environ, {"CODEX_WORKFLOW_BRANCH": BRANCH}), \
+                mock.patch.object(sys, "argv", [module, *argv]), contextlib.redirect_stdout(buffer):
+            rc = tool.main(argv) if module == "plan_status" else tool.main()
+    except SystemExit as exc:
+        return int(exc.code or 0), {"_err": buffer.getvalue()[-300:]}
+    except Exception as exc:  # noqa: BLE001 — FAIL 줄로
+        return 99, {"_err": f"예외 {type(exc).__name__}: {exc}"}
+    try:
+        return rc, json.loads(buffer.getvalue())
+    except json.JSONDecodeError:
+        return rc, {"_err": buffer.getvalue()[-300:]}
+
+
+def _plan_of(path: Path) -> plan_tasks.TaskPlan:
+    task = plan_tasks.read_task_plan(path)
+    assert task is not None, f"task 파일을 읽지 못했다: {path}"
+    return task
+
+
+def _in_process(ws: Path, args: list[str]) -> tuple[int, dict[str, Any]]:
     """plan-import 를 이 프로세스에서 — 모듈의 함수를 바꿔 끼운 상태로 재야 할 때."""
     from workflow_kit.tools import plan_import  # noqa: PLC0415
 
@@ -922,6 +966,8 @@ def _in_process(ws: Path, args: list[str]) -> tuple[int, dict]:
     try:
         with contextlib.redirect_stdout(buffer):
             rc = plan_import.main(["--project-profile-path", str(ws / "docs" / "PROJECT_PROFILE.md"), *args])
+    except Exception as exc:  # noqa: BLE001 — 되주입이 예외로 새면 traceback 이 아니라 FAIL 줄로 (ADR-032 결정 24)
+        return 99, {"_err": f"예외 {type(exc).__name__}: {exc}"}
     finally:
         if previous is None:
             os.environ.pop("CODEX_WORKFLOW_BRANCH", None)
@@ -951,9 +997,9 @@ def case_6c_inbox_entries_and_layout() -> None:
                 real.write_bytes(_response(ws, task_id, "link", 7, values={"D1": "warn"}))
                 odd.symlink_to(real)
             # 응답으로 세지 않는다 — 건수 0, 게이트 무영향, "알 수 없는 것" 으로 보고된다.
-            if pr.inbox_files(branch, task_id) or pr.pending_by_task(branch) or pr.unknown_inbox_files(branch) != [odd.name]:
-                problems.append(f"{kind}: 건수 {len(pr.inbox_files(branch, task_id))} · 미반영 {pr.pending_by_task(branch)}"
-                                f" · 알 수 없는 것 {pr.unknown_inbox_files(branch)}")
+            if pr.inbox_files(branch, task_id) or pr.inbox_census(branch).pending or list(pr.inbox_census(branch).unknown) != [odd.name]:
+                problems.append(f"{kind}: 건수 {len(pr.inbox_files(branch, task_id))} · 미반영 {pr.inbox_census(branch).pending}"
+                                f" · 알 수 없는 것 {list(pr.inbox_census(branch).unknown)}")
             rc, status = _cli(ws, ["-m", "workflow_kit", "plan-status"], "--task", task_id)
             if rc != 0 or status.get("pending_responses") != 0 or status.get("unknown_inbox_files") != [odd.name]:
                 problems.append(f"{kind}: plan-status rc={rc} 건수 {status.get('pending_responses')} {status.get('unknown_inbox_files')}")
@@ -994,8 +1040,8 @@ def case_6c_inbox_entries_and_layout() -> None:
                         problems.append(f"받은편지함 안의 링크 {args[-2] if args[0] == '--discard' else args[-1]} "
                                         f"apply={apply}: rc={rc} {out.get('error_code')}")
             want = sorted([".note.md", alias.name, f"{task_id}-9.rejected.md"])
-            if pr.unknown_inbox_files(branch) != want:
-                problems.append(f"받은편지함의 링크 · .rejected.md · 숨은 .md 를 보고하지 않았다: {pr.unknown_inbox_files(branch)}")
+            if list(pr.inbox_census(branch).unknown) != want:
+                problems.append(f"받은편지함의 링크 · .rejected.md · 숨은 .md 를 보고하지 않았다: {list(pr.inbox_census(branch).unknown)}")
             _, status = _cli(ws, ["-m", "workflow_kit", "plan-status"], "--task", task_id)
             if status.get("unknown_inbox_files") != want or status.get("pending_responses") != 1:
                 problems.append(f"plan-status 의 알 수 없는 것 · 건수: {status.get('unknown_inbox_files')} {status.get('pending_responses')}")
@@ -1023,20 +1069,38 @@ def case_6c_inbox_entries_and_layout() -> None:
             if label == "다른 파일시스템":
                 (archive / f"{task_id}-3.md").write_bytes(_response(ws, task_id, "lee", 3))
                 real_problem = pr.layout_problem
-                pr.layout_problem = lambda b, device_of=None: real_problem(  # type: ignore[assignment]
-                    b, device_of=lambda path: 1 if path == pr.inbox_dir(b).resolve() else 2)
+
+                def split_devices(b: Path, device_of: object = None) -> str | None:
+                    return real_problem(b, device_of=lambda path: 1 if path == pr.inbox_dir(b).resolve() else 2)
+
                 before = _snapshot(ws)
                 inbox_name = pr.inbox_files(branch, task_id)[0].name
-                try:
-                    for args in (["--task", task_id], ["--task", task_id, "--response", inbox_name],
+                with mock.patch.object(pr, "layout_problem", split_devices):
+                    for argv in (["--task", task_id], ["--task", task_id, "--response", inbox_name],
                                  ["--discard", inbox_name, "--reason", "r"],
                                  ["--discard", f"{task_id}-3.md", "--reason", "r"]):
                         for apply in (False, True):
-                            rc, out = _in_process(ws, [*args, *(["--apply"] if apply else [])])
+                            rc, out = _in_process(ws, [*argv, *(["--apply"] if apply else [])])
                             if rc != 1 or out.get("error_code") != "plan_responses_layout" or _snapshot(ws) != before:
-                                problems.append(f"{label} {args[-2]} apply={apply}: rc={rc} {out.get('error_code')}")
-                finally:
-                    pr.layout_problem = real_problem  # type: ignore[assignment]
+                                problems.append(f"{label} {argv[-2]} apply={apply}: rc={rc} {out.get('error_code')}")
+                    # 다른 파일시스템 배치도 소비자가 경고로 싣는다 — 같은 디렉터리 배치만 재면 이 사유가 빠져도 green 이다
+                    # (verifier 되주입 V04). census 의 사유 그대로다.
+                    want = "계획 응답 배치: 받은편지함과 보관이 다른 파일시스템에 있다"
+                    census = pr.inbox_census(branch)
+                    if not (census.layout_warning() or "").startswith(want):
+                        problems.append(f"census 가 다른 파일시스템 배치를 경고하지 않았다: {census.layout_warning()}")
+                    handoff = branch / "session_handoff.md"
+                    if not handoff.is_file():
+                        handoff.write_text("# Session Handoff\n", encoding="utf-8")
+                    for tool_name, tool_args in (
+                            ("plan_status", ["--task", task_id]),
+                            ("backlog_update", ["--target-date", "2026-11-13", "--mode", "update", "--task-id", task_id,
+                                                "--task-name", "응답을 받는 task", "--status", "in_progress"]),
+                            ("session_start", [])):
+                        rc, out = _in_process_tool(ws, tool_name, tool_args)
+                        if not any(str(w).startswith(want) for w in out.get("warnings", [])):
+                            problems.append(f"{tool_name} 가 다른 파일시스템 배치를 싣지 않았다: rc={rc} "
+                                            f"{out.get('warnings')} {out.get('_err', '')}")
             if label == "같은 디렉터리":
                 before = _snapshot(ws)
                 name = pr.inbox_files(branch, task_id)[0].name
@@ -1046,6 +1110,18 @@ def case_6c_inbox_entries_and_layout() -> None:
                         rc, out = _import(ws, *args, *(("--apply",) if apply else ()))
                         if rc != 1 or out.get("error_code") != "plan_responses_layout" or _snapshot(ws) != before:
                             problems.append(f"{label} {args[-2]} apply={apply}: rc={rc} {out.get('error_code')}")
+                # 배치 판정은 0 단계보다 먼저다 (ADR-032 결정 24) — task 가 오류 규칙을 어겨도 배치 사유로 거절한다.
+                task_path = _task_path(ws, task_id)
+                healthy = task_path.read_text(encoding="utf-8")
+                task_path.write_text(healthy.replace("- Claims: C2 ", "- Claims: C1 ", 1), encoding="utf-8")
+                if not pc.has_error_rules(_plan(ws, task_id)):
+                    problems.append("fixture: 겹친 주장 ID 가 오류 규칙이 아니다")
+                before = _snapshot(ws)
+                for apply in (False, True):
+                    rc, out = _import(ws, "--task", task_id, *(("--apply",) if apply else ()))
+                    if rc != 1 or out.get("error_code") != "plan_responses_layout" or _snapshot(ws) != before:
+                        problems.append(f"배치와 0 단계가 겹치면 배치가 먼저다 apply={apply}: rc={rc} {out.get('error_code')}")
+                task_path.write_text(healthy, encoding="utf-8")
         if pr.layout_problem(Path(td)) is not None:
             problems.append("디렉터리가 없는 브랜치에 배치 문제가 있다고 했다")
     # 판정을 지나 이동이 파일시스템 경계에 막혀도 오류로 내고 응답은 제자리다 (os.link 의 EXDEV).
@@ -1055,24 +1131,19 @@ def case_6c_inbox_entries_and_layout() -> None:
         path = _publish(ws, task_id, _response(ws, task_id, "kim", 1, values={"D1": "warn"}))
         import errno as _errno  # noqa: PLC0415
 
-        real_link = os.link
-
         def cross_device(*args: object, **kwargs: object) -> None:
             raise OSError(_errno.EXDEV, "Invalid cross-device link")
 
         archived = pr.responses_dir(_branch(ws)) / f"{task_id}-2.md"
         archived.write_bytes(_response(ws, task_id, "lee", 2))
-        os.link = cross_device  # type: ignore[assignment]
-        try:
-            for args in (["--task", task_id, "--apply"], ["--discard", path.name, "--reason", "r", "--apply"],
+        with mock.patch.object(os, "link", cross_device):
+            for argv in (["--task", task_id, "--apply"], ["--discard", path.name, "--reason", "r", "--apply"],
                          ["--discard", archived.name, "--reason", "r", "--apply"]):
-                rc, out = _in_process(ws, args)
+                rc, out = _in_process(ws, list(argv))
                 if rc != 1 or out.get("error_code") != "plan_responses_layout" or not path.is_file() or \
                         not archived.is_file() or _archive(ws, task_id) != [archived.name]:
-                    problems.append(f"이동이 파일시스템 경계에 막혔을 때 {args[0]} {args[1][:12]}: rc={rc} "
+                    problems.append(f"이동이 파일시스템 경계에 막혔을 때 {argv[0]} {argv[1][:12]}: rc={rc} "
                                     f"{out.get('error_code')} 제자리={path.is_file()}")
-        finally:
-            os.link = real_link  # type: ignore[assignment]
     _record("case 6c (받은편지함의 비파일 항목 · 링크는 응답이 아니다 · 옮길 수 없는 배치는 거절)", problems)
 
 
@@ -1097,6 +1168,10 @@ def case_7_lock_busy() -> None:
                 rc, out = _import(ws, *args)
                 if rc != 0 or out.get("outcome") != "import_busy" or out.get("applied"):
                     problems.append(f"{label}: 잠금을 못 쥐었는데 rc={rc} {out.get('outcome')}")
+                # import_busy 의 건수 둘은 지금의 건수다 — 아무것도 옮기지 않았다 (ADR-032 결정 17).
+                if out.get("pending_responses") != 1 or out.get("remaining_after") != 1:
+                    problems.append(f"{label}: import_busy 의 건수 pending={out.get('pending_responses')}"
+                                    f" remaining_after={out.get('remaining_after')} (기대 1 · 1)")
                 if _snapshot(ws) != before:
                     problems.append(f"{label}: import_busy 인데 무엇인가 바뀌었다")
             rc, out = _import(ws, "--discard", archived, "--reason", "r")
@@ -1109,7 +1184,24 @@ def case_7_lock_busy() -> None:
         rc, out = _import(ws, "--task", task_id, "--apply")
         if rc != 0 or out.get("outcome") != "imported":
             problems.append(f"잠금이 풀린 뒤의 import: {out.get('outcome')}")
-    _record("case 7 (잠금을 못 쥐면 import_busy — rc 0 · 무변경)", problems)
+    # --discard 의 건수 둘 — 보관 응답을 거두면 받은편지함은 그대로, 받은편지함 응답을 거두면 하나 준다. dry-run == --apply.
+    with tempfile.TemporaryDirectory() as td:
+        ws = _workspace(td)
+        task_id = _create(ws)
+        _publish(ws, task_id, _response(ws, task_id, "kim", 1, values={"D1": "warn"}))
+        _import(ws, "--task", task_id, "--apply")
+        _publish(ws, task_id, _response(ws, task_id, "lee", 2))
+        _publish(ws, task_id, _response(ws, task_id, "han", 3))
+        for label, target, want in (("보관", lambda: _archive(ws, task_id)[0], (2, 2)),
+                                    ("받은편지함", lambda: _inbox(ws, task_id)[0], (2, 1))):
+            name = target()
+            counts = []
+            for apply in (False, True):
+                rc, out = _import(ws, "--discard", name, "--reason", "r", *(("--apply",) if apply else ()))
+                counts.append((out.get("pending_responses"), out.get("remaining_after")))
+            if counts != [want, want]:
+                problems.append(f"--discard({label}) 의 건수 dry-run · --apply: {counts} (기대 {want} 둘)")
+    _record("case 7 (잠금을 못 쥐면 import_busy — rc 0 · 무변경 · 건수 둘)", problems)
 
 
 def case_8_inbox_ignores_itself() -> None:
@@ -1338,9 +1430,8 @@ def case_11_reads_do_not_create_directories() -> None:
         _import(ws, "--task", task_id)
         _cli(ws, ["-m", "workflow_kit", "plan-status"], "--task", task_id)
         _backlog(ws, "--mode", "update", "--task-id", task_id, "--task-name", "응답을 받는 task", "--status", "in_progress")
-        plan_tasks.archived_responses(plan_tasks.read_task_plan(_task_path(ws, task_id)))  # type: ignore[arg-type]
-        pr.pending_warning(_branch(ws))
-        pr.unknown_inbox_files(_branch(ws))
+        plan_tasks.archived_responses(_plan_of(_task_path(ws, task_id)))
+        pr.inbox_census(_branch(ws)).warning()
         if target.exists():
             problems.append("읽는 길이 plan_responses/ 를 만들었다 — 응답이 없는 저장소의 트리가 바뀐다")
         # 보관만 있고 받은편지함이 없는 브랜치 (이어받은 모양) — dry-run 은 받은편지함도 잠금 파일도 만들지 않는다.
@@ -1408,9 +1499,9 @@ def case_12_contract_and_arguments() -> None:
             "다른 task 의 --discard": ("--task", task_id + "9", "--discard", _archive(ws, task_id)[0], "--reason", "r"),
         }
         before = _snapshot(ws)
-        for label, args in rejected_calls.items():
+        for label, argv in rejected_calls.items():
             proc = subprocess.run(
-                [sys.executable, "-m", "workflow_kit", "plan-import", "--project-profile-path", profile, *args, "--apply"],
+                [sys.executable, "-m", "workflow_kit", "plan-import", "--project-profile-path", profile, *argv, "--apply"],
                 capture_output=True, encoding="utf-8", errors="replace", check=False, env=_env(), cwd=str(ws))
             if proc.returncode != 2:
                 problems.append(f"{label}: rc {proc.returncode} (기대 2)")
@@ -1439,7 +1530,10 @@ def main() -> int:
         return _mover(Path(sys.argv[2]), sys.argv[3])
     print("=== 주장 트리 계획 — 응답 파일 · 받은편지함 · plan-import (ADR-031) ===")
     for case in CASES:
-        case()
+        try:
+            case()
+        except Exception:  # noqa: BLE001 — 한 case 의 예외가 나머지를 지우지 않게, FAIL 줄로 (ADR-032 결정 24)
+            _record(f"{case.__name__} (예외)", traceback.format_exc().strip().splitlines()[-3:])
     print()
     total = len(CASES)
     if FAILURES:

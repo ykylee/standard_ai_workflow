@@ -4,7 +4,7 @@
 - 범위: 로드맵·마일스톤·WBS 기능 자체의 구현 로드맵 (스펙 §10 의 자기 적용)
 - 대상 독자: AI agent (session-start / backlog-update), 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-11-12
+- 최종 수정일: 2026-11-14
 - 관련 문서: [`roadmap_milestone_wbs_spec.md`](../../../../workflow-source/core/roadmap_milestone_wbs_spec.md), [`roadmap_state.json`](./roadmap_state.json)
 
 > 이 목록의 **순서가 곧 SDLC 순서 선언**이다 (스펙 §3.1). status 는 선언이고,
@@ -69,5 +69,5 @@
   - path: [`./M-027-plan-workbench-design.md`](./M-027-plan-workbench-design.md)
 - **M-028** [implementation] 주장 트리 계획 — implementation (라벨 · 린트 · 게이트 · plan-status · plan-import · 검사) — status: in_progress
   - path: [`./M-028-claim-plan-implementation.md`](./M-028-claim-plan-implementation.md)
-- **M-029** [implementation] 계획·진척 워크벤치 — implementation (이월 정리 · 서버 · 화면 · MCP · 검사) — status: planned
+- **M-029** [implementation] 계획·진척 워크벤치 — implementation (이월 정리 · 서버 · 화면 · MCP · 검사) — status: in_progress
   - path: [`./M-029-plan-workbench-implementation.md`](./M-029-plan-workbench-implementation.md)

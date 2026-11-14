@@ -1527,6 +1527,10 @@
         "allow_null": true,
         "kind": "string"
       },
+      "remaining_after": {
+        "allow_null": false,
+        "kind": "integer"
+      },
       "responses": {
         "allow_null": false,
         "item_kind": "PlanResponseVerdict",

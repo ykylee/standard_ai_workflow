@@ -178,9 +178,13 @@ def _recalc_note(changes: list[tuple[str, str, str]]) -> str:
 def _finish(
     ctx: Context, task: plan_tasks.TaskPlan, *, apply: bool, outcome: str,
     responses: list[plan_claims.Response], verdicts: list[PlanResponseVerdict],
-    headline: str | None, warnings: list[str],
+    headline: str | None, warnings: list[str], census: plan_responses.InboxCensus,
 ) -> int:
-    """다시 계산하고, (``--apply`` 면) 상태 칸과 Progress 를 적고, 결과를 낸다."""
+    """다시 계산하고, (``--apply`` 면) 상태 칸과 Progress 를 적고, 결과를 낸다.
+
+    ``census`` 는 이 호출이 옮기기 **전**에 센 받은편지함이다 — ``pending_responses`` 는 그 건수(``plan-status`` 와
+    같은 뜻), ``remaining_after`` 는 반영 뒤 남을 건수다 (ADR-032 결정 17).
+    """
     result = plan_claims.compute_states(task.plan, responses)
     lines, trailing = _read_lines(ctx.task_path)
     lines, changes = plan_claims.rewrite_decision_states(lines, result.states)
@@ -199,13 +203,14 @@ def _finish(
         _write_lines(ctx.task_path, lines, trailing)
         wrote = True
     open_ids = plan_claims.open_decision_ids(task.plan, responses)
-    unknown = plan_responses.unknown_inbox_files(ctx.branch_dir)
+    unknown = list(census.unknown)
     if unknown:
         warnings.append(f"받은편지함에 알 수 없는 파일 {len(unknown)}건: {', '.join(unknown)}")
     if result.disputed_responses:
         warnings.append("다툼에 든 응답: " + ", ".join(result.disputed_responses))
-    remaining = len(plan_responses.inbox_files(ctx.branch_dir, ctx.task_id)) - (
-        0 if apply else sum(1 for v in verdicts if v.location == "inbox" and v.action in ("archived", "rejected")))
+    leaving = sum(1 for v in verdicts if v.location == "inbox" and v.action in ("archived", "rejected"))
+    remaining = (plan_responses.inbox_census(ctx.branch_dir).count(ctx.task_id) if apply
+                 else census.count(ctx.task_id) - leaving)
     if progress is None and outcome in ("imported", "dry_run"):
         outcome = "nothing_to_do" if apply else outcome
     return _emit(PlanImportOutput(
@@ -220,7 +225,8 @@ def _finish(
         states=dict(result.states),
         open_decisions=open_ids,
         progress_line=progress,
-        pending_responses=remaining,
+        pending_responses=census.count(ctx.task_id),
+        remaining_after=remaining,
         unknown_inbox_files=unknown,
         source_context=PlanImportSourceContext(task_id=ctx.task_id, task_path=ctx.rel(ctx.task_path), mode=ctx.mode),
     ))
@@ -234,12 +240,15 @@ def _tally(plan: plan_claims.Plan, result: plan_claims.StateResult) -> str:
 
 
 def _busy(ctx: Context) -> int:
+    census = plan_responses.inbox_census(ctx.branch_dir)
     return _emit(PlanImportOutput(
         status="warning",  # type: ignore[arg-type]
         tool_version=TOOL_VERSION,
         warnings=["import_busy — 다른 plan-import 가 받은편지함을 쥐고 있다. 아무것도 쓰지 않았다, 다시 부른다."],
         task_id=ctx.task_id, applied=False, outcome="import_busy",
-        pending_responses=len(plan_responses.inbox_files(ctx.branch_dir, ctx.task_id)),
+        pending_responses=census.count(ctx.task_id),
+        remaining_after=census.count(ctx.task_id),
+        unknown_inbox_files=list(census.unknown),
         source_context=PlanImportSourceContext(task_id=ctx.task_id, task_path=ctx.rel(ctx.task_path), mode=ctx.mode),
     ))
 
@@ -249,7 +258,7 @@ def _load_task(ctx: Context) -> tuple[plan_tasks.TaskPlan | None, int | None]:
     task = plan_tasks.read_task_plan(ctx.task_path) if ctx.task_path.is_file() else None
     if task is None:
         return None, _error(ctx.task_id, ctx.mode, f"task 파일이 없거나 읽을 수 없다: {ctx.task_path}", "task_not_found", 2)
-    problem = plan_responses.layout_problem(ctx.branch_dir)
+    problem = plan_responses.inbox_census(ctx.branch_dir).layout_problem
     if problem is not None:
         # dry-run 도 같은 판정이다 — 옮길 수 없는 배치에서 "옮긴다" 를 예고하지 않는다.
         return None, _error(ctx.task_id, ctx.mode, problem + " — 아무것도 옮기지 않았다", "plan_responses_layout", 1)
@@ -279,7 +288,8 @@ def run_import(ctx: Context, *, response: str | None, apply: bool) -> int:
         fresh, fresh_rc = _load_task(ctx)  # 잠금을 쥔 뒤 다시 읽는다
         if fresh is None:
             return fresh_rc if fresh_rc is not None else 2
-        paths = [only] if only is not None else plan_responses.inbox_files(ctx.branch_dir, ctx.task_id)
+        census = plan_responses.inbox_census(ctx.branch_dir)
+        paths = [only] if only is not None else census.paths(ctx.task_id)
         judged = [
             (path, *plan_responses.judge(path, fresh.plan, ctx.task_id, plan_has_errors=False))
             for path in paths if path.is_file()
@@ -311,7 +321,7 @@ def run_import(ctx: Context, *, response: str | None, apply: bool) -> int:
                 f"주석 {sum(len(parsed.comments) for parsed, _ in moved)} · 대체 {{superseded}} — "
                 + ", ".join(ctx.rel(target) for _, target in moved))
         return _finish(ctx, fresh, apply=apply, outcome="imported" if apply else "dry_run",
-                       responses=responses, verdicts=verdicts, headline=headline, warnings=[])
+                       responses=responses, verdicts=verdicts, headline=headline, warnings=[], census=census)
 
     if not apply:
         return body()
@@ -339,6 +349,7 @@ def run_discard(ctx: Context, target_path: Path, *, reason: str, apply: bool) ->
             return fresh_rc if fresh_rc is not None else 2
         if not target_path.is_file():
             return _error(ctx.task_id, ctx.mode, f"거둘 응답 파일이 없다: {target_path.name}", "response_not_found", 2)
+        census = plan_responses.inbox_census(ctx.branch_dir)
         parsed, verdict = plan_responses.judge(target_path, fresh.plan, ctx.task_id, plan_has_errors=False)
         if apply:
             rejected = plan_responses.move_exclusive(target_path, ctx.branch_dir, ctx.task_id, rejected=True)
@@ -353,7 +364,7 @@ def run_discard(ctx: Context, target_path: Path, *, reason: str, apply: bool) ->
             ctx, fresh, apply=apply, outcome="discarded" if apply else "dry_run", responses=responses,
             verdicts=[_verdict(target_path, parsed, verdict, location=location, action="rejected",
                                moved_to=ctx.rel(rejected))],
-            headline=headline, warnings=[])
+            headline=headline, warnings=[], census=census)
 
     if not apply:
         return body()

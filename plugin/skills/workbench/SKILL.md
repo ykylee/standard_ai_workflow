@@ -19,15 +19,15 @@ the owner the commands and the URL. No model is called by the server.
 1. The owner makes a token file once per person (`0600`, the value is never printed):
 
    ```bash
-   python -m workflow_kit workbench --new-token approver:<name> --out ~/.config/workbench/<name>.token
+   python -m workflow_kit workbench --new-token approver:<name> --out "$HOME/.config/workbench/<name>.token"
    ```
 
-   Use `viewer:<name>` for someone who only reads. Names are `[A-Za-z0-9_-]{1,32}` and become
+   The parent directory is created (`0700`) if missing; an existing file is never overwritten. Use `viewer:<name>` for someone who only reads. Names are `[A-Za-z0-9_-]{1,32}` and become
    the `responder` of an answer.
 2. The owner starts the server in their own terminal (it prints the URL and keeps running):
 
    ```bash
-   python -m workflow_kit workbench --token approver:<name>=file:~/.config/workbench/<name>.token
+   python -m workflow_kit workbench --token "approver:<name>=file:$HOME/.config/workbench/<name>.token"
    ```
 
    It binds `127.0.0.1:8766` by default. Behind a tunnel or reverse proxy, pass the address

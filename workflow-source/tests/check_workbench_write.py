@@ -30,6 +30,7 @@ import threading
 import time
 import traceback
 from pathlib import Path
+from typing import Any
 from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -196,7 +197,42 @@ def case_no_partial_reads() -> list[str]:
                 seen.append(f"{path.name}:{len(data)}")
             real_fsync(fd)
 
-        with mock.patch.object(pr.os, "fsync", paused_fsync):
+        real_open = open
+
+        class Paused:
+            """만들기와 쓰기 사이 · 쓰기마다 독자가 훑는다 — fsync 를 부르지 않는 쓰는 쪽도 잰다."""
+
+            def __init__(self, handle: Any) -> None:
+                self._handle = handle
+
+            def write(self, data: bytes) -> int:
+                n = int(self._handle.write(data))
+                self._handle.flush()
+                look("쓰기 뒤")
+                return n
+
+            def __getattr__(self, name: str) -> Any:
+                return getattr(self._handle, name)
+
+            def __enter__(self) -> "Paused":
+                return self
+
+            def __exit__(self, *exc: object) -> None:
+                self._handle.close()
+
+        def look(when: str) -> None:
+            for path in pr.inbox_census(branch).paths(task_id):
+                seen.append(f"{when} {path.name}:{len(path.read_bytes())}")
+
+        def paused_open(file: Any, mode: str = "r", *args: Any, **kwargs: Any) -> Any:
+            handle = real_open(file, mode, *args, **kwargs)
+            if "w" in mode or "x" in mode or "a" in mode:
+                look("만든 뒤")
+                return Paused(handle)
+            return handle
+
+        with mock.patch.object(pr.os, "fsync", paused_fsync), \
+                mock.patch.object(pr, "open", paused_open, create=True):
             pr.publish(branch, task_id, body)
         if seen:
             problems.append(f"공개가 끝나기 전에 독자가 응답을 봤다: {seen}")
@@ -308,13 +344,18 @@ def case_answered_ignored() -> list[str]:
                                  extra_fields=[("value_D2", "b"), ("opened_D2", "yes")])
             if reply.status != 303:
                 problems.append(f"제출이 303 이 아니다: {reply.status} {reply.text[:200]}")
+            # 선택지 밖 값도 answered 결정이면 무시한다 — 422 가 아니다 (§6-3 은 answered 가 아닌 결정만).
+            reply, _ = fx.submit(browser, f"/task/{task_id}", extra_fields=[("value_D2", "zzz-not-an-option")])
+            if reply.status != 303:
+                problems.append(f"answered 결정의 선택지 밖 값을 거절했다: {reply.status}")
         names = list(fx.inbox_snapshot(ws))
-        if len(names) != 1:
-            return problems + [f"응답이 1건이 아니다: {names}"]
-        parsed = pr.read_response(pr.inbox_dir(fx.branch_dir(ws)) / names[0])
-        line = next((d for d in parsed.decisions if d.decision_id == "D2"), None)
-        if line is None or line.value != "a" or line.opened:
-            problems.append(f"answered 결정이 기본값 · opened no 로 적히지 않았다: {line}")
+        if len(names) != 2:
+            return problems + [f"응답이 2건이 아니다: {names}"]
+        for name in names:
+            parsed = pr.read_response(pr.inbox_dir(fx.branch_dir(ws)) / name)
+            line = next((d for d in parsed.decisions if d.decision_id == "D2"), None)
+            if line is None or line.value != "a" or line.opened:
+                problems.append(f"answered 결정이 기본값 · opened no 로 적히지 않았다: {line}")
     return problems
 
 

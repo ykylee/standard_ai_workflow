@@ -234,6 +234,13 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:  # noqa: N802 — 표준 서명
         self._dispatch(get=False)
 
+    def _not_found(self) -> None:
+        """경로 표(§4.1) 밖의 메서드도 404 — 표준 처리기의 501 이 아니다."""
+        self.close_connection = True
+        self._send(HTTPStatus.NOT_FOUND, "404 Not Found\n", content_type="text/plain; charset=utf-8")
+
+    do_HEAD = do_PUT = do_DELETE = do_PATCH = do_OPTIONS = _not_found  # noqa: N815
+
     def _dispatch(self, *, get: bool) -> None:
         try:
             self._route(get=get)

@@ -167,11 +167,26 @@ def case_escape() -> list[str]:
         evil = "<script>alert(1)</script>"
         task_id = fx.create_task(
             ws, f"D1 [C1] {evil} 막는가? | default: block | options: block = <b>거부</b>; warn = 경고",
-            name=f"제목 {evil}", claims=(f"C1 주장 {evil} 이다",), criteria=(f"[C1] 기준 {evil}",))
+            name=f"제목 {evil}", criteria=(f"[C1] 기준 {evil}",),
+            claims=(f"C1 주장 {evil} 이다", "C1.1 하위 주장", f"C1.1.1 @ pkg/a.py:3 · sym{evil}"))
+        fx.backlog(ws, "--mode", "update", "--task-id", task_id, "--task-name", "x",
+                   "--validation-result", f"검증 {evil}")
+        plain = fx.backlog(ws, "--mode", "create", "--status", "planned", "--task-name", "필드만",
+                           "--task-brief", f"설명 {evil}", "--done-criteria", "끝")["task_id"]
+        (pr.ensure_inbox(fx.branch_dir(ws)) / "<i>stray.md").write_text("x", encoding="utf-8")
         _state(ws, {"in_progress_items": [f"{task_id} — {evil}"]})
         with fx.running(ws) as srv:
             browser = _session(srv.port)
-            pages = {"/": browser.get("/").text, "task": browser.get(f"/task/{task_id}").text}
+            pages = {"/": browser.get("/").text, "task": browser.get(f"/task/{task_id}").text,
+                     "plain": browser.get(f"/task/{plain}").text}
+        if "<i>stray.md" in pages["/"] or "&lt;i&gt;stray.md" not in pages["/"]:
+            problems.append("/: 받은편지함의 알 수 없는 항목 이름이 이스케이프되지 않았다")
+        if "설명 &lt;script&gt;" not in pages["plain"]:
+            problems.append("plain: 주장 없는 task 의 필드가 이스케이프되어 보이지 않는다")
+        task_page = pages["task"]
+        for label, needle in (("위치 줄", "sym&lt;script&gt;"), ("검증 줄", "검증 &lt;script&gt;")):
+            if needle not in task_page:
+                problems.append(f"task: {label} 가 이스케이프되어 보이지 않는다")
         for label, text in pages.items():
             if evil in text or "<b>거부</b>" in text:
                 problems.append(f"{label}: task 파일의 마크업이 이스케이프 없이 들어갔다")
@@ -194,7 +209,8 @@ def case_read_only() -> list[str]:
         status = lambda: subprocess.run(["git", "status", "--porcelain", "--ignored=no"], cwd=ws,  # noqa: E731
                                         capture_output=True, encoding="utf-8", check=True).stdout
         before_git = status()
-        before_tree = fx.tree_snapshot(ws, skip=(".git/",))
+        # `.git/index` 는 git status 자신이 새로 쓴다 — 그것만 뺀다. 나머지 `.git/` 는 잰다.
+        before_tree = fx.tree_snapshot(ws, skip=(".git/index",))
         with fx.running(ws) as srv:
             browser = _session(srv.port)
             for path in ("/", "/api/state", f"/task/{task_id}", "/static/workbench.css", "/healthz", "/nope"):
@@ -202,9 +218,9 @@ def case_read_only() -> list[str]:
             reply, _ = fx.submit(browser, f"/task/{task_id}")
             if reply.status != 303:
                 problems.append(f"제출이 통하지 않았다: {reply.status}")
+        after_tree = fx.tree_snapshot(ws, skip=(".git/index",))
         if status() != before_git:
             problems.append(f"git status 가 바뀌었다:\n{status()}")
-        after_tree = fx.tree_snapshot(ws, skip=(".git/",))
         inbox_prefix = pr.inbox_dir(fx.branch_dir(ws)).relative_to(ws).as_posix() + "/"
         changed = sorted(k for k in set(before_tree) | set(after_tree)
                          if before_tree.get(k) != after_tree.get(k) and not k.startswith(inbox_prefix))
@@ -250,6 +266,13 @@ def case_plan_page() -> list[str]:
             problems.append("계산한 상태와 칸의 값이 둘 다 보이지 않는다")
         if "열린 결정 1건" not in page or "미반영 응답 1건" not in page:
             problems.append("머리의 열린 결정 · 미반영 응답 건수가 계산값이 아니다")
+        if "검증 줄 없음 · 미측정" not in page:
+            problems.append("검증 줄 없는 완료 기준이 미측정으로 그려지지 않았다 (§7.2)")
+        fx.backlog(ws, "--mode", "update", "--task-id", task_id, "--task-name", "x", "--validation-result", "잼")
+        with fx.running(ws) as srv:
+            measured = _session(srv.port).get(f"/task/{task_id}").text
+        if "검증 줄 없음" in measured or "잼" not in measured:
+            problems.append("검증 줄이 있는데도 미측정으로 그렸거나 검증 줄을 보이지 않는다")
         if 'value="block" checked' not in page or "(추천)" not in page:
             problems.append("기본값에 추천 · checked 가 없다")
         if fx.respond_form(plain_page) is not None or "그대로 보인다" not in plain_page:

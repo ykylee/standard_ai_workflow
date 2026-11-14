@@ -71,7 +71,7 @@ def parse_token_arg(arg: str, *, environ: Mapping[str, str] | None = None) -> To
         if value is None:
             raise TokenError(f"토큰 {name} 의 환경변수 {ref} 가 없다")
     elif kind == "file":
-        path = Path(ref)
+        path = Path(ref).expanduser()  # `=file:~/…` 의 `~` 는 셸이 펼치지 않는다
         if not path.is_file():
             raise TokenError(f"토큰 {name} 의 파일이 없다: {ref}")
         if file_mode_too_wide(path):
@@ -108,6 +108,7 @@ def match_token(tokens: Sequence[Token], presented: str) -> Token | None:
 
 def write_new_token(path: Path) -> None:
     """``secrets.token_urlsafe(32)`` 를 ``0600`` 파일로 쓴다. 있는 파일은 덮지 않는다 (스펙 §2)."""
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0)
     fd = os.open(path, flags, 0o600)
     with os.fdopen(fd, "wb") as handle:

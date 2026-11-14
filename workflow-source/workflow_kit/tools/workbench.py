@@ -176,6 +176,13 @@ def validate_start(args: argparse.Namespace, workspace: Path) -> tuple[tuple[aut
     return tokens, public_url
 
 
+def startup_warnings(bind: str) -> list[str]:
+    """시작 때 표준 오류에 낼 경고 — loopback 이 아닌 bind 면 한 줄 (스펙 §2)."""
+    if server.is_loopback(bind):
+        return []
+    return [f"workbench: 경고 — loopback 이 아닌 주소 {bind} 에 bind 했다"]
+
+
 def _new_token(args: argparse.Namespace) -> int:
     try:
         role, name = auth.parse_role_name(args.new_token)
@@ -185,7 +192,7 @@ def _new_token(args: argparse.Namespace) -> int:
     if not args.out:
         print("workbench: --new-token 은 --out <경로> 가 필요하다", file=sys.stderr)
         return 2
-    out = Path(args.out)
+    out = Path(args.out).expanduser()
     try:
         auth.write_new_token(out)
     except FileExistsError:
@@ -245,8 +252,8 @@ def main(argv: list[str] | None = None) -> int:
     write_record(workspace, port=port, public_url=public_url)
     sweep_temp_files(locate().branch_dir)
     print(public_url, flush=True)
-    if not server.is_loopback(args.bind):
-        print(f"workbench: 경고 — loopback 이 아닌 주소 {args.bind} 에 bind 했다", file=sys.stderr, flush=True)
+    for note in startup_warnings(args.bind):
+        print(note, file=sys.stderr, flush=True)
 
     def _stop(signum: int, frame: object) -> None:
         raise KeyboardInterrupt

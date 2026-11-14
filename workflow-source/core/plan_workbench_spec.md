@@ -39,7 +39,8 @@ python -m workflow_kit workbench --new-token <role>:<name> --out <path>
   겹친다 · 포트가 사용 중이다 · TLS 를 켰는데 `public_url` 이 `http` 다 · `--bind` 가 loopback 이 아닌데 TLS 도 `--allow-plain-http` 도 없다 ·
   같은 checkout 에 살아 있는 서버가 있다 (그 `public_url` 을 알린다).
 - `public_url` 은 끝 슬래시를 갖는다 — 없으면 붙인다. 기본 `http://127.0.0.1:<port>/`. 시작할 때 `public_url` 을 출력하고, loopback 이 아닌 bind 면 경고 한 줄.
-- `--new-token` 은 `secrets.token_urlsafe(32)` 를 `0600` 파일로 쓰고 값은 출력하지 않는다 (출력은 경로와 `--token` 에 줄 인자 한 줄). 있는 파일은 덮지 않는다.
+- `--new-token` 은 `secrets.token_urlsafe(32)` 를 `0600` 파일로 쓰고 값은 출력하지 않는다 (출력은 경로와 `--token` 에 줄 인자 한 줄). 있는 파일은 덮지 않는다. 부모 디렉터리가 없으면 `0700` 으로 만들고,
+  `--out` · `=file:` 의 `~` 는 kit 이 펼친다 (셸은 `=file:~/…` 의 `~` 를 펼치지 않는다).
 - TLS 는 표준 `ssl`, 최소 판 TLS 1.2 (`ssl.TLSVersion.TLSv1_2`). 인증서는 kit 이 만들지 않는다.
 - `--status` 는 `.workbench/server.json` 을 읽어 `{"running": bool, "pid": …, "port": …, "public_url": …, "started_at": …}` JSON 한 덩어리를 내고 끝난다
   (기록이 없거나 `pid` 가 죽었으면 `running: false`).

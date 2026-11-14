@@ -19,6 +19,7 @@ WATCHES = (
 )
 
 import http.client
+import re
 import sys
 import threading
 import traceback
@@ -67,7 +68,10 @@ def prefix_proxy(backend_port: int, *, client_ip: str = "") -> Iterator[tuple[in
             body = self.rfile.read(length) if length else None
             headers = {k: v for k, v in self.headers.items() if k.lower() not in ("host", "connection")}
             if client_ip:
-                headers["X-Forwarded-For"] = client_ip
+                # 실물 프록시처럼 클라이언트가 보낸 값 뒤에 덧붙인다 — 믿을 것은 마지막 값뿐이다.
+                given = next((v for k, v in headers.items() if k.lower() == "x-forwarded-for"), "")
+                headers = {k: v for k, v in headers.items() if k.lower() != "x-forwarded-for"}
+                headers["X-Forwarded-For"] = f"{given}, {client_ip}" if given else client_ip
             conn = http.client.HTTPConnection("127.0.0.1", backend_port, timeout=30)
             conn.request(self.command, "/" + self.path[len(PREFIX):], body=body, headers=headers)
             resp = conn.getresponse()
@@ -135,6 +139,16 @@ def case_prefix_flow() -> list[str]:
             page = browser.get(landing)
             if page.status != 200 or "의 응답을" not in page.text:
                 problems.append(f"도착 {landing}: {page.status} — 받았다는 줄이 없다")
+            # 오류 화면의 "돌아가기" 도 상대 경로다 — 지문 409 를 일부러 낸다.
+            reply, failed = fx.submit(browser, landing, overrides={"plan_digest": "0" * 64})
+            back = re.search(r'<a href="([^"]+)">돌아가기</a>', reply.text)
+            if reply.status != 409 or back is None or back.group(1).startswith(("/", "http")):
+                problems.append(f"오류 화면의 돌아가기 링크가 상대 경로가 아니다: {reply.status} {back and back.group(1)}")
+            else:
+                target = fx.resolve(failed, back.group(1))
+                arrived.append(target)
+                if browser.get(target).status != 200:
+                    problems.append(f"오류 화면의 돌아가기가 계획 화면으로 가지 않는다: {target}")
             css = fx.resolve(landing, "../static/workbench.css")
             arrived.append(css)
             if 'href="../static/workbench.css"' not in page.text or browser.get(css).status != 200:
@@ -160,8 +174,8 @@ def case_forwarded_for() -> list[str]:
             with prefix_proxy(srv.port, client_ip="198.51.100.7") as (port_a, _):
                 srv.app.public_url = f"http://127.0.0.1:{port_a}{PREFIX}"
                 a = fx.Browser(port_a)
-                for _ in range(5):
-                    a.post(PREFIX + "login", {"token": "w" * 40})
+                for i in range(5):  # 클라이언트가 지어낸 X-Forwarded-For 로 주소를 바꿔도 같은 주소로 센다
+                    a.post(PREFIX + "login", {"token": "w" * 40}, extra={"X-Forwarded-For": f"203.0.113.{i}"})
                 if a.post(PREFIX + "login", {"token": fx.APPROVER.value}).status != 429:
                     problems.append("신뢰 프록시 뒤 클라이언트 A 의 실패 제한이 걸리지 않았다")
             with prefix_proxy(srv.port, client_ip="198.51.100.8") as (port_b, _):

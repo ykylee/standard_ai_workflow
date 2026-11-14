@@ -13,6 +13,8 @@
 8. §5.4 네 단계 — Content-Length 없음 411 · 한도 413 · 세션 없음 401 · Origin 403 · CSRF 403, 전부 받은편지함 무변경
 9. 쿠키 — `HttpOnly` · `SameSite=Lax` · `Path` = `public_url` 경로 · `https` 면 `Secure`; 로그아웃은 CSRF 를 대조한다
 10. 접근 기록 — 토큰 · 쿠키 · CSRF · 폼 본문이 없다
+11. 시간 — 세션 12시간 만료 · 실패 60초 창 · 차단 60초 · 로그아웃도 Origin 대조
+12. §5.4 순서 — 길이 → 세션 · 역할 → Origin → CSRF
 """
 
 from __future__ import annotations
@@ -36,6 +38,7 @@ import sys
 import time
 import traceback
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -102,7 +105,8 @@ def case_start_refusals() -> list[str]:
             ("비 loopback 평문", [*token, "--bind", "0.0.0.0"], "loopback"),
             ("TLS+http", [*token, "--tls-cert", "c.pem", "--tls-key", "k.pem"], "http"),
             ("포트 사용 중", ["--token", "approver:alice=env:WB_T", "--port", str(busy_port)], "bind"),
-            ("모르는 인자", [*token, "--tok", "x"], ""),
+            ("모르는 인자", [*token, "--nope"], ""),
+            ("접두 축약", ["--stat"], ""),
         ]
         try:
             for label, args, needle in refusals:
@@ -165,10 +169,13 @@ def case_lifecycle() -> list[str]:
         live_tmp = inbox / f".tmp-{os.getpid()}-0123456789abcdef"
         dead_tmp.write_bytes(b"x")
         live_tmp.write_bytes(b"x")
-        proc, url = _start(ws)
+        inbox_rel = inbox.relative_to(ws).as_posix() + "/"
+        quiet = (".workbench/", inbox_rel)
+        before_tree = fx.tree_snapshot(ws, skip=quiet)
+        proc, url = _start(ws, "--public-url", "http://127.0.0.1:9/wb")
         try:
-            if not url.startswith("http://127.0.0.1:") or not url.endswith("/"):
-                problems.append(f"시작 출력이 public_url 이 아니다: {url!r}")
+            if url != "http://127.0.0.1:9/wb/":
+                problems.append(f"public_url 에 끝 슬래시를 붙이지 않았다: {url!r}")
             data = json.loads((record_dir / "server.json").read_text(encoding="utf-8"))
             if data.get("pid") != proc.pid or data.get("public_url") != url or not data.get("started_at"):
                 problems.append(f"실행 기록이 맞지 않다 (죽은 pid 기록을 덮지 않았다?): {data}")
@@ -178,12 +185,22 @@ def case_lifecycle() -> list[str]:
                 problems.append("시작할 때 .workbench/.gitignore 를 *\\n 으로 되돌리지 않았다")
             if dead_tmp.exists() or not live_tmp.exists():
                 problems.append(f"임시 파일 청소가 틀렸다: 죽은 pid {dead_tmp.exists()} · 산 pid {live_tmp.exists()}")
+            port = json.loads((record_dir / "server.json").read_text(encoding="utf-8"))["port"]
+            client = fx.Browser(port, origin="http://127.0.0.1:9")
+            client.login(auth_token := wb_cli.auth.Token("approver", "alice", GOOD))
+            for path in ("/", "/api/state", "/healthz", "/nope"):
+                client.get(path)
+            del auth_token
+            changed = sorted(k for k, v in fx.tree_snapshot(ws, skip=quiet).items() if before_tree.get(k) != v)
+            changed += sorted(set(before_tree) - set(fx.tree_snapshot(ws, skip=quiet)))
+            if changed:
+                problems.append(f"CLI 서버가 .workbench/ · 받은편지함 밖에 썼다: {changed}")
             status = json.loads(_wb(ws, "--status").stdout)
             if status.get("running") is not True or status.get("public_url") != url:
                 problems.append(f"--status 가 실행 중을 보이지 않는다: {status}")
             if f"워크벤치 실행 중: {url}" not in _session_start_summary(ws):
                 problems.append("session-start 보고에 살아 있는 서버의 public_url 줄이 없다")
-            health = fx.request(int(url.rsplit(":", 1)[1].rstrip("/")), "GET", "/healthz")
+            health = fx.request(port, "GET", "/healthz")
             if health.status != 200 or health.text.strip() != "ok":
                 problems.append(f"healthz: {health.status}")
         finally:
@@ -225,6 +242,19 @@ def case_new_token() -> list[str]:
         again = _wb(ws, "--new-token", "approver:alice", "--out", str(out))
         if again.returncode != 2 or out.read_text(encoding="utf-8").strip() != value:
             problems.append("있는 토큰 파일을 덮었다")
+        # `~` 와 없는 디렉터리 — 스킬이 안내하는 꼴 그대로 (셸은 `=file:~/…` 의 `~` 를 펼치지 않는다).
+        nested = _wb(ws, "--new-token", "viewer:bob", "--out", "~/.config/wb/bob.token", extra_env={"HOME": str(ws)})
+        made = ws / ".config" / "wb" / "bob.token"
+        if nested.returncode != 0 or not made.is_file():
+            problems.append(f"--out 의 ~ · 없는 디렉터리: rc {nested.returncode} {nested.stderr[-200:]}")
+        elif os.name == "posix" and (made.parent.stat().st_mode & 0o077):
+            problems.append(f"새로 만든 토큰 디렉터리가 0700 이 아니다: {oct(made.parent.stat().st_mode & 0o777)}")
+        else:
+            with mock.patch.dict(os.environ, {"HOME": str(ws)}):
+                try:
+                    wb_cli.auth.load_tokens(["viewer:bob=file:~/.config/wb/bob.token"])
+                except wb_cli.auth.TokenError as exc:
+                    problems.append(f"=file:~/… 를 읽지 못한다: {exc}")
         # 만든 파일이 그대로 시작에 쓰인다 (모드 검사를 통과한다).
         tokens = wb_cli.auth.load_tokens([f"approver:alice=file:{out}"])
         if tokens[0].value != value:
@@ -259,8 +289,11 @@ def case_routes_and_headers() -> list[str]:
             for path in ("/", f"/task/{task_id}", "/api/state", "/login", "/healthz"):
                 _check_headers(f"GET {path}", browser.get(path), problems)
             _check_headers("GET 세션 없음", fx.request(srv.port, "GET", "/"), problems)
-            _check_headers("HEAD", fx.request(srv.port, "HEAD", "/"), problems)
-            _check_headers("PUT", fx.request(srv.port, "PUT", "/", body=b""), problems)
+            for method in ("HEAD", "PUT", "DELETE", "OPTIONS", "PATCH"):
+                reply = fx.request(srv.port, method, "/", body=b"" if method in ("PUT", "PATCH") else None)
+                if reply.status != 404:
+                    problems.append(f"{method} /: {reply.status} (기대 404 — 경로 표 밖)")
+                _check_headers(method, reply, problems)
             for name in server.STATIC_FILES:
                 reply = fx.request(srv.port, "GET", f"/static/{name}")
                 if reply.status != 200 or not reply.body:
@@ -490,6 +523,94 @@ def case_access_log() -> list[str]:
     return problems
 
 
+def case_clocks() -> list[str]:
+    """시간이 지나면 풀리는 것들 — 세션 12시간 · 실패 창 60초 · 차단 60초 (시계를 바꿔 끼운다)."""
+    problems: list[str] = []
+    with fx.temp_workspace("wb-auth-11-") as td:
+        ws = fx.make_workspace(td)
+        now = [1000.0]
+        clock = lambda: now[0]  # noqa: E731
+        with fx.running(ws) as srv:
+            srv.app.sessions = wb_cli.auth.Sessions(clock=clock)
+            srv.app.limiter = wb_cli.auth.LoginLimiter(clock=clock)
+            browser = fx.Browser(srv.port)
+            browser.login(fx.APPROVER)
+            now[0] += 12 * 3600 - 1
+            if browser.get("/").status != 200:
+                problems.append("세션이 12시간 전에 끝났다")
+            now[0] += 2
+            if browser.get("/").status != 303:
+                problems.append("세션이 12시간 뒤에도 살아 있다")
+            other = fx.Browser(srv.port)
+            for _ in range(5):
+                other.post("/login", {"token": "w" * 40})
+            if other.login(fx.APPROVER).status != 429:
+                problems.append("5회 실패 뒤 막히지 않았다")
+            now[0] += 59
+            if other.login(fx.APPROVER).status != 429:
+                problems.append("차단이 60초 전에 풀렸다")
+            now[0] += 2
+            if other.login(fx.APPROVER).status != 303:
+                problems.append("차단이 60초 뒤에도 풀리지 않았다")
+            third = fx.Browser(srv.port)
+            for _ in range(4):
+                third.post("/login", {"token": "w" * 40})
+            now[0] += 61  # 창 밖으로 — 앞의 4회는 세지 않는다
+            third.post("/login", {"token": "w" * 40})
+            if third.login(fx.APPROVER).status != 303:
+                problems.append("60초 창 밖의 실패까지 세어 막았다")
+            # 로그아웃도 Origin 을 대조한다 — 다른 출처면 세션이 그대로다.
+            csrf = fx.csrf_of(third.get("/").text)
+            if third.post("/logout", {"csrf": csrf}, origin="http://other.example").status != 403:
+                problems.append("로그아웃이 Origin 을 대조하지 않는다")
+            if third.get("/").status != 200:
+                problems.append("다른 출처의 로그아웃이 세션을 끝냈다")
+    return problems
+
+
+def case_write_order() -> list[str]:
+    """§5.4 의 순서 — 앞 단계의 실패가 뒤 단계보다 먼저 보고된다."""
+    problems: list[str] = []
+    with fx.temp_workspace("wb-auth-12-") as td:
+        ws = fx.make_workspace(td)
+        task_id = fx.create_task(ws)
+        action = f"/task/{task_id}/respond"
+        with fx.running(ws) as srv:
+            origin = f"http://127.0.0.1:{srv.port}"
+            reply = _raw_post(srv.port, action, b"x", {"Origin": "http://evil.example"}, length=262_145)
+            if reply.status != 413:
+                problems.append(f"세션 없음 + 본문 한도 초과: {reply.status} (기대 413 — 길이가 먼저)")
+            reply = fx.Browser(srv.port).post(action, {"csrf": "x"}, origin="http://evil.example")
+            if reply.status != 401:
+                problems.append(f"세션 없음 + 다른 Origin: {reply.status} (기대 401 — 세션이 Origin 보다 먼저)")
+            viewer = fx.Browser(srv.port)
+            viewer.login(fx.VIEWER)
+            reply = viewer.post(action, {"csrf": "x"}, origin="http://evil.example")
+            if reply.status != 403 or "approver" not in reply.text:
+                problems.append(f"viewer + 다른 Origin: {reply.status} — 역할 거절이 먼저여야 한다")
+            approver = fx.Browser(srv.port)
+            approver.login(fx.APPROVER)
+            reply = approver.post(action, {"csrf": "x"}, origin="http://evil.example")
+            if reply.status != 403 or origin not in reply.text:
+                problems.append(f"approver + 다른 Origin + 틀린 CSRF: {reply.status} — Origin 거절이 CSRF 보다 먼저여야 한다")
+            # 인증 전에는 본문을 읽지 않는다 — 머리만 보낸 세션 없는 요청에 곧바로 401 이 와야 한다.
+            with socket.create_connection(("127.0.0.1", srv.port), timeout=5) as sock:
+                sock.sendall((f"POST {action} HTTP/1.1\r\nHost: x\r\nOrigin: {origin}\r\n"
+                              "Content-Type: application/x-www-form-urlencoded\r\nContent-Length: 1000\r\n\r\n").encode())
+                try:
+                    head = sock.recv(64)
+                except socket.timeout:
+                    head = b""
+            if not head.startswith(b"HTTP/1.1 401"):
+                problems.append(f"세션 없는 요청의 본문을 기다렸다 (인증 전에 본문을 읽는다): {head[:30]!r}")
+            if fx.inbox_snapshot(ws):
+                problems.append("거절된 요청이 받은편지함에 썼다")
+            notes = wb_cli.startup_warnings("0.0.0.0")
+            if len(notes) != 1 or "loopback" not in notes[0] or wb_cli.startup_warnings("127.0.0.1"):
+                problems.append(f"비 loopback bind 경고가 한 줄이 아니다: {notes}")
+    return problems
+
+
 CASES = (
     ("1 시작 거절 — rc 2 · 이유 한 줄 · 기록 무변경", case_start_refusals),
     ("2 수명 — 실행 기록 · 자기 무시 .gitignore · --status · 임시 파일 청소 · 종료", case_lifecycle),
@@ -501,6 +622,8 @@ CASES = (
     ("8 §5.4 네 단계 — 어긋난 요청은 받은편지함을 바꾸지 않는다", case_write_checks),
     ("9 쿠키 속성 · 로그아웃", case_cookies),
     ("10 접근 기록에 비밀이 없다", case_access_log),
+    ("11 시간 — 세션 12시간 · 실패 창 · 차단 60초 · 로그아웃 Origin", case_clocks),
+    ("12 §5.4 순서 — 길이 → 세션 · 역할 → Origin → CSRF", case_write_order),
 )
 
 

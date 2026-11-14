@@ -164,7 +164,9 @@ def _claim_tree(view: PlanView) -> Iterable[str]:
             if bundle.unmeasured:
                 parts.append(f'<p class="unmeasured">완료 기준 없음 — {UNMEASURED}</p>')
             else:
-                items = "".join(f"<li>{esc(view.task.criteria[n - 1])}</li>" for n in bundle.criteria)
+                # 검증 줄이 없으면 완료 기준은 "미측정" 이다 (§7.2) — 판정을 추론하지 않는다.
+                mark = "" if view.verification else f' <span class="unmeasured">— 검증 줄 없음 · {UNMEASURED}</span>'
+                items = "".join(f"<li>{esc(view.task.criteria[n - 1])}{mark}</li>" for n in bundle.criteria)
                 parts.append(f'<ul class="criteria">{items}</ul>')
         for decision_id in decisions_by_claim.get(claim.id, []):
             parts.append(f"<!--decision:{esc(decision_id)}-->")

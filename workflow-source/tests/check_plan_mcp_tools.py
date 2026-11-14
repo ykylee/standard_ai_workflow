@@ -146,6 +146,21 @@ def case_inbox() -> list[str]:
             problems.append(f"source_context 가 브랜치가 아니거나 절대 경로가 실렸다: {out['source_context']}")
         if not any("미반영" in w for w in out["warnings"]):
             problems.append(f"미반영 경고가 없다: {out['warnings']}")
+        # task 파일이 오류 규칙(L2 — 주장 ID 중복)을 어기면 그 task 의 응답은 0 단계다.
+        bad = fx.create_task(ws, name="오류 규칙을 어길 task")
+        pr.publish(fx.branch_dir(ws), bad, pr.render_response(
+            task_id=bad, plan=_task(ws, bad).plan, responder="frank",
+            received_at="2026-11-14T09:00:30.000000+09:00").encode())
+        task_file = fx.branch_dir(ws) / "backlog" / "tasks" / f"{bad}.md"
+        text = task_file.read_text(encoding="utf-8")
+        line = next(ln for ln in text.splitlines() if ln.lstrip().startswith("- Claims: C1 "))
+        task_file.write_text(text.replace(line, line + "\n" + line.replace("C1 ", "C1 다시 ", 1)), encoding="utf-8")
+        if not pc.has_error_rules(_task(ws, bad).plan):
+            problems.append("fixture 가 성립하지 않았다 — 오류 규칙 위반이 아니다")
+        rc, out = _call("plan_inbox", {"workspace_root": str(ws), "task_id": bad})
+        frank = next((f for f in out.get("files", []) if f["responder"] == "frank"), {})
+        if frank.get("stage") != 0 or "오류 규칙" not in (frank.get("reason") or ""):
+            problems.append(f"오류 규칙을 어긴 task 의 응답이 0 단계 · 오류 규칙 사유가 아니다: {frank}")
     return problems
 
 
@@ -211,6 +226,13 @@ def case_import() -> list[str]:
         if remaining != 1:  # 지문이 옛 응답은 받은편지함에 남는다
             problems.append(f"apply 뒤 받은편지함에 남은 건수: {remaining} (기대 1)")
         stale = pr.inbox_census(fx.branch_dir(ws)).paths(a)[0].name
+        # 값이 `-` 로 시작해도 옵션으로 읽히지 않는다 · 인자 조합 오류는 입력 오류로 보고된다.
+        rc, odd = _call("plan_import", {"workspace_root": str(ws), "discard": stale, "reason": "-옛계획"})  # 공백이 없어야 argparse 가 옵션으로 오독한다
+        if odd.get("status") == "error":
+            problems.append(f"`-` 로 시작하는 reason 이 옵션으로 읽혔다: {odd.get('error_code')} {odd.get('warnings')}")
+        rc, combo = _call("plan_import", {"workspace_root": str(ws), "discard": stale, "reason": "r", "response": stale})
+        if combo.get("error_code") != "invalid_tool_arguments":
+            problems.append(f"인자 조합 오류가 입력 오류로 보고되지 않았다: {combo.get('error_code')}")
         rc, out = _call("plan_import", {"workspace_root": str(ws), "discard": stale, "reason": "옛 계획", "apply": True})
         rejected = [p.name for p in pr.responses_dir(fx.branch_dir(ws)).iterdir() if p.name.endswith(".rejected.md")]
         if rc != 0 or out.get("outcome") != "discarded" or len(rejected) != 1:

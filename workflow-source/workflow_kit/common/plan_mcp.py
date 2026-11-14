@@ -100,7 +100,7 @@ def plan_import_payload(*, workspace_root: str | None = None, task_id: str | Non
     argv = [sys.executable, "-m", "workflow_kit", "plan-import", "--project-profile-path", str(profile)]
     for flag, value in (("--task", task_id), ("--discard", discard), ("--reason", reason), ("--response", response)):
         if value is not None:
-            argv.extend([flag, str(value)])
+            argv.append(f"{flag}={value}")  # `-` 로 시작하는 값이 옵션으로 읽히지 않게 한 인자로
     if apply:
         argv.append("--apply")
     env = dict(os.environ)
@@ -113,6 +113,11 @@ def plan_import_payload(*, workspace_root: str | None = None, task_id: str | Non
     except subprocess.TimeoutExpired:
         return build_error_result(tool_version=tool_version, error="plan-import 가 제한 시간 안에 끝나지 않았다.",
                                   error_code="plan_import_timeout", warnings=[], source_context=context)
+    if proc.returncode == 2 and not proc.stdout.strip():
+        # argparse 의 거절(인자 조합 · 값 규칙) — 출력이 깨진 것이 아니라 입력이 틀린 것이다.
+        return build_error_result(
+            tool_version=tool_version, error="plan-import 가 인자를 거절했다.", error_code="invalid_tool_arguments",
+            warnings=[line for line in proc.stderr.splitlines()[-2:] if line.strip()], source_context=context)
     try:
         result = json.loads(proc.stdout)
     except json.JSONDecodeError:

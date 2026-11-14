@@ -3,8 +3,10 @@
 
 1. 왕복 — 서버가 쓴 응답이 `plan-import` 의 1~6 단계를 통과해 보관으로 가고 결정 상태에 든다
 2. 동시 제출 — 서버 스레드(여러 클라이언트) · 여러 프로세스의 `build_and_publish` 에서 유실 0 · 이름 중복 0 · 전부 자격
-3. 독자는 덜 쓰인 파일을 보지 않는다 — 공개 도중(파일을 열고 · 쓰고 · 이름을 붙이는 audit 이벤트마다, fsync 앞)
-   받은편지함을 훑어도 응답이 없다;
+3. 독자는 덜 쓰인 파일을 보지 않는다 — 세 층으로 잰다: (a) 공개 도중 파일을 열고 · 쓰고 · 이름을 붙이는 audit 이벤트마다
+   받은편지함을 훑는다, (b) 응답 이름 꼴을 쓰기로 열거나 덜 쓰인 원본에 응답 이름을 붙이면 위반 (audit), (c) Linux 에서는
+   inotify 로 응답 이름이 생긴 뒤의 쓰기를 커널 쪽에서 본다 (다른 프로세스 · fd 쓰기 포함, mmap 쓰기는 못 본다 — 한계;
+   inotify 가 없는 OS 는 (c) 를 미측정으로 출력한다);
    같은 바이트를 두 번 공개하면 두 파일이다 (배타 생성)
 4. 거절은 받은편지함을 바꾸지 않는다 — 413 · 422(선택지 밖 · 한도 · 제어 문자) · 409(지문 · 배치 · 오류 규칙)
 5. `answered` 결정은 폼이 무엇을 보냈든 기본값 · `opened: no` 로 적힌다
@@ -26,6 +28,7 @@ WATCHES = (
 import datetime as dt
 import multiprocessing
 import os
+import re
 import sys
 import threading
 import time
@@ -234,6 +237,11 @@ def case_no_partial_reads() -> list[str]:
 
         # 쓰는 쪽이 어떤 API 를 쓰든 파일을 열거나 이름을 붙이는 순간은 audit 이벤트다 — 그때마다 훑는다.
         WATCH.update(look=look, inbox=pr.ensure_inbox(branch), body=body, violations=[])
+        kernel: InboxWatch | None = None
+        if sys.platform.startswith("linux"):
+            kernel = InboxWatch(pr.inbox_dir(branch))
+        else:
+            print("        (미측정: inotify 가 없는 OS — 커널 쪽 관찰자 판정을 건너뛴다)")
         WATCH["on"] = True
         try:
             with mock.patch.object(pr.os, "fsync", paused_fsync), \
@@ -241,6 +249,13 @@ def case_no_partial_reads() -> list[str]:
                 pr.publish(branch, task_id, body)
         finally:
             WATCH["on"] = False
+        if kernel is not None:
+            events = kernel.events()
+            kernel.close()
+            if not any(mask & (InboxWatch.IN_CREATE | InboxWatch.IN_MOVED_TO) and name.endswith(".md")
+                       for mask, name in events):
+                problems.append(f"커널 관찰자가 공개를 보지 못했다 — 이 판정이 재지 못한다: {events}")
+            problems.extend(exposed_writes(events))
         if seen:
             problems.append(f"공개가 끝나기 전에 독자가 응답을 봤다: {seen}")
         if WATCH["violations"]:
@@ -255,11 +270,63 @@ def case_no_partial_reads() -> list[str]:
     return problems
 
 
+class InboxWatch:
+    """커널 쪽 관찰자 (Linux inotify) — 프로세스 · API 와 무관하게 받은편지함의 이벤트를 순서대로 받는다.
+
+    판정: 공개하는 동안 ``*.md`` 이름이 생긴(IN_CREATE · IN_MOVED_TO) 뒤 받은편지함 안에서 쓰기(IN_MODIFY)가 있으면
+    덜 쓰인 파일이 이름을 가진 채 노출된 것이다. 올바른 공개는 임시 이름에 다 쓴 뒤 이름만 붙인다.
+    mmap 쓰기는 inotify 도 보지 못한다 — 한계.
+    """
+
+    IN_MODIFY, IN_MOVED_TO, IN_CREATE = 0x2, 0x80, 0x100
+
+    def __init__(self, directory: Path) -> None:
+        import ctypes
+        import ctypes.util
+        self._libc = ctypes.CDLL(ctypes.util.find_library("c") or "libc.so.6", use_errno=True)
+        self.fd = self._libc.inotify_init1(os.O_NONBLOCK)
+        if self.fd < 0:
+            raise OSError(ctypes.get_errno(), "inotify_init1")
+        mask = self.IN_MODIFY | self.IN_MOVED_TO | self.IN_CREATE
+        if self._libc.inotify_add_watch(self.fd, os.fsencode(directory), mask) < 0:
+            raise OSError(ctypes.get_errno(), "inotify_add_watch")
+
+    def events(self) -> list[tuple[int, str]]:
+        import struct
+        out: list[tuple[int, str]] = []
+        while True:
+            try:
+                data = os.read(self.fd, 65536)
+            except BlockingIOError:
+                return out
+            offset = 0
+            while offset < len(data):
+                _wd, mask, _cookie, size = struct.unpack_from("iIII", data, offset)
+                name = data[offset + 16: offset + 16 + size].split(b"\0", 1)[0].decode("utf-8", "replace")
+                out.append((mask, name))
+                offset += 16 + size
+
+    def close(self) -> None:
+        os.close(self.fd)
+
+
+def exposed_writes(events: list[tuple[int, str]]) -> list[str]:
+    named = False
+    found: list[str] = []
+    for mask, name in events:
+        if mask & (InboxWatch.IN_CREATE | InboxWatch.IN_MOVED_TO) and name.endswith(".md"):
+            named = True
+        elif mask & InboxWatch.IN_MODIFY and named:
+            found.append(f"응답 이름이 생긴 뒤 받은편지함에 쓰기: {name}")
+    return found
+
+
 #: audit hook 은 지울 수 없다 — 한 번만 걸고 스위치로 켠다.
 WATCH: dict[str, Any] = {"on": False, "look": None, "busy": False, "inbox": None, "body": b"", "violations": []}
 _AUDITED = {"open", "os.link", "os.rename", "os.replace", "os.symlink"}
 
 
+_RESPONSE_NAME_RE = re.compile(r"^TASK-.+-[0-9]+\.md$")
 _WRITE_FLAGS = os.O_WRONLY | os.O_RDWR | os.O_CREAT | os.O_APPEND | os.O_TRUNC
 
 
@@ -284,15 +351,23 @@ def _audit(event: str, args: tuple[Any, ...]) -> None:
         return
     WATCH["busy"] = True  # 훑는 동안의 open 은 다시 걸리지 않게
     try:
-        if event == "open" and len(args) >= 3 and _is_response_name(args[0]):
+        if event == "open" and len(args) >= 3 and isinstance(args[0], (str, bytes, os.PathLike)) \
+                and _RESPONSE_NAME_RE.match(Path(os.fsdecode(args[0])).name):
+            # 디렉터리와 무관하게 이름 꼴로 본다 — dir_fd 상대 이름(openat)은 audit 인자에 dir_fd 가 없다.
             mode, flags = args[1], args[2]
             writing = (isinstance(mode, str) and any(c in mode for c in "wxa+")) or \
                 (isinstance(flags, int) and flags & _WRITE_FLAGS)
             if writing:
                 WATCH["violations"].append(f"응답 이름을 쓰기로 열었다: {Path(os.fsdecode(args[0])).name}")
-        if event in ("os.link", "os.rename", "os.replace") and len(args) >= 2 and _is_response_name(args[1]):
+        if event in ("os.link", "os.rename", "os.replace") and len(args) >= 2 \
+                and isinstance(args[1], (str, bytes, os.PathLike)) \
+                and _RESPONSE_NAME_RE.match(Path(os.fsdecode(args[1])).name):
+            src_dir_fd = args[2] if len(args) > 2 and isinstance(args[2], int) and args[2] >= 0 else None
+            source = Path(os.fsdecode(args[0]))
+            if src_dir_fd is not None and not source.is_absolute():
+                source = Path(f"/proc/self/fd/{src_dir_fd}") / source
             try:
-                data = Path(os.fsdecode(args[0])).read_bytes()
+                data = source.read_bytes()
             except OSError:
                 data = b""
             if data != WATCH["body"]:

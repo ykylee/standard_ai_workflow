@@ -48,7 +48,7 @@
       "transport": "jsonrpc-bridge",
       "transport_phase": "jsonrpc_draft",
       "apply_mode": "manual_review_only",
-      "description": "Write-capable MCP tools (apply_robust_patch, rotate_workflow_logs). Explicit opt-in only — these tools modify the filesystem.",
+      "description": "Write-capable MCP tools (apply_robust_patch, rotate_workflow_logs, plan_import). Explicit opt-in only — these tools modify the filesystem.",
       "tools": [
         "rotate_workflow_logs",
         "apply_robust_patch",

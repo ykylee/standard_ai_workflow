@@ -93,7 +93,7 @@ def validate_payload(spec: Any, payload: dict[str, Any]) -> list[str]:
             continue
 
         if field.value_type == "boolean":
-            if not isinstance(value, bool):
+            if type(value) is not bool:  # true · false 만 — 1 · 0 · "true" 는 거절한다
                 errors.append(f"`{field.name}` field 는 true · false 여야 한다.")
             continue
         if isinstance(value, (dict, list, bool)):

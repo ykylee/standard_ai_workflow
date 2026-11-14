@@ -89,6 +89,11 @@ def plan_import_payload(*, workspace_root: str | None = None, task_id: str | Non
                         discard: str | None = None, reason: str | None = None, response: str | None = None,
                         apply: bool = False, tool_version: str) -> dict[str, Any]:
     context: dict[str, Any] = {"task_id": task_id, "discard": discard, "apply": bool(apply)}
+    if discard is not None and not (reason or "").strip():
+        # 스펙 §8.3 의 입력은 `discard` + `reason` — 사유 없는 거둠은 CLI 로 넘기기 전에 거절한다.
+        return build_error_result(
+            tool_version=tool_version, error="discard 에는 reason 이 필요하다 — task Progress 에 남는다.",
+            error_code="missing_discard_reason", warnings=[], source_context=context)
     profile = _profile(workspace_root)
     if profile is None:
         return _missing_profile(tool_version, context)

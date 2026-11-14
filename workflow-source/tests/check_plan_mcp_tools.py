@@ -87,6 +87,10 @@ def _seed(ws: Path) -> tuple[str, str]:
             body = body.replace(pc.plan_digest(task.plan), "f" * 64)
         pr.publish(branch, task_id, body.encode())
     (pr.inbox_dir(branch) / "stray.md").write_text("x", encoding="utf-8")
+    # 이 브랜치에 task 파일이 없는 응답 — 자격을 볼 수 없다 (stage 0).
+    orphan = "TASK-2026-01-01-workbench-777"
+    pr.publish(branch, orphan, pr.render_response(task_id=orphan, plan=_task(ws, a).plan, responder="dave",
+                                                    received_at="2026-11-14T09:00:09.000000+09:00").encode())
     return a, b
 
 
@@ -108,7 +112,8 @@ def case_inbox() -> list[str]:
         if validate_output_payload(out, family="plan_inbox"):
             problems.append(f"family plan_inbox 로 검증되지 않는다: {validate_output_payload(out, family='plan_inbox')}")
         census = pr.inbox_census(fx.branch_dir(ws))
-        if out["pending"] != census.pending or out["pending"] != {a: 2, b: 1}:
+        orphan = "TASK-2026-01-01-workbench-777"
+        if out["pending"] != census.pending or out["pending"] != {a: 2, b: 1, orphan: 1}:
             problems.append(f"pending 이 census 와 다르다: {out['pending']} · census {census.pending}")
         if out["unknown"] != ["stray.md"]:
             problems.append(f"알 수 없는 항목: {out['unknown']}")
@@ -116,8 +121,25 @@ def case_inbox() -> list[str]:
         if names != [p.name for t in sorted(census.files) for p in census.paths(t)]:
             problems.append(f"파일 목록이 census 의 번호 순과 다르다: {names}")
         by_responder = {f["responder"]: f for f in out["files"]}
-        if by_responder.get("alice", {}).get("stage") is not None or by_responder.get("bob", {}).get("stage") != 4:
-            problems.append(f"자격 단계가 틀렸다: alice {by_responder.get('alice')} · bob {by_responder.get('bob')}")
+        if sorted(by_responder) != ["alice", "bob", "carol", "dave"]:
+            problems.append(f"응답자가 파일마다 실리지 않았다: {sorted(by_responder)}")
+        # 파일별 값은 파일 자체를 읽은 값과 같아야 한다 — 응답자 · 시각 · 단계 · 사유 · task.
+        for f in out["files"]:
+            path = pr.inbox_dir(fx.branch_dir(ws)) / f["name"]
+            parsed = pr.read_response(path)
+            if (f["responder"], f["received_at"], f["task"]) != (parsed.responder, parsed.received_at,
+                                                                    pr.task_of_response_name(f["name"])):
+                problems.append(f"{f['name']}: 응답자 · 시각 · task 가 파일과 다르다: {f}")
+        want = {"alice": (None, ""), "carol": (None, "")}
+        for who, (stage, reason) in want.items():
+            if (by_responder.get(who, {}).get("stage"), by_responder.get(who, {}).get("reason")) != (stage, reason):
+                problems.append(f"{who}: 자격 있는 응답의 단계 · 사유가 (null, '') 가 아니다: {by_responder.get(who)}")
+        bob = by_responder.get("bob", {})
+        if bob.get("stage") != 4 or "plan_digest" not in (bob.get("reason") or ""):
+            problems.append(f"bob: 지문이 옛 응답이 4 단계 · 지문 사유가 아니다: {bob}")
+        dave = by_responder.get("dave", {})
+        if dave.get("stage") != 0 or "task 파일" not in (dave.get("reason") or ""):
+            problems.append(f"dave: task 파일이 없는 응답이 0 단계 · 사유가 아니다: {dave}")
         if SECRET_COMMENT in json.dumps(out, ensure_ascii=False):
             problems.append("주석 본문이 출력에 실렸다")
         if out["source_context"].get("branch") != fx.BRANCH or str(ws) in json.dumps(out, ensure_ascii=False):
@@ -166,6 +188,17 @@ def case_import() -> list[str]:
         after = fx.tree_snapshot(ws, skip=("ai-workflow/memory/active/workbench/plan_responses/inbox/.lock",))
         if after != before:
             problems.append("dry-run 이 작업 공간에 썼다")
+        # response 하나만 — b 에 응답을 하나 더 두고 그중 하나만 옮긴다.
+        task_b = _task(ws, b)
+        extra = pr.publish(fx.branch_dir(ws), b, pr.render_response(
+            task_id=b, plan=task_b.plan, responder="erin", received_at="2026-11-14T09:00:20.000000+09:00").encode())
+        rc, one = _call("plan_import", {"workspace_root": str(ws), "task_id": b, "response": extra.name, "apply": True})
+        left = [p.name for p in pr.inbox_census(fx.branch_dir(ws)).paths(b)]
+        if rc != 0 or one.get("outcome") != "imported" or len(left) != 1 or extra.name in left:
+            problems.append(f"response 지정 apply 가 그 파일만 옮기지 않았다: {one.get('outcome')} 남은 것 {left}")
+        rc, out = _call("plan_import", {"workspace_root": str(ws), "discard": left[0] if left else "x", "apply": True})
+        if out.get("error_code") != "missing_discard_reason" or len(pr.inbox_census(fx.branch_dir(ws)).paths(b)) != 1:
+            problems.append(f"reason 없는 discard 를 입력 단계에서 거절하지 않았다: {out.get('error_code')}")
         rc, applied = _call("plan_import", {"workspace_root": str(ws), "task_id": a, "apply": True})
         if rc != 0 or applied.get("applied") is not True or applied.get("outcome") != "imported":
             problems.append(f"apply: rc {rc} {applied.get('applied')} {applied.get('outcome')} {applied.get('error')}")
@@ -206,7 +239,7 @@ def case_bundles_and_inputs() -> list[str]:
         problems.append(f"apply 가 boolean 이 아니다: {schema.get('properties', {}).get('apply')}")
     if schema.get("anyOf") != [{"required": ["task_id"]}, {"required": ["discard"]}]:
         problems.append(f"task_id · discard 중 하나가 필수가 아니다: {schema.get('anyOf')}")
-    for args, label in (({"task_id": "x", "apply": "true"}, "문자열 apply"), ({"apply": True}, "task_id · discard 없음"),
+    for args, label in (({"task_id": "x", "apply": "true"}, "문자열 apply"), ({"task_id": "x", "apply": 1}, "숫자 apply"), ({"apply": True}, "task_id · discard 없음"),
                         ({"task_id": "x", "nope": 1}, "모르는 필드")):
         rc, out = invoke_tool("plan_import", json.dumps(args))
         if rc == 0 or out.get("error_code") != "invalid_tool_payload_schema":

@@ -281,8 +281,8 @@ def parse_args() -> argparse.Namespace:
         "--bundle",
         choices=list(BUNDLE_LABELS),
         default=BUNDLE_READ_ONLY,
-        help="서빙할 bundle: read-only(11, v1.2.0+ 기본) / write(2, 명시 opt-in) / "
-             "all(구 표면 — 명시 opt-in)",
+        help="서빙할 bundle: read-only(v1.2.0+ 기본) / write(파일을 쓰는 도구 — 명시 opt-in) / "
+             "all(구 표면 — 명시 opt-in). 도구 목록은 tools/list 가 registry 에서 낸다",
     )
     return parser.parse_args()
 

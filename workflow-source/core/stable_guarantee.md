@@ -4,7 +4,7 @@
 - 범위: public API surface, deprecation policy, breaking change 절차, migration guide, cross-check discipline anchor, 외부 의존성 한계.
 - 대상 독자: workflow_kit consumer, 저장소 maintainer, AI workflow 설계자, v1.0.0 stable release 검토자.
 - 상태: stable (v1.0.0 entry anchor, Phase 12 close-out 의 final deliverable).
-- 최종 수정일: 2026-08-31
+- 최종 수정일: 2026-11-14
 - 관련 문서: [./v0_8_0_stable_api_spec.md](./v0_8_0_stable_api_spec.md), [./v0_9_0_deprecation_policy_spec.md](./v0_9_0_deprecation_policy_spec.md), [./workflow_release_spec.md](./workflow_release_spec.md), [./output_schema_guide.md](./output_schema_guide.md), [./v1_0_0_entry_evaluation.md](./v1_0_0_entry_evaluation.md)
 
 ## 0. Executive Summary
@@ -109,6 +109,8 @@ __all__: list[str] = [
 | smart_context_reader | stable | v0.5.10 | v0.14.1 | read-only |
 | ~~workflow_log_rotator~~ | removed | v0.5.10 | n/a | v0.14.1 stale 제거 |
 | apply_robust_patch | (removed → robust-patcher-mcp 통합) | n/a | n/a | v0.14.2 stable 후 schema 통합 |
+| plan_inbox | beta (안정 보장 밖) | 미발행 (M-029) | — | read-only — `plan_workbench_spec` §8.3 |
+| plan_import | beta (안정 보장 밖) | 미발행 (M-029) | — | **writable** (write 번들) — `plan_workbench_spec` §8.3 |
 
 ### 3.1 MCP contract
 

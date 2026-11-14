@@ -1,8 +1,8 @@
 """과거 kit 버전이 생성한 진입점 절의 해시 — **생성물, 직접 고치지 않는다.**
 
 생성: ``python3 workflow-source/scripts/harvest_entry_sections.py --tmp-dir <경로> --apply``
-채취 ref: v1.2.0-beta, 825478bc, v1.3.0, v1.5.0, v1.7.0, v1.9.4, v1.12.0, v1.14.4, v1.16.0, v1.19.0, 062c4d64, v1.20.0, f45c6da1, c4c14c6b
-결과: v1.2.0-beta: bootstrap 13/13 · 825478bc: bootstrap 13/13 · v1.3.0: bootstrap 13/13 · v1.5.0: bootstrap 13/13 · v1.7.0: bootstrap 13/13 · v1.9.4: bootstrap 12/13 · v1.12.0: bootstrap 12/13 · v1.14.4: bootstrap 12/13 · v1.16.0: bootstrap 12/13 · v1.19.0: bootstrap 12/13 · 062c4d64: bootstrap 12/13 · v1.20.0: bootstrap 12/13 · f45c6da1: bootstrap 12/13 · c4c14c6b: bootstrap 12/13
+채취 ref: v1.2.0-beta, 825478bc, v1.3.0, v1.5.0, v1.7.0, v1.9.4, v1.12.0, v1.14.4, v1.16.0, v1.19.0, 062c4d64, v1.20.0, f45c6da1, c4c14c6b, a2e3b495
+결과: v1.2.0-beta: bootstrap 13/13 · 825478bc: bootstrap 13/13 · v1.3.0: bootstrap 13/13 · v1.5.0: bootstrap 13/13 · v1.7.0: bootstrap 13/13 · v1.9.4: bootstrap 12/13 · v1.12.0: bootstrap 12/13 · v1.14.4: bootstrap 12/13 · v1.16.0: bootstrap 12/13 · v1.19.0: bootstrap 12/13 · 062c4d64: bootstrap 12/13 · v1.20.0: bootstrap 12/13 · f45c6da1: bootstrap 12/13 · c4c14c6b: bootstrap 12/13 · a2e3b495: bootstrap 12/13
 
 키는 절 제목(`## ` 뒤), 값은 정규화 본문(공백 묶음 → 한 칸)의 SHA-256 앞 16자.
 """
@@ -30,7 +30,7 @@ KNOWN_GENERATED: dict[str, frozenset[str]] = {
     'Codex 전용 메모': frozenset({'f12341cd77d82b00'}),
     'Documentation conventions': frozenset({'79c08b2a21d2926a'}),
     'Entry skill (TUI picker)': frozenset({'246c5b8410409f1d'}),
-    'Entry slash commands (additive)': frozenset({'254f9c5b896931a6', '7cd1a15abb5059df', 'a13947ac4dc3435c', 'bb872da29b735ad9'}),
+    'Entry slash commands (additive)': frozenset({'254f9c5b896931a6', '55778a09b6b23a49', '7cd1a15abb5059df', 'a13947ac4dc3435c', 'bb872da29b735ad9'}),
     'Gemini CLI notes': frozenset({'38ff533944affb84'}),
     'Gemini CLI 전용 메모': frozenset({'10e86f4a51942af5'}),
     'Grok Build notes': frozenset({'5fbd7ccc07c68061', 'c515c6a68016d3e3'}),
@@ -39,7 +39,7 @@ KNOWN_GENERATED: dict[str, frozenset[str]] = {
     'MCP registration (`.grok/config.toml`)': frozenset({'713230493f4a2aad', '89aa63b799aa3a46'}),
     'MCP 등록 (`.grok/config.toml`)': frozenset({'13ea0e0fa732fe85'}),
     'Memory (opt-in)': frozenset({'23071d50ff79f787', '4788f716882dc7bd', 'a71069d948860e7f'}),
-    'Memory Update Paths': frozenset({'04cae11d59a5d86b', '0f81e1e831016389', '14a6994a3b03d5fd', '1704435c639c6efe', '3476e6528491514b', '3bc0e768249cebb9', '4ae487ecc0d7f458', '4be2ac99546a961f', '5c7b0508cf454d01', '6c9bef6326e717ad', '6d5900864e7171bd', '71705a671299fc77', '7ac497766ef69051', '7f3271a2293b7736', '99cb151d357a216a', '9b49202c94f7680e', 'a710b7af3050136d', 'cd73441345313983', 'd09ced4418c2f193', 'dd077134658e343b', 'ee3661a9d09289fb'}),
+    'Memory Update Paths': frozenset({'04cae11d59a5d86b', '0f81e1e831016389', '14a6994a3b03d5fd', '1704435c639c6efe', '3476e6528491514b', '3bc0e768249cebb9', '4ae487ecc0d7f458', '4be2ac99546a961f', '5c7b0508cf454d01', '6c9bef6326e717ad', '6d5900864e7171bd', '71705a671299fc77', '7ac497766ef69051', '7f3271a2293b7736', '82604625f7aa1f34', '99cb151d357a216a', '9b49202c94f7680e', 'a710b7af3050136d', 'adc9f6e9800c913e', 'cd73441345313983', 'd09ced4418c2f193', 'dd077134658e343b', 'ee3661a9d09289fb', 'fb0bd033bc9676e1'}),
     'MiniMax Code notes': frozenset({'7145d5e9bbbf49e6', 'b0aed4c69a8674a6'}),
     'MiniMax Code 전용 메모': frozenset({'ef42a9ac85adf44d'}),
     'Orchestrator / worker principles (multi-agent topology)': frozenset({'cdce6986c1dda1ad'}),

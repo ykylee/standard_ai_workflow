@@ -42,6 +42,8 @@ DEFAULT_REFS = (
     "f45c6da1",
     # ADR-031 2단계 — 정본 §11.1 에 plan-import, claude-code 진입점에 `/workflow-plan-import`.
     "c4c14c6b",
+    # ADR-032 ② — 정본 §11.1 에 workbench, claude-code 진입점에 `/workflow-workbench` · slash 설명 단축.
+    "a2e3b495",
 )
 HARNESSES = ("codex", "opencode", "pi-dev", "antigravity", "minimax-code", "claude-code",
              "aider", "goose", "grok-build", "gemini-cli", "codewhale", "custom", "mavis")

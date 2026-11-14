@@ -1008,10 +1008,10 @@
       "title": "계획·진척 워크벤치 — implementation (이월 정리 · 서버 · 화면 · MCP · 검사)",
       "sdlc_phase": "implementation",
       "declared_status": "in_progress",
-      "derived_status": "in_progress",
-      "progress": 0.5,
+      "derived_status": "done",
+      "progress": 1.0,
       "total_leaves": 2,
-      "done_leaves": 1,
+      "done_leaves": 2,
       "deliverables_missing": [],
       "wbs": [
         {
@@ -1028,12 +1028,12 @@
         {
           "id": "WBS-29.2",
           "title": "② 서버 · 화면 · MCP `plan_inbox` · `plan_import` · 정본 §11.1 · 스킬 `workbench` · 검사 넷",
-          "derived_status": "in_progress",
+          "derived_status": "done",
           "linked_task_ids": [
             "TASK-2026-11-14-claude-remote-sync-check-234c32-002"
           ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         }
       ]
@@ -1210,5 +1210,11 @@
       "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-10-06-main-004.md"
     }
   ],
-  "issues": []
+  "issues": [
+    {
+      "code": "declared_derived_mismatch",
+      "detail": "M-029: 선언 in_progress ≠ 파생 done (done 경계)",
+      "where": "M-029-plan-workbench-implementation.md"
+    }
+  ]
 }

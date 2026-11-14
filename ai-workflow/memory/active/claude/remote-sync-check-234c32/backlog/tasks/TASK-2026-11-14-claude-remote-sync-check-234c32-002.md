@@ -1,6 +1,6 @@
 ---
 id: TASK-2026-11-14-claude-remote-sync-check-234c32-002
-status: in_progress
+status: done
 created_at: 2026-11-14
 source_anchor: generic-task-2026-11-14-claude-remote-sync-check-234c32-002
 source_path: backlog/2026-11-14.md
@@ -12,7 +12,7 @@ wbs: M-029/WBS-29.2
 
 ## 📝 Description
 
-- Status: in_progress
+- Status: done
 - Priority: high
 - Request date: 2026-11-14
 - Owner:
@@ -59,5 +59,9 @@ wbs: M-029/WBS-29.2
 
 ## ✅ Outcome
 
-- Result:
-- Follow-up:
+- Result: workflow_kit/workbench/ 서버 · tools/workbench.py · 검사 넷 · 스킬 workbench · session-start public_url 줄 · plan_responses.sweep_dead_temp_files · check_packaging 자원 실측
+- Verification: verifier 7회 — 1차 C3 · C4 · C6 FAIL(§7.2 미측정 미구현 · 스킬 명령 실패 · 측정 구멍) → 2차 C2 · C3 FAIL(모르는 메서드 501 · 덜 쓰인 파일 감시가 fsync/open 에 묶임) → 3~6차 C3 FAIL(감시 우회 W8 · W11b · X1~X3 · Y4(계측의 flush 가 결함을 가림) · Z6 · Z7) → 7차 [C1]~[C6] PASS. 검사 auth 12 · write 6 · views 7 · proxy 2, --changed(base bba68693) 304/304 · smoke 8/8. 되주입: 작성자 77+ · verifier 34+13+8+8+12+13 건, 생존은 진술된 한계(mmap 쓰기 · 다른 프로세스의 밖 하드링크 별칭 · main 의 비loopback 경고 출력 배선)뿐
+- Follow-up: M-029/WBS-29.2 나머지: MCP plan_inbox(read-only) · plan_import(write) + 체크인 생성물 (스펙 §8.3)
+- Follow-up: 소유자 질문: check_entry_diet case 1 의 15% 기준이 근거 없이 경계(여유 13B) — 템플릿이 늘 때마다 막힌다
+- Follow-up: 소유자 질문: 주장 없는 task 의 완료 기준 '미측정' 표식 · 검증 줄 표식 단위(task 단위)
+- Follow-up: Windows 실측(포트 bind · 토큰 파일 모드 · 콘솔 인코딩, inotify 층 미측정) — WBS-28.3 과 같은 호스트

@@ -11,6 +11,10 @@
 
 ## 롤오프 2026-11-14
 
+- **125차 세션 (2026-11-13, Linux 호스트) — M-028/WBS-28.1 주장 트리 계획 구현 1단계 종결.** task `## 🧭 Plan` 에 `Claims` · `Decisions` 라벨, `common/plan_claims.py`(파서 · 린트 L1~L10 · 지문 · 상태 계산, 순수 함수) · `common/plan_tasks.py`(I/O), `backlog-update --plan-claim · --plan-decision · --decision-state`(쓰기 전 린트 — L2 · L6 · L9 는 거부, 열린 결정이 있으면 → done 거부, 상태는 칸이 아니라 계산값), 읽기 전용 `plan-status`, state.json `open_decisions`, 우회 warning(`refresh-state` · `session-start`), 정본 §1 두 줄 개정. 검사 셋(`check_plan_claims` 14 · `check_plan_decision_state` 6 · `check_plan_gate` 18) — 전량 312 × native/slash green. task 11-13-003 done (verifier 6회 — 6차 FAIL 0). 2단계 전이라 응답 파일은 없다: 상태는 `answered` 가 아니면 `proposed`. M-028 은 WBS-28.2 가 남아 in_progress. 미발행. roadmap issues [].
+
+## 롤오프 2026-11-14
+
 - **124차 세션 끝 (2026-11-13, Linux 호스트) — M-026 design 종결: ADR-031 accepted.** [`adr-031-claim-plan.md`](../../../../wiki/decisions/adr-031-claim-plan.md) (결정 29 · requirements 대비 변경 V1~V10 · 실측 M1~M5) + [`claim_plan_spec.md`](../../../../../workflow-source/core/claim_plan_spec.md) (계약 §1~§13). 소유자 결정: design 은 **ADR 둘로 순차**(워크벤치는 M-027 / ADR-032) · Codex hook 주입 실측은 하지 않는다(② 보류) · 프록시 실측은 docker 로. 핵심 결정: 보관 번호 = `received_at` 의 epoch 마이크로초(카운터는 두 호스트에서 add/add 충돌) · import 잠금은 `common/file_lock.py` 비차단(120회 중복 0 · 유실 0) · 주장별 묶음은 읽기 전용 `plan-status` · 이어받기가 보관 응답을 옮긴다 · 오류 상태 task 는 칸을 다시 적지 않고 `done` 거부. task 11-13-002 done (verifier 5회 — 5차 5/5 PASS). M-026 done · **M-027 [design] · M-028 [implementation] planned** (병행 가능). wiki 색인에 ADR-027~031. roadmap issues [].
 
 ## 롤오프 2026-11-14

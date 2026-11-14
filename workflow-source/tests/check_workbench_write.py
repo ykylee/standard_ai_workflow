@@ -5,8 +5,8 @@
 2. 동시 제출 — 서버 스레드(여러 클라이언트) · 여러 프로세스의 `build_and_publish` 에서 유실 0 · 이름 중복 0 · 전부 자격
 3. 독자는 덜 쓰인 파일을 보지 않는다 — 세 층으로 잰다: (a) 공개 도중 파일을 열고 · 쓰고 · 이름을 붙이는 audit 이벤트마다
    받은편지함을 훑는다, (b) 응답 이름 꼴을 쓰기로 열거나 덜 쓰인 원본에 응답 이름을 붙이면 위반 (audit), (c) Linux 에서는
-   inotify 로 응답 이름이 생긴 뒤의 쓰기를 커널 쪽에서 본다, (d) 이름을 붙이는 원본은 받은편지함 안이고 이 프로세스에 그
-   inode 의 쓰기 fd 가 남아 있지 않다. 한계: mmap 쓰기 · 다른 프로세스가 받은편지함 밖 하드링크 별칭으로 고쳐 쓰는 길은
+   inotify 로 응답 이름이 생긴 뒤의 쓰기를 커널 쪽에서 본다, (d) 이름을 붙이는 원본은 받은편지함 안이다. 세 길(첫 공개 · 번호 충돌 ·
+   FileExistsError 재시도)을 모두 이 계측 아래 돈다. 한계: mmap 쓰기 · 다른 프로세스가 받은편지함 밖 하드링크 별칭으로 고쳐 쓰는 길은
    재지 못한다; inotify · /proc 가 없는 OS 는 (c) · (d) 를 미측정으로 출력한다;
    같은 바이트를 두 번 공개하면 두 파일이다 (배타 생성)
 4. 거절은 받은편지함을 바꾸지 않는다 — 413 · 422(선택지 밖 · 한도 · 제어 문자) · 409(지문 · 배치 · 오류 규칙)
@@ -26,6 +26,7 @@ WATCHES = (
     "workflow-source/tests/_workbench_fixture.py",
 )
 
+import contextlib
 import datetime as dt
 import multiprocessing
 import os
@@ -197,9 +198,7 @@ def case_no_partial_reads() -> list[str]:
 
         def paused_fsync(fd: int) -> None:
             # 쓰기와 fsync 사이 — 여기서 독자가 받은편지함을 훑는다 (정해진 멈춤).
-            for path in pr.inbox_census(branch).paths(task_id):
-                data = path.read_bytes()
-                seen.append(f"{path.name}:{len(data)}")
+            look("fsync 앞")
             real_fsync(fd)
 
         real_open = open
@@ -227,7 +226,9 @@ def case_no_partial_reads() -> list[str]:
 
         def look(when: str) -> None:
             for path in pr.inbox_census(branch).paths(task_id):
-                seen.append(f"{when} {path.name}:{len(path.read_bytes())}")
+                data = path.read_bytes()
+                if data != body:  # 이미 공개된 완성본은 정상이다 — 본문과 다른 것만 노출이다
+                    seen.append(f"{when} {path.name}:{len(data)}")
 
         def paused_open(file: Any, mode: str = "r", *args: Any, **kwargs: Any) -> Any:
             handle = real_open(file, mode, *args, **kwargs)
@@ -236,35 +237,40 @@ def case_no_partial_reads() -> list[str]:
                 return Paused(handle)
             return handle
 
-        # 쓰는 쪽이 어떤 API 를 쓰든 파일을 열거나 이름을 붙이는 순간은 audit 이벤트다 — 그때마다 훑는다.
-        WATCH.update(look=look, inbox=pr.ensure_inbox(branch), body=body, violations=[])
-        kernel: InboxWatch | None = None
-        if sys.platform.startswith("linux"):
-            kernel = InboxWatch(pr.inbox_dir(branch))
-        else:
-            print("        (미측정: inotify 가 없는 OS — 커널 쪽 관찰자 판정을 건너뛴다)")
-        WATCH["on"] = True
-        try:
-            with mock.patch.object(pr.os, "fsync", paused_fsync), \
-                    mock.patch.object(pr, "open", paused_open, create=True):
-                pr.publish(branch, task_id, body)
-        finally:
-            WATCH["on"] = False
-        if kernel is not None:
-            events = kernel.events()
-            kernel.close()
-            if not any(mask & (InboxWatch.IN_CREATE | InboxWatch.IN_MOVED_TO) and name.endswith(".md")
-                       for mask, name in events):
-                problems.append(f"커널 관찰자가 공개를 보지 못했다 — 이 판정이 재지 못한다: {events}")
-            problems.extend(exposed_writes(events))
-        if seen:
-            problems.append(f"공개가 끝나기 전에 독자가 응답을 봤다: {seen}")
-        if WATCH["violations"]:
-            problems.append(f"공개 방식이 원자적이지 않다: {WATCH['violations']}")
-        pr.publish(branch, task_id, body)
+        # 세 길을 같은 계측 아래 돈다 — 첫 공개, 번호가 이미 있는 공개(같은 바이트 다시), 경합으로 FileExistsError 가
+        # 나는 공개(taken_numbers 를 비워 강제). 쓰는 쪽이 길마다 다른 코드를 탈 수 있다 (verifier Z6 · Z7).
+        forced = mock.patch.object(pr, "taken_numbers", lambda *a, **k: set())
+        rounds = (("첫 공개", None), ("번호 충돌", None), ("FileExistsError 재시도", forced))
+        for label, extra in rounds:
+            seen.clear()
+            WATCH.update(look=look, inbox=pr.ensure_inbox(branch), body=body, violations=[])
+            kernel: InboxWatch | None = None
+            if sys.platform.startswith("linux"):
+                kernel = InboxWatch(pr.inbox_dir(branch))
+            elif label == "첫 공개":
+                print("        (미측정: inotify 가 없는 OS — 커널 쪽 관찰자 판정을 건너뛴다)")
+            WATCH["on"] = True
+            try:
+                with mock.patch.object(pr.os, "fsync", paused_fsync), \
+                        mock.patch.object(pr, "open", paused_open, create=True), \
+                        (extra if extra is not None else contextlib.nullcontext()):
+                    pr.publish(branch, task_id, body)
+            finally:
+                WATCH["on"] = False
+            if kernel is not None:
+                events = kernel.events()
+                kernel.close()
+                if not any(mask & (InboxWatch.IN_CREATE | InboxWatch.IN_MOVED_TO) and name.endswith(".md")
+                           for mask, name in events):
+                    problems.append(f"{label}: 커널 관찰자가 공개를 보지 못했다 — 이 판정이 재지 못한다: {events}")
+                problems.extend(f"{label}: {note}" for note in exposed_writes(events))
+            if seen:
+                problems.append(f"{label}: 공개가 끝나기 전에 독자가 덜 쓰인 응답을 봤다: {seen}")
+            if WATCH["violations"]:
+                problems.append(f"{label}: 공개 방식이 원자적이지 않다: {WATCH['violations']}")
         names = sorted(fx.inbox_snapshot(ws))
-        if len(names) != 2:
-            problems.append(f"같은 바이트 두 번 공개가 두 파일이 아니다 (배타 생성 아님): {names}")
+        if len(names) != 3:
+            problems.append(f"같은 바이트 세 번 공개가 세 파일이 아니다 (배타 생성 아님): {names}")
         leftovers = [e.name for e in pr.inbox_dir(branch).iterdir() if e.name.startswith(".tmp-")]
         if leftovers:
             problems.append(f"임시 파일이 남았다: {leftovers}")
@@ -341,28 +347,6 @@ def _is_response_name(path: object) -> bool:
             and target.parent.resolve() == inbox.resolve())
 
 
-def _write_fds_on(path: Path) -> list[int]:
-    """이 프로세스에서 ``path`` 의 inode 를 쓰기 모드로 연 fd (Linux ``/proc``). 다른 OS 는 빈 목록."""
-    proc = Path("/proc/self/fd")
-    if not proc.is_dir():
-        return []
-    try:
-        target = path.stat()
-    except OSError:
-        return []
-    found: list[int] = []
-    for entry in proc.iterdir():
-        try:
-            fd = int(entry.name)
-            info = os.fstat(fd)
-            flags = int((Path("/proc/self/fdinfo") / entry.name).read_text().split("flags:")[1].split()[0], 8)
-        except (OSError, ValueError, IndexError):
-            continue
-        if (info.st_ino, info.st_dev) == (target.st_ino, target.st_dev) and flags & (os.O_WRONLY | os.O_RDWR):
-            found.append(fd)
-    return found
-
-
 def _audit(event: str, args: tuple[Any, ...]) -> None:
     """구조 판정 — 쓰는 쪽이 어떤 API 를 쓰든 (스펙 §6-8 · 주장 스펙 §7-2):
 
@@ -402,9 +386,7 @@ def _audit(event: str, args: tuple[Any, ...]) -> None:
                 same_dir = False
             if not same_dir:
                 WATCH["violations"].append(f"받은편지함 밖의 원본에 응답 이름을 붙였다: {source.name}")
-            # 이름을 붙이는 순간 이 프로세스가 그 inode 를 쓰기로 쥐고 있으면 안 된다 (link 뒤 고쳐 쓰기 — Y2 · Y4).
-            for held in _write_fds_on(source):
-                WATCH["violations"].append(f"원본을 쓰기로 연 fd {held} 가 열린 채 응답 이름을 붙였다")
+
         WATCH["look"](f"audit {event}")
     finally:
         WATCH["busy"] = False

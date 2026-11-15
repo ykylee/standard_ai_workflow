@@ -345,7 +345,9 @@ class CheckResult:
     """
 
     warnings: list[str] = field(default_factory=list)
-    """이 실행이 낸 Python 경고 (정규화된 형태, TASK-2026-09-21-main-007).
+    """이 실행이 낸 Python 경고 (TASK-2026-09-21-main-007). **정규화 전 원위치**로 담는다
+    (`CheckWarning.render_raw`, TASK-2026-11-15-main-001) — 정규화된 `<TMP>` 로는 출처를
+    가를 수 없다. 표시 · 중복 제거는 `split_warnings` 가 `render()` 로 정규화한다.
 
     `run_one` 은 stdout+stderr 를 이미 전량 받아 두고 요약 뒤 버리고 있었다.
     경고는 exit 0 이라 종료 코드 축에는 안 잡히는데, **해석기별로 갈린다** —
@@ -785,7 +787,8 @@ def _run_one(
         passed=passed, failed=failed, last_line=last_line,
         error_excerpt=_error_excerpt(output) if proc.returncode != 0 else "",
         tmp_peak_mb=tmp_peak, killed_children=int(killed),
-        warnings=[w.render() for w in extract_warnings(output)],
+        # 원위치로 저장한다 — 게이트 분리가 다시 extract 해 분류한다. 표시는 거기서 render() (정규화).
+        warnings=[w.render_raw() for w in extract_warnings(output)],
         case_count=count_cases(output),
     )
 

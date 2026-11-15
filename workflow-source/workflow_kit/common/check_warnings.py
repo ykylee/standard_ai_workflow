@@ -68,6 +68,14 @@ class CheckWarning:
 
     message: str
 
+    raw_location: str = field(default="", compare=False)
+    """정규화 **전** 위치 — 출처 분류는 이것을 본다 (TASK-2026-11-15-main-001).
+
+    정규화는 `/tmp…` · `/var/tmp…` 경로를 통째로 `<TMP>` 로 접는다. 그 뒤에 분류하면
+    `site-packages` · `.venv` 단서가 사라지고 `/` 로 시작하지도 않아 **저장소로** 분류된다 —
+    저장소를 `/var/tmp` 아래에 둔 호스트(131차 `/var/tmp/saw-main-wt`)에서 서드파티 경고가
+    게이트 red 가 됐다. 비교 · 표시는 정규화된 `location`, 판정은 원위치로 나눈다."""
+
     @property
     def key(self) -> str:
         """두 실행을 대조할 때 쓰는 동일성 키."""
@@ -75,6 +83,10 @@ class CheckWarning:
 
     def render(self) -> str:
         return f"{self.location}:{self.line}: {self.category}: {self.message}"
+
+    def render_raw(self) -> str:
+        """정규화 전 위치로 쓴 한 줄 — `extract` 로 다시 읽으면 분류가 보존된다."""
+        return f"{self.raw_location or self.location}:{self.line}: {self.category}: {self.message}"
 
 
 def normalize(text: str) -> str:
@@ -87,12 +99,15 @@ def normalize(text: str) -> str:
 def extract(output: str) -> list[CheckWarning]:
     """검사 출력에서 Python 경고를 뽑는다. 순서는 등장 순, 중복은 유지한다."""
     found: list[CheckWarning] = []
-    for match in _WARNING_RE.finditer(normalize(output)):
+    # 원문을 파싱하고 필드마다 정규화한다 — 원위치를 `raw_location` 에 남겨야 분류가 산다.
+    for match in _WARNING_RE.finditer(output):
+        raw_location = match.group("location")
         found.append(CheckWarning(
             category=match.group("category"),
-            location=match.group("location"),
+            location=normalize(raw_location),
             line=int(match.group("line")),
-            message=match.group("message").strip(),
+            message=normalize(match.group("message")).strip(),
+            raw_location=raw_location,
         ))
     return found
 
@@ -126,15 +141,19 @@ ORIGIN_UNATTRIBUTED = "unattributed"
 
 
 def classify(warning: CheckWarning, repo_root: str) -> str:
-    """경고의 출처를 가른다 — 게이트 대상인지는 이 축이 정한다."""
-    if warning.location == UNATTRIBUTED:
+    """경고의 출처를 가른다 — 게이트 대상인지는 이 축이 정한다.
+
+    판정은 **정규화 전 위치**(`raw_location`)로 한다. 정규화된 `<TMP>` 는 단서를 잃었다.
+    """
+    location = warning.raw_location or warning.location
+    if location == UNATTRIBUTED:
         return ORIGIN_UNATTRIBUTED
-    if any(part in warning.location for part in _THIRD_PARTY_PARTS):
+    if any(part in location for part in _THIRD_PARTY_PARTS):
         return ORIGIN_THIRD_PARTY
-    if "/.venv" in warning.location or warning.location.startswith(".venv"):
+    if "/.venv" in location or location.startswith(".venv"):
         return ORIGIN_THIRD_PARTY
     root = repo_root.rstrip("/")
-    if warning.location.startswith(root + "/") or not warning.location.startswith("/"):
+    if location.startswith(root + "/") or not location.startswith("/"):
         return ORIGIN_REPO
     return ORIGIN_THIRD_PARTY
 

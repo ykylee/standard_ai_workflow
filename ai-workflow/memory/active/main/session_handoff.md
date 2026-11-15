@@ -77,6 +77,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-11-15-main-001 경고 분류기가 /tmp · /var/tmp 경로를 정규화한 뒤 분류해 서드파티 경고를 저장소 경고로 오판한다
 - TASK-2026-11-15-claude-remote-sync-check-234c32-002 v1.23.0 발행 — main 합류 · 발행 준비 · 태그 · GitHub Release
 - TASK-2026-11-04-main-002 MCP 도구 4종의 성공 경로가 항상 깨진다 — output contract family 미등록
 - TASK-2026-11-15-claude-remote-sync-check-234c32-003 합류 반영이 완료 task 를 archived/ 로만 보내 main 집계가 근거를 잃는다 — 완료 task 도 모 브랜치로 옮긴다
@@ -86,7 +87,6 @@
 - TASK-2026-11-14-claude-remote-sync-check-234c32-001 M-029 ① 이월 정리 — inbox_census 단일 출처 · plan-import 건수 두 필드 · 받은편지함 우회 검출 · 정리 일곱
 - TASK-2026-11-13-claude-remote-sync-check-234c32-006 계획·진척 워크벤치 design — 프록시 · 브라우저 실측 + ADR-032 + core 스펙
 - TASK-2026-11-13-claude-remote-sync-check-234c32-004 주장 트리 계획 구현 2단계 — 응답 파일 · 받은편지함 · plan-import · 받은편지함 게이트 · 이어받기 · 정본 §11.1
-- TASK-2026-11-13-claude-remote-sync-check-234c32-003 주장 트리 계획 구현 1단계 — 라벨 · 파서 · 린트 · 게이트 · --decision-state · plan-status · open_decisions · 정본 §1
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

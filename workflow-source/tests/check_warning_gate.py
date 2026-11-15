@@ -21,7 +21,7 @@ TASK-2026-09-21-main-007. 계약과 실측 근거는
 저장소 코드가 낸 것만 red, 서드파티는 보고만. 그러면 셀 간 비교 인프라가 필요 없다 —
 각 셀이 독립적으로 판정해도 3.12+ 에서만 나는 경고는 그 셀이 red 가 된다.
 
-검증 케이스 (7):
+검증 케이스 (9):
     1. 추출기는 Python 경고만 뽑는다 (검사가 찍는 `WARN:` 산문은 아니다)
     2. 정규화가 실행마다 달라지는 조각을 지운다 (tmp 경로 · 객체 주소)
     3. 출처 분류 — 저장소 / 서드파티 / 귀속 불가
@@ -29,6 +29,9 @@ TASK-2026-09-21-main-007. 계약과 실측 근거는
     5. 서드파티는 게이트 대상이 아니다 (위양성 없음)
     6. runner 가 저장소 경고로 red 가 된다 — 검사 자신은 exit 0 인데도 (end-to-end)
     7. `call_deprecated` 는 삼키되 **경고가 났는지 단언**한다
+    8. 저장소 루트가 `/tmp` · `/var/tmp` 아래여도 출처 분류가 맞다 — 분류는 정규화 전 위치로
+       (TASK-2026-11-15-main-001: 131차 main 워크트리 `/var/tmp/saw-main-wt` 에서 case 3 · 5 red)
+    9. runner end-to-end — `/var/tmp` 아래 `site-packages` 경로의 경고는 게이트 red 가 아니다
 
 Stdlib only.
 """
@@ -250,6 +253,77 @@ def case_7_call_deprecated_asserts_the_warning() -> None:
             "DeprecationWarning 을 내지 않는 함수도 통과시켰다 — 계약이 죽어 있다")
 
 
+def case_8_classifies_under_tmp_root() -> None:
+    """저장소를 `/var/tmp` 아래 두면 정규화가 경로를 통째로 `<TMP>` 로 접는다.
+
+    정규화 **뒤** 분류하면 `site-packages` · `.venv` 단서가 사라지고 `/` 로 시작하지도
+    않아 전부 저장소로 분류됐다 (TASK-2026-11-15-main-001). 원위치로 판정해야 한다.
+    `render_raw` → `extract` 왕복(runner 가 저장하는 형태)에서도 분류가 살아야 한다.
+    """
+    wrong = []
+    for root in ("/var/tmp/saw-wt-q1w2", "/tmp/saw-wt-e3r4"):
+        cases = [
+            (f"{root}/workflow-source/tests/check_x.py:12: DeprecationWarning: m", ORIGIN_REPO),
+            (f"{root}/.venv/lib/python3.13/site-packages/p.py:9: UserWarning: m", ORIGIN_THIRD_PARTY),
+            (f"{root}/build/lib/site-packages/r.py:5: UserWarning: m", ORIGIN_THIRD_PARTY),
+            ("/var/tmp/gate-x/venv/lib/python3.13/site-packages/s.py:2: UserWarning: m", ORIGIN_THIRD_PARTY),
+        ]
+        for text, expected in cases:
+            parsed = extract(text)
+            if not parsed:
+                wrong.append(f"{text[:50]} → (추출 실패)")
+                continue
+            direct = classify(parsed[0], root)
+            again = extract(parsed[0].render_raw())
+            relayed = classify(again[0], root) if again else "(재추출 실패)"
+            if direct != expected or relayed != expected:
+                wrong.append(f"{text[:60]} → {direct}/{relayed} (기대 {expected})")
+            if "<TMP>" not in parsed[0].render():
+                wrong.append(f"{text[:50]} → 표시가 정규화되지 않았다: {parsed[0].render()}")
+    _record("case 8 (tmp 아래 저장소의 출처 분류)", not wrong,
+            "루트 2종 × 4표본 · 직접/왕복 일치 · 표시는 <TMP>" if not wrong else "; ".join(wrong))
+
+
+def case_9_runner_does_not_gate_tmp_third_party() -> None:
+    """**end-to-end**: `/var/tmp` 아래 `site-packages` 위치의 경고는 runner 가 보고만 한다.
+
+    runner 가 정규화된 줄만 저장하면 게이트 분리가 원위치를 못 본다 — 저장소 위치와
+    무관하게 이 결함을 재현하려고 경고의 파일 이름을 직접 `/var/tmp/...` 로 준다.
+    """
+    probe = SOURCE_ROOT / "tests" / "check_zzz_warning_probe_tmp.py"
+    probe_src = (
+        '#!/usr/bin/env python3\n'
+        '"""임시 probe (check_warning_gate case 9) — 서드파티 위치의 경고만 낸다."""\n'
+        'WATCHES_ALL_REASON = "probe"\n'
+        'import warnings\n'
+        'warnings.warn_explicit("probe 서드파티 경고", UserWarning,\n'
+        '    "/var/tmp/gate-probe/venv/lib/python3.13/site-packages/pkg/mod.py", 7)\n'
+        'print("  probe: PASS")\n'
+        'print("\\n1/1 passed")\n'
+        'raise SystemExit(0)\n'
+    )
+    try:
+        probe.write_text(probe_src, encoding="utf-8")
+        proc = subprocess.run(
+            [sys.executable, str(RUNNER), "--filter=zzz_warning_probe_tmp",
+             "--no-meta-watch", "--json"],
+            capture_output=True, text=True, timeout=120, cwd=str(REPO_ROOT),
+            env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)}, encoding="utf-8", errors="replace"
+        )
+        data = json.loads(proc.stdout) if proc.stdout.strip() else {}
+        gated = data.get("warnings", {}).get("gated", [])
+        third = data.get("warnings", {}).get("third_party", [])
+        ok = (proc.returncode == 0 and not gated and any("<TMP>" in line for line in third)
+              and data.get("total", 0) == 1)
+        _record(
+            "case 9 (tmp 아래 서드파티 경고는 red 아님)", ok,
+            f"runner exit 0 · 서드파티 {len(third)}건 보고 · 게이트 0" if ok else
+            f"runner exit {proc.returncode} · gated={gated} · third_party={third} · total={data.get('total')}",
+        )
+    finally:
+        probe.unlink(missing_ok=True)
+
+
 def main() -> int:
     print("=== 경고 게이트 계약 (TASK-2026-09-21-main-007) ===")
     for fn in (case_1_extracts_only_python_warnings,
@@ -258,7 +332,9 @@ def main() -> int:
                case_4_unattributed_is_gated,
                case_5_third_party_is_not_gated,
                case_6_runner_reds_on_repo_warning,
-               case_7_call_deprecated_asserts_the_warning):
+               case_7_call_deprecated_asserts_the_warning,
+               case_8_classifies_under_tmp_root,
+               case_9_runner_does_not_gate_tmp_third_party):
         try:
             fn()
         except Exception as exc:  # noqa: BLE001

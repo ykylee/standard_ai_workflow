@@ -52,6 +52,10 @@ KNOWN_TRANSIENT_PATHS: dict[str, str] = {
     "workflow-source/tests/check_zzz_warning_probe.py":
         "check_warning_gate case 6 의 end-to-end probe. 러너가 검사를 `tests/` "
         "에서 discover 하므로 그 자리에 둘 수밖에 없다 — 만들었다 반드시 지운다.",
+    "workflow-source/tests/check_zzz_warning_probe_tmp.py":
+        "check_warning_gate case 9 의 end-to-end probe (TASK-2026-11-15-main-001) — "
+        "`/var/tmp` 아래 서드파티 위치의 경고가 게이트 red 가 아닌지. case 6 과 같은 이유로 "
+        "`tests/` 에 두고 만들었다 반드시 지운다.",
 }
 
 

@@ -1,4 +1,5 @@
 ---
+merged_from: claude/remote-sync-check-234c32@7fdf0eb5
 id: TASK-2026-11-13-claude-remote-sync-check-234c32-001
 status: done
 created_at: 2026-11-13

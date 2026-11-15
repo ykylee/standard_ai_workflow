@@ -5,12 +5,12 @@
   "purpose_digest_rev": "2026-09-28",
   "source_of_truth": {
     "project_profile_path": "docs/PROJECT_PROFILE.md",
-    "session_handoff_path": "ai-workflow/memory/active/claude/remote-sync-check-234c32/session_handoff.md",
+    "session_handoff_path": "ai-workflow/memory/archived/claude/remote-sync-check-234c32/session_handoff.md",
     "work_backlog_index_path": null,
-    "daily_backlog_dir": "ai-workflow/memory/active/claude/remote-sync-check-234c32/backlog",
-    "tasks_dir": "ai-workflow/memory/active/claude/remote-sync-check-234c32/backlog/tasks",
-    "sessions_dir": "ai-workflow/memory/active/claude/remote-sync-check-234c32/sessions",
-    "latest_backlog_path": "ai-workflow/memory/active/claude/remote-sync-check-234c32/backlog/2026-11-15.md",
+    "daily_backlog_dir": "ai-workflow/memory/archived/claude/remote-sync-check-234c32/backlog",
+    "tasks_dir": "ai-workflow/memory/archived/claude/remote-sync-check-234c32/backlog/tasks",
+    "sessions_dir": "ai-workflow/memory/archived/claude/remote-sync-check-234c32/sessions",
+    "latest_backlog_path": "ai-workflow/memory/archived/claude/remote-sync-check-234c32/backlog/2026-11-15.md",
     "repository_assessment_path": null
   },
   "project": {
@@ -57,7 +57,7 @@
     "environment_constraints": []
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/active/claude/remote-sync-check-234c32/backlog/2026-11-15.md",
+    "latest_backlog_path": "ai-workflow/memory/archived/claude/remote-sync-check-234c32/backlog/2026-11-15.md",
     "task_count": 3,
     "in_progress_items": [
       "TASK-2026-11-15-claude-remote-sync-check-234c32-002 — v1.23.0 발행 — main 합류 · 발행 준비 · 태그 · GitHub Release"
@@ -70,11 +70,11 @@
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",
-    "ai-workflow/memory/active/claude/remote-sync-check-234c32/session_handoff.md",
-    "ai-workflow/memory/active/claude/remote-sync-check-234c32/backlog/2026-11-15.md",
-    "ai-workflow/memory/active/claude/remote-sync-check-234c32/backlog",
-    "ai-workflow/memory/active/claude/remote-sync-check-234c32/sessions",
-    "ai-workflow/memory/active/claude/remote-sync-check-234c32/baselines.md",
+    "ai-workflow/memory/archived/claude/remote-sync-check-234c32/session_handoff.md",
+    "ai-workflow/memory/archived/claude/remote-sync-check-234c32/backlog/2026-11-15.md",
+    "ai-workflow/memory/archived/claude/remote-sync-check-234c32/backlog",
+    "ai-workflow/memory/archived/claude/remote-sync-check-234c32/sessions",
+    "ai-workflow/memory/archived/claude/remote-sync-check-234c32/baselines.md",
     "workflow-source/core/roadmap_milestone_wbs_spec.md",
     "workflow-source/core/workflow_deployment_idempotency.md",
     "ai-workflow/memory/active/main/session_handoff.md",

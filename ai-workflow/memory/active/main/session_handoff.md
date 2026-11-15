@@ -67,6 +67,7 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
+- TASK-2026-11-15-claude-remote-sync-check-234c32-002 v1.23.0 발행 — main 합류 · 발행 준비 · 태그 · GitHub Release
 - TASK-2026-10-02-main-007 Windows V3 백신이 wk.exe 를 평판 기반으로 차단한다 — pip 생성 console-script 런처 대체 진입 경로
 - TASK-2026-10-02-main-006 Windows 로캘(cp949)에서 wk 가 UnicodeEncodeError 로 죽는다 — stdout 과 기본 인코딩 I/O 를 UTF-8 로 고정
 ## 3. 차단 작업
@@ -76,20 +77,21 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
-- TASK-2026-11-04-main-001 minimax-code 채널 설치·검증 — mcode 0.7.4 로컬 마켓플레이스 실측
-- TASK-2026-10-31-main-004 v1.22.0 발행 — 한글 Windows 프로필 확립 + Windows 격차 52건 수리 묶음
-- TASK-2026-10-31-main-003 Windows 호스트에서 전량 게이트 52개 검사 red — POSIX 전제 검사가 push 게이트를 막는다
-- TASK-2026-10-31-main-002 게이트 러너가 Windows 에서 첫 검사 완료와 함께 죽는다 — _kill_process_group 가 POSIX 전용 os.getpgid 를 쓴다
-- TASK-2026-10-31-main-001 MiniMax Code 채널 재적용 — v1.21.0 로컬 마켓플레이스 sync + 글로벌 MCP 등록
-- TASK-2026-10-19-main-007 pre-push 게이트가 main · 태그 삭제 push 를 막는다 — 다른 브랜치 삭제는 통과 (소유자 결정 2026-10-19)
-- TASK-2026-10-19-main-006 G4 · G5 goal 선언 — M-001~M-006 goals 에 G5, M-006 에 G4, WBS-7.4 → G3 · G4 · G5 (소유자 결정 A안)
-- TASK-2026-10-19-main-005 v1.21.0 발행 — minimax-code doctor 5채널 편입 + 117 · 118차 수리 묶음
-- TASK-2026-10-19-main-004 goal coverage 가 '어느 마일스톤도 섬기지 않는 goal' 을 조용히 uncovered 로 센다 — 닿을 수 없는 goal 을 provenance 로 지목
-- TASK-2026-10-02-main-003 원격 없는 저장소의 worktree 는 자동 seed · 이어받기가 안 돈다 — 기본 브랜치 판정이 현재 브랜치로 떨어진다
+- TASK-2026-11-04-main-002 MCP 도구 4종의 성공 경로가 항상 깨진다 — output contract family 미등록
+- TASK-2026-11-15-claude-remote-sync-check-234c32-003 합류 반영이 완료 task 를 archived/ 로만 보내 main 집계가 근거를 잃는다 — 완료 task 도 모 브랜치로 옮긴다
+- TASK-2026-11-15-claude-remote-sync-check-234c32-001 MCP 도구 4종 성공 경로 output contract 미등록 수리 (main-002 대응, 발행 차단 결함)
+- TASK-2026-11-14-claude-remote-sync-check-234c32-003 M-029 ② MCP plan_inbox · plan_import + 체크인 생성물
+- TASK-2026-11-14-claude-remote-sync-check-234c32-002 M-029 ② 워크벤치 서버 · 화면 · 검사 넷 · 스킬 (MCP 두 도구는 다음 task)
+- TASK-2026-11-14-claude-remote-sync-check-234c32-001 M-029 ① 이월 정리 — inbox_census 단일 출처 · plan-import 건수 두 필드 · 받은편지함 우회 검출 · 정리 일곱
+- TASK-2026-11-13-claude-remote-sync-check-234c32-006 계획·진척 워크벤치 design — 프록시 · 브라우저 실측 + ADR-032 + core 스펙
+- TASK-2026-11-13-claude-remote-sync-check-234c32-004 주장 트리 계획 구현 2단계 — 응답 파일 · 받은편지함 · plan-import · 받은편지함 게이트 · 이어받기 · 정본 §11.1
+- TASK-2026-11-13-claude-remote-sync-check-234c32-003 주장 트리 계획 구현 1단계 — 라벨 · 파서 · 린트 · 게이트 · --decision-state · plan-status · open_decisions · 정본 §1
+- TASK-2026-11-13-claude-remote-sync-check-234c32-002 주장 트리 계획 design — ADR-031 + core 스펙 (필드 · 린트 · 게이트 · 응답 형식 · plan-import · 받은편지함 계약)
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
 
+- (합류 `claude/remote-sync-check-234c32@7fdf0eb5`, 2026-11-15) **130차 세션 (2026-11-15, Linux 호스트) — main 합류 · 1.23.0 발행 준비 완료(게이트 442b9808, main fast-forward) + 합류 반영 결함 수리(task 11-15-003 — 완료 task 도 모 브랜치로): `origin/main@39a50a11` 병합(6ffa3f69, `roadmap_state.json` 충돌은 재생성) + 발행 차단 결함 수리.** main 의 TASK-… — 완료 14건(TASK-2026-11-12-claude-remote-sync-check-234c32-002, TASK-2026-11-12-claude-remote-sync-check-234c32-003, TASK-2026-11-12-claude-remote-sync-check-234c32-004, TASK-2026-11-12-claude-remote-sync-check-234c32-005, TASK-2026-11-13-claude-remote-sync-check-234c32-001, TASK-2026-11-13-claude-remote-sync-check-234c32-002, TASK-2026-11-13-claude-remote-sync-check-234c32-003, TASK-2026-11-13-claude-remote-sync-check-234c32-004, TASK-2026-11-13-claude-remote-sync-check-234c32-006, TASK-2026-11-14-claude-remote-sync-check-234c32-001, TASK-2026-11-14-claude-remote-sync-check-234c32-002, TASK-2026-11-14-claude-remote-sync-check-234c32-003, TASK-2026-11-15-claude-remote-sync-check-234c32-001, TASK-2026-11-15-claude-remote-sync-check-234c32-003) · 이월 2건(TASK-2026-11-13-claude-remote-sync-check-234c32-005, TASK-2026-11-15-claude-remote-sync-check-234c32-002) · 되돌려 적음 0건. 기록: [`archived/claude/remote-sync-check-234c32/session_handoff.md`](../../archived/claude/remote-sync-check-234c32/session_handoff.md) · [합류 기록](./sessions/merge_claude-remote-sync-check-234c32_2026-11-15.md)
 - (2026-11-04, Linux 호스트) **minimax-code 채널 §2.8 재적용 완료** (TASK-2026-11-04-main-001 — mcode 0.7.4, 1.22.0 in-sync · 5 스킬 노출). 남은 것: ①doctor 가 codex · grok-build · antigravity 를 1.21.0 BEHIND 로 보고 — 이 호스트 나머지 채널 재적용 ②**TASK-2026-11-04-main-002 (planned)** — MCP 도구 4종(summarize_git_history · assess_milestone_progress · rotate_workflow_logs · apply_robust_patch)이 성공 경로에서 `invalid_tool_output_contract` 로 죽는다, `PYDANTIC_MODEL_REGISTRY` 에 family 미등록. 1.22.0 발행본에 들어 있다. (이 기록은 2026-11-12 에 커밋 — 그동안 이 호스트 작업 트리에만 있었다.)
 - (122차) **v1.22.0 발행 완료** (main-004) — 준비 커밋 `a44b7d31` → 전량 게이트 native·slash 309×2 rc 0 (증거 `a44b7d31…json`, 커밋 후 clean tree) → `dist --apply`(휠·sdist + plugin ZIP 3종 · twine PASS) → `release --dry-run` ready=true → push(main) → `release --apply`(태그 `v1.22.0` push + GitHub Release asset 5종). **이 호스트에서 처음 시도한 Windows 발행**이었다 — 발행 경로 격차 2건(`venv/bin/pip` 경로 · pip 자기수정)과 서브프로세스 encoding 누락 10건이 이때 드러나 추가로 고쳤다. **다음 일**: ①**§2.8 소비채널 재적용** — `python -m workflow_kit.minimax_plugin --apply` 후 `python -m workflow_kit doctor --json` 의 `content_drift.behind=[]` (minimax-code 1.22.0) 확인 · 데스크톱 앱 재시작 필요 ②**POSIX 회귀 게이트는 이 호스트에서 못 돌린다** — Linux/macOS 에서 309×2 확인 필요 ③해석기 매트릭스 3.11 셀은 해석기 미설치로 UNMEASURED — 설치 후 재실행 ④case 수 선언 대조 75건 미측정 ⑤PyPI 발행은 하지 않는다(§1 각주 0 — 2026-08-14 소유자 최종 결정 · 배포는 GitHub Releases 하나).
 - (121차) **한글 Windows 프로필 확립 + 격차 52건 → 0건 — push 완료.** 이 호스트에서 전량 게이트 `--branch-context=all` 가 green 이다: native · slash 각 309/309 rc 0, 증거 `712e9414…json` (커밋 후 clean tree) → `origin/main` push **완료**(게이트 우회 없음 · `--no-verify` 미사용). 다음 일: ①원하면 이 호스트에서 `release --apply` 로 v1.21.1 발행 시도 ②**POSIX(Linux/macOS) 회귀 게이트는 이 호스트에서 돌릴 수 없다** — 309×2 는 별도 호스트에서 확인해야 한다. 소유자 결정 대기 0. 재발 방지 규칙 8절은 §5 말미 "121차가 남긴 규칙" 참고.

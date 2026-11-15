@@ -11,9 +11,12 @@
 
 1. 이어받은 task 중 고친 것을 원본에 되돌려 적고(:func:`branch_inheritance.apply_write_back`), 모 브랜치
    handoff 의 진행·차단·완료 목록을 그 status 로 옮긴다.
-2. 브랜치 자체의 **열린** task 를 같은 ID 로 모 브랜치 네임스페이스에 이월한다 — frontmatter 맨 앞에
+2. 브랜치 자체의 task 를 — **열린 것도 완료한 것도** — 같은 ID 로 모 브랜치 네임스페이스에 옮긴다. frontmatter 맨 앞에
    ``merged_from: <branch>@<sha>``, 브랜치 쪽 사본에는 ``carried_over_to`` (아카이브의 미완료 판정 면제 축).
-3. 브랜치 자체의 **완료** task 를 모 브랜치 handoff "최근 완료" 에 올린다 (자동 seed 사건 task 는 뺀다).
+   완료 task 를 handoff 한 줄로만 남기면 파일은 archived/ 로 가고(archived/ 는 아무 집계도 안 본다) 모 브랜치의
+   roadmap 파생 진척이 그 근거를 잃는다 — 브랜치에서만 진행한 마일스톤이 '선언 done ≠ 파생 planned' 가 됐다
+   (TASK-2026-11-15-claude-remote-sync-check-234c32-003, 소유자 결정: 완료 task 도 모 브랜치로).
+3. 완료 task 는 모 브랜치 handoff "최근 완료" 에 올린다 (자동 seed 사건 task 는 옮기지도 올리지도 않는다).
 4. 모 브랜치 handoff §5 맨 앞에 합류 줄 하나, `sessions/merge_<slug>_<date>.md` 에 합류 기록.
 
 모 브랜치는 **이 체크아웃의 현재 브랜치**이고, 호출자(archive 도구)가 그것이 기본 브랜치일 때만 부른다.
@@ -41,8 +44,8 @@ _LIST_STATES = ("in_progress", "blocked", "done")
 @dataclass
 class JoinPlan:
     carry: list[str] = field(default_factory=list)      # 이월할 열린 자체 task
-    clashes: list[str] = field(default_factory=list)    # 모 브랜치에 같은 ID 가 있어 이월 불가
-    done: list[str] = field(default_factory=list)       # 최근 완료로 올릴 자체 task
+    clashes: list[str] = field(default_factory=list)    # 모 브랜치에 같은 ID 가 있어 옮길 수 없다
+    done: list[str] = field(default_factory=list)       # 모 브랜치로 옮기고 최근 완료로 올릴 자체 task
 
 
 def _own_tasks(branch_dir: Path) -> list[tuple[Path, str]]:
@@ -59,11 +62,12 @@ def plan_join(branch_dir: Path, parent_dir: Path) -> JoinPlan:
     plan = JoinPlan()
     for path, text in _own_tasks(branch_dir):
         status = inherit._frontmatter_value(text, "status")
-        if status == "done":
-            if not inherit.task_title(text, path.stem).startswith(SEED_TITLE_PREFIX):
-                plan.done.append(path.stem)
-        elif (parent_dir / "backlog" / "tasks" / path.name).exists():
+        if status == "done" and inherit.task_title(text, path.stem).startswith(SEED_TITLE_PREFIX):
+            continue  # 사건이지 업무가 아니다 — 옮기지도 올리지도 않는다
+        if (parent_dir / "backlog" / "tasks" / path.name).exists():
             plan.clashes.append(path.stem)
+        elif status == "done":
+            plan.done.append(path.stem)
         else:
             plan.carry.append(path.stem)
     return plan
@@ -133,11 +137,11 @@ def reflect_join(*, branch: str, branch_dir: Path, parent_branch: str, active_di
             _sync_lists(handoff, _label(restored, item.task_id),
                         inherit._frontmatter_value(restored, "status"))
 
-    # 2 · 3. 자체 task — 열린 것은 이월, 완료는 최근 완료
+    # 2 · 3. 자체 task — 열린 것도 완료한 것도 모 브랜치로 옮긴다 (완료는 최근 완료에도)
     plan = plan_join(branch_dir, parent_dir)
     for path, text in _own_tasks(branch_dir):
         task_id, status = path.stem, inherit._frontmatter_value(text, "status")
-        if task_id in plan.carry:
+        if task_id in plan.carry or task_id in plan.done:
             source = inherit._frontmatter_value(text, "source_path")
             source = source if source.startswith("backlog/") else f"backlog/{today}.md"
             upsert_backlog_entry(
@@ -152,10 +156,7 @@ def reflect_join(*, branch: str, branch_dir: Path, parent_branch: str, active_di
                             encoding="utf-8", newline="\n")
             plan_responses.copy_archive(branch_dir, parent_dir, task_id)
             _sync_lists(handoff, _label(text, task_id), status)
-            report.carried.append(task_id)
-        elif task_id in plan.done:
-            _sync_lists(handoff, _label(text, task_id), "done")
-            report.done.append(task_id)
+            (report.done if task_id in plan.done else report.carried).append(task_id)
 
     # 4. §5 합류 줄 + 합류 기록
     branch_handoff = path_in_active(active_dir, HANDOFF_FILENAME, branch)

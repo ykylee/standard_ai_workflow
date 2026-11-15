@@ -523,7 +523,7 @@ def main() -> int:
         if join_plan is not None and join_plan.clashes:
             candidates.append({
                 "branch": name, "action": "blocked",
-                "reason": (f"이월할 열린 task {len(join_plan.clashes)}건이 `{current}` 에 같은 ID 로 이미 있다 — "
+                "reason": (f"옮길 자체 task(열린 것 · 완료한 것) {len(join_plan.clashes)}건이 `{current}` 에 같은 ID 로 이미 있다 — "
                            + ", ".join(join_plan.clashes) + " — 사람이 합친 뒤 다시 실행한다"),
             })
             continue

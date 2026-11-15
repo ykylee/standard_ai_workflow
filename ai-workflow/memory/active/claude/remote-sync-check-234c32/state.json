@@ -27,7 +27,7 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**130차 세션 (2026-11-15, Linux 호스트) — main 합류 · 1.23.0 발행 준비 착수: `origin/main@39a50a11` 병합(6ffa3f69, `roadmap_state.json` 충돌은 재생성) + 발행 차단 결함 수리.** main 의 TASK-2026-11-04-main-002 (MCP 도구 4종 — `summarize_git_history` · `assess_milestone_progress` · `rotate_workflow_logs` · `apply_robust_patch` — 성공 응답이 `Unknown family` 로 `invalid_tool_output_contract`, 1.22.0 발행본 포함)를 이 브랜치 task 11-15-001 로 고쳤다: 모델 셋 신설(`schemas/read_only.py`) + `ApplyRobustPatchOutput` 등록, rotate 오류 응답을 ErrorOutput 계약으로, 생성 스키마 4종 재생성, 결함을 기대값으로 고정하던 `check_v0_8_10_…` 의 UNMODELED 예외 제거. 새 검사 `check_mcp_tool_output_contracts` 4 case(되주입 10/10 red), verifier 1회 PASS 3/3. 검사 319. 등급 minor → 1.23.0 (feat 5 · fix 17 · breaking 0)",
+    "current_baseline": "**130차 세션 (2026-11-15, Linux 호스트) — main 합류 · 1.23.0 발행 준비 완료(게이트 442b9808, main fast-forward) + 합류 반영 결함 수리(task 11-15-003 — 완료 task 도 모 브랜치로): `origin/main@39a50a11` 병합(6ffa3f69, `roadmap_state.json` 충돌은 재생성) + 발행 차단 결함 수리.** main 의 TASK-2026-11-04-main-002 (MCP 도구 4종 — `summarize_git_history` · `assess_milestone_progress` · `rotate_workflow_logs` · `apply_robust_patch` — 성공 응답이 `Unknown family` 로 `invalid_tool_output_contract`, 1.22.0 발행본 포함)를 이 브랜치 task 11-15-001 로 고쳤다: 모델 셋 신설(`schemas/read_only.py`) + `ApplyRobustPatchOutput` 등록, rotate 오류 응답을 ErrorOutput 계약으로, 생성 스키마 4종 재생성, 결함을 기대값으로 고정하던 `check_v0_8_10_…` 의 UNMODELED 예외 제거. 새 검사 `check_mcp_tool_output_contracts` 4 case(되주입 10/10 red), verifier 1회 PASS 3/3. 검사 319. 등급 minor → 1.23.0 (feat 5 · fix 17 · breaking 0)",
     "current_axis": "**로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · ~~[TASK-2026-08-13-main-004] mypy flake 관찰~~ ✅ (66차 close — 33/33 표본, mypy 실패 0).",
     "current_focus": "TASK-2026-11-15-claude-remote-sync-check-234c32-002 v1.23.0 발행 — main 합류 · 발행 준비 · 태그 · GitHub Release",
     "in_progress_items": [
@@ -42,6 +42,7 @@
       "TASK-2026-11-13-claude-remote-sync-check-234c32-005"
     ],
     "recent_done_items": [
+      "TASK-2026-11-15-claude-remote-sync-check-234c32-003 — 합류 반영이 완료 task 를 archived/ 로만 보내 main 집계가 근거를 잃는다 — 완료 task 도 모 브랜치로 옮긴다",
       "TASK-2026-11-15-claude-remote-sync-check-234c32-001 — MCP 도구 4종 성공 경로 output contract 미등록 수리 (main-002 대응, 발행 차단 결함)",
       "TASK-2026-11-14-claude-remote-sync-check-234c32-003 — M-029 ② MCP plan_inbox · plan_import + 체크인 생성물",
       "TASK-2026-11-14-claude-remote-sync-check-234c32-002 — M-029 ② 워크벤치 서버 · 화면 · 검사 넷 · 스킬 (MCP 두 도구는 다음 task)",
@@ -50,21 +51,21 @@
       "TASK-2026-11-13-claude-remote-sync-check-234c32-004 — 주장 트리 계획 구현 2단계 — 응답 파일 · 받은편지함 · plan-import · 받은편지함 게이트 · 이어받기 · 정본 §11.1",
       "TASK-2026-11-13-claude-remote-sync-check-234c32-003 — 주장 트리 계획 구현 1단계 — 라벨 · 파서 · 린트 · 게이트 · --decision-state · plan-status · open_decisions · 정본 §1",
       "TASK-2026-11-13-claude-remote-sync-check-234c32-002 — 주장 트리 계획 design — ADR-031 + core 스펙 (필드 · 린트 · 게이트 · 응답 형식 · plan-import · 받은편지함 계약)",
-      "TASK-2026-11-13-claude-remote-sync-check-234c32-001 — 계획·진척 워크벤치 requirements — 미실측 실측 + 서버 · 응답 쓰기 · 알림 · 진척 화면 요구 사항 · design 진입 조건 확정",
-      "TASK-2026-11-12-claude-remote-sync-check-234c32-005 — 주장 트리 계획 requirements — 미실측 3건 실측 + A · B 요구 사항 · 숫자 · design 진입 조건 확정"
+      "TASK-2026-11-13-claude-remote-sync-check-234c32-001 — 계획·진척 워크벤치 requirements — 미실측 실측 + 서버 · 응답 쓰기 · 알림 · 진척 화면 요구 사항 · design 진입 조건 확정"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/claude/remote-sync-check-234c32/backlog/2026-11-15.md",
-    "task_count": 2,
+    "task_count": 3,
     "in_progress_items": [
       "TASK-2026-11-15-claude-remote-sync-check-234c32-002 — v1.23.0 발행 — main 합류 · 발행 준비 · 태그 · GitHub Release"
     ],
     "blocked_items": [],
     "done_items": [
-      "TASK-2026-11-15-claude-remote-sync-check-234c32-001 — MCP 도구 4종 성공 경로 output contract 미등록 수리 (main-002 대응, 발행 차단 결함)"
+      "TASK-2026-11-15-claude-remote-sync-check-234c32-001 — MCP 도구 4종 성공 경로 output contract 미등록 수리 (main-002 대응, 발행 차단 결함)",
+      "TASK-2026-11-15-claude-remote-sync-check-234c32-003 — 합류 반영이 완료 task 를 archived/ 로만 보내 main 집계가 근거를 잃는다 — 완료 task 도 모 브랜치로 옮긴다"
     ]
   },
   "next_documents": [

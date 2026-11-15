@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-r"""worktree 합류 반영 — 모 브랜치에 병합된 브랜치 메모리가 모 브랜치 메모리에 기록된다 (6 cases).
+r"""worktree 합류 반영 — 모 브랜치에 병합된 브랜치 메모리가 모 브랜치 메모리에 기록된다 (7 cases).
 
 ## 왜 이 검사가 필요한가 (TASK-2026-10-02-main-004)
 
@@ -12,15 +12,18 @@ r"""worktree 합류 반영 — 모 브랜치에 병합된 브랜치 메모리가
 판정이 호스트 저장소에 달리지 않게 매 case 가 임시 저장소(origin + clone + 살아 있는 `git worktree`)를
 만들고 브랜치·CI env 를 비운 좁은 환경에서 모듈을 띄운다.
 
-5 cases:
+7 cases:
   1) 병합된 살아 있는 worktree 브랜치 → main 의 session-start 가 반영한다: 이어받은 task 의 결과를 원본에
-     되돌려 적고 handoff 목록을 옮긴다 · 자체 완료 task 는 '최근 완료' · 자체 열린 task 는 `merged_from`
-     원류와 함께 이월(브랜치 사본은 `carried_over_to`) · §5 합류 줄(브랜치@sha) · 합류 기록 · 아카이브.
+     되돌려 적고 handoff 목록을 옮긴다 · 자체 완료 task 는 '최근 완료' · 자체 task 는 **열린 것도 완료한 것도**
+     `merged_from` 원류와 함께 모 브랜치로 옮긴다(브랜치 사본은 `carried_over_to`) — 완료 task 의 `wbs:` 를
+     모 브랜치의 roadmap 링크 수집이 센다 (TASK-2026-11-15-claude-remote-sync-check-234c32-003) · 자동 seed
+     사건 task 는 옮기지 않는다 · §5 합류 줄(브랜치@sha) · 합류 기록 · 아카이브.
      worktree 는 그대로 살아 있고, 두 번째 시작에는 정합 경고도 재반영도 없다
   2) 병합 뒤 브랜치에 새 커밋이 있으면(tip 이 HEAD 의 조상이 아니다) 반영하지 않는다
   3) 기본 브랜치가 아닌 체크아웃은 남의 네임스페이스가 섞여 들어와도 반영하지 않는다
   4) `--no-reflect` 면 병합된 살아 있는 브랜치를 건드리지 않는다
-  5) 이월할 열린 task 가 모 브랜치에 같은 ID 로 있으면 막는다 — 아무것도 옮기지 않는다
+  5) 옮길 열린 task 가 모 브랜치에 같은 ID 로 있으면 막는다 — 아무것도 옮기지 않는다
+  5b) 완료 task 도 같다 — 모 브랜치의 같은 ID 파일을 덮지 않는다
   6) worktree 에서 브랜치 오버라이드로 기본 브랜치를 강제해도(`CODEX_WORKFLOW_BRANCH=main`) 실제 checkout
      브랜치는 반영 · 아카이브하지 않는다 — 115차 게이트에서 저장소 관찰 검사가 자기 브랜치 메모리를
      archived/ 로 옮겼다 (TASK-2026-10-02-claude-remote-sync-status-1ce0a3-003)
@@ -55,6 +58,8 @@ sys.path.insert(0, str(SOURCE_ROOT))
 from workflow_kit.common.reconcile import STATE_CONFLICT_MARKER  # noqa: E402
 from workflow_kit.common.child_process import platform_child_env  # noqa: E402
 from workflow_kit.common.state.memory_index import TELEMETRY_SKIP_ROOT_ENV  # noqa: E402
+from workflow_kit.common.state.roadmap import collect_task_wbs_links  # noqa: E402
+from workflow_kit.common.branch_join import SEED_TITLE_PREFIX  # noqa: E402
 
 FAILURES: list[str] = []
 JOIN_MARK = "합류한 브랜치"
@@ -181,6 +186,19 @@ def main() -> int:
             problems.append("열린 자체 task 가 원류와 함께 이월되지 않았다")
         if not branch_copy.is_file() or "carried_over_to:" not in branch_copy.read_text(encoding="utf-8"):
             problems.append("브랜치 사본에 이월 표시 없음")
+        moved_done = main_dir / "backlog" / "tasks" / f"{own['done']}.md"
+        moved_text = moved_done.read_text(encoding="utf-8") if moved_done.is_file() else ""
+        if (f"merged_from: claude/w@{sha}" not in moved_text or "status: done" not in moved_text
+                or "wbs: exempt" not in moved_text):
+            problems.append("완료한 자체 task 가 원류 · status · wbs 와 함께 모 브랜치로 옮겨지지 않았다")
+        linked = {link.task_id: link.task_status for link in collect_task_wbs_links(clone)}
+        if linked.get(own["done"]) != "done":
+            problems.append(f"모 브랜치 roadmap 링크 수집이 완료 task 를 못 센다: {linked.get(own['done'])!r}")
+        seeds = [p.name for p in (main_dir / "backlog" / "tasks").glob("TASK-*.md")
+                 if "merged_from:" in p.read_text(encoding="utf-8")
+                 and SEED_TITLE_PREFIX in p.read_text(encoding="utf-8")]
+        if seeds:
+            problems.append(f"자동 seed 사건 task 가 옮겨졌다: {seeds}")
         if f"(합류 `claude/w@{sha}`" not in handoff:
             problems.append("§5 합류 줄 없음")
         if not list((main_dir / "sessions").glob("merge_claude-w_*.md")):
@@ -245,6 +263,21 @@ def main() -> int:
                 and (clone / MEM / "active" / "main" / "session_handoff.md").read_bytes() == before,
                 f"candidates={out.get('candidates')}")
 
+        # --- case 5b: 완료 task 도 옮기므로 같은 ID 가 있으면 막는다 — 모 브랜치 파일을 덮지 않는다 ----
+        clone, wt = _make(tmp / "c5b")
+        own = _work_in_worktree(wt)
+        _git(clone, "merge", "-q", "--ff-only", "claude/w")
+        clash = clone / MEM / "active" / "main" / "backlog" / "tasks" / f"{own['done']}.md"
+        clash.write_text(_task(own["done"], "planned", "모 브랜치에 먼저 생긴 같은 ID"), encoding="utf-8")
+        clash_before = clash.read_bytes()
+        proc = _module(clone, "workflow_kit.tools.archive_branch_memory", "--apply", "--json")
+        out = json.loads(proc.stdout)
+        blocked = [c for c in out.get("candidates", []) if c.get("action") == "blocked"]
+        _record("test_done_clash_blocks",
+                bool(blocked) and own["done"] in blocked[0].get("reason", "") and not out.get("joined")
+                and clash.read_bytes() == clash_before and (clone / MEM / "active" / "claude" / "w").is_dir(),
+                f"candidates={out.get('candidates')}")
+
         # --- case 6: worktree 에서 기본 브랜치 강제 → 자기 브랜치를 건드리지 않는다 ----
         clone, wt = _make(tmp / "c6")
         _work_in_worktree(wt)
@@ -263,7 +296,7 @@ def main() -> int:
     if FAILURES:
         print(f"=== FAIL: {len(FAILURES)} case(s) — {FAILURES} ===")
         return 1
-    print("=== PASS: branch join reflect (6 cases) ===")
+    print("=== PASS: branch join reflect (7 cases) ===")
     return 0
 
 

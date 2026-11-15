@@ -5,6 +5,62 @@
     "warnings"
   ],
   "error_field_shapes": {
+    "apply_robust_patch": {
+      "error": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "error_code": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "source_context": {
+        "allow_null": false,
+        "item_kind": "string",
+        "kind": "object"
+      },
+      "status": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "tool_version": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "warnings": {
+        "allow_null": false,
+        "item_kind": "string",
+        "kind": "list"
+      }
+    },
+    "assess_milestone_progress": {
+      "error": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "error_code": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "source_context": {
+        "allow_null": false,
+        "item_kind": "string",
+        "kind": "object"
+      },
+      "status": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "tool_version": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "warnings": {
+        "allow_null": false,
+        "item_kind": "string",
+        "kind": "list"
+      }
+    },
     "backlog_update": {
       "error": {
         "allow_null": false,
@@ -565,6 +621,34 @@
         "kind": "list"
       }
     },
+    "rotate_workflow_logs": {
+      "error": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "error_code": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "source_context": {
+        "allow_null": false,
+        "item_kind": "string",
+        "kind": "object"
+      },
+      "status": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "tool_version": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "warnings": {
+        "allow_null": false,
+        "item_kind": "string",
+        "kind": "list"
+      }
+    },
     "session_start": {
       "error": {
         "allow_null": false,
@@ -622,6 +706,34 @@
       }
     },
     "suggest_impacted_docs": {
+      "error": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "error_code": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "source_context": {
+        "allow_null": false,
+        "item_kind": "string",
+        "kind": "object"
+      },
+      "status": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "tool_version": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "warnings": {
+        "allow_null": false,
+        "item_kind": "string",
+        "kind": "list"
+      }
+    },
+    "summarize_git_history": {
       "error": {
         "allow_null": false,
         "kind": "string"
@@ -763,6 +875,16 @@
     }
   },
   "error_required_keys": {
+    "apply_robust_patch": [
+      "error",
+      "error_code",
+      "source_context"
+    ],
+    "assess_milestone_progress": [
+      "error",
+      "error_code",
+      "source_context"
+    ],
     "backlog_update": [
       "error",
       "error_code",
@@ -863,6 +985,11 @@
       "error_code",
       "source_context"
     ],
+    "rotate_workflow_logs": [
+      "error",
+      "error_code",
+      "source_context"
+    ],
     "session_start": [
       "error",
       "error_code",
@@ -874,6 +1001,11 @@
       "source_context"
     ],
     "suggest_impacted_docs": [
+      "error",
+      "error_code",
+      "source_context"
+    ],
+    "summarize_git_history": [
       "error",
       "error_code",
       "source_context"
@@ -900,6 +1032,115 @@
     ]
   },
   "field_shapes": {
+    "apply_robust_patch": {
+      "applied_blocks": {
+        "allow_null": false,
+        "item_kind": "AppliedPatchBlock",
+        "kind": "list"
+      },
+      "dry_run": {
+        "allow_null": false,
+        "kind": "boolean"
+      },
+      "error": {
+        "allow_null": true,
+        "kind": "string"
+      },
+      "error_code": {
+        "allow_null": true,
+        "kind": "string"
+      },
+      "file_path": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "message": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "patches_applied": {
+        "allow_null": false,
+        "kind": "integer"
+      },
+      "patches_failed": {
+        "allow_null": false,
+        "kind": "integer"
+      },
+      "source_context": {
+        "allow_null": false,
+        "item_kind": "string",
+        "kind": "object"
+      },
+      "status": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "tool_version": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "warnings": {
+        "allow_null": false,
+        "item_kind": "string",
+        "kind": "list"
+      }
+    },
+    "assess_milestone_progress": {
+      "done_count": {
+        "allow_null": false,
+        "kind": "integer"
+      },
+      "issues_count": {
+        "allow_null": true,
+        "kind": "integer"
+      },
+      "milestone_id": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "milestone_name": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "milestones": {
+        "allow_null": false,
+        "item_kind": "MilestoneBrief",
+        "kind": "list"
+      },
+      "progress_percentage": {
+        "allow_null": false,
+        "kind": "number"
+      },
+      "roadmap_present": {
+        "allow_null": false,
+        "kind": "boolean"
+      },
+      "sdlc_phase": {
+        "allow_null": true,
+        "kind": "string"
+      },
+      "status": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "suggestion": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "tool_version": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "total_count": {
+        "allow_null": false,
+        "kind": "integer"
+      },
+      "warnings": {
+        "allow_null": false,
+        "item_kind": "string",
+        "kind": "list"
+      }
+    },
     "backlog_update": {
       "apply_status": {
         "allow_null": true,
@@ -1842,6 +2083,43 @@
         "kind": "list"
       }
     },
+    "rotate_workflow_logs": {
+      "remaining_count": {
+        "allow_null": false,
+        "kind": "integer"
+      },
+      "rotated": {
+        "allow_null": false,
+        "kind": "boolean"
+      },
+      "rotated_count": {
+        "allow_null": false,
+        "kind": "integer"
+      },
+      "rotated_items": {
+        "allow_null": false,
+        "item_kind": "string",
+        "kind": "list"
+      },
+      "status": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "tool_version": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "warnings": {
+        "allow_null": false,
+        "item_kind": "string",
+        "kind": "list"
+      },
+      "written_paths": {
+        "allow_null": false,
+        "item_kind": "string",
+        "kind": "list"
+      }
+    },
     "session_start": {
       "blocked_items": {
         "allow_null": false,
@@ -1960,6 +2238,38 @@
         "allow_null": false,
         "item_kind": "string",
         "kind": "list"
+      },
+      "status": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "tool_version": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "warnings": {
+        "allow_null": false,
+        "item_kind": "string",
+        "kind": "list"
+      }
+    },
+    "summarize_git_history": {
+      "commit_count": {
+        "allow_null": false,
+        "kind": "integer"
+      },
+      "entries": {
+        "allow_null": false,
+        "item_kind": "GitHistoryEntry",
+        "kind": "list"
+      },
+      "markdown": {
+        "allow_null": false,
+        "kind": "string"
+      },
+      "range": {
+        "allow_null": false,
+        "kind": "string"
       },
       "status": {
         "allow_null": false,
@@ -2145,6 +2455,23 @@
     }
   },
   "success_required_keys": {
+    "apply_robust_patch": [
+      "applied_blocks",
+      "dry_run",
+      "file_path",
+      "message",
+      "patches_applied",
+      "patches_failed"
+    ],
+    "assess_milestone_progress": [
+      "done_count",
+      "milestone_id",
+      "milestone_name",
+      "progress_percentage",
+      "roadmap_present",
+      "suggestion",
+      "total_count"
+    ],
     "backlog_update": [
       "apply_status",
       "created_paths",
@@ -2244,6 +2571,13 @@
     "project_status_assessment": [],
     "read_only_entrypoint": [],
     "robust_patcher": [],
+    "rotate_workflow_logs": [
+      "remaining_count",
+      "rotated",
+      "rotated_count",
+      "rotated_items",
+      "written_paths"
+    ],
     "session_start": [
       "recommended_next_action",
       "source_documents",
@@ -2256,6 +2590,12 @@
     "suggest_impacted_docs": [
       "impacted_documents",
       "reasoning_notes"
+    ],
+    "summarize_git_history": [
+      "commit_count",
+      "entries",
+      "markdown",
+      "range"
     ],
     "validation_plan": [
       "documentation_checks",

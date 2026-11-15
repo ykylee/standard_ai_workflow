@@ -60,7 +60,11 @@ from workflow_kit.common.schemas.read_only import (
     CreateSessionHandoffDraftOutput,
     CreateEnvironmentRecordStubOutput,
     SmartContextReaderOutput,
+    SummarizeGitHistoryOutput,
+    RotateWorkflowLogsOutput,
+    AssessMilestoneProgressOutput,
 )
+from workflow_kit.common.schemas.apply_robust_patch import ApplyRobustPatchOutput
 from workflow_kit.common.schemas.memory_index import (
     MemoryEntry,
     MemoryIndexOutput,
@@ -129,6 +133,10 @@ __all__ = [
     "CreateSessionHandoffDraftOutput",
     "CreateEnvironmentRecordStubOutput",
     "SmartContextReaderOutput",
+    "SummarizeGitHistoryOutput",
+    "RotateWorkflowLogsOutput",
+    "AssessMilestoneProgressOutput",
+    "ApplyRobustPatchOutput",
     "PlanClaimBundle",
     "PlanDecisionStatus",
     "PlanImportOutput",

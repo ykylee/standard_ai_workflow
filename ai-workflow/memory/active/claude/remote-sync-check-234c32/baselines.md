@@ -9,6 +9,10 @@
 > 이 파일은 **읽기 대상이 아니라 조회 대상**이다. 세션 시작에 읽지 않는다 —
 > handoff §1 이 최근 4개만 들고 있고, 그 이전이 필요할 때만 여기를 본다.
 
+## 롤오프 2026-11-15
+
+- **126차 세션 (2026-11-13~14, Linux 호스트) — M-027 워크벤치 design 종결: ADR-032 accepted.** design 전 실측(requirements §1.4): nginx 1.27.5 · Caddy 2.10.0 실물(docker, digest 고정) + Chrome 154 로 9 구성 × 2 회 — 상대 경로 + 쿠키 Path = 접두사 결론 유지, 새로 본 것: `SameSite=Strict` 는 다른 사이트의 링크에서 로그인으로 떨어짐 → 소유자 결정 **Lax**, Caddy 는 매치 안 되는 경로에 빈 200 (검사는 도착 경로로, 예시에 `redir`). [`adr-032-plan-workbench.md`](../../../../wiki/decisions/adr-032-plan-workbench.md) 결정 25 · 변경 V1~V7 + [`plan_workbench_spec.md`](../../../../../workflow-source/core/plan_workbench_spec.md) §1~§12. task 11-13-006 done (verifier 2회 — 2차 5/5 PASS). M-027 done · **M-029 [implementation] planned** (① 이월 정리 → ② 서버 · 화면 · MCP · 검사). roadmap issues [].
+
 ## 롤오프 2026-11-14
 
 - **125차 세션 후반 (2026-11-13, Linux 호스트) — M-028/WBS-28.2 주장 트리 계획 구현 2단계 종결.** `common/plan_responses.py`(응답 파서 · 자격 1~6 · 받은편지함 자기 무시 · 번호 · 배타 이동 `os.link` · 잠금 · 배치 판정) + `plan-import`(dry-run 기본 · `--apply` · `--response` · `--discard`, 0 단계 · 배치 판정을 먼저) + 받은편지함 게이트(`pending_plan_responses`) · 미반영 경고 · 옛 계획 경고 · 게이트 · `plan-status` · 우회 검출이 보관 응답으로 계산 + 이어받기(seed · 이월 · 되돌려 적기, 되돌려 적기는 거둠도 나른다 — 소유자 결정 D1=carry) + 정본 §11.1 · 스킬 `plan-import` · bootstrap `/workflow-plan-import`. 검사 `check_plan_import` 14 · `check_plan_gate` 20 — 전량 313. task 11-13-004 done (verifier 6회 — 6차 FAIL 0). 소유자 결정: 검증 범위는 스펙 §7-9 의 배치(브랜치 안 같은 파일시스템 보통 디렉터리 + 도구가 만든 보통 파일). M-028 은 Windows(NTFS) 실측만 남아 in_progress. 미발행. roadmap issues [].

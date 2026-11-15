@@ -76,3 +76,59 @@ class SmartContextReaderOutput(BaseOutput):
     status: Status = Status.OK
     extracted_content: list[str] = Field(default_factory=list)
     not_found_symbols: list[str] = Field(default_factory=list)
+
+
+class GitHistoryEntry(BaseModel):
+    subject: str
+    hash: str
+    author: str
+    date: str
+    category: str
+
+
+class SummarizeGitHistoryOutput(BaseOutput):
+    """MCP `summarize_git_history` — `read_only_bundle.summarize_git_history_payload` 의 출력."""
+
+    status: Status = Status.OK
+    commit_count: int = Field(..., ge=0)
+    range: str
+    markdown: str
+    entries: list[GitHistoryEntry] = Field(default_factory=list)
+
+
+class RotateWorkflowLogsOutput(BaseOutput):
+    """MCP `rotate_workflow_logs` — handoff 최근 완료 목록을 상한까지 줄인 결과."""
+
+    status: Status = Status.OK
+    rotated: bool
+    rotated_count: int = Field(..., ge=0)
+    remaining_count: int = Field(..., ge=0)
+    rotated_items: list[str] = Field(default_factory=list)
+    written_paths: list[str] = Field(default_factory=list)
+
+
+class MilestoneBrief(BaseModel):
+    id: str
+    sdlc_phase: str
+    declared_status: str
+    derived_status: str
+    progress: float
+
+
+class AssessMilestoneProgressOutput(BaseOutput):
+    """MCP `assess_milestone_progress` — roadmap 층(ADR-027)의 현재 마일스톤 진척.
+
+    roadmap 이 없으면 `roadmap_present=False` 이고 `sdlc_phase` · `milestones` · `issues_count` 를 싣지 않는다.
+    """
+
+    status: Status = Status.OK
+    roadmap_present: bool
+    milestone_id: str | None
+    milestone_name: str | None
+    sdlc_phase: str | None = None
+    progress_percentage: float
+    done_count: int = Field(..., ge=0)
+    total_count: int = Field(..., ge=0)
+    milestones: list[MilestoneBrief] = Field(default_factory=list)
+    issues_count: int | None = None
+    suggestion: str

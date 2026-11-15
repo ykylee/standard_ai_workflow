@@ -9,16 +9,16 @@ This test verifies the assertion:
   must be byte-identical to the corresponding entry in
   `schemas/generated_output_schemas.json`'s `outputs` section.
 
-Edge case: 4 unmodeled families (summarize_git_history / rotate_workflow_logs /
-assess_milestone_progress / apply_robust_patch) use a known "generic schema for
-unmodeled family" fallback in the descriptor because they have no Pydantic
-contract. The test verifies that pattern is preserved (no surprise schema changes).
+이전에는 모델 없는 4 family(summarize_git_history / rotate_workflow_logs /
+assess_milestone_progress / apply_robust_patch)의 generic fallback 을 *기대값*으로 고정했다.
+그 fallback 은 결함이었다 — family 가 없으면 invoke_tool 이 성공 응답을 `Unknown family` 로 죽인다
+(TASK-2026-11-04-main-002). 이제 모든 도구가 모델을 갖고, generic fallback 이 하나라도 나오면 red 다.
 
 Pass criteria (4 tests):
 1. Every descriptor tool (registry count) has an `outputSchema` field
-2. Modeled tools (9 of 13) have byte-identical `outputSchema` to gen.outputs[name]
-3. Unmodeled tools (4 of 13) all use the same "generic schema" pattern
-4. No gen.outputs entries are missing from the descriptor (drift check)
+2. Every tool has byte-identical `outputSchema` to gen.outputs[name]
+3. No descriptor tool uses the generic "unmodeled family" fallback
+4. No descriptor tool is missing from gen.outputs (drift check)
 """
 from __future__ import annotations
 
@@ -39,16 +39,8 @@ SOURCE_ROOT = Path(__file__).resolve().parents[1]
 DESCRIPTOR = SOURCE_ROOT / "schemas" / "read_only_transport_descriptors.json"
 GENERATED = SOURCE_ROOT / "schemas" / "generated_output_schemas.json"
 
-# Known unmodeled families. They have no Pydantic contract, so the descriptor
-# uses a generic "type: object" fallback. This set is a deliberate exception
-# to the byte-identical assertion (spec §9 #6 is satisfied for the *modeled*
-# surface; unmodeled families are tracked separately).
-UNMODELED_FAMILIES: frozenset[str] = frozenset({
-    "summarize_git_history",
-    "rotate_workflow_logs",
-    "assess_milestone_progress",
-    "apply_robust_patch",
-})
+# 모델 없는 family 는 허용하지 않는다 — 비어 있어야 한다 (TASK-2026-11-04-main-002).
+UNMODELED_FAMILIES: frozenset[str] = frozenset()
 
 GENERIC_SCHEMA_PATTERN: dict[str, object] = {
     "description": "Generic schema for unmodeled family '{family}'.",
@@ -121,24 +113,19 @@ def test_modeled_tools_byte_identical_v0_8_10() -> None:
 
 
 def test_unmodeled_tools_use_generic_schema_v0_8_10() -> None:
-    """Unmodeled descriptor tools use the generic schema pattern (v0.8.10+)."""
+    """No descriptor tool falls back to the generic "unmodeled family" schema.
+
+    generic fallback 은 family 미등록의 표지다 — 그 도구의 성공 응답은 invoke_tool 에서 죽는다.
+    """
+    assert not UNMODELED_FAMILIES, f"모델 없는 family 예외가 다시 생겼다: {sorted(UNMODELED_FAMILIES)}"
     desc = _load_json(DESCRIPTOR)
     tools = desc.get("tools", [])
     assert isinstance(tools, list)
-
-    by_name = {tool["name"]: tool for tool in tools}
-    # Each unmodeled family must be in the descriptor
-    for family in UNMODELED_FAMILIES:
-        assert family in by_name, f"unmodeled family {family!r} not in descriptor"
-    # Each unmodeled family's outputSchema must match the generic pattern
-    for family in UNMODELED_FAMILIES:
-        tool = by_name[family]
-        actual = tool.get("outputSchema")
-        expected = _expected_generic_schema(family)
-        assert actual == expected, (
-            f"unmodeled family {family!r} outputSchema drift: "
-            f"got {actual!r}, expected {expected!r}"
-        )
+    generic = [
+        tool.get("name") for tool in tools
+        if tool.get("outputSchema") == _expected_generic_schema(str(tool.get("name")))
+    ]
+    assert not generic, f"generic fallback outputSchema 를 쓰는 도구: {generic}"
 
 
 def test_no_descriptor_orphans_v0_8_10() -> None:

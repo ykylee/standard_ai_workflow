@@ -45,6 +45,10 @@ from workflow_kit.common.schemas import (
     PlanImportOutput,
     PlanInboxOutput,
     PlanStatusOutput,
+    SummarizeGitHistoryOutput,
+    RotateWorkflowLogsOutput,
+    AssessMilestoneProgressOutput,
+    ApplyRobustPatchOutput,
     ErrorOutput,
 )
 
@@ -76,6 +80,13 @@ _SUCCESS_REQUIRED_FIELDS_BY_MODEL: dict[Type[BaseModel], frozenset[str]] = {
     PlanStatusOutput: frozenset({"task_id", "has_plan", "claims", "decisions", "open_decisions", "source_context"}),
     PlanImportOutput: frozenset({"task_id", "applied", "outcome", "responses", "state_changes", "source_context"}),
     PlanInboxOutput: frozenset({"pending", "files", "unknown", "layout_problem", "source_context"}),
+    SummarizeGitHistoryOutput: frozenset({"commit_count", "range", "markdown", "entries"}),
+    RotateWorkflowLogsOutput: frozenset({"rotated", "rotated_count", "remaining_count", "rotated_items", "written_paths"}),
+    AssessMilestoneProgressOutput: frozenset({
+        "roadmap_present", "milestone_id", "milestone_name", "progress_percentage",
+        "done_count", "total_count", "suggestion",
+    }),
+    ApplyRobustPatchOutput: frozenset({"file_path", "message", "patches_applied", "patches_failed", "dry_run", "applied_blocks"}),
     CreateBacklogEntryOutput: frozenset({"draft_entry"}),
     BacklogUpdateOutput: frozenset({
         "operation_type",
@@ -248,6 +259,12 @@ PYDANTIC_MODEL_REGISTRY: dict[str, Type[BaseModel]] = {
     "plan_status": PlanStatusOutput,
     "plan_import": PlanImportOutput,
     "plan_inbox": PlanInboxOutput,
+    # MCP 도구 이름 = family (read_only_entrypoint.invoke_tool). 빠지면 성공 경로가 Unknown family 로 죽는다
+    # (TASK-2026-11-04-main-002) — check_mcp_tool_output_contracts 가 1:1 을 단언한다.
+    "summarize_git_history": SummarizeGitHistoryOutput,
+    "rotate_workflow_logs": RotateWorkflowLogsOutput,
+    "assess_milestone_progress": AssessMilestoneProgressOutput,
+    "apply_robust_patch": ApplyRobustPatchOutput,
 }
 
 

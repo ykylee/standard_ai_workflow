@@ -1,5 +1,107 @@
 {
   "errors": {
+    "apply_robust_patch": {
+      "description": "Standard payload for failed tool executions.",
+      "properties": {
+        "error": {
+          "description": "Human-readable error message",
+          "title": "Error",
+          "type": "string"
+        },
+        "error_code": {
+          "description": "Stable machine-readable error code",
+          "title": "Error Code",
+          "type": "string"
+        },
+        "source_context": {
+          "additionalProperties": true,
+          "description": "Arbitrary context data to help diagnose the error",
+          "title": "Source Context",
+          "type": "object"
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "tool_version": {
+          "description": "Version of the tool that generated this output",
+          "title": "Tool Version",
+          "type": "string"
+        },
+        "warnings": {
+          "description": "List of non-fatal warnings encountered",
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "tool_version",
+        "error",
+        "error_code",
+        "source_context"
+      ],
+      "title": "ErrorOutput",
+      "type": "object"
+    },
+    "assess_milestone_progress": {
+      "description": "Standard payload for failed tool executions.",
+      "properties": {
+        "error": {
+          "description": "Human-readable error message",
+          "title": "Error",
+          "type": "string"
+        },
+        "error_code": {
+          "description": "Stable machine-readable error code",
+          "title": "Error Code",
+          "type": "string"
+        },
+        "source_context": {
+          "additionalProperties": true,
+          "description": "Arbitrary context data to help diagnose the error",
+          "title": "Source Context",
+          "type": "object"
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "tool_version": {
+          "description": "Version of the tool that generated this output",
+          "title": "Tool Version",
+          "type": "string"
+        },
+        "warnings": {
+          "description": "List of non-fatal warnings encountered",
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "tool_version",
+        "error",
+        "error_code",
+        "source_context"
+      ],
+      "title": "ErrorOutput",
+      "type": "object"
+    },
     "backlog_update": {
       "description": "Standard payload for failed tool executions.",
       "properties": {
@@ -969,6 +1071,57 @@
       "title": "ErrorOutput",
       "type": "object"
     },
+    "rotate_workflow_logs": {
+      "description": "Standard payload for failed tool executions.",
+      "properties": {
+        "error": {
+          "description": "Human-readable error message",
+          "title": "Error",
+          "type": "string"
+        },
+        "error_code": {
+          "description": "Stable machine-readable error code",
+          "title": "Error Code",
+          "type": "string"
+        },
+        "source_context": {
+          "additionalProperties": true,
+          "description": "Arbitrary context data to help diagnose the error",
+          "title": "Source Context",
+          "type": "object"
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "tool_version": {
+          "description": "Version of the tool that generated this output",
+          "title": "Tool Version",
+          "type": "string"
+        },
+        "warnings": {
+          "description": "List of non-fatal warnings encountered",
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "tool_version",
+        "error",
+        "error_code",
+        "source_context"
+      ],
+      "title": "ErrorOutput",
+      "type": "object"
+    },
     "session_start": {
       "description": "Standard payload for failed tool executions.",
       "properties": {
@@ -1072,6 +1225,57 @@
       "type": "object"
     },
     "suggest_impacted_docs": {
+      "description": "Standard payload for failed tool executions.",
+      "properties": {
+        "error": {
+          "description": "Human-readable error message",
+          "title": "Error",
+          "type": "string"
+        },
+        "error_code": {
+          "description": "Stable machine-readable error code",
+          "title": "Error Code",
+          "type": "string"
+        },
+        "source_context": {
+          "additionalProperties": true,
+          "description": "Arbitrary context data to help diagnose the error",
+          "title": "Source Context",
+          "type": "object"
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "tool_version": {
+          "description": "Version of the tool that generated this output",
+          "title": "Tool Version",
+          "type": "string"
+        },
+        "warnings": {
+          "description": "List of non-fatal warnings encountered",
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "tool_version",
+        "error",
+        "error_code",
+        "source_context"
+      ],
+      "title": "ErrorOutput",
+      "type": "object"
+    },
+    "summarize_git_history": {
       "description": "Standard payload for failed tool executions.",
       "properties": {
         "error": {
@@ -1328,6 +1532,305 @@
     }
   },
   "outputs": {
+    "apply_robust_patch": {
+      "description": "`apply-robust-patch` MCP 의 stable output contract.\n\n`BaseOutput` 의 status / tool_version / warnings 3 field + 본 class 의 7 field.\n\n본 MCP 는 **쓰기 작업**. smoke test 시 dry_run=True 권장 (side-effect 격리).",
+      "properties": {
+        "applied_blocks": {
+          "description": "Per-block detail (matched/fuzzy/preview). empty list if dry_run with no blocks.",
+          "items": {
+            "description": "Detail of a single applied SEARCH/REPLACE block.",
+            "properties": {
+              "block_index": {
+                "description": "0-based index of the block within patch_content",
+                "title": "Block Index",
+                "type": "integer"
+              },
+              "fuzzy_score": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Fuzzy match score (1.0 = exact, <1.0 = fuzzy)",
+                "title": "Fuzzy Score"
+              },
+              "matched": {
+                "description": "True if the SEARCH block matched in target file",
+                "title": "Matched",
+                "type": "boolean"
+              },
+              "preview": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "First 80 chars of the SEARCH block, for traceability",
+                "title": "Preview"
+              }
+            },
+            "required": [
+              "block_index",
+              "matched"
+            ],
+            "title": "AppliedPatchBlock",
+            "type": "object"
+          },
+          "title": "Applied Blocks",
+          "type": "array"
+        },
+        "dry_run": {
+          "default": false,
+          "description": "True if applied as preview (no actual write)",
+          "title": "Dry Run",
+          "type": "boolean"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Human-readable error message (None on success)",
+          "title": "Error"
+        },
+        "error_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "4 종 stable error code (None on success)",
+          "title": "Error Code"
+        },
+        "file_path": {
+          "description": "Absolute path to the patched file",
+          "title": "File Path",
+          "type": "string"
+        },
+        "message": {
+          "description": "Human-readable summary of patch application result",
+          "title": "Message",
+          "type": "string"
+        },
+        "patches_applied": {
+          "default": 0,
+          "description": "Number of SEARCH/REPLACE blocks successfully applied",
+          "title": "Patches Applied",
+          "type": "integer"
+        },
+        "patches_failed": {
+          "default": 0,
+          "description": "Number of SEARCH blocks that didn't match (or malformed)",
+          "title": "Patches Failed",
+          "type": "integer"
+        },
+        "source_context": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Arbitrary context data to help diagnose the error (None on success)",
+          "title": "Source Context"
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "tool_version": {
+          "description": "Version of the tool that generated this output",
+          "title": "Tool Version",
+          "type": "string"
+        },
+        "warnings": {
+          "description": "List of non-fatal warnings encountered",
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "status",
+        "tool_version",
+        "file_path",
+        "message"
+      ],
+      "title": "ApplyRobustPatchOutput",
+      "type": "object"
+    },
+    "assess_milestone_progress": {
+      "description": "MCP `assess_milestone_progress` — roadmap 층(ADR-027)의 현재 마일스톤 진척.\n\nroadmap 이 없으면 `roadmap_present=False` 이고 `sdlc_phase` · `milestones` · `issues_count` 를 싣지 않는다.",
+      "properties": {
+        "done_count": {
+          "minimum": 0,
+          "title": "Done Count",
+          "type": "integer"
+        },
+        "issues_count": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Issues Count"
+        },
+        "milestone_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Milestone Id"
+        },
+        "milestone_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Milestone Name"
+        },
+        "milestones": {
+          "items": {
+            "properties": {
+              "declared_status": {
+                "title": "Declared Status",
+                "type": "string"
+              },
+              "derived_status": {
+                "title": "Derived Status",
+                "type": "string"
+              },
+              "id": {
+                "title": "Id",
+                "type": "string"
+              },
+              "progress": {
+                "title": "Progress",
+                "type": "number"
+              },
+              "sdlc_phase": {
+                "title": "Sdlc Phase",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "sdlc_phase",
+              "declared_status",
+              "derived_status",
+              "progress"
+            ],
+            "title": "MilestoneBrief",
+            "type": "object"
+          },
+          "title": "Milestones",
+          "type": "array"
+        },
+        "progress_percentage": {
+          "title": "Progress Percentage",
+          "type": "number"
+        },
+        "roadmap_present": {
+          "title": "Roadmap Present",
+          "type": "boolean"
+        },
+        "sdlc_phase": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sdlc Phase"
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "suggestion": {
+          "title": "Suggestion",
+          "type": "string"
+        },
+        "tool_version": {
+          "description": "Version of the tool that generated this output",
+          "title": "Tool Version",
+          "type": "string"
+        },
+        "total_count": {
+          "minimum": 0,
+          "title": "Total Count",
+          "type": "integer"
+        },
+        "warnings": {
+          "description": "List of non-fatal warnings encountered",
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "tool_version",
+        "roadmap_present",
+        "milestone_id",
+        "milestone_name",
+        "progress_percentage",
+        "done_count",
+        "total_count",
+        "suggestion"
+      ],
+      "title": "AssessMilestoneProgressOutput",
+      "type": "object"
+    },
     "backlog_update": {
       "description": "Output contract for the backlog-update skill.",
       "properties": {
@@ -4249,6 +4752,69 @@
       "title": "RobustPatcherOutput",
       "type": "object"
     },
+    "rotate_workflow_logs": {
+      "description": "MCP `rotate_workflow_logs` — handoff 최근 완료 목록을 상한까지 줄인 결과.",
+      "properties": {
+        "remaining_count": {
+          "minimum": 0,
+          "title": "Remaining Count",
+          "type": "integer"
+        },
+        "rotated": {
+          "title": "Rotated",
+          "type": "boolean"
+        },
+        "rotated_count": {
+          "minimum": 0,
+          "title": "Rotated Count",
+          "type": "integer"
+        },
+        "rotated_items": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Rotated Items",
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "tool_version": {
+          "description": "Version of the tool that generated this output",
+          "title": "Tool Version",
+          "type": "string"
+        },
+        "warnings": {
+          "description": "List of non-fatal warnings encountered",
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        },
+        "written_paths": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Written Paths",
+          "type": "array"
+        }
+      },
+      "required": [
+        "tool_version",
+        "rotated",
+        "rotated_count",
+        "remaining_count"
+      ],
+      "title": "RotateWorkflowLogsOutput",
+      "type": "object"
+    },
     "session_start": {
       "description": "Output contract for the session-start skill.",
       "properties": {
@@ -4795,6 +5361,91 @@
         "tool_version"
       ],
       "title": "SuggestImpactedDocsOutput",
+      "type": "object"
+    },
+    "summarize_git_history": {
+      "description": "MCP `summarize_git_history` — `read_only_bundle.summarize_git_history_payload` 의 출력.",
+      "properties": {
+        "commit_count": {
+          "minimum": 0,
+          "title": "Commit Count",
+          "type": "integer"
+        },
+        "entries": {
+          "items": {
+            "properties": {
+              "author": {
+                "title": "Author",
+                "type": "string"
+              },
+              "category": {
+                "title": "Category",
+                "type": "string"
+              },
+              "date": {
+                "title": "Date",
+                "type": "string"
+              },
+              "hash": {
+                "title": "Hash",
+                "type": "string"
+              },
+              "subject": {
+                "title": "Subject",
+                "type": "string"
+              }
+            },
+            "required": [
+              "subject",
+              "hash",
+              "author",
+              "date",
+              "category"
+            ],
+            "title": "GitHistoryEntry",
+            "type": "object"
+          },
+          "title": "Entries",
+          "type": "array"
+        },
+        "markdown": {
+          "title": "Markdown",
+          "type": "string"
+        },
+        "range": {
+          "title": "Range",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "tool_version": {
+          "description": "Version of the tool that generated this output",
+          "title": "Tool Version",
+          "type": "string"
+        },
+        "warnings": {
+          "description": "List of non-fatal warnings encountered",
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "tool_version",
+        "commit_count",
+        "range",
+        "markdown"
+      ],
+      "title": "SummarizeGitHistoryOutput",
       "type": "object"
     },
     "validation_plan": {

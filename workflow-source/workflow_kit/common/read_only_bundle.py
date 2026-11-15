@@ -10,6 +10,7 @@ from workflow_kit.common.change_types import classify_impacted_doc_file
 from workflow_kit.common.docs import missing_metadata_fields
 from workflow_kit.common.git import summarize_git_history
 from workflow_kit.common.rotation import rotate_handoff_tasks
+from workflow_kit.common.errors import build_error_result
 from workflow_kit.common.state.roadmap import build_roadmap_state
 from workflow_kit.common.markdown import (
     find_broken_links,
@@ -436,9 +437,19 @@ def rotate_workflow_logs_payload(
 ) -> dict[str, Any]:
     path = resolve_existing_path(handoff_path)
     result = rotate_handoff_tasks(path, max_done_items)
+    if result["status"] != "ok":
+        # 오류 경로는 ErrorOutput 계약 — error · error_code · source_context 가 없으면 성공 아닌 응답이
+        # output contract 위반으로 덮인다 (TASK-2026-11-04-main-002).
+        return build_error_result(
+            tool_version=tool_version,
+            error=str(result.get("message") or result.get("reason") or "handoff 를 줄이지 못했다."),
+            error_code="handoff_done_section_missing",
+            warnings=["handoff 에 '최근 완료 작업' 절이 있는지 확인한다."],
+            source_context={"handoff_path": str(path)},
+        )
 
     return {
-        "status": "ok" if result["status"] == "ok" else "error",
+        "status": "ok",
         "tool_version": tool_version,
         "rotated": result.get("rotated", False),
         "rotated_count": result.get("rotated_count", 0),

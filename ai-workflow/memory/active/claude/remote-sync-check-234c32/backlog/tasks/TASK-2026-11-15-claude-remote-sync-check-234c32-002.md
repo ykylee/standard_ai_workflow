@@ -40,7 +40,7 @@ wbs: M-007/WBS-7.1
 
 ## 🛠️ Implementation / Content
 
-- Progress: 발행 준비: 1.23.0 리터럴 · plugin payload · README · 생성 스키마 5 · output_samples · 스탬프 2 · 노트 Beta-v1.23.0.md. check_plan_gate 의 CHECK_TIMEOUT_S 150 → 300 (부하 실측 109 · 146 · 137s, --changed 2회 초과)
+- Progress: 게이트 2회차(0ce020df) slash 에서 check_plan_import 240s 시간 초과 — 실측 172~235s, 호스트에 다른 프로젝트 부하. CHECK_TIMEOUT_S 240 → 480. 같은 게이트에서 check_plan_gate 168s(이전 상한 150 이면 실패)
 - Next session starting point:
 - Remaining risks:
 

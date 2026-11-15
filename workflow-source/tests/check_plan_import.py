@@ -21,7 +21,9 @@
 from __future__ import annotations
 
 #: 다중 프로세스 경합과 subprocess CLI 를 돌린다 — 기본 60s 상한을 넘는다.
-CHECK_TIMEOUT_S = 240
+#: 실측 (2026-11-14~15, 12 코어 LPT · 호스트에 다른 작업 부하): 172 · 174 · 178 · 223 · 229 · 235s, 1회 240s 초과 —
+#: 240 은 여유가 없었다. 최대치의 2배.
+CHECK_TIMEOUT_S = 480
 
 #: 이 검사의 입력 표면 (spec `core/test_impact_tiering_spec.md` §2).
 WATCHES = (

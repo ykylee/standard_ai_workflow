@@ -16,15 +16,33 @@ class CommitEntry:
     date: str
     category: str
 
+class GitLogError(RuntimeError):
+    """`git log` 이 실패했다 — git 저장소가 아니거나 범위를 풀 수 없다.
+
+    예전에는 빈 목록을 돌려줘 '커밋 0건' 과 구분되지 않았다 — MCP `summarize_git_history`
+    가 git 저장소가 아닌 경로에도 status ok · commit_count 0 을 냈다 (TASK-2026-11-15-main-002).
+    """
+
+    def __init__(self, message: str, *, stderr: str = "", returncode: int | None = None) -> None:
+        super().__init__(message)
+        self.stderr = stderr
+        self.returncode = returncode
+
+
 def get_git_log(repo_path: str | Path, commit_range: str) -> List[str]:
+    """범위의 커밋 줄. 빈 범위는 `[]`, git 이 실패하면 :class:`GitLogError` — 둘은 다른 사실이다."""
+    cmd = ["git", "-C", str(repo_path), "log", "--pretty=format:%s|%h|%an|%ad", "--date=iso", commit_range]
     try:
-        cmd = ["git", "-C", str(repo_path), "log", "--pretty=format:%s|%h|%an|%ad", "--date=iso", commit_range]
         result = subprocess.run(cmd, capture_output=True, text=True, check=True, encoding="utf-8", errors="replace")
-        if not result.stdout.strip():
-            return []
-        return result.stdout.strip().split("\n")
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError as exc:
+        stderr = (exc.stderr or "").strip()
+        lines = stderr.splitlines()
+        headline = next((line for line in lines if line.startswith("fatal:")), lines[-1] if lines else "출력 없음")
+        raise GitLogError(f"git log 실패 (rc {exc.returncode}): {headline}",
+                          stderr=stderr, returncode=exc.returncode) from exc
+    if not result.stdout.strip():
         return []
+    return result.stdout.strip().split("\n")
 
 def categorize_message(message: str) -> str:
     m = message.lower()

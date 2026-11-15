@@ -8,7 +8,7 @@ from typing import cast, Any
 
 from workflow_kit.common.change_types import classify_impacted_doc_file
 from workflow_kit.common.docs import missing_metadata_fields
-from workflow_kit.common.git import summarize_git_history
+from workflow_kit.common.git import GitLogError, summarize_git_history
 from workflow_kit.common.rotation import rotate_handoff_tasks
 from workflow_kit.common.errors import build_error_result
 from workflow_kit.common.state.roadmap import build_roadmap_state
@@ -414,7 +414,18 @@ def summarize_git_history_payload(
     tool_version: str,
 ) -> dict[str, Any]:
     resolved_repo_path = resolve_existing_path(repo_path)
-    summary_data = summarize_git_history(resolved_repo_path, commit_range)
+    try:
+        summary_data = summarize_git_history(resolved_repo_path, commit_range)
+    except GitLogError as exc:
+        # git 저장소가 아닌 경로 · 풀 수 없는 범위는 '커밋 0건' 이 아니다 (TASK-2026-11-15-main-002).
+        return build_error_result(
+            tool_version=tool_version,
+            error=str(exc),
+            error_code="git_log_failed",
+            warnings=[line for line in exc.stderr.splitlines()[-3:] if line.strip()],
+            source_context={"repo_path": str(resolved_repo_path), "commit_range": commit_range,
+                            "returncode": exc.returncode},
+        )
 
     from dataclasses import asdict
 

@@ -157,7 +157,10 @@ def invoke_tool(tool_name: str, payload_json: str | None) -> tuple[int, dict[str
                 warnings=output_errors,
                 source_context=source_context,
             )
-        return 0, result
+        # 계약을 지킨 **오류** 응답도 실패다 — rc 는 status 와 맞아야 한다 (TASK-2026-11-15-main-002).
+        # 예전에는 rc 0 이라 CLI `--tool` 의 종료 코드와 JSON-RPC 초안이 실패를 성공으로 냈다
+        # (apply_robust_patch 의 SEARCH 불일치). SDK 경로만 status 를 따로 봐서 isError 였다.
+        return (1 if result.get("status") == "error" else 0), result
     except FileNotFoundError as exc:
         return 1, build_entrypoint_error_result(
             error="payload 에 포함된 경로를 찾을 수 없다.",

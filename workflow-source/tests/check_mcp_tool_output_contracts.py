@@ -13,6 +13,12 @@ summarize_git_history · assess_milestone_progress · rotate_workflow_logs · ap
 4. 성공 아닌 경로도 계약 안에 있다 — rotate_workflow_logs 가 '최근 완료 작업' 절이 없는 handoff 에서
    ErrorOutput(`handoff_done_section_missing`)을 내고 invoke_tool 이 그것을 계약 위반으로 덮지 않는다;
    roadmap 이 없는 작업 공간의 assess_milestone_progress 도 성공 계약을 지킨다
+5. 실패를 성공으로 말하지 않는다 (TASK-2026-11-15-main-002) — summarize_git_history 는 git 저장소가
+   아닌 경로 · 풀 수 없는 범위에 `git_log_failed` 오류를, 빈 범위에는 ok · 0건을 낸다
+   (예전에는 셋 다 ok · 0건이라 구분되지 않았다)
+6. invoke_tool 의 rc 가 status 와 맞는다 — 계약을 지킨 오류 응답도 rc 1 (예전에는 rc 0 이라
+   CLI `--tool` 종료 코드와 JSON-RPC 초안이 apply_robust_patch 의 SEARCH 불일치를 성공으로 냈다),
+   JSON-RPC 초안의 tools/call 도 실패로 낸다
 """
 
 from __future__ import annotations
@@ -179,7 +185,7 @@ def case_non_success_paths_stay_in_contract() -> list[str]:
         handoff = root / "session_handoff.md"
         handoff.write_text("# Session Handoff\n\n## 5. 메모\n", encoding="utf-8")
         rc, out = _invoke("rotate_workflow_logs", {"handoff_path": str(handoff)})
-        if out.get("error_code") != "handoff_done_section_missing" or out.get("status") != "error":
+        if rc != 1 or out.get("error_code") != "handoff_done_section_missing" or out.get("status") != "error":
             problems.append(f"절 없는 handoff: rc={rc} status={out.get('status')} error_code={out.get('error_code')}")
         empty = root / "ws"
         empty.mkdir()
@@ -190,11 +196,59 @@ def case_non_success_paths_stay_in_contract() -> list[str]:
     return problems
 
 
+def case_git_failure_is_not_zero_commits() -> list[str]:
+    problems = []
+    with tempfile.TemporaryDirectory(prefix="mcp-contract-") as tmp:
+        root = Path(tmp)
+        repo = _make_repo(root)
+        not_git = root / "plain"
+        not_git.mkdir()
+        expectations = [
+            ("git 저장소가 아닌 경로", {"repo_path": str(not_git), "commit_range": "HEAD~1..HEAD"}, 1, "error", "git_log_failed"),
+            ("풀 수 없는 범위", {"repo_path": str(repo), "commit_range": "no-such-ref..HEAD"}, 1, "error", "git_log_failed"),
+            ("빈 범위", {"repo_path": str(repo), "commit_range": "HEAD..HEAD"}, 0, "ok", None),
+        ]
+        for label, payload, want_rc, want_status, want_code in expectations:
+            rc, out = _invoke("summarize_git_history", payload)
+            if (rc, out.get("status"), out.get("error_code")) != (want_rc, want_status, want_code):
+                problems.append(f"{label}: rc={rc} status={out.get('status')} error_code={out.get('error_code')} "
+                                f"— 기대 rc={want_rc} status={want_status} error_code={want_code}")
+            if want_status == "ok" and out.get("commit_count") != 0:
+                problems.append(f"{label}: commit_count={out.get('commit_count')} — 0 이어야 한다")
+    return problems
+
+
+def case_rc_matches_status() -> list[str]:
+    from workflow_kit.server.read_only_jsonrpc import build_tools_call_result
+
+    problems = []
+    with tempfile.TemporaryDirectory(prefix="mcp-contract-") as tmp:
+        target = Path(tmp) / "target.txt"
+        target.write_text("a\nb\n", encoding="utf-8")
+        payload = {"file_path": str(target),
+                   "patch_content": "<<<<<<< SEARCH\nzz\n=======\nc\n>>>>>>> REPLACE\n"}
+        rc, out = _invoke("apply_robust_patch", payload)
+        if rc != 1 or out.get("status") != "error":
+            problems.append(f"apply_robust_patch SEARCH 불일치: rc={rc} status={out.get('status')} — rc 1 · error 여야 한다")
+        if target.read_text(encoding="utf-8") != "a\nb\n":
+            problems.append("apply_robust_patch SEARCH 불일치인데 파일이 바뀌었다")
+        with mock.patch.dict(os.environ, _clean_git_env(), clear=True):
+            jrc, _result = build_tools_call_result("apply_robust_patch", payload)
+        if jrc == 0:
+            problems.append("JSON-RPC 초안 tools/call 이 status error 를 성공 result 로 냈다")
+        rc, out = _invoke("apply_robust_patch", {**payload, "patch_content": payload["patch_content"].replace("zz", "b")})
+        if rc != 0 or out.get("status") != "ok":
+            problems.append(f"apply_robust_patch 성공 경로: rc={rc} status={out.get('status')} — rc 0 · ok 여야 한다")
+    return problems
+
+
 CASES: list[tuple[str, Callable[[], list[str]]]] = [
     ("1 모든 MCP 도구에 family 가 있다", case_every_tool_has_a_family),
     ("2 고친 네 도구의 성공 경로 rc 0", case_repaired_tools_succeed),
     ("3 출력 키가 모델 선언과 맞다", case_output_keys_match_model),
     ("4 성공 아닌 경로도 계약 안에 있다", case_non_success_paths_stay_in_contract),
+    ("5 git 실패는 커밋 0건이 아니다", case_git_failure_is_not_zero_commits),
+    ("6 rc 가 status 와 맞는다", case_rc_matches_status),
 ]
 
 

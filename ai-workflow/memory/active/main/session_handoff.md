@@ -77,6 +77,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-11-15-main-002 MCP 오류 신호 불일치 — summarize_git_history 가 git 아닌 경로에 ok, invoke_tool 이 status error 를 rc 0 으로
 - TASK-2026-11-15-main-001 경고 분류기가 /tmp · /var/tmp 경로를 정규화한 뒤 분류해 서드파티 경고를 저장소 경고로 오판한다
 - TASK-2026-11-15-claude-remote-sync-check-234c32-002 v1.23.0 발행 — main 합류 · 발행 준비 · 태그 · GitHub Release
 - TASK-2026-11-04-main-002 MCP 도구 4종의 성공 경로가 항상 깨진다 — output contract family 미등록
@@ -86,11 +87,11 @@
 - TASK-2026-11-14-claude-remote-sync-check-234c32-002 M-029 ② 워크벤치 서버 · 화면 · 검사 넷 · 스킬 (MCP 두 도구는 다음 task)
 - TASK-2026-11-14-claude-remote-sync-check-234c32-001 M-029 ① 이월 정리 — inbox_census 단일 출처 · plan-import 건수 두 필드 · 받은편지함 우회 검출 · 정리 일곱
 - TASK-2026-11-13-claude-remote-sync-check-234c32-006 계획·진척 워크벤치 design — 프록시 · 브라우저 실측 + ADR-032 + core 스펙
-- TASK-2026-11-13-claude-remote-sync-check-234c32-004 주장 트리 계획 구현 2단계 — 응답 파일 · 받은편지함 · plan-import · 받은편지함 게이트 · 이어받기 · 정본 §11.1
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
 
+- (131차 후속) **main-001 · main-002 수리 완료** — ①경고 분류기: 저장소가 `/tmp` · `/var/tmp` 아래여도 출처 분류가 맞다(`CheckWarning.raw_location`) ②MCP: `invoke_tool` 이 status error 에 rc 1 · `summarize_git_history` 가 git 실패에 `git_log_failed`. 다음 발행 노트에 1.23.0 §4 '미수리' 두 건의 해소를 적는다. 후속 후보: `run_create_session_handoff_draft.py` 직접 실행 시 git 실패 traceback · `apply_robust_patch` 의 SEARCH 불일치 error_code 가 `malformed_patch_block`.
 - (131차) **v1.23.0 발행 완료** — 다음 일: ①codex 재시작 뒤 `doctor --json` 의 `runtime_load.stale_hosts=[]` 확인 ②후속 후보 — 경고 분류기 `/var/tmp` 결함(저장소가 `/tmp` · `/var/tmp` 아래면 서드파티 경고를 저장소 경고로) · MCP `summarize_git_history`(git 아닌 경로에 ok) · `apply_robust_patch`(실패에 rc 0) 신호 불일치 · Windows 실측(M-028/WBS-28.3). 소유자 질문 2건 대기: `check_entry_diet` 15% 기준 · 주장 없는 task 의 '미측정' 표식.
 - (합류 `claude/remote-sync-check-234c32@7fdf0eb5`, 2026-11-15) **130차 세션 (2026-11-15, Linux 호스트) — main 합류 · 1.23.0 발행 준비 완료(게이트 442b9808, main fast-forward) + 합류 반영 결함 수리(task 11-15-003 — 완료 task 도 모 브랜치로): `origin/main@39a50a11` 병합(6ffa3f69, `roadmap_state.json` 충돌은 재생성) + 발행 차단 결함 수리.** main 의 TASK-… — 완료 14건(TASK-2026-11-12-claude-remote-sync-check-234c32-002, TASK-2026-11-12-claude-remote-sync-check-234c32-003, TASK-2026-11-12-claude-remote-sync-check-234c32-004, TASK-2026-11-12-claude-remote-sync-check-234c32-005, TASK-2026-11-13-claude-remote-sync-check-234c32-001, TASK-2026-11-13-claude-remote-sync-check-234c32-002, TASK-2026-11-13-claude-remote-sync-check-234c32-003, TASK-2026-11-13-claude-remote-sync-check-234c32-004, TASK-2026-11-13-claude-remote-sync-check-234c32-006, TASK-2026-11-14-claude-remote-sync-check-234c32-001, TASK-2026-11-14-claude-remote-sync-check-234c32-002, TASK-2026-11-14-claude-remote-sync-check-234c32-003, TASK-2026-11-15-claude-remote-sync-check-234c32-001, TASK-2026-11-15-claude-remote-sync-check-234c32-003) · 이월 2건(TASK-2026-11-13-claude-remote-sync-check-234c32-005, TASK-2026-11-15-claude-remote-sync-check-234c32-002) · 되돌려 적음 0건. 기록: [`archived/claude/remote-sync-check-234c32/session_handoff.md`](../../archived/claude/remote-sync-check-234c32/session_handoff.md) · [합류 기록](./sessions/merge_claude-remote-sync-check-234c32_2026-11-15.md)
 - (2026-11-04, Linux 호스트) **minimax-code 채널 §2.8 재적용 완료** (TASK-2026-11-04-main-001 — mcode 0.7.4, 1.22.0 in-sync · 5 스킬 노출). 남은 것: ①doctor 가 codex · grok-build · antigravity 를 1.21.0 BEHIND 로 보고 — 이 호스트 나머지 채널 재적용 ②**TASK-2026-11-04-main-002 (planned)** — MCP 도구 4종(summarize_git_history · assess_milestone_progress · rotate_workflow_logs · apply_robust_patch)이 성공 경로에서 `invalid_tool_output_contract` 로 죽는다, `PYDANTIC_MODEL_REGISTRY` 에 family 미등록. 1.22.0 발행본에 들어 있다. (이 기록은 2026-11-12 에 커밋 — 그동안 이 호스트 작업 트리에만 있었다.)

@@ -32,7 +32,8 @@ CLI 를 subprocess 로 끝까지 돌린다. 거부는 **파일을 하나도 바�
 from __future__ import annotations
 
 #: CLI 를 60 회 남짓 subprocess 로 띄운다 — 병렬 부하에서 기본 상한을 넘을 수 있다.
-CHECK_TIMEOUT_S = 150
+#: 실측 (2026-11-14~15, 12 코어 LPT): 단독 53s · 전량 게이트 109s · 146s · --changed 2회 150s 초과 — 150 은 여유가 없었다.
+CHECK_TIMEOUT_S = 300
 
 WATCHES = (
     "workflow-source/pyproject.toml",

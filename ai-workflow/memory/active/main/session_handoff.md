@@ -76,6 +76,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-11-04-main-001 minimax-code 채널 설치·검증 — mcode 0.7.4 로컬 마켓플레이스 실측
 - TASK-2026-10-31-main-004 v1.22.0 발행 — 한글 Windows 프로필 확립 + Windows 격차 52건 수리 묶음
 - TASK-2026-10-31-main-003 Windows 호스트에서 전량 게이트 52개 검사 red — POSIX 전제 검사가 push 게이트를 막는다
 - TASK-2026-10-31-main-002 게이트 러너가 Windows 에서 첫 검사 완료와 함께 죽는다 — _kill_process_group 가 POSIX 전용 os.getpgid 를 쓴다
@@ -85,11 +86,11 @@
 - TASK-2026-10-19-main-005 v1.21.0 발행 — minimax-code doctor 5채널 편입 + 117 · 118차 수리 묶음
 - TASK-2026-10-19-main-004 goal coverage 가 '어느 마일스톤도 섬기지 않는 goal' 을 조용히 uncovered 로 센다 — 닿을 수 없는 goal 을 provenance 로 지목
 - TASK-2026-10-02-main-003 원격 없는 저장소의 worktree 는 자동 seed · 이어받기가 안 돈다 — 기본 브랜치 판정이 현재 브랜치로 떨어진다
-- TASK-2026-09-30-main-001 minimax-code 가 플러그인 채널로 미지원 — 배포·드리프트 판정·재생성이 모두 kit 밖
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
 
+- (2026-11-04, Linux 호스트) **minimax-code 채널 §2.8 재적용 완료** (TASK-2026-11-04-main-001 — mcode 0.7.4, 1.22.0 in-sync · 5 스킬 노출). 남은 것: ①doctor 가 codex · grok-build · antigravity 를 1.21.0 BEHIND 로 보고 — 이 호스트 나머지 채널 재적용 ②**TASK-2026-11-04-main-002 (planned)** — MCP 도구 4종(summarize_git_history · assess_milestone_progress · rotate_workflow_logs · apply_robust_patch)이 성공 경로에서 `invalid_tool_output_contract` 로 죽는다, `PYDANTIC_MODEL_REGISTRY` 에 family 미등록. 1.22.0 발행본에 들어 있다. (이 기록은 2026-11-12 에 커밋 — 그동안 이 호스트 작업 트리에만 있었다.)
 - (122차) **v1.22.0 발행 완료** (main-004) — 준비 커밋 `a44b7d31` → 전량 게이트 native·slash 309×2 rc 0 (증거 `a44b7d31…json`, 커밋 후 clean tree) → `dist --apply`(휠·sdist + plugin ZIP 3종 · twine PASS) → `release --dry-run` ready=true → push(main) → `release --apply`(태그 `v1.22.0` push + GitHub Release asset 5종). **이 호스트에서 처음 시도한 Windows 발행**이었다 — 발행 경로 격차 2건(`venv/bin/pip` 경로 · pip 자기수정)과 서브프로세스 encoding 누락 10건이 이때 드러나 추가로 고쳤다. **다음 일**: ①**§2.8 소비채널 재적용** — `python -m workflow_kit.minimax_plugin --apply` 후 `python -m workflow_kit doctor --json` 의 `content_drift.behind=[]` (minimax-code 1.22.0) 확인 · 데스크톱 앱 재시작 필요 ②**POSIX 회귀 게이트는 이 호스트에서 못 돌린다** — Linux/macOS 에서 309×2 확인 필요 ③해석기 매트릭스 3.11 셀은 해석기 미설치로 UNMEASURED — 설치 후 재실행 ④case 수 선언 대조 75건 미측정 ⑤PyPI 발행은 하지 않는다(§1 각주 0 — 2026-08-14 소유자 최종 결정 · 배포는 GitHub Releases 하나).
 - (121차) **한글 Windows 프로필 확립 + 격차 52건 → 0건 — push 완료.** 이 호스트에서 전량 게이트 `--branch-context=all` 가 green 이다: native · slash 각 309/309 rc 0, 증거 `712e9414…json` (커밋 후 clean tree) → `origin/main` push **완료**(게이트 우회 없음 · `--no-verify` 미사용). 다음 일: ①원하면 이 호스트에서 `release --apply` 로 v1.21.1 발행 시도 ②**POSIX(Linux/macOS) 회귀 게이트는 이 호스트에서 돌릴 수 없다** — 309×2 는 별도 호스트에서 확인해야 한다. 소유자 결정 대기 0. 재발 방지 규칙 8절은 §5 말미 "121차가 남긴 규칙" 참고.
 - (119차) **변경 없음 — 기준선 green 재확인.** 이 호스트 다음 일: codex CLI 재시작(5 프로세스 stale) 뒤 `python -m workflow_kit doctor --json` 의 `runtime_load.stale_hosts=[]` 확인. 새 작업 후보는 WBS-7.3 case 수 선언 미측정 158건 보급 — 소유자가 범위를 정하면 `backlog-update --done-criteria` 로 등록. Windows · macOS 항목은 아래 118차 줄 그대로.

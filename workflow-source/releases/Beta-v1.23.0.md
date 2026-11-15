@@ -87,3 +87,20 @@ v1.22.0 이후 49커밋(병합 제외)이 발행되지 않은 채 쌓였다. 코
   `apply_robust_patch` 는 SEARCH 불일치에 status error 인데 종료 코드 0.
 - **case 수 선언 대조 축은 컨텍스트마다 83건이 미측정**이다(개수 선언 없음 79 · case 줄 없음 4, native · slash 합계 166) — 통과가 아니다.
 - **PyPI 업로드는 하지 않는다**(§1 각주 0 — 2026-08-14 소유자 최종 결정). 배포는 GitHub Releases 하나다.
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-11-15T14:43:44Z)_
+
+- total wiki pages: **99**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

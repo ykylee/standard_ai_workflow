@@ -1,7 +1,7 @@
 ---
 merged_from: claude/remote-sync-check-234c32@7fdf0eb5
 id: TASK-2026-11-15-claude-remote-sync-check-234c32-002
-status: in_progress
+status: done
 created_at: 2026-11-15
 source_anchor: release-task-2026-11-15-claude-remote-sync-check-234c32-002
 source_path: backlog/2026-11-15.md
@@ -13,7 +13,7 @@ wbs: M-007/WBS-7.1
 
 ## 📝 Description
 
-- Status: in_progress
+- Status: done
 - Priority: high
 - Request date: 2026-11-15
 - Owner:
@@ -33,7 +33,7 @@ wbs: M-007/WBS-7.1
 
 - Claims: C1 등급은 minor — 공개 API 시그니처 변경 0 · 진입점 제거 0 · 추가만 (RELEASE §1.5)
 - Claims: C2 태그 push · GitHub Release 는 외부 공개라 소유자 승인 뒤에만 실행한다
-- Decisions: D1 [C2] release --apply(태그 v1.23.0 push · GitHub Release 생성)를 실행하는가? | default: hold | options: apply = 게이트 통과 커밋에 태그를 달고 Release 를 만든다; hold = main 합류까지만 하고 발행은 미룬다 | state: proposed
+- Decisions: D1 [C2] release --apply(태그 v1.23.0 push · GitHub Release 생성)를 실행하는가? | default: hold | options: apply = 게이트 통과 커밋에 태그를 달고 Release 를 만든다; hold = main 합류까지만 하고 발행은 미룬다 | state: answered:apply
 - Files that change: workflow-source/releases/Beta-v1.23.0.md
 - Order of work: 1) 준비 커밋 2) 전량 게이트 3) branch push 4) main 합류 push 5) dist --apply · release --dry-run 6) D1=apply 면 release --apply · §2.8
 - Plan risks: release --apply 의 post-step 산출물은 미커밋으로 남는다 — 별도 '발행 완료' 커밋
@@ -41,11 +41,12 @@ wbs: M-007/WBS-7.1
 
 ## 🛠️ Implementation / Content
 
-- Progress: 게이트 2회차(0ce020df) slash 에서 check_plan_import 240s 시간 초과 — 실측 172~235s, 호스트에 다른 프로젝트 부하. CHECK_TIMEOUT_S 240 → 480. 같은 게이트에서 check_plan_gate 168s(이전 상한 150 이면 실패)
+- Progress: 소유자 승인(2026-11-15 '배포 진행해') → dist --apply rc 0(wheel·sdist·plugin zip 3) → release --version 1.23.0 --apply rc 0: 태그 v1.23.0 = d16eab89 (origin 확인), GitHub Release Latest · asset 5종. §2.8 재적용 codex · grok-build · antigravity · minimax-code → doctor behind=[] disabled=[]. codex 실행 중 호스트 4개는 재시작 전까지 옛 코드
 - Next session starting point:
 - Remaining risks:
 
 ## ✅ Outcome
 
-- Result:
-- Follow-up:
+- Result: v1.23.0 발행 완료 (2026-11-15T14:43:44Z). §2.8 재적용 4채널 doctor behind=[] disabled=[]
+- Verification: verifier PASS 4/4 — 버전 리터럴 일치(drift_prevention · version · readme_cross · plugin_distribution rc 0) · 게이트 증거 d16eab89 319×native/slash · origin/main 포함 · 태그 v1.23.0=d16eab89 + GitHub Release Latest asset 5종
+- Follow-up: 경고 분류기 /var/tmp 결함 · MCP rc/status 불일치 둘 · Windows 실측(WBS-28.3)

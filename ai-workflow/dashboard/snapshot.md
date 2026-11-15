@@ -1,20 +1,20 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-10-31T10:20:04Z`
-- tool_version: `1.22.0`
-- workspace_root: `D:\repos\standard_ai_workflow`
+- generated_at: `2026-11-15T14:43:44Z`
+- tool_version: `1.23.0`
+- workspace_root: `/home/yklee/repos/standard_ai_workflow-main`
 
 ## Panel 1 — Drift Prevention Status
 
 - guard_status: `pass`
 - guard_cases: `7 / 7`
-- maturity_last_updated: `2026-10-31`
-- maturity_surface_changed_at: `2026-10-31`
+- maturity_last_updated: `2026-11-15`
+- maturity_surface_changed_at: `2026-11-15`
 - maturity_stale: `False` (source: `maturity_surface_commit`)
 - harness_supported_count: `10`
-- head_commit_date: `2026-10-31`
+- head_commit_date: `2026-11-15`
 - last_updated_delta_days: `0`
-- silent_failing_cycles_count: `0` (측정 cycle 36건)
+- silent_failing_cycles_count: `0` (측정 cycle 37건)
 
 ## Panel 2 — Maturity Distribution
 
@@ -75,39 +75,39 @@
 
 ## Panel 4 — Smoke Trend
 
-- cumulative_total: `309`
-- cumulative_pass: `309`
+- cumulative_total: `319`
+- cumulative_pass: `319`
 - cumulative_pass_rate: `1.0000`
-- smoke_files_count: `309`
+- smoke_files_count: `319`
 
 ### Recent release smoke counts
 
 | version | pass | total |
 |---|---|---|
+| Beta-v1.23.0 | 319 | 319 |
 | Beta-v1.22.0 | 309 | 309 |
 | Beta-v1.21.0 | 309 | 309 |
 | Beta-v1.20.1 | 309 | 309 |
 | Beta-v1.20.0 | 309 | 309 |
-| Beta-v1.19.0 | 302 | 302 |
 
 ## Panel 5 — Recent Release Cycle
 
-- items_total: `10`
+- items_total: `30`
 - top_n: `10`
 - confidence: `fresh=10`
 
 ### Timeline (preview, first 120 char)
 
-- [0] TASK-2026-10-31-main-003 — Windows 호스트에서 전량 게이트 52개 검사 red — POSIX 전제 검사가 push 게이트를 막는다  `[fresh]`
-- [1] TASK-2026-10-31-main-002 — 게이트 러너가 Windows 에서 첫 검사 완료와 함께 죽는다 — _kill_process_group 가 POSIX 전용 os.getpgid 를 쓴다  `[fresh]`
-- [2] TASK-2026-10-31-main-001 — MiniMax Code 채널 재적용 — v1.21.0 로컬 마켓플레이스 sync + 글로벌 MCP 등록  `[fresh]`
-- [3] TASK-2026-10-19-main-007 — pre-push 게이트가 main · 태그 삭제 push 를 막는다 — 다른 브랜치 삭제는 통과 (소유자 결정 2026-10-19)  `[fresh]`
-- [4] TASK-2026-10-19-main-006 — G4 · G5 goal 선언 — M-001~M-006 goals 에 G5, M-006 에 G4, WBS-7.4 → G3 · G4 · G5 (소유자 결정 A안)  `[fresh]`
-- [5] TASK-2026-10-19-main-005 — v1.21.0 발행 — minimax-code doctor 5채널 편입 + 117 · 118차 수리 묶음  `[fresh]`
-- [6] TASK-2026-10-19-main-004 — goal coverage 가 '어느 마일스톤도 섬기지 않는 goal' 을 조용히 uncovered 로 센다 — 닿을 수 없는 goal 을 provenance 로 지목  `[fresh]`
-- [7] TASK-2026-10-19-main-003 — check_memory_lint T1a · T1c · T1d 가 legacy 경로라 항상 skip — 은퇴 1 · branch-scoped 재작성 2  `[fresh]`
-- [8] TASK-2026-10-19-main-002 — check_memory_lint T1b stale 가 branch-scoped 전환 뒤 공유층 파일만 잰다 — 시간 경과만으로 red  `[fresh]`
-- [9] TASK-2026-10-19-main-001 — 진입점 다이어트 harvest 재실행 — v1.20.0 생성물 채취 + '현행 생성물 ⊆ 알려진 생성물' 검사로 재실행 누락 고정  `[fresh]`
+- [0] TASK-2026-11-15-claude-remote-sync-check-234c32-003 — 합류 반영이 완료 task 를 archived/ 로만 보내 main 집계가 근거를 잃는다 — 완료 task 도 모 브랜…  `[fresh]`
+- [1] TASK-2026-11-15-claude-remote-sync-check-234c32-001 — MCP 도구 4종 성공 경로 output contract 미등록 수리 (main-002 대응, 발행 차단 결함)  `[fresh]`
+- [2] TASK-2026-11-14-claude-remote-sync-check-234c32-003 — M-029 ② MCP plan_inbox · plan_import + 체크인 생성물  `[fresh]`
+- [3] TASK-2026-11-14-claude-remote-sync-check-234c32-002 — M-029 ② 워크벤치 서버 · 화면 · 검사 넷 · 스킬 (MCP 두 도구는 다음 task)  `[fresh]`
+- [4] TASK-2026-11-14-claude-remote-sync-check-234c32-001 — M-029 ① 이월 정리 — inbox_census 단일 출처 · plan-import 건수 두 필드 · 받은편지함 우…  `[fresh]`
+- [5] TASK-2026-11-13-claude-remote-sync-check-234c32-006 — 계획·진척 워크벤치 design — 프록시 · 브라우저 실측 + ADR-032 + core 스펙  `[fresh]`
+- [6] TASK-2026-11-13-claude-remote-sync-check-234c32-004 — 주장 트리 계획 구현 2단계 — 응답 파일 · 받은편지함 · plan-import · 받은편지함 게이트 · 이어받기 ·…  `[fresh]`
+- [7] TASK-2026-11-13-claude-remote-sync-check-234c32-003 — 주장 트리 계획 구현 1단계 — 라벨 · 파서 · 린트 · 게이트 · --decision-state · plan-sta…  `[fresh]`
+- [8] TASK-2026-11-13-claude-remote-sync-check-234c32-002 — 주장 트리 계획 design — ADR-031 + core 스펙 (필드 · 린트 · 게이트 · 응답 형식 · plan-…  `[fresh]`
+- [9] TASK-2026-11-13-claude-remote-sync-check-234c32-001 — 계획·진척 워크벤치 requirements — 미실측 실측 + 서버 · 응답 쓰기 · 알림 · 진척 화면 요구 사항 ·…  `[fresh]`
 
 ## Panel 6 — Multi-Agent Concurrent Write Conflict
 
@@ -137,10 +137,10 @@
 
 - phase_15_north_star: `utilization_3tuple (query_diversity / entries_new_30d / distinct_entries_retrieved — ADR-006 W-4; hit_rate 는 보조)`
 - entries_total: `30`
-- telemetry_events_total: `20`
-- telemetry_total_queries: `20`
-- telemetry_hit_count: `20`
-- telemetry_hit_rate: `1.0000`
+- telemetry_events_total: `8`
+- telemetry_total_queries: `8`
+- telemetry_hit_count: `7`
+- telemetry_hit_rate: `0.8750`
 
 ### Entries by merge_state
 
@@ -152,6 +152,6 @@
 
 | source | events |
 |---|---|
-| `backlog-update` | 18 |
-| `session-start` | 2 |
+| `backlog-update` | 4 |
+| `session-start` | 4 |
 

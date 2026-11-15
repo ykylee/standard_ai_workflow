@@ -4,7 +4,7 @@
 - 범위: git log 에서 추출한 release 별 Added / Changed / Fixed 항목.
 - 대상 독자: maintainer, 릴리스 매니저, 외부 consumer
 - 상태: stable (자동 생성물)
-- 최종 수정일: 2026-10-31
+- 최종 수정일: 2026-11-15
 - 관련 문서: [`./releases/`](./releases/) (release note), [`../docs/RELEASE.md`](../docs/RELEASE.md) (릴리스 절차)
 
 All notable changes to this project will be documented in this file.
@@ -12,10 +12,15 @@ All notable changes to this project will be documented in this file.
 본 파일은 `tools/release_pipeline.py changelog-gen` 으로 자동 생성됩니다 (v0.7.14+).
 수동 편집은 다음 생성 시 덮어써진다 — 형식/metadata 변경은 생성기를 고칠 것.
 
-## [Unreleased] - 2026-10-31
+## [Unreleased] - 2026-11-15
 
 ### Added
 
+- feat(mcp): plan_inbox(read-only) · plan_import(write) — 워크벤치 스펙 §8.3 (M-029/WBS-29.2) (f3223d6a)
+- feat(workbench): M-029 ② 워크벤치 서버 · 화면 · 검사 넷 · 스킬 (ADR-032, M-029/WBS-29.2) (a2e3b495)
+- feat(plan): M-029 ① 이월 정리 — inbox_census 단일 출처 · plan-import 건수 두 필드 · 받은편지함 우회 검출 · 배치 warnings · 정리 일곱 (ADR-032 결정 16 · 17 · 18 · 24 · 25, M-029/WBS-29.1) (bba68693)
+- feat(plan): 주장 트리 계획 2단계 — 응답 파일 · 받은편지함 · plan-import · 받은편지함 게이트 · 이어받기 (ADR-031, M-028/WBS-28.2) (c4c14c6b)
+- feat(plan): 주장 트리 계획 1단계 — task Plan 에 Claims · Decisions, 린트 · 전이 게이트 · plan-status (ADR-031, M-028/WBS-28.1) (f45c6da1)
 - feat(gate): pre-push 가 main · 태그의 삭제 push 를 막는다 — 기능 브랜치 삭제는 통과 (main-007, 소유자 결정 2026-10-19) (dd8beb36)
 - feat(minimax-code): doctor 가 이 채널을 잰다 — behind·disabled·재시작 3축 편입 (main-001) (4ab6938c)
 - feat(entrypoints): ensure-entrypoints --diet — 기존 진입점에서 과거 kit 생성 그대로인 절만 교체/제거 (진입점 다이어트 3) (14fd87be)
@@ -41,49 +46,63 @@ All notable changes to this project will be documented in this file.
 - feat(memory): memory_index 승격 4건 + 검색이 매칭된 entry 를 안 돌려주는 결함 노출 (f631c3c0)
 - feat(tests): 요약의 case 개수를 발화 수와 대조하는 축 (main-004) (88b92542)
 - feat(memory): memory_index 7건 승격 — 후보 판정식이 잡음이라 판단으로 골랐다 (main-001) (b7fd4b3a)
-- feat(ci): 하한 해석기를 CI 셀에 깔아 부분 측정을 전수로 (main-007) (a9fd2c9c)
-- feat(tests): 하한 호환 축의 범위를 저장소 루트 전수로 (main-009) (59e77dbd)
-- feat(tests): 컴파일 시점 경고를 캐시와 무관하게 재는 축 (main-008) (73e781fc)
-- feat(tests): 저장소 코드가 낸 Python 경고를 게이트 신호로 (main-007) (5205ba80)
-- feat(tests): 검사를 도는 해석기를 선언 축으로 (main-006) + 82차 세션 종료 (e5f9b554)
-- ... (164 more)
+- ... (169 more)
 
 ### Changed
 
+- chore(session): 합류 반영 — claude/remote-sync-check-234c32@7fdf0eb5 (완료 14 · 이월 2) + main-002 done (d16eab89)
+- test(plan): check_plan_import 의 시간 상한 240 → 480 — 부하에서 172~235s, 게이트 1회 초과 (442b9808)
+- merge: origin/main(39a50a11) 을 claude/remote-sync-check-234c32 에 병합 — 11-04 세션 메모리 · roadmap_state 재생성 (6ffa3f69)
+- chore(memory): M-029 종결 — task 11-14-003 done (verifier 3차 PASS), M-029 done · Windows 항목은 WBS-28.3 으로, handoff 129차 (7923f659)
+- chore(memory): WBS-29.2 의 남은 일(MCP 두 도구)을 task 11-14-003 planned 로 등록 — 파생 진척이 done 으로 앞서가던 것 (c1586fb6)
+- chore(memory): M-029 ② 워크벤치 서버 종결 — task 11-14-002 done (verifier 7차 PASS), handoff 128차 (1d0c989b)
+- test(workbench): verifier 6차 — 공개의 세 길을 모두 계측 아래 (M-029/WBS-29.2) (d536de9d)
+- test(workbench): verifier 5차 — 계측의 flush 가 결함을 가렸다 · link 원본의 구조 판정 (M-029/WBS-29.2) (9230ae82)
+- test(workbench): verifier 4차 — 덜 쓰인 파일 판정에 커널 쪽 관찰자 (M-029/WBS-29.2) (ef7cfab0)
+- test(workbench): verifier 3차 — 공개의 원자성을 구조로 판정 (M-029/WBS-29.2) (4219728d)
+- chore(entry): 진입점 템플릿 변경(a2e3b495) 의 절 해시 재채취 — check_entry_diet case 6 (abf2143f)
+- chore(memory): M-027 워크벤치 design 종결 — ADR-032 accepted, task 11-13-006 done, M-029 선언 (7511c1b6)
+- docs(workbench): 1차 검증 — 결정 대상의 대안 · 스펙 대응 누락 · 넘긴 항목 복구 (M-027/WBS-27.1) (a71ad14b)
+- docs(workbench): 프록시 · 브라우저 실측 + ADR-032 (proposed) + core 스펙 (M-027/WBS-27.1) (62c012aa)
+- chore(memory): M-028/WBS-28.2 주장 트리 계획 구현 2단계 종결 — task 11-13-004 done, WBS-28.3(Windows 실측) 등록 (21fc873c)
+- docs(plan): 지원하는 받은편지함 · 보관 배치를 스펙 §7-9 에 적고 검증 범위를 그 배치로 (소유자 결정, M-028/WBS-28.2) (593f643d)
+- test(plan): 되주입이 빠져나간 자리 보강 — 한도 숫자 · 0 단계 · 배타 생성 · 순서 (ADR-031 2단계, M-028/WBS-28.2) (9577b9a3)
+- chore(entry): 진입점 템플릿 변경(c4c14c6b) 의 절 해시 재채취 — check_entry_diet case 6 (668051b3)
+- chore(memory): M-028/WBS-28.1 주장 트리 계획 구현 1단계 종결 — task 11-13-003 done, handoff · state 갱신 (a4d9495c)
+- chore(entry): 진입점 템플릿 변경(f45c6da1) 의 절 해시 재채취 — check_entry_diet case 6 (9951d406)
+- docs(design): 주장 트리 계획 design 종결 (M-026) — ADR-031 accepted + core 스펙 → M-027 · M-028 개설 (36e6540c)
+- docs(planning): 계획·진척 워크벤치 requirements 종결 (M-025) — 실측 + R0~R12, 소유자 sign-off Q1 · Q2 (df602c4f)
+- chore(session): 11-04 세션 메모리 반영 — minimax-code 채널 재적용 완료(main-001) + MCP 도구 4종 output contract 결함 등록(main-002) (39a50a11)
+- docs(planning): 주장 트리 계획 requirements 종결 (M-023) — 실측 3건 + R0~R13, 소유자 sign-off Q1~Q7 → M-026 design 개설 (0a7da7b0)
+- docs(planning): 워크벤치 concept 정정 — 접속 위치 무가정 (W6 · W7) (179b3ea7)
+- chore(session): 123차 handoff — 두 수리 코드만 흡수 · 전량 게이트 green 반영 (63c2829c)
+- docs(planning): 계획·진척 워크벤치 concept 종결 (W1~W5) + 하네스 중립 지시로 M-022 안 B 정정 → M-025 개설 (01f82984)
+- docs(planning): html-plan 개념 흡수 concept 종결 — 주장·결정 계약(A) + 검토 브리지(B), 소유자 결정 D1~D5 → M-023 개설 (40e63779)
 - chore(session): 121차 handoff 상태 정합 — push 완료 사실 반영 (main-003) (9da03e62)
 - chore(session): 120차 세션 §1 기준선 갱신 + Windows 전량 게이트 52건 격차 등록(main-003) · baselines 롤오프 1건 · state.json 갱신 (3f03e903)
-- chore(session): 120차 세션 — minimax-code 채널 재적용(v1.21.0 플러그인 sync + 글로벌 MCP 등록, main-001) · 게이트 러너 Windows 결함 수리 기록(main-002) · handoff · state.json 갱신 (f4ecc8e7)
-- chore(session): 119차 세션 — 변경 없음: v1.21.0 발행 뒤 기준선 재측정(doctor behind=[] · 전량 게이트 309×2 green) · handoff §1 · §5 · baselines 롤오프 1건 · state.json 갱신 (8ea73719)
-- chore(session): 118차 세션 — 소유자 결정 3건 반영: G4 · G5 선언(main-006, roadmap M-001~M-007 goals) · main · 태그 삭제 차단(main-007) · 매트릭스 기록 요구 안 함(기록) · handoff · state.json 갱신 (8f621453)
-- chore(session): worktree 합류 반영 — feat/auto-20261019-a0afcf36 2건 close (be5e6da8)
-- Merge branch 'feat/auto-20261019-a0afcf36' (1b1f7519)
-- chore(session): 118차 세션 — main-004 close (goal coverage provenance) · G4 · G5 선언안 §5 · handoff · state.json 갱신 (6ca14604)
-- chore(session): 118차 세션 — main-003 close (memory_lint T1a 은퇴 · T1c/T1d 재작성) · handoff · state.json 갱신 (6050e4e3)
-- chore(session): 118차 세션 종료 — main-001 · 002 close (harvest v1.20.0 · memory_lint T1b, 미발행) · handoff · baselines 이관 · state.json 갱신 (4c39e752)
-- chore(session): 117차 세션 종료 — main-003 · 008 · 009 close (verifier 실사용 · §2.8 minimax · apply 보고 수리, 미발행) · handoff · state.json 갱신 (06abaaf0)
-- docs(release): §2.8 에 minimax-code 재적용 · 확인 절차 보강 (main-008) (2ef4682f)
-- chore(session): main-003 close — verifier subagent 실제 로드 실측 (v1.20.1 발행 task 3/3 PASS) (bfd4e375)
-- chore(session): 세션 종료 — main-006 close (handoff 제목 동기화 수리, 미발행) · handoff · state.json 갱신 (56ce4fd4)
-- chore(session): 116차 세션 종료 — 플레이북 검토 · A1~A3 · 진입점 다이어트 · v1.20.0 발행 · handoff · state.json 갱신 (c166c6ad)
-- docs(standard): 진입점 규칙 블록 압축 — 3,635B → 2,740B, 근거는 정본 본문으로 (진입점 다이어트 1) (062c4d64)
-- docs(entry): CLAUDE.md 다이어트 — 12,184B → 7,733B (생성 규칙 블록은 바이트 동일) (55f9bb66)
-- docs(planning): Anthropic "The AI-native SDLC playbook" 조사 정리 + 워크플로우 적용 검토 (7335cd97)
-- chore(session): worktree 합류 반영 — feat/auto-20261002-4a5d394c 3건 close (c1a01964)
-- Merge pull request #30 from ykylee/feat/auto-20261002-4a5d394c (a1f2ed68)
-- refactor(test): 관찰 전용 session-start 를 공용 헬퍼로 — 재발을 막는다 (e98bc3a6)
-- docs(plugin): MiniMax manifest 가 mcpServers 를 못 받는 이유를 정정한다 (b28bac31)
-- chore(session): handoff §5 를 부류별로 되돌리고 후속 task 등록 (f706d2d0)
-- chore(session): 세션 종료 — main-009 계열 2건 close · handoff §5 · state.json 재생성 (c2af79d9)
-- chore(session): 115차 세션 종료 — macOS v1.19.0 §2.8 재적용 · 고유 커밋 없는 worktree/브랜치 정리 · 브랜치 메모리 3개 아카이브 (1ac26b0b)
-- chore(session): 114차 세션 종료 — main-008 close (v1.19.0 발행) · main-006 · 007 Windows 실측 대기 · handoff · state.json 갱신 (309c9ddf)
-- chore(session): 113차 세션 종료 — main-004 · 005 close (worktree 합류 반영 · v1.18.0 발행) · handoff · state.json 갱신 (11fe1e6f)
-- chore(session): 112차 세션 종료 — main-001 · 002 close (worktree 모 브랜치 이어받기 · v1.17.0 발행) · main-003 등록 · handoff · state.json 갱신 (c44c09bf)
-- dolt remote info (1534f260)
-- chore(memory): 합류한 claude/exciting-ardinghelli-a0680d 브랜치 메모리 아카이브 · main handoff 포인터 갱신 (3c31ebb0)
-- ... (467 more)
+- ... (495 more)
 
 ### Fixed
 
+- fix(memory): 합류 반영이 완료 task 를 archived/ 로만 보내 roadmap 근거를 잃던 결함 — 완료 task 도 모 브랜치로 (7fdf0eb5)
+- fix(mcp): MCP 도구 4종 성공 경로의 output contract 미등록 — 1.22.0 발행본 결함 (TASK-2026-11-04-main-002) (bbcc2203)
+- fix(mcp): verifier 2차 — 오류 규칙 분기 측정 · 값을 --flag=value 로 · 인자 거절은 입력 오류로 (M-029/WBS-29.2) (5d7b7e6d)
+- fix(mcp): verifier 1차 — plan_inbox 파일별 값 · response 전달 · 사유 없는 discard · 숫자 apply (M-029/WBS-29.2) (fb3bdc48)
+- fix(workbench): verifier 2차 — 모르는 메서드도 404 · 덜 쓰인 파일 case 를 audit 이벤트로 (M-029/WBS-29.2) (5442851b)
+- fix(workbench): verifier 1차 — 검증 줄 없는 기준 '미측정' · 토큰 경로의 ~ · 표 밖 메서드 404 · 측정 구멍 보강 (M-029/WBS-29.2) (d74cf2a6)
+- fix(plan): 지정한 링크는 응답이 아니다 · 받은편지함의 .rejected.md · 숨은 .md 보고 복구 (ADR-031 2단계, M-028/WBS-28.2) (2c49db32)
+- fix(plan): 옮길 수 없는 받은편지함 · 보관 배치는 먼저 거절 · 링크 · 비파일 항목은 응답이 아니다 (ADR-031 2단계, M-028/WBS-28.2) (44c08042)
+- fix(plan): 브랜치 안 디렉터리가 심볼릭 링크여도 옮기는 파일 자신을 세지 않는다 (ADR-031 2단계, M-028/WBS-28.2) (d6d46484)
+- fix(plan): dry-run 이름 예고를 경로 단위로 · 다시 받은 응답은 거둠을 나르지 않는다 (ADR-031 2단계, M-028/WBS-28.2) (5385a728)
+- fix(plan): dry-run 의 예고를 실제와 같게 · 되돌려 적기가 거둠도 나른다 · received_at 을 스펙의 한 꼴로 (ADR-031 2단계, M-028/WBS-28.2) (2ee1fd62)
+- fix(plan): 사유 판정을 열거로 고정 — 빈칸 글자 여섯 (ADR-031 1단계, M-028/WBS-28.1) (81b74577)
+- fix(plan): 사유는 보이는 글자 · 숫자가 있어야 + 무력화된 표 행 · 빈 결정 줄 검사 (ADR-031 1단계, M-028/WBS-28.1) (6eeae33d)
+- fix(plan): 게이트를 지나는 길 둘 차단 + 지문 · 묶음을 스펙 문면대로 (ADR-031 1단계, M-028/WBS-28.1) (3223df79)
+- fix(plan): 공백뿐인 사유 거부 + 린트 검사를 전부 대조하는 표로 (ADR-031 1단계, M-028/WBS-28.1) (8dd7027c)
+- fix(plan): 검증이 찾은 스펙과 다른 동작 6건 수리 + 검사 보강 (ADR-031 1단계, M-028/WBS-28.1) (a0c8e8d9)
+- fix(check_docs): worktree 에서 문서 0개로 통과하던 결함 — 제외 대조를 저장소 상대경로로 — 코드만 흡수 (74021296)
+- fix(seed): 이어받은 handoff 가 인용하는 모 브랜치 닫힌 task 를 T1d 가 원류로 푼다 — 코드만 흡수 (bafecf74)
+- fix(windows): task 파일 줄바꿈 CRLF→LF 뒤집힘 — 정본 writer EOL 보존으로 재발 차단 (826af874)
 - fix(windows): Windows 격차 52건 수리 완성 — cp949 인코딩·교차 플랫폼 락·POSIX 경로·검사 결함 + 121차 세션 메모리 갱신 (main-003) (712e9414)
 - fix(windows): 한글 Windows 프로필 — 자식 환경(home·UTF-8·PATH) 통일 · python3 하드코딩 제거 · 저장소 텍스트 LF 고정 (main-003 착수) (b5148946)
 - fix(gate): 게이트 러너가 Windows 에서 첫 검사 완료와 함께 죽는다 — _kill_process_group 가 POSIX 전용 os.getpgid 를 쓴다 (main-002) (46701fda)
@@ -95,31 +114,20 @@ All notable changes to this project will be documented in this file.
 - fix(minimax_plugin): --apply 보고를 반영 전 기준으로 — 첫 설치가 '이미 일치' 로 읽히던 오독 (main-009) (077474d8)
 - fix(backlog-update): handoff 동기화 · 이월 색인이 보존된 task 제목을 쓴다 (main-006) (6c348937)
 - fix(test): main 체크아웃 관찰에서 --no-reflect 없이는 session-start 가 쓴다 (4b1b5256)
-- fix(test): check_state_reconcile 도 관찰 전용 경로로 돌린다 (582763f4)
-- fix(test): session-start 합류 승격이 관찰 경로에서 저장소를 쓰지 않게 한다 (ed9eb423)
-- fix(archive): 브랜치 오버라이드가 기본 브랜치여도 실제 checkout 브랜치는 합류 반영·아카이브하지 않는다 (remote-sync-status-1ce0a3-003) (f1a4b633)
-- fix(matrix): interpreter_matrix 설치 탐침이 상속된 PYTHONPATH 에 속아 의존성 설치를 건너뛰던 것 (main-008) (fb957c5c)
-- fix(windows): cp949 로캘에서 wk 가 UnicodeEncodeError 로 죽던 것 — stdio · 텍스트 I/O 를 UTF-8 로 고정 (main-006) (df975bbe)
-- fix(release-notes-template): simple template 검사가 저장소 releases/ 에 쓰지 않는다 (306adeaf)
-- fix(meta-watch): 저장소 안 중첩 체크아웃(worktree·clone) 경로를 좁은 선언 판정에서 뺀다 (main-013) (5d9b2228)
-- fix(branch-memory): worktree 가 자기 네임스페이스로 시작한다 — 자동 seed · 로컬 detached HEAD = 기본 브랜치 · 비 git = main (6118db3d)
-- fix(compact-relay): Codex hook 출력을 Codex wire JSON 으로 — `[` 머리말 오판으로 3종 failed · 재주입 0 이던 것 (main-009 · main-010) (8a35197b)
-- fix(python-floor): 하한 해석기 호출을 stdin 으로 — Windows 배치 shim 에서 -c 다줄 스크립트가 첫 개행에서 잘리던 것 (09-30-main-002) (a86614aa)
-- fix(doctor): wk doctor 가 Windows 에서 정본 파일을 extra 로 오판하던 것 — str(relative_to) 잔여 5곳을 as_posix() 로 (09-29-main-018) (b836d83d)
-- fix(roadmap): roadmap_state.json source_path 를 호스트 독립(POSIX)으로 — Windows 커밋이 역슬래시를 남겨 교차 호스트 diff 가 나던 것 (09-29-main-017) (71c718a1)
-- fix(windows): repair workflow probes and setup environment (d3bd8689)
-- fix(doctor): MCP 해석기 탐침 스크립트를 stdin 으로 — Windows python3.CMD shim 에서 cmd.exe 가 -c 다줄을 첫 개행에서 자르던 것 (09-29-main-013) (388ee750)
-- fix(doc-stamp): wiki 스탬프를 frontmatter updated: 하나로 — 게이트·doc-headers-update 가 같은 정본으로 판정·갱신 (09-29-main-012) (31fdfd64)
-- fix(doc-layers): wiki frontmatter status · 굵은 '상태' 헤더를 살아있다는 선언으로 읽는다 (09-29-main-010) (c54a3a54)
-- fix(backlog-update): update 의 명시 --kind 가 daily index 표식에 반영 + layout 검사의 session kind 오판 (09-29-main-008) (8f5619ca)
-- fix(doc-stamp): 날짜 뒤 주석 달린 스탬프를 전수 게이트가 판정 없이 건너뛰던 것 (09-29-main-007) (cad0d836)
-- fix(ensure-entrypoints,doctor): 공유 AGENTS.md 마커로 opencode 가 적용 판정돼 오버레이를 만들던 것 (09-29-main-004) (bd78a2ad)
-- ... (208 more)
+- ... (227 more)
+
+## [1.23.0] - 2026-11-15
+
+### Changed
+
+- docs(release): v1.23.0 노트의 미측정 건수를 이번 게이트 실측(컨텍스트당 83 = 79 · 4)으로 — 1.22.0 숫자를 옮겨 적었다 (0ce020df)
+- release(v1.23.0): 발행 준비 — 주장 트리 계획 · plan-import · 워크벤치 · MCP plan_inbox/plan_import + MCP 4종 계약 수리 (minor) (58889bb6)
 
 ## [1.22.0] - 2026-10-31
 
 ### Changed
 
+- release(v1.22.0): 발행 완료 — 태그 push + GitHub Release(asset 5종) + Windows 격차 1건 추가 수리 + §2.8 · main-004 close (8ef8c1c9)
 - release(v1.22.0): 발행 준비 — 한글 Windows 프로필 확립 + Windows 격차 52건 수리 묶음 (minor) (a44b7d31)
 
 ## [1.21.0] - 2026-10-19

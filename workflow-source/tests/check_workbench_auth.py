@@ -179,7 +179,7 @@ def case_lifecycle() -> list[str]:
             data = json.loads((record_dir / "server.json").read_text(encoding="utf-8"))
             if data.get("pid") != proc.pid or data.get("public_url") != url or not data.get("started_at"):
                 problems.append(f"실행 기록이 맞지 않다 (죽은 pid 기록을 덮지 않았다?): {data}")
-            if set(data) != {"pid", "port", "public_url", "started_at"}:
+            if set(data) != {"pid", "port", "public_url", "started_at", "instance"}:
                 problems.append(f"실행 기록에 다른 것이 실렸다: {sorted(data)}")
             if (record_dir / ".gitignore").read_bytes() != b"*\n":
                 problems.append("시작할 때 .workbench/.gitignore 를 *\\n 으로 되돌리지 않았다")

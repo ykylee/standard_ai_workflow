@@ -14,6 +14,7 @@ import datetime as dt
 import http.client
 import json
 import os
+import secrets
 import signal
 import socket
 import ssl
@@ -148,11 +149,14 @@ def running_public_url(workspace: Path) -> str | None:
     return url if status["running"] and isinstance(url, str) else None
 
 
-def write_record(workspace: Path, *, port: int, public_url: str, autostarted_bind: str | None = None) -> Path:
+def write_record(workspace: Path, *, port: int, public_url: str, autostarted_bind: str | None = None,
+                 instance: str | None = None) -> Path:
     directory = ensure_record_dir(workspace)
     path = directory / RECORD_FILENAME
     payload: dict[str, Any] = {"pid": os.getpid(), "port": port, "public_url": public_url,
                                "started_at": dt.datetime.now().astimezone().isoformat(timespec="seconds")}
+    if instance:  # healthz 머리와 같은 값 — `--stop` 이 포트의 주인이 이 기록의 서버인지 대조한다
+        payload["instance"] = instance
     if autostarted_bind is not None:  # 자동 기동분만 — SessionEnd hook 이 이것만 내린다
         payload.update({"autostarted": True, "bind": autostarted_bind})
     temp = directory / f".{RECORD_FILENAME}.{os.getpid()}"
@@ -282,11 +286,11 @@ def autostart_if_configured(profile: Path) -> tuple[str | None, str | None]:
     return url, (f"워크벤치 자동 기동 실패 — {problem}" if problem else None)
 
 
-def _answers_healthz(record: dict[str, Any]) -> bool:
-    """기록의 포트가 워크벤치로 답하는가 — 죽은 서버의 pid 가 다른 프로세스에 재사용됐을 때 죽이지 않게."""
+def _probe_healthz(record: dict[str, Any]) -> tuple[bool, str | None]:
+    """기록의 포트가 워크벤치로 답하는가와 그 서버의 instance 머리 — (답함, instance)."""
     port = record.get("port")
     if not isinstance(port, int):
-        return False
+        return False, None
     bind = record.get("bind")
     hosts = ["127.0.0.1"]
     if isinstance(bind, str) and bind not in ("", "0.0.0.0", "::") and not server.is_loopback(bind):
@@ -302,12 +306,12 @@ def _answers_healthz(record: dict[str, Any]) -> bool:
             conn.request("GET", "/healthz")
             resp = conn.getresponse()
             if resp.status == 200 and resp.read(16).strip() == b"ok":
-                return True
+                return True, resp.getheader(server.INSTANCE_HEADER)
         except (OSError, http.client.HTTPException):
             continue
         finally:
             conn.close()
-    return False
+    return False, None
 
 
 def stop_server(workspace: Path, *, autostarted_only: bool = False) -> dict[str, Any]:
@@ -318,8 +322,14 @@ def stop_server(workspace: Path, *, autostarted_only: bool = False) -> dict[str,
     assert isinstance(pid, int)
     if autostarted_only and record.get("autostarted") is not True:
         return {"stopped": False, "pid": pid, "reason": "손으로 띄운 서버다 — 두고 간다"}
-    if not _answers_healthz(record):
-        return {"stopped": False, "pid": pid, "reason": "기록의 pid 가 워크벤치로 답하지 않는다 — 건드리지 않는다"}
+    answers, instance = _probe_healthz(record)
+    if not answers:
+        return {"stopped": False, "pid": pid, "reason": "기록의 포트가 워크벤치로 답하지 않는다 — 건드리지 않는다"}
+    # 기록의 pid 는 서버가 자기 자신을 적은 것이다 — 포트가 같은 instance 로 답해야 그 pid 가 그 포트의 주인이다.
+    # instance 가 없는 옛 기록(1.24.0 이하)은 표식 없는 서버일 때만 옛 판정(healthz)으로 내린다.
+    if instance != record.get("instance"):
+        return {"stopped": False, "pid": pid,
+                "reason": "포트의 워크벤치가 이 기록의 서버가 아니다(instance 불일치) — 건드리지 않는다"}
     os.kill(pid, signal.SIGTERM)  # Windows 는 TerminateProcess — 기록은 아래에서 지운다
     deadline = time.monotonic() + STOP_WAIT_S
     while pid_alive(pid) and time.monotonic() < deadline:
@@ -487,10 +497,11 @@ def main(argv: list[str] | None = None) -> int:
             return 2
         httpd.socket = context.wrap_socket(httpd.socket, server_side=True)
     port = httpd.server_address[1]
+    app.instance = secrets.token_hex(16)
     if args.public_url is None and port != args.port:  # --port 0 — 기본 public_url 은 실제 포트로
         public_url = app.public_url = default_public_url(args.bind, port, open_mode=args.open is not None)
     write_record(workspace, port=port, public_url=public_url,
-                 autostarted_bind=args.bind if args.autostarted else None)
+                 autostarted_bind=args.bind if args.autostarted else None, instance=app.instance)
     sweep_temp_files(locate().branch_dir)
     print(public_url, flush=True)
     for note in startup_warnings(args.bind, open_name=args.open):

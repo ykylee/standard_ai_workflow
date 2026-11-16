@@ -28,6 +28,7 @@ from workflow_kit.common.project_docs import WORK_ITEM_ID_PATTERN
 from workflow_kit.workbench import auth, respond, state_view, views
 
 COOKIE_NAME = "wb_session"
+INSTANCE_HEADER = "X-Workbench-Instance"
 LOGIN_BODY_LIMIT = 4_096
 WRITE_BODY_LIMIT = 262_144
 CSP = ("default-src 'none'; style-src 'self'; script-src 'self'; form-action 'self'; base-uri 'none'; "
@@ -88,6 +89,8 @@ class App:
     trusted_proxies: frozenset[str] = frozenset()
     #: 개방 모드의 응답자 이름 — 있으면 로그인 없이 누구나 이 이름의 approver 다 (스펙 §5.6).
     open_name: str | None = None
+    #: 실행 기록과 같은 무작위 표식 — healthz 가 머리로 내어 `--stop` 이 포트의 주인을 대조한다 (스펙 §3.1).
+    instance: str = ""
     sessions: auth.Sessions = field(default_factory=auth.Sessions)
     limiter: auth.LoginLimiter = field(default_factory=auth.LoginLimiter)
     log: Callable[[str], None] = field(default=lambda line: print(line, file=sys.stderr, flush=True))
@@ -294,7 +297,8 @@ class Handler(BaseHTTPRequestHandler):
     def _route(self, *, get: bool) -> None:
         path = self._path()
         if get and path == "/healthz":
-            self._send(HTTPStatus.OK, "ok\n", content_type="text/plain; charset=utf-8")
+            self._send(HTTPStatus.OK, "ok\n", content_type="text/plain; charset=utf-8",
+                       headers={INSTANCE_HEADER: self.app.instance} if self.app.instance else None)
             return
         if get and path.startswith("/static/"):
             self._static(path[len("/static/"):])

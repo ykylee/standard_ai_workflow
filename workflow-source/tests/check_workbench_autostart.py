@@ -11,6 +11,9 @@
    플래그 없는 `--stop` 은 손으로 띄운 서버도 내린다
 6. Claude Code 플러그인 hooks 의 SessionEnd 에 `workbench --stop --autostarted-only`
 7. 시작 대기 시간 초과 — 기록을 쓰기 전의 자식은 내려서 고아를 남기지 않는다
+8. pid ↔ 포트 주인 대조 — 실행 기록의 instance = healthz 머리; 기록의 pid 가 무관한 프로세스이고 포트를 **다른 instance 의
+   워크벤치**가 잡고 있으면 둘 다 죽이지 않는다(instance 없는 옛 기록도); 같은 instance 면 내린다;
+   instance 있는 기록 + 표식 없는 서버는 건드리지 않는다; instance 없는 옛 기록 + 표식 없는 서버는 옛 판정으로 내린다
 """
 
 from __future__ import annotations
@@ -292,6 +295,83 @@ def case_timeout_reaps_child() -> list[str]:
     return problems
 
 
+def _stranger() -> subprocess.Popen[bytes]:
+    proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+    threading.Thread(target=proc.wait, daemon=True).start()
+    return proc
+
+
+def _write_record(ws: Path, record: dict) -> None:
+    wb_cli.ensure_record_dir(ws)
+    (ws / ".workbench" / "server.json").write_text(json.dumps(record), encoding="utf-8")
+
+
+def case_owner_match() -> list[str]:
+    problems: list[str] = []
+    with fx.temp_workspace("wb-auto-8a-") as other_td, fx.temp_workspace("wb-auto-8b-") as td:
+        other = fx.make_workspace(other_td)
+        ws = fx.make_workspace(td)
+        server_a = _manual_server(other)  # 다른 checkout 의 워크벤치가 포트를 잡고 있다
+        stranger = _stranger()
+        try:
+            rec_a = _record_of(other)
+            port, inst = rec_a.get("port"), rec_a.get("instance")
+            health = fx.request(int(port), "GET", "/healthz")
+            if not inst or health.header("X-Workbench-Instance") != inst or health.text.strip() != "ok":
+                problems.append(f"실행 기록의 instance 가 healthz 머리와 다르다: {inst} · {health.header('X-Workbench-Instance')}")
+            base = {"pid": stranger.pid, "port": port, "public_url": f"http://127.0.0.1:{port}/", "started_at": "x",
+                    "autostarted": True, "bind": "127.0.0.1"}
+            for label, record in (("다른 instance", {**base, "instance": "0" * 32}), ("instance 없는 옛 기록", base)):
+                _write_record(ws, record)
+                stop = json.loads(_wb(ws, "--stop", "--autostarted-only").stdout)
+                time.sleep(0.3)
+                if stop.get("stopped") is not False or stranger.poll() is not None or server_a.poll() is not None:
+                    problems.append(f"{label}: 포트의 주인이 아닌 pid 를 죽였다 {stop}")
+            # 같은 instance — 그 기록의 서버를 내린다.
+            _write_record(ws, rec_a)
+            stop = json.loads(_wb(ws, "--stop").stdout)
+            try:
+                server_a.wait(timeout=15)
+            except subprocess.TimeoutExpired:
+                pass
+            if stop.get("stopped") is not True or server_a.poll() is None:
+                problems.append(f"같은 instance 의 서버를 내리지 않았다: {stop}")
+        finally:
+            for proc in (server_a, stranger):
+                if proc.poll() is None:
+                    proc.kill()
+                    proc.wait()
+        # 새 기록(instance 있음) + 표식 없는 옛 서버가 포트를 잡고 있다 — 건드리지 않는다.
+        bystander = _stranger()
+        try:
+            with fx.running(ws, tokens=(), open_name="owner") as srv:
+                _write_record(ws, {"pid": bystander.pid, "port": srv.port, "public_url": f"http://127.0.0.1:{srv.port}/",
+                                   "started_at": "x", "autostarted": True, "bind": "127.0.0.1", "instance": "1" * 32})
+                stop = json.loads(_wb(ws, "--stop", "--autostarted-only").stdout)
+                time.sleep(0.3)
+            if stop.get("stopped") is not False or bystander.poll() is not None:
+                problems.append(f"instance 기록 + 표식 없는 서버인데 기록의 pid 를 죽였다: {stop}")
+        finally:
+            if bystander.poll() is None:
+                bystander.kill()
+                bystander.wait()
+        # 옛 서버(표식 없음) + 옛 기록 — 옛 판정으로 내린다.
+        legacy_pid = _stranger()
+        try:
+            with fx.running(ws, tokens=(), open_name="owner") as srv:  # instance 없는 서버 = 1.24.0 이하의 모양
+                _write_record(ws, {"pid": legacy_pid.pid, "port": srv.port, "public_url": f"http://127.0.0.1:{srv.port}/",
+                                   "started_at": "x", "autostarted": True, "bind": "127.0.0.1"})
+                stop = json.loads(_wb(ws, "--stop", "--autostarted-only").stdout)
+                time.sleep(0.3)
+            if stop.get("stopped") is not True or legacy_pid.poll() is None:
+                problems.append(f"instance 없는 옛 기록 + 옛 서버를 내리지 않았다: {stop}")
+        finally:
+            if legacy_pid.poll() is None:
+                legacy_pid.kill()
+                legacy_pid.wait()
+    return problems
+
+
 CASES = (
     ("1 --autostart on/off · 인자 검증 · --status", case_config),
     ("2 session-start 가 띄우고 다시 띄우지 않는다 · --stop --autostarted-only", case_session_start_starts),
@@ -300,6 +380,7 @@ CASES = (
     ("5 내리기의 안전 — 손으로 띄운 서버 · 남의 pid", case_stop_safety),
     ("6 SessionEnd hook", case_hook),
     ("7 시간 초과는 자식을 거둔다", case_timeout_reaps_child),
+    ("8 pid ↔ 포트 주인 대조 (instance)", case_owner_match),
 )
 
 

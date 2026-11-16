@@ -167,8 +167,12 @@ def _render_html_panel_1(p: dict[str, Any]) -> str:
     status = str(p.get("guard_status", "unknown"))
     expected = int(p.get("expected_cases", 0))
     measured = p.get("guard_cases") is not None  # 가드를 돌리지 않았으면 숫자를 지어내지 않는다 (TASK-2026-11-16-main-012)
-    guard_line = (f"guard: {int(p.get('guard_cases_pass') or 0)}/{int(p.get('guard_cases') or 0)} pass (expected {expected})"
-                  if measured else f"guard: 미측정 (expected {expected}) — 가드를 돌리지 않았다 (inline_guard=False)")
+    if measured:
+        guard_line = f"guard: {int(p.get('guard_cases_pass') or 0)}/{int(p.get('guard_cases') or 0)} pass (expected {expected})"
+    elif status == "error":  # 돌렸지만 실패 — '0/0' 을 그리지 않는다 (TASK-2026-11-16-main-015)
+        guard_line = f"guard: 측정 실패 (expected {expected}) — 가드가 돌지 못했다: {p.get('guard_error') or '사유 없음'}"
+    else:
+        guard_line = f"guard: 미측정 (expected {expected}) — 가드를 돌리지 않았다 (inline_guard=False)"
     runtime = p.get("guard_runtime_ms")
     runtime_ms = str(int(runtime)) if runtime is not None else "미측정"
     maturity_last_updated = str(p.get("maturity_last_updated", ""))

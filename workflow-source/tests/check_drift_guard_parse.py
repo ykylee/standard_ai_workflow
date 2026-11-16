@@ -10,6 +10,8 @@ release_pipeline 의 사본이 case 수 6 을 리터럴로 가져, 가드가 7 c
 5. release_v0_13_0 preflight — 실제 가드 · 대시보드 검사가 green 이면 True (옛 "6/6" · "10/10" 문자열 대조는 늘 False 였다)
 6. 가드를 돌리지 않은 대시보드 패널(inline_guard=False)은 센 값을 null · guard_measured=false 로 싣고 렌더가 '미측정' 을 보인다 —
    기대값 7 을 실측 자리에 싣지 않는다 (TASK-2026-11-16-main-012); 측정한 패널의 렌더는 그대로다
+7. 가드를 돌렸지만 실패한 패널(실패 출력 · 시간 초과 · 가드 파일 없음)도 센 값은 null · 사유 guard_error · guard_measured=false,
+   렌더는 '측정 실패 — 사유' 이고 '0/0' 을 그리지 않는다 (TASK-2026-11-16-main-015)
 """
 
 from __future__ import annotations
@@ -42,6 +44,7 @@ SOURCE_ROOT = Path(__file__).resolve().parents[1]
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
+from workflow_kit.common import dashboard_data  # noqa: E402
 from workflow_kit.common.dashboard_data import collect_drift_prevention, parse_drift_guard_output  # noqa: E402
 from unittest import mock  # noqa: E402
 import subprocess  # noqa: E402
@@ -93,6 +96,9 @@ def case_synthetic() -> list[str]:
     only_fail = parse_drift_guard_output("=== FAIL: 5/7 ===", 1)
     if (only_fail["status"], only_fail["passed"], only_fail["failed"], only_fail["total"]) != ("fail", 5, 2, 7):
         problems.append(f"요약 줄만 있는 실패 — pass + fail = total 이 아니거나 error 로 봤다: {only_fail}")
+    silent = parse_drift_guard_output("", 0)
+    if (silent["status"], silent["total"]) != ("error", 0):
+        problems.append(f"rc 0 · 빈 출력을 pass 로 봤다 — 아무것도 재지 않았다: {silent}")
     broken = parse_drift_guard_output("Traceback ...\nImportError: x", 1)
     if (broken["status"], broken["total"]) != ("error", 0):
         problems.append(f"가드가 돌지 못한 출력: {broken}")
@@ -181,6 +187,42 @@ def case_unmeasured_panel() -> list[str]:
     return problems
 
 
+def case_failed_guard_panel() -> list[str]:
+    problems: list[str] = []
+    import tempfile
+
+    def guard_lines(text: str) -> str:
+        return "\n".join(line for line in text.splitlines() if "guard_cases:" in line or "guard:" in line)
+
+    crashed = subprocess.CompletedProcess(args=[], returncode=1, stdout="Traceback (most recent call last):\n",
+                                          stderr="ImportError: boom-import\n")
+    empty = subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr="")
+    scenarios = (
+        ("실패 출력", {"return_value": crashed}, "boom-import"),
+        ("rc 0 · 빈 출력", {"return_value": empty}, "case 를 내지 못했다"),
+        ("시간 초과", {"side_effect": subprocess.TimeoutExpired(cmd="x", timeout=30)}, "시간 초과"),
+        ("실행 실패(OSError)", {"side_effect": OSError("exec format error")}, "OSError"),
+    )
+    for label, kwargs, needle in scenarios:
+        with mock.patch.object(dashboard_data.subprocess, "run", **kwargs):
+            panel = collect_drift_prevention(SOURCE_ROOT.parent, inline_guard=True)
+        got = {k: panel.get(k) for k in ("guard_status", "guard_cases", "guard_cases_pass", "guard_cases_fail",
+                                         "guard_measured")}
+        if got != {"guard_status": "error", "guard_cases": None, "guard_cases_pass": None, "guard_cases_fail": None,
+                   "guard_measured": False} or needle not in str(panel.get("guard_error")):
+            problems.append(f"{label}: 실패한 가드가 센 값을 실었거나 사유가 없다: {got} · {panel.get('guard_error')}")
+        md = guard_lines("\n".join(dashboard_render_markdown._render_panel_1(panel)))
+        html_text = guard_lines(dashboard_render_html._render_html_panel_1(panel))
+        for kind, text in (("markdown", md), ("html", html_text)):
+            if "측정 실패" not in text or needle not in text or "0/0" in text or "`0 /" in text:
+                problems.append(f"{label} · {kind}: '측정 실패 — 사유' 가 아니거나 0 을 그렸다: {text!r}")
+    with tempfile.TemporaryDirectory(prefix="drift-noguard-") as td:
+        missing = dashboard_data.run_drift_prevention_guard_inline(Path(td))
+    if missing.get("guard_cases") is not None or "가드 파일이 없다" not in str(missing.get("guard_error")):
+        problems.append(f"가드 파일이 없는데 센 값을 실었거나 사유가 없다: {missing}")
+    return problems
+
+
 CASES = (
     ("1 실제 가드 — pass + fail = total = 가드 파일의 case 수", case_real_guard),
     ("2 합성 출력 — 일부 실패 · 요약만 · 불일치 기록 · error", case_synthetic),
@@ -188,6 +230,7 @@ CASES = (
     ("4 불일치는 release 결과 · 대시보드 렌더까지 간다", case_mismatch_reaches_consumers),
     ("5 release_v0_13_0 preflight 가 실제 green 에 True", case_legacy_preflight),
     ("6 가드를 돌리지 않은 패널은 미측정", case_unmeasured_panel),
+    ("7 가드가 실패한 패널은 측정 실패 · 0 을 그리지 않는다", case_failed_guard_panel),
 )
 
 

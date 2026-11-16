@@ -299,7 +299,8 @@ def collect_drift_prevention(
     if inline_guard:
         guard_result = run_drift_prevention_guard_inline(root)
         guard_panel.update(guard_result)
-        guard_panel["guard_measured"] = True
+        # 돌렸어도 센 값이 없으면(가드가 돌지 못함) 측정이 아니다.
+        guard_panel["guard_measured"] = guard_result.get("guard_cases") is not None
 
     # north-star 는 freshness proxy 가 아니다 (v1.0.1 분리).
     # 정의(wiki/topics/phase-13-definition-north-star.md §2.2): "drift 를 guard 가
@@ -397,10 +398,12 @@ def parse_drift_guard_output(stdout: str, returncode: int) -> dict[str, Any]:
     if counted and summary_total is not None and (summary_total != counted or summary_passed != len(pass_names)):
         mismatch = (f"요약 {summary_passed}/{summary_total} 와 case 줄 {len(pass_names)}/{counted} 이 다르다 — "
                     "case 줄 기준으로 센다")
-    if returncode == 0 and not fail_names:
+    if not counted and summary_total is None:
+        # case 줄도 요약도 없다 — 종료 코드와 상관없이 가드가 아무것도 재지 않았다 (rc 0 · 빈 출력도 pass 가 아니다,
+        # TASK-2026-11-16-main-015 verifier 재현: 빈 가드 파일이 'pass · 0/0' 으로 그려졌다).
+        status = "error"
+    elif returncode == 0 and not fail_names:
         status = "pass"
-    elif returncode != 0 and not counted and summary_total is None:
-        status = "error"  # 가드 자체가 돌지 못했다 (import 오류 등) — case 줄도 요약도 없다
     else:
         status = "fail"
     return {"status": status, "pass_names": pass_names, "fail_names": fail_names, "passed": passed,
@@ -434,18 +437,21 @@ def run_drift_prevention_guard_inline(
     """
     root = _repo_root(Path(workspace_root) if isinstance(workspace_root, str) else workspace_root)
     smoke_path = root / "workflow-source" / "tests" / "check_drift_prevention_v0_11_23.py"
-    fallback: dict[str, Any] = {
-        "guard_status": "error",
-        "guard_cases_pass": 0,
-        "guard_cases_fail": 0,
-        "guard_cases": 0,
-        "guard_failure_names": [],
-        "guard_executed_at": _utcnow_iso(),
-        "guard_runtime_ms": 0,
-    }
+    # 가드가 돌지 못하면 센 값이 없다 — 0 을 싣지 않고 null + 사유 (TASK-2026-11-16-main-015: '0/0 pass' 로 그렸다).
+    def failed_run(reason: str, runtime_ms: int | None = None) -> dict[str, Any]:
+        return {
+            "guard_status": "error",
+            "guard_cases_pass": None,
+            "guard_cases_fail": None,
+            "guard_cases": None,
+            "guard_failure_names": [],
+            "guard_error": reason,
+            "guard_executed_at": _utcnow_iso(),
+            "guard_runtime_ms": runtime_ms,
+        }
 
     if not smoke_path.is_file():
-        return fallback
+        return failed_run("가드 파일이 없다")
 
     import time
 
@@ -461,6 +467,10 @@ def run_drift_prevention_guard_inline(
         )
         runtime_ms = int((time.monotonic() - started) * 1000)
         parsed = parse_drift_guard_output(completed.stdout or "", completed.returncode)
+        if parsed["status"] == "error":  # case 줄도 요약도 없다 — 가드가 돌지 못했다
+            tail = [ln for ln in (completed.stderr or "").splitlines() if ln.strip()][-1:]
+            return failed_run(f"가드가 case 를 내지 못했다 (rc {completed.returncode})" + (f": {tail[0][:160]}" if tail else ""),
+                              runtime_ms)
         return {
             "guard_status": parsed["status"],
             "guard_cases_pass": parsed["passed"],
@@ -473,18 +483,9 @@ def run_drift_prevention_guard_inline(
             "guard_runtime_ms": runtime_ms,
         }
     except subprocess.TimeoutExpired:
-        runtime_ms = int((time.monotonic() - started) * 1000)
-        return {
-            "guard_status": "error",
-            "guard_cases_pass": 0,
-            "guard_cases_fail": 0,
-            "guard_cases": 0,
-            "guard_failure_names": [],
-            "guard_executed_at": _utcnow_iso(),
-            "guard_runtime_ms": runtime_ms,
-        }
-    except (OSError, ValueError):
-        return fallback
+        return failed_run(f"시간 초과 (>{timeout}s)", int((time.monotonic() - started) * 1000))
+    except (OSError, ValueError) as exc:
+        return failed_run(f"가드를 실행하지 못했다 ({type(exc).__name__})")
 
 
 def _head_commit_date(workspace_root: Path) -> str:

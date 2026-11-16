@@ -60,7 +60,10 @@ def _render_panel_1(p: dict[str, Any]) -> list[str]:
     from workflow_kit.common.dashboard_data import DRIFT_LEDGER_RELPATH
     lines: list[str] = ["## Panel 1 — Drift Prevention Status", ""]
     lines.append(f"- guard_status: `{p.get('guard_status', 'unknown')}`")
-    if p.get("guard_cases") is None:  # 가드를 돌리지 않았다 — 숫자를 지어내지 않는다 (TASK-2026-11-16-main-012)
+    if p.get("guard_cases") is None and p.get("guard_status") == "error":  # 돌렸지만 실패 (main-015)
+        lines.append(f"- guard_cases: `측정 실패 / {p.get('expected_cases', 0)}` "
+                     f"(가드가 돌지 못했다: {p.get('guard_error') or '사유 없음'})")
+    elif p.get("guard_cases") is None:  # 가드를 돌리지 않았다 — 숫자를 지어내지 않는다 (TASK-2026-11-16-main-012)
         lines.append(f"- guard_cases: `미측정 / {p.get('expected_cases', 0)}` (가드를 돌리지 않았다 — inline_guard=False)")
     else:
         lines.append(f"- guard_cases: `{p.get('guard_cases', 0)} / {p.get('expected_cases', 0)}`")

@@ -258,10 +258,11 @@ Data source: `ai-workflow/memory/active/state.json.session.recent_done_items`
 | Field | Type | 비고 |
 |---|---|---|
 | `guard_status` | `Literal["pass", "fail", "error", "unknown"]` | inline 실행 결과. `'unknown'` 은 가드를 돌리지 않았을 때 (`inline_guard=False`) |
-| `guard_measured` | `bool` | 가드를 실제로 돌렸는가 — False 면 아래 센 값은 `null` (미측정, TASK-2026-11-16-main-012) |
+| `guard_measured` | `bool` | 센 값이 있는가 — 가드를 돌리지 않았거나(`inline_guard=False`) 돌렸지만 실패하면 False, 아래 센 값은 `null` (TASK-2026-11-16-main-012 · 015) |
 | `guard_cases` | `int \| null` | 가드가 낸 case 갯수 (기대값은 `expected_cases`) — 미측정이면 `null` |
 | `guard_cases_pass` | `int \| null` | pass case 갯수 — 미측정이면 `null` |
 | `guard_cases_fail` | `int \| null` | fail case 갯수 — 미측정이면 `null` |
+| `guard_error` | `str` (선택) | 가드를 돌렸지만 돌지 못했을 때(가드 파일 없음 · 시간 초과 · 실행 실패 · case 줄도 요약도 없음)의 사유 — 그때 센 값은 `null`, 렌더는 "측정 실패 — 사유" (TASK-2026-11-16-main-015) |
 | `guard_mismatch` | `str` (선택) | 가드의 요약 줄과 case 줄 수가 어긋날 때 사유 (TASK-2026-11-16-main-011) |
 | `guard_failure_names` | `list[str]` | fail case 의 name (drift 발생 시) |
 | `guard_executed_at` | `str` (ISO 8601) | inline 실행 timestamp |

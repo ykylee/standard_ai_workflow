@@ -229,7 +229,7 @@ def _check_cli_output_file(tmp_path: Path) -> None:
 
 
 def _check_drift_guard_inline_direct() -> None:
-    """v0.13.1+: run_drift_prevention_guard_inline 직접 호출 — 6 case PASS/fail dict."""
+    """v0.13.1+: run_drift_prevention_guard_inline 직접 호출 — case PASS/fail dict."""
     from workflow_kit.common.dashboard_data import run_drift_prevention_guard_inline
 
     result = run_drift_prevention_guard_inline(REPO_ROOT)

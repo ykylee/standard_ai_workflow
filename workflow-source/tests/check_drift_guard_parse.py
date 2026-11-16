@@ -1,0 +1,173 @@
+#!/usr/bin/env python3
+"""drift prevention 가드 출력 해석은 한 함수 — release self-recover 재검사의 집계 (TASK-2026-11-16-main-011).
+
+release_pipeline 의 사본이 case 수 6 을 리터럴로 가져, 가드가 7 case 가 된 뒤 재검사가 `cases_pass 7 > cases_total 6` 을 냈다.
+
+1. 실제 가드 — release 재검사의 pass + fail = total 이고 total 은 가드 파일의 case 수(`def test_case_` 개수, 바깥 증인)다
+2. 합성 출력 — 일부 실패 · 요약 줄만 · 요약과 줄 수 불일치(사유 기록) · 가드가 돌지 못함(error) 을 바르게 센다
+3. 한 출처 — release_pipeline 은 공용 파서를 부르고 case 수 리터럴 · 자체 정규식이 없다; 대시보드 · release_v0_13_0 도 같은 파서
+4. 불일치는 소비자까지 간다 — release 재검사 결과의 `mismatch`, 대시보드 렌더(markdown · html)의 `guard_mismatch`
+5. release_v0_13_0 preflight — 실제 가드 · 대시보드 검사가 green 이면 True (옛 "6/6" · "10/10" 문자열 대조는 늘 False 였다)
+"""
+
+from __future__ import annotations
+
+#: 실제 가드 · 대시보드 검사를 subprocess 로 돈다.
+CHECK_TIMEOUT_S = 240
+
+#: 이 검사의 입력 표면 (spec `core/test_impact_tiering_spec.md` §2).
+WATCHES = (
+    # 실제 가드 · 대시보드 검사를 돌린다 — 그 둘의 입력 표면을 함께 진다.
+    "LICENSE",
+    "README.md",
+    "workflow-source/LICENSE",
+    "workflow-source/core/*",
+    "workflow-source/pyproject.toml",
+    "workflow-source/workflow_kit/*",
+    "workflow-source/tests/check_drift_prevention_v0_11_23.py",
+    "workflow-source/tests/check_quality_dashboard_v0_13_0.py",
+)
+
+import re
+import sys
+import traceback
+from pathlib import Path
+
+SOURCE_ROOT = Path(__file__).resolve().parents[1]
+if str(SOURCE_ROOT) not in sys.path:
+    sys.path.insert(0, str(SOURCE_ROOT))
+
+from workflow_kit.common.dashboard_data import parse_drift_guard_output  # noqa: E402
+from unittest import mock  # noqa: E402
+import subprocess  # noqa: E402
+
+from workflow_kit.common import dashboard_render_html, dashboard_render_markdown  # noqa: E402
+from workflow_kit.tools import release_pipeline, release_v0_13_0  # noqa: E402
+
+FAILURES: list[str] = []
+GUARD = SOURCE_ROOT / "tests" / "check_drift_prevention_v0_11_23.py"
+
+
+def _record(name: str, problems: list[str]) -> None:
+    if problems:
+        FAILURES.append(name)
+        print(f"  FAIL  {name}")
+        for problem in problems[:12]:
+            print(f"        - {problem}")
+    else:
+        print(f"  PASS  {name}")
+
+
+def case_real_guard() -> list[str]:
+    problems: list[str] = []
+    expected = len(re.findall(r"^def test_case_", GUARD.read_text(encoding="utf-8"), flags=re.M))
+    result = release_pipeline._run_drift_prevention_smoke()
+    if result["cases_pass"] + result["cases_fail"] != result["cases_total"]:
+        problems.append(f"집계가 맞지 않는다: {result}")
+    if result["cases_total"] != expected:
+        problems.append(f"total {result['cases_total']} 이 가드 파일의 case 수 {expected} 와 다르다")
+    if result["guard_status"] == "pass" and result["cases_pass"] != expected:
+        problems.append(f"pass 인데 cases_pass {result['cases_pass']} ≠ {expected}")
+    return problems
+
+
+def case_synthetic() -> list[str]:
+    problems: list[str] = []
+    lines = [f"  PASS: test_case_{i}" for i in range(1, 6)] + ["  FAIL: test_case_6", "  FAIL: test_case_7"]
+    partial = parse_drift_guard_output("\n".join(lines + ["=== FAIL: 5/7 ==="]), 1)
+    if (partial["status"], partial["passed"], partial["failed"], partial["total"], partial["mismatch"]) != (
+            "fail", 5, 2, 7, None):
+        problems.append(f"일부 실패: {partial}")
+    summary_only = parse_drift_guard_output("=== PASS: 7/7 ===", 0)
+    if (summary_only["passed"], summary_only["total"], summary_only["status"]) != (7, 7, "pass"):
+        problems.append(f"요약만: {summary_only}")
+    seven = [f"  PASS: test_case_{i}" for i in range(1, 8)]
+    skew = parse_drift_guard_output("\n".join(seven + ["=== PASS: 6/6 ==="]), 0)
+    if skew["total"] != 7 or skew["passed"] != 7 or not skew["mismatch"] or "6/6" not in skew["mismatch"]:
+        problems.append(f"요약과 줄 수 불일치를 기록하지 않았다: {skew}")
+    only_fail = parse_drift_guard_output("=== FAIL: 5/7 ===", 1)
+    if (only_fail["status"], only_fail["passed"], only_fail["failed"], only_fail["total"]) != ("fail", 5, 2, 7):
+        problems.append(f"요약 줄만 있는 실패 — pass + fail = total 이 아니거나 error 로 봤다: {only_fail}")
+    broken = parse_drift_guard_output("Traceback ...\nImportError: x", 1)
+    if (broken["status"], broken["total"]) != ("error", 0):
+        problems.append(f"가드가 돌지 못한 출력: {broken}")
+    return problems
+
+
+def case_single_source() -> list[str]:
+    problems: list[str] = []
+    source = (SOURCE_ROOT / "workflow_kit" / "tools" / "release_pipeline.py").read_text(encoding="utf-8")
+    body = source[source.index("def _run_drift_prevention_smoke"):]
+    body = body[:body.index("\ndef ", 1)]
+    if "parse_drift_guard_output" not in body:
+        problems.append("release 재검사가 공용 파서를 부르지 않는다")
+    if re.search(r"/6\b|\b6\s*[,}]", body) or re.search(r"\bre\.(?:search|findall|match|compile|fullmatch)\(", body):
+        problems.append("release 재검사에 case 수 리터럴 또는 자체 정규식이 남아 있다")
+    legacy = (SOURCE_ROOT / "workflow_kit" / "tools" / "release_v0_13_0.py").read_text(encoding="utf-8")
+    drift_fn = legacy[legacy.index("def check_drift_prevention_6_of_6"):]
+    drift_fn = drift_fn[:drift_fn.index("\ndef ", 1)]
+    if "parse_drift_guard_output" not in drift_fn or re.search(r"\d+/\d+ ===", drift_fn):
+        problems.append("release_v0_13_0 의 drift preflight 가 공용 파서를 쓰지 않거나 case 수 문자열을 대조한다")
+    if re.search(r"[\x27\"]ALL \d+/\d+ CASES", legacy):
+        problems.append("release_v0_13_0 에 대시보드 case 수 리터럴(10/10)이 남아 있다")
+    dash = (SOURCE_ROOT / "workflow_kit" / "common" / "dashboard_data.py").read_text(encoding="utf-8")
+    inline = dash[dash.index("def run_drift_prevention_guard_inline"):]
+    inline = inline[:inline.index("\ndef ", 1)]
+    if "parse_drift_guard_output(" not in inline:
+        problems.append("대시보드 inline 가드가 공용 파서를 부르지 않는다")
+    return problems
+
+
+def case_mismatch_reaches_consumers() -> list[str]:
+    problems: list[str] = []
+    seven = "\n".join([f"  PASS: test_case_{i}" for i in range(1, 8)] + ["=== PASS: 6/6 ==="])
+    fake = subprocess.CompletedProcess(args=[], returncode=0, stdout=seven, stderr="")
+    with mock.patch("subprocess.run", return_value=fake):
+        result = release_pipeline._run_drift_prevention_smoke()
+    if result.get("cases_total") != 7 or result.get("cases_pass") != 7 or "6/6" not in str(result.get("mismatch")):
+        problems.append(f"release 재검사 결과에 불일치가 실리지 않았다: {result}")
+    panel = {"guard_status": "pass", "guard_cases": 7, "expected_cases": 7, "guard_mismatch": "요약 6/6 와 case 줄 7/7"}
+    md = "\n".join(dashboard_render_markdown._render_panel_1(panel))
+    if "guard_mismatch" not in md or "6/6" not in md:
+        problems.append("대시보드 markdown 이 불일치를 보이지 않는다")
+    html_text = dashboard_render_html._render_html_panel_1(panel)
+    if "guard_mismatch" not in html_text:
+        problems.append("대시보드 html 이 불일치를 보이지 않는다")
+    clean = {k: v for k, v in panel.items() if k != "guard_mismatch"}
+    if "guard_mismatch" in "\n".join(dashboard_render_markdown._render_panel_1(clean)):
+        problems.append("불일치가 없는데 markdown 에 guard_mismatch 줄을 그렸다")
+    return problems
+
+
+def case_legacy_preflight() -> list[str]:
+    problems: list[str] = []
+    if release_v0_13_0.check_drift_prevention_6_of_6() is not True:
+        problems.append("실제 drift 가드가 green 인데 release_v0_13_0 preflight 가 False 다")
+    if release_v0_13_0.check_dashboard_smoke_10_of_10() is not True:
+        problems.append("실제 대시보드 검사가 green 인데 release_v0_13_0 preflight 가 False 다")
+    return problems
+
+
+CASES = (
+    ("1 실제 가드 — pass + fail = total = 가드 파일의 case 수", case_real_guard),
+    ("2 합성 출력 — 일부 실패 · 요약만 · 불일치 기록 · error", case_synthetic),
+    ("3 한 출처 — release · 대시보드 · release_v0_13_0 이 같은 파서, 리터럴 없음", case_single_source),
+    ("4 불일치는 release 결과 · 대시보드 렌더까지 간다", case_mismatch_reaches_consumers),
+    ("5 release_v0_13_0 preflight 가 실제 green 에 True", case_legacy_preflight),
+)
+
+
+def main() -> int:
+    print("check_drift_guard_parse — drift 가드 출력 해석 단일 출처 (TASK-2026-11-16-main-011)")
+    for name, case in CASES:
+        try:
+            _record(name, case())
+        except Exception:  # noqa: BLE001 — case 하나의 예외는 그 case 의 FAIL 이다
+            _record(name, ["예외: " + traceback.format_exc().strip().splitlines()[-1]])
+            traceback.print_exc()
+    print(f"\n{len(CASES) - len(FAILURES)}/{len(CASES)} PASS")
+    return 1 if FAILURES else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

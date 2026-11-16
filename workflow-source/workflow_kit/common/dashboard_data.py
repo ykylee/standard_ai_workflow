@@ -5,7 +5,7 @@ Phase 13 (Operational Intelligence v1.0) 의 sub-milestone v0.13.0 첫 deliverab
 ``workflow_kit_cli --command=dashboard --format=json`` 으로 노출한다.
 
 Panel 구성 (ai-workflow/wiki/topics/quality-dashboard-implementation-guide.md §2 정합):
-    1. drift_prevention: drift guard 6 case PASS/FAIL + last_updated delta + smoke count
+    1. drift_prevention: drift guard case PASS/FAIL + last_updated delta + smoke count
     2. maturity_distribution: skill / mcp_tools stage 분포 (stable / beta / alpha)
     3. memory_index_utilization: entries 갯수 + cue_anchor frequency + cumulative timeline
     4. smoke_trend: 누적 smoke count + 최근 release 의 smoke fail 갯수
@@ -94,7 +94,7 @@ DRIFT_GUARD_FAIL_LINE: Final[re.Pattern[str]] = re.compile(r"^\s*FAIL:\s*(\S+)\s
 DRIFT_GUARD_SUMMARY: Final[re.Pattern[str]] = re.compile(
     r"===\s*(PASS|FAIL):\s*(\d+)/(\d+)\s*==="
 )
-# drift smoke 의 inline 실행 timeout (default: 30초 — git log + 6 case subprocess 호출)
+# drift smoke 의 inline 실행 timeout (default: 30초 — git log + case 마다 subprocess 호출)
 DRIFT_GUARD_INLINE_TIMEOUT: Final[int] = 30
 
 # maturity 선언(`maturity_matrix.json`)이 *따라가야 하는* 실제 surface.
@@ -357,6 +357,53 @@ def collect_roadmap_phase(workspace_root: Path) -> dict[str, Any]:
     }
 
 
+def parse_drift_guard_output(stdout: str, returncode: int) -> dict[str, Any]:
+    """drift prevention 가드 출력의 **유일한** 해석 — 대시보드와 release self-recover 재검사가 같이 쓴다.
+
+    case 수를 리터럴로 두지 않는다 (TASK-2026-11-16-main-011 — release 쪽 사본이 6 을 박아 가드가 7 case 가 된 뒤
+    pass 7 > total 6 을 냈다). total 은 PASS/FAIL 줄 수이고, 줄이 없으면 요약 줄의 분모다. 요약과 줄 수가 어긋나면
+    ``mismatch`` 에 사유를 싣는다 — 조용히 하나를 고르지 않는다.
+
+    Returns:
+        status ('pass' | 'fail' | 'error') · pass_names · fail_names · passed · failed · total ·
+        summary_passed · summary_total (요약 줄이 없으면 None) · mismatch (str | None)
+    """
+    pass_names: list[str] = []
+    fail_names: list[str] = []
+    summary_passed: int | None = None
+    summary_total: int | None = None
+    for line in stdout.splitlines():
+        m_pass = DRIFT_GUARD_PASS_LINE.match(line)
+        if m_pass is not None:
+            pass_names.append(m_pass.group(1))
+            continue
+        m_fail = DRIFT_GUARD_FAIL_LINE.match(line)
+        if m_fail is not None:
+            fail_names.append(m_fail.group(1))
+            continue
+        m_sum = DRIFT_GUARD_SUMMARY.search(line)
+        if m_sum is not None:
+            summary_passed, summary_total = int(m_sum.group(2)), int(m_sum.group(3))
+    counted = len(pass_names) + len(fail_names)
+    passed = len(pass_names) if counted else (summary_passed or 0)
+    total = counted or (summary_total or 0)
+    # 줄이 없고 요약만 있으면 실패 수도 요약에서 — pass + fail = total 이 늘 성립한다.
+    failed = len(fail_names) if counted else max(total - passed, 0)
+    mismatch: str | None = None
+    if counted and summary_total is not None and (summary_total != counted or summary_passed != len(pass_names)):
+        mismatch = (f"요약 {summary_passed}/{summary_total} 와 case 줄 {len(pass_names)}/{counted} 이 다르다 — "
+                    "case 줄 기준으로 센다")
+    if returncode == 0 and not fail_names:
+        status = "pass"
+    elif returncode != 0 and not counted and summary_total is None:
+        status = "error"  # 가드 자체가 돌지 못했다 (import 오류 등) — case 줄도 요약도 없다
+    else:
+        status = "fail"
+    return {"status": status, "pass_names": pass_names, "fail_names": fail_names, "passed": passed,
+            "failed": failed, "total": total, "summary_passed": summary_passed,
+            "summary_total": summary_total, "mismatch": mismatch}
+
+
 def run_drift_prevention_guard_inline(
     workspace_root: Path,
     *,
@@ -364,7 +411,7 @@ def run_drift_prevention_guard_inline(
 ) -> dict[str, Any]:
     """drift prevention smoke 를 subprocess 로 inline 실행.
 
-    check_drift_prevention_v0_11_23.py 의 main() 을 호출하여 6 case 의
+    check_drift_prevention_v0_11_23.py 의 main() 을 호출하여 각 case 의
     PASS/FAIL 을 parse. 결과는 dict 로 반환.
 
     Args:
@@ -409,45 +456,15 @@ def run_drift_prevention_guard_inline(
             timeout=timeout, encoding="utf-8", errors="replace",
         )
         runtime_ms = int((time.monotonic() - started) * 1000)
-        stdout = completed.stdout or ""
-        cases_pass: list[str] = []
-        cases_fail: list[str] = []
-        summary_pass = 0
-        summary_total = 0
-
-        for line in stdout.splitlines():
-            m_pass = DRIFT_GUARD_PASS_LINE.match(line)
-            if m_pass is not None:
-                cases_pass.append(m_pass.group(1))
-                continue
-            m_fail = DRIFT_GUARD_FAIL_LINE.match(line)
-            if m_fail is not None:
-                cases_fail.append(m_fail.group(1))
-                continue
-            m_sum = DRIFT_GUARD_SUMMARY.search(line)
-            if m_sum is not None:
-                # m_sum.group(1) = 'PASS' or 'FAIL', (2) = pass count, (3) = total
-                try:
-                    summary_pass = int(m_sum.group(2))
-                    summary_total = int(m_sum.group(3))
-                except ValueError:
-                    pass
-
-        # rc 가 0 이고 fail case 없으면 'pass', 그 외 'fail'. 예외 상황이면 'error'.
-        if completed.returncode == 0 and not cases_fail:
-            status = "pass"
-        elif completed.returncode != 0 and not cases_fail and not cases_pass:
-            # subprocess 자체가 fail (e.g. import error)
-            status = "error"
-        else:
-            status = "fail"
-
+        parsed = parse_drift_guard_output(completed.stdout or "", completed.returncode)
         return {
-            "guard_status": status,
-            "guard_cases_pass": len(cases_pass) if cases_pass else summary_pass,
-            "guard_cases_fail": len(cases_fail),
-            "guard_cases": (len(cases_pass) + len(cases_fail)) or summary_total,
-            "guard_failure_names": cases_fail,
+            "guard_status": parsed["status"],
+            "guard_cases_pass": parsed["passed"],
+            "guard_cases_fail": parsed["failed"],
+            "guard_cases": parsed["total"],
+            "guard_failure_names": parsed["fail_names"],
+            # 요약과 case 줄이 어긋나면 그 사유 — 렌더러가 보인다 (조용히 하나를 고르지 않는다).
+            "guard_mismatch": parsed["mismatch"],
             "guard_executed_at": _utcnow_iso(),
             "guard_runtime_ms": runtime_ms,
         }
@@ -1551,6 +1568,7 @@ __all__: list[str] = [
     "render_dashboard_markdown",
     "render_dashboard_html",
     "run_drift_prevention_guard_inline",
+    "parse_drift_guard_output",
     "SMOKE_COUNT_PATTERN",
     "EXPECTED_DRIFT_GUARD_CASES",
     "DEFAULT_RECENT_RELEASES",

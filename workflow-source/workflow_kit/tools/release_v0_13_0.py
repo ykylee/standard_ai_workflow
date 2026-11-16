@@ -35,6 +35,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -199,7 +200,12 @@ def check_drift_prevention_6_of_6() -> bool:
         env=env,
         timeout=120,
     )
-    return rc == 0 and "=== PASS: 6/6 ===" in out
+    # 이름(키)은 옛 그대로지만 case 수는 박지 않는다 — 가드가 7 case 가 된 뒤 "6/6" 문자열 대조가 늘 False 였다
+    # (TASK-2026-11-16-main-011). 해석은 대시보드 · release 재검사와 같은 한 함수다.
+    from workflow_kit.common.dashboard_data import parse_drift_guard_output
+
+    parsed = parse_drift_guard_output(out, rc)
+    return parsed["status"] == "pass" and parsed["total"] > 0 and parsed["passed"] == parsed["total"]
 
 
 def check_dashboard_smoke_10_of_10() -> bool:
@@ -210,7 +216,9 @@ def check_dashboard_smoke_10_of_10() -> bool:
         env=env,
         timeout=120,
     )
-    return rc == 0 and "ALL 10/10 CASES PASS" in out
+    # 이름은 옛 그대로, case 수는 출력에서 읽는다 — 대시보드 검사가 13 case 가 된 뒤 "10/10" 대조가 늘 False 였다.
+    match = re.search(r"ALL (\d+)/(\d+) CASES PASS", out)
+    return rc == 0 and match is not None and match.group(1) == match.group(2) and int(match.group(2)) > 0
 
 
 # ---------------------------------------------------------------------------

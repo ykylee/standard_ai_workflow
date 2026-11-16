@@ -128,7 +128,10 @@ def test_no_drift_no_fix_needed_clean_state() -> None:
     assert result["recovered"] == []
     assert result["manual_required"] == []
     assert result["re_check"]["guard_status"] == "pass"
-    assert result["re_check"]["cases_pass"] >= 6
+    re_check = result["re_check"]
+    # 집계는 서로 맞아야 한다 — `>= 6` 만 보면 pass 7 > total 6 같은 어긋남을 통과시킨다 (TASK-2026-11-16-main-011).
+    assert re_check["cases_pass"] + re_check["cases_fail"] == re_check["cases_total"], re_check
+    assert re_check["cases_total"] >= 6, re_check
 
 
 def test_loud_fallback_drift_auto_fixed_via_apply() -> None:
@@ -201,7 +204,7 @@ def test_classify_separates_auto_and_manual() -> None:
 
 
 def test_re_check_pass_after_apply_with_recovered() -> None:
-    """apply 후 re_check 가 6/6 pass 로 복구됨을 verify."""
+    """apply 후 re_check 가 전 case pass 로 복구됨을 verify."""
     _set_pyproject_version("99.99.99")
     try:
         result = _run_self_recover(["--apply"])

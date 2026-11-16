@@ -187,10 +187,12 @@ def _render_html_panel_1(p: dict[str, Any]) -> str:
     phase_source = str(p.get("phase_source", "unknown"))
 
     status_class = status if status in ("pass", "fail", "error") else "unknown"
+    mismatch = p.get("guard_mismatch")
+    mismatch_html = f"\n    <p>guard_mismatch: {_html_escape(str(mismatch))}</p>" if mismatch else ""
     return f"""  <section class="panel">
     <h2>Panel 1 — Drift Prevention Status</h2>
     <p>guard_status: <span class="stat {status_class}">{_html_escape(status)}</span></p>
-    <p>guard: {guard_cases_pass}/{guard_cases} pass (expected {expected})</p>
+    <p>guard: {guard_cases_pass}/{guard_cases} pass (expected {expected})</p>{mismatch_html}
     <p>guard_runtime_ms: {runtime_ms}</p>
     <p>maturity_last_updated: <code>{_html_escape(maturity_last_updated)}</code></p>
     <p>maturity_surface_changed_at: <code>{_html_escape(surface_changed_at)}</code> (source: {_html_escape(staleness_source)})</p>

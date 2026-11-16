@@ -1848,12 +1848,12 @@ def cmd_maturity_matrix_sync(args) -> dict:
 # Phase 13 AC3 self-recovering (v0.13.2+)
 # ---------------------------------------------------------------------------
 #
-# drift prevention smoke (check_drift_prevention_v0_11_23.py) 의 6 case 가
+# drift prevention smoke (check_drift_prevention_v0_11_23.py) 의 case 들이
 # 검출한 drift 를 *자동 fix* 한다. 1-cycle close:
-#   1. detect — smoke subprocess 실행, 6 case PASS/FAIL parse
+#   1. detect — smoke subprocess 실행, case PASS/FAIL 을 공용 파서(parse_drift_guard_output)로
 #   2. classify — FAIL 중 auto-fixable / manual_required 분리
 #   3. fix — auto-fixable case 각각 매핑된 fix 함수 호출
-#   4. re-check — 동일 smoke 재실행 → 6/6 PASS 확인
+#   4. re-check — 동일 smoke 재실행 → 전 case PASS 확인 (pass + fail = total)
 #   5. emit — recovered / manual_required / re_check_pass 를 dict 로 반환
 #             cmd_release 가 release note body 에 "## Self-recovery log" 섹션
 #             자동 append.
@@ -1991,6 +1991,9 @@ def _run_drift_prevention_smoke() -> dict:
             cases_total: int
             cases_fail_names: list[str]
             runtime_ms: int
+            mismatch: str (선택 — 가드의 요약 줄과 case 줄 수가 어긋날 때만)
+
+    가드가 아예 돌지 못하면(rc≠0 · case 줄 0) guard_status 는 'error' 다 — 예전 사본은 'fail' · total 6 을 지어냈다.
     """
     import subprocess
     import time
@@ -2014,29 +2017,21 @@ def _run_drift_prevention_smoke() -> dict:
                 "error": "smoke timeout (>30s)"}
 
     runtime_ms = int((time.monotonic() - started) * 1000)
-    stdout = completed.stdout or ""
-    cases_pass = re.findall(r"^\s*PASS:\s+(\S+)", stdout, flags=re.MULTILINE)
-    cases_fail = re.findall(r"^\s*FAIL:\s+(\S+)", stdout, flags=re.MULTILINE)
-    summary_match = re.search(r"=== (PASS|FAIL):\s*(\d+)/6 ===", stdout)
-    total = (int(summary_match.group(2)) if summary_match else len(cases_pass) + len(cases_fail))
+    # 해석은 대시보드와 같은 한 함수 — case 수 리터럴을 두지 않는다 (TASK-2026-11-16-main-011).
+    from workflow_kit.common.dashboard_data import parse_drift_guard_output
 
-    if completed.returncode == 0 and not cases_fail:
-        return {
-            "guard_status": "pass",
-            "cases_pass": len(cases_pass) or 6,
-            "cases_fail": 0,
-            "cases_total": 6,
-            "cases_fail_names": [],
-            "runtime_ms": runtime_ms,
-        }
-    return {
-        "guard_status": "fail",
-        "cases_pass": len(cases_pass),
-        "cases_fail": len(cases_fail),
-        "cases_total": total or 6,
-        "cases_fail_names": cases_fail,
+    parsed = parse_drift_guard_output(completed.stdout or "", completed.returncode)
+    result = {
+        "guard_status": parsed["status"],
+        "cases_pass": parsed["passed"],
+        "cases_fail": parsed["failed"],
+        "cases_total": parsed["total"],
+        "cases_fail_names": parsed["fail_names"],
         "runtime_ms": runtime_ms,
     }
+    if parsed["mismatch"]:
+        result["mismatch"] = parsed["mismatch"]
+    return result
 
 
 def _emit_recovery_summary(recovered: list[dict], manual_required: list[str],

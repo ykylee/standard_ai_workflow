@@ -537,6 +537,12 @@ the owner the commands and the URL. No model is called by the server.
    Only the owner chooses this; it removes the check that an answer came from the owner.
 3. Tell the owner the URL to open — `{command} --status` prints it while the server runs, and
    `session-start` reports it too.
+
+   **Autostart** — the owner can save the start arguments once:
+   `{command} --autostart on --open <name> --bind 0.0.0.0` (or with `--token …`). From then on
+   `session-start` starts the server in the background when none is running and reports
+   `워크벤치 시작: <url>`; the Claude Code SessionEnd hook stops it again
+   (`{command} --stop --autostarted-only`). `{command} --autostart off` turns it off.
 4. When answers arrive, `session-start` and `backlog-update` report pending plan responses.
    Apply them with `plan-import`; a task with pending responses cannot move to `done`.
 
@@ -1195,6 +1201,7 @@ def render_claude_code_hooks(rules: StandardRules) -> str:
     """
     refresh_cmd = find_memory_command(rules, "Regenerate state.json")
     refresh_sub = kit_subcommand(refresh_cmd)
+    workbench_sub = kit_subcommand(find_memory_command(rules, "Review plans and progress in a browser"))
     absent_notice = (
         f"[{PLUGIN_NAME}] no Python interpreter with `workflow_kit` installed was found "
         f"(tried python3, python) — the skills still describe the procedure, but the "
@@ -1240,7 +1247,17 @@ def render_claude_code_hooks(rules: StandardRules) -> str:
                                     f"{posix_kit_call(refresh_sub)} || "
                                     f"echo '{absent_notice}'"
                                 ),
-                            }
+                            },
+                            {
+                                # 워크벤치 스펙 §3.1 — session-start 가 자동 기동한 서버만 내린다.
+                                # 옛 kit(모르는 인자) · 프로필 없는 디렉터리는 조용히 지나간다.
+                                "type": "command",
+                                "command": (
+                                    f"{posix_interpreter_probe()} {posix_kit_found()} && "
+                                    f"{posix_kit_call(workbench_sub + ' --stop --autostarted-only')} "
+                                    f">/dev/null 2>&1; true"
+                                ),
+                            },
                         ]
                     }
                 ],

@@ -32,6 +32,8 @@ python -m workflow_kit workbench [--bind 127.0.0.1] [--port 8766] [--public-url 
     [--trusted-proxy ADDR]… [--tls-cert PATH --tls-key PATH] [--allow-plain-http]
 python -m workflow_kit workbench --open <name> [--bind ADDR] [--port N] [--public-url URL] [--trusted-proxy ADDR]…
 python -m workflow_kit workbench --status
+python -m workflow_kit workbench --autostart on <시작 인자…> | --autostart off
+python -m workflow_kit workbench --stop [--autostarted-only]
 python -m workflow_kit workbench --new-token <role>:<name> --out <path>
 ```
 
@@ -43,10 +45,11 @@ python -m workflow_kit workbench --new-token <role>:<name> --out <path>
 - `--new-token` 은 `secrets.token_urlsafe(32)` 를 `0600` 파일로 쓰고 값은 출력하지 않는다 (출력은 경로와 `--token` 에 줄 인자 한 줄). 있는 파일은 덮지 않는다. 부모 디렉터리가 없으면 `0700` 으로 만들고,
   `--out` · `=file:` 의 `~` 는 kit 이 펼친다 (셸은 `=file:~/…` 의 `~` 를 펼치지 않는다).
 - TLS 는 표준 `ssl`, 최소 판 TLS 1.2 (`ssl.TLSVersion.TLSv1_2`). 인증서는 kit 이 만들지 않는다.
-- `--status` 는 `.workbench/server.json` 을 읽어 `{"running": bool, "pid": …, "port": …, "public_url": …, "started_at": …}` JSON 한 덩어리를 내고 끝난다
-  (기록이 없거나 `pid` 가 죽었으면 `running: false`).
+- `--status` 는 `.workbench/server.json` 을 읽어 `{"running": bool, "pid": …, "port": …, "public_url": …, "started_at": …, "autostarted": bool, "autostart": bool}` JSON 한 덩어리를 내고 끝난다
+  (기록이 없거나 `pid` 가 죽었으면 `running: false`; `autostart` 는 §3.1 설정이 있는가).
 - 정본 §11.1 에 `Review plans and progress in a browser | python -m workflow_kit workbench`. 스킬 `workbench` (+ bootstrap `/workflow-workbench`) —
-  띄우는 법 · 토큰 만드는 법 · URL 을 사용자에게 알리는 것까지. 모델은 서버를 조작하지 않는다.
+  띄우는 법 · 토큰 만드는 법 · URL 을 사용자에게 알리는 것까지. 모델은 서버를 조작하지 않는다 — 자동 기동(§3.1)은 소유자가 켠 설정을
+  `session-start` · hook 이 집행하는 것이다.
 
 ## 3. 수명 (R1.3)
 
@@ -55,7 +58,22 @@ python -m workflow_kit workbench --new-token <role>:<name> --out <path>
 - checkout 하나에 서버 하나 — 기록의 `pid` 가 살아 있으면 시작을 거절한다. 죽은 `pid` 의 기록은 덮어쓴다. 정상 종료 때 기록을 지운다.
 - 요청마다 현재 브랜치를 다시 읽는다 — 화면 머리에 브랜치 이름을 보인다.
 - 세션 · 로그인 실패 표는 메모리에만 있다. 다시 띄우면 다시 로그인한다.
-- `session-start` 는 서버를 띄우지 않는다. 기록의 `pid` 가 살아 있으면 보고의 `summary` 에 `워크벤치 실행 중: <public_url>` 한 줄.
+- 기록의 `pid` 가 살아 있으면 `session-start` 보고의 `summary` 에 `워크벤치 실행 중: <public_url>` 한 줄.
+
+### 3.1 자동 기동 (소유자 결정 2026-11-16, TASK-2026-11-16-main-002)
+
+- `--autostart on <시작 인자…>` 는 시작 인자를 §2 의 거절 규칙으로 검증한 뒤(살아 있는 서버 판정 제외) `.workbench/autostart.json`
+  (`{"argv": […], "saved_at": …}`)에 쓴다. 토큰은 `env:` · `file:` 참조만 실린다. `--autostart off` 가 지운다. 설정은 checkout 로컬이고 git 이 무시한다.
+- 설정이 있고 살아 있는 서버가 없으면 `session-start` 가 서버를 떨어진 자식(POSIX 새 세션 · Windows `DETACHED_PROCESS`)으로 띄우고
+  실행 기록을 15초까지 기다린다(넘으면 자식을 내리고 실패로 본다) — `summary` 에 `워크벤치 시작: <public_url>`. 실패는 `warnings` 한 줄(`워크벤치 자동 기동 실패 — <이유>`)이고
+  세션 진입을 막지 않는다. 자식의 표준 출력 · 오류는 `.workbench/server.log` (띄울 때마다 새로).
+- 자동 기동한 서버의 실행 기록에는 `"autostarted": true` 와 `bind` 가 더 실린다.
+- `WORKFLOW_KIT_NO_WORKBENCH_AUTOSTART` 가 있거나 검사 표식 `WORKFLOW_KIT_TELEMETRY_SKIP_ROOT` 가 이 작업 공간을 가리키면 띄우지 않는다 —
+  러너 · 스모크가 살아 있는 저장소에서 `session-start` 를 불러도 서버가 남지 않는다.
+- `--stop` 은 기록의 서버가 `healthz` 에 `ok` 로 답할 때만 SIGTERM 을 보낸다(pid 재사용 방어) — 10초 안에 끝나면 기록을 지운다.
+  `--autostarted-only` 는 `autostarted` 기록만 내린다. 결과는 JSON 한 줄, rc 0.
+- Claude Code 플러그인 hooks 의 `SessionEnd` 가 `workbench --stop --autostarted-only` 를 부른다 (출력은 버린다). SessionEnd 가 없는 하네스에서는
+  서버가 남고, 다음 `session-start` 는 그것을 `실행 중` 으로 알린다.
 
 ## 4. 경로 · 머리 · 화면 (R2)
 
@@ -275,6 +293,7 @@ handle_path /workbench/* {
 | `check_workbench_proxy.py` | 검사 안의 접두사를 벗기는 프록시 뒤에서 로그인 → 계획 → 제출 → 도착이 전부 접두사 안 (판정은 도착 경로), 쿠키 `Path` = 접두사. 되주입: 절대 `Location` · `Path=/` |
 | `check_workbench_write.py` | 왕복 — 서버가 쓴 응답이 `plan-import` 의 1~6 단계를 통과하고 상태에 든다 · 동시 제출(스레드 · 프로세스)에서 유실 0 · 독자가 덜 쓰인 파일을 보지 않는다 (번호는 연속이 아니다 — ADR-032 V7) · 되주입: `publish` 를 배타 생성 없이 · 임시 이름 없이 이어 쓰기(만들기와 쓰기 사이의 정해진 멈춤으로 결정적으로) · 413 · 422(선택지 밖 · 한도 · 제어 문자) · 409(지문 · 배치 · 오류 규칙) — 전부 받은편지함 무변경 · `answered` 결정의 조작된 값 무시 · 같은 응답자의 `received_at` 단조 증가 |
 | `check_workbench_open.py` | 개방 모드(§5.6) — 비 loopback 평문 허용 · 경고 한 줄 · `--open`+`--token` 거절 · 쿠키 없는 GET 200 · 로그아웃 없음 · `Host` 출처 제출 통과 · 다른 출처 403 · `responder` · `client` · `plan-import` 반영 · 토큰 모드 그대로 · 주소 정리 · DNS rebinding 403 · 세션 표 상한 |
+| `check_workbench_autostart.py` | 자동 기동(§3.1) — `--autostart on/off` · 인자 검증 · `session-start` 가 띄우고 다시 띄우지 않음 · 시작 실패 경고 한 줄 · 끄는 표식 둘 · `--stop` 의 안전(손으로 띄운 서버 · 워크벤치 아닌 pid) · SessionEnd hook · 대기 시간 초과는 자식을 거둔다 |
 | `check_workbench_views.py` | 선언 ≠ 파생 둘 다 · 잎 0 "미측정" · 절대 경로 · 호스트 이름이 어느 응답에도 없음 (`api/state` 포함) · 이스케이프 (task 파일의 `<script>` 가 글자로) · 읽기 전용 (`git status` 전후 동일) · 정적 자원이 wheel 에 실림 |
 
 파서 단일성은 `check_plan_claims` case 6 의 소비자 목록에 `workbench/` 를 더해 그 한 곳에서 잰다 (ADR-032 결정 2).

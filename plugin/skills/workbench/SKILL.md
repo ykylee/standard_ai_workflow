@@ -39,6 +39,12 @@ the owner the commands and the URL. No model is called by the server.
    Only the owner chooses this; it removes the check that an answer came from the owner.
 3. Tell the owner the URL to open — `python -m workflow_kit workbench --status` prints it while the server runs, and
    `session-start` reports it too.
+
+   **Autostart** — the owner can save the start arguments once:
+   `python -m workflow_kit workbench --autostart on --open <name> --bind 0.0.0.0` (or with `--token …`). From then on
+   `session-start` starts the server in the background when none is running and reports
+   `워크벤치 시작: <url>`; the Claude Code SessionEnd hook stops it again
+   (`python -m workflow_kit workbench --stop --autostarted-only`). `python -m workflow_kit workbench --autostart off` turns it off.
 4. When answers arrive, `session-start` and `backlog-update` report pending plan responses.
    Apply them with `plan-import`; a task with pending responses cannot move to `done`.
 

@@ -3,19 +3,24 @@
 
 - 서버가 쓰는 워크플로우 상태는 받은편지함 하나다. 그 밖에는 checkout 루트의 ``.workbench/server.json`` 과
   그 디렉터리의 ``.gitignore`` 뿐이다.
-- 모델은 서버를 조작하지 않는다 — 사람이 띄우고 URL 을 연다.
+- 모델은 서버를 조작하지 않는다 — 사람이 띄우고 URL 을 연다. 소유자가 ``--autostart on`` 으로 켜 두면
+  ``session-start`` 가 띄우고 플러그인 SessionEnd hook 이 ``--stop --autostarted-only`` 로 내린다 (스펙 §3.1).
 """
 
 from __future__ import annotations
 
 import argparse
 import datetime as dt
+import http.client
 import json
 import os
 import signal
 import socket
 import ssl
+import subprocess
 import sys
+import time
+import warnings
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
@@ -30,6 +35,14 @@ DEFAULT_PORT = 8766
 RECORD_DIRNAME = ".workbench"
 RECORD_FILENAME = "server.json"
 GITIGNORE_BODY = "*\n"
+AUTOSTART_FILENAME = "autostart.json"
+LOG_FILENAME = "server.log"
+#: 있으면 ``session-start`` 가 띄우지 않는다. 검사 표식(``WORKFLOW_KIT_TELEMETRY_SKIP_ROOT``)이 이 작업 공간을
+#: 가리킬 때도 — 러너 · 스모크가 살아 있는 저장소에서 session-start 를 부를 때 서버를 남기지 않게.
+AUTOSTART_OFF_ENV = "WORKFLOW_KIT_NO_WORKBENCH_AUTOSTART"
+CHECK_MARK_ENV = "WORKFLOW_KIT_TELEMETRY_SKIP_ROOT"
+DETACH_WAIT_S = 15.0
+STOP_WAIT_S = 10.0
 
 
 class StartRefused(Exception):
@@ -54,6 +67,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--open", default=None, metavar="NAME",
                         help="개방 모드 — 토큰 · 로그인 없이 누구나 NAME 이름으로 보고 답한다 (스펙 §5.6)")
     parser.add_argument("--status", action="store_true", help="실행 기록을 JSON 으로 내고 끝난다")
+    parser.add_argument("--autostart", choices=("on", "off"), default=None,
+                        help="on: 함께 준 시작 인자를 저장해 session-start 가 띄우게 한다 · off: 지운다 (스펙 §3.1)")
+    parser.add_argument("--stop", action="store_true", help="이 checkout 의 서버를 내린다")
+    parser.add_argument("--autostarted-only", action="store_true", help="--stop 을 자동 기동한 서버에만")
+    parser.add_argument("--autostarted", action="store_true", help=argparse.SUPPRESS)  # 자동 기동한 자식의 표식
     parser.add_argument("--new-token", default=None, metavar="ROLE:NAME",
                         help="토큰을 0600 파일로 만든다 (값은 출력하지 않는다)")
     parser.add_argument("--out", default=None, help="--new-token 의 출력 파일")
@@ -119,7 +137,8 @@ def status_of(workspace: Path) -> dict[str, Any]:
     record = read_record(workspace) or {}
     running = pid_alive(record.get("pid"))
     return {"running": running, "pid": record.get("pid"), "port": record.get("port"),
-            "public_url": record.get("public_url"), "started_at": record.get("started_at")}
+            "public_url": record.get("public_url"), "started_at": record.get("started_at"),
+            "autostarted": record.get("autostarted") is True, "autostart": read_autostart(workspace) is not None}
 
 
 def running_public_url(workspace: Path) -> str | None:
@@ -129,11 +148,13 @@ def running_public_url(workspace: Path) -> str | None:
     return url if status["running"] and isinstance(url, str) else None
 
 
-def write_record(workspace: Path, *, port: int, public_url: str) -> Path:
+def write_record(workspace: Path, *, port: int, public_url: str, autostarted_bind: str | None = None) -> Path:
     directory = ensure_record_dir(workspace)
     path = directory / RECORD_FILENAME
-    payload = {"pid": os.getpid(), "port": port, "public_url": public_url,
-               "started_at": dt.datetime.now().astimezone().isoformat(timespec="seconds")}
+    payload: dict[str, Any] = {"pid": os.getpid(), "port": port, "public_url": public_url,
+                               "started_at": dt.datetime.now().astimezone().isoformat(timespec="seconds")}
+    if autostarted_bind is not None:  # 자동 기동분만 — SessionEnd hook 이 이것만 내린다
+        payload.update({"autostarted": True, "bind": autostarted_bind})
     temp = directory / f".{RECORD_FILENAME}.{os.getpid()}"
     temp.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     os.replace(temp, path)
@@ -144,6 +165,170 @@ def remove_record(workspace: Path) -> None:
     record = read_record(workspace)
     if record is not None and record.get("pid") == os.getpid():
         (record_dir(workspace) / RECORD_FILENAME).unlink(missing_ok=True)
+
+
+# --------------------------------------------------------------------------- 자동 기동 (§3.1)
+
+
+def start_argv(args: argparse.Namespace) -> list[str]:
+    """시작 인자를 다시 명령줄로 — 토큰은 값이 아니라 ``env:`` · ``file:`` 참조만 실린다."""
+    out: list[str] = []
+    if args.bind != DEFAULT_BIND:
+        out += ["--bind", args.bind]
+    if args.port != DEFAULT_PORT:
+        out += ["--port", str(args.port)]
+    for flag, value in (("--public-url", args.public_url), ("--tls-cert", args.tls_cert),
+                        ("--tls-key", args.tls_key), ("--open", args.open)):
+        if value is not None:
+            out += [flag, value]
+    for token in args.token:
+        out += ["--token", token]
+    for proxy in args.trusted_proxy:
+        out += ["--trusted-proxy", proxy]
+    if args.allow_plain_http:
+        out.append("--allow-plain-http")
+    return out
+
+
+def read_autostart(workspace: Path) -> list[str] | None:
+    try:
+        data = json.loads((record_dir(workspace) / AUTOSTART_FILENAME).read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, ValueError):
+        return None
+    argv = data.get("argv") if isinstance(data, dict) else None
+    return argv if isinstance(argv, list) and all(isinstance(item, str) for item in argv) else None
+
+
+def write_autostart(workspace: Path, argv: list[str]) -> Path:
+    directory = ensure_record_dir(workspace)
+    path = directory / AUTOSTART_FILENAME
+    payload = {"argv": argv, "saved_at": dt.datetime.now().astimezone().isoformat(timespec="seconds")}
+    temp = directory / f".{AUTOSTART_FILENAME}.{os.getpid()}"
+    temp.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    os.replace(temp, path)
+    return path
+
+
+def autostart_suppressed(workspace: Path, environ: dict[str, str] | None = None) -> bool:
+    env = os.environ if environ is None else environ
+    if env.get(AUTOSTART_OFF_ENV):
+        return True
+    mark = env.get(CHECK_MARK_ENV)
+    if not mark:
+        return False
+    try:
+        return Path(mark).resolve() == workspace.resolve()
+    except OSError:
+        return True
+
+
+def start_detached(profile: Path, argv: list[str]) -> tuple[str | None, str | None]:
+    """서버를 이 프로세스와 떨어진 자식으로 띄우고 실행 기록을 기다린다 — (public_url, 실패 사유)."""
+    workspace = project_workspace_root(profile)
+    directory = ensure_record_dir(workspace)
+    command = [sys.executable, "-m", "workflow_kit", "workbench", "--project-profile-path", str(profile),
+               *argv, "--autostarted"]
+    env = dict(os.environ)
+    env["PYTHONIOENCODING"] = "utf-8"
+    env["PYTHONPATH"] = os.pathsep.join(entry for entry in sys.path if entry)
+    detach: dict[str, Any] = {}
+    if os.name == "nt":
+        detach["creationflags"] = (getattr(subprocess, "DETACHED_PROCESS", 0x8)
+                                   | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x200)
+                                   | getattr(subprocess, "CREATE_NO_WINDOW", 0x8000000))
+    else:
+        detach["start_new_session"] = True  # 세션이 끝나도 SIGHUP 을 받지 않는다
+    log = directory / LOG_FILENAME
+    with open(log, "wb") as handle:
+        proc = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=handle, stderr=handle,
+                                cwd=str(workspace), env=env, close_fds=True, **detach)
+    try:
+        deadline = time.monotonic() + DETACH_WAIT_S
+        while time.monotonic() < deadline:
+            record = read_record(workspace) or {}
+            url = record.get("public_url")
+            if record.get("pid") == proc.pid and isinstance(url, str):
+                return url, None
+            code = proc.poll()
+            if code is not None:
+                try:
+                    tail = [ln for ln in log.read_text(encoding="utf-8", errors="replace").splitlines() if ln.strip()]
+                except OSError:
+                    tail = []
+                return None, f"서버가 시작하지 못했다 (rc {code}){' — ' + tail[-1] if tail else ''}"
+            time.sleep(0.1)
+        # 기록을 쓰지 않은 자식은 누구도 내릴 수 없는 고아가 된다 — 여기서 거둔다.
+        proc.terminate()
+        try:
+            proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait()
+        return None, f"서버가 {DETACH_WAIT_S:.0f}초 안에 실행 기록을 쓰지 않았다 — 자식을 내렸다 ({log})"
+    finally:
+        # 자식은 일부러 떠나보낸다 — 살아 있는 Popen 을 놓을 때의 ResourceWarning 은 결함이 아니다.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", ResourceWarning)
+            del proc
+
+
+def autostart_if_configured(profile: Path) -> tuple[str | None, str | None]:
+    """``session-start`` 가 부른다 — 설정이 있고 살아 있는 서버가 없으면 띄운다 (스펙 §3.1)."""
+    workspace = project_workspace_root(profile)
+    argv = read_autostart(workspace)
+    if argv is None or autostart_suppressed(workspace) or status_of(workspace)["running"]:
+        return None, None
+    url, problem = start_detached(profile, argv)
+    return url, (f"워크벤치 자동 기동 실패 — {problem}" if problem else None)
+
+
+def _answers_healthz(record: dict[str, Any]) -> bool:
+    """기록의 포트가 워크벤치로 답하는가 — 죽은 서버의 pid 가 다른 프로세스에 재사용됐을 때 죽이지 않게."""
+    port = record.get("port")
+    if not isinstance(port, int):
+        return False
+    bind = record.get("bind")
+    hosts = ["127.0.0.1"]
+    if isinstance(bind, str) and bind not in ("", "0.0.0.0", "::") and not server.is_loopback(bind):
+        hosts.insert(0, bind)
+    https = str(record.get("public_url", "")).lower().startswith("https://")
+    for host in hosts:
+        conn: http.client.HTTPConnection
+        if https:
+            conn = http.client.HTTPSConnection(host, port, timeout=2, context=ssl._create_unverified_context())
+        else:
+            conn = http.client.HTTPConnection(host, port, timeout=2)
+        try:
+            conn.request("GET", "/healthz")
+            resp = conn.getresponse()
+            if resp.status == 200 and resp.read(16).strip() == b"ok":
+                return True
+        except (OSError, http.client.HTTPException):
+            continue
+        finally:
+            conn.close()
+    return False
+
+
+def stop_server(workspace: Path, *, autostarted_only: bool = False) -> dict[str, Any]:
+    record = read_record(workspace) or {}
+    pid = record.get("pid")
+    if not pid_alive(pid) or pid == os.getpid():
+        return {"stopped": False, "reason": "실행 중인 서버가 없다"}
+    assert isinstance(pid, int)
+    if autostarted_only and record.get("autostarted") is not True:
+        return {"stopped": False, "pid": pid, "reason": "손으로 띄운 서버다 — 두고 간다"}
+    if not _answers_healthz(record):
+        return {"stopped": False, "pid": pid, "reason": "기록의 pid 가 워크벤치로 답하지 않는다 — 건드리지 않는다"}
+    os.kill(pid, signal.SIGTERM)  # Windows 는 TerminateProcess — 기록은 아래에서 지운다
+    deadline = time.monotonic() + STOP_WAIT_S
+    while pid_alive(pid) and time.monotonic() < deadline:
+        time.sleep(0.1)
+    if pid_alive(pid):
+        return {"stopped": False, "pid": pid, "reason": f"{STOP_WAIT_S:.0f}초 안에 끝나지 않았다"}
+    if (read_record(workspace) or {}).get("pid") == pid:
+        (record_dir(workspace) / RECORD_FILENAME).unlink(missing_ok=True)
+    return {"stopped": True, "pid": pid}
 
 
 def sweep_temp_files(branch_dir: Path) -> list[str]:
@@ -175,7 +360,8 @@ def default_public_url(bind: str, port: int, *, open_mode: bool) -> str:
     return f"http://{host}:{port}/"
 
 
-def validate_start(args: argparse.Namespace, workspace: Path) -> tuple[tuple[auth.Token, ...], str]:
+def validate_start(args: argparse.Namespace, workspace: Path, *,
+                   check_live: bool = True) -> tuple[tuple[auth.Token, ...], str]:
     """시작을 거절할 이유가 있으면 :class:`StartRefused`. 아니면 (토큰, public_url)."""
     open_mode = args.open is not None
     if open_mode:
@@ -203,7 +389,7 @@ def validate_start(args: argparse.Namespace, workspace: Path) -> tuple[tuple[aut
         raise StartRefused("TLS 를 켰는데 public_url 이 http 다")
     if not open_mode and not server.is_loopback(args.bind) and not tls and not args.allow_plain_http:
         raise StartRefused(f"--bind {args.bind} 는 loopback 이 아니다 — TLS 또는 --allow-plain-http 가 필요하다")
-    live = status_of(workspace)
+    live = status_of(workspace) if check_live else {"running": False}
     if live["running"]:
         raise StartRefused(f"이 checkout 에 살아 있는 서버가 있다: {live.get('public_url')}")
     return tokens, public_url
@@ -259,6 +445,24 @@ def main(argv: list[str] | None = None) -> int:
     if args.status:
         print(json.dumps(status_of(workspace), ensure_ascii=False))
         return 0
+    if args.autostart == "off":
+        (record_dir(workspace) / AUTOSTART_FILENAME).unlink(missing_ok=True)
+        print(json.dumps({"status": "ok", "autostart": "off"}, ensure_ascii=False))
+        return 0
+    if args.autostart == "on":
+        try:
+            validate_start(args, workspace, check_live=False)
+        except StartRefused as exc:
+            print(f"workbench: {exc}", file=sys.stderr)
+            return 2
+        argv = start_argv(args)
+        path = write_autostart(workspace, argv)
+        print(json.dumps({"status": "ok", "autostart": "on", "argv": argv, "path": str(path),
+                          "note": "다음 session-start 가 띄운다"}, ensure_ascii=False))
+        return 0
+    if args.stop:
+        print(json.dumps(stop_server(workspace, autostarted_only=args.autostarted_only), ensure_ascii=False))
+        return 0
     try:
         tokens, public_url = validate_start(args, workspace)
     except StartRefused as exc:
@@ -285,7 +489,8 @@ def main(argv: list[str] | None = None) -> int:
     port = httpd.server_address[1]
     if args.public_url is None and port != args.port:  # --port 0 — 기본 public_url 은 실제 포트로
         public_url = app.public_url = default_public_url(args.bind, port, open_mode=args.open is not None)
-    write_record(workspace, port=port, public_url=public_url)
+    write_record(workspace, port=port, public_url=public_url,
+                 autostarted_bind=args.bind if args.autostarted else None)
     sweep_temp_files(locate().branch_dir)
     print(public_url, flush=True)
     for note in startup_warnings(args.bind, open_name=args.open):

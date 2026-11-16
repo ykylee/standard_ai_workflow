@@ -1,7 +1,7 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-11-16T06:31:54Z`
-- tool_version: `1.25.0`
+- generated_at: `2026-11-16T15:18:07Z`
+- tool_version: `1.26.0`
 - workspace_root: `/home/yklee/repos/standard_ai_workflow-main`
 
 ## Panel 1 — Drift Prevention Status
@@ -14,7 +14,7 @@
 - harness_supported_count: `10`
 - head_commit_date: `2026-11-16`
 - last_updated_delta_days: `0`
-- silent_failing_cycles_count: `0` (측정 cycle 39건)
+- silent_failing_cycles_count: `0` (측정 cycle 40건)
 
 ## Panel 2 — Maturity Distribution
 
@@ -75,20 +75,20 @@
 
 ## Panel 4 — Smoke Trend
 
-- cumulative_total: `325`
-- cumulative_pass: `325`
+- cumulative_total: `329`
+- cumulative_pass: `329`
 - cumulative_pass_rate: `1.0000`
-- smoke_files_count: `325`
+- smoke_files_count: `329`
 
 ### Recent release smoke counts
 
 | version | pass | total |
 |---|---|---|
+| Beta-v1.26.0 | 329 | 329 |
 | Beta-v1.25.0 | 325 | 325 |
 | Beta-v1.24.0 | 322 | 322 |
 | Beta-v1.23.0 | 319 | 319 |
 | Beta-v1.22.0 | 309 | 309 |
-| Beta-v1.21.0 | 309 | 309 |
 
 ## Panel 5 — Recent Release Cycle
 
@@ -98,16 +98,16 @@
 
 ### Timeline (preview, first 120 char)
 
-- [0] TASK-2026-11-16-main-003 — 워크벤치 화면 개편 — 대시보드형 진척 · 카드형 계획 화면  `[fresh]`
-- [1] TASK-2026-11-16-main-002 — 워크벤치 자동 기동 — session-start 가 띄우고 세션 종료 hook 이 내린다  `[fresh]`
-- [2] TASK-2026-11-16-main-001 — 워크벤치 개방 모드 — 토큰 없이 IP 로 접속해 보고 답한다 (--open)  `[fresh]`
-- [3] TASK-2026-11-15-main-002 — MCP 오류 신호 불일치 — summarize_git_history 가 git 아닌 경로에 ok, invoke_tool 이 status error 를 rc 0 으로  `[fresh]`
-- [4] TASK-2026-11-15-main-001 — 경고 분류기가 /tmp · /var/tmp 경로를 정규화한 뒤 분류해 서드파티 경고를 저장소 경고로 오판한다  `[fresh]`
-- [5] TASK-2026-11-15-claude-remote-sync-check-234c32-003 — 합류 반영이 완료 task 를 archived/ 로만 보내 main 집계가 근거를 잃는다 — 완료 task 도 모 브랜…  `[fresh]`
-- [6] TASK-2026-11-15-claude-remote-sync-check-234c32-002 — v1.23.0 발행 — main 합류 · 발행 준비 · 태그 · GitHub Release  `[fresh]`
-- [7] TASK-2026-11-15-claude-remote-sync-check-234c32-001 — MCP 도구 4종 성공 경로 output contract 미등록 수리 (main-002 대응, 발행 차단 결함)  `[fresh]`
-- [8] TASK-2026-11-14-claude-remote-sync-check-234c32-003 — M-029 ② MCP plan_inbox · plan_import + 체크인 생성물  `[fresh]`
-- [9] TASK-2026-11-14-claude-remote-sync-check-234c32-002 — M-029 ② 워크벤치 서버 · 화면 · 검사 넷 · 스킬 (MCP 두 도구는 다음 task)  `[fresh]`
+- [0] TASK-2026-11-16-main-014 — 워크벤치 응답이 작업 세션에 바로 닿지 않는다 — 도착 신호 + hook 자동 반영 · 알림  `[fresh]`
+- [1] TASK-2026-11-16-main-013 — 워크벤치 글자가 박스를 넘는다 — 긴 글 · 좁은 폭 · 다른 글꼴에서도 박스 안에  `[fresh]`
+- [2] TASK-2026-11-16-main-012 — 대시보드 inline_guard=False 가 가드를 돌리지 않고 guard_cases 7 · pass 0 을 실측처럼 싣는다  `[fresh]`
+- [3] TASK-2026-11-16-main-011 — release self_recover 재검사 집계가 cases_pass 7 > cases_total 6 — drift 가드 case 수를 6 으로 박아 둔 사본  `[fresh]`
+- [4] TASK-2026-11-16-main-010 — v1.25.0 발행 — 워크벤치 지속 갱신(자동 새로고침 · 실시간 값 · 진행 기록) + 수리 둘  `[fresh]`
+- [5] TASK-2026-11-16-main-009 — 작업 중 진행 상황 기록 — 단계마다 Progress 한 줄, 워크벤치가 '지금 하는 일'로 보인다  `[fresh]`
+- [6] TASK-2026-11-16-main-008 — 워크벤치 진척이 생성물(state.json · roadmap_state.json)을 기다린다 — 원천에서 같은 생성기로 실시간 계산  `[fresh]`
+- [7] TASK-2026-11-16-main-007 — 워크벤치 폼 POST 가 실제 브라우저에서 Origin null 로 403 — Referrer-Policy no-referrer  `[fresh]`
+- [8] TASK-2026-11-16-main-006 — 워크벤치 화면 자동 새로고침 — 바뀐 내용만 다시 그리고 답 쓰는 중이면 알림만  `[fresh]`
+- [9] TASK-2026-11-16-main-005 — workbench --stop 이 기록의 pid 가 그 포트의 주인인지 대조하지 않는다 — 인스턴스 표식 대조  `[fresh]`
 
 ## Panel 6 — Multi-Agent Concurrent Write Conflict
 
@@ -137,10 +137,10 @@
 
 - phase_15_north_star: `utilization_3tuple (query_diversity / entries_new_30d / distinct_entries_retrieved — ADR-006 W-4; hit_rate 는 보조)`
 - entries_total: `30`
-- telemetry_events_total: `39`
-- telemetry_total_queries: `39`
-- telemetry_hit_count: `37`
-- telemetry_hit_rate: `0.9487`
+- telemetry_events_total: `75`
+- telemetry_total_queries: `75`
+- telemetry_hit_count: `73`
+- telemetry_hit_rate: `0.9733`
 
 ### Entries by merge_state
 
@@ -152,6 +152,6 @@
 
 | source | events |
 |---|---|
-| `backlog-update` | 33 |
-| `session-start` | 6 |
+| `backlog-update` | 66 |
+| `session-start` | 9 |
 

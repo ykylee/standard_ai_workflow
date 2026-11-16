@@ -16,6 +16,8 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- feat(workbench): todo — 브랜치 할 일 · task 체크리스트를 워크벤치에서 보고 고친다 (main-016 · main-017) (78b66be9)
+- feat(workbench): 응답 도착 신호 + 작업 세션 hook 자동 반영 · 알림 (main-014) (4dba0962)
 - feat(workbench): 작업 중 진행 기록 — 단계마다 Progress 한 줄, 워크벤치가 '지금 하는 일'로 (main-009) (0c2f7fee)
 - feat(workbench): 진척 실시간 값 — 원천에서 refresh-state 와 같은 생성기로 계산 (main-008) (b2b025c8)
 - feat(workbench): 화면 자동 새로고침 — 바뀐 내용만 다시 그리고 답 쓰는 중이면 알림만 (main-006) (f2ed8112)
@@ -44,9 +46,7 @@ All notable changes to this project will be documented in this file.
 - feat(context-budget): 이관 실행 + 이 저장소 게이트 red 활성 — 필독 195KB → 111KB (M-017/WBS-17.5) (8b7119de)
 - feat(handoff): wk rollover-handoff-notes — §5 누적형 절의 출구 (M-017/WBS-17.3) (0292d421)
 - feat(state): state.json memory_entries v2 — 전문 복제 대신 포인터 (M-017/WBS-17.2) (10c166cd)
-- feat(context-budget): 예산 정본 모듈 + refresh-state 초과 경고 (M-017/WBS-17.1) (ec21152a)
-- feat(session-start): task ID 충돌 warning + M-013 concept 종결(③ 출구+예산) → M-015 개설 (dd9a004e)
-- ... (175 more)
+- ... (177 more)
 
 ### Changed
 
@@ -84,6 +84,10 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- fix(dashboard): drift 가드가 돌지 못하면 '0/0 pass' 로 그리던 결함 — 측정 실패로 (main-015) (8640b4c0)
+- fix(workbench): 글자가 박스를 넘던 결함 — 긴 글 · 좁은 폭 · 다른 글꼴에서도 박스 안에 (main-013) (c5cc35d0)
+- fix(dashboard): inline_guard=False 패널이 가드를 돌리지 않고 guard_cases 7 · pass 0 을 실측처럼 싣던 결함 (main-012) (b82944d8)
+- fix(release): self-recover 재검사 집계 cases_pass 7 > cases_total 6 — drift 가드 해석을 한 함수로 (main-011) (4b18a68e)
 - fix(workbench): 실제 브라우저의 폼 POST 가 Origin null 로 403 — Referrer-Policy same-origin (main-007) (0721103a)
 - fix(workbench): --stop 이 기록의 pid 가 그 포트의 주인인지 대조 — 인스턴스 표식 (main-005) (d862b009)
 - fix(mcp): 오류 신호 불일치 둘 — invoke_tool 이 status error 를 rc 0 으로, summarize_git_history 가 git 실패를 커밋 0건으로 (main-002) (85d9596c)
@@ -110,16 +114,19 @@ All notable changes to this project will be documented in this file.
 - fix(windows): Windows 격차 52건 수리 완성 — cp949 인코딩·교차 플랫폼 락·POSIX 경로·검사 결함 + 121차 세션 메모리 갱신 (main-003) (712e9414)
 - fix(windows): 한글 Windows 프로필 — 자식 환경(home·UTF-8·PATH) 통일 · python3 하드코딩 제거 · 저장소 텍스트 LF 고정 (main-003 착수) (b5148946)
 - fix(gate): 게이트 러너가 Windows 에서 첫 검사 완료와 함께 죽는다 — _kill_process_group 가 POSIX 전용 os.getpgid 를 쓴다 (main-002) (46701fda)
-- fix(auto-seed): origin 없는 저장소에서도 이어받기 — 기준 브랜치 판정을 분리 (main-003) (cbe0b88b)
-- fix(purpose_graph): 어느 마일스톤 · leaf 도 섬기지 않는 goal 을 provenance 로 지목 — 조용한 uncovered 금지 (main-004) (e88e4b48)
-- fix(memory_lint): T1a 은퇴 · T1c/T1d 를 branch-scoped 로 — index path 선언 · archived 해소, 미분류 참조는 숫자로 (main-003) (094a51ba)
-- fix(memory_lint): T1b stale 을 branch-scoped 로 — 공유층 면제 · 브랜치 메모리의 git 커밋 일자로 90일 판정 (main-002) (9f027210)
-- ... (231 more)
+- ... (235 more)
+
+## [1.26.0] - 2026-11-16
+
+### Changed
+
+- release(v1.26.0): 발행 준비 — 워크벤치 todo · 응답 자동 반영 hook + 대시보드 · release · 워크벤치 수리 넷 (minor) (632cb661)
 
 ## [1.25.0] - 2026-11-16
 
 ### Changed
 
+- release(v1.25.0): 발행 완료 — 태그 push + GitHub Release(asset 5종) + §2.8 5채널 · task -010 close (c84ab092)
 - release(v1.25.0): 발행 준비 — 워크벤치 지속 갱신(자동 새로고침 · 실시간 값 · 진행 기록) + 폼 POST 403 · --stop pid 대조 수리 (minor) (d00fbfbd)
 
 ## [1.24.0] - 2026-11-16

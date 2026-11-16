@@ -17,7 +17,7 @@
 2. 서버가 쓰는 워크플로우 상태는 **받은편지함 하나**다 (주장 스펙 §7). task 파일 · 보관 · `state.json` · `roadmap_state.json` 은 읽기만 한다.
    그 밖에 쓰는 것은 `.workbench/server.json` 과 그 디렉터리의 `.gitignore` 뿐이다 (§3). 접근 기록은 표준 오류로 낸다.
 3. 폼으로 들어온 글은 데이터다 — 실행하지 않고, 경로로 쓰지 않고, 다른 곳으로 보내지 않는다. task 파일의 글도 화면에 넣을 때 이스케이프한다.
-4. 화면의 숫자는 생성물과 task 파일에서만 온다. 재지 않은 것은 "미측정" 이다.
+4. 화면의 숫자는 생성물(또는 같은 생성기로 원천에서 지금 계산한 값 — §7.1)과 task 파일에서만 온다. 재지 않은 것은 "미측정" 이다.
 5. loopback 요청도 인증한다 — 소유자가 고르는 개방 모드(§5.6)만 예외다. 서버는 자기 공개 주소를 추측하지 않는다 — `public_url` 하나.
 6. 페이지는 외부 자원을 부르지 않는다.
 7. 모델 호출이 없다.
@@ -201,11 +201,17 @@ task 파일에 있는 것만 그린다: 주장 트리(`<details>`, 접힌 상태
 
 | 보이는 것 | 원천 |
 |---|---|
-| 마일스톤 · WBS · 파생 진척 · issues · `deliverables_missing` | `roadmap/roadmap_state.json` |
-| 진행 · 차단 · 계획 · 최근 완료 task | 브랜치 `state.json` |
+| 마일스톤 · WBS · 파생 진척 · issues · `deliverables_missing` | `roadmap.build_roadmap_state` (실시간) 또는 `roadmap/roadmap_state.json` |
+| 진행 · 차단 · 계획 · 최근 완료 task | `refresh_workflow_state_cache` 를 임시 출력으로 (실시간) 또는 브랜치 `state.json` |
 | 완료 기준 · 검증 줄 · 주장 · 결정 | task 파일 |
 | 결정 상태 | `plan_tasks.computed_states` (보관 응답 포함) |
 | 미반영 응답 · 알 수 없는 항목 · 배치 문제 | `plan_responses.inbox_census` (요청 시점) |
+
+**실시간 계산** (TASK-2026-11-16-main-008 — 소유자 지시 "작업하면서 워크벤치 내용을 지속적으로 갱신"): 서버가 프로필을 알면(CLI 서버는 늘 안다)
+진척 값을 `refresh-state` 와 **같은 생성기**로 원천에서 계산한다 — 생성기 출력은 임시 디렉터리에 쓰고 저장소에는 아무것도 쓰지 않는다.
+원천(메모리 디렉터리 전체 · 프로필 · 마일스톤이 선언한 산출물 파일)의 stat 지문(경로 · mtime · 크기, 없음도 값)이 같고 **브랜치가 같으면** 다시 계산하지 않는다
+— 캐시 키가 (프로필, 브랜치 디렉터리)다. 생성기가 거절하거나 실패하면 디스크의 생성물을 읽고 그 사유를 `api/state.live_error` 와 화면 경고로 보인다 —\n사유의 작업 공간 경로는 상대 경로로, 그 밖의 절대 경로는 `<경로>` 로 가린다(§7.2 의 "절대 경로를 싣지 않는다").
+roadmap 원천이 없으면 마일스톤은 "미측정" 이다 — 디스크에 남은 낡은 `roadmap_state.json` 을 실시간 값으로 보이지 않는다. 화면은 실시간이면 "실시간" 표식을, 생성물이면 생성 시각을 보인다 — 계산 시각은 화면에 싣지 않는다(§4.5 의 지문이 원천이 바뀔 때만 바뀌게).
 
 ### 7.2 표시 규칙
 
@@ -217,7 +223,7 @@ task 파일에 있는 것만 그린다: 주장 트리(`<details>`, 접힌 상태
 
 ```json
 {"schema": "workbench-state/1", "branch": "<branch>",
- "generated_at": {"roadmap": "<iso|null>", "state": "<iso|null>"},
+ "generated_at": {"roadmap": "<iso|null>", "state": "<iso|null>"}, "source": "live|generated", "computed_at": "<iso|null>", "live_error": "<사유|null>",
  "milestones": [{"id": "M-0NN", "title": "…", "declared": "<status>", "derived": "<status>",
                  "leaves_done": 3, "leaves_total": 4, "issues": ["…"]}],
  "tasks": {"in_progress": [{"id": "…", "title": "…"}], "blocked": […], "planned": […], "recent_done": […]},
@@ -313,6 +319,7 @@ handle_path /workbench/* {
 | `check_workbench_autostart.py` | 자동 기동(§3.1) — `--autostart on/off` · 인자 검증 · `session-start` 가 띄우고 다시 띄우지 않음 · 시작 실패 경고 한 줄 · 끄는 표식 둘 · `--stop` 의 안전(손으로 띄운 서버 · 워크벤치 아닌 pid) · SessionEnd hook · 대기 시간 초과는 자식을 거둔다 · pid ↔ 포트 주인 대조(instance) |
 | `check_workbench_design.py` | 화면 구조(§4.4) — 요약 수치 = `api/state` · 보드 4열 · 계획 카드 강조 · 마일스톤 막대 · 완료분만 접기 · 열린 결정 강조 · 결정은 닫힌 채 · 선택지 카드 · 제출 막대 · `style=` · 인라인 스크립트 · 외부 URL 없음 · 어두운 모드 · 좁은 폭 |
 | `check_workbench_refresh.py` | 자동 새로고침(§4.5) — `data-refresh` · 스크립트 · `data-version` · CSP `connect-src` · 같은 상태의 지문 고정 · 바뀌면 달라짐 · 0 이면 끔 · `--refresh` 범위 · 자동 기동 저장 · 스크립트 분기(실제 브라우저 동작은 task Proof 의 CDP 실측) |
+| `check_workbench_live.py` | 실시간 값(§7.1) — 낡은 `state.json` 위에서 방금 바뀐 task 가 보임 · `source` · 화면 표식 · 저장소 무변경 · 지문 같으면 재계산 0 · 바뀌면 재계산 · 프로필 없으면 생성물 · `where_for` 가 프로필을 싣는다 · 브랜치 전환 재계산 · 실패 사유 표시 · roadmap 실시간 · 낡은 roadmap 생성물 안 보임 · 산출물 지문 · 실패 사유에 절대 경로 없음 |
 | `check_workbench_views.py` | 선언 ≠ 파생 둘 다 · 잎 0 "미측정" · 절대 경로 · 호스트 이름이 어느 응답에도 없음 (`api/state` 포함) · 이스케이프 (task 파일의 `<script>` 가 글자로) · 읽기 전용 (`git status` 전후 동일) · 정적 자원이 wheel 에 실림 |
 
 파서 단일성은 `check_plan_claims` case 6 의 소비자 목록에 `workbench/` 를 더해 그 한 곳에서 잰다 (ADR-032 결정 2).

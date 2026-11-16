@@ -476,6 +476,6 @@ def where_for(profile_path: Path) -> Callable[[], state_view.Where]:
     def locate() -> state_view.Where:
         workspace = project_workspace_root(profile_path)
         return state_view.Where(workspace_root=workspace, branch=branch_for_workspace(workspace),
-                                branch_dir=workflow_branch_dir(profile_path))
+                                branch_dir=workflow_branch_dir(profile_path), profile_path=profile_path)
 
     return locate

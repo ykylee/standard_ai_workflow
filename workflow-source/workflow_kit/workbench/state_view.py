@@ -6,8 +6,12 @@
 
 from __future__ import annotations
 
+import datetime as dt
 import json
+import os
 import re
+import tempfile
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -29,6 +33,8 @@ class Where:
     workspace_root: Path
     branch: str
     branch_dir: Path
+    #: 프로필을 알면 진척 값을 원천에서 실시간으로 계산한다 (스펙 §7.1 — 모르면 생성물을 읽는다).
+    profile_path: Path | None = None
 
     @property
     def tasks_dir(self) -> Path:
@@ -41,6 +47,98 @@ class Where:
     @property
     def roadmap_path(self) -> Path:
         return roadmap.state_path(self.workspace_root)
+
+
+# --------------------------------------------------------------------------- 실시간 계산 (§7.1)
+
+_LIVE_LOCK = threading.Lock()
+#: (프로필, 브랜치 디렉터리) → (원천 지문, 계산 시각, backlog 생성물 dict, roadmap 생성물 dict | None, 산출물 경로)
+#: 브랜치가 키에 든다 — 생성기는 현재 브랜치의 메모리를 고르므로 파일이 그대로여도 브랜치가 바뀌면 다른 값이다.
+_LIVE_CACHE: dict[tuple[Path, Path], tuple[tuple[Any, ...], str, dict[str, Any], dict[str, Any] | None,
+                                           tuple[Path, ...]]] = {}
+#: 실제로 생성기를 부른 횟수 — 검사가 "지문이 같으면 다시 계산하지 않는다" 를 잰다.
+LIVE_COMPUTE_COUNT = 0
+
+
+class LiveRefused(Exception):
+    """원천에서 계산할 수 없다(생성기 거절) — 사유가 메시지다. 부르는 쪽이 생성물로 내려가며 사유를 보인다."""
+
+
+#: 절대 경로 — 맨 앞이거나 공백 · 따옴표 · 괄호 뒤에서 시작하는 `/…` · `X:\…` (상대 경로 `a/b` 의 `/` 는 아니다).
+_ABS_PATH_RE = re.compile(r"(?<![\w.~-])(?:[A-Za-z]:)?[\\/](?:[^\s'\"\\/]+[\\/])*[^\s'\",)\]]*")
+
+
+def scrub_error(message: str, workspace_root: Path) -> str:
+    """화면 · api 에 실을 실패 사유 — 작업 공간 경로는 상대로, 나머지 절대 경로는 가린다 (스펙 §7.2: 절대 경로를 싣지 않는다)."""
+    for root in {str(workspace_root), str(workspace_root.resolve())}:
+        message = message.replace(root + os.sep, "").replace(root, ".")
+    return _ABS_PATH_RE.sub("<경로>", message)[:300]
+
+
+def _stat_entry(path: Path) -> tuple[str, int, int]:
+    try:
+        st = path.stat()
+    except OSError:
+        return (str(path), -1, -1)  # 없음도 지문의 한 값이다 — 산출물이 생기면 바뀐다
+    return (str(path), st.st_mtime_ns, st.st_size)
+
+
+def _source_fingerprint(profile: Path, memory_dir: Path, extra: tuple[Path, ...] = ()) -> tuple[Any, ...]:
+    """원천의 stat 지문 — 메모리 디렉터리 전체(task · handoff · roadmap · memory index) · 프로필 · 마일스톤 산출물."""
+    entries: list[tuple[str, int, int]] = []
+    for root, dirs, files in os.walk(memory_dir):
+        dirs.sort()
+        for name in sorted(files):
+            entries.append(_stat_entry(Path(root) / name))
+    entries.append(_stat_entry(profile))
+    entries.extend(_stat_entry(path) for path in extra)
+    return tuple(entries)
+
+
+def _deliverable_paths(workspace_root: Path) -> tuple[Path, ...]:
+    """마일스톤이 선언한 산출물 경로 — roadmap 파생값(`deliverables_missing`)이 이 파일들의 존재에 달려 있다."""
+    loaded, _issues = roadmap.load_roadmap(workspace_root)
+    if loaded is None:
+        return ()
+    return tuple(workspace_root / d for m in loaded.milestones for d in m.deliverables)
+
+
+def live_sources(where: Where) -> tuple[str, dict[str, Any], dict[str, Any] | None] | None:
+    """refresh-state 와 **같은 생성기**로 원천에서 계산한 (계산 시각, state, roadmap_state) — 저장소에는 쓰지 않는다.
+
+    프로필을 모르면 ``None``. 생성기가 거절하면 :class:`LiveRefused` — 부르는 쪽이 생성물을 읽고 사유를 보인다.
+    roadmap 원천이 없으면 roadmap 값은 ``None`` 이다 (디스크의 낡은 생성물을 실시간으로 보이지 않는다).
+    """
+    global LIVE_COMPUTE_COUNT
+    if where.profile_path is None:
+        return None
+    from workflow_kit.common.paths import workflow_memory_dir
+    from workflow_kit.common.state.cache import refresh_workflow_state_cache
+
+    profile = where.profile_path
+    key = (profile, where.branch_dir)
+    memory_dir = workflow_memory_dir(profile)
+    with _LIVE_LOCK:
+        cached = _LIVE_CACHE.get(key)
+        if cached is not None and cached[0] == _source_fingerprint(profile, memory_dir, cached[4]):
+            return cached[1], cached[2], cached[3]
+        deliverables = _deliverable_paths(where.workspace_root)
+        fingerprint = _source_fingerprint(profile, memory_dir, deliverables)
+        computed_at = dt.datetime.now().astimezone().isoformat(timespec="seconds")
+        LIVE_COMPUTE_COUNT += 1
+        with tempfile.TemporaryDirectory(prefix="workbench-live-") as tmp:
+            out = Path(tmp) / "state.json"
+            result = refresh_workflow_state_cache(project_profile_path=profile, output_path=out,
+                                                  generated_at=computed_at)
+            if result.get("status") != "refreshed":
+                raise LiveRefused(f"생성기가 거절했다 ({result.get('status')}) — 원천 부재 {result.get('missing_paths') or []}")
+            state_data = _read_json(out)
+        if state_data is None:
+            raise LiveRefused("생성기 출력을 읽지 못했다")
+        built = roadmap.build_roadmap_state(where.workspace_root)
+        roadmap_data = built.model_dump(mode="json") if built is not None else None
+        _LIVE_CACHE[key] = (fingerprint, computed_at, state_data, roadmap_data, deliverables)
+        return computed_at, state_data, roadmap_data
 
 
 def _read_json(path: Path) -> dict[str, Any] | None:
@@ -106,8 +204,24 @@ def task_title(task: plan_tasks.TaskPlan) -> str:
 
 
 def build_state(where: Where) -> dict[str, Any]:
-    roadmap_data = _read_json(where.roadmap_path)
-    state_data = _read_json(where.state_path)
+    live: tuple[str, dict[str, Any], dict[str, Any] | None] | None
+    state_data: dict[str, Any] | None
+    computed_at: str | None
+    live_error: str | None = None
+    try:
+        live = live_sources(where)
+    except Exception as exc:  # noqa: BLE001 — 실시간 계산의 결함이 화면을 막지 않는다: 생성물로 내려가되 사유를 보인다
+        live = None
+        live_error = scrub_error(f"{type(exc).__name__}: {exc}", where.workspace_root)
+    if live is not None:
+        # roadmap 원천이 없으면 roadmap 값도 없다 — 디스크에 남은 낡은 생성물을 실시간으로 보이지 않는다.
+        computed_at, state_data, roadmap_data = live
+        source = "live"
+    else:
+        roadmap_data = _read_json(where.roadmap_path)
+        state_data = _read_json(where.state_path)
+        source = "generated"
+        computed_at = None
     milestones, orphan_issues = _milestones(roadmap_data) if roadmap_data else ([], [])
     backlog = state_data.get("backlog") if state_data else None
     backlog = backlog if isinstance(backlog, dict) else {}
@@ -131,6 +245,10 @@ def build_state(where: Where) -> dict[str, Any]:
             "roadmap": roadmap_data.get("generated_at") if roadmap_data else None,
             "state": state_data.get("generated_at") if state_data else None,
         },
+        # live = 원천에서 refresh-state 와 같은 생성기로 지금 계산 · generated = 디스크의 생성물 (스펙 §7.1)
+        "source": source,
+        "computed_at": computed_at,
+        "live_error": live_error,
         "milestones": milestones,
         "issues": orphan_issues,
         "tasks": {

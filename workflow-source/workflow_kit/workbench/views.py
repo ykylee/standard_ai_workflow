@@ -133,9 +133,14 @@ def progress_page(*, state: dict[str, Any], rel: str, user: str, csrf: str, logo
     pending_total = sum(int(n) for n in (inbox.get("pending") or {}).values())
     body: list[str] = ['<div class="page-head"><h1>진척</h1>']
     generated = state["generated_at"]
-    body.append(
-        f'<p class="generated">roadmap 생성 {esc(generated["roadmap"] or UNMEASURED)} · '
-        f'state 생성 {esc(generated["state"] or UNMEASURED)}</p></div>')
+    if state.get("source") == "live":
+        # 지문(data-version)이 매 계산마다 바뀌지 않게 시각은 싣지 않는다 — 원천이 바뀔 때만 화면이 바뀐다.
+        body.append('<p class="generated"><span class="chip ok">실시간</span> 원천(task · handoff · roadmap)에서 '
+                    'refresh-state 와 같은 생성기로 계산</p></div>')
+    else:
+        body.append(
+            f'<p class="generated">roadmap 생성 {esc(generated["roadmap"] or UNMEASURED)} · '
+            f'state 생성 {esc(generated["state"] or UNMEASURED)}</p></div>')
     body.append('<section class="kpis">'
                 + _kpi("진행 중", _count(tasks["in_progress"]), "info")
                 + _kpi("차단", _count(tasks["blocked"]), "bad")
@@ -143,6 +148,8 @@ def progress_page(*, state: dict[str, Any], rel: str, user: str, csrf: str, logo
                 + _kpi("열린 결정", str(open_total), "warn" if open_total else "ok")
                 + _kpi("미반영 응답", str(pending_total), "warn" if pending_total else "ok")
                 + "</section>")
+    if state.get("live_error"):
+        body.append(f'<p class="alert warn">실시간 계산 실패 — 생성물을 보인다: {esc(state["live_error"])}</p>')
     if inbox["layout_problem"]:
         body.append(f'<p class="alert error">계획 응답 배치: {esc(inbox["layout_problem"])}</p>')
     if inbox["unknown"]:
@@ -201,7 +208,8 @@ def progress_page(*, state: dict[str, Any], rel: str, user: str, csrf: str, logo
             body.append(f'<details class="fold"><summary>완료된 마일스톤 {len(finished)}개</summary>'
                         '<div class="grid">' + "".join(finished) + "</div></details>")
     else:
-        body.append(f'<p class="unmeasured empty">{UNMEASURED} — roadmap_state.json 이 없다</p>')
+        missing = "roadmap 원천이 없다" if state.get("source") == "live" else "roadmap_state.json 이 없다"
+        body.append(f'<p class="unmeasured empty">{UNMEASURED} — {missing}</p>')
     if state["issues"]:
         body.append('<ul class="issues">' + "".join(f"<li>{esc(note)}</li>" for note in state["issues"]) + "</ul>")
     body.append("</section>")

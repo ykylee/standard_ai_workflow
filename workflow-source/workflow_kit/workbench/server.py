@@ -49,6 +49,26 @@ def origin_of(url: str) -> str:
     return f"{parts.scheme.lower()}://{parts.netloc.lower()}"
 
 
+_CLIENT_RE = re.compile(r"^[0-9A-Za-z.:%_-]{1,64}$")
+
+
+def safe_client(addr: str) -> str:
+    """응답 파일 머리에 실을 접속 주소 — 주소 문자 밖이면 ``unknown`` (프록시 머리는 요청자가 쓴다)."""
+    return addr if _CLIENT_RE.match(addr) else "unknown"
+
+
+def host_is_direct(host_header: str, public_url: str) -> bool:
+    """``Host`` 의 호스트가 IP 리터럴 · ``localhost`` · ``public_url`` 의 호스트인가 (스펙 §5.6)."""
+    name = urlsplit(f"//{host_header}").hostname or ""
+    if name in ("localhost", (urlsplit(public_url).hostname or "").lower()):
+        return True
+    try:
+        ipaddress.ip_address(name)
+    except ValueError:
+        return False
+    return True
+
+
 def is_loopback(host: str) -> bool:
     if host == "localhost":
         return True
@@ -66,6 +86,8 @@ class App:
     tokens: tuple[auth.Token, ...]
     locate: Callable[[], state_view.Where]
     trusted_proxies: frozenset[str] = frozenset()
+    #: 개방 모드의 응답자 이름 — 있으면 로그인 없이 누구나 이 이름의 approver 다 (스펙 §5.6).
+    open_name: str | None = None
     sessions: auth.Sessions = field(default_factory=auth.Sessions)
     limiter: auth.LoginLimiter = field(default_factory=auth.LoginLimiter)
     log: Callable[[str], None] = field(default=lambda line: print(line, file=sys.stderr, flush=True))
@@ -82,6 +104,10 @@ class App:
     def origin(self) -> str:
         return origin_of(self.public_url)
 
+    @property
+    def is_open(self) -> bool:
+        return self.open_name is not None
+
 
 class _Reject(Exception):
     def __init__(self, status: int, message: str, *, close: bool = False) -> None:
@@ -96,6 +122,7 @@ class Handler(BaseHTTPRequestHandler):
     sys_version = ""
     protocol_version = "HTTP/1.1"
     app: App  # make_server 가 서브클래스에 붙인다
+    _pending_headers: dict[str, str] | None = None
 
     # ------------------------------------------------------------------ 공통
 
@@ -137,7 +164,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", cache)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(data)))
-        for key, value in (headers or {}).items():
+        pending, self._pending_headers = self._pending_headers or {}, None
+        for key, value in {**pending, **(headers or {})}.items():
             self.send_header(key, value)
         if self.close_connection:
             self.send_header("Connection", "close")
@@ -203,9 +231,18 @@ class Handler(BaseHTTPRequestHandler):
             raise _Reject(HTTPStatus.BAD_REQUEST, "본문이 UTF-8 이 아니다") from None
         return parse_qs(text, keep_blank_values=True)
 
+    def _allowed_origins(self) -> set[str]:
+        allowed = {self.app.origin}
+        host = (self.headers.get("Host") or "").strip().lower()
+        if self.app.is_open and host and host_is_direct(host, self.app.public_url):
+            # 개방 모드는 IP 로도 들어온다 — 브라우저가 연 주소(Host)의 출처를 같은 출처로 본다 (스펙 §5.6).
+            # 이름은 public_url 의 호스트 · localhost 만 — 다른 이름은 DNS rebinding 의 모양이다.
+            allowed.add(f"{'https' if self.app.https else 'http'}://{host}")
+        return allowed
+
     def _check_origin(self) -> None:
         origin = self.headers.get("Origin")
-        if origin is None or origin.lower() != self.app.origin:
+        if origin is None or origin.lower() not in self._allowed_origins():
             raise _Reject(HTTPStatus.FORBIDDEN, f"요청 출처가 {self.app.origin} 가 아니다")
 
     def _check_csrf(self, session: auth.Session, form: dict[str, list[str]]) -> None:
@@ -265,12 +302,18 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/login":
             if "token" in self._query():
                 raise _Reject(HTTPStatus.BAD_REQUEST, "토큰은 질의 문자열로 받지 않는다 — 로그인 폼을 쓴다")
+            if self.app.is_open:  # 개방 모드에는 로그인이 없다
+                self._redirect("./")
+                return
             if get:
                 self._send(HTTPStatus.OK, views.login_page(rel=self._rel()))
             else:
                 self._login()
             return
         if path == "/logout" and not get:
+            if self.app.is_open:
+                self._redirect("./")
+                return
             self._logout()
             return
         if get and path in ("/", "/api/state"):
@@ -326,8 +369,17 @@ class Handler(BaseHTTPRequestHandler):
 
     # ------------------------------------------------------------------ 화면
 
+    def _open_session(self) -> auth.Session:
+        """개방 모드 — 세션이 없으면 만들어 쿠키로 준다. CSRF · 알림을 위한 것이지 인증이 아니다."""
+        assert self.app.open_name is not None
+        session = self.app.sessions.create(auth.Token(auth.ROLE_APPROVER, self.app.open_name, ""))
+        self._pending_headers = {"Set-Cookie": self._cookie(session.sid)}
+        return session
+
     def _need_session(self, *, api: bool) -> auth.Session | None:
         session = self._session()
+        if session is None and self.app.is_open:
+            session = self._open_session()
         if session is None:
             if api:
                 self._send(HTTPStatus.UNAUTHORIZED, '{"error": "unauthorized"}\n',
@@ -348,7 +400,7 @@ class Handler(BaseHTTPRequestHandler):
                        content_type="application/json; charset=utf-8")
             return
         self._send(HTTPStatus.OK, views.progress_page(state=state, rel=self._rel(), user=session.name,
-                                                      csrf=session.csrf))
+                                                      csrf=session.csrf, logout=not self.app.is_open))
 
     def _plan(self, task_id: str, *, error: str | None = None, status: int = HTTPStatus.OK) -> None:
         session = self._need_session(api=False)
@@ -364,7 +416,7 @@ class Handler(BaseHTTPRequestHandler):
         flash, session.flash = session.flash, None
         self._send(status, views.plan_page(
             view=state_view.build_plan(where, task), rel=self._rel(), branch=where.branch, user=session.name,
-            csrf=session.csrf, role=session.role, flash=flash, error=error))
+            csrf=session.csrf, role=session.role, flash=flash, error=error, logout=not self.app.is_open))
 
     # ------------------------------------------------------------------ 쓰기 (§5.4 → §6)
 
@@ -384,8 +436,9 @@ class Handler(BaseHTTPRequestHandler):
         task = self._task(where, task_id)
         if task is None:
             raise _Reject(HTTPStatus.NOT_FOUND, f"이 브랜치에 task 가 없다: {task_id}")
-        outcome = respond.build_and_publish(branch_dir=where.branch_dir, task=task, form=form,
-                                            responder=session.name)
+        outcome = respond.build_and_publish(
+            branch_dir=where.branch_dir, task=task, form=form, responder=session.name,
+            client=safe_client(self._client()) if self.app.is_open else None)
         if not outcome.ok:
             self._send(outcome.status, views.message_page(
                 rel=self._rel(), branch=where.branch, title=f"{outcome.status} {HTTPStatus(outcome.status).phrase}",

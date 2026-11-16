@@ -6,7 +6,7 @@ decided_at: 2026-11-13
 alternatives_considered: [samesite-strict, strict-with-next-param, single-module-in-common, cli-only-console-script, signed-cookie-sessions, file-backed-sessions, jinja-templates, token-config-file, assets-as-python-strings, assets-outside-package, root-gitignore-entry, no-workbench-skill, skill-drives-server, mcp-tools-later, docker-proxy-in-gate, server-calls-plan-import, counter-numbering]
 related_pages: [decisions/adr-031-claim-plan, decisions/adr-030-compact-relay, decisions/adr-027-roadmap-wbs-sdlc]
 created: 2026-11-13
-updated: 2026-11-14
+updated: 2026-11-16
 r9_skip: true
 ---
 
@@ -20,6 +20,8 @@ kit 계약 정본은 `workflow-source/core/plan_workbench_spec.md`. 응답 파�
 `workflow-source/core/claim_plan_spec.md` 가 정본이고 이 ADR 은 그것을 **소비**한다 — 다시 정하지 않는다.
 
 소유자가 이미 연 결정: SameSite 는 **Lax** (2026-11-13, task -006 의 D1 — requirements R3.3 대비 변경 V1).
+
+**개정 (2026-11-16, TASK-2026-11-16-main-001)** — 소유자 결정으로 개방 모드 `--open <name>` 을 더한다 (V8). 토큰 모드는 그대로다.
 
 ## Context
 
@@ -171,6 +173,7 @@ Windows(NTFS) — 구현 뒤 (결정 22).
 | V4 | R6.1 "미반영 응답 건수 = 받은편지함을 요청 시점에 센 값" | 그 셈은 `inbox_census` 하나로 (결정 16) | 2단계 검증 — 세는 길이 여럿이면 보고가 갈린다 |
 | V6 | R0-2 "그 밖에 쓰는 것은 자기 실행 기록 한 파일뿐" | `.workbench/server.json` 과 그 디렉터리의 `.gitignore` 둘 (결정 21) | R1.3 이 무시 수단을 design 에 맡겼다 — 자기 무시 파일이 그 수단이다 |
 | V7 | R10-4 "동시 제출에서 번호 연속" | 유실 0 · 덜 쓰인 파일 0 만 (번호는 연속이 아니다) | V2 의 귀결 — 번호가 시각에서 출발한다 |
+| V8 | R0 · R3 "loopback 요청도 인증한다" | 소유자가 고르는 **개방 모드** — 토큰 · 로그인 없음, 비 loopback 평문 허용, 응답자는 설정 이름 하나, 응답에 요청자 주소 (spec §5.6) | 소유자 결정 2026-11-16 — 같은 네트워크의 다른 기기에서 그냥 들어가 답한다. 대가: 응답이 소유자에게서 왔다는 대조가 없다 |
 | V5 | (없음) | 쓰기 전 배치 판정 409 (결정 14) · task 파일이 오류 규칙을 어기면 409 (주장 스펙 §8.1 의 0 단계 — 어차피 자격이 없는 응답을 쓰지 않는다) · 우회 검출에 받은편지함 행 (결정 18) | ADR-031 2단계 구현이 넘긴 것 |
 
 ## Alternatives Considered

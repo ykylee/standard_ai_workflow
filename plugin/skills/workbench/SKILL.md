@@ -33,6 +33,10 @@ the owner the commands and the URL. No model is called by the server.
    It binds `127.0.0.1:8766` by default. Behind a tunnel or reverse proxy, pass the address
    the browser uses: `--public-url https://host/prefix/` (plus `--trusted-proxy <addr>`).
    A non-loopback `--bind` needs TLS (`--tls-cert`/`--tls-key`) or `--allow-plain-http`.
+
+   **Open mode** — no token, no login: `python -m workflow_kit workbench --open <name> --bind 0.0.0.0` lets anyone who
+   can reach the address read and answer as `<name>` (each answer records the client address).
+   Only the owner chooses this; it removes the check that an answer came from the owner.
 3. Tell the owner the URL to open — `python -m workflow_kit workbench --status` prints it while the server runs, and
    `session-start` reports it too.
 4. When answers arrive, `session-start` and `backlog-update` report pending plan responses.

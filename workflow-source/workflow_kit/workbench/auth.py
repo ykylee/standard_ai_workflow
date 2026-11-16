@@ -23,6 +23,8 @@ ROLES: tuple[str, ...] = (ROLE_VIEWER, ROLE_APPROVER)
 NAME_RE = re.compile(r"^[A-Za-z0-9_-]{1,32}$")
 MIN_TOKEN_CHARS = 32
 SESSION_TTL_S = 12 * 3600
+#: 세션 표의 상한 — 개방 모드는 쿠키 없는 요청마다 세션을 만든다. 넘으면 만료가 가장 이른 것부터 버린다.
+MAX_SESSIONS = 1024
 FAIL_WINDOW_S = 60.0
 FAIL_LIMIT = 5
 BLOCK_S = 60.0
@@ -129,8 +131,10 @@ class Session:
 class Sessions:
     """세션 표 — 서버 메모리에만 있다 (스펙 §5.3)."""
 
-    def __init__(self, *, ttl_s: float = SESSION_TTL_S, clock: Callable[[], float] = time.monotonic) -> None:
+    def __init__(self, *, ttl_s: float = SESSION_TTL_S, clock: Callable[[], float] = time.monotonic,
+                 max_sessions: int = MAX_SESSIONS) -> None:
         self._ttl = ttl_s
+        self._max = max_sessions
         self._clock = clock
         self._table: dict[str, Session] = {}
         self._lock = threading.Lock()
@@ -141,9 +145,19 @@ class Sessions:
     def create(self, token: Token) -> Session:
         session = Session(sid=secrets.token_urlsafe(32), name=token.name, role=token.role,
                           csrf=secrets.token_urlsafe(32), expires=self._now() + self._ttl)
+        now = self._now()
         with self._lock:
+            if len(self._table) >= self._max:
+                for sid in [sid for sid, s in self._table.items() if s.expires <= now]:
+                    del self._table[sid]
+                while len(self._table) >= self._max:
+                    del self._table[min(self._table, key=lambda sid: self._table[sid].expires)]
             self._table[session.sid] = session
         return session
+
+    def __len__(self) -> int:
+        with self._lock:
+            return len(self._table)
 
     def get(self, sid: str | None) -> Session | None:
         if not sid:

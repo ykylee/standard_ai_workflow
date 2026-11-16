@@ -71,7 +71,7 @@ def _one(form: Mapping[str, Sequence[str]], key: str) -> str | None:
 
 def build_and_publish(
     *, branch_dir: Path, task: plan_tasks.TaskPlan, form: Mapping[str, Sequence[str]], responder: str,
-    now: Callable[[], dt.datetime] | None = None,
+    now: Callable[[], dt.datetime] | None = None, client: str | None = None,
 ) -> Outcome:
     plan = task.plan
     # 1. 배치 — 배타 이동이 성립하지 않는 배치에는 쓰지 않는다.
@@ -122,7 +122,7 @@ def build_and_publish(
         # 7. 렌더 · 자격.
         body_text = plan_responses.render_response(
             task_id=task.task_id, plan=plan, responder=responder, received_at=received_at,
-            values=values, opened=opened, comments=comments)
+            values=values, opened=opened, comments=comments, client=client)
         data = body_text.encode("utf-8")
         verdict = plan_responses.qualify(plan_responses.parse_response(data), plan, task.task_id)
         if not verdict.eligible:

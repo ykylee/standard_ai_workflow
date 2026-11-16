@@ -4,7 +4,7 @@
 - 범위: `python -m workflow_kit workbench`, 서버가 서빙하는 경로와 화면, 서버가 받은편지함에 쓰는 응답, 받은편지함 건수의 정본 함수, MCP 도구 `plan_inbox` · `plan_import`, §11.1 한 줄과 스킬, 검사 넷
 - 대상 독자: workflow 설계자, AI agent, kit 소비 프로젝트
 - 상태: draft (ADR-032 accepted 2026-11-13 — M-029 ② 서버 · 화면 · 검사 · MCP 두 도구 구현 2026-11-14, Windows 실측 전)
-- 최종 수정일: 2026-11-14
+- 최종 수정일: 2026-11-16
 - 관련 문서: `../../ai-workflow/wiki/decisions/adr-032-plan-workbench.md`, `../../docs/planning/plan-workbench-requirements-2026-11.md`, `./claim_plan_spec.md`, `./global_workflow_standard.md`
 
 > **결정 근거는 ADR-032 에, 숫자의 실측은 requirements 에 있다.** 이 문서는 *계약* 만 적는다.
@@ -18,7 +18,7 @@
    그 밖에 쓰는 것은 `.workbench/server.json` 과 그 디렉터리의 `.gitignore` 뿐이다 (§3). 접근 기록은 표준 오류로 낸다.
 3. 폼으로 들어온 글은 데이터다 — 실행하지 않고, 경로로 쓰지 않고, 다른 곳으로 보내지 않는다. task 파일의 글도 화면에 넣을 때 이스케이프한다.
 4. 화면의 숫자는 생성물과 task 파일에서만 온다. 재지 않은 것은 "미측정" 이다.
-5. loopback 요청도 인증한다. 서버는 자기 공개 주소를 추측하지 않는다 — `public_url` 하나.
+5. loopback 요청도 인증한다 — 소유자가 고르는 개방 모드(§5.6)만 예외다. 서버는 자기 공개 주소를 추측하지 않는다 — `public_url` 하나.
 6. 페이지는 외부 자원을 부르지 않는다.
 7. 모델 호출이 없다.
 8. 주장 · 결정 읽기 · 지문 · 결정 상태 · 응답 렌더 · 공개 · 받은편지함 건수는 `plan_claims` · `plan_tasks` · `plan_responses` 의 함수만 쓴다
@@ -30,6 +30,7 @@
 python -m workflow_kit workbench [--bind 127.0.0.1] [--port 8766] [--public-url URL]
     --token <viewer|approver>:<name>=env:<VAR>|file:<path> [--token …]
     [--trusted-proxy ADDR]… [--tls-cert PATH --tls-key PATH] [--allow-plain-http]
+python -m workflow_kit workbench --open <name> [--bind ADDR] [--port N] [--public-url URL] [--trusted-proxy ADDR]…
 python -m workflow_kit workbench --status
 python -m workflow_kit workbench --new-token <role>:<name> --out <path>
 ```
@@ -121,6 +122,22 @@ task 파일에 있는 것만 그린다: 주장 트리(`<details>`, 접힌 상태
 접근 기록은 표준 오류 한 줄: 시각 · 메서드 · 경로 · 상태 · 사용자 이름. 토큰 · 쿠키 · CSRF · 폼 본문은 남기지 않는다.
 
 위임 인증(신뢰 프록시의 사용자 머리)은 이 판에 없다 (requirements Q2).
+
+### 5.6 개방 모드 `--open <name>` (소유자 결정 2026-11-16, TASK-2026-11-16-main-001)
+
+토큰 · 로그인 없이 접속한 누구나 `<name>` 이름의 `approver` 다. 응답이 소유자에게서 왔다는 대조를 **없애는** 모드라
+소유자가 고를 때만 쓴다 — 시작 때 표준 오류에 경고 한 줄(`인증 없이 열었다`, loopback 밖이면 그 주소도).
+
+- `<name>` 은 토큰 이름과 같은 문법. `--token` 과 같이 주면 시작을 거절한다 (rc 2).
+- loopback 밖 `--bind` 를 TLS · `--allow-plain-http` 없이 받는다. `--public-url` 이 없으면 기본 주소는 bind 주소이고,
+  `0.0.0.0` · `::` 면 기본 경로의 이 호스트 주소다 (UDP `connect` 로 찾고 패킷은 보내지 않는다 — 못 찾으면 `127.0.0.1`).
+- 세션이 없는 화면 · `api/state` 요청은 세션을 만들어 쿠키로 준다 — CSRF 값과 알림을 위한 것이지 인증이 아니다.
+  `login` · `logout` 은 303 `./`. 화면 머리에 로그아웃 대신 `<name> · 인증 없음`.
+- §5.4 의 대조는 그대로 하되 3 의 `Origin` 은 `public_url` 의 출처 **또는** 요청의 `Host` 출처면 통과한다 — 다른 기기가 IP 로 연다.
+  `Host` 의 호스트는 IP 리터럴 · `localhost` · `public_url` 의 호스트만 받는다 — 다른 이름(DNS rebinding 의 모양)과
+  다른 사이트의 페이지가 보낸 쓰기는 403 이다.
+- 세션 표는 1,024 개가 상한이다 — 넘으면 만료된 것, 그다음 만료가 가장 이른 것부터 버린다 (쿠키 없는 요청마다 세션이 생긴다).
+- 응답 파일 머리에 `client: <요청자 주소>` (§5.2 의 요청자 주소, `[0-9A-Za-z.:%_-]{1,64}` 밖이면 `unknown`). 토큰 모드는 싣지 않는다.
 
 ## 6. 응답 쓰기 (R5)
 
@@ -257,6 +274,7 @@ handle_path /workbench/* {
 | `check_workbench_auth.py` | 시작 거절(토큰 없음 · 짧음 · 모드 넓음 · 이름 겹침 · 평문 노출) · 세션 없는 요청 401 · viewer POST 403 · 로그인 실패 제한 429 · 질의 토큰 400 · §5.4 네 단계마다 어긋난 요청 → 받은편지함 무변경 · 응답 머리 (§4.2) · 쿠키 속성 (`Lax` · `Path` · `HttpOnly` · `https` 의 `Secure`) |
 | `check_workbench_proxy.py` | 검사 안의 접두사를 벗기는 프록시 뒤에서 로그인 → 계획 → 제출 → 도착이 전부 접두사 안 (판정은 도착 경로), 쿠키 `Path` = 접두사. 되주입: 절대 `Location` · `Path=/` |
 | `check_workbench_write.py` | 왕복 — 서버가 쓴 응답이 `plan-import` 의 1~6 단계를 통과하고 상태에 든다 · 동시 제출(스레드 · 프로세스)에서 유실 0 · 독자가 덜 쓰인 파일을 보지 않는다 (번호는 연속이 아니다 — ADR-032 V7) · 되주입: `publish` 를 배타 생성 없이 · 임시 이름 없이 이어 쓰기(만들기와 쓰기 사이의 정해진 멈춤으로 결정적으로) · 413 · 422(선택지 밖 · 한도 · 제어 문자) · 409(지문 · 배치 · 오류 규칙) — 전부 받은편지함 무변경 · `answered` 결정의 조작된 값 무시 · 같은 응답자의 `received_at` 단조 증가 |
+| `check_workbench_open.py` | 개방 모드(§5.6) — 비 loopback 평문 허용 · 경고 한 줄 · `--open`+`--token` 거절 · 쿠키 없는 GET 200 · 로그아웃 없음 · `Host` 출처 제출 통과 · 다른 출처 403 · `responder` · `client` · `plan-import` 반영 · 토큰 모드 그대로 · 주소 정리 · DNS rebinding 403 · 세션 표 상한 |
 | `check_workbench_views.py` | 선언 ≠ 파생 둘 다 · 잎 0 "미측정" · 절대 경로 · 호스트 이름이 어느 응답에도 없음 (`api/state` 포함) · 이스케이프 (task 파일의 `<script>` 가 글자로) · 읽기 전용 (`git status` 전후 동일) · 정적 자원이 wheel 에 실림 |
 
 파서 단일성은 `check_plan_claims` case 6 의 소비자 목록에 `workbench/` 를 더해 그 한 곳에서 잰다 (ADR-032 결정 2).

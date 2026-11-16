@@ -13,6 +13,7 @@ import datetime as dt
 import json
 import os
 import signal
+import socket
 import ssl
 import sys
 from pathlib import Path
@@ -50,6 +51,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--tls-cert", default=None)
     parser.add_argument("--tls-key", default=None)
     parser.add_argument("--allow-plain-http", action="store_true")
+    parser.add_argument("--open", default=None, metavar="NAME",
+                        help="개방 모드 — 토큰 · 로그인 없이 누구나 NAME 이름으로 보고 답한다 (스펙 §5.6)")
     parser.add_argument("--status", action="store_true", help="실행 기록을 JSON 으로 내고 끝난다")
     parser.add_argument("--new-token", default=None, metavar="ROLE:NAME",
                         help="토큰을 0600 파일로 만든다 (값은 출력하지 않는다)")
@@ -151,15 +154,45 @@ def sweep_temp_files(branch_dir: Path) -> list[str]:
 # --------------------------------------------------------------------------- 시작 판정 (§2)
 
 
+def lan_address() -> str:
+    """기본 경로의 이 호스트 주소 — UDP ``connect`` 는 패킷을 보내지 않는다. 못 찾으면 loopback."""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
+            probe.connect(("192.0.2.1", 9))  # TEST-NET-1 (RFC 5737)
+            address = str(probe.getsockname()[0])
+    except OSError:
+        return DEFAULT_BIND
+    return address if address and not address.startswith("0.") else DEFAULT_BIND
+
+
+def default_public_url(bind: str, port: int, *, open_mode: bool) -> str:
+    """``--public-url`` 이 없을 때의 주소 — 개방 모드로 loopback 밖에 bind 하면 다른 기기가 열 수 있는 주소다."""
+    host = DEFAULT_BIND
+    if open_mode and not server.is_loopback(bind):
+        host = lan_address() if bind in ("", "0.0.0.0", "::") else bind
+    if ":" in host:
+        host = f"[{host}]"
+    return f"http://{host}:{port}/"
+
+
 def validate_start(args: argparse.Namespace, workspace: Path) -> tuple[tuple[auth.Token, ...], str]:
     """시작을 거절할 이유가 있으면 :class:`StartRefused`. 아니면 (토큰, public_url)."""
-    try:
-        tokens = auth.load_tokens(args.token)
-    except auth.TokenError as exc:
-        raise StartRefused(str(exc)) from None
+    open_mode = args.open is not None
+    if open_mode:
+        if args.token:
+            raise StartRefused("--open 과 --token 은 같이 줄 수 없다")
+        if not auth.NAME_RE.match(args.open):
+            raise StartRefused(f"--open 의 이름은 [A-Za-z0-9_-]{{1,32}} 이다: {args.open[:40]}")
+        tokens: tuple[auth.Token, ...] = ()
+    else:
+        try:
+            tokens = auth.load_tokens(args.token)
+        except auth.TokenError as exc:
+            raise StartRefused(str(exc)) from None
     if not 0 <= args.port <= 65535:
         raise StartRefused(f"포트가 범위 밖이다: {args.port}")
-    public_url = server.normalize_public_url(args.public_url or f"http://{DEFAULT_BIND}:{args.port}/")
+    public_url = server.normalize_public_url(
+        args.public_url or default_public_url(args.bind, args.port, open_mode=open_mode))
     scheme = urlsplit(public_url).scheme.lower()
     if scheme not in ("http", "https") or not urlsplit(public_url).netloc:
         raise StartRefused(f"public_url 은 http(s)://호스트/ 꼴이다: {public_url}")
@@ -168,7 +201,7 @@ def validate_start(args: argparse.Namespace, workspace: Path) -> tuple[tuple[aut
         raise StartRefused("TLS 는 --tls-cert 와 --tls-key 를 같이 준다")
     if tls and scheme == "http":
         raise StartRefused("TLS 를 켰는데 public_url 이 http 다")
-    if not server.is_loopback(args.bind) and not tls and not args.allow_plain_http:
+    if not open_mode and not server.is_loopback(args.bind) and not tls and not args.allow_plain_http:
         raise StartRefused(f"--bind {args.bind} 는 loopback 이 아니다 — TLS 또는 --allow-plain-http 가 필요하다")
     live = status_of(workspace)
     if live["running"]:
@@ -176,11 +209,14 @@ def validate_start(args: argparse.Namespace, workspace: Path) -> tuple[tuple[aut
     return tokens, public_url
 
 
-def startup_warnings(bind: str) -> list[str]:
-    """시작 때 표준 오류에 낼 경고 — loopback 이 아닌 bind 면 한 줄 (스펙 §2)."""
-    if server.is_loopback(bind):
+def startup_warnings(bind: str, *, open_name: str | None = None) -> list[str]:
+    """시작 때 표준 오류에 낼 경고 — loopback 이 아닌 bind 이거나 개방 모드면 한 줄 (스펙 §2 · §5.6)."""
+    where = "" if server.is_loopback(bind) else f" loopback 이 아닌 주소 {bind} 에"
+    if open_name is not None:
+        return [f"workbench: 경고 —{where} 인증 없이 열었다 — 접속할 수 있는 누구나 {open_name} 이름으로 결정에 답한다"]
+    if not where:
         return []
-    return [f"workbench: 경고 — loopback 이 아닌 주소 {bind} 에 bind 했다"]
+    return [f"workbench: 경고 —{where} bind 했다"]
 
 
 def _new_token(args: argparse.Namespace) -> int:
@@ -230,7 +266,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     locate = server.where_for(profile)
     app = server.App(public_url=public_url, tokens=tokens, locate=locate,
-                     trusted_proxies=frozenset(args.trusted_proxy))
+                     trusted_proxies=frozenset(args.trusted_proxy), open_name=args.open)
     try:
         httpd = server.make_server(app, args.bind, args.port)
     except OSError as exc:
@@ -248,11 +284,11 @@ def main(argv: list[str] | None = None) -> int:
         httpd.socket = context.wrap_socket(httpd.socket, server_side=True)
     port = httpd.server_address[1]
     if args.public_url is None and port != args.port:  # --port 0 — 기본 public_url 은 실제 포트로
-        public_url = app.public_url = f"http://{DEFAULT_BIND}:{port}/"
+        public_url = app.public_url = default_public_url(args.bind, port, open_mode=args.open is not None)
     write_record(workspace, port=port, public_url=public_url)
     sweep_temp_files(locate().branch_dir)
     print(public_url, flush=True)
-    for note in startup_warnings(args.bind):
+    for note in startup_warnings(args.bind, open_name=args.open):
         print(note, file=sys.stderr, flush=True)
 
     def _stop(signum: int, frame: object) -> None:

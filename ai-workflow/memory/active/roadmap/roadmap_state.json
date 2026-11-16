@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "generated_by": "workflow_kit.common.state.roadmap.generate_roadmap_state",
-  "generated_at": "2026-11-15",
+  "generated_at": "2026-11-16",
   "milestones": [
     {
       "id": "M-001",
@@ -272,7 +272,8 @@
             "TASK-2026-10-31-main-003",
             "TASK-2026-11-15-claude-remote-sync-check-234c32-002",
             "TASK-2026-11-15-main-001",
-            "TASK-2026-11-15-main-002"
+            "TASK-2026-11-15-main-002",
+            "TASK-2026-11-16-main-001"
           ],
           "total_leaves": 1,
           "done_leaves": 0,

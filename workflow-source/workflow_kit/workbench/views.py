@@ -27,7 +27,7 @@ def relative_base(path: str) -> str:
 
 
 def page(*, title: str, rel: str, branch: str | None, body: str, script: bool = False,
-         user: str | None = None, csrf: str | None = None) -> str:
+         user: str | None = None, csrf: str | None = None, logout: bool = True) -> str:
     head = [
         "<!doctype html>", '<html lang="ko">', "<head>", '<meta charset="utf-8">',
         '<meta name="viewport" content="width=device-width, initial-scale=1">',
@@ -38,7 +38,9 @@ def page(*, title: str, rel: str, branch: str | None, body: str, script: bool = 
     head.extend(["</head>", "<body>", '<header class="top">', f'<a href="{esc(rel)}">워크벤치</a>'])
     if branch is not None:
         head.append(f'<span class="branch">브랜치 {esc(branch)}</span>')
-    if user is not None and csrf is not None:
+    if user is not None and not logout:  # 개방 모드 — 로그인이 없으니 로그아웃도 없다 (스펙 §5.6)
+        head.append(f'<span class="logout">{esc(user)} · 인증 없음</span>')
+    elif user is not None and csrf is not None:
         head.append(
             f'<form method="post" action="{esc(rel)}logout" class="logout">'
             f'<input type="hidden" name="csrf" value="{esc(csrf)}">'
@@ -92,7 +94,7 @@ def _task_list(items: Sequence[dict[str, str]] | None, rel: str, linked: set[str
     return "<ul>" + "".join(rows) + "</ul>"
 
 
-def progress_page(*, state: dict[str, Any], rel: str, user: str, csrf: str) -> str:
+def progress_page(*, state: dict[str, Any], rel: str, user: str, csrf: str, logout: bool = True) -> str:
     body: list[str] = ["<h1>진척</h1>"]
     generated = state["generated_at"]
     body.append(
@@ -140,7 +142,7 @@ def progress_page(*, state: dict[str, Any], rel: str, user: str, csrf: str) -> s
         body.append(f"<h2>{label}</h2>")
         body.append(_task_list(tasks[key], rel, linked))
     return page(title="워크벤치 — 진척", rel=rel, branch=state["branch"], body="\n".join(body),
-                user=user, csrf=csrf)
+                user=user, csrf=csrf, logout=logout)
 
 
 def _claim_tree(view: PlanView) -> Iterable[str]:
@@ -206,7 +208,7 @@ def _decision_block(view: PlanView, decision_id: str, *, can_answer: bool) -> st
 
 
 def plan_page(*, view: PlanView, rel: str, branch: str, user: str, csrf: str, role: str,
-              flash: str | None = None, error: str | None = None) -> str:
+              flash: str | None = None, error: str | None = None, logout: bool = True) -> str:
     task = view.task
     can_answer = role == "approver" and bool(view.decisions) and not view.has_errors
     open_count = sum(1 for d in view.decisions if d.open)
@@ -248,4 +250,4 @@ def plan_page(*, view: PlanView, rel: str, branch: str, user: str, csrf: str, ro
     if view.out_of_scope:
         body.append("<h2>Out of scope</h2><ul>" + "".join(f"<li>{esc(v)}</li>" for v in view.out_of_scope) + "</ul>")
     return page(title=f"워크벤치 — {task.task_id}", rel=rel, branch=branch, body="\n".join(body), script=can_answer,
-                user=user, csrf=csrf)
+                user=user, csrf=csrf, logout=logout)

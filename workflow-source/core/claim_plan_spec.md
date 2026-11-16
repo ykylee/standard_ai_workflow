@@ -4,7 +4,7 @@
 - 범위: task 라벨 `Claims` · `Decisions`, 린트 L1~L10, `backlog-update` 의 추가 인자와 상태 전이 게이트, 응답 형식 `workflow-kit-plan-response/1`, `plan_responses/` 디렉터리, `plan-import` · `plan-status` 명령, `state.json` 의 `open_decisions`, 브랜치 이어받기, 검증
 - 대상 독자: workflow 설계자, AI agent, kit 소비 프로젝트
 - 상태: draft (ADR-031 accepted 2026-11-13 — 1 · 2단계 구현됨; MCP 도구 · 워크벤치는 ADR-032)
-- 최종 수정일: 2026-11-14
+- 최종 수정일: 2026-11-16
 - 관련 문서: `../../ai-workflow/wiki/decisions/adr-031-claim-plan.md`, `../../docs/planning/claim-plan-requirements-2026-11.md`, `../../docs/planning/plan-workbench-requirements-2026-11.md`, `./backlog_update_skill_spec.md`, `./global_workflow_standard.md`
 
 > **결정 근거는 ADR-031 에, 숫자의 실측은 requirements 에 있다.** 이 문서는 *계약* 만 적는다.
@@ -169,7 +169,8 @@ received_at: 2026-11-13T21:04:11.482913+09:00
 
 - `## Decisions` 는 응답 시점 task 의 모든 결정을 ID 순으로 한 줄씩 싣는다. `opened` 는 `yes` · `no`.
 - `## Comments` 는 선택. 대상은 주장 ID · 결정 ID · `[-]`.
-- 머리말의 키는 위 여섯뿐이고 한 번씩이다 — 모르는 키 · 겹친 키는 `format` 을 읽을 수 없는 것으로 본다 (자격 2 단계).
+- 머리말의 키는 위 여섯과 선택 키 `client` 뿐이고 한 번씩이다. `client` 는 개방 모드 워크벤치가 남기는 요청자 주소로
+  자격 판정에 쓰지 않는다 (워크벤치 스펙 §5.6). 모르는 키 · 겹친 키는 `format` 을 읽을 수 없는 것으로 본다 (자격 2 단계).
   `responder` 가 비었거나 `received_at` 이 아래 꼴이 아니면 1 단계다 — 그래서 머리말이 아예 없는 파일 · 빈 파일도 1 단계다.
 - `received_at` 은 ISO 8601 의 한 꼴이다: `YYYY-MM-DDTHH:MM:SS[.f…]±HH:MM` — 날짜와 시각 사이는 `T`, 초까지 적고, 소수 초는 1~6 자리,
   시간대는 숫자 오프셋(`Z` 아님), 숫자는 ASCII. 시 00~23 · 분 00~59 · 초 00~59(윤초 없음), 오프셋 시 00~23 · 분 00~59. 순서의 비교는 표기가 아니라 순간이다. 그 밖의 표기(기본형 · 주 날짜 · 초 생략 · 7 자리 이상의 소수)는 받지 않는다 —

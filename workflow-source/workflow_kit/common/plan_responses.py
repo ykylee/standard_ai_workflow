@@ -54,7 +54,8 @@ _COMMENT_PREFIX = "  > "
 #: 숫자는 ASCII `0-9` 다.
 _ANY_RESPONSE_NAME_RE = re.compile(rf"^(?P<task>{WORK_ITEM_ID_PATTERN})-(?P<n>[0-9]+)\.md$")
 _ANY_RESPONSE_NAME_OR_REJECTED_RE = re.compile(rf"^(?P<task>{WORK_ITEM_ID_PATTERN})-(?P<n>[0-9]+)(?:\.rejected)?\.md$")
-_FRONTMATTER_KEYS = ("format", "task", "plan_digest", "responder", "role", "received_at")
+#: ``client`` 는 선택이다 — 개방 모드 워크벤치가 접속 주소를 남긴다 (워크벤치 스펙 §5.6). 자격 판정에 쓰지 않는다.
+_FRONTMATTER_KEYS = ("format", "task", "plan_digest", "responder", "role", "received_at", "client")
 
 
 @dataclass(frozen=True)
@@ -601,13 +602,14 @@ def carry_discards(source_branch_dir: Path, target_branch_dir: Path, task_id: st
 def render_response(
     *, task_id: str, plan: plan_claims.Plan, responder: str, received_at: str,
     values: dict[str, str] | None = None, opened: dict[str, bool] | None = None,
-    comments: list[tuple[str, str]] | None = None, role: str = ROLE_APPROVER,
+    comments: list[tuple[str, str]] | None = None, role: str = ROLE_APPROVER, client: str | None = None,
 ) -> str:
     """응답 파일의 본문 (스펙 §6). ``values`` 에 없는 결정은 기본값, ``opened`` 에 없으면 ``no`` 다."""
     values, opened = values or {}, opened or {}
     lines = [
         "---", f"format: {FORMAT}", f"task: {task_id}", f"plan_digest: {plan_claims.plan_digest(plan)}",
-        f"responder: {responder}", f"role: {role}", f"received_at: {received_at}", "---", "", "## Decisions", "",
+        f"responder: {responder}", f"role: {role}", f"received_at: {received_at}",
+        *([f"client: {client}"] if client else []), "---", "", "## Decisions", "",
     ]
     for decision in sorted(plan.decisions, key=lambda d: int(d.id[1:]) if d.id[1:].isdigit() else 0):
         value = values.get(decision.id, decision.default)

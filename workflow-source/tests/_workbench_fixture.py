@@ -144,10 +144,10 @@ def locate_for(ws: Path) -> Any:
 
 @contextmanager
 def running(ws: Path, *, public_url: str | None = None, tokens: tuple[auth.Token, ...] = (APPROVER, VIEWER),
-            trusted_proxies: frozenset[str] = frozenset()) -> Iterator[Running]:
+            trusted_proxies: frozenset[str] = frozenset(), open_name: str | None = None) -> Iterator[Running]:
     logs: list[str] = []
     app = server.App(public_url="http://127.0.0.1:0/", tokens=tokens, locate=locate_for(ws),
-                     trusted_proxies=trusted_proxies, log=logs.append)
+                     trusted_proxies=trusted_proxies, log=logs.append, open_name=open_name)
     httpd = server.make_server(app, "127.0.0.1", 0)
     port = httpd.server_address[1]
     app.public_url = server.normalize_public_url(public_url or f"http://127.0.0.1:{port}/")

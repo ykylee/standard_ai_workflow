@@ -4,7 +4,7 @@
 - 범위: git log 에서 추출한 release 별 Added / Changed / Fixed 항목.
 - 대상 독자: maintainer, 릴리스 매니저, 외부 consumer
 - 상태: stable (자동 생성물)
-- 최종 수정일: 2026-11-15
+- 최종 수정일: 2026-11-16
 - 관련 문서: [`./releases/`](./releases/) (release note), [`../docs/RELEASE.md`](../docs/RELEASE.md) (릴리스 절차)
 
 All notable changes to this project will be documented in this file.
@@ -12,10 +12,13 @@ All notable changes to this project will be documented in this file.
 본 파일은 `tools/release_pipeline.py changelog-gen` 으로 자동 생성됩니다 (v0.7.14+).
 수동 편집은 다음 생성 시 덮어써진다 — 형식/metadata 변경은 생성기를 고칠 것.
 
-## [Unreleased] - 2026-11-15
+## [Unreleased] - 2026-11-16
 
 ### Added
 
+- feat(workbench): 화면 개편 — 대시보드형 진척 · 카드형 계획 화면 (main-003) (d1f11bed)
+- feat(workbench): 자동 기동 — session-start 가 띄우고 SessionEnd hook 이 내린다 (main-002) (93133bb5)
+- feat(workbench): 개방 모드 --open — 토큰 · 로그인 없이 IP 로 보고 답한다 (main-001) (42d74896)
 - feat(mcp): plan_inbox(read-only) · plan_import(write) — 워크벤치 스펙 §8.3 (M-029/WBS-29.2) (f3223d6a)
 - feat(workbench): M-029 ② 워크벤치 서버 · 화면 · 검사 넷 · 스킬 (ADR-032, M-029/WBS-29.2) (a2e3b495)
 - feat(plan): M-029 ① 이월 정리 — inbox_census 단일 출처 · plan-import 건수 두 필드 · 받은편지함 우회 검출 · 배치 warnings · 정리 일곱 (ADR-032 결정 16 · 17 · 18 · 24 · 25, M-029/WBS-29.1) (bba68693)
@@ -43,10 +46,7 @@ All notable changes to this project will be documented in this file.
 - feat(dashboard): 멀티에이전트 충돌 지표가 task ID 충돌을 센다 (09-23-main-016) (4c8cd252)
 - feat(gate): 게이트 통과 기록 없는 커밋의 push 를 막는다 (main-009) (33e58fdd)
 - feat(doctor): 플러그인 MCP 가 실제로 띄우는 해석기의 kit 을 잰다 (main-013) (5631f059)
-- feat(memory): memory_index 승격 4건 + 검색이 매칭된 entry 를 안 돌려주는 결함 노출 (f631c3c0)
-- feat(tests): 요약의 case 개수를 발화 수와 대조하는 축 (main-004) (88b92542)
-- feat(memory): memory_index 7건 승격 — 후보 판정식이 잡음이라 판단으로 골랐다 (main-001) (b7fd4b3a)
-- ... (169 more)
+- ... (172 more)
 
 ### Changed
 
@@ -84,6 +84,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- fix(mcp): 오류 신호 불일치 둘 — invoke_tool 이 status error 를 rc 0 으로, summarize_git_history 가 git 실패를 커밋 0건으로 (main-002) (85d9596c)
+- fix(gate): 경고 분류기가 /tmp · /var/tmp 경로를 정규화한 뒤 분류해 서드파티 경고를 저장소 경고로 오판하던 결함 (main-001) (f75822ff)
 - fix(memory): 합류 반영이 완료 task 를 archived/ 로만 보내 roadmap 근거를 잃던 결함 — 완료 task 도 모 브랜치로 (7fdf0eb5)
 - fix(mcp): MCP 도구 4종 성공 경로의 output contract 미등록 — 1.22.0 발행본 결함 (TASK-2026-11-04-main-002) (bbcc2203)
 - fix(mcp): verifier 2차 — 오류 규칙 분기 측정 · 값을 --flag=value 로 · 인자 거절은 입력 오류로 (M-029/WBS-29.2) (5d7b7e6d)
@@ -112,14 +114,19 @@ All notable changes to this project will be documented in this file.
 - fix(memory_lint): T1b stale 을 branch-scoped 로 — 공유층 면제 · 브랜치 메모리의 git 커밋 일자로 90일 판정 (main-002) (9f027210)
 - fix(entry_diet): harvest 에 v1.20.0 채취 + '현행 생성물 ⊆ 알려진 생성물' 검사로 재실행 누락 고정 (main-001) (b64024b2)
 - fix(minimax_plugin): --apply 보고를 반영 전 기준으로 — 첫 설치가 '이미 일치' 로 읽히던 오독 (main-009) (077474d8)
-- fix(backlog-update): handoff 동기화 · 이월 색인이 보존된 task 제목을 쓴다 (main-006) (6c348937)
-- fix(test): main 체크아웃 관찰에서 --no-reflect 없이는 session-start 가 쓴다 (4b1b5256)
-- ... (227 more)
+- ... (229 more)
+
+## [1.24.0] - 2026-11-16
+
+### Changed
+
+- release(v1.24.0): 발행 준비 — 워크벤치 개방 모드 · 자동 기동 · 화면 개편 + 경고 분류기 · MCP 오류 신호 수리 (minor) (5d3419fa)
 
 ## [1.23.0] - 2026-11-15
 
 ### Changed
 
+- release(v1.23.0): 발행 완료 — 태그 push + GitHub Release(asset 5종) + §2.8 · task -002 close (d680989d)
 - docs(release): v1.23.0 노트의 미측정 건수를 이번 게이트 실측(컨텍스트당 83 = 79 · 4)으로 — 1.22.0 숫자를 옮겨 적었다 (0ce020df)
 - release(v1.23.0): 발행 준비 — 주장 트리 계획 · plan-import · 워크벤치 · MCP plan_inbox/plan_import + MCP 4종 계약 수리 (minor) (58889bb6)
 

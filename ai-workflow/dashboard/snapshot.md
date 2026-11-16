@@ -1,20 +1,20 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-11-15T14:43:44Z`
-- tool_version: `1.23.0`
+- generated_at: `2026-11-16T03:39:02Z`
+- tool_version: `1.24.0`
 - workspace_root: `/home/yklee/repos/standard_ai_workflow-main`
 
 ## Panel 1 — Drift Prevention Status
 
 - guard_status: `pass`
 - guard_cases: `7 / 7`
-- maturity_last_updated: `2026-11-15`
+- maturity_last_updated: `2026-11-16`
 - maturity_surface_changed_at: `2026-11-15`
 - maturity_stale: `False` (source: `maturity_surface_commit`)
 - harness_supported_count: `10`
-- head_commit_date: `2026-11-15`
+- head_commit_date: `2026-11-16`
 - last_updated_delta_days: `0`
-- silent_failing_cycles_count: `0` (측정 cycle 37건)
+- silent_failing_cycles_count: `0` (측정 cycle 38건)
 
 ## Panel 2 — Maturity Distribution
 
@@ -75,20 +75,20 @@
 
 ## Panel 4 — Smoke Trend
 
-- cumulative_total: `319`
-- cumulative_pass: `319`
+- cumulative_total: `322`
+- cumulative_pass: `322`
 - cumulative_pass_rate: `1.0000`
-- smoke_files_count: `319`
+- smoke_files_count: `322`
 
 ### Recent release smoke counts
 
 | version | pass | total |
 |---|---|---|
+| Beta-v1.24.0 | 322 | 322 |
 | Beta-v1.23.0 | 319 | 319 |
 | Beta-v1.22.0 | 309 | 309 |
 | Beta-v1.21.0 | 309 | 309 |
 | Beta-v1.20.1 | 309 | 309 |
-| Beta-v1.20.0 | 309 | 309 |
 
 ## Panel 5 — Recent Release Cycle
 
@@ -137,10 +137,10 @@
 
 - phase_15_north_star: `utilization_3tuple (query_diversity / entries_new_30d / distinct_entries_retrieved — ADR-006 W-4; hit_rate 는 보조)`
 - entries_total: `30`
-- telemetry_events_total: `8`
-- telemetry_total_queries: `8`
-- telemetry_hit_count: `7`
-- telemetry_hit_rate: `0.8750`
+- telemetry_events_total: `23`
+- telemetry_total_queries: `23`
+- telemetry_hit_count: `21`
+- telemetry_hit_rate: `0.9130`
 
 ### Entries by merge_state
 
@@ -152,6 +152,6 @@
 
 | source | events |
 |---|---|
-| `backlog-update` | 4 |
-| `session-start` | 4 |
+| `backlog-update` | 17 |
+| `session-start` | 6 |
 

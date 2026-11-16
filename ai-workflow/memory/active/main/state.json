@@ -27,11 +27,10 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**132차 세션 (2026-11-16, Linux 호스트) — v1.24.0 발행 완료 (minor: feat 3 · fix 2 · breaking 0).** 태그 `v1.24.0` = `5d3419fa`(발행 준비 커밋, 전량 게이트 native · slash 322×2 증거), GitHub Release Latest(draft=false · prerelease=false) · asset 5종. 내용: 워크벤치 개방 모드(`--open`) · 자동 기동(`--autostart` · `--stop` · SessionEnd hook) · 화면 개편(대시보드형) + 경고 분류기 `/var/tmp` · MCP 오류 신호 수리. §2.8: codex · grok-build · antigravity · minimax-code 1.24.0 재적용, **claude-code 만 behind** — directory 소스인 원래 checkout(`/home/yklee/repos/standard_ai_workflow`)이 `claude/remote-sync-check-234c32`(1.23.0, main 에 병합됨)에 있다. codex 호스트 4개 재시작 필요.",
+    "current_baseline": "**132차 세션 (2026-11-16, Linux 호스트) — v1.24.0 발행 완료 (minor: feat 3 · fix 2 · breaking 0).** 태그 `v1.24.0` = `5d3419fa`(발행 준비 커밋, 전량 게이트 native · slash 322×2 증거), GitHub Release Latest(draft=false · prerelease=false) · asset 5종. 내용: 워크벤치 개방 모드(`--open`) · 자동 기동(`--autostart` · `--stop` · SessionEnd hook) · 화면 개편(대시보드형) + 경고 분류기 `/var/tmp` · MCP 오류 신호 수리. §2.8: codex · grok-build · antigravity · minimax-code 1.24.0 재적용, claude-code 는 원래 checkout 브랜치를 origin/main 으로 ff 해 재적용 → doctor behind=[] · disabled=[]. claude-code 2 · codex 4 프로세스 재시작 필요.",
     "current_axis": "**로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · ~~[TASK-2026-08-13-main-004] mypy flake 관찰~~ ✅ (66차 close — 33/33 표본, mypy 실패 0).",
-    "current_focus": "TASK-2026-11-16-main-004 v1.24.0 발행 — 워크벤치 개방 · 자동 기동 · 화면 개편 + 수리 둘",
+    "current_focus": "TASK-2026-10-02-main-007 Windows V3 백신이 wk.exe 를 평판 기반으로 차단한다 — pip 생성 console-script 런처 대체 진입 경로",
     "in_progress_items": [
-      "TASK-2026-11-16-main-004 v1.24.0 발행 — 워크벤치 개방 · 자동 기동 · 화면 개편 + 수리 둘",
       "TASK-2026-10-02-main-007 Windows V3 백신이 wk.exe 를 평판 기반으로 차단한다 — pip 생성 console-script 런처 대체 진입 경로",
       "TASK-2026-10-02-main-006 Windows 로캘(cp949)에서 wk 가 UnicodeEncodeError 로 죽는다 — stdout 과 기본 인코딩 I/O 를 UTF-8 로 고정"
     ],
@@ -42,6 +41,7 @@
       "TASK-2026-11-13-claude-remote-sync-check-234c32-005"
     ],
     "recent_done_items": [
+      "TASK-2026-11-16-main-004 — v1.24.0 발행 — 워크벤치 개방 · 자동 기동 · 화면 개편 + 수리 둘",
       "TASK-2026-11-16-main-003 — 워크벤치 화면 개편 — 대시보드형 진척 · 카드형 계획 화면",
       "TASK-2026-11-16-main-002 — 워크벤치 자동 기동 — session-start 가 띄우고 세션 종료 hook 이 내린다",
       "TASK-2026-11-16-main-001 — 워크벤치 개방 모드 — 토큰 없이 IP 로 접속해 보고 답한다 (--open)",
@@ -50,8 +50,7 @@
       "TASK-2026-11-15-claude-remote-sync-check-234c32-003 — 합류 반영이 완료 task 를 archived/ 로만 보내 main 집계가 근거를 잃는다 — 완료 task 도 모 브랜치로 옮긴다",
       "TASK-2026-11-15-claude-remote-sync-check-234c32-002 — v1.23.0 발행 — main 합류 · 발행 준비 · 태그 · GitHub Release",
       "TASK-2026-11-15-claude-remote-sync-check-234c32-001 — MCP 도구 4종 성공 경로 output contract 미등록 수리 (main-002 대응, 발행 차단 결함)",
-      "TASK-2026-11-14-claude-remote-sync-check-234c32-003 — M-029 ② MCP plan_inbox · plan_import + 체크인 생성물",
-      "TASK-2026-11-14-claude-remote-sync-check-234c32-002 — M-029 ② 워크벤치 서버 · 화면 · 검사 넷 · 스킬 (MCP 두 도구는 다음 task)"
+      "TASK-2026-11-14-claude-remote-sync-check-234c32-003 — M-029 ② MCP plan_inbox · plan_import + 체크인 생성물"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
@@ -59,14 +58,13 @@
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-11-16.md",
     "task_count": 4,
-    "in_progress_items": [
-      "TASK-2026-11-16-main-004 — v1.24.0 발행 — 워크벤치 개방 · 자동 기동 · 화면 개편 + 수리 둘"
-    ],
+    "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
       "TASK-2026-11-16-main-001 — 워크벤치 개방 모드 — 토큰 없이 IP 로 접속해 보고 답한다 (--open)",
       "TASK-2026-11-16-main-002 — 워크벤치 자동 기동 — session-start 가 띄우고 세션 종료 hook 이 내린다",
-      "TASK-2026-11-16-main-003 — 워크벤치 화면 개편 — 대시보드형 진척 · 카드형 계획 화면"
+      "TASK-2026-11-16-main-003 — 워크벤치 화면 개편 — 대시보드형 진척 · 카드형 계획 화면",
+      "TASK-2026-11-16-main-004 — v1.24.0 발행 — 워크벤치 개방 · 자동 기동 · 화면 개편 + 수리 둘"
     ]
   },
   "next_documents": [

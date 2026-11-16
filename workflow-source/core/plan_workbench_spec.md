@@ -15,7 +15,7 @@
 
 1. 서버 · 화면 · 알림은 파일 · CLI · MCP · 표준 HTTP 로만 선다 — 어느 하네스의 전용 표면에도 기대지 않는다.
 2. 서버가 쓰는 워크플로우 상태는 **받은편지함 하나**다 (주장 스펙 §7). task 파일 · 보관 · `state.json` · `roadmap_state.json` 은 읽기만 한다.
-   그 밖에 쓰는 것은 `.workbench/server.json` 과 그 디렉터리의 `.gitignore` 뿐이다 (§3). 접근 기록은 표준 오류로 낸다.
+   그 밖에 쓰는 것은 `.workbench/server.json` · 도착 신호 `.workbench/inbox.stamp`(§6.1) 와 그 디렉터리의 `.gitignore` 뿐이다 (§3). 접근 기록은 표준 오류로 낸다.
 3. 폼으로 들어온 글은 데이터다 — 실행하지 않고, 경로로 쓰지 않고, 다른 곳으로 보내지 않는다. task 파일의 글도 화면에 넣을 때 이스케이프한다.
 4. 화면의 숫자는 생성물(또는 같은 생성기로 원천에서 지금 계산한 값 — §7.1)과 task 파일에서만 온다. 재지 않은 것은 "미측정" 이다.
 5. loopback 요청도 인증한다 — 소유자가 고르는 개방 모드(§5.6)만 예외다. 서버는 자기 공개 주소를 추측하지 않는다 — `public_url` 하나.
@@ -198,6 +198,23 @@ task 파일에 있는 것만 그린다: 주장 트리(`<details>`, 접힌 상태
 
 서버는 `plan-import` 를 부르지 않고 task 파일을 고치지 않는다. 서버는 시작할 때 받은편지함의 자기 임시 파일(`.tmp-<pid>-*`, 죽은 pid)을 지운다 — 임시 이름을 아는 `plan_responses.sweep_dead_temp_files` 로.
 
+### 6.1 도착 신호와 작업 세션 hook 반영 (TASK-2026-11-16-main-014 — 소유자 결정: hook 이 자동 반영 + 알림)
+
+- 서버는 응답을 공개한 뒤 checkout 루트의 `.workbench/inbox.stamp` 에 새 표식(시각 + 무작위)을 쓴다. task 파일은 여전히 쓰지 않는다(ADR-032 결정 15).
+- `plan-import --hook <PostToolUse|UserPromptSubmit>` 은 `inbox.stamp` 와 `inbox.seen` 의 **내용**이 다를 때만 받은편지함의 **모든 task** 응답을 `--apply` 로 반영하고,
+  결과를 `{"hookSpecificOutput": {"hookEventName": <event>, "additionalContext": "…"}}` 한 덩어리로 낸다 — task · 응답자 · 결정 변화 · 남은 열린 결정,
+  자격 없는 응답은 받은편지함에 남기고 그 사유. 할 것이 없으면 아무것도 출력하지 않는다(rc 0). 반영이 바쁘면(`import_busy`) seen 을 두어 다음 hook 이 다시 본다.
+  처리 뒤 `inbox.seen` 에 처리 시작 때 읽은 표식을 쓴다 — 처리 중 새 응답은 표식이 달라 다음 hook 이 본다. mtime 이 아니라 내용 비교라
+  1초 단위 파일시스템에서도 같은 초의 두 번째 응답을 놓치지 않는다.
+- Claude Code 플러그인 hooks 의 `PostToolUse` · `UserPromptSubmit` 명령: `$CLAUDE_PROJECT_DIR` 의 stamp 가 없거나 seen 과 같으면(`cmp`) 끝 — Python 을 띄우지 않는다.
+  다르면 **이 기능을 아는** kit 이 깔린 인터프리터를 골라(`import workflow_kit.workbench.inbox_signal`) `$CLAUDE_PROJECT_DIR` 로 이동한 뒤 위 명령을 부른다.
+  그런 인터프리터가 없으면(옛 kit 만) seen 을 stamp 로 맞추고 "직접 `plan-import --task <ID> --apply` 로 반영하라" 를 한 번 알린다 — 도구마다 Python 을 다시 띄우지 않는다.
+- 계획 화면은 그 task 의 응답을 '반영 대기'(받은편지함) · '반영됨'(보관)과 응답자 · 시각으로 보인다 — §4.5 자동 새로고침으로 반영되는 순간이 보인다.
+- **한계 (감추지 않는다)**: 한 세션 안에서는 hook 이 도구 호출 사이에 돌아 task 파일 쓰기가 순차다. 같은 checkout 을 두 세션이 쓰거나, 백그라운드로 돈 `backlog-update` 와
+  hook 이 겹치면 task 파일의 read-modify-write 는 잠금이 없다(`inbox_lock` 은 plan-import 끼리만 직렬화한다) — 기존 `backlog-update` 끼리와 같은 조건이다.
+  hook 명령은 POSIX sh 문법이다(Windows cmd · PowerShell 미측정). 같은 hooks 사본을 읽는 Grok Build 의 이 두 이벤트 처리와, Claude Code 가 이 JSON 을 실제로
+  모델 컨텍스트에 넣는지는 아직 실측하지 않았다(검사는 bash 로 명령을 돌려 출력 모양을 잰다).
+
 ## 7. 진척 (R6)
 
 ### 7.1 원천
@@ -326,6 +343,7 @@ handle_path /workbench/* {
 | `check_workbench_refresh.py` | 자동 새로고침(§4.5) — `data-refresh` · 스크립트 · `data-version` · CSP `connect-src` · 같은 상태의 지문 고정 · 바뀌면 달라짐 · 0 이면 끔 · `--refresh` 범위 · 자동 기동 저장 · 스크립트 분기(실제 브라우저 동작은 task Proof 의 CDP 실측) |
 | `check_workbench_live.py` | 실시간 값(§7.1) — 낡은 `state.json` 위에서 방금 바뀐 task 가 보임 · `source` · 화면 표식 · 저장소 무변경 · 지문 같으면 재계산 0 · 바뀌면 재계산 · 프로필 없으면 생성물 · `where_for` 가 프로필을 싣는다 · 브랜치 전환 재계산 · 실패 사유 표시 · roadmap 실시간 · 낡은 roadmap 생성물 안 보임 · 산출물 지문 · 실패 사유에 절대 경로 없음 |
 | `check_workbench_progress.py` | 진행 기록 — `--progress-note` 시각 접두 · 손으로 적은 시각 그대로 · 시각 아닌 백틱엔 붙임 · 이스케이프 · 차단 항목 · `api/state` progress = task 파일 · 계획 카드 · 보드의 '지금' · 노트 바뀌면 지문 바뀜 · 스킬 · CLAUDE.md 규칙 |
+| `check_workbench_inbox_hook.py` | 도착 신호 · hook 반영(§6.1) — 서버는 stamp 만 · 화면 반영 대기→반영됨 · hook JSON(이벤트 · 결정 변화) · seen 시각 · 할 것 없으면 조용 · 자격 없는 응답은 남기고 사유 · hooks.json 명령을 실제 셸로 · 신호 없으면 Python 안 띄움 · 같은 초의 두 번째 응답(셸 · Python) · cwd 밖 · 옛 kit 뿐이면 한 번 알림 |
 | `check_workbench_views.py` | 선언 ≠ 파생 둘 다 · 잎 0 "미측정" · 절대 경로 · 호스트 이름이 어느 응답에도 없음 (`api/state` 포함) · 이스케이프 (task 파일의 `<script>` 가 글자로) · 읽기 전용 (`git status` 전후 동일) · 정적 자원이 wheel 에 실림 |
 
 파서 단일성은 `check_plan_claims` case 6 의 소비자 목록에 `workbench/` 를 더해 그 한 곳에서 잰다 (ADR-032 결정 2).

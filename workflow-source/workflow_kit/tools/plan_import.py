@@ -21,6 +21,8 @@ python -m workflow_kit plan-import --discard=<파일> --reason=<사유> [--apply
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import json
 import sys
 from collections.abc import Callable
@@ -48,6 +50,8 @@ from workflow_kit.common.workflow_writes import _set_list_field
 
 MODE_IMPORT = "import"
 MODE_DISCARD = "discard"
+#: `--hook` 이 받는 하네스 이벤트 — 출력 JSON 의 hookEventName 이 된다 (Claude Code hooks).
+HOOK_EVENTS = ("PostToolUse", "UserPromptSubmit")
 
 
 
@@ -63,6 +67,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--reason", default=None, help="--discard 의 사유 — Progress 에 남는다")
     parser.add_argument("--apply", action="store_true", help="실제로 옮기고 쓴다")
     parser.add_argument("--project-profile-path", default=None, help="미지정 시 cwd 상위에서 자동 탐색")
+    parser.add_argument("--hook", default=None, choices=HOOK_EVENTS,
+                        help="하네스 hook 에서 부른다 — 워크벤치 도착 신호가 새로우면 모든 task 의 응답을 반영하고 "
+                             "결과를 hook JSON 으로 낸다 (할 것이 없으면 출력 없음)")
     return parser
 
 
@@ -371,10 +378,79 @@ def run_discard(ctx: Context, target_path: Path, *, reason: str, apply: bool) ->
     return _locked(ctx, body)
 
 
+def _hook_lines(task_id: str, out: dict[str, object]) -> list[str]:
+    """한 task 의 반영 결과를 에이전트가 읽을 줄로."""
+    lines: list[str] = []
+    responses = [r for r in out.get("responses") or [] if isinstance(r, dict)]
+    archived = [r for r in responses if r.get("action") == "archived"]
+    kept = [r for r in responses if r.get("action") == "kept_in_inbox"]
+    changes = [c for c in out.get("state_changes") or [] if isinstance(c, dict)]
+    if archived:
+        who = ", ".join(sorted({f"{r.get('responder') or '?'} {str(r.get('received_at') or '')[:16]}" for r in archived}))
+        moved = "; ".join(f"{c.get('id')} {c.get('before')} → {c.get('after')}" for c in changes) or "결정 상태 변화 없음"
+        open_ids = out.get("open_decisions") or []
+        lines.append(f"- {task_id}: 응답 {len(archived)}건 반영 ({who}) — {moved}"
+                     + (f" · 열린 결정 남음 {', '.join(map(str, open_ids))}" if open_ids else " · 열린 결정 없음"))
+    for r in kept:
+        lines.append(f"- {task_id}: 자격 없는 응답 {r.get('name')} 는 받은편지함에 남겼다 — {r.get('reason') or '사유 없음'}")
+    return lines
+
+
+def run_hook(profile: Path, event: str) -> int:
+    """워크벤치 도착 신호가 새로우면 받은편지함의 모든 task 응답을 반영하고 hook JSON 을 낸다 (TASK-2026-11-16-main-014).
+
+    stdout 은 hook JSON 한 덩어리이거나 아무것도 없다 — 하네스가 그것을 모델 컨텍스트에 넣는다. 반영이 바쁘면
+    seen 을 옮기지 않아 다음 hook 이 다시 본다. 반영하는 쪽은 여전히 작업 세션 하나다 (ADR-032 결정 15).
+    """
+    from workflow_kit.workbench import inbox_signal
+
+    workspace = project_workspace_root(profile)
+    stamp = inbox_signal.pending_signal(workspace)
+    if stamp is None:
+        return 0
+    branch_dir = workflow_branch_dir(profile)
+    census = plan_responses.inbox_census(branch_dir)
+    lines: list[str] = []
+    busy = False
+    for task_id in sorted(census.files):
+        ctx = Context(task_id=task_id, mode=MODE_IMPORT, task_path=branch_dir / "backlog" / "tasks" / f"{task_id}.md",
+                      branch_dir=branch_dir, workspace_root=workspace)
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            run_import(ctx, response=None, apply=True)
+        try:
+            out = json.loads(buffer.getvalue())
+        except json.JSONDecodeError:
+            lines.append(f"- {task_id}: 반영 결과를 읽지 못했다 — `plan-import --task {task_id}` 로 확인")
+            continue
+        if out.get("outcome") == "import_busy":
+            busy = True
+            continue
+        if out.get("status") == "error":
+            lines.append(f"- {task_id}: 반영하지 못했다 — {out.get('error')}")
+            continue
+        lines.extend(_hook_lines(task_id, out))
+    if not busy:
+        inbox_signal.mark_seen(workspace, stamp)
+    if lines:
+        message = "[워크벤치] 소유자 응답 도착 — 작업 세션이 반영했다 (plan-import --apply):\n" + "\n".join(lines)
+        print(json.dumps({"hookSpecificOutput": {"hookEventName": event, "additionalContext": message}},
+                         ensure_ascii=False))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     force_utf8_stdio()
     parser = build_parser()
     args = parser.parse_args(argv)
+    if args.hook is not None:
+        if any(v is not None for v in (args.task, args.discard, args.response, args.reason)) or args.apply:
+            parser.error("--hook 은 다른 인자와 함께 쓰지 않는다 (모든 task 를 --apply 로 반영한다)")
+        found = (Path(args.project_profile_path).resolve() if args.project_profile_path
+                 else discover_project_profile_path())
+        if found is None or not Path(found).is_file():
+            return 0  # 프로필 없는 디렉터리의 hook — 조용히 지나간다
+        return run_hook(Path(found).resolve(), args.hook)
     if args.discard is None:
         if args.task is None:
             parser.error("--task 또는 --discard 가 필요하다")

@@ -504,9 +504,11 @@ def test_claude_code_adapter() -> None:
 
     hooks = json.loads(payload[CLAUDE_CODE_HOOKS_RELPATH]).get("hooks", {})
     # 세션 경계 2종 + compact 중계 2종 (ADR-030 — PreCompact / PostCompact, 재주입은
-    # SessionStart 의 matcher=compact 그룹). 중계 hook 의 파생은 check_compact_relay case 11 이 잰다.
-    if set(hooks) != {"SessionStart", "SessionEnd", "PreCompact", "PostCompact"}:
-        problems.append(f"hook 이벤트 {sorted(hooks)} != SessionStart/SessionEnd/PreCompact/PostCompact")
+    # SessionStart 의 matcher=compact 그룹) + 워크벤치 응답 반영 2종 (PostToolUse / UserPromptSubmit,
+    # TASK-2026-11-16-main-014 — 동작은 check_workbench_inbox_hook 이 잰다). 중계 hook 의 파생은 check_compact_relay case 11.
+    expected_events = {"SessionStart", "SessionEnd", "PreCompact", "PostCompact", "PostToolUse", "UserPromptSubmit"}
+    if set(hooks) != expected_events:
+        problems.append(f"hook 이벤트 {sorted(hooks)} != {sorted(expected_events)}")
     rules = load_standard_rules(SOURCE_ROOT)
     # 표의 **마지막 행**을 재생성 명령으로 가정하던 자리 (2026-08-14 실측: §11.1 에
     # 행을 하나 추가하자 깨졌다). 위치가 아니라 **목적**으로 찾는다 — 렌더러가

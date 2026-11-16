@@ -328,6 +328,13 @@ def plan_page(*, view: PlanView, rel: str, branch: str, user: str, csrf: str, ro
         f'<p class="summary chips">{"".join(chips)}</p></section>']
     if view.layout_problem:
         body.append(f'<p class="alert error">계획 응답 배치: {esc(view.layout_problem)}</p>')
+    if view.responses:
+        # 보낸 응답이 작업 세션에 반영됐는지 — hook 이 반영하면 자동 새로고침으로 '반영됨' 이 된다 (TASK-2026-11-16-main-014).
+        items = "".join(
+            f'<li class="resp"><span class="chip {"ok" if r["state"] == "반영됨" else "info"}">{esc(r["state"])}</span> '
+            f'<span>{esc(r["responder"])}</span> <time>{esc(r["received_at"][:16].replace("T", " "))}</time></li>'
+            for r in view.responses[:10])
+        body.append(f'<section class="card responses"><h2>응답</h2><ul class="resp-list">{items}</ul></section>')
     if view.has_errors:
         body.append('<p class="alert error">task 파일의 주장 · 결정이 오류 규칙(L2 · L6 · L9)을 어겼다 — 응답을 받지 않는다</p>')
     if flash:

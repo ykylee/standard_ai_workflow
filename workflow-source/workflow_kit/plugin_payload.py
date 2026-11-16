@@ -69,6 +69,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shlex
 import re
 import sys
 from pathlib import Path
@@ -1175,6 +1176,29 @@ def render_codex_hooks(rules: StandardRules) -> str:
     return json.dumps({"hooks": _relay_hooks(rules, codex=True)}, ensure_ascii=False, indent=2) + "\n"
 
 
+def _inbox_hook_command(event: str, plan_import_command: str) -> str:
+    """워크벤치 응답 자동 반영 hook (TASK-2026-11-16-main-014) — stdout 은 hook JSON 이거나 비어 있다.
+
+    - 신호(stamp 와 seen 의 내용이 다름)가 없으면 ``cmp`` 하나로 끝난다 — Python 을 띄우지 않는다.
+    - 인터프리터는 **이 기능을 아는** kit 이 깔린 것만 고른다 — 옛 kit 이 PATH 앞에 있으면 모르는 인자로 조용히
+      실패하고 도구마다 Python 을 다시 띄웠다(verifier 재현). 그런 kit 뿐이면 seen 을 맞추고 에이전트에게
+      직접 반영하라고 한 번 알린다.
+    - 프로젝트는 ``$CLAUDE_PROJECT_DIR`` 하나로 정한다 — 셸이 본 stamp 와 Python 이 찾는 프로필이 같은 checkout 이다.
+    """
+    notice = json.dumps({"hookSpecificOutput": {"hookEventName": event, "additionalContext": (
+        "[워크벤치] 소유자 응답이 도착했지만 이 호스트의 workflow_kit 이 자동 반영(plan-import --hook)을 모른다 — "
+        f"{plan_import_command} --task <TASK-ID> --apply 로 반영하라 (kit 을 올리면 다음부터 자동)")}},
+        ensure_ascii=False)
+    return (
+        'root="${CLAUDE_PROJECT_DIR:-.}"; d="$root/.workbench"; [ -f "$d/inbox.stamp" ] || exit 0; '
+        'cmp -s "$d/inbox.stamp" "$d/inbox.seen" 2>/dev/null && exit 0; '
+        "for py in python3 python; do \"$py\" -c 'import workflow_kit.workbench.inbox_signal' >/dev/null 2>&1 && break; "
+        "py=; done; "
+        f'if [ -n "$py" ]; then cd "$root" && {posix_kit_call(kit_subcommand(plan_import_command) + " --hook " + event)} 2>/dev/null; '
+        f"else cp \"$d/inbox.stamp\" \"$d/inbox.seen\" 2>/dev/null; printf '%s' {shlex.quote(notice)}; fi; true"
+    )
+
+
 def render_claude_code_hooks(rules: StandardRules) -> str:
     """``plugin/adapters/claude-code/hooks.json`` — 세션 경계 자동화.
 
@@ -1206,6 +1230,7 @@ def render_claude_code_hooks(rules: StandardRules) -> str:
     """
     refresh_cmd = find_memory_command(rules, "Regenerate state.json")
     refresh_sub = kit_subcommand(refresh_cmd)
+    plan_import_cmd = find_memory_command(rules, "Apply plan responses")
     workbench_sub = kit_subcommand(find_memory_command(rules, "Review plans and progress in a browser"))
     absent_notice = (
         f"[{PLUGIN_NAME}] no Python interpreter with `workflow_kit` installed was found "
@@ -1242,6 +1267,12 @@ def render_claude_code_hooks(rules: StandardRules) -> str:
                 ],
                 "PreCompact": relay["PreCompact"],
                 "PostCompact": relay["PostCompact"],
+                # 워크벤치 응답 도착 신호 (TASK-2026-11-16-main-014) — inbox.stamp 가 inbox.seen 보다 새로울 때만
+                # Python 을 띄워 plan-import --hook 으로 반영하고 결과를 additionalContext 로 낸다. 평소 비용은 셸 비교 하나다.
+                "PostToolUse": [{"hooks": [{"type": "command",
+                                            "command": _inbox_hook_command("PostToolUse", plan_import_cmd)}]}],
+                "UserPromptSubmit": [{"hooks": [{"type": "command",
+                                                 "command": _inbox_hook_command("UserPromptSubmit", plan_import_cmd)}]}],
                 "SessionEnd": [
                     {
                         "hooks": [

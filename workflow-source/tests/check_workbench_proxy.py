@@ -20,6 +20,7 @@ WATCHES = (
 
 import http.client
 import re
+import secrets
 import sys
 import threading
 import traceback
@@ -46,10 +47,18 @@ def _record(name: str, problems: list[str]) -> None:
         print(f"  PASS  {name}")
 
 
+#: 마지막으로 띄운 프록시의 표식 (검사의 Browser 가 붙인다).
+outside_token: list[str] = []
+
+
 @contextmanager
 def prefix_proxy(backend_port: int, *, client_ip: str = "") -> Iterator[tuple[int, list[str]]]:
     """``/wb/<rest>`` → 서버 ``/<rest>``. 접두사 밖은 404 로 끝내고 기록한다. 머리는 그대로 넘긴다."""
     outside: list[str] = []
+    #: 이 실행의 표식 — 표식 없는 요청은 이 검사의 것이 아니다(이 호스트의 다른 프로세스가 새로 열린 포트에
+    #: GET / · /login 을 보낸다 — main-013 · 014 verifier 관찰). 판정은 표식 있는 요청만 센다.
+    token = secrets.token_hex(8)
+    foreign: list[str] = []
 
     class Proxy(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
@@ -59,7 +68,10 @@ def prefix_proxy(backend_port: int, *, client_ip: str = "") -> Iterator[tuple[in
 
         def _forward(self) -> None:
             if not self.path.startswith(PREFIX):
-                outside.append(f"{self.command} {self.path}")
+                if self.headers.get(fx.CHECK_TAG_HEADER) == token:
+                    outside.append(f"{self.command} {self.path}")
+                else:
+                    foreign.append(f"{self.command} {self.path}")
                 self.send_response(404)
                 self.send_header("Content-Length", "0")
                 self.end_headers()
@@ -92,6 +104,7 @@ def prefix_proxy(backend_port: int, *, client_ip: str = "") -> Iterator[tuple[in
     thread = threading.Thread(target=httpd.serve_forever, kwargs={"poll_interval": 0.1}, daemon=True)
     thread.start()
     try:
+        outside_token.append(token)
         yield httpd.server_address[1], outside
     finally:
         httpd.shutdown()
@@ -105,7 +118,7 @@ def case_prefix_flow() -> list[str]:
         task_id = fx.create_task(ws)
         with fx.running(ws) as srv, prefix_proxy(srv.port) as (proxy_port, outside):
             srv.app.public_url = f"http://127.0.0.1:{proxy_port}{PREFIX}"
-            browser = fx.Browser(proxy_port)
+            browser = fx.Browser(proxy_port, tag=outside_token[-1])
             arrived: list[str] = []
 
             def follow(current: str, reply: fx.Reply) -> str:

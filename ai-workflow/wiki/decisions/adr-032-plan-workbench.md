@@ -22,6 +22,7 @@ kit 계약 정본은 `workflow-source/core/plan_workbench_spec.md`. 응답 파�
 소유자가 이미 연 결정: SameSite 는 **Lax** (2026-11-13, task -006 의 D1 — requirements R3.3 대비 변경 V1).
 
 **개정 (2026-11-16, TASK-2026-11-16-main-001)** — 소유자 결정으로 개방 모드 `--open <name>` 을 더한다 (V8). 토큰 모드는 그대로다.
+**개정 (2026-11-16, TASK-2026-11-16-main-014)** — 응답 도착 신호(`.workbench/inbox.stamp`)와 작업 세션 hook 의 자동 반영(`plan-import --hook`)을 더한다 (V10). 결정 15(서버는 plan-import 를 부르지 않는다)는 그대로다 — 반영은 작업 세션의 hook 이 한다.
 **개정 (2026-11-16, TASK-2026-11-16-main-002)** — 소유자 결정으로 자동 기동을 더한다 (V9): `session-start` 가 띄우고 SessionEnd hook 이 내린다.
 
 ## Context
@@ -176,6 +177,7 @@ Windows(NTFS) — 구현 뒤 (결정 22).
 | V7 | R10-4 "동시 제출에서 번호 연속" | 유실 0 · 덜 쓰인 파일 0 만 (번호는 연속이 아니다) | V2 의 귀결 — 번호가 시각에서 출발한다 |
 | V8 | R0 · R3 "loopback 요청도 인증한다" | 소유자가 고르는 **개방 모드** — 토큰 · 로그인 없음, 비 loopback 평문 허용, 응답자는 설정 이름 하나, 응답에 요청자 주소 (spec §5.6) | 소유자 결정 2026-11-16 — 같은 네트워크의 다른 기기에서 그냥 들어가 답한다. 대가: 응답이 소유자에게서 왔다는 대조가 없다 |
 | V9 | R1 "session-start 는 서버를 띄우지 않는다 · 모델은 서버를 조작하지 않는다" | 소유자가 `workbench --autostart on` 으로 켜 두면 `session-start` 가 띄우고 Claude Code SessionEnd hook 이 자동 기동분만 내린다 (spec §3.1) | 소유자 결정 2026-11-16 — 세션을 시작하면 바로 브라우저로 본다. 설정은 소유자가 하고 모델은 여전히 서버를 직접 다루지 않는다 |
+| V10 | R0-2 "그 밖에 쓰는 것은 실행 기록 한 파일뿐" · 결정 15 의 "반영은 작업 세션이 한다" | 서버가 `.workbench/inbox.stamp` 도 갱신하고, 작업 세션의 하네스 hook(`PostToolUse` · `UserPromptSubmit`)이 신호를 보고 `plan-import --apply` 로 반영 · 알림 (spec §6.1) | 소유자 결정 2026-11-16 — 응답을 보낸 뒤 작업 세션이 바로 반영한다. 서버는 여전히 task 파일을 쓰지 않는다 — 한 세션 안에서는 순차이고, 같은 checkout 의 두 세션 · 백그라운드 backlog-update 와 겹치는 경우의 잠금은 없다(spec §6.1 한계) |
 | V5 | (없음) | 쓰기 전 배치 판정 409 (결정 14) · task 파일이 오류 규칙을 어기면 409 (주장 스펙 §8.1 의 0 단계 — 어차피 자격이 없는 응답을 쓰지 않는다) · 우회 검출에 받은편지함 행 (결정 18) | ADR-031 2단계 구현이 넘긴 것 |
 
 ## Alternatives Considered

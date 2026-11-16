@@ -223,8 +223,10 @@ def case_read_only() -> list[str]:
         if status() != before_git:
             problems.append(f"git status 가 바뀌었다:\n{status()}")
         inbox_prefix = pr.inbox_dir(fx.branch_dir(ws)).relative_to(ws).as_posix() + "/"
+        # 받은편지함 밖에서 서버가 쓰는 것은 도착 신호 둘뿐이다 (자기 무시 .workbench/, TASK-2026-11-16-main-014).
+        signal = {".workbench/inbox.stamp", ".workbench/.gitignore"}
         changed = sorted(k for k in set(before_tree) | set(after_tree)
-                         if before_tree.get(k) != after_tree.get(k) and not k.startswith(inbox_prefix))
+                         if before_tree.get(k) != after_tree.get(k) and not k.startswith(inbox_prefix) and k not in signal)
         if changed:
             problems.append(f"받은편지함 밖의 파일이 바뀌었다: {changed}")
         if not any(k.startswith(inbox_prefix) and k.endswith(".md") for k in after_tree):

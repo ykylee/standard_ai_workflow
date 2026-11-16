@@ -32,6 +32,8 @@ from workflow_kit.common import plan_responses as pr  # noqa: E402
 from workflow_kit.workbench import auth, server, state_view  # noqa: E402
 
 BRANCH = "workbench"
+#: 검사 자신의 요청임을 보이는 머리 (`Browser(tag=…)`).
+CHECK_TAG_HEADER = "X-Workbench-Check"
 BACKLOG_UPDATE = SOURCE_ROOT / "workflow_kit" / "tools" / "backlog_update.py"
 APPROVER = auth.Token("approver", "alice", "a" * 40)
 VIEWER = auth.Token("viewer", "bob", "b" * 40)
@@ -192,16 +194,21 @@ def request(port: int, method: str, path: str, *, body: bytes | None = None,
 class Browser:
     """쿠키 ``Path`` 를 지키고 상대 경로를 현재 URL 기준으로 푸는 작은 클라이언트 (리다이렉트는 따라가지 않는다)."""
 
-    def __init__(self, port: int, *, origin: str | None = None) -> None:
+    def __init__(self, port: int, *, origin: str | None = None, tag: str | None = None) -> None:
         self.port = port
         self.origin = origin or f"http://127.0.0.1:{port}"
+        #: 요청마다 붙이는 표식 머리 — 프록시 검사가 자기 요청만 센다 (호스트의 다른 프로세스가 새 포트를 두드린다).
+        self.tag = tag
         self.cookies: dict[str, tuple[str, str]] = {}  # name → (value, path)
         self.seen: list[str] = []
 
     def _cookie_header(self, path: str) -> dict[str, str]:
         pairs = [f"{name}={value}" for name, (value, cpath) in self.cookies.items()
                  if value and path.startswith(cpath)]
-        return {"Cookie": "; ".join(pairs)} if pairs else {}
+        headers = {"Cookie": "; ".join(pairs)} if pairs else {}
+        if self.tag:
+            headers[CHECK_TAG_HEADER] = self.tag
+        return headers
 
     def _store(self, reply: Reply) -> None:
         for raw in reply.headers.get("set-cookie", []):

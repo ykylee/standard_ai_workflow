@@ -41,6 +41,7 @@
       "TASK-2026-11-13-claude-remote-sync-check-234c32-005"
     ],
     "recent_done_items": [
+      "TASK-2026-11-16-main-014 — 워크벤치 응답이 작업 세션에 바로 닿지 않는다 — 도착 신호 + hook 자동 반영 · 알림",
       "TASK-2026-11-16-main-013 — 워크벤치 글자가 박스를 넘는다 — 긴 글 · 좁은 폭 · 다른 글꼴에서도 박스 안에",
       "TASK-2026-11-16-main-012 — 대시보드 inline_guard=False 가 가드를 돌리지 않고 guard_cases 7 · pass 0 을 실측처럼 싣는다",
       "TASK-2026-11-16-main-011 — release self_recover 재검사 집계가 cases_pass 7 > cases_total 6 — drift 가드 case 수를 6 으로 박아 둔 사본",
@@ -49,15 +50,14 @@
       "TASK-2026-11-16-main-008 — 워크벤치 진척이 생성물(state.json · roadmap_state.json)을 기다린다 — 원천에서 같은 생성기로 실시간 계산",
       "TASK-2026-11-16-main-007 — 워크벤치 폼 POST 가 실제 브라우저에서 Origin null 로 403 — Referrer-Policy no-referrer",
       "TASK-2026-11-16-main-006 — 워크벤치 화면 자동 새로고침 — 바뀐 내용만 다시 그리고 답 쓰는 중이면 알림만",
-      "TASK-2026-11-16-main-005 — workbench --stop 이 기록의 pid 가 그 포트의 주인인지 대조하지 않는다 — 인스턴스 표식 대조",
-      "TASK-2026-11-16-main-004 — v1.24.0 발행 — 워크벤치 개방 · 자동 기동 · 화면 개편 + 수리 둘"
+      "TASK-2026-11-16-main-005 — workbench --stop 이 기록의 pid 가 그 포트의 주인인지 대조하지 않는다 — 인스턴스 표식 대조"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-11-16.md",
-    "task_count": 13,
+    "task_count": 14,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
@@ -73,7 +73,8 @@
       "TASK-2026-11-16-main-010 — v1.25.0 발행 — 워크벤치 지속 갱신(자동 새로고침 · 실시간 값 · 진행 기록) + 수리 둘",
       "TASK-2026-11-16-main-011 — release self_recover 재검사 집계가 cases_pass 7 > cases_total 6 — drift 가드 case 수를 6 으로 박아 둔 사본",
       "TASK-2026-11-16-main-012 — 대시보드 inline_guard=False 가 가드를 돌리지 않고 guard_cases 7 · pass 0 을 실측처럼 싣는다",
-      "TASK-2026-11-16-main-013 — 워크벤치 글자가 박스를 넘는다 — 긴 글 · 좁은 폭 · 다른 글꼴에서도 박스 안에"
+      "TASK-2026-11-16-main-013 — 워크벤치 글자가 박스를 넘는다 — 긴 글 · 좁은 폭 · 다른 글꼴에서도 박스 안에",
+      "TASK-2026-11-16-main-014 — 워크벤치 응답이 작업 세션에 바로 닿지 않는다 — 도착 신호 + hook 자동 반영 · 알림"
     ]
   },
   "next_documents": [

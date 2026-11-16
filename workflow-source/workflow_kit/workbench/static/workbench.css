@@ -210,6 +210,13 @@ details.fold[open] > summary { margin-bottom: .8rem; }
 /* 자동 새로고침 알림 */
 .refresh-notice { max-width: 76rem; margin: 1rem auto 0; display: flex; align-items: center; gap: .75rem; justify-content: space-between; }
 
+/* 응답 — 반영 대기 · 반영됨 */
+.responses { margin-top: 1rem; }
+.responses h2 { font-size: .95rem; margin-bottom: .5rem; }
+.resp-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .35rem; }
+.resp { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; font-size: .88rem; }
+.resp time { font-family: var(--mono); font-size: .8rem; color: var(--muted); }
+
 /* 지금 하는 일 — task 의 Progress 한 줄 */
 .now { display: block; font-size: .82rem; color: var(--muted); line-height: 1.45; margin: .1rem 0 .55rem; overflow-wrap: anywhere; }
 .now b { color: var(--accent); font-weight: 700; margin-right: .25rem; }

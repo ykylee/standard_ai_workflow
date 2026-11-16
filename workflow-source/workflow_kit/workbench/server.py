@@ -453,6 +453,11 @@ class Handler(BaseHTTPRequestHandler):
                 message=outcome.message, back=f"../{task_id}"))
             return
         session.flash = outcome.message
+        try:  # 작업 세션의 hook 이 곧바로 반영하게 하는 도착 신호 — 실패해도 응답은 이미 받은편지함에 있다
+            from workflow_kit.workbench import inbox_signal
+            inbox_signal.touch_stamp(where.workspace_root)
+        except OSError:
+            pass
         self._redirect(f"../{task_id}")
 
 

@@ -12,7 +12,7 @@ import os
 import re
 import tempfile
 import threading
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -327,6 +327,8 @@ class PlanView:
     verification: list[str]
     out_of_scope: list[str]
     plain_fields: list[tuple[str, str]]
+    #: 그 task 의 응답 — 받은편지함(반영 대기) · 보관(반영됨). 시각순 (TASK-2026-11-16-main-014).
+    responses: list[dict[str, str]] = field(default_factory=list)
 
 
 def _field_lines(task: plan_tasks.TaskPlan) -> list[tuple[str, str]]:
@@ -360,4 +362,21 @@ def build_plan(where: Where, task: plan_tasks.TaskPlan) -> PlanView:
         verification=read_task_list_field(list(task.lines), task_label("validation")),
         out_of_scope=read_task_list_field(list(task.lines), task_label("out_of_scope")),
         plain_fields=fields,
+        responses=_task_responses(where.branch_dir, task.task_id),
     )
+
+
+def _task_responses(branch_dir: Path, task_id: str) -> list[dict[str, str]]:
+    """그 task 의 응답 — 응답자 · 시각 · 상태(반영 대기 = 받은편지함, 반영됨 = 보관). 주석 본문은 싣지 않는다."""
+    rows: list[dict[str, str]] = []
+    for state, paths in (("반영 대기", plan_responses.inbox_files(branch_dir, task_id)),
+                         ("반영됨", plan_responses.archive_files(branch_dir, task_id))):
+        for path in paths:
+            if path.name.endswith(plan_responses.REJECTED_SUFFIX):
+                continue
+            try:
+                parsed = plan_responses.read_response(path)
+            except OSError:
+                continue
+            rows.append({"state": state, "responder": parsed.responder, "received_at": parsed.received_at})
+    return sorted(rows, key=lambda row: row["received_at"], reverse=True)

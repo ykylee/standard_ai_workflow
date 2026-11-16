@@ -16,6 +16,9 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- feat(workbench): 작업 중 진행 기록 — 단계마다 Progress 한 줄, 워크벤치가 '지금 하는 일'로 (main-009) (0c2f7fee)
+- feat(workbench): 진척 실시간 값 — 원천에서 refresh-state 와 같은 생성기로 계산 (main-008) (b2b025c8)
+- feat(workbench): 화면 자동 새로고침 — 바뀐 내용만 다시 그리고 답 쓰는 중이면 알림만 (main-006) (f2ed8112)
 - feat(workbench): 화면 개편 — 대시보드형 진척 · 카드형 계획 화면 (main-003) (d1f11bed)
 - feat(workbench): 자동 기동 — session-start 가 띄우고 SessionEnd hook 이 내린다 (main-002) (93133bb5)
 - feat(workbench): 개방 모드 --open — 토큰 · 로그인 없이 IP 로 보고 답한다 (main-001) (42d74896)
@@ -43,10 +46,7 @@ All notable changes to this project will be documented in this file.
 - feat(state): state.json memory_entries v2 — 전문 복제 대신 포인터 (M-017/WBS-17.2) (10c166cd)
 - feat(context-budget): 예산 정본 모듈 + refresh-state 초과 경고 (M-017/WBS-17.1) (ec21152a)
 - feat(session-start): task ID 충돌 warning + M-013 concept 종결(③ 출구+예산) → M-015 개설 (dd9a004e)
-- feat(dashboard): 멀티에이전트 충돌 지표가 task ID 충돌을 센다 (09-23-main-016) (4c8cd252)
-- feat(gate): 게이트 통과 기록 없는 커밋의 push 를 막는다 (main-009) (33e58fdd)
-- feat(doctor): 플러그인 MCP 가 실제로 띄우는 해석기의 kit 을 잰다 (main-013) (5631f059)
-- ... (172 more)
+- ... (175 more)
 
 ### Changed
 
@@ -84,6 +84,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- fix(workbench): 실제 브라우저의 폼 POST 가 Origin null 로 403 — Referrer-Policy same-origin (main-007) (0721103a)
+- fix(workbench): --stop 이 기록의 pid 가 그 포트의 주인인지 대조 — 인스턴스 표식 (main-005) (d862b009)
 - fix(mcp): 오류 신호 불일치 둘 — invoke_tool 이 status error 를 rc 0 으로, summarize_git_history 가 git 실패를 커밋 0건으로 (main-002) (85d9596c)
 - fix(gate): 경고 분류기가 /tmp · /var/tmp 경로를 정규화한 뒤 분류해 서드파티 경고를 저장소 경고로 오판하던 결함 (main-001) (f75822ff)
 - fix(memory): 합류 반영이 완료 task 를 archived/ 로만 보내 roadmap 근거를 잃던 결함 — 완료 task 도 모 브랜치로 (7fdf0eb5)
@@ -112,14 +114,20 @@ All notable changes to this project will be documented in this file.
 - fix(purpose_graph): 어느 마일스톤 · leaf 도 섬기지 않는 goal 을 provenance 로 지목 — 조용한 uncovered 금지 (main-004) (e88e4b48)
 - fix(memory_lint): T1a 은퇴 · T1c/T1d 를 branch-scoped 로 — index path 선언 · archived 해소, 미분류 참조는 숫자로 (main-003) (094a51ba)
 - fix(memory_lint): T1b stale 을 branch-scoped 로 — 공유층 면제 · 브랜치 메모리의 git 커밋 일자로 90일 판정 (main-002) (9f027210)
-- fix(entry_diet): harvest 에 v1.20.0 채취 + '현행 생성물 ⊆ 알려진 생성물' 검사로 재실행 누락 고정 (main-001) (b64024b2)
-- fix(minimax_plugin): --apply 보고를 반영 전 기준으로 — 첫 설치가 '이미 일치' 로 읽히던 오독 (main-009) (077474d8)
-- ... (229 more)
+- ... (231 more)
+
+## [1.25.0] - 2026-11-16
+
+### Changed
+
+- release(v1.25.0): 발행 준비 — 워크벤치 지속 갱신(자동 새로고침 · 실시간 값 · 진행 기록) + 폼 POST 403 · --stop pid 대조 수리 (minor) (d00fbfbd)
 
 ## [1.24.0] - 2026-11-16
 
 ### Changed
 
+- chore(release): v1.24.0 발행 task close — claude-code 채널 재적용 · verifier PASS (main-004) (57f4d467)
+- release(v1.24.0): 발행 완료 — 태그 push + GitHub Release(asset 5종) + §2.8 4채널 (3588c8b8)
 - release(v1.24.0): 발행 준비 — 워크벤치 개방 모드 · 자동 기동 · 화면 개편 + 경고 분류기 · MCP 오류 신호 수리 (minor) (5d3419fa)
 
 ## [1.23.0] - 2026-11-15

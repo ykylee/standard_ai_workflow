@@ -105,7 +105,16 @@ def _count(items: Sequence[Any] | None) -> str:
     return UNMEASURED if items is None else str(len(items))
 
 
-def _task_list(items: Sequence[dict[str, str]] | None, rel: str, linked: set[str]) -> str:
+def _now(progress: dict[str, Any] | None) -> str:
+    """'지금 하는 일' 한 줄 — task 파일의 Progress (TASK-2026-11-16-main-009)."""
+    if not progress or not progress.get("text"):
+        return ""
+    at = progress.get("at")
+    stamp = f'<time>{esc(str(at)[5:])}</time> ' if at else ""
+    return f'<span class="now"><b>지금</b> {stamp}{esc(progress["text"])}</span>'
+
+
+def _task_list(items: Sequence[dict[str, Any]] | None, rel: str, linked: set[str]) -> str:
     if items is None:
         return f'<p class="unmeasured empty">{UNMEASURED}</p>'
     if not items:
@@ -115,7 +124,8 @@ def _task_list(items: Sequence[dict[str, str]] | None, rel: str, linked: set[str
         label = esc(item["id"])
         if item["id"] in linked:
             label = f'<a href="{esc(rel)}task/{esc(item["id"])}">{label}</a>'
-        rows.append(f'<li class="item"><span class="tid">{label}</span><span class="ttl">{esc(item["title"])}</span></li>')
+        rows.append(f'<li class="item"><span class="tid">{label}</span><span class="ttl">{esc(item["title"])}</span>'
+                    f'{_now(item.get("progress"))}</li>')
     return '<ul class="items">' + "".join(rows) + "</ul>"
 
 
@@ -172,6 +182,7 @@ def progress_page(*, state: dict[str, Any], rel: str, user: str, csrf: str, logo
                 f'<a class="card plan-card{attention}" href="{esc(rel)}task/{esc(p["task"])}">'
                 f'<span class="card-top"><span class="tid">{esc(p["task"])}</span>{badge(p["status"])}</span>'
                 f'<span class="card-title">{esc(p["title"])}</span>'
+                f'{_now(p.get("progress"))}'
                 f'<span class="chips">{chips}</span></a>')
         body.append('<div class="grid">' + "".join(cards) + "</div>")
     else:

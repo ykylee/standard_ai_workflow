@@ -116,7 +116,8 @@ def case_unmeasured() -> list[str]:
         tasks = api.get("tasks", {})
         if tasks.get("planned") is not None or tasks.get("blocked") is not None:
             problems.append(f"생성물에 없는 목록을 빈 목록으로 지어냈다: {tasks}")
-        if tasks.get("in_progress") != [{"id": "TASK-2026-11-14-workbench-001", "title": "하는 중"}]:
+        # 항목에는 task 파일의 '지금 하는 일' 이 붙는다 — task 파일이 없으면 null (TASK-2026-11-16-main-009).
+        if tasks.get("in_progress") != [{"id": "TASK-2026-11-14-workbench-001", "title": "하는 중", "progress": None}]:
             problems.append(f"state.json 의 진행 중 목록이 그대로가 아니다: {tasks.get('in_progress')}")
         if page.count("미측정") < 3:
             problems.append("생성물에 없는 목록(차단 · 계획)이 화면에서 미측정이 아니다")

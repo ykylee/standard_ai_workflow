@@ -8,7 +8,7 @@
 - 범위: 세션 복원, 작업 원칙, 세션 종료 순서, 실행 · 검증 명령
 - 대상 독자: Claude Code, 저장소 관리자
 - 상태: beta
-- 최종 수정일: 2026-11-14
+- 최종 수정일: 2026-11-16
 - 관련 문서: `docs/PROJECT_PROFILE.md`, `docs/LOCAL_GATE.md`, `ai-workflow/memory/active/<branch>/session_handoff.md`
 
 > 아래 `## Working Principles` · `## Session Close Order` · `## Memory Update Paths` 는
@@ -21,6 +21,7 @@
   `PURPOSE.md` 를 복원한다. `<branch>` 는 현재 git 브랜치다.
 - `ai-workflow/` 는 세션 상태용 메타 레이어다 — 코드 · 문서 탐색 범위에서 빼고, 상태를 갱신할 때만 본다.
 - task 를 `done` 으로 닫기 전: `verifier` subagent (`.claude/agents/verifier.md`) — 완료 기준을 새 컨텍스트에서 다시 잰다
+- 작업 중: 단계(계획 → 구현 → 검사 → verifier → 커밋 · push)마다 `backlog-update --mode update --task-id <ID> --task-name "<제목>" --progress-note "<지금 하는 일>"` — 시각은 도구가 붙이고, 워크벤치가 '지금 하는 일'로 보인다
 
 ## Working Principles
 

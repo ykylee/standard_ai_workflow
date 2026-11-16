@@ -141,6 +141,13 @@ def live_sources(where: Where) -> tuple[str, dict[str, Any], dict[str, Any] | No
         return computed_at, state_data, roadmap_data
 
 
+def _with_progress(items: list[dict[str, str]] | None, tasks_dir: Path) -> list[dict[str, Any]] | None:
+    """진행 중 · 차단 항목에 task 파일의 '지금 하는 일' 을 붙인다 — 목록 자체는 생성기의 것 그대로."""
+    if items is None:
+        return None
+    return [{**item, "progress": _file_progress(tasks_dir, item["id"])} for item in items]
+
+
 def _read_json(path: Path) -> dict[str, Any] | None:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -195,6 +202,37 @@ def _milestones(data: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str]]:
     return milestones, orphan
 
 
+_PROGRESS_RE = re.compile(r"^- (?:Progress|진행 현황):\s*(.*)$")
+_STAMP_RE = re.compile(r"^`(\d{4}-\d{2}-\d{2} \d{2}:\d{2})`\s*(?:기준\s+)?(.*)$")
+_PROGRESS_TEXT_LIMIT = 200
+
+
+def task_progress(lines: list[str]) -> dict[str, Any] | None:
+    """task 파일의 Progress 한 줄 — ``{"at": "YYYY-MM-DD HH:MM" | None, "text": …}`` (TASK-2026-11-16-main-009).
+
+    작업하는 에이전트가 단계마다 `backlog-update --progress-note` 로 바꾸는 줄이다 — 워크벤치의 '지금 하는 일'.
+    """
+    for line in lines:
+        match = _PROGRESS_RE.match(line)
+        if not match:
+            continue
+        text = match.group(1).strip()
+        if not text:
+            return None
+        stamp = _STAMP_RE.match(text)
+        at, body = (stamp.group(1), stamp.group(2).strip()) if stamp else (None, text)
+        return {"at": at, "text": body[:_PROGRESS_TEXT_LIMIT]}
+    return None
+
+
+def _file_progress(tasks_dir: Path, task_id: str) -> dict[str, Any] | None:
+    path = tasks_dir / f"{task_id}.md"
+    try:
+        return task_progress(path.read_text(encoding="utf-8").splitlines())
+    except (OSError, UnicodeDecodeError, ValueError):
+        return None
+
+
 def task_title(task: plan_tasks.TaskPlan) -> str:
     for line in task.lines:
         match = _TITLE_RE.match(line)
@@ -237,6 +275,7 @@ def build_state(where: Where) -> dict[str, Any]:
             "status": task.status,
             "open_decisions": plan_tasks.computed_open_decisions(task),
             "pending_responses": pending,
+            "progress": task_progress(list(task.lines)),
         })
     return {
         "schema": SCHEMA,
@@ -252,8 +291,8 @@ def build_state(where: Where) -> dict[str, Any]:
         "milestones": milestones,
         "issues": orphan_issues,
         "tasks": {
-            "in_progress": _items(backlog, "in_progress_items"),
-            "blocked": _items(backlog, "blocked_items"),
+            "in_progress": _with_progress(_items(backlog, "in_progress_items"), where.tasks_dir),
+            "blocked": _with_progress(_items(backlog, "blocked_items"), where.tasks_dir),
             "planned": _items(backlog, "planned_items"),
             "recent_done": _items(backlog, "done_items"),
         },

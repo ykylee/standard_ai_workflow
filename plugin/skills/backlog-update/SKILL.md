@@ -38,6 +38,11 @@ and `./tasks/<TASK-ID>.md`.
    `--wbs exempt --wbs-exempt-reason "<why>"` — the declaration lands in the task
    frontmatter and is counted in `roadmap_state.json`. Projects without a roadmap
    are unaffected.
+7. **Record progress as you work** — at each step (plan → implement → checks → verifier →
+   commit · push) update the task's single progress line:
+   `python -m workflow_kit backlog-update --mode update --task-id <TASK-ID> --task-name "<title>" --progress-note "<what is happening now>"`.
+   The tool stamps the time; the workbench shows it as *지금 하는 일*. One line, replaced each time —
+   the history lives in git.
 
 ## Usage
 

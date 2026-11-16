@@ -1040,6 +1040,9 @@ def main() -> int:
                     f"받은 값: {values!r}"
                 )
         progress_note = args.progress_note[0] if args.progress_note else None
+        if progress_note and not re.match(r"^`\d{4}-\d{2}-\d{2} \d{2}:\d{2}`", progress_note):
+            # 진행 기록은 '언제' 가 있어야 읽힌다 — 워크벤치가 '지금 하는 일' 로 보인다 (TASK-2026-11-16-main-009).
+            progress_note = f"`{datetime.now().strftime('%Y-%m-%d %H:%M')}` {progress_note}"
         next_step = args.next_step[0] if args.next_step else None
         # 새 결정은 항상 proposed 로 시작한다 — 줄에 적힌 상태는 버리고 알린다.
         args.plan_decisions, _decision_notes = normalize_plan_decision_args(args.plan_decisions)

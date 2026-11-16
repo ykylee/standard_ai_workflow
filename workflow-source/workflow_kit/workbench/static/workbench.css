@@ -190,3 +190,9 @@ details.fold[open] > summary { margin-bottom: .8rem; }
 
 /* 자동 새로고침 알림 */
 .refresh-notice { max-width: 76rem; margin: 1rem auto 0; display: flex; align-items: center; gap: .75rem; justify-content: space-between; }
+
+/* 지금 하는 일 — task 의 Progress 한 줄 */
+.now { display: block; font-size: .82rem; color: var(--muted); line-height: 1.45; margin: .1rem 0 .55rem; overflow-wrap: anywhere; }
+.now b { color: var(--accent); font-weight: 700; margin-right: .25rem; }
+.now time { font-family: var(--mono); font-size: .76rem; margin-right: .25rem; }
+.item .now { margin: .25rem 0 0; }

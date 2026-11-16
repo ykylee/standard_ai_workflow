@@ -204,6 +204,7 @@ task 파일에 있는 것만 그린다: 주장 트리(`<details>`, 접힌 상태
 | 마일스톤 · WBS · 파생 진척 · issues · `deliverables_missing` | `roadmap.build_roadmap_state` (실시간) 또는 `roadmap/roadmap_state.json` |
 | 진행 · 차단 · 계획 · 최근 완료 task | `refresh_workflow_state_cache` 를 임시 출력으로 (실시간) 또는 브랜치 `state.json` |
 | 완료 기준 · 검증 줄 · 주장 · 결정 | task 파일 |
+| 지금 하는 일 (계획 카드 · 작업 보드의 진행 중 · 차단 항목) | task 파일의 `Progress` 한 줄 — 작업하는 에이전트가 단계마다 `backlog-update --progress-note` 로 바꾼다(create · update 모두 시각을 도구가 붙인다 — 노트가 이미 `` `YYYY-MM-DD HH:MM` `` 로 시작하면 그대로, TASK-2026-11-16-main-009) |
 | 결정 상태 | `plan_tasks.computed_states` (보관 응답 포함) |
 | 미반영 응답 · 알 수 없는 항목 · 배치 문제 | `plan_responses.inbox_census` (요청 시점) |
 
@@ -226,9 +227,10 @@ roadmap 원천이 없으면 마일스톤은 "미측정" 이다 — 디스크에 
  "generated_at": {"roadmap": "<iso|null>", "state": "<iso|null>"}, "source": "live|generated", "computed_at": "<iso|null>", "live_error": "<사유|null>",
  "milestones": [{"id": "M-0NN", "title": "…", "declared": "<status>", "derived": "<status>",
                  "leaves_done": 3, "leaves_total": 4, "issues": ["…"]}],
- "tasks": {"in_progress": [{"id": "…", "title": "…"}], "blocked": […], "planned": […], "recent_done": […]},
+ "tasks": {"in_progress": [{"id": "…", "title": "…", "progress": {…} | null}], "blocked": […], "planned": […], "recent_done": […]},
  "issues": ["<code>: <detail>"],
- "plans": [{"task": "<TASK-ID>", "title": "…", "status": "<status>", "open_decisions": ["D1"], "pending_responses": 1}],
+ "plans": [{"task": "<TASK-ID>", "title": "…", "status": "<status>", "open_decisions": ["D1"], "pending_responses": 1,
+            "progress": {"at": "<YYYY-MM-DD HH:MM|null>", "text": "…"} | null}],
  "inbox": {"pending": {"<TASK-ID>": 1}, "unknown": ["<name>"], "layout_problem": "<사유|null>"}}
 ```
 
@@ -320,6 +322,7 @@ handle_path /workbench/* {
 | `check_workbench_design.py` | 화면 구조(§4.4) — 요약 수치 = `api/state` · 보드 4열 · 계획 카드 강조 · 마일스톤 막대 · 완료분만 접기 · 열린 결정 강조 · 결정은 닫힌 채 · 선택지 카드 · 제출 막대 · `style=` · 인라인 스크립트 · 외부 URL 없음 · 어두운 모드 · 좁은 폭 |
 | `check_workbench_refresh.py` | 자동 새로고침(§4.5) — `data-refresh` · 스크립트 · `data-version` · CSP `connect-src` · 같은 상태의 지문 고정 · 바뀌면 달라짐 · 0 이면 끔 · `--refresh` 범위 · 자동 기동 저장 · 스크립트 분기(실제 브라우저 동작은 task Proof 의 CDP 실측) |
 | `check_workbench_live.py` | 실시간 값(§7.1) — 낡은 `state.json` 위에서 방금 바뀐 task 가 보임 · `source` · 화면 표식 · 저장소 무변경 · 지문 같으면 재계산 0 · 바뀌면 재계산 · 프로필 없으면 생성물 · `where_for` 가 프로필을 싣는다 · 브랜치 전환 재계산 · 실패 사유 표시 · roadmap 실시간 · 낡은 roadmap 생성물 안 보임 · 산출물 지문 · 실패 사유에 절대 경로 없음 |
+| `check_workbench_progress.py` | 진행 기록 — `--progress-note` 시각 접두 · 손으로 적은 시각 그대로 · 시각 아닌 백틱엔 붙임 · 이스케이프 · 차단 항목 · `api/state` progress = task 파일 · 계획 카드 · 보드의 '지금' · 노트 바뀌면 지문 바뀜 · 스킬 · CLAUDE.md 규칙 |
 | `check_workbench_views.py` | 선언 ≠ 파생 둘 다 · 잎 0 "미측정" · 절대 경로 · 호스트 이름이 어느 응답에도 없음 (`api/state` 포함) · 이스케이프 (task 파일의 `<script>` 가 글자로) · 읽기 전용 (`git status` 전후 동일) · 정적 자원이 wheel 에 실림 |
 
 파서 단일성은 `check_plan_claims` case 6 의 소비자 목록에 `workbench/` 를 더해 그 한 곳에서 잰다 (ADR-032 결정 2).

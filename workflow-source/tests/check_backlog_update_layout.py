@@ -312,7 +312,8 @@ def test_update_task_brief_is_optional() -> None:
         _run_apply(ws, "--task-name", "brief 선택", "--task-id", task_id,
                    "--mode", "update", "--status", "blocked")
         text = task_file.read_text(encoding="utf-8")
-        assert f"- {_PROGRESS}: 77차가 남긴 진행 기록" in text, (
+        # update 의 --progress-note 는 시각이 앞에 붙는다 (TASK-2026-11-16-main-009) — 글이 보존됐는지만 본다.
+        assert re.search(rf"^- {re.escape(_PROGRESS)}: (`[^`]+` )?77차가 남긴 진행 기록$", text, re.M), (
             f"brief 생략 update 가 진행 기록을 덮었다:\n{text[:400]}")
         assert f"- {_SUMMARY}: 원래 작업 내용" in text, "작업 내용이 사라졌다"
         assert "status: blocked" in text, "상태가 반영되지 않았다"

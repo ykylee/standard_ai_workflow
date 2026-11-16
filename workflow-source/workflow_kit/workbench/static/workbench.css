@@ -187,3 +187,6 @@ ul.card.list { padding: .8rem 1rem .8rem 2rem; margin: 0; }
 details.fold { margin-top: 1rem; }
 details.fold > summary { color: var(--muted); font-weight: 650; font-size: .9rem; padding: .4rem 0; }
 details.fold[open] > summary { margin-bottom: .8rem; }
+
+/* 자동 새로고침 알림 */
+.refresh-notice { max-width: 76rem; margin: 1rem auto 0; display: flex; align-items: center; gap: .75rem; justify-content: space-between; }

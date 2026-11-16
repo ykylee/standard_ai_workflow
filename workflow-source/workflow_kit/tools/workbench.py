@@ -33,6 +33,7 @@ from workflow_kit.workbench import auth, server
 
 DEFAULT_BIND = "127.0.0.1"
 DEFAULT_PORT = 8766
+DEFAULT_REFRESH_S = 5
 RECORD_DIRNAME = ".workbench"
 RECORD_FILENAME = "server.json"
 GITIGNORE_BODY = "*\n"
@@ -65,6 +66,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--tls-cert", default=None)
     parser.add_argument("--tls-key", default=None)
     parser.add_argument("--allow-plain-http", action="store_true")
+    parser.add_argument("--refresh", type=int, default=DEFAULT_REFRESH_S, metavar="SECONDS",
+                        help=f"화면 자동 새로고침 간격(초, 기본 {DEFAULT_REFRESH_S}) — 0 이면 끈다")
     parser.add_argument("--open", default=None, metavar="NAME",
                         help="개방 모드 — 토큰 · 로그인 없이 누구나 NAME 이름으로 보고 답한다 (스펙 §5.6)")
     parser.add_argument("--status", action="store_true", help="실행 기록을 JSON 으로 내고 끝난다")
@@ -181,6 +184,8 @@ def start_argv(args: argparse.Namespace) -> list[str]:
         out += ["--bind", args.bind]
     if args.port != DEFAULT_PORT:
         out += ["--port", str(args.port)]
+    if args.refresh != DEFAULT_REFRESH_S:
+        out += ["--refresh", str(args.refresh)]
     for flag, value in (("--public-url", args.public_url), ("--tls-cert", args.tls_cert),
                         ("--tls-key", args.tls_key), ("--open", args.open)):
         if value is not None:
@@ -387,6 +392,8 @@ def validate_start(args: argparse.Namespace, workspace: Path, *,
             raise StartRefused(str(exc)) from None
     if not 0 <= args.port <= 65535:
         raise StartRefused(f"포트가 범위 밖이다: {args.port}")
+    if not 0 <= args.refresh <= 3600:
+        raise StartRefused(f"--refresh 는 0~3600 초다: {args.refresh}")
     public_url = server.normalize_public_url(
         args.public_url or default_public_url(args.bind, args.port, open_mode=open_mode))
     scheme = urlsplit(public_url).scheme.lower()
@@ -480,7 +487,8 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     locate = server.where_for(profile)
     app = server.App(public_url=public_url, tokens=tokens, locate=locate,
-                     trusted_proxies=frozenset(args.trusted_proxy), open_name=args.open)
+                     trusted_proxies=frozenset(args.trusted_proxy), open_name=args.open,
+                     refresh_seconds=args.refresh)
     try:
         httpd = server.make_server(app, args.bind, args.port)
     except OSError as exc:

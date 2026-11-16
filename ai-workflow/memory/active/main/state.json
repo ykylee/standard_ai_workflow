@@ -41,6 +41,7 @@
       "TASK-2026-11-13-claude-remote-sync-check-234c32-005"
     ],
     "recent_done_items": [
+      "TASK-2026-11-16-main-006 — 워크벤치 화면 자동 새로고침 — 바뀐 내용만 다시 그리고 답 쓰는 중이면 알림만",
       "TASK-2026-11-16-main-005 — workbench --stop 이 기록의 pid 가 그 포트의 주인인지 대조하지 않는다 — 인스턴스 표식 대조",
       "TASK-2026-11-16-main-004 — v1.24.0 발행 — 워크벤치 개방 · 자동 기동 · 화면 개편 + 수리 둘",
       "TASK-2026-11-16-main-003 — 워크벤치 화면 개편 — 대시보드형 진척 · 카드형 계획 화면",
@@ -49,15 +50,14 @@
       "TASK-2026-11-15-main-002 — MCP 오류 신호 불일치 — summarize_git_history 가 git 아닌 경로에 ok, invoke_tool 이 status error 를 rc 0 으로",
       "TASK-2026-11-15-main-001 — 경고 분류기가 /tmp · /var/tmp 경로를 정규화한 뒤 분류해 서드파티 경고를 저장소 경고로 오판한다",
       "TASK-2026-11-15-claude-remote-sync-check-234c32-003 — 합류 반영이 완료 task 를 archived/ 로만 보내 main 집계가 근거를 잃는다 — 완료 task 도 모 브랜치로 옮긴다",
-      "TASK-2026-11-15-claude-remote-sync-check-234c32-002 — v1.23.0 발행 — main 합류 · 발행 준비 · 태그 · GitHub Release",
-      "TASK-2026-11-15-claude-remote-sync-check-234c32-001 — MCP 도구 4종 성공 경로 output contract 미등록 수리 (main-002 대응, 발행 차단 결함)"
+      "TASK-2026-11-15-claude-remote-sync-check-234c32-002 — v1.23.0 발행 — main 합류 · 발행 준비 · 태그 · GitHub Release"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-11-16.md",
-    "task_count": 5,
+    "task_count": 6,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
@@ -65,7 +65,8 @@
       "TASK-2026-11-16-main-002 — 워크벤치 자동 기동 — session-start 가 띄우고 세션 종료 hook 이 내린다",
       "TASK-2026-11-16-main-003 — 워크벤치 화면 개편 — 대시보드형 진척 · 카드형 계획 화면",
       "TASK-2026-11-16-main-004 — v1.24.0 발행 — 워크벤치 개방 · 자동 기동 · 화면 개편 + 수리 둘",
-      "TASK-2026-11-16-main-005 — workbench --stop 이 기록의 pid 가 그 포트의 주인인지 대조하지 않는다 — 인스턴스 표식 대조"
+      "TASK-2026-11-16-main-005 — workbench --stop 이 기록의 pid 가 그 포트의 주인인지 대조하지 않는다 — 인스턴스 표식 대조",
+      "TASK-2026-11-16-main-006 — 워크벤치 화면 자동 새로고침 — 바뀐 내용만 다시 그리고 답 쓰는 중이면 알림만"
     ]
   },
   "next_documents": [

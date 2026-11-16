@@ -31,8 +31,8 @@ COOKIE_NAME = "wb_session"
 INSTANCE_HEADER = "X-Workbench-Instance"
 LOGIN_BODY_LIMIT = 4_096
 WRITE_BODY_LIMIT = 262_144
-CSP = ("default-src 'none'; style-src 'self'; script-src 'self'; form-action 'self'; base-uri 'none'; "
-       "frame-ancestors 'none'")
+CSP = ("default-src 'none'; style-src 'self'; script-src 'self'; connect-src 'self'; form-action 'self'; "
+       "base-uri 'none'; frame-ancestors 'none'")
 STATIC_FILES: dict[str, str] = {
     "workbench.css": "text/css; charset=utf-8",
     "workbench.js": "text/javascript; charset=utf-8",
@@ -91,6 +91,8 @@ class App:
     open_name: str | None = None
     #: 실행 기록과 같은 무작위 표식 — healthz 가 머리로 내어 `--stop` 이 포트의 주인을 대조한다 (스펙 §3.1).
     instance: str = ""
+    #: 화면 자동 새로고침 간격(초) — 0 이면 끈다 (스펙 §4.5).
+    refresh_seconds: int = 0
     sessions: auth.Sessions = field(default_factory=auth.Sessions)
     limiter: auth.LoginLimiter = field(default_factory=auth.LoginLimiter)
     log: Callable[[str], None] = field(default=lambda line: print(line, file=sys.stderr, flush=True))
@@ -404,7 +406,8 @@ class Handler(BaseHTTPRequestHandler):
                        content_type="application/json; charset=utf-8")
             return
         self._send(HTTPStatus.OK, views.progress_page(state=state, rel=self._rel(), user=session.name,
-                                                      csrf=session.csrf, logout=not self.app.is_open))
+                                                      csrf=session.csrf, logout=not self.app.is_open,
+                                                      refresh=self.app.refresh_seconds))
 
     def _plan(self, task_id: str, *, error: str | None = None, status: int = HTTPStatus.OK) -> None:
         session = self._need_session(api=False)
@@ -420,7 +423,8 @@ class Handler(BaseHTTPRequestHandler):
         flash, session.flash = session.flash, None
         self._send(status, views.plan_page(
             view=state_view.build_plan(where, task), rel=self._rel(), branch=where.branch, user=session.name,
-            csrf=session.csrf, role=session.role, flash=flash, error=error, logout=not self.app.is_open))
+            csrf=session.csrf, role=session.role, flash=flash, error=error, logout=not self.app.is_open,
+            refresh=self.app.refresh_seconds))
 
     # ------------------------------------------------------------------ 쓰기 (§5.4 → §6)
 

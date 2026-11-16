@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import html
 from collections.abc import Iterable, Sequence
 from typing import Any
@@ -42,15 +43,18 @@ def badge(value: object, *, kind: str | None = None) -> str:
 
 
 def page(*, title: str, rel: str, branch: str | None, body: str, script: bool = False,
-         user: str | None = None, csrf: str | None = None, logout: bool = True) -> str:
+         user: str | None = None, csrf: str | None = None, logout: bool = True, refresh: int = 0) -> str:
     head = [
         "<!doctype html>", '<html lang="ko">', "<head>", '<meta charset="utf-8">',
         '<meta name="viewport" content="width=device-width, initial-scale=1">',
         f"<title>{esc(title)}</title>", f'<link rel="stylesheet" href="{esc(rel)}static/workbench.css">',
     ]
-    if script:
+    if script or refresh:
         head.append(f'<script src="{esc(rel)}static/workbench.js" defer></script>')
-    head.extend(["</head>", "<body>", '<header class="top"><div class="bar">',
+    # 자동 새로고침 (스펙 §4.5) — 스크립트가 같은 주소를 다시 받아 main 의 지문이 바뀌었을 때만 갈아 끼운다.
+    body_tag = f'<body data-refresh="{int(refresh)}">' if refresh > 0 else "<body>"
+    version = hashlib.sha256(body.encode("utf-8")).hexdigest()[:16]
+    head.extend(["</head>", body_tag, '<header class="top"><div class="bar">',
                  f'<a class="brand" href="{esc(rel)}"><span class="logo">◆</span> 워크벤치</a>'])
     if branch is not None:
         head.append(f'<span class="branch">브랜치 {esc(branch)}</span>')
@@ -61,7 +65,7 @@ def page(*, title: str, rel: str, branch: str | None, body: str, script: bool = 
             f'<form method="post" action="{esc(rel)}logout" class="logout">'
             f'<input type="hidden" name="csrf" value="{esc(csrf)}">'
             f'<span class="who">{esc(user)}</span> <button type="submit" class="ghost">로그아웃</button></form>')
-    head.extend(["</div></header>", "<main>", body, "</main>", "</body>", "</html>"])
+    head.extend(["</div></header>", f'<main data-version="{version}">', body, "</main>", "</body>", "</html>"])
     return "\n".join(head) + "\n"
 
 
@@ -120,7 +124,8 @@ def _kpi(label: str, value: str, kind: str) -> str:
     return f'<div class="kpi {kind}"><span class="kpi-label">{esc(label)}</span><span class="kpi-value {cls}">{esc(value)}</span></div>'
 
 
-def progress_page(*, state: dict[str, Any], rel: str, user: str, csrf: str, logout: bool = True) -> str:
+def progress_page(*, state: dict[str, Any], rel: str, user: str, csrf: str, logout: bool = True,
+                  refresh: int = 0) -> str:
     tasks = state["tasks"]
     plans = state["plans"]
     inbox = state["inbox"]
@@ -201,7 +206,7 @@ def progress_page(*, state: dict[str, Any], rel: str, user: str, csrf: str, logo
         body.append('<ul class="issues">' + "".join(f"<li>{esc(note)}</li>" for note in state["issues"]) + "</ul>")
     body.append("</section>")
     return page(title="워크벤치 — 진척", rel=rel, branch=state["branch"], body="\n".join(body),
-                user=user, csrf=csrf, logout=logout)
+                user=user, csrf=csrf, logout=logout, refresh=refresh)
 
 
 def _claim_tree(view: PlanView) -> Iterable[str]:
@@ -277,7 +282,7 @@ def _decision_block(view: PlanView, decision_id: str, *, can_answer: bool) -> st
 
 
 def plan_page(*, view: PlanView, rel: str, branch: str, user: str, csrf: str, role: str,
-              flash: str | None = None, error: str | None = None, logout: bool = True) -> str:
+              flash: str | None = None, error: str | None = None, logout: bool = True, refresh: int = 0) -> str:
     task = view.task
     can_answer = role == "approver" and bool(view.decisions) and not view.has_errors
     open_count = sum(1 for d in view.decisions if d.open)
@@ -328,4 +333,4 @@ def plan_page(*, view: PlanView, rel: str, branch: str, user: str, csrf: str, ro
         body.append('<section class="section"><h2>Out of scope</h2><ul class="card list">'
                     + "".join(f"<li>{esc(v)}</li>" for v in view.out_of_scope) + "</ul></section>")
     return page(title=f"워크벤치 — {task.task_id}", rel=rel, branch=branch, body="\n".join(body), script=can_answer,
-                user=user, csrf=csrf, logout=logout)
+                user=user, csrf=csrf, logout=logout, refresh=refresh)

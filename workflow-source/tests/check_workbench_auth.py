@@ -51,7 +51,7 @@ FAILURES: list[str] = []
 GOOD = "g" * 40
 HEADERS = {
     # 스펙 §4.2 문면 그대로 — 서버 모듈의 상수를 빌리면 그 상수를 바꾼 결함이 함께 바뀐다.
-    "content-security-policy": ("default-src 'none'; style-src 'self'; script-src 'self'; form-action 'self'; "
+    "content-security-policy": ("default-src 'none'; style-src 'self'; script-src 'self'; connect-src 'self'; form-action 'self'; "
                                 "base-uri 'none'; frame-ancestors 'none'"),
     "x-content-type-options": "nosniff",
     "referrer-policy": "no-referrer",

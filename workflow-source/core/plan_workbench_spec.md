@@ -29,7 +29,7 @@
 ```
 python -m workflow_kit workbench [--bind 127.0.0.1] [--port 8766] [--public-url URL]
     --token <viewer|approver>:<name>=env:<VAR>|file:<path> [--token …]
-    [--trusted-proxy ADDR]… [--tls-cert PATH --tls-key PATH] [--allow-plain-http]
+    [--trusted-proxy ADDR]… [--tls-cert PATH --tls-key PATH] [--allow-plain-http] [--refresh SECONDS]
 python -m workflow_kit workbench --open <name> [--bind ADDR] [--port N] [--public-url URL] [--trusted-proxy ADDR]…
 python -m workflow_kit workbench --status
 python -m workflow_kit workbench --autostart on <시작 인자…> | --autostart off
@@ -97,7 +97,7 @@ python -m workflow_kit workbench --new-token <role>:<name> --out <path>
 
 ### 4.2 응답 머리
 
-모든 응답: `Content-Security-Policy: default-src 'none'; style-src 'self'; script-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'`,
+모든 응답: `Content-Security-Policy: default-src 'none'; style-src 'self'; script-src 'self'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'`,
 `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, `Cache-Control: no-store` (`static/` 는 `max-age=3600`). 인라인 스크립트 · 스타일 없음.
 
 ### 4.3 상대 경로
@@ -116,6 +116,14 @@ task 파일에 있는 것만 그린다: 주장 트리(`<details>`, 접힌 상태
 둘 다 `done` 이고 문제 없는 것만 "완료된 마일스톤 n개" 아래로 접는다). 계획 화면은 머리 카드(상태 · 열린 결정 · 미반영 응답 칩) → 주장 카드 트리
 (1단계까지 펼침) → 결정 카드(열린 결정은 `decision open` 강조, **닫힌 채** — 펼침이 곧 `opened` 기록) · 선택지 카드 → 하단 고정 제출 막대.
 스타일은 `static/workbench.css` 하나 — 어두운 모드(`prefers-color-scheme`) · 좁은 폭(`max-width`) 규칙, 인라인 `style` 없음 (CSP).
+
+### 4.5 자동 새로고침 (TASK-2026-11-16-main-006 — 소유자 지시 "작업하면서 워크벤치 내용을 지속적으로 갱신")
+
+- `--refresh SECONDS` (기본 5, 0~3600, 0 이면 끈다). 켜져 있으면 진척 · 계획 화면이 `<body data-refresh="N">` 와 `static/workbench.js` 를 싣고,
+  `<main data-version="…">` 에 본문의 지문(sha256 앞 16 hex)을 싣는다.
+- 스크립트는 N초마다(탭이 숨어 있으면 쉰다) 같은 주소를 `fetch` 로 다시 받아 `data-version` 이 다를 때만 `main` 을 갈아 끼운다.
+  리다이렉트(세션 끝)는 따르지 않는다. CSP 는 이것을 위해 `connect-src 'self'` 하나만 더한다.
+- 계획 화면에서 답을 쓰는 중(폼 입력 · 결정 펼침)이면 갈아 끼우지 않고 "내용이 바뀌었다" 알림과 새로고침 단추만 낸다 — 쓰던 답과 `opened` 기록을 지킨다.
 
 ## 5. 인증 (R3 · R4)
 
@@ -304,6 +312,7 @@ handle_path /workbench/* {
 | `check_workbench_open.py` | 개방 모드(§5.6) — 비 loopback 평문 허용 · 경고 한 줄 · `--open`+`--token` 거절 · 쿠키 없는 GET 200 · 로그아웃 없음 · `Host` 출처 제출 통과 · 다른 출처 403 · `responder` · `client` · `plan-import` 반영 · 토큰 모드 그대로 · 주소 정리 · DNS rebinding 403 · 세션 표 상한 |
 | `check_workbench_autostart.py` | 자동 기동(§3.1) — `--autostart on/off` · 인자 검증 · `session-start` 가 띄우고 다시 띄우지 않음 · 시작 실패 경고 한 줄 · 끄는 표식 둘 · `--stop` 의 안전(손으로 띄운 서버 · 워크벤치 아닌 pid) · SessionEnd hook · 대기 시간 초과는 자식을 거둔다 · pid ↔ 포트 주인 대조(instance) |
 | `check_workbench_design.py` | 화면 구조(§4.4) — 요약 수치 = `api/state` · 보드 4열 · 계획 카드 강조 · 마일스톤 막대 · 완료분만 접기 · 열린 결정 강조 · 결정은 닫힌 채 · 선택지 카드 · 제출 막대 · `style=` · 인라인 스크립트 · 외부 URL 없음 · 어두운 모드 · 좁은 폭 |
+| `check_workbench_refresh.py` | 자동 새로고침(§4.5) — `data-refresh` · 스크립트 · `data-version` · CSP `connect-src` · 같은 상태의 지문 고정 · 바뀌면 달라짐 · 0 이면 끔 · `--refresh` 범위 · 자동 기동 저장 · 스크립트 분기(실제 브라우저 동작은 task Proof 의 CDP 실측) |
 | `check_workbench_views.py` | 선언 ≠ 파생 둘 다 · 잎 0 "미측정" · 절대 경로 · 호스트 이름이 어느 응답에도 없음 (`api/state` 포함) · 이스케이프 (task 파일의 `<script>` 가 글자로) · 읽기 전용 (`git status` 전후 동일) · 정적 자원이 wheel 에 실림 |
 
 파서 단일성은 `check_plan_claims` case 6 의 소비자 목록에 `workbench/` 를 더해 그 한 곳에서 잰다 (ADR-032 결정 2).

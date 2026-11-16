@@ -26,6 +26,21 @@ def relative_base(path: str) -> str:
     return "../" * depth if depth else "./"
 
 
+def _status_class(value: object) -> str:
+    """상태 글자 → 배지 색 클래스. 모르는 값은 중립."""
+    text = str(value or "").split(":", 1)[0]
+    return {
+        "done": "ok", "kept": "ok", "answered": "ok", "changed": "ok",
+        "in_progress": "info", "active": "info",
+        "blocked": "bad", "error": "bad",
+        "planned": "muted", "proposed": "warn", "open": "warn",
+    }.get(text, "muted")
+
+
+def badge(value: object, *, kind: str | None = None) -> str:
+    return f'<span class="badge {kind or _status_class(value)}">{esc(value)}</span>'
+
+
 def page(*, title: str, rel: str, branch: str | None, body: str, script: bool = False,
          user: str | None = None, csrf: str | None = None, logout: bool = True) -> str:
     head = [
@@ -35,112 +50,156 @@ def page(*, title: str, rel: str, branch: str | None, body: str, script: bool = 
     ]
     if script:
         head.append(f'<script src="{esc(rel)}static/workbench.js" defer></script>')
-    head.extend(["</head>", "<body>", '<header class="top">', f'<a href="{esc(rel)}">워크벤치</a>'])
+    head.extend(["</head>", "<body>", '<header class="top"><div class="bar">',
+                 f'<a class="brand" href="{esc(rel)}"><span class="logo">◆</span> 워크벤치</a>'])
     if branch is not None:
         head.append(f'<span class="branch">브랜치 {esc(branch)}</span>')
     if user is not None and not logout:  # 개방 모드 — 로그인이 없으니 로그아웃도 없다 (스펙 §5.6)
-        head.append(f'<span class="logout">{esc(user)} · 인증 없음</span>')
+        head.append(f'<span class="logout who">{esc(user)} · 인증 없음</span>')
     elif user is not None and csrf is not None:
         head.append(
             f'<form method="post" action="{esc(rel)}logout" class="logout">'
             f'<input type="hidden" name="csrf" value="{esc(csrf)}">'
-            f'<span>{esc(user)}</span> <button type="submit">로그아웃</button></form>')
-    head.extend(["</header>", "<main>", body, "</main>", "</body>", "</html>"])
+            f'<span class="who">{esc(user)}</span> <button type="submit" class="ghost">로그아웃</button></form>')
+    head.extend(["</div></header>", "<main>", body, "</main>", "</body>", "</html>"])
     return "\n".join(head) + "\n"
 
 
 def login_page(*, rel: str, error: str | None = None) -> str:
-    body = ["<h1>로그인</h1>"]
+    body = ['<section class="card narrow"><h1>로그인</h1>']
     if error:
-        body.append(f'<p class="error">{esc(error)}</p>')
+        body.append(f'<p class="alert error">{esc(error)}</p>')
     body.append(
-        f'<form method="post" action="{esc(rel)}login">'
+        f'<form method="post" action="{esc(rel)}login" class="stack">'
         '<label>토큰 <input type="password" name="token" autocomplete="current-password" required></label> '
-        '<button type="submit">로그인</button></form>')
+        '<button type="submit">로그인</button></form></section>')
     return page(title="워크벤치 로그인", rel=rel, branch=None, body="\n".join(body))
 
 
 def message_page(*, rel: str, branch: str | None, title: str, message: str, back: str | None = None) -> str:
-    body = [f"<h1>{esc(title)}</h1>", f'<p class="error">{esc(message)}</p>']
+    body = [f'<section class="card narrow"><h1>{esc(title)}</h1>', f'<p class="alert error">{esc(message)}</p>']
     if back is not None:
         body.append(f'<p><a href="{esc(back)}">돌아가기</a></p>')
+    body.append("</section>")
     return page(title=title, rel=rel, branch=branch, body="\n".join(body))
 
 
 def _progress(done: int | None, total: int) -> str:
     if not total or done is None:
         return f'<span class="unmeasured">{UNMEASURED}</span>'
-    return (f'<span class="count">완료 잎 {esc(done)} / 전체 {esc(total)}</span> '
-            f'<progress value="{esc(done)}" max="{esc(total)}"></progress>')
+    return (f'<div class="meter"><progress value="{esc(done)}" max="{esc(total)}"></progress>'
+            f'<span class="count">완료 잎 {esc(done)} / 전체 {esc(total)}</span></div>')
 
 
 def _status(declared: Any, derived: Any) -> str:
     if declared == derived:
-        return esc(declared if declared is not None else UNMEASURED)
-    return f'선언 {esc(declared)} · 파생 {esc(derived)}'
+        return badge(declared if declared is not None else UNMEASURED)
+    return f'<span class="badge warn">선언 {esc(declared)} · 파생 {esc(derived)}</span>'
+
+
+def _count(items: Sequence[Any] | None) -> str:
+    return UNMEASURED if items is None else str(len(items))
 
 
 def _task_list(items: Sequence[dict[str, str]] | None, rel: str, linked: set[str]) -> str:
     if items is None:
-        return f'<p class="unmeasured">{UNMEASURED}</p>'
+        return f'<p class="unmeasured empty">{UNMEASURED}</p>'
     if not items:
-        return "<p>없음</p>"
+        return '<p class="empty">없음</p>'
     rows = []
     for item in items:
         label = esc(item["id"])
         if item["id"] in linked:
             label = f'<a href="{esc(rel)}task/{esc(item["id"])}">{label}</a>'
-        rows.append(f"<li>{label} — {esc(item['title'])}</li>")
-    return "<ul>" + "".join(rows) + "</ul>"
+        rows.append(f'<li class="item"><span class="tid">{label}</span><span class="ttl">{esc(item["title"])}</span></li>')
+    return '<ul class="items">' + "".join(rows) + "</ul>"
+
+
+def _kpi(label: str, value: str, kind: str) -> str:
+    cls = "unmeasured" if value == UNMEASURED else ""
+    return f'<div class="kpi {kind}"><span class="kpi-label">{esc(label)}</span><span class="kpi-value {cls}">{esc(value)}</span></div>'
 
 
 def progress_page(*, state: dict[str, Any], rel: str, user: str, csrf: str, logout: bool = True) -> str:
-    body: list[str] = ["<h1>진척</h1>"]
+    tasks = state["tasks"]
+    plans = state["plans"]
+    inbox = state["inbox"]
+    open_total = sum(len(p["open_decisions"]) for p in plans)
+    pending_total = sum(int(n) for n in (inbox.get("pending") or {}).values())
+    body: list[str] = ['<div class="page-head"><h1>진척</h1>']
     generated = state["generated_at"]
     body.append(
         f'<p class="generated">roadmap 생성 {esc(generated["roadmap"] or UNMEASURED)} · '
-        f'state 생성 {esc(generated["state"] or UNMEASURED)}</p>')
-    inbox = state["inbox"]
+        f'state 생성 {esc(generated["state"] or UNMEASURED)}</p></div>')
+    body.append('<section class="kpis">'
+                + _kpi("진행 중", _count(tasks["in_progress"]), "info")
+                + _kpi("차단", _count(tasks["blocked"]), "bad")
+                + _kpi("계획", _count(tasks["planned"]), "muted")
+                + _kpi("열린 결정", str(open_total), "warn" if open_total else "ok")
+                + _kpi("미반영 응답", str(pending_total), "warn" if pending_total else "ok")
+                + "</section>")
     if inbox["layout_problem"]:
-        body.append(f'<p class="error">계획 응답 배치: {esc(inbox["layout_problem"])}</p>')
+        body.append(f'<p class="alert error">계획 응답 배치: {esc(inbox["layout_problem"])}</p>')
     if inbox["unknown"]:
-        body.append(f'<p class="warn">받은편지함에 알 수 없는 항목 {len(inbox["unknown"])}건: '
+        body.append(f'<p class="alert warn">받은편지함에 알 수 없는 항목 {len(inbox["unknown"])}건: '
                     + esc(", ".join(inbox["unknown"])) + "</p>")
-    plans = state["plans"]
     linked = {entry["task"] for entry in plans}
-    body.append("<h2>계획</h2>")
+    body.append('<section class="section"><h2>계획</h2>')
     if plans:
-        rows = [
-            f'<tr><td><a href="{esc(rel)}task/{esc(p["task"])}">{esc(p["task"])}</a></td>'
-            f'<td>{esc(p["title"])}</td><td>{esc(p["status"])}</td>'
-            f'<td>{esc(len(p["open_decisions"]))}</td><td>{esc(p["pending_responses"])}</td></tr>'
-            for p in plans
-        ]
-        body.append('<table><thead><tr><th>task</th><th>제목</th><th>상태</th><th>열린 결정</th>'
-                    '<th>미반영 응답</th></tr></thead><tbody>' + "".join(rows) + "</tbody></table>")
+        cards = []
+        for p in plans:
+            opened = len(p["open_decisions"])
+            flags = []
+            if opened:
+                flags.append(f'<span class="chip warn">열린 결정 {opened}</span>')
+            if p["pending_responses"]:
+                flags.append(f'<span class="chip info">미반영 응답 {esc(p["pending_responses"])}</span>')
+            chips = "".join(flags) or '<span class="chip ok">결정 대기 없음</span>'
+            attention = " attention" if opened else ""
+            cards.append(
+                f'<a class="card plan-card{attention}" href="{esc(rel)}task/{esc(p["task"])}">'
+                f'<span class="card-top"><span class="tid">{esc(p["task"])}</span>{badge(p["status"])}</span>'
+                f'<span class="card-title">{esc(p["title"])}</span>'
+                f'<span class="chips">{chips}</span></a>')
+        body.append('<div class="grid">' + "".join(cards) + "</div>")
     else:
-        body.append("<p>계획이 있는 진행 중 task 가 없다</p>")
-    body.append("<h2>마일스톤</h2>")
+        body.append('<p class="empty">계획이 있는 진행 중 task 가 없다</p>')
+    body.append("</section>")
+    columns = []
+    for key, label, kind in (("in_progress", "진행 중", "info"), ("blocked", "차단", "bad"),
+                             ("planned", "계획", "muted"), ("recent_done", "최근 완료", "ok")):
+        columns.append(
+            f'<div class="column {kind}"><h2><span>{label}</span><span class="n">{esc(_count(tasks[key]))}</span></h2>'
+            + _task_list(tasks[key], rel, linked) + "</div>")
+    body.append('<section class="section"><h2>작업 보드</h2><div class="board">'
+                + "".join(columns) + "</div></section>")
+    body.append('<section class="section"><h2>마일스톤</h2>')
     if state["milestones"]:
-        rows = []
+        active: list[str] = []
+        finished: list[str] = []
         for m in state["milestones"]:
             issues = "".join(f"<li>{esc(note)}</li>" for note in m["issues"])
-            rows.append(
-                f"<tr><td>{esc(m['id'])}</td><td>{esc(m['title'])}</td>"
-                f"<td>{_status(m['declared'], m['derived'])}</td>"
-                f"<td>{_progress(m['leaves_done'], m['leaves_total'])}</td>"
-                f"<td>{'<ul>' + issues + '</ul>' if issues else ''}</td></tr>")
-        body.append('<table><thead><tr><th>ID</th><th>제목</th><th>상태</th><th>진척</th><th>문제</th>'
-                    '</tr></thead><tbody>' + "".join(rows) + "</tbody></table>")
+            card = (
+                f'<div class="card milestone"><div class="card-top"><span class="tid">{esc(m["id"])}</span>'
+                f'{_status(m["declared"], m["derived"])}</div>'
+                f'<div class="card-title">{esc(m["title"])}</div>'
+                f'{_progress(m["leaves_done"], m["leaves_total"])}'
+                + (f'<ul class="issues">{issues}</ul>' if issues else "") + "</div>")
+            # 선언 · 파생이 둘 다 done 이고 문제가 없는 것만 접는다 — 어긋남 · 문제는 늘 펼쳐 보인다.
+            settled = m["declared"] == "done" and m["derived"] == "done" and not m["issues"]
+            (finished if settled else active).append(card)
+        if active:
+            body.append('<div class="grid">' + "".join(active) + "</div>")
+        else:
+            body.append('<p class="empty">진행 중인 마일스톤이 없다</p>')
+        if finished:
+            body.append(f'<details class="fold"><summary>완료된 마일스톤 {len(finished)}개</summary>'
+                        '<div class="grid">' + "".join(finished) + "</div></details>")
     else:
-        body.append(f'<p class="unmeasured">{UNMEASURED} — roadmap_state.json 이 없다</p>')
+        body.append(f'<p class="unmeasured empty">{UNMEASURED} — roadmap_state.json 이 없다</p>')
     if state["issues"]:
-        body.append("<ul>" + "".join(f"<li>{esc(note)}</li>" for note in state["issues"]) + "</ul>")
-    tasks = state["tasks"]
-    for key, label in (("in_progress", "진행 중"), ("blocked", "차단"), ("planned", "계획"),
-                       ("recent_done", "최근 완료")):
-        body.append(f"<h2>{label}</h2>")
-        body.append(_task_list(tasks[key], rel, linked))
+        body.append('<ul class="issues">' + "".join(f"<li>{esc(note)}</li>" for note in state["issues"]) + "</ul>")
+    body.append("</section>")
     return page(title="워크벤치 — 진척", rel=rel, branch=state["branch"], body="\n".join(body),
                 user=user, csrf=csrf, logout=logout)
 
@@ -156,7 +215,9 @@ def _claim_tree(view: PlanView) -> Iterable[str]:
         decisions_by_claim.setdefault(dv.decision.claim_id, []).append(dv.decision.id)
 
     def render(claim: plan_claims.Claim) -> str:
-        parts = [f'<details class="claim depth-{claim.depth}"><summary>{esc(claim.id)} {esc(claim.text)}</summary>']
+        opened = " open" if claim.depth <= 1 else ""
+        parts = [f'<details class="claim depth-{claim.depth}"{opened}><summary><span class="cid">{esc(claim.id)}</span> '
+                 f'<span class="ctext">{esc(claim.text)}</span></summary><div class="claim-body">']
         if claim.location is not None:
             loc = claim.location
             where = f"new: {loc.path}" if loc.new else f"{loc.path}:{loc.start}" + (f"-{loc.end}" if loc.end else "")
@@ -174,7 +235,7 @@ def _claim_tree(view: PlanView) -> Iterable[str]:
             parts.append(f"<!--decision:{esc(decision_id)}-->")
         for child in by_parent.get(claim.id, []):
             parts.append(render(child))
-        parts.append("</details>")
+        parts.append("</div></details>")
         return "".join(parts)
 
     for root in by_parent.get(None, []):
@@ -184,26 +245,34 @@ def _claim_tree(view: PlanView) -> Iterable[str]:
 def _decision_block(view: PlanView, decision_id: str, *, can_answer: bool) -> str:
     dv = next(d for d in view.decisions if d.decision.id == decision_id)
     d = dv.decision
-    parts = [f'<details class="decision" data-decision="{esc(d.id)}"><summary>{esc(d.id)} {esc(d.question)} — '
-             f'<span class="state">{esc(dv.state)}</span></summary>']
+    # 결정은 닫힌 채 그린다 — 펼침이 곧 '열어 봄'(opened) 기록이다 (스펙 §6, workbench.js).
+    kind = "open" if dv.open else "closed"
+    parts = [f'<details class="decision {kind}" data-decision="{esc(d.id)}"><summary>'
+             f'<span class="did">{esc(d.id)}</span> <span class="question">{esc(d.question)}</span> — '
+             f'<span class="state badge {_status_class(dv.state)}">{esc(dv.state)}</span></summary>'
+             '<div class="decision-body">']
     if d.state != dv.state:
-        parts.append(f'<p class="warn">task 파일의 칸은 {esc(d.state)}</p>')
+        parts.append(f'<p class="alert warn">task 파일의 칸은 {esc(d.state)}</p>')
     if d.answered or not can_answer:
         chosen = d.state_value if d.answered else None
         items = "".join(
-            f"<li>{esc(value)} — {esc(text)}" + (" (추천)" if value == d.default else "")
-            + (" ← 답" if value == chosen else "") + "</li>"
+            f'<li class="option{" chosen" if value == chosen else ""}"><span class="opt-value">{esc(value)}</span> — '
+            f'<span class="opt-text">{esc(text)}</span>' + (' <span class="rec">(추천)</span>' if value == d.default else "")
+            + (' <span class="answer">← 답</span>' if value == chosen else "") + "</li>"
             for value, text in d.options)
-        parts.append(f"<ul>{items}</ul>")
+        parts.append(f'<ul class="options readonly">{items}</ul>')
     else:
         parts.append(f'<input type="hidden" name="opened_{esc(d.id)}" id="opened_{esc(d.id)}" value="no">')
+        parts.append('<div class="options">')
         for value, text in d.options:
             checked = " checked" if value == d.default else ""
             parts.append(
-                f'<label><input type="radio" name="value_{esc(d.id)}" value="{esc(value)}"{checked}> '
-                f'{esc(value)} — {esc(text)}' + (" (추천)" if value == d.default else "") + "</label><br>")
-        parts.append(f'<label>주석 <textarea name="comment_{esc(d.id)}" rows="2"></textarea></label>')
-    parts.append("</details>")
+                f'<label class="option"><input type="radio" name="value_{esc(d.id)}" value="{esc(value)}"{checked}> '
+                f'<span class="opt-value">{esc(value)}</span> — <span class="opt-text">{esc(text)}</span>'
+                + (' <span class="rec">(추천)</span>' if value == d.default else "") + "</label>")
+        parts.append("</div>")
+        parts.append(f'<label class="comment">주석 <textarea name="comment_{esc(d.id)}" rows="2"></textarea></label>')
+    parts.append("</div></details>")
     return "".join(parts)
 
 
@@ -212,16 +281,21 @@ def plan_page(*, view: PlanView, rel: str, branch: str, user: str, csrf: str, ro
     task = view.task
     can_answer = role == "approver" and bool(view.decisions) and not view.has_errors
     open_count = sum(1 for d in view.decisions if d.open)
-    body: list[str] = [f"<h1>{esc(task.task_id)}</h1>", f"<p>{esc(view.title)}</p>",
-                       f'<p class="summary">상태 {esc(task.status)} · 열린 결정 {open_count}건 · 미반영 응답 {view.pending}건</p>']
+    chips = [f'<span class="chip {_status_class(task.status)}">상태 {esc(task.status)}</span>',
+             f'<span class="chip {"warn" if open_count else "ok"}">열린 결정 {open_count}건</span>',
+             f'<span class="chip {"info" if view.pending else "ok"}">미반영 응답 {view.pending}건</span>']
+    body: list[str] = [
+        f'<p class="crumbs"><a href="{esc(rel)}">← 진척</a></p>',
+        f'<section class="card head-card"><h1>{esc(task.task_id)}</h1><p class="lead">{esc(view.title)}</p>'
+        f'<p class="summary chips">{"".join(chips)}</p></section>']
     if view.layout_problem:
-        body.append(f'<p class="error">계획 응답 배치: {esc(view.layout_problem)}</p>')
+        body.append(f'<p class="alert error">계획 응답 배치: {esc(view.layout_problem)}</p>')
     if view.has_errors:
-        body.append('<p class="error">task 파일의 주장 · 결정이 오류 규칙(L2 · L6 · L9)을 어겼다 — 응답을 받지 않는다</p>')
+        body.append('<p class="alert error">task 파일의 주장 · 결정이 오류 규칙(L2 · L6 · L9)을 어겼다 — 응답을 받지 않는다</p>')
     if flash:
-        body.append(f'<p class="flash">{esc(flash)}</p>')
+        body.append(f'<p class="alert flash">{esc(flash)}</p>')
     if error:
-        body.append(f'<p class="error">{esc(error)}</p>')
+        body.append(f'<p class="alert error">{esc(error)}</p>')
     if task.plan.claims:
         tree = "\n".join(_claim_tree(view))
         placed: set[str] = set()
@@ -232,22 +306,26 @@ def plan_page(*, view: PlanView, rel: str, branch: str, user: str, csrf: str, ro
                 placed.add(dv.decision.id)
         loose = [_decision_block(view, dv.decision.id, can_answer=can_answer)
                  for dv in view.decisions if dv.decision.id not in placed]
-        content = tree + "".join(loose)
+        content = '<section class="section"><h2>주장 · 결정</h2><div class="tree">' + tree + "".join(loose) + "</div></section>"
         if view.verification:
-            content += "<h2>검증</h2><ul>" + "".join(f"<li>{esc(v)}</li>" for v in view.verification) + "</ul>"
+            content += ('<section class="section"><h2>검증</h2><ul class="card list">'
+                        + "".join(f"<li>{esc(v)}</li>" for v in view.verification) + "</ul></section>")
         if can_answer:
             content = (
-                f'<form method="post" action="{esc(rel)}task/{esc(task.task_id)}/respond">'
+                f'<form method="post" action="{esc(rel)}task/{esc(task.task_id)}/respond" class="respond">'
                 f'<input type="hidden" name="csrf" value="{esc(csrf)}">'
                 f'<input type="hidden" name="plan_digest" value="{esc(view.digest)}">'
                 + content
-                + '<label>계획 전체 주석 <textarea name="comment_-" rows="3"></textarea></label>'
-                '<p><button type="submit">응답 보내기</button></p></form>')
+                + '<section class="section"><label class="comment">계획 전체 주석 '
+                '<textarea name="comment_-" rows="3"></textarea></label></section>'
+                '<div class="submitbar"><span class="hint">펼쳐 본 결정만 &#39;열어 봄&#39; 으로 기록된다</span>'
+                '<button type="submit">응답 보내기</button></div></form>')
         body.append(content)
     else:
-        rows = "".join(f"<li><b>{esc(label)}</b>: {esc(value)}</li>" for label, value in view.plain_fields)
-        body.append(f"<ul>{rows}</ul>")
+        rows = "".join(f"<div><dt>{esc(label)}</dt><dd>{esc(value)}</dd></div>" for label, value in view.plain_fields)
+        body.append(f'<section class="card"><dl class="fields">{rows}</dl></section>')
     if view.out_of_scope:
-        body.append("<h2>Out of scope</h2><ul>" + "".join(f"<li>{esc(v)}</li>" for v in view.out_of_scope) + "</ul>")
+        body.append('<section class="section"><h2>Out of scope</h2><ul class="card list">'
+                    + "".join(f"<li>{esc(v)}</li>" for v in view.out_of_scope) + "</ul></section>")
     return page(title=f"워크벤치 — {task.task_id}", rel=rel, branch=branch, body="\n".join(body), script=can_answer,
                 user=user, csrf=csrf, logout=logout)

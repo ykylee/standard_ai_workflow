@@ -108,6 +108,12 @@ task 파일에 있는 것만 그린다: 주장 트리(`<details>`, 접힌 상태
 상태, 칸이 다르면 "task 파일의 칸은 <값>") · 머리의 "열린 결정 n건" · "미반영 응답 n건" · 배치 문제(있으면) · 끝에 `Out of scope`.
 `answered` 결정은 읽기 전용(답과 함께). 주장이 없는 task 는 Description · 완료 기준 · Plan 나머지 필드를 그대로(폼 없음). viewer 에게는 폼이 없다.
 
+화면 모양 (TASK-2026-11-16-main-003 — 소유자 지시 "대시보드형"): 진척 화면은 요약 수치 다섯(진행 중 · 차단 · 계획 · 열린 결정 · 미반영 응답 —
+`api/state` 에서 센 값, 없는 목록은 "미측정") → 계획 카드(열린 결정이 있으면 강조) → 작업 보드 4열 → 마일스톤 카드(진척 막대; 선언 · 파생이
+둘 다 `done` 이고 문제 없는 것만 "완료된 마일스톤 n개" 아래로 접는다). 계획 화면은 머리 카드(상태 · 열린 결정 · 미반영 응답 칩) → 주장 카드 트리
+(1단계까지 펼침) → 결정 카드(열린 결정은 `decision open` 강조, **닫힌 채** — 펼침이 곧 `opened` 기록) · 선택지 카드 → 하단 고정 제출 막대.
+스타일은 `static/workbench.css` 하나 — 어두운 모드(`prefers-color-scheme`) · 좁은 폭(`max-width`) 규칙, 인라인 `style` 없음 (CSP).
+
 ## 5. 인증 (R3 · R4)
 
 ### 5.1 토큰
@@ -294,6 +300,7 @@ handle_path /workbench/* {
 | `check_workbench_write.py` | 왕복 — 서버가 쓴 응답이 `plan-import` 의 1~6 단계를 통과하고 상태에 든다 · 동시 제출(스레드 · 프로세스)에서 유실 0 · 독자가 덜 쓰인 파일을 보지 않는다 (번호는 연속이 아니다 — ADR-032 V7) · 되주입: `publish` 를 배타 생성 없이 · 임시 이름 없이 이어 쓰기(만들기와 쓰기 사이의 정해진 멈춤으로 결정적으로) · 413 · 422(선택지 밖 · 한도 · 제어 문자) · 409(지문 · 배치 · 오류 규칙) — 전부 받은편지함 무변경 · `answered` 결정의 조작된 값 무시 · 같은 응답자의 `received_at` 단조 증가 |
 | `check_workbench_open.py` | 개방 모드(§5.6) — 비 loopback 평문 허용 · 경고 한 줄 · `--open`+`--token` 거절 · 쿠키 없는 GET 200 · 로그아웃 없음 · `Host` 출처 제출 통과 · 다른 출처 403 · `responder` · `client` · `plan-import` 반영 · 토큰 모드 그대로 · 주소 정리 · DNS rebinding 403 · 세션 표 상한 |
 | `check_workbench_autostart.py` | 자동 기동(§3.1) — `--autostart on/off` · 인자 검증 · `session-start` 가 띄우고 다시 띄우지 않음 · 시작 실패 경고 한 줄 · 끄는 표식 둘 · `--stop` 의 안전(손으로 띄운 서버 · 워크벤치 아닌 pid) · SessionEnd hook · 대기 시간 초과는 자식을 거둔다 |
+| `check_workbench_design.py` | 화면 구조(§4.4) — 요약 수치 = `api/state` · 보드 4열 · 계획 카드 강조 · 마일스톤 막대 · 완료분만 접기 · 열린 결정 강조 · 결정은 닫힌 채 · 선택지 카드 · 제출 막대 · `style=` · 인라인 스크립트 · 외부 URL 없음 · 어두운 모드 · 좁은 폭 |
 | `check_workbench_views.py` | 선언 ≠ 파생 둘 다 · 잎 0 "미측정" · 절대 경로 · 호스트 이름이 어느 응답에도 없음 (`api/state` 포함) · 이스케이프 (task 파일의 `<script>` 가 글자로) · 읽기 전용 (`git status` 전후 동일) · 정적 자원이 wheel 에 실림 |
 
 파서 단일성은 `check_plan_claims` case 6 의 소비자 목록에 `workbench/` 를 더해 그 한 곳에서 잰다 (ADR-032 결정 2).

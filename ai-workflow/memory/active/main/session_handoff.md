@@ -4,7 +4,7 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-11-16 (132차 세션 진행 — Linux 호스트. 워크벤치 개방 모드 main-001 · 자동 기동 main-002 close, 디자인 진행)
+- 최종 수정일: 2026-11-16 (132차 세션 진행 — Linux 호스트. 워크벤치 main-001 개방 모드 · main-002 자동 기동 · main-003 화면 개편 close, v1.24.0 발행 준비)
 - 이전 수정일: 2026-10-31 (121차 세션 **종료** — Windows 호스트 DESKTOP-DGPLBF7. main-003 **한글 Windows 프로필 확립**(자식 환경 정본 `platform_child_env` · cp949 인코딩 · LF 표준 · 교차 플랫폼 파일 락 · POSIX 경로 · mypy `platform=linux`) → **격차 52건 → 0건**, 커밋 전 `--changed` 게이트 289/289 pass. 판정 불변(skip/xfail 0 · 단언 삭제 0 · 기대값 하향 0). 전량 게이트 `--branch-context=all` 은 커밋 후 clean tree 에서 rc 0 과 증거 기록을 남긴 뒤 push)
 - 이전 수정일: 2026-10-31 (120차 세션 **종료** — Windows 호스트 DESKTOP-DGPLBF7. main-001 MiniMax Code 채널 재적용(v1.21.0 플러그인 sync 13파일 + 글로벌 MCP 등록 · doctor in-sync) + main-002 게이트 러너 Windows 결함 수리(`_kill_process_group` POSIX 전용 API → `taskkill` 분기). main 은 v1.21.0 + 커밋 4건, 미push)
 - 이전 수정일: 2026-10-22 (119차 세션 **종료** — Linux 호스트. 변경 없음: v1.21.0 발행 뒤 기준선 재측정 — doctor behind=[] · claude-code 재시작 확인 · 전량 게이트 309×2 green. 열린 task 는 Windows 실측 3건뿐, 이 호스트 착수 가능 작업 0)
@@ -77,6 +77,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-11-16-main-003 워크벤치 화면 개편 — 대시보드형 진척 · 카드형 계획 화면
 - TASK-2026-11-16-main-002 워크벤치 자동 기동 — session-start 가 띄우고 세션 종료 hook 이 내린다
 - TASK-2026-11-16-main-001 워크벤치 개방 모드 — 토큰 없이 IP 로 접속해 보고 답한다 (--open)
 - TASK-2026-11-15-main-002 MCP 오류 신호 불일치 — summarize_git_history 가 git 아닌 경로에 ok, invoke_tool 이 status error 를 rc 0 으로
@@ -86,12 +87,11 @@
 - TASK-2026-11-15-claude-remote-sync-check-234c32-003 합류 반영이 완료 task 를 archived/ 로만 보내 main 집계가 근거를 잃는다 — 완료 task 도 모 브랜치로 옮긴다
 - TASK-2026-11-15-claude-remote-sync-check-234c32-001 MCP 도구 4종 성공 경로 output contract 미등록 수리 (main-002 대응, 발행 차단 결함)
 - TASK-2026-11-14-claude-remote-sync-check-234c32-003 M-029 ② MCP plan_inbox · plan_import + 체크인 생성물
-- TASK-2026-11-14-claude-remote-sync-check-234c32-002 M-029 ② 워크벤치 서버 · 화면 · 검사 넷 · 스킬 (MCP 두 도구는 다음 task)
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
 
-- (132차, 2026-11-16) **워크벤치 3분할 작업 — 소유자 지시: 세션 시작 때 자동 기동 · 토큰 없이 IP 접속 · 디자인 개편.** ①**main-001 close** — 개방 모드 `workbench --open <이름>`(토큰 · 로그인 없음, 비 loopback 평문 허용 + 경고 한 줄, 응답 머리 `client:` 요청자 주소, Host 는 IP 리터럴 · localhost · public_url 호스트만 — DNS rebinding 403, 세션 표 상한 1,024). spec §5.6 · ADR-032 V8. ②**main-002 close** — 자동 기동: `workbench --autostart on <시작 인자>` → `.workbench/autostart.json`, `session-start` 가 떨어진 자식으로 띄우고 `워크벤치 시작: <url>`, Claude Code SessionEnd hook 이 `--stop --autostarted-only`(healthz 확인 뒤), 검사 표식이 이 작업 공간이면 끔. spec §3.1 · ADR-032 V9. 후속 후보: `--stop` 의 pid ↔ 포트 주인 대조 · Windows 경로 실측. 소유자가 이 checkout 에서 켜려면 `--autostart on --open <이름> --bind 0.0.0.0` 한 번. ③다음: main-003 대시보드형 화면(외부 CDN 없이 CSS, 다크 · 모바일).
+- (132차, 2026-11-16) **워크벤치 3분할 작업 — 소유자 지시: 세션 시작 때 자동 기동 · 토큰 없이 IP 접속 · 디자인 개편.** ①**main-001 close** — 개방 모드 `workbench --open <이름>`(토큰 · 로그인 없음, 비 loopback 평문 허용 + 경고 한 줄, 응답 머리 `client:` 요청자 주소, Host 는 IP 리터럴 · localhost · public_url 호스트만 — DNS rebinding 403, 세션 표 상한 1,024). spec §5.6 · ADR-032 V8. ②**main-002 close** — 자동 기동: `workbench --autostart on <시작 인자>` → `.workbench/autostart.json`, `session-start` 가 떨어진 자식으로 띄우고 `워크벤치 시작: <url>`, Claude Code SessionEnd hook 이 `--stop --autostarted-only`(healthz 확인 뒤), 검사 표식이 이 작업 공간이면 끔. spec §3.1 · ADR-032 V9. 후속 후보: `--stop` 의 pid ↔ 포트 주인 대조 · Windows 경로 실측. 소유자가 이 checkout 에서 켜려면 `--autostart on --open <이름> --bind 0.0.0.0` 한 번. ③**main-003 close** — 대시보드형 화면: 진척 = 요약 수치 5 · 계획 카드 · 작업 보드 4열 · 마일스톤 막대(완료분 접기), 계획 = 머리 칩 · 주장 카드 · 열린 결정 강조(닫힌 채) · 선택지 카드 · 고정 제출 막대, 다크 · 420px. 검사 check_workbench_design. ④이 main worktree 에 자동 기동 켬(`--open owner --bind 0.0.0.0`, :8766). 다음: v1.24.0 발행(소유자 승인 2026-11-16).
 - (131차 후속) **main-001 · main-002 수리 완료** — ①경고 분류기: 저장소가 `/tmp` · `/var/tmp` 아래여도 출처 분류가 맞다(`CheckWarning.raw_location`) ②MCP: `invoke_tool` 이 status error 에 rc 1 · `summarize_git_history` 가 git 실패에 `git_log_failed`. 다음 발행 노트에 1.23.0 §4 '미수리' 두 건의 해소를 적는다. 후속 후보: `run_create_session_handoff_draft.py` 직접 실행 시 git 실패 traceback · `apply_robust_patch` 의 SEARCH 불일치 error_code 가 `malformed_patch_block`.
 - (131차) **v1.23.0 발행 완료** — 다음 일: ①codex 재시작 뒤 `doctor --json` 의 `runtime_load.stale_hosts=[]` 확인 ②후속 후보 — 경고 분류기 `/var/tmp` 결함(저장소가 `/tmp` · `/var/tmp` 아래면 서드파티 경고를 저장소 경고로) · MCP `summarize_git_history`(git 아닌 경로에 ok) · `apply_robust_patch`(실패에 rc 0) 신호 불일치 · Windows 실측(M-028/WBS-28.3). 소유자 질문 2건 대기: `check_entry_diet` 15% 기준 · 주장 없는 task 의 '미측정' 표식.
 - (합류 `claude/remote-sync-check-234c32@7fdf0eb5`, 2026-11-15) **130차 세션 (2026-11-15, Linux 호스트) — main 합류 · 1.23.0 발행 준비 완료(게이트 442b9808, main fast-forward) + 합류 반영 결함 수리(task 11-15-003 — 완료 task 도 모 브랜치로): `origin/main@39a50a11` 병합(6ffa3f69, `roadmap_state.json` 충돌은 재생성) + 발행 차단 결함 수리.** main 의 TASK-… — 완료 14건(TASK-2026-11-12-claude-remote-sync-check-234c32-002, TASK-2026-11-12-claude-remote-sync-check-234c32-003, TASK-2026-11-12-claude-remote-sync-check-234c32-004, TASK-2026-11-12-claude-remote-sync-check-234c32-005, TASK-2026-11-13-claude-remote-sync-check-234c32-001, TASK-2026-11-13-claude-remote-sync-check-234c32-002, TASK-2026-11-13-claude-remote-sync-check-234c32-003, TASK-2026-11-13-claude-remote-sync-check-234c32-004, TASK-2026-11-13-claude-remote-sync-check-234c32-006, TASK-2026-11-14-claude-remote-sync-check-234c32-001, TASK-2026-11-14-claude-remote-sync-check-234c32-002, TASK-2026-11-14-claude-remote-sync-check-234c32-003, TASK-2026-11-15-claude-remote-sync-check-234c32-001, TASK-2026-11-15-claude-remote-sync-check-234c32-003) · 이월 2건(TASK-2026-11-13-claude-remote-sync-check-234c32-005, TASK-2026-11-15-claude-remote-sync-check-234c32-002) · 되돌려 적음 0건. 기록: [`archived/claude/remote-sync-check-234c32/session_handoff.md`](../../archived/claude/remote-sync-check-234c32/session_handoff.md) · [합류 기록](./sessions/merge_claude-remote-sync-check-234c32_2026-11-15.md)

@@ -54,7 +54,7 @@ HEADERS = {
     "content-security-policy": ("default-src 'none'; style-src 'self'; script-src 'self'; connect-src 'self'; form-action 'self'; "
                                 "base-uri 'none'; frame-ancestors 'none'"),
     "x-content-type-options": "nosniff",
-    "referrer-policy": "no-referrer",
+    "referrer-policy": "same-origin",
 }
 
 

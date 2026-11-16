@@ -12,6 +12,8 @@
 6. DNS rebinding — `Host` 와 `Origin` 이 같은 다른 이름(`attacker.example`)이면 403 · 받은편지함 무변경;
    `localhost` 와 `public_url` 의 호스트 이름은 통과
 7. 세션 상한 — 쿠키 없는 GET 을 상한보다 많이 보내도 세션 표가 상한을 넘지 않고, 살아 있는 세션은 남는다
+8. `Origin: null` — 개방 · 토큰 모드 모두 403 · 받은편지함 무변경; 화면의 `Referrer-Policy` 는 `no-referrer` 가 아니다
+   (`no-referrer` 면 브라우저가 폼 POST 에 Origin null 을 실어 정상 제출이 막힌다 — TASK-2026-11-16-main-007)
 """
 
 from __future__ import annotations
@@ -307,6 +309,28 @@ def case_session_cap() -> list[str]:
     return problems
 
 
+def case_null_origin() -> list[str]:
+    problems: list[str] = []
+    for label, kwargs in (("개방", {"tokens": (), "open_name": OPEN_NAME}), ("토큰", {})):
+        with fx.temp_workspace("wb-open-8-") as td:
+            ws = fx.make_workspace(td)
+            task_id = fx.create_task(ws)
+            with fx.running(ws, **kwargs) as srv:  # type: ignore[arg-type]
+                browser = fx.Browser(srv.port, origin="null")
+                if label == "토큰":
+                    login = fx.Browser(srv.port)
+                    login.login(fx.APPROVER)
+                    browser.cookies = login.cookies
+                page = browser.get(f"/task/{task_id}")
+                policy = page.header("Referrer-Policy") or ""
+                if policy == "no-referrer" or not policy:
+                    problems.append(f"{label}: Referrer-Policy 가 {policy!r} — 브라우저가 폼 POST 에 Origin null 을 싣는다")
+                reply, _ = fx.submit(browser, f"/task/{task_id}")
+                if reply.status != 403 or fx.inbox_snapshot(ws):
+                    problems.append(f"{label}: Origin null 제출이 {reply.status} · 받은편지함 {list(fx.inbox_snapshot(ws))}")
+    return problems
+
+
 CASES = (
     ("1 시작 — 비 loopback 평문 허용 · 경고 한 줄 · 거절 · CLI", case_start),
     ("2 쿠키 없는 GET 200 · 응답 폼 · 로그아웃 없음 · login 303", case_no_login),
@@ -315,6 +339,7 @@ CASES = (
     ("5 접속 주소 정리", case_client_sanitized),
     ("6 DNS rebinding — 다른 이름의 Host 403", case_dns_rebinding),
     ("7 세션 표 상한", case_session_cap),
+    ("8 Origin null 403 · Referrer-Policy 는 no-referrer 가 아니다", case_null_origin),
 )
 
 

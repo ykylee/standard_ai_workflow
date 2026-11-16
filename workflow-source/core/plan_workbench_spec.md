@@ -98,7 +98,7 @@ python -m workflow_kit workbench --new-token <role>:<name> --out <path>
 ### 4.2 응답 머리
 
 모든 응답: `Content-Security-Policy: default-src 'none'; style-src 'self'; script-src 'self'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'`,
-`X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, `Cache-Control: no-store` (`static/` 는 `max-age=3600`). 인라인 스크립트 · 스타일 없음.
+`X-Content-Type-Options: nosniff`, `Referrer-Policy: same-origin` (`no-referrer` 면 브라우저가 폼 POST 에 `Origin: null` 을 실어 §5.4 대조가 막는다 — TASK-2026-11-16-main-007), `Cache-Control: no-store` (`static/` 는 `max-age=3600`). 인라인 스크립트 · 스타일 없음.
 
 ### 4.3 상대 경로
 

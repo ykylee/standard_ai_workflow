@@ -8,6 +8,8 @@ release_pipeline 의 사본이 case 수 6 을 리터럴로 가져, 가드가 7 c
 3. 한 출처 — release_pipeline 은 공용 파서를 부르고 case 수 리터럴 · 자체 정규식이 없다; 대시보드 · release_v0_13_0 도 같은 파서
 4. 불일치는 소비자까지 간다 — release 재검사 결과의 `mismatch`, 대시보드 렌더(markdown · html)의 `guard_mismatch`
 5. release_v0_13_0 preflight — 실제 가드 · 대시보드 검사가 green 이면 True (옛 "6/6" · "10/10" 문자열 대조는 늘 False 였다)
+6. 가드를 돌리지 않은 대시보드 패널(inline_guard=False)은 센 값을 null · guard_measured=false 로 싣고 렌더가 '미측정' 을 보인다 —
+   기대값 7 을 실측 자리에 싣지 않는다 (TASK-2026-11-16-main-012); 측정한 패널의 렌더는 그대로다
 """
 
 from __future__ import annotations
@@ -18,6 +20,9 @@ CHECK_TIMEOUT_S = 240
 #: 이 검사의 입력 표면 (spec `core/test_impact_tiering_spec.md` §2).
 WATCHES = (
     # 실제 가드 · 대시보드 검사를 돌린다 — 그 둘의 입력 표면을 함께 진다.
+    # case 6 은 살아 있는 저장소에서 collect_drift_prevention 을 부른다 — 메모리 · 원장 · 문서를 읽는다.
+    "ai-workflow/*",
+    "docs/*",
     "LICENSE",
     "README.md",
     "workflow-source/LICENSE",
@@ -37,7 +42,7 @@ SOURCE_ROOT = Path(__file__).resolve().parents[1]
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
-from workflow_kit.common.dashboard_data import parse_drift_guard_output  # noqa: E402
+from workflow_kit.common.dashboard_data import collect_drift_prevention, parse_drift_guard_output  # noqa: E402
 from unittest import mock  # noqa: E402
 import subprocess  # noqa: E402
 
@@ -148,12 +153,41 @@ def case_legacy_preflight() -> list[str]:
     return problems
 
 
+def case_unmeasured_panel() -> list[str]:
+    problems: list[str] = []
+    panel = collect_drift_prevention(SOURCE_ROOT.parent, inline_guard=False)
+    got = {k: panel.get(k) for k in ("guard_measured", "guard_cases", "guard_cases_pass", "guard_cases_fail", "expected_cases")}
+    if got != {"guard_measured": False, "guard_cases": None, "guard_cases_pass": None, "guard_cases_fail": None,
+               "expected_cases": 7}:
+        problems.append(f"가드를 돌리지 않았는데 센 값을 실었다: {got}")
+    def guard_lines(text: str) -> str:  # 다른 필드(silent_failing 등)의 '미측정' 과 섞지 않는다
+        return "\n".join(line for line in text.splitlines() if "guard_cases:" in line or "guard:" in line)
+
+    md = guard_lines("\n".join(dashboard_render_markdown._render_panel_1(panel)))
+    html_text = guard_lines(dashboard_render_html._render_html_panel_1(panel))
+    for label, text, bad in (("markdown", md, "`7 / 7`"), ("html", html_text, "0/7 pass")):
+        if "미측정" not in text or bad in text:
+            problems.append(f"{label} 렌더가 미측정을 보이지 않거나 숫자를 지어냈다")
+    inline = collect_drift_prevention(SOURCE_ROOT.parent, inline_guard=True)
+    if inline.get("guard_measured") is not True or not isinstance(inline.get("guard_cases"), int):
+        problems.append(f"가드를 돌린 패널이 측정 표식 · 정수 값을 싣지 않았다: "
+                        f"{ {k: inline.get(k) for k in ('guard_measured', 'guard_cases', 'guard_status')} }")
+    measured = {"guard_status": "pass", "guard_measured": True, "guard_cases": 7, "guard_cases_pass": 7,
+                "guard_cases_fail": 0, "expected_cases": 7, "guard_runtime_ms": 88}
+    md_m = guard_lines("\n".join(dashboard_render_markdown._render_panel_1(measured)))
+    html_m = guard_lines(dashboard_render_html._render_html_panel_1(measured))
+    if "- guard_cases: `7 / 7`" not in md_m or "guard: 7/7 pass (expected 7)" not in html_m or "미측정" in md_m + html_m:
+        problems.append("측정한 패널의 렌더가 바뀌었다")
+    return problems
+
+
 CASES = (
     ("1 실제 가드 — pass + fail = total = 가드 파일의 case 수", case_real_guard),
     ("2 합성 출력 — 일부 실패 · 요약만 · 불일치 기록 · error", case_synthetic),
     ("3 한 출처 — release · 대시보드 · release_v0_13_0 이 같은 파서, 리터럴 없음", case_single_source),
     ("4 불일치는 release 결과 · 대시보드 렌더까지 간다", case_mismatch_reaches_consumers),
     ("5 release_v0_13_0 preflight 가 실제 green 에 True", case_legacy_preflight),
+    ("6 가드를 돌리지 않은 패널은 미측정", case_unmeasured_panel),
 )
 
 

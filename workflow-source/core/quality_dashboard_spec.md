@@ -4,7 +4,7 @@
 - 범위: panel 별 data source, field 정의, acceptance criteria, edge cases, drift detection
 - 대상 독자: AI agent 설계자, dashboard consumer (release note 자동 emit, wiki sync), 운영자
 - 상태: draft
-- 최종 수정일: 2026-09-28
+- 최종 수정일: 2026-11-16
 - 관련 문서:
   - [`./quality-dashboard-implementation-guide.md`](./quality-dashboard-implementation-guide.md) — wiki topic (구현 가이드)
   - [`./maturity_matrix.json`](./maturity_matrix.json) — Panel 1/2 의 data source
@@ -257,18 +257,22 @@ Data source: `ai-workflow/memory/active/state.json.session.recent_done_items`
 새 field:
 | Field | Type | 비고 |
 |---|---|---|
-| `guard_status` | `Literal["pass", "fail", "error"]` | inline 실행 결과. v0.13.0 의 `'unknown'` 은 legacy 옵션 (`inline_guard=False`) |
-| `guard_cases_pass` | `int` | pass case 갯수 |
-| `guard_cases_fail` | `int` | fail case 갯수 |
+| `guard_status` | `Literal["pass", "fail", "error", "unknown"]` | inline 실행 결과. `'unknown'` 은 가드를 돌리지 않았을 때 (`inline_guard=False`) |
+| `guard_measured` | `bool` | 가드를 실제로 돌렸는가 — False 면 아래 센 값은 `null` (미측정, TASK-2026-11-16-main-012) |
+| `guard_cases` | `int \| null` | 가드가 낸 case 갯수 (기대값은 `expected_cases`) — 미측정이면 `null` |
+| `guard_cases_pass` | `int \| null` | pass case 갯수 — 미측정이면 `null` |
+| `guard_cases_fail` | `int \| null` | fail case 갯수 — 미측정이면 `null` |
+| `guard_mismatch` | `str` (선택) | 가드의 요약 줄과 case 줄 수가 어긋날 때 사유 (TASK-2026-11-16-main-011) |
 | `guard_failure_names` | `list[str]` | fail case 의 name (drift 발생 시) |
 | `guard_executed_at` | `str` (ISO 8601) | inline 실행 timestamp |
-| `guard_runtime_ms` | `int` | inline 실행 소요 시간 (ms) |
+| `guard_runtime_ms` | `int \| null` | inline 실행 소요 시간 (ms) — 미측정이면 `null` |
 
 내부 구현: `run_drift_prevention_guard_inline(workspace_root, *, timeout=30)` —
 `workflow-source/tests/check_drift_prevention_v0_11_23.py` 의 main() 을 subprocess 로
-호출하여 stdout line 의 `PASS:` / `FAIL:` / `=== PASS|FAIL: N/M ===` 패턴을 regex parse.
+호출하고, 출력은 `parse_drift_guard_output` (release self-recover 재검사 · `release_v0_13_0` preflight 와 같은 한 함수)로 해석한다 — case 수 리터럴 없음.
 
-`collect_dashboard_snapshot(inline_guard=False)` 으로 legacy v0.13.0 behavior 유지.
+`collect_dashboard_snapshot(inline_guard=False)` 는 가드를 돌리지 않는다 — 센 값을 지어내지 않고 `null` · `guard_measured=false` 를 싣고,
+렌더(markdown · html)는 '미측정' 을 보인다. release post-emit 은 inline 으로 돈다(CLI 기본 `--inline-guard true`).
 
 ### 13.2 release post-emit hook
 

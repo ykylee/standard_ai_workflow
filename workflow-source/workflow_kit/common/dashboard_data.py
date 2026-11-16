@@ -212,9 +212,10 @@ def collect_drift_prevention(
 
     Fields:
         guard_status: 'pass' | 'fail' | 'error' | 'unknown' (inline 실행 결과)
-        guard_cases_pass: pass 한 case 갯수 (inline 실행 시)
-        guard_cases_fail: fail 한 case 갯수 (inline 실행 시)
-        guard_cases: 총 guard case 갯수 (expected = EXPECTED_DRIFT_GUARD_CASES)
+        guard_measured: 가드를 실제로 돌렸는가 (inline_guard). False 면 아래 셋은 None — 미측정
+        guard_cases_pass: pass 한 case 갯수 (inline 실행 시, 아니면 None)
+        guard_cases_fail: fail 한 case 갯수 (inline 실행 시, 아니면 None)
+        guard_cases: 가드가 낸 case 갯수 (inline 실행 시, 아니면 None — 기대값은 expected_cases)
         expected_cases: EXPECTED_DRIFT_GUARD_CASES 정합
         guard_failure_names: fail case 의 name list (drift 발생 시)
         guard_executed_at: inline 실행 timestamp (ISO 8601)
@@ -283,19 +284,22 @@ def collect_drift_prevention(
         "print(refresh_maturity_last_updated(Path('workflow-source/core/maturity_matrix.json')))\""
     ) if maturity_stale else ""
 
+    # 가드를 돌리지 않았으면 센 값이 없다 — 기대값(7)을 실측 자리에 싣지 않는다 (TASK-2026-11-16-main-012).
     guard_panel: dict[str, Any] = {
         "guard_status": "unknown",
-        "guard_cases_pass": 0,
-        "guard_cases_fail": 0,
-        "guard_cases": EXPECTED_DRIFT_GUARD_CASES,
+        "guard_measured": False,
+        "guard_cases_pass": None,
+        "guard_cases_fail": None,
+        "guard_cases": None,
         "expected_cases": EXPECTED_DRIFT_GUARD_CASES,
         "guard_failure_names": [],
         "guard_executed_at": "",
-        "guard_runtime_ms": 0,
+        "guard_runtime_ms": None,
     }
     if inline_guard:
         guard_result = run_drift_prevention_guard_inline(root)
         guard_panel.update(guard_result)
+        guard_panel["guard_measured"] = True
 
     # north-star 는 freshness proxy 가 아니다 (v1.0.1 분리).
     # 정의(wiki/topics/phase-13-definition-north-star.md §2.2): "drift 를 guard 가

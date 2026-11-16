@@ -165,10 +165,12 @@ ul.timeline { padding-left: 1.2rem; }
 def _render_html_panel_1(p: dict[str, Any]) -> str:
     """Panel 1 HTML — drift guard status."""
     status = str(p.get("guard_status", "unknown"))
-    guard_cases_pass = int(p.get("guard_cases_pass", 0))
-    guard_cases = int(p.get("guard_cases", 0))
     expected = int(p.get("expected_cases", 0))
-    runtime_ms = int(p.get("guard_runtime_ms", 0))
+    measured = p.get("guard_cases") is not None  # 가드를 돌리지 않았으면 숫자를 지어내지 않는다 (TASK-2026-11-16-main-012)
+    guard_line = (f"guard: {int(p.get('guard_cases_pass') or 0)}/{int(p.get('guard_cases') or 0)} pass (expected {expected})"
+                  if measured else f"guard: 미측정 (expected {expected}) — 가드를 돌리지 않았다 (inline_guard=False)")
+    runtime = p.get("guard_runtime_ms")
+    runtime_ms = str(int(runtime)) if runtime is not None else "미측정"
     maturity_last_updated = str(p.get("maturity_last_updated", ""))
     head_commit_date = str(p.get("head_commit_date", ""))
     delta = p.get("last_updated_delta_days")
@@ -192,7 +194,7 @@ def _render_html_panel_1(p: dict[str, Any]) -> str:
     return f"""  <section class="panel">
     <h2>Panel 1 — Drift Prevention Status</h2>
     <p>guard_status: <span class="stat {status_class}">{_html_escape(status)}</span></p>
-    <p>guard: {guard_cases_pass}/{guard_cases} pass (expected {expected})</p>{mismatch_html}
+    <p>{_html_escape(guard_line)}</p>{mismatch_html}
     <p>guard_runtime_ms: {runtime_ms}</p>
     <p>maturity_last_updated: <code>{_html_escape(maturity_last_updated)}</code></p>
     <p>maturity_surface_changed_at: <code>{_html_escape(surface_changed_at)}</code> (source: {_html_escape(staleness_source)})</p>

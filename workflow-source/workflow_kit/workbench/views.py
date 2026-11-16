@@ -17,6 +17,18 @@ from workflow_kit.workbench.state_view import PlanView
 UNMEASURED = "미측정"
 
 
+def static_version(name: str) -> str:
+    """정적 파일의 내용 지문 — 링크에 `?v=` 로 붙여 바뀐 CSS · JS 를 브라우저 캐시(max-age=3600)가 가리지 않게 한다
+    (TASK-2026-11-16-main-013). 요청마다 읽는다 — 서버를 다시 띄우지 않고 파일만 바뀌어도 따라간다."""
+    from importlib import resources
+
+    try:
+        data = resources.files("workflow_kit.workbench").joinpath("static").joinpath(name).read_bytes()
+    except OSError:
+        return "0"
+    return hashlib.sha256(data).hexdigest()[:10]
+
+
 def esc(value: object) -> str:
     return html.escape(str(value), quote=True)
 
@@ -47,10 +59,10 @@ def page(*, title: str, rel: str, branch: str | None, body: str, script: bool = 
     head = [
         "<!doctype html>", '<html lang="ko">', "<head>", '<meta charset="utf-8">',
         '<meta name="viewport" content="width=device-width, initial-scale=1">',
-        f"<title>{esc(title)}</title>", f'<link rel="stylesheet" href="{esc(rel)}static/workbench.css">',
+        f"<title>{esc(title)}</title>", f'<link rel="stylesheet" href="{esc(rel)}static/workbench.css?v={static_version("workbench.css")}">',
     ]
     if script or refresh:
-        head.append(f'<script src="{esc(rel)}static/workbench.js" defer></script>')
+        head.append(f'<script src="{esc(rel)}static/workbench.js?v={static_version("workbench.js")}" defer></script>')
     # 자동 새로고침 (스펙 §4.5) — 스크립트가 같은 주소를 다시 받아 main 의 지문이 바뀌었을 때만 갈아 끼운다.
     body_tag = f'<body data-refresh="{int(refresh)}">' if refresh > 0 else "<body>"
     version = hashlib.sha256(body.encode("utf-8")).hexdigest()[:16]
@@ -111,7 +123,8 @@ def _now(progress: dict[str, Any] | None) -> str:
         return ""
     at = progress.get("at")
     stamp = f'<time>{esc(str(at)[5:])}</time> ' if at else ""
-    return f'<span class="now"><b>지금</b> {stamp}{esc(progress["text"])}</span>'
+    return (f'<span class="now clamp-3" title="{esc(progress["text"])}"><b>지금</b> {stamp}'
+            f'{esc(progress["text"])}</span>')
 
 
 def _task_list(items: Sequence[dict[str, Any]] | None, rel: str, linked: set[str]) -> str:
@@ -124,7 +137,8 @@ def _task_list(items: Sequence[dict[str, Any]] | None, rel: str, linked: set[str
         label = esc(item["id"])
         if item["id"] in linked:
             label = f'<a href="{esc(rel)}task/{esc(item["id"])}">{label}</a>'
-        rows.append(f'<li class="item"><span class="tid">{label}</span><span class="ttl">{esc(item["title"])}</span>'
+        rows.append(f'<li class="item"><span class="tid">{label}</span>'
+                    f'<span class="ttl clamp-3" title="{esc(item["title"])}">{esc(item["title"])}</span>'
                     f'{_now(item.get("progress"))}</li>')
     return '<ul class="items">' + "".join(rows) + "</ul>"
 
@@ -181,7 +195,7 @@ def progress_page(*, state: dict[str, Any], rel: str, user: str, csrf: str, logo
             cards.append(
                 f'<a class="card plan-card{attention}" href="{esc(rel)}task/{esc(p["task"])}">'
                 f'<span class="card-top"><span class="tid">{esc(p["task"])}</span>{badge(p["status"])}</span>'
-                f'<span class="card-title">{esc(p["title"])}</span>'
+                f'<span class="card-title clamp-3" title="{esc(p["title"])}">{esc(p["title"])}</span>'
                 f'{_now(p.get("progress"))}'
                 f'<span class="chips">{chips}</span></a>')
         body.append('<div class="grid">' + "".join(cards) + "</div>")
@@ -205,7 +219,7 @@ def progress_page(*, state: dict[str, Any], rel: str, user: str, csrf: str, logo
             card = (
                 f'<div class="card milestone"><div class="card-top"><span class="tid">{esc(m["id"])}</span>'
                 f'{_status(m["declared"], m["derived"])}</div>'
-                f'<div class="card-title">{esc(m["title"])}</div>'
+                f'<div class="card-title clamp-3" title="{esc(m["title"])}">{esc(m["title"])}</div>'
                 f'{_progress(m["leaves_done"], m["leaves_total"])}'
                 + (f'<ul class="issues">{issues}</ul>' if issues else "") + "</div>")
             # 선언 · 파생이 둘 다 done 이고 문제가 없는 것만 접는다 — 어긋남 · 문제는 늘 펼쳐 보인다.

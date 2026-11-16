@@ -151,7 +151,8 @@ def case_prefix_flow() -> list[str]:
                     problems.append(f"오류 화면의 돌아가기가 계획 화면으로 가지 않는다: {target}")
             css = fx.resolve(landing, "../static/workbench.css")
             arrived.append(css)
-            if 'href="../static/workbench.css"' not in page.text or browser.get(css).status != 200:
+            # 링크에는 내용 지문(?v=)이 붙는다 — 경로는 여전히 상대 · 접두사 안이다.
+            if not re.search(r'href="\.\./static/workbench\.css\?v=[0-9a-f]+"', page.text) or browser.get(css).status != 200:
                 problems.append(f"정적 자원이 접두사 안에서 열리지 않는다: {css}")
             reply = browser.post(fx.resolve(landing, "../logout"), {"csrf": fx.csrf_of(page.text)})
             follow(fx.resolve(landing, "../logout"), reply)

@@ -18,8 +18,14 @@
   }
 }
 * { box-sizing: border-box; }
-body { margin: 0; font: 15px/1.55 system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
-  color: var(--fg); background: var(--bg); -webkit-font-smoothing: antialiased; }
+/* 글자는 박스를 넘지 않는다 (TASK-2026-11-16-main-013) — 띄어쓰기 없는 긴 글 · 경로 · ID 도 박스 안에서 줄을 바꾼다.
+   flex · grid 의 자식은 내용 폭보다 좁아질 수 있어야 한다(min-width: 0) — 아니면 긴 글이 칸을 밀어 박스를 넘긴다. */
+body { margin: 0; font: 15px/1.55 system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", "맑은 고딕",
+  "Noto Sans KR", sans-serif; color: var(--fg); background: var(--bg); -webkit-font-smoothing: antialiased;
+  overflow-wrap: anywhere; word-break: normal; }
+main, header.top .bar, .card, .column, .item, .kpi, details, summary, .option, .alert, .submitbar, .chips, .meter,
+.claim-body, .decision-body, .grid > *, .board > *, .kpis > *, .card-top > *, .fields div > * { min-width: 0; }
+img, svg, video, textarea, input, select, button { max-width: 100%; }
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 h1 { font-size: 1.6rem; margin: 0; letter-spacing: -.01em; }
@@ -49,17 +55,21 @@ main { max-width: 76rem; margin: 0 auto; padding: 1.5rem 1.25rem 6rem; }
 a.card { transition: transform .12s ease, border-color .12s ease; }
 a.card:hover { text-decoration: none; border-color: var(--accent); transform: translateY(-1px); }
 .card.narrow { max-width: 28rem; margin: 3rem auto; }
-.grid { display: grid; gap: .9rem; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); }
+.grid { display: grid; gap: .9rem; grid-template-columns: repeat(auto-fill, minmax(min(17rem, 100%), 1fr)); }
 .card-top { display: flex; justify-content: space-between; align-items: center; gap: .5rem; }
 .card-title { display: block; margin: .45rem 0 .7rem; font-weight: 600; line-height: 1.4; overflow-wrap: anywhere; }
 .plan-card.attention { border-left: 4px solid var(--warn); }
-.tid, .cid, .did { font: 600 .78rem var(--mono); color: var(--muted); white-space: nowrap; }
-.card-top .tid { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.tid, .cid, .did { font: 600 .78rem var(--mono); color: var(--muted); }
+/* 카드 머리 — ID 는 잘라 버리지 않는다: 좁으면 배지가 다음 줄로 내려가고 ID 는 하이픈에서 줄을 바꾼다. */
+.card-top { flex-wrap: wrap; }
+.card-top .tid { flex: 0 1 auto; }
+.card-top .badge, .card-top .chip { flex: 0 0 auto; }
+
 .head-card h1 { font-family: var(--mono); font-size: 1.05rem; color: var(--muted); overflow-wrap: anywhere; }
 .head-card .lead { font-size: 1.25rem; font-weight: 650; margin: .35rem 0 .8rem; }
 
 /* 요약 수치 */
-.kpis { display: grid; gap: .9rem; grid-template-columns: repeat(5, 1fr); }
+.kpis { display: grid; gap: .9rem; grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .kpi { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
   padding: .9rem 1rem; display: flex; flex-direction: column; gap: .2rem; border-top: 4px solid var(--line); }
 .kpi.info { border-top-color: var(--info); }
@@ -73,7 +83,9 @@ a.card:hover { text-decoration: none; border-color: var(--accent); transform: tr
 
 /* 배지 · 칩 */
 .badge, .chip { display: inline-flex; align-items: center; gap: .3rem; border-radius: 999px; font-size: .76rem; font-weight: 650;
-  padding: .15rem .6rem; white-space: nowrap; background: var(--neutral-soft); color: var(--muted); }
+  padding: .15rem .6rem; max-width: 100%; background: var(--neutral-soft); color: var(--muted); }
+/* 배지 · 칩은 자르지 않는다 — "선언 … · 파생 …" 의 뒤쪽이 요점이다. 좁으면 줄을 바꾼다 (말줄임은 정보를 잃는다). */
+.badge, .chip { white-space: normal; overflow-wrap: anywhere; text-align: left; line-height: 1.35; }
 .chips { display: flex; flex-wrap: wrap; gap: .4rem; margin: 0; }
 .ok.badge, .ok.chip { background: var(--ok-soft); color: var(--ok); }
 .info.badge, .info.chip { background: var(--info-soft); color: var(--info); }
@@ -145,7 +157,7 @@ label.option:has(input:checked) { border-color: var(--accent); background: var(-
 .opt-value { font: 650 .85rem var(--mono); }
 .rec { color: var(--accent); font-size: .8rem; font-weight: 650; }
 .answer { color: var(--ok); font-weight: 650; }
-input[type=radio] { accent-color: var(--accent); }
+input[type=radio] { accent-color: var(--accent); flex: 0 0 auto; }
 
 /* 폼 */
 label.comment { display: flex; flex-direction: column; gap: .3rem; font-size: .85rem; color: var(--muted); font-weight: 600; }
@@ -156,6 +168,8 @@ button { font: inherit; font-weight: 650; border: 0; border-radius: var(--radius
   background: var(--accent); color: var(--accent-fg); }
 button:hover { filter: brightness(1.08); }
 button.ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); padding: .3rem .7rem; }
+button { white-space: nowrap; flex: 0 0 auto; }  /* 단추 글자는 한 글자씩 꺾이지 않는다 — 좁으면 줄 전체가 내려간다 */
+header.top .logout { flex-wrap: wrap; justify-content: flex-end; }
 .stack { display: flex; flex-direction: column; gap: .8rem; margin-top: 1rem; }
 .submitbar { position: sticky; bottom: .75rem; margin-top: 1.5rem; display: flex; justify-content: flex-end; align-items: center; gap: 1rem;
   padding: .8rem 1rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
@@ -163,23 +177,28 @@ button.ghost { background: transparent; color: var(--muted); border: 1px solid v
 
 /* 주장 없는 task · 목록 */
 .fields { margin: 0; display: grid; gap: .6rem; }
-.fields div { display: grid; grid-template-columns: 10rem 1fr; gap: .8rem; }
+.fields div { display: grid; grid-template-columns: 10rem minmax(0, 1fr); gap: .8rem; }
 .fields dt { color: var(--muted); font-weight: 650; }
 .fields dd { margin: 0; overflow-wrap: anywhere; }
 ul.card.list { padding: .8rem 1rem .8rem 2rem; margin: 0; }
 
 /* 좁은 폭 */
 @media (max-width: 960px) {
-  .kpis { grid-template-columns: repeat(3, 1fr); }
+  .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .board { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 600px) {
   main { padding: 1rem .75rem 6rem; }
-  .kpis { grid-template-columns: repeat(2, 1fr); }
-  .board, .grid { grid-template-columns: 1fr; }
-  .fields div { grid-template-columns: 1fr; gap: .1rem; }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .board, .grid { grid-template-columns: minmax(0, 1fr); }
+  .kpi-value { font-size: 1.5rem; }
+  .fields div { grid-template-columns: minmax(0, 1fr); gap: .1rem; }
   header.top .bar { padding: .6rem .75rem; }
   .submitbar { flex-direction: column; align-items: stretch; }
+  /* 깊은 중첩에서도 본문 폭을 남긴다 — 들여쓰기 · 안쪽 여백을 줄인다 */
+  .claim-body { padding-left: .5rem; margin-left: .15rem; }
+  details.claim, details.decision { padding: .6rem .65rem; }
+  details.claim details.claim { margin-top: .45rem; }
   .hint { margin-right: 0; }
 }
 
@@ -196,3 +215,9 @@ details.fold[open] > summary { margin-bottom: .8rem; }
 .now b { color: var(--accent); font-weight: 700; margin-right: .25rem; }
 .now time { font-family: var(--mono); font-size: .76rem; margin-right: .25rem; }
 .item .now { margin: .25rem 0 0; }
+
+/* 카드 · 보드의 긴 글은 몇 줄까지만 — 전문은 title(마우스 올림)과 계획 화면에 있다.
+   파일 끝에 둔다: 앞의 display 규칙(.now 등)보다 이겨야 한다. */
+.clamp-3, .clamp-2 { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
+.clamp-3 { -webkit-line-clamp: 3; line-clamp: 3; }
+.clamp-2 { -webkit-line-clamp: 2; line-clamp: 2; }

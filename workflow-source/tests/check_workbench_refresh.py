@@ -66,7 +66,7 @@ def case_markup() -> list[str]:
                 reply = fx.request(srv.port, "GET", path)
                 if '<body data-refresh="5">' not in reply.text:
                     problems.append(f"{path}: data-refresh 가 없다")
-                if 'static/workbench.js" defer></script>' not in reply.text:
+                if not re.search(r'static/workbench\.js\?v=[0-9a-f]+" defer></script>', reply.text):
                     problems.append(f"{path}: 스크립트가 없다")
                 if _version(reply.text) is None:
                     problems.append(f"{path}: main 의 data-version 이 없다")

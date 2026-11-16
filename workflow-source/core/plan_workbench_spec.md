@@ -116,6 +116,9 @@ task 파일에 있는 것만 그린다: 주장 트리(`<details>`, 접힌 상태
 둘 다 `done` 이고 문제 없는 것만 "완료된 마일스톤 n개" 아래로 접는다). 계획 화면은 머리 카드(상태 · 열린 결정 · 미반영 응답 칩) → 주장 카드 트리
 (1단계까지 펼침) → 결정 카드(열린 결정은 `decision open` 강조, **닫힌 채** — 펼침이 곧 `opened` 기록) · 선택지 카드 → 하단 고정 제출 막대.
 스타일은 `static/workbench.css` 하나 — 어두운 모드(`prefers-color-scheme`) · 좁은 폭(`max-width`) 규칙, 인라인 `style` 없음 (CSP).
+글자는 박스를 넘지 않는다 (TASK-2026-11-16-main-013): 본문 `overflow-wrap: anywhere`, 박스 · flex/grid 자식 `min-width: 0`, 격자 칸은
+`minmax(…, 1fr)` 로만, 카드 머리는 줄을 바꾸고 ID 를 자르지 않는다. 상태 배지 · 칩도 자르지 않고 줄을 바꾼다(말줄임은 "파생 …" 같은 요점을 잃는다). 카드 · 보드의 긴 글은 3줄까지 보이고 전문은 `title` 에 싣는다.
+정적 파일 링크에 내용 지문 `?v=<sha256 앞 10 hex>` 를 붙여 브라우저 캐시(`max-age=3600`)가 바뀐 CSS · JS 를 가리지 않게 한다.
 
 ### 4.5 자동 새로고침 (TASK-2026-11-16-main-006 — 소유자 지시 "작업하면서 워크벤치 내용을 지속적으로 갱신")
 
@@ -319,7 +322,7 @@ handle_path /workbench/* {
 | `check_workbench_write.py` | 왕복 — 서버가 쓴 응답이 `plan-import` 의 1~6 단계를 통과하고 상태에 든다 · 동시 제출(스레드 · 프로세스)에서 유실 0 · 독자가 덜 쓰인 파일을 보지 않는다 (번호는 연속이 아니다 — ADR-032 V7) · 되주입: `publish` 를 배타 생성 없이 · 임시 이름 없이 이어 쓰기(만들기와 쓰기 사이의 정해진 멈춤으로 결정적으로) · 413 · 422(선택지 밖 · 한도 · 제어 문자) · 409(지문 · 배치 · 오류 규칙) — 전부 받은편지함 무변경 · `answered` 결정의 조작된 값 무시 · 같은 응답자의 `received_at` 단조 증가 |
 | `check_workbench_open.py` | 개방 모드(§5.6) — 비 loopback 평문 허용 · 경고 한 줄 · `--open`+`--token` 거절 · 쿠키 없는 GET 200 · 로그아웃 없음 · `Host` 출처 제출 통과 · 다른 출처 403 · `responder` · `client` · `plan-import` 반영 · 토큰 모드 그대로 · 주소 정리 · DNS rebinding 403 · 세션 표 상한 |
 | `check_workbench_autostart.py` | 자동 기동(§3.1) — `--autostart on/off` · 인자 검증 · `session-start` 가 띄우고 다시 띄우지 않음 · 시작 실패 경고 한 줄 · 끄는 표식 둘 · `--stop` 의 안전(손으로 띄운 서버 · 워크벤치 아닌 pid) · SessionEnd hook · 대기 시간 초과는 자식을 거둔다 · pid ↔ 포트 주인 대조(instance) |
-| `check_workbench_design.py` | 화면 구조(§4.4) — 요약 수치 = `api/state` · 보드 4열 · 계획 카드 강조 · 마일스톤 막대 · 완료분만 접기 · 열린 결정 강조 · 결정은 닫힌 채 · 선택지 카드 · 제출 막대 · `style=` · 인라인 스크립트 · 외부 URL 없음 · 어두운 모드 · 좁은 폭 |
+| `check_workbench_design.py` | 화면 구조(§4.4) — 요약 수치 = `api/state` · 보드 4열 · 계획 카드 강조 · 마일스톤 막대 · 완료분만 접기 · 열린 결정 강조 · 결정은 닫힌 채 · 선택지 카드 · 제출 막대 · `style=` · 인라인 스크립트 · 외부 URL 없음 · 어두운 모드 · 좁은 폭 · 박스 넘침 방지 바탕 규칙 · 자른 글의 title |
 | `check_workbench_refresh.py` | 자동 새로고침(§4.5) — `data-refresh` · 스크립트 · `data-version` · CSP `connect-src` · 같은 상태의 지문 고정 · 바뀌면 달라짐 · 0 이면 끔 · `--refresh` 범위 · 자동 기동 저장 · 스크립트 분기(실제 브라우저 동작은 task Proof 의 CDP 실측) |
 | `check_workbench_live.py` | 실시간 값(§7.1) — 낡은 `state.json` 위에서 방금 바뀐 task 가 보임 · `source` · 화면 표식 · 저장소 무변경 · 지문 같으면 재계산 0 · 바뀌면 재계산 · 프로필 없으면 생성물 · `where_for` 가 프로필을 싣는다 · 브랜치 전환 재계산 · 실패 사유 표시 · roadmap 실시간 · 낡은 roadmap 생성물 안 보임 · 산출물 지문 · 실패 사유에 절대 경로 없음 |
 | `check_workbench_progress.py` | 진행 기록 — `--progress-note` 시각 접두 · 손으로 적은 시각 그대로 · 시각 아닌 백틱엔 붙임 · 이스케이프 · 차단 항목 · `api/state` progress = task 파일 · 계획 카드 · 보드의 '지금' · 노트 바뀌면 지문 바뀜 · 스킬 · CLAUDE.md 규칙 |

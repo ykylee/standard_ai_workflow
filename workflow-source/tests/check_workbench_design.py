@@ -8,6 +8,10 @@
 3. 계획 화면 — 상태 칩 · 열린 결정은 `decision open` 클래스 · 선택지 카드(`label.option`) · 고정 제출 막대; 결정은 닫힌 채 그린다
    (펼침이 곧 '열어 봄' 기록이다)
 4. CSP 위생 — 모든 화면에 `style=` 속성 · 인라인 스크립트 · 외부 URL 이 없다; CSS 에 어두운 모드 · 좁은 폭 규칙이 있고 외부 자원(`url(` · `@import`)이 없다
+5. 글자가 박스를 넘지 않는다(TASK-2026-11-16-main-013) — CSS 의 바탕 규칙: 본문 `overflow-wrap: anywhere`, 박스 · flex/grid 자식
+   `min-width: 0`, 격자 칸이 화면보다 넓어지지 않음(`minmax(min(…, 100%), 1fr)` · `minmax(0, 1fr)`), 카드 머리 줄바꿈,
+   긴 글 줄 수 제한(파일 끝) — 카드 · 보드의 잘린 글은 `title` 로 전문을 싣는다.
+   실제 렌더(폭 320~1440 × 글꼴 3종에서 박스 넘침 0)는 헤드리스 Chrome 실측이 task Proof 에 있다 — 게이트는 브라우저를 띄우지 않는다.
 """
 
 from __future__ import annotations
@@ -171,11 +175,50 @@ def case_csp_hygiene() -> list[str]:
     return problems
 
 
+def case_no_overflow_rules() -> list[str]:
+    problems: list[str] = []
+    css = CSS.read_text(encoding="utf-8")
+    flat = re.sub(r"\s+", " ", css)
+    body = re.search(r"\bbody \{([^}]*)\}", flat)
+    if not body or "overflow-wrap: anywhere" not in body.group(1):
+        problems.append("본문에 overflow-wrap: anywhere 가 없다 — 띄어쓰기 없는 긴 글 · 경로가 박스를 넘는다")
+    min_rule = next((m.group(1) for m in re.finditer(r"([^{}]+)\{ ?min-width: 0; ?\}", flat)), "")
+    selectors = {part.strip() for part in min_rule.split(",")}  # 부분 문자열이 아니라 선택자 하나하나
+    for selector in (".card", ".column", ".item", ".kpi", "details", ".option", ".grid > *", ".board > *", ".kpis > *",
+                     ".card-top > *"):
+        if selector not in selectors:
+            problems.append(f"{selector} 가 min-width: 0 이 아니다 — flex/grid 칸이 긴 글에 밀려 박스를 넘는다")
+    if "minmax(min(17rem, 100%), 1fr)" not in flat:
+        problems.append("카드 격자의 최소 칸이 화면보다 넓어질 수 있다")
+    # 모든 1fr 은 minmax(…, 1fr) 안에 — repeat(n, 1fr) · 맨 1fr 은 내용 폭이 최소폭이 된다.
+    if len(re.findall(r"\b1fr\b", flat)) != len(re.findall(r"minmax\((?:[^()]|\([^()]*\))*, 1fr\)", flat)):
+        problems.append("1fr 격자 칸이 있다 — 내용 폭이 최소폭이 되어 박스를 넘긴다 (minmax(0, 1fr))")
+    if ".card-top { flex-wrap: wrap; }" not in flat:
+        problems.append("카드 머리가 줄을 바꾸지 않는다 — 긴 ID 가 배지를 밀어낸다")
+    # 배지 · 칩은 말줄임으로 자르지 않는다 — 잘린 '파생 …' 은 다시 볼 방법이 없다 (main-013 verifier 발견).
+    badge_rules = " ".join(m.group(1) for m in re.finditer(r"\.badge, \.chip \{([^}]*)\}", flat))
+    if "text-overflow: ellipsis" in badge_rules or "white-space: normal" not in badge_rules:
+        problems.append("배지 · 칩이 말줄임으로 잘리거나 줄을 바꾸지 않는다 — 상태 글이 사라진다")
+    tail = flat[flat.rfind(".clamp-3, .clamp-2"):]
+    if "-webkit-line-clamp: 3" not in tail or re.search(r"\.now \{", tail):
+        problems.append("줄 수 제한이 파일 끝에 없다 — 앞의 display 규칙이 이긴다")
+    with fx.temp_workspace("wb-design-5-") as td:
+        ws, task_id = _workspace(td)
+        page = _pages(ws, task_id)["/"]
+    for cls in ("card-title clamp-3", "now clamp-3", "ttl clamp-3"):
+        total = len(re.findall(rf'class="{cls}"', page))
+        titled = len(re.findall(rf'class="{cls}" title="[^"]+"', page))
+        if not total or titled != total:
+            problems.append(f"줄 수를 자른 글({cls}) {total}개 중 전문 title 이 있는 것이 {titled}개다")
+    return problems
+
+
 CASES = (
     ("1 요약 수치 = api/state", case_kpis),
     ("2 작업 보드 4열 · 계획 카드 강조 · 마일스톤 막대 · 완료분 접기", case_board_and_milestones),
     ("3 계획 화면 — 칩 · 열린 결정 강조 · 선택지 카드 · 제출 막대 · 결정은 닫힌 채", case_plan_page),
     ("4 CSP 위생 · 어두운 모드 · 좁은 폭", case_csp_hygiene),
+    ("5 글자가 박스를 넘지 않는 바탕 규칙", case_no_overflow_rules),
 )
 
 

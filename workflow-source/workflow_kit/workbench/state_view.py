@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from workflow_kit.common import plan_claims, plan_responses, plan_tasks
+from workflow_kit.common import plan_claims, plan_responses, plan_tasks, todo_list
 from workflow_kit.common.paths import state_path_for_workspace
 from workflow_kit.common.project_docs import task_label
 from workflow_kit.common.state import roadmap
@@ -241,6 +241,24 @@ def task_title(task: plan_tasks.TaskPlan) -> str:
     return ""
 
 
+def todo_state(where: Where) -> dict[str, Any]:
+    """todo 값 (스펙 §13.1) — 브랜치 할 일 · 절마다 (끝냄, 전체). 읽지 못하면 사유를 싣는다 (빈 목록으로 꾸미지 않는다)."""
+    try:
+        todo = todo_list.read(where.branch_dir)
+    except (OSError, UnicodeDecodeError) as exc:
+        return {"branch": None, "counts": {}, "error": scrub_error(f"{type(exc).__name__}: {exc}", where.workspace_root)}
+    return {"branch": [todo_list.as_json(item) for item in todo.items(todo_list.BRANCH_SCOPE)],
+            "counts": {scope: list(pair) for scope, pair in todo.counts().items()},
+            "error": None}
+
+
+def task_todos(where: Where, task_id: str) -> tuple[list[dict[str, Any]] | None, str | None]:
+    try:
+        return [todo_list.as_json(item) for item in todo_list.read(where.branch_dir).items(task_id)], None
+    except (OSError, UnicodeDecodeError) as exc:
+        return None, scrub_error(f"{type(exc).__name__}: {exc}", where.workspace_root)
+
+
 def build_state(where: Where) -> dict[str, Any]:
     live: tuple[str, dict[str, Any], dict[str, Any] | None] | None
     state_data: dict[str, Any] | None
@@ -297,6 +315,7 @@ def build_state(where: Where) -> dict[str, Any]:
             "recent_done": _items(backlog, "done_items"),
         },
         "plans": plans,
+        "todo": todo_state(where),
         "inbox": {
             "pending": census.pending,
             "unknown": list(census.unknown),
@@ -329,6 +348,9 @@ class PlanView:
     plain_fields: list[tuple[str, str]]
     #: 그 task 의 응답 — 받은편지함(반영 대기) · 보관(반영됨). 시각순 (TASK-2026-11-16-main-014).
     responses: list[dict[str, str]] = field(default_factory=list)
+    #: 그 task 의 체크리스트 (스펙 §13.1) — None 이면 읽지 못했다 (사유는 ``todo_error``).
+    todos: list[dict[str, Any]] | None = field(default_factory=list)
+    todo_error: str | None = None
 
 
 def _field_lines(task: plan_tasks.TaskPlan) -> list[tuple[str, str]]:
@@ -347,6 +369,7 @@ def build_plan(where: Where, task: plan_tasks.TaskPlan) -> PlanView:
     open_ids = set(plan_tasks.computed_open_decisions(task))
     census = plan_responses.inbox_census(where.branch_dir)
     fields = _field_lines(task)
+    todos, todo_error = task_todos(where, task.task_id)
     return PlanView(
         task=task,
         title=task_title(task),
@@ -363,6 +386,8 @@ def build_plan(where: Where, task: plan_tasks.TaskPlan) -> PlanView:
         out_of_scope=read_task_list_field(list(task.lines), task_label("out_of_scope")),
         plain_fields=fields,
         responses=_task_responses(where.branch_dir, task.task_id),
+        todos=todos,
+        todo_error=todo_error,
     )
 
 

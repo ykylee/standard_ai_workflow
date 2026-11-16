@@ -24,13 +24,16 @@ from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
 from workflow_kit.common import plan_tasks
-from workflow_kit.common.project_docs import WORK_ITEM_ID_PATTERN
+from workflow_kit.common import todo_list
+from workflow_kit.common.project_docs import TASK_ID_PATTERN, WORK_ITEM_ID_PATTERN
 from workflow_kit.workbench import auth, respond, state_view, views
 
 COOKIE_NAME = "wb_session"
 INSTANCE_HEADER = "X-Workbench-Instance"
 LOGIN_BODY_LIMIT = 4_096
 WRITE_BODY_LIMIT = 262_144
+#: todo 한 건의 폼 — 글 300자(UTF-8 · URL 인코딩 9배)와 필드 몇 개가 넉넉히 든다 (스펙 §13.1).
+TODO_BODY_LIMIT = 8_192
 CSP = ("default-src 'none'; style-src 'self'; script-src 'self'; connect-src 'self'; form-action 'self'; "
        "base-uri 'none'; frame-ancestors 'none'")
 STATIC_FILES: dict[str, str] = {
@@ -39,6 +42,10 @@ STATIC_FILES: dict[str, str] = {
 }
 _TASK_RE = re.compile(rf"^/task/({WORK_ITEM_ID_PATTERN})$")
 _RESPOND_RE = re.compile(rf"^/task/({WORK_ITEM_ID_PATTERN})/respond$")
+_BACK_RE = re.compile(rf"(?:task/{TASK_ID_PATTERN})?")
+#: todo 거절 code → 상태 (스펙 §13.1).
+_TODO_STATUS = {"invalid": HTTPStatus.UNPROCESSABLE_ENTITY, "not_found": HTTPStatus.NOT_FOUND,
+                "busy": HTTPStatus.SERVICE_UNAVAILABLE}
 
 
 def normalize_public_url(url: str) -> str:
@@ -333,6 +340,9 @@ class Handler(BaseHTTPRequestHandler):
         if not get and match:
             self._respond(match.group(1))
             return
+        if not get and path == "/todo":
+            self._todo()
+            return
         self._send(HTTPStatus.NOT_FOUND, "404 Not Found\n", content_type="text/plain; charset=utf-8")
 
     def _static(self, name: str) -> None:
@@ -407,7 +417,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         self._send(HTTPStatus.OK, views.progress_page(state=state, rel=self._rel(), user=session.name,
                                                       csrf=session.csrf, logout=not self.app.is_open,
-                                                      refresh=self.app.refresh_seconds))
+                                                      refresh=self.app.refresh_seconds, role=session.role))
 
     def _plan(self, task_id: str, *, error: str | None = None, status: int = HTTPStatus.OK) -> None:
         session = self._need_session(api=False)
@@ -459,6 +469,50 @@ class Handler(BaseHTTPRequestHandler):
         except OSError:
             pass
         self._redirect(f"../{task_id}")
+
+    def _todo(self) -> None:
+        """todo 한 건 바꾸기 (스펙 §13.1) — §5.4 의 순서를 응답과 똑같이 밟고, 하나라도 어긋나면 쓰지 않는다."""
+        length = self._content_length(TODO_BODY_LIMIT)
+        session = self._session()
+        if session is None:
+            raise _Reject(HTTPStatus.UNAUTHORIZED, "세션이 없다", close=True)
+        self._logged_user = session.name
+        if session.role != auth.ROLE_APPROVER:
+            raise _Reject(HTTPStatus.FORBIDDEN, "approver 만 todo 를 고칠 수 있다", close=True)
+        self._check_origin()
+        form = self._form(length)
+        self._check_csrf(session, form)
+        back = (form.get("back") or [""])[0]
+        if not _BACK_RE.fullmatch(back):  # match + `$` 는 끝의 \n 을 통과시켜 Location 머리에 날것의 LF 를 싣는다
+            raise _Reject(HTTPStatus.BAD_REQUEST, "돌아갈 곳이 진척 화면도 task 화면도 아니다")
+        where = self.app.locate()
+        action = (form.get("action") or [""])[0]
+        item_id = (form.get("id") or [""])[0]
+        text = (form.get("text") or [""])[0]
+        try:
+            if action == "add":
+                item = todo_list.add(where.branch_dir, (form.get("scope") or [todo_list.BRANCH_SCOPE])[0], text)
+            elif action in ("done", "undo"):
+                item = todo_list.set_done(where.branch_dir, item_id, action == "done")
+            elif action == "edit":
+                item = todo_list.edit(where.branch_dir, item_id, text)
+            elif action == "remove":
+                item = todo_list.remove(where.branch_dir, item_id)
+            else:
+                raise todo_list.TodoError("invalid", f"모르는 동작: {action[:20]}")
+        except todo_list.TodoError as error:
+            status = _TODO_STATUS.get(error.code, HTTPStatus.UNPROCESSABLE_ENTITY)
+            self._send(status, views.message_page(
+                rel=self._rel(), branch=where.branch, title=f"{int(status)} {HTTPStatus(status).phrase}",
+                message=str(error), back="./" + back))
+            return
+        try:  # 작업 세션 hook 이 다음 차례에 소유자의 변경을 문장으로 받는다 — 실패해도 todo 는 이미 바뀌었다
+            from workflow_kit.workbench import inbox_signal, todo_events
+            todo_events.record(where.workspace_root, actor=session.name, action=action, item=item)
+            inbox_signal.touch_stamp(where.workspace_root)
+        except (OSError, TimeoutError):
+            pass
+        self._redirect("./" + back)
 
 
 def make_server(app: App, host: str, port: int) -> ThreadingHTTPServer:

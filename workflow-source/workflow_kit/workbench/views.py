@@ -65,7 +65,9 @@ def page(*, title: str, rel: str, branch: str | None, body: str, script: bool = 
         head.append(f'<script src="{esc(rel)}static/workbench.js?v={static_version("workbench.js")}" defer></script>')
     # 자동 새로고침 (스펙 §4.5) — 스크립트가 같은 주소를 다시 받아 main 의 지문이 바뀌었을 때만 갈아 끼운다.
     body_tag = f'<body data-refresh="{int(refresh)}">' if refresh > 0 else "<body>"
-    version = hashlib.sha256(body.encode("utf-8")).hexdigest()[:16]
+    # 지문은 세션마다 다른 CSRF 값을 빼고 잰다 — todo 폼이 main 안에 CSRF 를 싣는다 (TASK-2026-11-16-main-017).
+    fingerprint = body.replace(csrf, "") if csrf else body
+    version = hashlib.sha256(fingerprint.encode("utf-8")).hexdigest()[:16]
     head.extend(["</head>", body_tag, '<header class="top"><div class="bar">',
                  f'<a class="brand" href="{esc(rel)}"><span class="logo">◆</span> 워크벤치</a>'])
     if branch is not None:
@@ -127,7 +129,58 @@ def _now(progress: dict[str, Any] | None) -> str:
             f'{esc(progress["text"])}</span>')
 
 
-def _task_list(items: Sequence[dict[str, Any]] | None, rel: str, linked: set[str]) -> str:
+def _todo_chip(counts: dict[str, Any], task_id: str) -> str:
+    pair = counts.get(task_id)
+    if not pair:
+        return ""
+    done, total = pair
+    kind = "ok" if done == total else "info"
+    return f'<span class="chip {kind} todo-count">todo {esc(done)}/{esc(total)}</span>'
+
+
+def _todo_form(rel: str, csrf: str, back: str, action: str, fields: dict[str, str], inner: str, cls: str) -> str:
+    hidden = "".join(f'<input type="hidden" name="{esc(k)}" value="{esc(v)}">'
+                     for k, v in {"csrf": csrf, "action": action, "back": back, **fields}.items())
+    return f'<form method="post" action="{esc(rel)}todo" class="{cls}">{hidden}{inner}</form>'
+
+
+def todo_block(*, items: Sequence[dict[str, Any]] | None, error: str | None, scope: str, rel: str, csrf: str,
+               back: str, can_edit: bool, empty: str) -> str:
+    """todo 목록 (스펙 §13.1) — 항목마다 끝냄 단추 · 글 · 고치기(글 · 삭제), 끝에 추가 폼. viewer 는 읽기만."""
+    if items is None:
+        return f'<p class="alert warn">todo 를 읽지 못했다: {esc(error or UNMEASURED)}</p>'
+    done = sum(1 for item in items if item["done"])
+    rows: list[str] = []
+    for item in items:
+        mark = "☑" if item["done"] else "☐"
+        label = "끝냄 되돌리기" if item["done"] else "끝냄으로 표시"
+        if can_edit:
+            check = _todo_form(rel, csrf, back, "undo" if item["done"] else "done", {"id": item["id"]},
+                               f'<button type="submit" class="check" title="{label}" aria-label="{label}">{mark}</button>',
+                               "todo-toggle")
+            more = ('<details class="todo-more"><summary>고치기</summary><div class="todo-more-body">'
+                    + _todo_form(rel, csrf, back, "edit", {"id": item["id"]},
+                                 f'<input type="text" name="text" value="{esc(item["text"])}" maxlength="300" required '
+                                 'aria-label="고칠 글"><button type="submit">저장</button>', "todo-edit")
+                    + _todo_form(rel, csrf, back, "remove", {"id": item["id"]},
+                                 '<button type="submit" class="ghost danger">삭제</button>', "todo-remove")
+                    + "</div></details>")
+        else:
+            check, more = f'<span class="check" aria-label="{label}">{mark}</span>', ""
+        rows.append(f'<li class="todo-item{" done" if item["done"] else ""}" data-todo="{esc(item["id"])}">{check}'
+                    f'<span class="todo-text clamp-3" title="{esc(item["text"])}">{esc(item["text"])}</span>{more}</li>')
+    parts = [f'<p class="todo-summary">{done} / {len(items)} 끝냄</p>' if items else f'<p class="empty">{esc(empty)}</p>']
+    if rows:
+        parts.append('<ul class="todo-list">' + "".join(rows) + "</ul>")
+    if can_edit:
+        parts.append(_todo_form(rel, csrf, back, "add", {"scope": scope},
+                                '<input type="text" name="text" maxlength="300" required placeholder="할 일 추가" '
+                                'aria-label="새 할 일"><button type="submit">추가</button>', "todo-add"))
+    return "".join(parts)
+
+
+def _task_list(items: Sequence[dict[str, Any]] | None, rel: str, linked: set[str],
+               counts: dict[str, Any] | None = None) -> str:
     if items is None:
         return f'<p class="unmeasured empty">{UNMEASURED}</p>'
     if not items:
@@ -139,7 +192,7 @@ def _task_list(items: Sequence[dict[str, Any]] | None, rel: str, linked: set[str
             label = f'<a href="{esc(rel)}task/{esc(item["id"])}">{label}</a>'
         rows.append(f'<li class="item"><span class="tid">{label}</span>'
                     f'<span class="ttl clamp-3" title="{esc(item["title"])}">{esc(item["title"])}</span>'
-                    f'{_now(item.get("progress"))}</li>')
+                    f'{_now(item.get("progress"))}{_todo_chip(counts or {}, item["id"])}</li>')
     return '<ul class="items">' + "".join(rows) + "</ul>"
 
 
@@ -149,7 +202,7 @@ def _kpi(label: str, value: str, kind: str) -> str:
 
 
 def progress_page(*, state: dict[str, Any], rel: str, user: str, csrf: str, logout: bool = True,
-                  refresh: int = 0) -> str:
+                  refresh: int = 0, role: str = "approver") -> str:
     tasks = state["tasks"]
     plans = state["plans"]
     inbox = state["inbox"]
@@ -179,7 +232,13 @@ def progress_page(*, state: dict[str, Any], rel: str, user: str, csrf: str, logo
     if inbox["unknown"]:
         body.append(f'<p class="alert warn">받은편지함에 알 수 없는 항목 {len(inbox["unknown"])}건: '
                     + esc(", ".join(inbox["unknown"])) + "</p>")
-    linked = {entry["task"] for entry in plans}
+    todo = state.get("todo") or {"branch": [], "counts": {}, "error": None}
+    counts = todo.get("counts") or {}
+    linked = {entry["task"] for entry in plans} | {scope for scope in counts if scope != "Branch"}
+    body.append('<section class="section todo-section"><h2>할 일</h2><div class="card todo-card">'
+                + todo_block(items=todo.get("branch"), error=todo.get("error"), scope="Branch", rel=rel, csrf=csrf,
+                             back="", can_edit=role == "approver", empty="브랜치 할 일이 없다")
+                + "</div></section>")
     body.append('<section class="section"><h2>계획</h2>')
     if plans:
         cards = []
@@ -190,7 +249,7 @@ def progress_page(*, state: dict[str, Any], rel: str, user: str, csrf: str, logo
                 flags.append(f'<span class="chip warn">열린 결정 {opened}</span>')
             if p["pending_responses"]:
                 flags.append(f'<span class="chip info">미반영 응답 {esc(p["pending_responses"])}</span>')
-            chips = "".join(flags) or '<span class="chip ok">결정 대기 없음</span>'
+            chips = ("".join(flags) or '<span class="chip ok">결정 대기 없음</span>') + _todo_chip(counts, p["task"])
             attention = " attention" if opened else ""
             cards.append(
                 f'<a class="card plan-card{attention}" href="{esc(rel)}task/{esc(p["task"])}">'
@@ -207,7 +266,7 @@ def progress_page(*, state: dict[str, Any], rel: str, user: str, csrf: str, logo
                              ("planned", "계획", "muted"), ("recent_done", "최근 완료", "ok")):
         columns.append(
             f'<div class="column {kind}"><h2><span>{label}</span><span class="n">{esc(_count(tasks[key]))}</span></h2>'
-            + _task_list(tasks[key], rel, linked) + "</div>")
+            + _task_list(tasks[key], rel, linked, counts) + "</div>")
     body.append('<section class="section"><h2>작업 보드</h2><div class="board">'
                 + "".join(columns) + "</div></section>")
     body.append('<section class="section"><h2>마일스톤</h2>')
@@ -341,6 +400,10 @@ def plan_page(*, view: PlanView, rel: str, branch: str, user: str, csrf: str, ro
         body.append(f'<p class="alert flash">{esc(flash)}</p>')
     if error:
         body.append(f'<p class="alert error">{esc(error)}</p>')
+    body.append('<section class="section todo-section"><h2>체크리스트</h2><div class="card todo-card">'
+                + todo_block(items=view.todos, error=view.todo_error, scope=task.task_id, rel=rel, csrf=csrf,
+                             back=f"task/{task.task_id}", can_edit=role == "approver", empty="체크리스트가 없다")
+                + "</div></section>")
     if task.plan.claims:
         tree = "\n".join(_claim_tree(view))
         placed: set[str] = set()

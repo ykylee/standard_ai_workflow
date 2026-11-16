@@ -90,6 +90,7 @@ python -m workflow_kit workbench --new-token <role>:<name> --out <path>
 | `GET ` (루트) | 진척 화면 (§7) | viewer 이상 | 세션 없음 → 303 `login` |
 | `GET task/<TASK-ID>` | 계획 화면 (§4.4) | viewer 이상 | 세션 없음 → 303 `../login` · 없는 task 404 |
 | `POST task/<TASK-ID>/respond` | 결정 응답 (§6) | approver | §5.4 · §6 |
+| `POST todo` | todo 한 건 바꾸기 (§13.1) | approver | §5.4 · 413 (본문 > 8,192) · 400 (`back`) · 422 · 404 · 503 (락) |
 | `GET api/state` | 진척 값 JSON (§7.3) | viewer 이상 | 401 |
 | `GET static/<이름>` | 내장 자원 (고정 목록) | 없음 | 404 |
 
@@ -327,6 +328,8 @@ handle_path /workbench/* {
 | `workflow_kit/workbench/state_view.py` | §7 의 값 (화면과 `api/state` 가 같이 쓴다) |
 | `workflow_kit/workbench/respond.py` | 폼 → 응답 본문 (§6 의 3~7) |
 | `workflow_kit/workbench/static/workbench.css` · `workbench.js` | 내장 자원 — `pyproject` `package-data` |
+| `workflow_kit/common/todo_list.py` | todo 파일(§13)의 유일한 읽기 · 쓰기 창구 — CLI 와 워크벤치가 같이 쓴다 |
+| `workflow_kit/tools/todo.py` | `todo` 명령 진입 (`tool_dispatch` · `pyproject` 등록) |
 
 ## 11. 검증 (R10)
 
@@ -344,6 +347,8 @@ handle_path /workbench/* {
 | `check_workbench_live.py` | 실시간 값(§7.1) — 낡은 `state.json` 위에서 방금 바뀐 task 가 보임 · `source` · 화면 표식 · 저장소 무변경 · 지문 같으면 재계산 0 · 바뀌면 재계산 · 프로필 없으면 생성물 · `where_for` 가 프로필을 싣는다 · 브랜치 전환 재계산 · 실패 사유 표시 · roadmap 실시간 · 낡은 roadmap 생성물 안 보임 · 산출물 지문 · 실패 사유에 절대 경로 없음 |
 | `check_workbench_progress.py` | 진행 기록 — `--progress-note` 시각 접두 · 손으로 적은 시각 그대로 · 시각 아닌 백틱엔 붙임 · 이스케이프 · 차단 항목 · `api/state` progress = task 파일 · 계획 카드 · 보드의 '지금' · 노트 바뀌면 지문 바뀜 · 스킬 · CLAUDE.md 규칙 |
 | `check_workbench_inbox_hook.py` | 도착 신호 · hook 반영(§6.1) — 서버는 stamp 만 · 화면 반영 대기→반영됨 · hook JSON(이벤트 · 결정 변화) · seen 시각 · 할 것 없으면 조용 · 자격 없는 응답은 남기고 사유 · hooks.json 명령을 실제 셸로 · 신호 없으면 Python 안 띄움 · 같은 초의 두 번째 응답(셸 · Python) · cwd 밖 · 옛 kit 뿐이면 한 번 알림 |
+| `check_todo_list.py` | todo(§13) — 왕복(추가 · 끝냄 · 되돌림 · 고침 · 삭제 · 형식) · 손으로 쓴 파일의 결정적 id · 낯선 줄 · 제목 붙은 머리 · 범위 아닌 머리 보존 · code 별 거절(C0 · C1 · 줄 구분자 포함)과 파일 무변경 · 손글 NEL · 없는 브랜치 디렉터리 안 만듦 · 출발 장벽 두 프로세스 동시 쓰기 200건 보존 · CLI 조작 · 종료 코드 · dispatcher · pyproject |
+| `check_workbench_todo.py` | todo 화면 · 편집(§13.1) — 진척 화면 할 일 · `todo n/m` · 체크리스트 · `api/state` · viewer 읽기만 · 이스케이프 · 폼 제출 왕복과 돌아갈 곳 · 401 · 403(viewer · Origin · CSRF) · 413 · 400 · 422 · 404 무변경 · hook 알림 한 번 · CLI 변경 안 알림 · 지문 · 넘침 방지 · 쓰는 중 |
 | `check_workbench_views.py` | 선언 ≠ 파생 둘 다 · 잎 0 "미측정" · 절대 경로 · 호스트 이름이 어느 응답에도 없음 (`api/state` 포함) · 이스케이프 (task 파일의 `<script>` 가 글자로) · 읽기 전용 (`git status` 전후 동일) · 정적 자원이 wheel 에 실림 |
 
 파서 단일성은 `check_plan_claims` case 6 의 소비자 목록에 `workbench/` 를 더해 그 한 곳에서 잰다 (ADR-032 결정 2).
@@ -372,3 +377,40 @@ Windows(NTFS) 의 포트 bind · 토큰 파일 모드(POSIX 모드 없음) · �
 | R10 | §11 | 실물 프록시 · 브라우저는 게이트 밖, 번호 연속은 없다 (V7), 경합의 뒤 절반은 `check_plan_import` case 9 |
 | R11 | requirements §1.4 · §10 | design 전 둘: 프록시 · 브라우저 완료, Codex 주입은 재지 않는다 (소유자 결정) |
 | R12 | ADR-032 Status | |
+
+## 13. todo — 브랜치 할 일 · task 체크리스트 (소유자 지시 2026-11-16, TASK-2026-11-16-main-016)
+
+소유자 결정: 브랜치 할 일(아직 task 가 아닌 일)과 task 체크리스트를 **둘 다** 두고, 워크벤치가 **바로 파일에 쓴다**.
+
+- 파일은 `<branch_dir>/todo.md` 하나다 (ADR-032 V11). task 파일에 두지 않는다 — task 파일의 작성자는 작업 세션 하나다(결정 15).
+- 형식: 머리 `# Todo`, 절 `## Branch` 와 `## <TASK-ID>`, 항목 `- [ ] 글 <!-- id:<hex> -->` · 끝낸 항목 `- [x]`. 항목이 없는 task 절은 쓰지 않는다.
+- id 는 쓸 때 붙는다. 손으로 쓴 id 없는 줄은 (절 · 글 · 같은 글의 몇 번째)에서 **결정적으로** 만든 id 로 읽는다. 항목도 절 머리도 아닌 줄은 버리지 않고 그 자리에 다시 쓴다.
+- 절 머리 뒤에 붙은 글(`## TASK-… — 제목`)은 그 절로 읽고 다시 쓸 때 그대로 둔다. 범위가 아닌 `## ` 머리 아래 줄은 어느 절에도 세지 않고 파일 끝에 그대로 다시 쓴다. 줄은 `\n` 하나로만 끊는다 (U+0085 · U+2028 을 줄 경계로 보지 않는다).
+- 글: 앞뒤 공백을 다듬은 한 줄 · 1~300자 · 제어 문자(유니코드 Cc — C0 · DEL · C1) · 줄 · 문단 구분자(U+2028 · U+2029) 없음 · `<!--` / `-->` 없음. task 절은 그 브랜치에 task 파일이 있을 때만 만든다.
+- 브랜치 메모리 디렉터리가 없으면 쓰지 않는다(`not_found`) — 그 디렉터리는 `backlog-update` 만 만든다.
+- 쓰기는 `<branch_dir>/.todo/lock`(자기 무시 `.gitignore`) 배타 락 아래 *읽기 → 적용 → 원자 교체* — 기다림 상한 5초, 넘으면 `busy`.
+- 읽기 · 쓰기는 `common/todo_list.py` 만 한다. 작업 세션은 `python -m workflow_kit todo` 를 쓴다:
+
+| 인자 | 하는 일 |
+|---|---|
+| (없음) · `--task <ID>` | 목록 — 절마다 `(끝냄/전체)` 와 항목 id. `--format json` 은 `items` · `counts` |
+| `--add "<글>" [--task <ID>]` | 더한다 (`--task` 가 없으면 브랜치 할 일) |
+| `--done <id>` · `--undo <id>` · `--remove <id>` | 끝냄 · 되돌림 · 삭제 |
+| `--edit <id> --text "<글>"` | 글을 고친다 |
+
+종료 코드: 0 성공 · 1 없는 id · 없는 task(목록 `--task` 포함) · 브랜치 메모리 없음 · 락 시간 초과 · 2 인자 · 글이 틀렸다.
+
+### 13.1 워크벤치 (TASK-2026-11-16-main-017)
+
+- 진척 화면: 요약 수치 아래 **할 일** — 브랜치 할 일과 `끝냄/전체`, 항목마다 끝냄 단추(☐ · ☑) · 글(3줄 clamp, 전문은 `title`) ·
+  '고치기'(글 · 삭제), 끝에 추가 폼. 계획 카드와 작업 보드의 task 에 `todo n/m` 칩, todo 가 있는 task 는 보드에서 링크된다.
+- 계획 화면: 머리 카드 다음 **체크리스트** — 그 task 절에 같은 조작. 브랜치 할 일은 섞지 않는다.
+- `api/state` 에 `todo: {branch: [...], counts: {절: [끝냄, 전체]}, error}` — 읽지 못하면 `branch: null` 과 사유.
+- viewer 는 읽기만 (폼 없음). 개방 모드는 approver 다.
+- `POST todo` 필드: `csrf` · `action`(`add` · `done` · `undo` · `edit` · `remove`) · `id` · `text` · `scope`(추가 · 기본 `Branch`) ·
+  `back`(빈 값 = 진척 화면 · `task/<TASK-ID>`). 순서: 본문 크기(8,192) → 세션 401 → approver 403 → `Origin` 403 → CSRF 403 →
+  `back` 400 → §13 의 거절(`invalid` 422 · `not_found` 404 · `busy` 503). 하나라도 어긋나면 쓰지 않고 기록도 남기지 않는다. 성공은 303 → `back`.
+- 바꾼 뒤 checkout 루트의 `.workbench/todo-events.jsonl` 에 한 줄(시각 · 누가 · 동작 · 항목)을 더하고 도착 신호(§6.1 의 stamp)를 남긴다.
+  작업 세션 hook(`plan-import --hook`)이 그 줄을 **읽고 비워** `[워크벤치] 소유자가 todo 를 바꿨다` 블록으로 싣는다 — 한 번만, 20줄 넘으면 '외 N건'.
+  작업 세션의 `todo` CLI 변경은 기록하지 않는다.
+- 자동 새로고침(§4.5)은 todo.md 가 바뀌면 지문이 바뀌어 화면을 갈아 끼운다. todo 폼에 글을 쓰는 중이거나 '고치기'를 펼친 동안은 갈아 끼우지 않고 알림만 낸다.

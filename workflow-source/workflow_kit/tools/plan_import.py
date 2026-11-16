@@ -430,10 +430,22 @@ def run_hook(profile: Path, event: str) -> int:
             lines.append(f"- {task_id}: 반영하지 못했다 — {out.get('error')}")
             continue
         lines.extend(_hook_lines(task_id, out))
+    # 소유자가 워크벤치에서 바꾼 todo (TASK-2026-11-16-main-017) — 같은 도착 신호로 오고, 읽으면 비운다.
+    from workflow_kit.workbench import todo_events
+    try:
+        todo_lines = todo_events.hook_lines(todo_events.drain(workspace))
+    except (OSError, TimeoutError) as exc:
+        todo_lines = [f"- todo 변경 기록을 읽지 못했다 ({type(exc).__name__}) — `python -m workflow_kit todo` 로 확인"]
     if not busy:
         inbox_signal.mark_seen(workspace, stamp)
+    blocks: list[str] = []
     if lines:
-        message = "[워크벤치] 소유자 응답 도착 — 작업 세션이 반영했다 (plan-import --apply):\n" + "\n".join(lines)
+        blocks.append("[워크벤치] 소유자 응답 도착 — 작업 세션이 반영했다 (plan-import --apply):\n" + "\n".join(lines))
+    if todo_lines:
+        blocks.append("[워크벤치] 소유자가 todo 를 바꿨다 (todo.md — `python -m workflow_kit todo` 로 목록):\n"
+                      + "\n".join(todo_lines))
+    if blocks:
+        message = "\n\n".join(blocks)
         print(json.dumps({"hookSpecificOutput": {"hookEventName": event, "additionalContext": message}},
                          ensure_ascii=False))
     return 0

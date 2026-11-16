@@ -25,11 +25,25 @@
     form.addEventListener("change", function () { dirty = true; });
   }
 
+  // todo 폼(스펙 §13.1) — 글을 쓰는 중이거나 '고치기' 를 펼쳐 둔 동안은 화면을 갈아 끼우지 않는다.
+  function bindTodo(root) {
+    root.querySelectorAll("form.todo-add, form.todo-edit").forEach(function (form) {
+      if (form.getAttribute("data-bound")) { return; }
+      form.setAttribute("data-bound", "1");
+      form.addEventListener("input", function () { dirty = true; });
+    });
+    root.querySelectorAll("details.todo-more").forEach(function (el) {
+      if (el.getAttribute("data-bound")) { return; }
+      el.setAttribute("data-bound", "1");
+      el.addEventListener("toggle", function () { if (el.open) { dirty = true; } });
+    });
+  }
+
   function notify() {
     if (document.querySelector(".refresh-notice")) { return; }
     var box = document.createElement("div");
     box.className = "alert warn refresh-notice";
-    box.appendChild(document.createTextNode("내용이 바뀌었다 — 쓰던 답은 그대로 두었다. "));
+    box.appendChild(document.createTextNode("내용이 바뀌었다 — 쓰던 글은 그대로 두었다. "));
     var button = document.createElement("button");
     button.type = "button";
     button.className = "ghost";
@@ -43,6 +57,7 @@
   document.addEventListener("DOMContentLoaded", function () {
     bindDecisions(document);
     bindForm(document);
+    bindTodo(document);
     var seconds = parseInt(document.body.getAttribute("data-refresh") || "0", 10);
     if (!(seconds > 0)) { return; }
     var busy = false;
@@ -61,6 +76,7 @@
           main.setAttribute("data-version", next.getAttribute("data-version"));
           bindDecisions(main);
           bindForm(main);
+          bindTodo(main);
         })
         .catch(function () { /* 서버가 잠시 없으면 다음 차례에 다시 본다 */ })
         .then(function () { busy = false; });

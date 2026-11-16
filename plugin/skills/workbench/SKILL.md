@@ -10,8 +10,8 @@ description: |
 ## Role
 
 Let the owner read task plans and progress in a browser and answer open decisions there
-(ADR-032). The server only ever writes answers into the branch memory inbox; the work session
-applies them with `plan-import`. **Do not start, stop or drive the server yourself** — give
+(ADR-032). The server writes only answers into the branch memory inbox and the owner's todo
+edits into `todo.md`; the work session applies answers with `plan-import`. **Do not start, stop or drive the server yourself** — give
 the owner the commands and the URL. No model is called by the server.
 
 ## Procedure
@@ -47,6 +47,10 @@ the owner the commands and the URL. No model is called by the server.
    (`python -m workflow_kit workbench --stop --autostarted-only`). `python -m workflow_kit workbench --autostart off` turns it off.
 4. When answers arrive, `session-start` and `backlog-update` report pending plan responses.
    Apply them with `plan-import`; a task with pending responses cannot move to `done`.
+5. **Todo** — the progress page lists branch todos and each task page a checklist; the owner can
+   add, check off, edit and remove them in the browser (stored in `<branch>/todo.md`). The next
+   hook reports the owner's changes. From the work session use
+   `python -m workflow_kit todo` (list) · `todo --add "…" [--task <ID>]` · `todo --done <id>`.
 
 ## Usage
 

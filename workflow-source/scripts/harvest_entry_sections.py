@@ -44,6 +44,8 @@ DEFAULT_REFS = (
     "c4c14c6b",
     # ADR-032 ② — 정본 §11.1 에 workbench, claude-code 진입점에 `/workflow-workbench` · slash 설명 단축.
     "a2e3b495",
+    # 정본 §1 에 진행 기록(--progress-note) 원칙 — `Working Principles` 절이 바뀌었다 (TASK-2026-11-17-claude-remote-sync-check-234c32-003).
+    "0c23165f",
 )
 HARNESSES = ("codex", "opencode", "pi-dev", "antigravity", "minimax-code", "claude-code",
              "aider", "goose", "grok-build", "gemini-cli", "codewhale", "custom", "mavis")

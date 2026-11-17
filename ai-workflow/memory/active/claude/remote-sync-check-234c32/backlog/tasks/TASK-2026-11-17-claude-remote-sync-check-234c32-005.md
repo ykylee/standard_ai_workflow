@@ -1,6 +1,6 @@
 ---
 id: TASK-2026-11-17-claude-remote-sync-check-234c32-005
-status: planned
+status: done
 created_at: 2026-11-17
 source_anchor: generic-task-2026-11-17-claude-remote-sync-check-234c32-005
 source_path: backlog/2026-11-17.md
@@ -12,7 +12,7 @@ wbs: M-007/WBS-7.4
 
 ## 📝 Description
 
-- Status: planned
+- Status: done
 - Priority: high
 - Request date: 2026-11-17
 - Owner:
@@ -43,11 +43,12 @@ wbs: M-007/WBS-7.4
 
 ## 🛠️ Implementation / Content
 
-- Progress: `2026-11-17 04:51` 구현 · 검사 완료(multi 5/5 · 되주입 7 red · 워크벤치 14종 PASS · 실서버 :8847) — --changed + smoke
+- Progress: `2026-11-17 05:04` done — verifier 지적(R2 · R1 · 해제) 보강 후 재측정
 - Next session starting point:
 - Remaining risks:
 
 ## ✅ Outcome
 
-- Result:
+- Result: 0c23165f + 검사 보강. --port 생략 → checkout 경로 해시 8766~8865, 차 있으면 다음 빈 포트(명시 포트는 넘어가지 않음 · 0 은 OS) · 화면 머리 · <title> 에 저장소(worktree 는 공통 .git 이름) · 브랜치 · 호스트 공용 목록 + workbench --list(죽은 기록 청소, --stop · 정상 종료가 지움) · 검사는 임시 목록 위치. 알려 둘 것: main worktree 자동 기동 인자에 --port 가 없어 kit 갱신 뒤 8766 → 8863 으로 뜬다(유지하려면 --autostart on … --port 8766). 옛 버전으로 떠 있는 서버(main :8766)는 등록 전이라 --list 에 안 보인다.
+- Verification: verifier: C1 (수동 · 자동 기동 · 차 있을 때 다음 포트 8790→8791) · C2 (실서버 머리 · title) · C3 (session-start 보고 · --status · --list) PASS, C4 는 되주입 R2 가 TIME_WAIT 로 5회 중 1회 green → 검사 보강 후 재측정: R2 5/5 red · 해시 고정 R1 red · 해제 R8+R9 red · multi 5/5 ×3 · 워크벤치 검사 14종 PASS
 - Follow-up:

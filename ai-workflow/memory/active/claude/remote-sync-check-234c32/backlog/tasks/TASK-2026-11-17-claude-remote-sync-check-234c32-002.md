@@ -35,8 +35,8 @@ wbs: M-007/WBS-7.4
 
 ## 🛠️ Implementation / Content
 
-- Progress: `2026-11-17 04:44` verifier 지적 반영 — C2 는 실제 화면 todo 변경 재측정 필요(소유자)
-- Next session starting point:
+- Progress: `2026-11-17 05:46` C1 · C3 관측 기록 — C2 실제 화면 todo 변경 재측정만 남음 (소유자 대기)
+- Next session starting point: 소유자가 워크벤치 화면에서 todo 하나를 바꾼다(iPad 가능) → 다음 메시지에 '[워크벤치] 소유자가 todo 를 바꿨다' 주입 관측 → C2 실측 · close (-004 C2 와 같은 한 번)
 - Remaining risks:
 
 ## ✅ Outcome

@@ -1,6 +1,6 @@
 ---
 id: TASK-2026-11-17-claude-remote-sync-check-234c32-003
-status: in_progress
+status: done
 created_at: 2026-11-17
 source_anchor: generic-task-2026-11-17-claude-remote-sync-check-234c32-003
 source_path: backlog/2026-11-17.md
@@ -12,7 +12,7 @@ wbs: M-007/WBS-7.4
 
 ## 📝 Description
 
-- Status: in_progress
+- Status: done
 - Priority: high
 - Request date: 2026-11-17
 - Owner:
@@ -44,11 +44,12 @@ wbs: M-007/WBS-7.4
 
 ## 🛠️ Implementation / Content
 
-- Progress: `2026-11-17 04:44` D1 answered:hook 재기록 — D3 추가로 계획 지문이 바뀌어 04:21 iPad 응답(opened yes, hook)의 자격이 풀려 proposed 로 돌아갔던 것(verifier -002 발견)
+- Progress: `2026-11-17 05:01` done — verifier PASS 3/3
 - Next session starting point:
 - Remaining risks:
 
 ## ✅ Outcome
 
-- Result:
+- Result: 0c23165f · 1b94a470. 정본 §1 원칙 → 스냅샷 · CLAUDE.md · AGENTS.md · 플러그인 rules · ai-workflow/core 사본 (스킬은 원칙 블록을 싣지 않는 구조 — backlog-update 스킬 7단계 손글 + hook 안내 문장으로 실림). progress-nudge --hook + Claude Code PostToolUse 두 번째 명령(15분 표식 · 12시간 작업 창 · 비 워크플로우 무동작 · 옛 kit 은 표식만). check_standard_single_source 가 원칙도 대조(명령만 보던 사각). check_entry_diet 기준 10%(D3). CLAUDE.md 손글 '작업 중:' 줄은 구체 명령 예시라 남긴다 — Plan 의 정리 항목은 걷음. 미측정: 이 세션 안의 상기 문구 실제 주입(완료 기준 밖).
+- Verification: verifier PASS 3/3 — check_progress_nudge 5/5 · check_standard_single_source 11/11 · check_entry_diet 7/7 · check_workbench_progress 3/3 · check_agent_plugin_payload 23/23 · check_wk_dispatcher 11/11 · check_ensure_entrypoints 8/8 · smoke 8/8, 원칙 제거 되주입 8판 red. 전량 게이트는 push 전 작업 세션
 - Follow-up:

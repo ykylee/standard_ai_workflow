@@ -40,8 +40,8 @@ wbs: M-007/WBS-7.1
 
 ## 🛠️ Implementation / Content
 
-- Progress: `2026-11-17 04:48` verifier: C1 · C3 · C4 PASS, C2 todo 추가 미측정(소유자 iPad 대기), C5 는 -005 진행분 때문에 red — -005 마친 뒤 재측정
-- Next session starting point:
+- Progress: `2026-11-17 05:46` C1 · C3 · C4 PASS(verifier) · C5 워크벤치 14종 PASS — C2 iPad todo 추가만 남음 (소유자 대기)
+- Next session starting point: 실제 iPad 에서 todo 추가 한 번 → 서버 로그 POST /todo 303 + 소유자 화면 확인 → close (-002 C2 와 같은 한 번)
 - Remaining risks:
 
 ## ✅ Outcome

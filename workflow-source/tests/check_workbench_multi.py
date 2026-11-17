@@ -61,6 +61,10 @@ def case_ports() -> list[str]:
                 problems.append(f"해시 포트가 범위 밖이다: {port}")
         if registry.preferred_port(Path(a)) != pa:
             problems.append("같은 checkout 의 포트가 부를 때마다 다르다")
+        # 경로마다 흩어지는가 — 고정 포트(해시 아님)면 하나로 모인다 (verifier R1)
+        spread = {registry.preferred_port(Path(a) / f"c{i}") for i in range(24)}
+        if len(spread) < 8:
+            problems.append(f"서로 다른 checkout 24개의 해시 포트가 {len(spread)}개로 모인다 — 경로 해시가 아니다")
         candidates = registry.candidate_ports(Path(a))
         if candidates[0] != pa or sorted(candidates) != list(range(registry.PORT_BASE, registry.PORT_BASE + registry.PORT_SPAN)):
             problems.append("후보가 해시 포트에서 시작해 범위를 한 바퀴 돌지 않는다")
@@ -130,15 +134,16 @@ def case_two_checkouts() -> list[str]:
     with fx.temp_workspace("wb-multi-3a-") as a, fx.temp_workspace("wb-multi-3b-") as b, \
             tempfile.TemporaryDirectory(prefix="wb-multi-reg-") as reg_dir:
         ws_a, ws_b, reg = fx.make_workspace(a), fx.make_workspace(b), Path(reg_dir)
+        # a 의 해시 포트를 다른 프로세스가 쥔다 — SO_REUSEADDR 로 서버와 같은 규칙으로 bind 한다. 없으면 TIME_WAIT 포트를
+        # 건너뛰어 다음 포트를 막고, a 는 해시 포트에 그대로 떠 '다음 빈 포트' 경로를 안 거친 채 green 이었다 (verifier R2, 5회 중 1회).
         blocker = socket.socket()
-        blocked: int | None = None
-        for port in registry.candidate_ports(ws_a):  # a 의 해시 포트(차 있으면 그다음)를 다른 프로세스가 쥔다
-            try:
-                blocker.bind(("127.0.0.1", port))
-                blocked = port
-                break
-            except OSError:
-                continue
+        blocker.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        blocked = registry.preferred_port(ws_a)
+        try:
+            blocker.bind(("127.0.0.1", blocked))
+        except OSError as exc:
+            blocker.close()
+            return [f"a 의 해시 포트 {blocked} 를 막지 못했다 — 이 호스트에서 무엇이 듣고 있다 ({exc}); 잴 수 없다"]
         blocker.listen(1)
         procs: list[subprocess.Popen[str]] = []
         try:
@@ -154,6 +159,8 @@ def case_two_checkouts() -> list[str]:
                 problems.append(f"포트가 범위 밖이거나 같다: a={port_a} b={port_b}")
             if port_a == blocked:
                 problems.append(f"다른 프로세스가 쥔 포트 {blocked} 를 a 가 받았다")
+            if port_a not in registry.candidate_ports(ws_a)[1:]:
+                problems.append(f"a 가 해시 포트 다음 후보가 아닌 {port_a} 를 받았다")
             for ws, url in ((ws_a, url_a), (ws_b, url_b)):
                 record = json.loads((ws / ".workbench" / "server.json").read_text(encoding="utf-8"))
                 status = json.loads(_wb(ws, reg, "--status").stdout)
@@ -229,6 +236,9 @@ def case_list() -> list[str]:
             reaper.start()
             stopped = json.loads(_wb(ws_a, reg, "--stop").stdout)
             reaper.join(timeout=15)
+            # --list 는 죽은 기록을 청소하니 그 전에 파일로 — 내린 서버의 기록이 스스로 지워졌는가
+            if (reg / f"{registry.checkout_key(ws_a)}.json").exists():
+                problems.append("--stop 뒤에도 내린 서버의 목록 기록 파일이 남았다")
             remaining = json.loads(_wb(ws_b, reg, "--list").stdout)["workbenches"]
             if not stopped.get("stopped") or [e.get("public_url") for e in remaining] != [url_b]:
                 problems.append(f"--stop 뒤 목록에 내린 서버가 남았다: {stopped} {remaining}")

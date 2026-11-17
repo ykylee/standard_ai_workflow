@@ -8,12 +8,14 @@
 
 from __future__ import annotations
 
+import atexit
 import hashlib
 import http.client
 import itertools
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -41,11 +43,17 @@ D1 = "D1 [C1] 막는가? | default: block | options: block = 거부한다; warn 
 D2 = "D2 [C2] 어느 쪽인가? | default: a | options: a = 가; b = 나"
 
 
+_REGISTRY_DIR = tempfile.mkdtemp(prefix="wb-registry-")
+atexit.register(shutil.rmtree, _REGISTRY_DIR, True)  # 임시 디렉터리를 남기지 않는다
+
+
 def env() -> dict[str, str]:
     out = dict(os.environ)
     out["PYTHONPATH"] = str(SOURCE_ROOT)
     out["CODEX_WORKFLOW_BRANCH"] = BRANCH
     out["PYTHONIOENCODING"] = "utf-8"
+    # 호스트 공용 워크벤치 목록(TASK-2026-11-17-claude-remote-sync-check-234c32-005)은 사용자 캐시가 아니라 검사 임시 디렉터리로
+    out.setdefault("WORKFLOW_KIT_WORKBENCH_REGISTRY", _REGISTRY_DIR)
     return out
 
 

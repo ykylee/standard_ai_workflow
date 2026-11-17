@@ -8,7 +8,7 @@
 - 범위: 세션 복원, 작업 원칙, 세션 종료 순서, 실행 · 검증 명령
 - 대상 독자: Claude Code, 저장소 관리자
 - 상태: beta
-- 최종 수정일: 2026-11-16
+- 최종 수정일: 2026-11-17
 - 관련 문서: `docs/PROJECT_PROFILE.md`, `docs/LOCAL_GATE.md`, `ai-workflow/memory/active/<branch>/session_handoff.md`
 
 > 아래 `## Working Principles` · `## Session Close Order` · `## Memory Update Paths` 는
@@ -30,6 +30,7 @@
 - Read the state summary documents first, every session.
 - Before starting work, state its purpose, scope, deliverables, and affected documents, and record the plan in the task file (claims, open decisions, files, order of work, risks, proof).
 - Track work in the state documents with exactly one status: `planned`, `in_progress`, `blocked`, `done`.
+- While working, update the task's progress line at every step (plan → implement → checks → verifier → commit · push) with `backlog-update --progress-note` — the workbench shows it as what is happening now.
 - Never mark an unverified result as done.
 - A decision the owner has not opened is not agreed — never close a task with open decisions.
 - Before ending a session, leave a state summary the next session can resume from.

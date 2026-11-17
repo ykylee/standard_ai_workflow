@@ -55,7 +55,12 @@ def badge(value: object, *, kind: str | None = None) -> str:
 
 
 def page(*, title: str, rel: str, branch: str | None, body: str, script: bool = False,
-         user: str | None = None, csrf: str | None = None, logout: bool = True, refresh: int = 0) -> str:
+         user: str | None = None, csrf: str | None = None, logout: bool = True, refresh: int = 0,
+         repo: str | None = None) -> str:
+    # 한 호스트에 워크벤치가 여럿이면 탭 제목으로 가른다 — `<저장소> · <브랜치> — <화면>` (스펙 §3.2)
+    label = " · ".join(part for part in (repo, branch) if part)
+    if label:
+        title = f"{label} — {title}"
     head = [
         "<!doctype html>", '<html lang="ko">', "<head>", '<meta charset="utf-8">',
         '<meta name="viewport" content="width=device-width, initial-scale=1">',
@@ -70,6 +75,8 @@ def page(*, title: str, rel: str, branch: str | None, body: str, script: bool = 
     version = hashlib.sha256(fingerprint.encode("utf-8")).hexdigest()[:16]
     head.extend(["</head>", body_tag, '<header class="top"><div class="bar">',
                  f'<a class="brand" href="{esc(rel)}"><span class="logo">◆</span> 워크벤치</a>'])
+    if repo is not None:
+        head.append(f'<span class="branch repo">저장소 {esc(repo)}</span>')
     if branch is not None:
         head.append(f'<span class="branch">브랜치 {esc(branch)}</span>')
     if user is not None and not logout:  # 개방 모드 — 로그인이 없으니 로그아웃도 없다 (스펙 §5.6)
@@ -94,12 +101,13 @@ def login_page(*, rel: str, error: str | None = None) -> str:
     return page(title="워크벤치 로그인", rel=rel, branch=None, body="\n".join(body))
 
 
-def message_page(*, rel: str, branch: str | None, title: str, message: str, back: str | None = None) -> str:
+def message_page(*, rel: str, branch: str | None, title: str, message: str, back: str | None = None,
+                 repo: str | None = None) -> str:
     body = [f'<section class="card narrow"><h1>{esc(title)}</h1>', f'<p class="alert error">{esc(message)}</p>']
     if back is not None:
         body.append(f'<p><a href="{esc(back)}">돌아가기</a></p>')
     body.append("</section>")
-    return page(title=title, rel=rel, branch=branch, body="\n".join(body))
+    return page(title=title, rel=rel, branch=branch, body="\n".join(body), repo=repo)
 
 
 def _progress(done: int | None, total: int) -> str:
@@ -202,7 +210,7 @@ def _kpi(label: str, value: str, kind: str) -> str:
 
 
 def progress_page(*, state: dict[str, Any], rel: str, user: str, csrf: str, logout: bool = True,
-                  refresh: int = 0, role: str = "approver") -> str:
+                  refresh: int = 0, role: str = "approver", repo: str | None = None) -> str:
     tasks = state["tasks"]
     plans = state["plans"]
     inbox = state["inbox"]
@@ -297,7 +305,7 @@ def progress_page(*, state: dict[str, Any], rel: str, user: str, csrf: str, logo
     if state["issues"]:
         body.append('<ul class="issues">' + "".join(f"<li>{esc(note)}</li>" for note in state["issues"]) + "</ul>")
     body.append("</section>")
-    return page(title="워크벤치 — 진척", rel=rel, branch=state["branch"], body="\n".join(body),
+    return page(title="워크벤치 — 진척", rel=rel, branch=state["branch"], body="\n".join(body), repo=repo,
                 user=user, csrf=csrf, logout=logout, refresh=refresh)
 
 
@@ -374,7 +382,8 @@ def _decision_block(view: PlanView, decision_id: str, *, can_answer: bool) -> st
 
 
 def plan_page(*, view: PlanView, rel: str, branch: str, user: str, csrf: str, role: str,
-              flash: str | None = None, error: str | None = None, logout: bool = True, refresh: int = 0) -> str:
+              flash: str | None = None, error: str | None = None, logout: bool = True, refresh: int = 0,
+              repo: str | None = None) -> str:
     task = view.task
     can_answer = role == "approver" and bool(view.decisions) and not view.has_errors
     open_count = sum(1 for d in view.decisions if d.open)
@@ -435,5 +444,5 @@ def plan_page(*, view: PlanView, rel: str, branch: str, user: str, csrf: str, ro
     if view.out_of_scope:
         body.append('<section class="section"><h2>Out of scope</h2><ul class="card list">'
                     + "".join(f"<li>{esc(v)}</li>" for v in view.out_of_scope) + "</ul></section>")
-    return page(title=f"워크벤치 — {task.task_id}", rel=rel, branch=branch, body="\n".join(body), script=can_answer,
+    return page(title=f"워크벤치 — {task.task_id}", rel=rel, branch=branch, body="\n".join(body), script=can_answer, repo=repo,
                 user=user, csrf=csrf, logout=logout, refresh=refresh)

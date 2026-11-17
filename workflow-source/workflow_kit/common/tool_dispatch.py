@@ -57,6 +57,8 @@ TOOL_MODULES: Final[dict[str, str]] = {
     "workbench": "workflow_kit.tools.workbench",
     # TASK-2026-11-16-main-016 — 브랜치 할 일 · task 체크리스트 (워크벤치와 같은 todo.md).
     "todo": "workflow_kit.tools.todo",
+    # TASK-2026-11-17-claude-remote-sync-check-234c32-003 — 진행 기록 상기 (작업 세션 hook).
+    "progress-nudge": "workflow_kit.tools.progress_nudge",
     "consumer-metrics": "workflow_kit.tools.consumer_metrics",
     "create-environment-record-stub": "workflow_kit.tools.create_environment_record_stub",
     "detect-scope-drift": "workflow_kit.tools.detect_scope_drift",

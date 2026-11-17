@@ -42,7 +42,8 @@ and `./tasks/<TASK-ID>.md`.
    commit · push) update the task's single progress line:
    `python -m workflow_kit backlog-update --mode update --task-id <TASK-ID> --task-name "<title>" --progress-note "<what is happening now>"`.
    The tool stamps the time; the workbench shows it as *지금 하는 일*. One line, replaced each time —
-   the history lives in git.
+   the history lives in git. In Claude Code a `PostToolUse` hook (`progress-nudge`) reminds you once
+   when a task you are working on has kept the same progress line for more than 15 minutes.
 
 ## Usage
 

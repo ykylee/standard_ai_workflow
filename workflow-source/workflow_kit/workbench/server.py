@@ -191,7 +191,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def _message(self, status: int, message: str) -> None:
         where = self._where_or_none()
-        self._send(status, views.message_page(rel=self._rel(), branch=where.branch if where else None,
+        self._send(status, views.message_page(rel=self._rel(), branch=where.branch if where else None, repo=_repo(where),
                                               title=f"{status} {HTTPStatus(status).phrase}", message=message,
                                               back=self._rel()))
 
@@ -293,6 +293,11 @@ class Handler(BaseHTTPRequestHandler):
     do_HEAD = do_PUT = do_DELETE = do_PATCH = do_OPTIONS = _not_found  # noqa: N815
 
     def _dispatch(self, *, get: bool) -> None:
+        if not get:
+            # 쓰기 요청은 응답 뒤 연결을 닫는다 — 본문을 읽지 않고 답하는 경로(경로 표 밖 404 · 개방 모드 로그인 ·
+            # 로그아웃 303)가 남긴 본문이 같은 연결의 다음 요청 머리에 붙어 그 요청을 깨뜨렸다
+            # (실측: 'probe=1GET /task/…' 404, TASK-2026-11-17-claude-remote-sync-check-234c32-004).
+            self.close_connection = True
         try:
             self._route(get=get)
         except _Reject as reject:
@@ -417,7 +422,8 @@ class Handler(BaseHTTPRequestHandler):
             return
         self._send(HTTPStatus.OK, views.progress_page(state=state, rel=self._rel(), user=session.name,
                                                       csrf=session.csrf, logout=not self.app.is_open,
-                                                      refresh=self.app.refresh_seconds, role=session.role))
+                                                      refresh=self.app.refresh_seconds, role=session.role,
+                                                      repo=_repo(self._where_or_none())))
 
     def _plan(self, task_id: str, *, error: str | None = None, status: int = HTTPStatus.OK) -> None:
         session = self._need_session(api=False)
@@ -427,12 +433,12 @@ class Handler(BaseHTTPRequestHandler):
         task = self._task(where, task_id)
         if task is None:
             self._send(HTTPStatus.NOT_FOUND, views.message_page(
-                rel=self._rel(), branch=where.branch, title="404 Not Found",
+                rel=self._rel(), branch=where.branch, repo=_repo(where), title="404 Not Found",
                 message=f"이 브랜치에 task 가 없다: {task_id}", back=self._rel()))
             return
         flash, session.flash = session.flash, None
         self._send(status, views.plan_page(
-            view=state_view.build_plan(where, task), rel=self._rel(), branch=where.branch, user=session.name,
+            view=state_view.build_plan(where, task), rel=self._rel(), branch=where.branch, repo=_repo(where), user=session.name,
             csrf=session.csrf, role=session.role, flash=flash, error=error, logout=not self.app.is_open,
             refresh=self.app.refresh_seconds))
 
@@ -459,7 +465,7 @@ class Handler(BaseHTTPRequestHandler):
             client=safe_client(self._client()) if self.app.is_open else None)
         if not outcome.ok:
             self._send(outcome.status, views.message_page(
-                rel=self._rel(), branch=where.branch, title=f"{outcome.status} {HTTPStatus(outcome.status).phrase}",
+                rel=self._rel(), branch=where.branch, repo=_repo(where), title=f"{outcome.status} {HTTPStatus(outcome.status).phrase}",
                 message=outcome.message, back=f"../{task_id}"))
             return
         session.flash = outcome.message
@@ -503,7 +509,7 @@ class Handler(BaseHTTPRequestHandler):
         except todo_list.TodoError as error:
             status = _TODO_STATUS.get(error.code, HTTPStatus.UNPROCESSABLE_ENTITY)
             self._send(status, views.message_page(
-                rel=self._rel(), branch=where.branch, title=f"{int(status)} {HTTPStatus(status).phrase}",
+                rel=self._rel(), branch=where.branch, repo=_repo(where), title=f"{int(status)} {HTTPStatus(status).phrase}",
                 message=str(error), back="./" + back))
             return
         try:  # 작업 세션 hook 이 다음 차례에 소유자의 변경을 문장으로 받는다 — 실패해도 todo 는 이미 바뀌었다
@@ -526,6 +532,13 @@ def serve_in_thread(server: ThreadingHTTPServer) -> threading.Thread:
     thread = threading.Thread(target=server.serve_forever, kwargs={"poll_interval": 0.1}, daemon=True)
     thread.start()
     return thread
+
+
+def _repo(where: state_view.Where | None) -> str | None:
+    """화면 머리의 저장소 이름 (스펙 §3.2) — 요청마다 파일만 읽는다."""
+    from workflow_kit.workbench import registry
+
+    return registry.repo_name(where.workspace_root) if where is not None else None
 
 
 def where_for(profile_path: Path) -> Callable[[], state_view.Where]:

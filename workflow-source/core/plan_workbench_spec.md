@@ -4,7 +4,7 @@
 - 범위: `python -m workflow_kit workbench`, 서버가 서빙하는 경로와 화면, 서버가 받은편지함에 쓰는 응답, 받은편지함 건수의 정본 함수, MCP 도구 `plan_inbox` · `plan_import`, §11.1 한 줄과 스킬, 검사 넷
 - 대상 독자: workflow 설계자, AI agent, kit 소비 프로젝트
 - 상태: draft (ADR-032 accepted 2026-11-13 — M-029 ② 서버 · 화면 · 검사 · MCP 두 도구 구현 2026-11-14, Windows 실측 전)
-- 최종 수정일: 2026-11-16
+- 최종 수정일: 2026-11-17
 - 관련 문서: `../../ai-workflow/wiki/decisions/adr-032-plan-workbench.md`, `../../docs/planning/plan-workbench-requirements-2026-11.md`, `./claim_plan_spec.md`, `./global_workflow_standard.md`
 
 > **결정 근거는 ADR-032 에, 숫자의 실측은 requirements 에 있다.** 이 문서는 *계약* 만 적는다.
@@ -27,11 +27,12 @@
 ## 2. 명령 (R1.1 · R1.2)
 
 ```
-python -m workflow_kit workbench [--bind 127.0.0.1] [--port 8766] [--public-url URL]
+python -m workflow_kit workbench [--bind 127.0.0.1] [--port N] [--public-url URL]
     --token <viewer|approver>:<name>=env:<VAR>|file:<path> [--token …]
     [--trusted-proxy ADDR]… [--tls-cert PATH --tls-key PATH] [--allow-plain-http] [--refresh SECONDS]
 python -m workflow_kit workbench --open <name> [--bind ADDR] [--port N] [--public-url URL] [--trusted-proxy ADDR]…
 python -m workflow_kit workbench --status
+python -m workflow_kit workbench --list
 python -m workflow_kit workbench --autostart on <시작 인자…> | --autostart off
 python -m workflow_kit workbench --stop [--autostarted-only]
 python -m workflow_kit workbench --new-token <role>:<name> --out <path>
@@ -39,7 +40,7 @@ python -m workflow_kit workbench --new-token <role>:<name> --out <path>
 
 - 모르는 인자 · 접두 축약은 거절한다 (`allow_abbrev=False`).
 - 시작을 거절하는 경우 (rc 2, 이유 한 줄): 토큰이 없다 · 토큰 값이 32자 미만 · 토큰 파일 모드가 `0600` 보다 넓다(POSIX) · 이름이 `[A-Za-z0-9_-]{1,32}` 가 아니거나
-  겹친다 · 포트가 사용 중이다 · TLS 를 켰는데 `public_url` 이 `http` 다 · `--bind` 가 loopback 이 아닌데 TLS 도 `--allow-plain-http` 도 없다 ·
+  겹친다 · 명시한 `--port` 가 사용 중이다(§3.2 — 자동 분배는 넘어간다) · TLS 를 켰는데 `public_url` 이 `http` 다 · `--bind` 가 loopback 이 아닌데 TLS 도 `--allow-plain-http` 도 없다 ·
   같은 checkout 에 살아 있는 서버가 있다 (그 `public_url` 을 알린다).
 - `public_url` 은 끝 슬래시를 갖는다 — 없으면 붙인다. 기본 `http://127.0.0.1:<port>/`. 시작할 때 `public_url` 을 출력하고, loopback 이 아닌 bind 면 경고 한 줄.
 - `--new-token` 은 `secrets.token_urlsafe(32)` 를 `0600` 파일로 쓰고 값은 출력하지 않는다 (출력은 경로와 `--token` 에 줄 인자 한 줄). 있는 파일은 덮지 않는다. 부모 디렉터리가 없으면 `0700` 으로 만들고,
@@ -53,7 +54,7 @@ python -m workflow_kit workbench --new-token <role>:<name> --out <path>
 
 ## 3. 수명 (R1.3)
 
-- 실행 기록은 **checkout 루트**의 `.workbench/server.json` — `pid` · `port` · `public_url` · `started_at` · `instance`(시작 때 만든 무작위 32 hex, `healthz` 머리와 같은 값). 토큰 · 세션은 싣지 않는다.
+- 실행 기록은 **checkout 루트**의 `.workbench/server.json` — `pid` · `port` · `public_url` · `started_at` · `instance`(시작 때 만든 무작위 32 hex, `healthz` 머리와 같은 값) · `bind`(`--bind` 값 — `--stop` 의 탐침 주소). 토큰 · 세션은 싣지 않는다.
   `.workbench/` 는 자기 무시 디렉터리다: 안의 `.gitignore` 가 `*\n` 인지 시작할 때마다 확인하고 다르면 다시 쓴다.
 - checkout 하나에 서버 하나 — 기록의 `pid` 가 살아 있으면 시작을 거절한다. 죽은 `pid` 의 기록은 덮어쓴다. 정상 종료 때 기록을 지운다.
 - 요청마다 현재 브랜치를 다시 읽는다 — 화면 머리에 브랜치 이름을 보인다.
@@ -67,16 +68,32 @@ python -m workflow_kit workbench --new-token <role>:<name> --out <path>
 - 설정이 있고 살아 있는 서버가 없으면 `session-start` 가 서버를 떨어진 자식(POSIX 새 세션 · Windows `DETACHED_PROCESS`)으로 띄우고
   실행 기록을 15초까지 기다린다(넘으면 자식을 내리고 실패로 본다) — `summary` 에 `워크벤치 시작: <public_url>`. 실패는 `warnings` 한 줄(`워크벤치 자동 기동 실패 — <이유>`)이고
   세션 진입을 막지 않는다. 자식의 표준 출력 · 오류는 `.workbench/server.log` (띄울 때마다 새로).
-- 자동 기동한 서버의 실행 기록에는 `"autostarted": true` 와 `bind` 가 더 실린다.
+- 자동 기동한 서버의 실행 기록에는 `"autostarted": true` 가 더 실린다.
 - `WORKFLOW_KIT_NO_WORKBENCH_AUTOSTART` 가 있거나 검사 표식 `WORKFLOW_KIT_TELEMETRY_SKIP_ROOT` 가 이 작업 공간을 가리키면 띄우지 않는다 —
   러너 · 스모크가 살아 있는 저장소에서 `session-start` 를 불러도 서버가 남지 않는다.
 - `--stop` 은 기록의 포트가 `healthz` 에 `ok` 로 답하고 그 응답의 `X-Workbench-Instance` 가 기록의 `instance` 와 같을 때만 기록의 pid 에 SIGTERM 을 보낸다 —
   기록의 pid 는 서버가 자기 자신을 적은 것이라, 같은 instance 로 답해야 그 pid 가 그 포트의 주인이다(pid 재사용 · 다른 checkout 의 워크벤치 방어, TASK-2026-11-16-main-005).
   `instance` 가 없는 옛 기록(1.24.0 이하)은 표식 없는 서버일 때만 옛 판정(`healthz` `ok`)으로 내린다. 10초 안에 끝나면 기록을 지운다.
+  탐침 주소는 기록의 `bind` → (없는 옛 기록이면) `public_url` 의 호스트 → `127.0.0.1` 순이고 loopback · 와일드카드는 건너뛴다 —
+  비 loopback 주소(예: tailscale IP)에만 바인드한 서버는 `127.0.0.1` 로 답하지 않는다 (TASK-2026-11-17-claude-remote-sync-check-234c32-004).
   이 대조는 **우발 사고**(pid 재사용 · 같은 포트의 다른 checkout)를 막는다 — `instance` 는 비밀이 아니고, 기록을 쓸 수 있는 로컬 사용자를 막지 않는다.
   `--autostarted-only` 는 `autostarted` 기록만 내린다. 결과는 JSON 한 줄, rc 0.
 - Claude Code 플러그인 hooks 의 `SessionEnd` 가 `workbench --stop --autostarted-only` 를 부른다 (출력은 버린다). SessionEnd 가 없는 하네스에서는
   서버가 남고, 다음 `session-start` 는 그것을 `실행 중` 으로 알린다.
+
+### 3.2 한 호스트에 워크벤치 여러 개 (소유자 지시 2026-11-17, TASK-2026-11-17-claude-remote-sync-check-234c32-005)
+
+여러 세션(worktree · 저장소)이 동시에 작업하면 checkout 마다 워크벤치가 뜬다 — 서버는 여전히 checkout 하나에 하나다.
+
+- **포트** (결정 D1=hash) — `--port` 를 주지 않으면 checkout 경로(`resolve()`)의 sha256 으로 **8766~8865** 중 한 포트를 먼저 고르고,
+  bind 가 실패(사용 중)하면 그 범위에서 다음 포트로 한 바퀴 넘어간다. 같은 checkout 은 늘 같은 포트를 먼저 시도한다 — 북마크가 유지된다.
+  범위가 다 차면 rc 2. `--port N` 을 주면 그 포트만(사용 중이면 rc 2), `--port 0` 은 OS 가 고른다. 자동 기동(§3.1) 인자도 같다.
+- **이름** — 화면 머리에 `저장소 <이름>` · `브랜치 <이름>`, `<title>` 은 `<저장소> · <브랜치> — <화면>`. 저장소 이름은 worktree 의 디렉터리
+  이름이 아니라 공통 `.git` 의 부모 이름(`.git` 파일의 `gitdir:` 를 따라간다), git 이 아니면 checkout 디렉터리 이름 — 하위 프로세스 없이 파일만 읽는다.
+- **호스트 공용 목록** (결정 D2=list) — 서버는 시작할 때 `${XDG_CACHE_HOME:-~/.cache}/workflow_kit/workbenches/<checkout 해시>.json`
+  (`WORKFLOW_KIT_WORKBENCH_REGISTRY` 로 바꾼다 — 검사는 임시 디렉터리)에 실행 기록 + `workspace` · `repo` 를 쓰고, 정상 종료 때 자기 pid 의 것만 지운다.
+  `--list` 는 `{"workbenches": [{"repo", "branch"(지금 HEAD), "workspace", "public_url", "port", "pid", "started_at", …}]}` 를 내고, pid 가 죽은 기록은 지운다.
+  목록은 편의다 — 쓰지 못해도 서버 시작을 막지 않는다. 토큰 · 세션은 싣지 않는다.
 
 ## 4. 경로 · 머리 · 화면 (R2)
 
@@ -128,6 +145,24 @@ task 파일에 있는 것만 그린다: 주장 트리(`<details>`, 접힌 상태
 - 스크립트는 N초마다(탭이 숨어 있으면 쉰다) 같은 주소를 `fetch` 로 다시 받아 `data-version` 이 다를 때만 `main` 을 갈아 끼운다.
   리다이렉트(세션 끝)는 따르지 않는다. CSP 는 이것을 위해 `connect-src 'self'` 하나만 더한다.
 - 계획 화면에서 답을 쓰는 중(폼 입력 · 결정 펼침)이면 갈아 끼우지 않고 "내용이 바뀌었다" 알림과 새로고침 단추만 낸다 — 쓰던 답과 `opened` 기록을 지킨다.
+- 쓰기 폼(응답 · todo · 로그인 · 로그아웃)은 스크립트가 submit 을 가로채 `fetch` POST(같은 출처 쿠키 · urlencoded 본문 — 서버가 받는 것은 폼과 같다)로 보낸다.
+  리다이렉트면 그 주소로 가고, 오류 화면(403 · 409 …)은 `main` 에 그린다. 주소는 폼의 `action` *속성* 에서 읽는다(todo 폼의 `<input name="action">` 이 프로퍼티를 가린다).
+  `fetch` 가 없으면 가로채지 않는다. 근거: iOS Chrome(CriOS 156 · iPadOS 27)이 이 화면의 폼 제출 페이지 이동을 서버에 보내지 않고 버렸다 —
+  submit 은 일어나는데 접속이 0 이었고 같은 화면의 `fetch` POST 는 닿았다(실측, TASK-2026-11-17-claude-remote-sync-check-234c32-004).
+- 서버는 쓰기 요청(POST)에 답한 뒤 연결을 닫는다(`Connection: close`) — 본문을 읽지 않고 답하는 경로(경로 표 밖 404 · 개방 모드 로그인 · 로그아웃)가
+  남긴 본문이 같은 연결의 다음 요청 머리에 붙어 그 요청을 깨뜨렸다(실측: `probe=1GET /task/…` 404).
+
+### 4.6 진행 기록 상기 (TASK-2026-11-17-claude-remote-sync-check-234c32-003 — 소유자 지시 "작업 중에 지속적으로 워크벤치를 업데이트하도록")
+
+'지금 하는 일' 은 task 의 `Progress` 한 줄이고 작업하는 에이전트가 단계마다 바꾼다(정본 §1 원칙). 잊힌 것을 하네스가 상기한다.
+
+- `python -m workflow_kit progress-nudge --hook <EVENT>` — 현재 브랜치의 `in_progress` task 중 Progress 시각이 **최근 12시간 안** 인 것만
+  '작업 중' 으로 본다(물려받아 손대지 않은 in_progress 는 매번 상기하면 잡음이다). 그중 가장 새 Progress 가 **15분**(결정 D2) 넘게 그대로면
+  hook JSON(`additionalContext`) 한 덩어리 — 그 task 들과 `backlog-update --progress-note` 명령. 아니면 출력 없음. 시각 없는 Progress(1.25.0 이전)는 보지 않는다.
+- 부를 때마다 `.workbench/progress.checked` 를 쓴다(자기 무시 디렉터리). Claude Code 플러그인 `PostToolUse` 의 두 번째 명령이
+  `ai-workflow/memory` 가 없으면 끝나고, 표식이 15분 안이면 `find` 하나로 끝난다 — 상기는 낡은 동안 15분마다 많아야 한 번이다.
+  이 기능을 아는 kit 이 없으면 표식만 써서 15분 동안 다시 탐침하지 않는다.
+- 다른 하네스는 정본 §1 원칙 줄만 받는다 (hook 미배선).
 
 ## 5. 인증 (R3 · R4)
 
@@ -344,6 +379,9 @@ handle_path /workbench/* {
 | `check_workbench_autostart.py` | 자동 기동(§3.1) — `--autostart on/off` · 인자 검증 · `session-start` 가 띄우고 다시 띄우지 않음 · 시작 실패 경고 한 줄 · 끄는 표식 둘 · `--stop` 의 안전(손으로 띄운 서버 · 워크벤치 아닌 pid) · SessionEnd hook · 대기 시간 초과는 자식을 거둔다 · pid ↔ 포트 주인 대조(instance) |
 | `check_workbench_design.py` | 화면 구조(§4.4) — 요약 수치 = `api/state` · 보드 4열 · 계획 카드 강조 · 마일스톤 막대 · 완료분만 접기 · 열린 결정 강조 · 결정은 닫힌 채 · 선택지 카드 · 제출 막대 · `style=` · 인라인 스크립트 · 외부 URL 없음 · 어두운 모드 · 좁은 폭 · 박스 넘침 방지 바탕 규칙 · 자른 글의 title |
 | `check_workbench_refresh.py` | 자동 새로고침(§4.5) — `data-refresh` · 스크립트 · `data-version` · CSP `connect-src` · 같은 상태의 지문 고정 · 바뀌면 달라짐 · 0 이면 끔 · `--refresh` 범위 · 자동 기동 저장 · 스크립트 분기(실제 브라우저 동작은 task Proof 의 CDP 실측) |
+| `check_workbench_submit.py` | 쓰기 폼 제출(§4.5) — 스크립트가 POST 폼을 `fetch` 로 보냄 · `action` 속성 · `fetch` 없으면 원래대로 · 쓰기 요청 뒤 연결 닫기(남은 본문이 다음 요청을 깨지 않음) · `--stop` 탐침이 비 loopback 바인드로 · 실행 기록의 `bind` (실제 iPad 동작은 task Proof 의 소유자 확인) |
+| `check_progress_nudge.py` | 진행 기록 상기(§4.6) — 작업 중 task 가 15분 넘게 그대로일 때만 · 물려받은 낡은 · planned · 시각 없는 task 는 보지 않음 · 표식 · hooks.json 명령 실제 셸(표식 새로우면 Python 안 띄움 · 비 워크플로우 무동작) · 옛 kit 은 표식만 · 정본 원칙 · rules · hooks.json = 렌더러 |
+| `check_workbench_multi.py` | 한 호스트에 여러 개(§3.2) — 경로 해시 포트 · 같은 checkout 같은 포트 · 저장소 이름 · 브랜치(일반 · worktree · 분리 HEAD) · 두 checkout 이 `--port` 없이 서로 다른 포트(차 있으면 다음) · 명시 포트는 넘어가지 않음 · 기록 · `--status` · 머리 · `<title>` · 공용 목록 등록 · `--list` · 죽은 기록 청소 · `--stop` 이 지움 |
 | `check_workbench_live.py` | 실시간 값(§7.1) — 낡은 `state.json` 위에서 방금 바뀐 task 가 보임 · `source` · 화면 표식 · 저장소 무변경 · 지문 같으면 재계산 0 · 바뀌면 재계산 · 프로필 없으면 생성물 · `where_for` 가 프로필을 싣는다 · 브랜치 전환 재계산 · 실패 사유 표시 · roadmap 실시간 · 낡은 roadmap 생성물 안 보임 · 산출물 지문 · 실패 사유에 절대 경로 없음 |
 | `check_workbench_progress.py` | 진행 기록 — `--progress-note` 시각 접두 · 손으로 적은 시각 그대로 · 시각 아닌 백틱엔 붙임 · 이스케이프 · 차단 항목 · `api/state` progress = task 파일 · 계획 카드 · 보드의 '지금' · 노트 바뀌면 지문 바뀜 · 스킬 · CLAUDE.md 규칙 |
 | `check_workbench_inbox_hook.py` | 도착 신호 · hook 반영(§6.1) — 서버는 stamp 만 · 화면 반영 대기→반영됨 · hook JSON(이벤트 · 결정 변화) · seen 시각 · 할 것 없으면 조용 · 자격 없는 응답은 남기고 사유 · hooks.json 명령을 실제 셸로 · 신호 없으면 Python 안 띄움 · 같은 초의 두 번째 응답(셸 · Python) · cwd 밖 · 옛 kit 뿐이면 한 번 알림 |

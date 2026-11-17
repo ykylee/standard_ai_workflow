@@ -249,6 +249,11 @@ def test_this_repo_entrypoints_carry_rules() -> None:
         absent = [c for c in memory_cmds if c not in text]
         if absent:
             problems.append(f"{name}: 명령 누락 {absent}")
+        # 원칙(§1)도 — 명령만 보면 정본에 원칙이 늘어도 이 저장소 진입점이 따라오지 않은 채 green 이었다
+        # (TASK-2026-11-17-claude-remote-sync-check-234c32-003: 진행 기록 원칙이 플러그인 rules 에만 실렸다).
+        missing = [p for p in rules.principles if f"- {p}" not in text]
+        if missing:
+            problems.append(f"{name}: 원칙 누락 {[m[:40] for m in missing]}")
     _record("test_this_repo_entrypoints_carry_rules", not problems, "; ".join(problems))
 
 

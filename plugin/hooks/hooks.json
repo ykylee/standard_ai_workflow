@@ -49,6 +49,10 @@
           {
             "type": "command",
             "command": "root=\"${CLAUDE_PROJECT_DIR:-.}\"; d=\"$root/.workbench\"; [ -f \"$d/inbox.stamp\" ] || exit 0; cmp -s \"$d/inbox.stamp\" \"$d/inbox.seen\" 2>/dev/null && exit 0; for py in python3 python; do \"$py\" -c 'import workflow_kit.workbench.inbox_signal' >/dev/null 2>&1 && break; py=; done; if [ -n \"$py\" ]; then cd \"$root\" && \"$py\" -m workflow_kit plan-import --hook PostToolUse 2>/dev/null; else cp \"$d/inbox.stamp\" \"$d/inbox.seen\" 2>/dev/null; printf '%s' '{\"hookSpecificOutput\": {\"hookEventName\": \"PostToolUse\", \"additionalContext\": \"[워크벤치] 소유자 응답이 도착했지만 이 호스트의 workflow_kit 이 자동 반영(plan-import --hook)을 모른다 — python -m workflow_kit plan-import --task <TASK-ID> --apply 로 반영하라 (kit 을 올리면 다음부터 자동)\"}}'; fi; true"
+          },
+          {
+            "type": "command",
+            "command": "root=\"${CLAUDE_PROJECT_DIR:-.}\"; [ -d \"$root/ai-workflow/memory\" ] || exit 0; d=\"$root/.workbench\"; [ -n \"$(find \"$d/progress.checked\" -mmin -15 2>/dev/null)\" ] && exit 0; for py in python3 python; do \"$py\" -c 'import workflow_kit.tools.progress_nudge' >/dev/null 2>&1 && break; py=; done; if [ -n \"$py\" ]; then cd \"$root\" && \"$py\" -m workflow_kit progress-nudge --hook PostToolUse 2>/dev/null; else mkdir -p \"$d\" && { [ -f \"$d/.gitignore\" ] || printf '*\\n' > \"$d/.gitignore\"; } && touch \"$d/progress.checked\"; fi; true"
           }
         ]
       }

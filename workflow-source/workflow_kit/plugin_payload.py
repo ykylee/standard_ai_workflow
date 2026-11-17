@@ -342,7 +342,8 @@ and `./tasks/<TASK-ID>.md`.
    commit · push) update the task's single progress line:
    `{command} --mode update --task-id <TASK-ID> --task-name "<title>" --progress-note "<what is happening now>"`.
    The tool stamps the time; the workbench shows it as *지금 하는 일*. One line, replaced each time —
-   the history lives in git.
+   the history lives in git. In Claude Code a `PostToolUse` hook (`progress-nudge`) reminds you once
+   when a task you are working on has kept the same progress line for more than 15 minutes.
 
 ## Usage
 
@@ -1203,6 +1204,26 @@ def _inbox_hook_command(event: str, plan_import_command: str) -> str:
     )
 
 
+def _progress_nudge_hook_command(event: str) -> str:
+    """진행 기록 상기 hook (TASK-2026-11-17-claude-remote-sync-check-234c32-003) — stdout 은 hook JSON 이거나 비어 있다.
+
+    - 워크플로우 프로젝트(``ai-workflow/memory``)가 아니면 아무것도 하지 않는다 — 플러그인은 사용자 범위로 깔린다.
+    - 확인 표식 ``.workbench/progress.checked`` 가 STALE_AFTER 안이면 ``find`` 하나로 끝난다 — Python 을 띄우지 않는다.
+    - 이 기능을 아는 kit 이 없으면 표식만 새로 써서 STALE_AFTER 동안 다시 탐침하지 않는다 (도구마다 Python 탐침 방지).
+    """
+    from workflow_kit.tools import progress_nudge
+
+    minutes = int(progress_nudge.STALE_AFTER.total_seconds() // 60)
+    checked = progress_nudge.CHECKED
+    return (
+        'root="${CLAUDE_PROJECT_DIR:-.}"; [ -d "$root/ai-workflow/memory" ] || exit 0; d="$root/.workbench"; '
+        f'[ -n "$(find "$d/{checked}" -mmin -{minutes} 2>/dev/null)" ] && exit 0; '
+        f"for py in python3 python; do \"$py\" -c 'import {progress_nudge.__name__}' >/dev/null 2>&1 && break; py=; done; "
+        f'if [ -n "$py" ]; then cd "$root" && {posix_kit_call(progress_nudge.COMMAND + " --hook " + event)} 2>/dev/null; '
+        f"else mkdir -p \"$d\" && {{ [ -f \"$d/.gitignore\" ] || printf '*\\n' > \"$d/.gitignore\"; }} && touch \"$d/{checked}\"; fi; true"
+    )
+
+
 def render_claude_code_hooks(rules: StandardRules) -> str:
     """``plugin/adapters/claude-code/hooks.json`` — 세션 경계 자동화.
 
@@ -1273,8 +1294,12 @@ def render_claude_code_hooks(rules: StandardRules) -> str:
                 "PostCompact": relay["PostCompact"],
                 # 워크벤치 응답 도착 신호 (TASK-2026-11-16-main-014) — inbox.stamp 가 inbox.seen 보다 새로울 때만
                 # Python 을 띄워 plan-import --hook 으로 반영하고 결과를 additionalContext 로 낸다. 평소 비용은 셸 비교 하나다.
+                # 진행 기록 상기 (TASK-2026-11-17-claude-remote-sync-check-234c32-003) — 작업 중 task 의 Progress 가
+                # 15분 넘게 그대로면 한 번 알린다. 평소 비용은 표식 mtime 을 보는 find 하나다.
                 "PostToolUse": [{"hooks": [{"type": "command",
-                                            "command": _inbox_hook_command("PostToolUse", plan_import_cmd)}]}],
+                                            "command": _inbox_hook_command("PostToolUse", plan_import_cmd)},
+                                           {"type": "command",
+                                            "command": _progress_nudge_hook_command("PostToolUse")}]}],
                 "UserPromptSubmit": [{"hooks": [{"type": "command",
                                                  "command": _inbox_hook_command("UserPromptSubmit", plan_import_cmd)}]}],
                 "SessionEnd": [

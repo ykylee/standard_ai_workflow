@@ -96,8 +96,10 @@ def case_1_old_generated_entries_shrink_to_current() -> None:
         summary.append(f"{fixture.split('-')[0]}:{entry} {plan.bytes_before}→{plan.bytes_after}B")
         if counts["edited"] or stale or drifted:
             problems.append(f"{fixture}: edited={counts['edited']} 남은 옛 제목={stale} 현행과 다른 kit 절={drifted}")
-        if plan.bytes_after > ENTRY_BUDGET_BYTES or plan.bytes_after >= plan.bytes_before * 0.85:
-            problems.append(f"{fixture}: {plan.bytes_before}→{plan.bytes_after}B (예산 {ENTRY_BUDGET_BYTES}B, 15% 이상 줄어야)")
+        # 기준 10% — 소유자 결정(2026-11-17, TASK-2026-11-17-claude-remote-sync-check-234c32-003): 15% 는 여유가 13B 라
+        # 정본 원칙 한 줄(진행 기록)만 더해도 red 였다. 다이어트가 옛 생성물을 줄인다는 취지는 지키고 원칙이 자랄 여지를 둔다.
+        if plan.bytes_after > ENTRY_BUDGET_BYTES or plan.bytes_after >= plan.bytes_before * 0.90:
+            problems.append(f"{fixture}: {plan.bytes_before}→{plan.bytes_after}B (예산 {ENTRY_BUDGET_BYTES}B, 10% 이상 줄어야)")
     _record("case 1 (옛 생성물 3종이 현행 템플릿 절로 줄어든다)", not problems, "; ".join(problems or summary))
 
 

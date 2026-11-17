@@ -30,6 +30,7 @@ from workflow_kit.common import plan_responses
 from workflow_kit.common.paths import discover_project_profile_path, project_workspace_root
 from workflow_kit.common.stdio import force_utf8_stdio
 from workflow_kit.workbench import auth, server
+from workflow_kit.workbench import registry as workbench_registry
 
 DEFAULT_BIND = "127.0.0.1"
 DEFAULT_PORT = 8766
@@ -58,7 +59,8 @@ def build_parser() -> argparse.ArgumentParser:
         allow_abbrev=False,
     )
     parser.add_argument("--bind", default=DEFAULT_BIND)
-    parser.add_argument("--port", type=int, default=DEFAULT_PORT)
+    parser.add_argument("--port", type=int, default=None,
+                        help="생략하면 checkout 경로 해시로 8766~8865 중 하나, 차 있으면 다음 빈 포트 (스펙 §3.2) · 0 은 OS 가 고른다")
     parser.add_argument("--public-url", default=None)
     parser.add_argument("--token", action="append", default=[],
                         help="<viewer|approver>:<name>=env:<VAR> 또는 =file:<경로> (반복)")
@@ -71,6 +73,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--open", default=None, metavar="NAME",
                         help="개방 모드 — 토큰 · 로그인 없이 누구나 NAME 이름으로 보고 답한다 (스펙 §5.6)")
     parser.add_argument("--status", action="store_true", help="실행 기록을 JSON 으로 내고 끝난다")
+    parser.add_argument("--list", action="store_true",
+                        help="이 호스트에 떠 있는 워크벤치들(저장소 · 브랜치 · URL)을 JSON 으로 내고 끝난다 (스펙 §3.2)")
     parser.add_argument("--autostart", choices=("on", "off"), default=None,
                         help="on: 함께 준 시작 인자를 저장해 session-start 가 띄우게 한다 · off: 지운다 (스펙 §3.1)")
     parser.add_argument("--stop", action="store_true", help="이 checkout 의 서버를 내린다")
@@ -153,13 +157,15 @@ def running_public_url(workspace: Path) -> str | None:
 
 
 def write_record(workspace: Path, *, port: int, public_url: str, autostarted_bind: str | None = None,
-                 instance: str | None = None) -> Path:
+                 instance: str | None = None, bind: str | None = None) -> Path:
     directory = ensure_record_dir(workspace)
     path = directory / RECORD_FILENAME
     payload: dict[str, Any] = {"pid": os.getpid(), "port": port, "public_url": public_url,
                                "started_at": dt.datetime.now().astimezone().isoformat(timespec="seconds")}
     if instance:  # healthz 머리와 같은 값 — `--stop` 이 포트의 주인이 이 기록의 서버인지 대조한다
         payload["instance"] = instance
+    if bind is not None:  # `--stop` 의 healthz 탐침이 비 loopback 바인드에도 닿게 (TASK-2026-11-17-claude-remote-sync-check-234c32-004)
+        payload["bind"] = bind
     if autostarted_bind is not None:  # 자동 기동분만 — SessionEnd hook 이 이것만 내린다
         payload.update({"autostarted": True, "bind": autostarted_bind})
     temp = directory / f".{RECORD_FILENAME}.{os.getpid()}"
@@ -182,7 +188,7 @@ def start_argv(args: argparse.Namespace) -> list[str]:
     out: list[str] = []
     if args.bind != DEFAULT_BIND:
         out += ["--bind", args.bind]
-    if args.port != DEFAULT_PORT:
+    if args.port is not None:
         out += ["--port", str(args.port)]
     if args.refresh != DEFAULT_REFRESH_S:
         out += ["--refresh", str(args.refresh)]
@@ -296,10 +302,14 @@ def _probe_healthz(record: dict[str, Any]) -> tuple[bool, str | None]:
     port = record.get("port")
     if not isinstance(port, int):
         return False, None
-    bind = record.get("bind")
-    hosts = ["127.0.0.1"]
-    if isinstance(bind, str) and bind not in ("", "0.0.0.0", "::") and not server.is_loopback(bind):
-        hosts.insert(0, bind)
+    # 탐침 주소 — 기록의 바인드, 없으면(1.26.0 이하 수동 기동 기록) public_url 의 호스트, 끝으로 loopback.
+    # 비 loopback 주소에만 바인드한 서버는 127.0.0.1 로 답하지 않는다 (TASK-2026-11-17-claude-remote-sync-check-234c32-004).
+    hosts: list[str] = []
+    for candidate in (record.get("bind"), urlsplit(str(record.get("public_url") or "")).hostname):
+        if (isinstance(candidate, str) and candidate not in ("", "0.0.0.0", "::") and not server.is_loopback(candidate)
+                and candidate not in hosts):
+            hosts.append(candidate)
+    hosts.append("127.0.0.1")
     https = str(record.get("public_url", "")).lower().startswith("https://")
     for host in hosts:
         conn: http.client.HTTPConnection
@@ -343,6 +353,7 @@ def stop_server(workspace: Path, *, autostarted_only: bool = False) -> dict[str,
         return {"stopped": False, "pid": pid, "reason": f"{STOP_WAIT_S:.0f}초 안에 끝나지 않았다"}
     if (read_record(workspace) or {}).get("pid") == pid:
         (record_dir(workspace) / RECORD_FILENAME).unlink(missing_ok=True)
+    workbench_registry.unregister(workspace, pid)  # 서버가 스스로 지우지 못하고 끝났어도 목록에 남기지 않는다
     return {"stopped": True, "pid": pid}
 
 
@@ -390,12 +401,13 @@ def validate_start(args: argparse.Namespace, workspace: Path, *,
             tokens = auth.load_tokens(args.token)
         except auth.TokenError as exc:
             raise StartRefused(str(exc)) from None
-    if not 0 <= args.port <= 65535:
+    if args.port is not None and not 0 <= args.port <= 65535:
         raise StartRefused(f"포트가 범위 밖이다: {args.port}")
     if not 0 <= args.refresh <= 3600:
         raise StartRefused(f"--refresh 는 0~3600 초다: {args.refresh}")
     public_url = server.normalize_public_url(
-        args.public_url or default_public_url(args.bind, args.port, open_mode=open_mode))
+        args.public_url or default_public_url(args.bind, args.port if args.port is not None else workbench_registry.preferred_port(workspace),
+                                              open_mode=open_mode))
     scheme = urlsplit(public_url).scheme.lower()
     if scheme not in ("http", "https") or not urlsplit(public_url).netloc:
         raise StartRefused(f"public_url 은 http(s)://호스트/ 꼴이다: {public_url}")
@@ -454,6 +466,12 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.new_token is not None:
         return _new_token(args)
+    if args.list:  # 호스트 공용 — 프로필 없이도 본다
+        entries = workbench_registry.live_entries(pid_alive)
+        for entry in entries:
+            entry["branch"] = workbench_registry.head_branch(Path(str(entry.get("workspace", "."))))
+        print(json.dumps({"workbenches": entries}, ensure_ascii=False, indent=2))
+        return 0
     profile = _profile(args)
     if profile is None or not profile.is_file():
         print("workbench: PROJECT_PROFILE.md 를 찾지 못했다 — --project-profile-path 로 준다", file=sys.stderr)
@@ -489,10 +507,21 @@ def main(argv: list[str] | None = None) -> int:
     app = server.App(public_url=public_url, tokens=tokens, locate=locate,
                      trusted_proxies=frozenset(args.trusted_proxy), open_name=args.open,
                      refresh_seconds=args.refresh)
-    try:
-        httpd = server.make_server(app, args.bind, args.port)
-    except OSError as exc:
-        print(f"workbench: {args.bind}:{args.port} 에 bind 하지 못했다 — {exc.strerror or exc}", file=sys.stderr)
+    # 포트 (스펙 §3.2) — 명시하면 그 포트만, 아니면 checkout 해시 포트부터 범위를 한 바퀴 돌며 비어 있는 첫 포트.
+    ports = [args.port] if args.port is not None else workbench_registry.candidate_ports(workspace)
+    httpd = None
+    last_error: OSError | None = None
+    for candidate in ports:
+        try:
+            httpd = server.make_server(app, args.bind, candidate)
+            break
+        except OSError as exc:
+            last_error = exc
+    if httpd is None:
+        where = f"{args.bind}:{args.port}" if args.port is not None else (
+            f"{args.bind}:{workbench_registry.PORT_BASE}~{workbench_registry.PORT_BASE + workbench_registry.PORT_SPAN - 1}")
+        reason = (last_error.strerror or last_error) if last_error else "후보 없음"
+        print(f"workbench: {where} 에 bind 하지 못했다 — {reason}", file=sys.stderr)
         return 2
     if args.tls_cert:
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
@@ -509,7 +538,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.public_url is None and port != args.port:  # --port 0 — 기본 public_url 은 실제 포트로
         public_url = app.public_url = default_public_url(args.bind, port, open_mode=args.open is not None)
     write_record(workspace, port=port, public_url=public_url,
-                 autostarted_bind=args.bind if args.autostarted else None, instance=app.instance)
+                 autostarted_bind=args.bind if args.autostarted else None, instance=app.instance, bind=args.bind)
+    workbench_registry.register(workspace, read_record(workspace) or {"pid": os.getpid(), "port": port,
+                                                                       "public_url": public_url})
     sweep_temp_files(locate().branch_dir)
     print(public_url, flush=True)
     for note in startup_warnings(args.bind, open_name=args.open):
@@ -526,6 +557,7 @@ def main(argv: list[str] | None = None) -> int:
     finally:
         httpd.server_close()
         remove_record(workspace)
+        workbench_registry.unregister(workspace, os.getpid())
     return 0
 
 

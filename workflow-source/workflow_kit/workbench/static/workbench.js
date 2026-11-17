@@ -54,6 +54,62 @@
     main.parentNode.insertBefore(box, main);
   }
 
+  // 3) 쓰기 폼(응답 · todo · 로그인 · 로그아웃)을 fetch POST 로 보낸다 (TASK-2026-11-17-claude-remote-sync-check-234c32-004).
+  //    iOS Chrome(CriOS 156 · iPadOS 27)은 이 화면의 폼 제출 페이지 이동을 서버에 보내지 않고 조용히 버렸다 — submit 은
+  //    일어나는데 접속이 0 이었고, 같은 화면의 fetch POST 는 닿았다(실측). 스크립트가 없으면 폼이 원래대로 간다.
+  function notice(text) {
+    var box = document.querySelector(".submit-notice");
+    if (!box) {
+      box = document.createElement("div");
+      box.className = "alert warn submit-notice";
+      var main = document.querySelector("main");
+      main.parentNode.insertBefore(box, main);
+    }
+    box.textContent = text;
+  }
+
+  function sendForm(form) {
+    var buttons = form.querySelectorAll("button[type=submit]");
+    var body = new URLSearchParams(new FormData(form)).toString();
+    dirty = true; // 보내는 동안 자동 새로고침이 화면을 갈아 끼우지 않는다
+    buttons.forEach(function (b) { b.disabled = true; });
+    // 주소는 action 속성에서 — todo 폼의 <input name="action"> 이 폼 요소의 action 프로퍼티를 가린다 (실측: POST /task/[object HTMLInputElement])
+    var target = new URL(form.getAttribute("action") || "", location.href).href;
+    fetch(target, {
+      method: "POST", body: body, credentials: "same-origin", redirect: "follow", cache: "no-store",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" }
+    }).then(function (resp) {
+      if (resp.redirected) { location.assign(resp.url); return null; }
+      return resp.text().then(function (text) {
+        buttons.forEach(function (b) { b.disabled = false; });
+        var page = (resp.headers.get("Content-Type") || "").indexOf("text/html") === 0
+          ? new DOMParser().parseFromString(text, "text/html") : null;
+        var next = page && page.querySelector("main");
+        var main = document.querySelector("main");
+        if (next && main) {
+          // 서버의 오류 화면(403 · 409 …)을 이 자리에 — dirty 는 켠 채라 자동 새로고침이 덮지 않는다
+          main.innerHTML = next.innerHTML;
+          main.removeAttribute("data-version");
+          if (page.title) { document.title = page.title; }
+          window.scrollTo(0, 0);
+        } else {
+          notice(resp.status + " — " + text.trim());
+        }
+      });
+    }).catch(function () {
+      buttons.forEach(function (b) { b.disabled = false; });
+      notice("보내지 못했다 — 서버에 닿지 않는다. 쓴 내용은 그대로 두었다.");
+    });
+  }
+
+  document.addEventListener("submit", function (event) {
+    var form = event.target;
+    if (event.defaultPrevented || !form || (form.getAttribute("method") || "").toLowerCase() !== "post") { return; }
+    if (!window.fetch || !window.FormData || !window.URLSearchParams) { return; }
+    event.preventDefault();
+    sendForm(form);
+  });
+
   document.addEventListener("DOMContentLoaded", function () {
     bindDecisions(document);
     bindForm(document);

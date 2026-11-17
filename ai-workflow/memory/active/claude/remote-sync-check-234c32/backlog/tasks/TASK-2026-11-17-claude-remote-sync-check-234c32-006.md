@@ -35,7 +35,7 @@ wbs: M-007/WBS-7.4
 
 ## 🛠️ Implementation / Content
 
-- Progress: `2026-11-17 05:59` 계획 — release-pipeline 사용법 확인
+- Progress: `2026-11-17 06:01` 버전 박기 · 노트 완료 — --changed + smoke
 - Next session starting point:
 - Remaining risks:
 

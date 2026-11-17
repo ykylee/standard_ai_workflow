@@ -1,20 +1,20 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-11-16T15:18:07Z`
-- tool_version: `1.26.0`
-- workspace_root: `/home/yklee/repos/standard_ai_workflow-main`
+- generated_at: `2026-11-17T06:14:14Z`
+- tool_version: `1.27.0`
+- workspace_root: `/home/yklee/repos/standard_ai_workflow`
 
 ## Panel 1 — Drift Prevention Status
 
 - guard_status: `pass`
 - guard_cases: `7 / 7`
-- maturity_last_updated: `2026-11-16`
+- maturity_last_updated: `2026-11-17`
 - maturity_surface_changed_at: `2026-11-16`
 - maturity_stale: `False` (source: `maturity_surface_commit`)
 - harness_supported_count: `10`
-- head_commit_date: `2026-11-16`
+- head_commit_date: `2026-11-17`
 - last_updated_delta_days: `0`
-- silent_failing_cycles_count: `0` (측정 cycle 40건)
+- silent_failing_cycles_count: `0` (측정 cycle 41건)
 
 ## Panel 2 — Maturity Distribution
 
@@ -75,39 +75,39 @@
 
 ## Panel 4 — Smoke Trend
 
-- cumulative_total: `329`
-- cumulative_pass: `329`
+- cumulative_total: `332`
+- cumulative_pass: `332`
 - cumulative_pass_rate: `1.0000`
-- smoke_files_count: `329`
+- smoke_files_count: `332`
 
 ### Recent release smoke counts
 
 | version | pass | total |
 |---|---|---|
+| Beta-v1.27.0 | 332 | 332 |
 | Beta-v1.26.0 | 329 | 329 |
 | Beta-v1.25.0 | 325 | 325 |
 | Beta-v1.24.0 | 322 | 322 |
 | Beta-v1.23.0 | 319 | 319 |
-| Beta-v1.22.0 | 309 | 309 |
 
 ## Panel 5 — Recent Release Cycle
 
-- items_total: `20`
+- items_total: `26`
 - top_n: `10`
 - confidence: `fresh=10`
 
 ### Timeline (preview, first 120 char)
 
-- [0] TASK-2026-11-16-main-014 — 워크벤치 응답이 작업 세션에 바로 닿지 않는다 — 도착 신호 + hook 자동 반영 · 알림  `[fresh]`
-- [1] TASK-2026-11-16-main-013 — 워크벤치 글자가 박스를 넘는다 — 긴 글 · 좁은 폭 · 다른 글꼴에서도 박스 안에  `[fresh]`
-- [2] TASK-2026-11-16-main-012 — 대시보드 inline_guard=False 가 가드를 돌리지 않고 guard_cases 7 · pass 0 을 실측처럼 싣는다  `[fresh]`
-- [3] TASK-2026-11-16-main-011 — release self_recover 재검사 집계가 cases_pass 7 > cases_total 6 — drift 가드 case 수를 6 으로 박아 둔 사본  `[fresh]`
-- [4] TASK-2026-11-16-main-010 — v1.25.0 발행 — 워크벤치 지속 갱신(자동 새로고침 · 실시간 값 · 진행 기록) + 수리 둘  `[fresh]`
-- [5] TASK-2026-11-16-main-009 — 작업 중 진행 상황 기록 — 단계마다 Progress 한 줄, 워크벤치가 '지금 하는 일'로 보인다  `[fresh]`
-- [6] TASK-2026-11-16-main-008 — 워크벤치 진척이 생성물(state.json · roadmap_state.json)을 기다린다 — 원천에서 같은 생성기로 실시간 계산  `[fresh]`
-- [7] TASK-2026-11-16-main-007 — 워크벤치 폼 POST 가 실제 브라우저에서 Origin null 로 403 — Referrer-Policy no-referrer  `[fresh]`
-- [8] TASK-2026-11-16-main-006 — 워크벤치 화면 자동 새로고침 — 바뀐 내용만 다시 그리고 답 쓰는 중이면 알림만  `[fresh]`
-- [9] TASK-2026-11-16-main-005 — workbench --stop 이 기록의 pid 가 그 포트의 주인인지 대조하지 않는다 — 인스턴스 표식 대조  `[fresh]`
+- [0] TASK-2026-11-17-claude-remote-sync-check-234c32-005 — 한 호스트에 워크벤치 여러 개 — 포트 분배 + 화면에 저장소 · 브랜치 표시  `[fresh]`
+- [1] TASK-2026-11-17-claude-remote-sync-check-234c32-003 — 작업 중 워크벤치 진행 기록(--progress-note) 지침 강화 — 정본 · 모든 하네스 진입점으로  `[fresh]`
+- [2] TASK-2026-11-17-claude-remote-sync-check-234c32-001 — 브랜치 네임스페이스 자동 seed — `main` 에서 이어받음  `[fresh]`
+- [3] TASK-2026-11-16-main-018 — v1.26.0 발행 — 워크벤치 todo · 응답 자동 반영 + 대시보드 · 워크벤치 수리 넷  `[fresh]`
+- [4] TASK-2026-11-16-main-017 — 워크벤치 todo 화면 · 편집 + 작업 세션 알림  `[fresh]`
+- [5] TASK-2026-11-16-main-016 — todo 저장소 + todo CLI — 브랜치 할 일 · task 체크리스트  `[fresh]`
+- [6] TASK-2026-11-16-main-015 — 대시보드 drift 가드가 오류로 끝나면 guard_cases 0 을 실어 '0/0 pass' 로 그린다  `[fresh]`
+- [7] TASK-2026-11-16-main-014 — 워크벤치 응답이 작업 세션에 바로 닿지 않는다 — 도착 신호 + hook 자동 반영 · 알림  `[fresh]`
+- [8] TASK-2026-11-16-main-013 — 워크벤치 글자가 박스를 넘는다 — 긴 글 · 좁은 폭 · 다른 글꼴에서도 박스 안에  `[fresh]`
+- [9] TASK-2026-11-16-main-012 — 대시보드 inline_guard=False 가 가드를 돌리지 않고 guard_cases 7 · pass 0 을 실측처럼 싣는다  `[fresh]`
 
 ## Panel 6 — Multi-Agent Concurrent Write Conflict
 
@@ -137,10 +137,10 @@
 
 - phase_15_north_star: `utilization_3tuple (query_diversity / entries_new_30d / distinct_entries_retrieved — ADR-006 W-4; hit_rate 는 보조)`
 - entries_total: `30`
-- telemetry_events_total: `75`
-- telemetry_total_queries: `75`
-- telemetry_hit_count: `73`
-- telemetry_hit_rate: `0.9733`
+- telemetry_events_total: `3214`
+- telemetry_total_queries: `3214`
+- telemetry_hit_count: `1444`
+- telemetry_hit_rate: `0.4493`
 
 ### Entries by merge_state
 
@@ -152,6 +152,8 @@
 
 | source | events |
 |---|---|
-| `backlog-update` | 66 |
-| `session-start` | 9 |
+| `backlog-update` | 682 |
+| `dispatcher` | 13 |
+| `doc-sync` | 2 |
+| `session-start` | 2517 |
 

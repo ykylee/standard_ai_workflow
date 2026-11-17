@@ -47,5 +47,6 @@ wbs: M-007/WBS-7.1
 ## ✅ Outcome
 
 - Result: 수리: workbench.js 가 POST 폼 submit 을 fetch POST 로(action 속성 · 리다이렉트 따라감 · 오류 화면은 main 에) · server._dispatch 가 POST 뒤 연결 닫기 · 실행 기록 bind 상시 · --stop 탐침 bind → public_url 호스트 → 127.0.0.1. 검사 check_workbench_submit 4/4 (되주입 5건 red: 연결 닫기 · 탐침 · bind 기록 · preventDefault · form.action) · check_workbench_auth 기록 키 계약 갱신 · 워크벤치 검사 13종 PASS. Chrome iPad 에뮬 e2e: todo 303 · 낡은 csrf 403 화면 · 응답 303, navigation POST 0 · fetch 3. 실제 iPad(CriOS 156 · iPadOS 27) 04:21:07 'POST …-003/respond 303 owner'. --stop 실측: tailscale 바인드 옛 기록 서버 stopped=true.
+- Result: 되주입 출처(노트 v1.27.0 §3 대조용): 작성 세션 submit 5건 — 연결 닫기 · 탐침 public_url 후보 · bind 기록 · JS preventDefault · form.action 복귀. verifier 7건 M1~M7 — preventDefault · form.action · close_connection · public_url 후보 · loopback 먼저 · write_record bind · main 의 bind=args.bind(→ check_workbench_auth case 2 만 red). verifier 판정: C1 · C3 · C4 PASS, C2 todo 미측정, C5 는 당시 -005 진행분 때문 red(-005 완료 뒤 워크벤치 14종 PASS).
 - Verification: check_workbench_submit 4/4 · run_all_checks --filter=workbench 13종 PASS · 실제 iPad 제출 서버 로그
 - Follow-up:

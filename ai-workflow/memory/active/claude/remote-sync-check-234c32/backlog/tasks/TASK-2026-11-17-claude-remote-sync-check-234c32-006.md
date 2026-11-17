@@ -1,6 +1,6 @@
 ---
 id: TASK-2026-11-17-claude-remote-sync-check-234c32-006
-status: in_progress
+status: done
 created_at: 2026-11-17
 source_anchor: release-task-2026-11-17-claude-remote-sync-check-234c32-006
 source_path: backlog/2026-11-17.md
@@ -12,7 +12,7 @@ wbs: M-007/WBS-7.4
 
 ## 📝 Description
 
-- Status: in_progress
+- Status: done
 - Priority: high
 - Request date: 2026-11-17
 - Owner:
@@ -35,11 +35,13 @@ wbs: M-007/WBS-7.4
 
 ## 🛠️ Implementation / Content
 
-- Progress: `2026-11-17 06:01` 버전 박기 · 노트 완료 — --changed + smoke
+- Progress: `2026-11-17 06:17` done — 발행 완료 커밋 · 게이트 · push
 - Next session starting point:
 - Remaining risks:
 
 ## ✅ Outcome
 
-- Result:
+- Result: 태그 v1.27.0 = aa34ed8d = origin/main (main ff 90124a3a..aa34ed8d) · 게이트 증거 aa34ed8d native · slash 332×2 · dist --apply(wheel · sdist · plugin ZIP 3, twine PASSED) · release --dry-run ready=true(smoke_count 332 · self_recover 7/7) · release --apply rc 0 → GitHub Release v1.27.0 draft=false · prerelease=false · asset 5 · post-step 산출물 5파일 미커밋(완료 커밋에 싣는다). §2.8: claude update · codex 재설치(1.27.0 root) · grok 재설치 · agy · minimax --apply → doctor behind=[] disabled=[] · minimax in_sync True. 재시작 필요: claude 34204 · 2109009, codex 34205 · 34444 · 35601 · 3081284
+- Result: verifier: C1 PASS(태그 = aa34ed8d = origin/main, 게이트 증거 native · slash 332) · C3 PASS(doctor behind=[] disabled=[], kit 1.27.0) · C2 Release Latest draft=false asset 5 · 커밋 3 · 검사 329→332 · smoke 332 · 상수 PASS, 되주입 수 문장은 근거 미기록으로 UNMEASURED → 출처를 -003 · -004 · -005 Result 에 기록(이 세션 측정 · verifier 보고 원문 대조)
+- Verification: verifier: C1 PASS(태그 = aa34ed8d = origin/main, 게이트 증거 native · slash 332) · C3 PASS(doctor behind=[] disabled=[], kit 1.27.0) · C2 Release Latest draft=false asset 5 · 커밋 3 · 검사 329→332 · smoke 332 · 상수 PASS, 되주입 수 문장은 근거 미기록으로 UNMEASURED → 출처를 -003 · -004 · -005 Result 에 기록(이 세션 측정 · verifier 보고 원문 대조)
 - Follow-up:

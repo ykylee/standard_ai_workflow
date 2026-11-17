@@ -4,7 +4,7 @@
 - 범위: git log 에서 추출한 release 별 Added / Changed / Fixed 항목.
 - 대상 독자: maintainer, 릴리스 매니저, 외부 consumer
 - 상태: stable (자동 생성물)
-- 최종 수정일: 2026-11-16
+- 최종 수정일: 2026-11-17
 - 관련 문서: [`./releases/`](./releases/) (release note), [`../docs/RELEASE.md`](../docs/RELEASE.md) (릴리스 절차)
 
 All notable changes to this project will be documented in this file.
@@ -12,10 +12,11 @@ All notable changes to this project will be documented in this file.
 본 파일은 `tools/release_pipeline.py changelog-gen` 으로 자동 생성됩니다 (v0.7.14+).
 수동 편집은 다음 생성 시 덮어써진다 — 형식/metadata 변경은 생성기를 고칠 것.
 
-## [Unreleased] - 2026-11-16
+## [Unreleased] - 2026-11-17
 
 ### Added
 
+- feat(workbench): iPad 폼 제출 수리 · 진행 기록 상기 · 한 호스트 여러 워크벤치 (-003 · -004 · -005) (0c23165f)
 - feat(workbench): todo — 브랜치 할 일 · task 체크리스트를 워크벤치에서 보고 고친다 (main-016 · main-017) (78b66be9)
 - feat(workbench): 응답 도착 신호 + 작업 세션 hook 자동 반영 · 알림 (main-014) (4dba0962)
 - feat(workbench): 작업 중 진행 기록 — 단계마다 Progress 한 줄, 워크벤치가 '지금 하는 일'로 (main-009) (0c2f7fee)
@@ -45,11 +46,13 @@ All notable changes to this project will be documented in this file.
 - feat(doctor): 설치본 < 정본 버전을 발견으로 + RELEASE §2.8 채널 재적용 (TASK-2026-09-23-main-014) (22653225)
 - feat(context-budget): 이관 실행 + 이 저장소 게이트 red 활성 — 필독 195KB → 111KB (M-017/WBS-17.5) (8b7119de)
 - feat(handoff): wk rollover-handoff-notes — §5 누적형 절의 출구 (M-017/WBS-17.3) (0292d421)
-- feat(state): state.json memory_entries v2 — 전문 복제 대신 포인터 (M-017/WBS-17.2) (10c166cd)
-- ... (177 more)
+- ... (178 more)
 
 ### Changed
 
+- chore(memory): 133차 세션 메모리 — -003 · -005 close, -002 · -004 는 소유자 iPad todo 한 번 대기 (e4bc269c)
+- test(workbench): check_workbench_multi 보강 — TIME_WAIT 포트로 '다음 포트' 경로를 비켜 가던 blocker · 해시 분산 · 목록 파일 해제 (-005 verifier) (b58c0f28)
+- chore(entry): 진입점 절 해시 재채취 — 0c23165f (정본 §1 진행 기록 원칙) (1b94a470)
 - chore(session): 합류 반영 — claude/remote-sync-check-234c32@7fdf0eb5 (완료 14 · 이월 2) + main-002 done (d16eab89)
 - test(plan): check_plan_import 의 시간 상한 240 → 480 — 부하에서 172~235s, 게이트 1회 초과 (442b9808)
 - merge: origin/main(39a50a11) 을 claude/remote-sync-check-234c32 에 병합 — 11-04 세션 메모리 · roadmap_state 재생성 (6ffa3f69)
@@ -77,10 +80,7 @@ All notable changes to this project will be documented in this file.
 - docs(planning): 워크벤치 concept 정정 — 접속 위치 무가정 (W6 · W7) (179b3ea7)
 - chore(session): 123차 handoff — 두 수리 코드만 흡수 · 전량 게이트 green 반영 (63c2829c)
 - docs(planning): 계획·진척 워크벤치 concept 종결 (W1~W5) + 하네스 중립 지시로 M-022 안 B 정정 → M-025 개설 (01f82984)
-- docs(planning): html-plan 개념 흡수 concept 종결 — 주장·결정 계약(A) + 검토 브리지(B), 소유자 결정 D1~D5 → M-023 개설 (40e63779)
-- chore(session): 121차 handoff 상태 정합 — push 완료 사실 반영 (main-003) (9da03e62)
-- chore(session): 120차 세션 §1 기준선 갱신 + Windows 전량 게이트 52건 격차 등록(main-003) · baselines 롤오프 1건 · state.json 갱신 (3f03e903)
-- ... (495 more)
+- ... (498 more)
 
 ### Fixed
 
@@ -116,10 +116,18 @@ All notable changes to this project will be documented in this file.
 - fix(gate): 게이트 러너가 Windows 에서 첫 검사 완료와 함께 죽는다 — _kill_process_group 가 POSIX 전용 os.getpgid 를 쓴다 (main-002) (46701fda)
 - ... (235 more)
 
+## [1.27.0] - 2026-11-17
+
+### Changed
+
+- release(v1.27.0): 발행 준비 — iPad 폼 제출 수리 · 진행 기록 상기 · 한 호스트 여러 워크벤치 (minor) (aa34ed8d)
+- chore(memory): v1.27.0 발행 task 등록 (-006) (fef0d7b5)
+
 ## [1.26.0] - 2026-11-16
 
 ### Changed
 
+- release(v1.26.0): 발행 완료 — 태그 push + GitHub Release(asset 5종) + §2.8 5채널 · task -018 close (90124a3a)
 - release(v1.26.0): 발행 준비 — 워크벤치 todo · 응답 자동 반영 hook + 대시보드 · release · 워크벤치 수리 넷 (minor) (632cb661)
 
 ## [1.25.0] - 2026-11-16

@@ -1076,6 +1076,13 @@
   "current_milestone_id": "M-007",
   "exempt_tasks": [
     {
+      "task_id": "TASK-2026-11-19-claude-remote-sync-check-234c32-001",
+      "task_status": "done",
+      "wbs_ref": "exempt",
+      "exempt_reason": "로드맵 밖 — worktree 브랜치 네임스페이스 자동 seed 사건 기록",
+      "source_path": "ai-workflow/memory/active/claude/remote-sync-check-234c32/backlog/tasks/TASK-2026-11-19-claude-remote-sync-check-234c32-001.md"
+    },
+    {
       "task_id": "TASK-2026-08-25-main-010",
       "task_status": "done",
       "wbs_ref": "exempt",

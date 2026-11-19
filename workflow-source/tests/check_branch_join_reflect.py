@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-r"""worktree 합류 반영 — 모 브랜치에 병합된 브랜치 메모리가 모 브랜치 메모리에 기록된다 (7 cases).
+r"""worktree 합류 반영 — 모 브랜치에 병합된 브랜치 메모리가 모 브랜치 메모리에 기록된다 (10 cases).
 
 ## 왜 이 검사가 필요한가 (TASK-2026-10-02-main-004)
 
@@ -12,7 +12,7 @@ r"""worktree 합류 반영 — 모 브랜치에 병합된 브랜치 메모리가
 판정이 호스트 저장소에 달리지 않게 매 case 가 임시 저장소(origin + clone + 살아 있는 `git worktree`)를
 만들고 브랜치·CI env 를 비운 좁은 환경에서 모듈을 띄운다.
 
-7 cases:
+10 cases:
   1) 병합된 살아 있는 worktree 브랜치 → main 의 session-start 가 반영한다: 이어받은 task 의 결과를 원본에
      되돌려 적고 handoff 목록을 옮긴다 · 자체 완료 task 는 '최근 완료' · 자체 task 는 **열린 것도 완료한 것도**
      `merged_from` 원류와 함께 모 브랜치로 옮긴다(브랜치 사본은 `carried_over_to`) — 완료 task 의 `wbs:` 를
@@ -27,6 +27,16 @@ r"""worktree 합류 반영 — 모 브랜치에 병합된 브랜치 메모리가
   6) worktree 에서 브랜치 오버라이드로 기본 브랜치를 강제해도(`CODEX_WORKFLOW_BRANCH=main`) 실제 checkout
      브랜치는 반영 · 아카이브하지 않는다 — 115차 게이트에서 저장소 관찰 검사가 자기 브랜치 메모리를
      archived/ 로 옮겼다 (TASK-2026-10-02-claude-remote-sync-status-1ce0a3-003)
+  7) **재사용된 브랜치의 두 번째 합류** — 합류 · 아카이브된 뒤에도 worktree 는 살아 있어 같은 브랜치가 다시 쓰인다.
+     `archived/<branch>/` 가 이미 있어도 2차 기록을 반영하고 기존 아카이브에 **병합**한다: 2차 자체 task 가 모
+     브랜치로 오고 · 1차 아카이브 파일이 남고 · 내용이 갈린 같은 이름은 `superseded-<옛 날짜>.<이름>` 으로 남고 ·
+     같은 날의 첫 합류 기록을 덮지 않는다. 실측 2026-11-19: 이 분기가 `대상이 이미 존재` 로 반영까지 건너뛰어
+     133차 · v1.27.0 기록이 main 메모리에 들어오지 않았다 (TASK-2026-11-19-main-002)
+  8) 아카이브가 실패하면 session-start 는 **'이동했다' 고 말하지 않는다** — 계획(candidates)이 아니라 실행
+     결과(errors)를 보고한다. 같은 실측에서 도구는 `archived 0 · errors 1` 인데 session-start 는 매 시작마다
+     '1건을 archived/ 로 이동했다' 고 적었다 (TASK-2026-11-19-main-001)
+  8b) 두 브랜치 중 하나만 실패하면 보고가 **갈린다** — 옮긴 것만 '이동했다', 막힌 것은 '옮기지 못했다' + 사유.
+     막힌 브랜치는 반영도 되지 않는다 (반영만 되고 사본이 남는 반쪽 상태 방지)
 """
 
 from __future__ import annotations
@@ -292,11 +302,127 @@ def main() -> int:
                 and status == "",
                 f"warnings={[w[:80] for w in result.get('warnings', [])]} status={status[:200]}")
 
+        # --- case 7: 재사용된 브랜치의 두 번째 합류 → 반영 + 기존 아카이브에 병합 -------
+        clone, wt = _make(tmp / "c7")
+        own = _work_in_worktree(wt)
+        _git(clone, "merge", "-q", "--ff-only", "claude/w")
+        _session_start(clone)
+        _git(clone, "add", "-A")
+        _git(clone, "commit", "-qm", "join 1")
+        active, archived = clone / MEM / "active", clone / MEM / "archived"
+        first_round = archived / "claude" / "w" / "backlog" / "tasks" / f"{own['done']}.md"
+        first_ok = first_round.is_file() and not (active / "claude" / "w").exists()
+        first_records = sorted(p.name for p in (active / "main" / "sessions").glob("merge_claude-w_*.md"))
+        _git(wt, "merge", "-q", "--ff-only", "main")
+        _session_start(wt)  # 네임스페이스가 다시 seed 된다 — 같은 브랜치의 2차 사용
+        proc = _backlog(wt, "--task-name", "2차 완료 일", "--task-brief", "2차 완료 일", "--status", "in_progress",
+                        "--wbs", "exempt", "--wbs-exempt-reason", "probe")
+        second = json.loads(proc.stdout)["task_id"]
+        _backlog(wt, "--task-id", second, "--mode", "update", "--task-name", "x", "--status", "done",
+                 "--validation-result", "검증")
+        _git(wt, "add", "-A")
+        _git(wt, "commit", "-qm", "worktree work 2")
+        sha2 = _git(wt, "rev-parse", "--short", "HEAD")
+        reseeded = (wt / MEM / "active" / "claude" / "w").is_dir()
+        _git(clone, "merge", "-q", "--ff-only", "claude/w")
+        result = _session_start(clone)
+        warnings = result.get("warnings", [])
+        problems = []
+        if not first_ok:
+            problems.append("fixture: 1차 합류가 아카이브되지 않았다")
+        if not reseeded:
+            problems.append("fixture: 2차 네임스페이스가 seed 되지 않았다")
+        if not any(JOIN_MARK in w and f"claude/w@{sha2}" in w for w in warnings):
+            problems.append(f"2차 합류 warning 없음: {[w[:90] for w in warnings]}")
+        moved = active / "main" / "backlog" / "tasks" / f"{second}.md"
+        moved_text = moved.read_text(encoding="utf-8") if moved.is_file() else ""
+        if f"merged_from: claude/w@{sha2}" not in moved_text or "status: done" not in moved_text:
+            problems.append("2차 완료 task 가 모 브랜치로 옮겨지지 않았다")
+        if (active / "claude" / "w").exists():
+            problems.append("2차 사본이 active/ 에 남았다")
+        if (active / "claude").exists():
+            problems.append("비게 된 부모 디렉터리 active/claude/ 가 남았다")
+        unstaged = [ln for ln in _git(clone, "status", "--porcelain", "--", str(MEM / "archived")).splitlines()
+                    if ln[1:2] != " "]
+        if unstaged:
+            problems.append(f"병합 결과가 index 에 안 올라갔다: {unstaged[:3]}")
+        if not first_round.is_file():
+            problems.append("1차 아카이브 파일이 사라졌다")
+        if not (archived / "claude" / "w" / "backlog" / "tasks" / f"{second}.md").is_file():
+            problems.append("2차 task 가 아카이브에 병합되지 않았다")
+        if not list((archived / "claude" / "w").glob("superseded-*.session_handoff.md")):
+            problems.append("내용이 갈린 1차 handoff 가 superseded 사본으로 남지 않았다")
+        stray = [p.name for p in (archived / "claude" / "w" / "backlog" / "tasks").glob("TASK-*.md")
+                 if "superseded" in p.name]
+        if stray:
+            problems.append(f"superseded 사본이 TASK-*.md glob 에 잡힌다: {stray}")
+        meta_path = archived / "claude" / "w" / ".archived.json"
+        meta = json.loads(meta_path.read_text(encoding="utf-8")) if meta_path.is_file() else {}
+        if not meta.get("previous_archived_at") or second not in meta.get("task_ids", []) \
+                or own["done"] not in meta.get("task_ids", []):
+            problems.append(f".archived.json 이 회차를 잇지 못한다: {meta}")
+        records = sorted(p.name for p in (active / "main" / "sessions").glob("merge_claude-w_*.md"))
+        if len(records) != len(first_records) + 1:
+            problems.append(f"같은 날 두 번째 합류가 첫 합류 기록을 덮었다: {records}")
+        again = _session_start(clone)
+        if any(JOIN_MARK in w or "archived/" in w or STATE_CONFLICT_MARKER in w for w in again.get("warnings", [])):
+            problems.append(f"세 번째 시작 warning: {[w[:90] for w in again.get('warnings', [])]}")
+        _record("test_reused_branch_second_join_merges_into_archive", result.get("status") == "ok" and not problems,
+                "; ".join(problems))
+
+        # --- case 8: 아카이브 실패 → '이동했다' 고 말하지 않는다 -----------------------
+        clone, wt = _make(tmp / "c8")
+        _work_in_worktree(wt)
+        _git(clone, "merge", "-q", "--ff-only", "claude/w")
+        blocker = clone / MEM / "archived" / "claude" / "w"
+        blocker.parent.mkdir(parents=True)
+        blocker.write_text("디렉터리가 올 자리의 파일\n", encoding="utf-8")
+        before = (clone / MEM / "active" / "main" / "session_handoff.md").read_bytes()
+        result = _session_start(clone)
+        warnings = result.get("warnings", [])
+        _record("test_failed_archive_is_not_reported_as_moved",
+                not any("이동했다" in w for w in warnings)
+                and any("claude/w" in w and "못했다" in w for w in warnings)
+                and (clone / MEM / "active" / "claude" / "w").is_dir()
+                and (clone / MEM / "active" / "main" / "session_handoff.md").read_bytes() == before,
+                f"warnings={[w[:120] for w in warnings]}")
+
+        # --- case 8b: 하나는 옮기고 하나는 막힌다 → 보고가 갈린다 ----------------------
+        clone, wt = _make(tmp / "c8b")
+        wx = tmp / "c8b" / "wx"
+        _git(clone, "worktree", "add", "-q", str(wx), "-b", "claude/x")
+        _work_in_worktree(wt)
+        _session_start(wx)
+        proc = _backlog(wx, "--task-name", "x 일", "--task-brief", "x 일", "--status", "in_progress",
+                        "--wbs", "exempt", "--wbs-exempt-reason", "probe")
+        x_task = json.loads(proc.stdout)["task_id"]
+        _backlog(wx, "--task-id", x_task, "--mode", "update", "--task-name", "x", "--status", "done",
+                 "--validation-result", "검증")
+        _git(wx, "add", "-A")
+        _git(wx, "commit", "-qm", "x work")
+        _git(clone, "merge", "-q", "--ff-only", "claude/w")
+        _git(clone, "merge", "-q", "--no-edit", "claude/x")
+        blocker = clone / MEM / "archived" / "claude" / "x"
+        blocker.parent.mkdir(parents=True, exist_ok=True)
+        blocker.write_text("디렉터리가 올 자리의 파일\n", encoding="utf-8")
+        result = _session_start(clone)
+        warnings = result.get("warnings", [])
+        moved_w = [w for w in warnings if "이동했다" in w]
+        failed_w = [w for w in warnings if "옮기지 못했다" in w]
+        active, archived = clone / MEM / "active", clone / MEM / "archived"
+        _record("test_partial_archive_failure_is_reported_per_branch",
+                len(moved_w) == 1 and "claude/w" in moved_w[0] and "claude/x" not in moved_w[0]
+                and len(failed_w) == 1 and "claude/x" in failed_w[0] and "claude/w" not in failed_w[0].split("—")[0]
+                and (archived / "claude" / "w").is_dir() and not (active / "claude" / "w").exists()
+                and (active / "claude" / "x").is_dir() and blocker.is_file()
+                and not (active / "main" / "backlog" / "tasks" / f"{x_task}.md").exists(),
+                f"warnings={[w[:140] for w in warnings]}")
+
     print()
     if FAILURES:
         print(f"=== FAIL: {len(FAILURES)} case(s) — {FAILURES} ===")
         return 1
-    print("=== PASS: branch join reflect (7 cases) ===")
+    print("=== PASS: branch join reflect (10 cases) ===")
     return 0
 
 

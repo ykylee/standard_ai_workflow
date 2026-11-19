@@ -166,6 +166,11 @@ def reflect_join(*, branch: str, branch_dir: Path, parent_branch: str, active_di
         baseline = baseline[:BASELINE_EXCERPT_CHARS].rstrip() + "…"
     slug = branch.replace("/", "-")
     record_rel = f"sessions/merge_{slug}_{today}.md"
+    # 같은 브랜치가 같은 날 다시 합류하면 첫 기록을 덮지 않는다 (TASK-2026-11-19-main-002).
+    n = 2
+    while (parent_dir / record_rel).exists():
+        record_rel = f"sessions/merge_{slug}_{today}_{n}.md"
+        n += 1
     up = "../" * (len(Path(parent_branch).parts) + 1)  # active/<parent…>/ → memory/
     archived_link = f"{up}archived/{branch}/{HANDOFF_NAME}"
     counts = (f"완료 {len(report.done)}건{_ids(report.done)} · 이월 {len(report.carried)}건{_ids(report.carried)} · "

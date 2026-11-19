@@ -13,6 +13,10 @@
 브랜치를 대상으로 삼고, 이동 전에 그 기록을 모 브랜치 메모리에 옮긴다 (`common.branch_join`). 그때 열린
 자체 task 는 이월되므로 미완료 차단 대상이 아니다. `--no-reflect` 로 끈다.
 
+**재합류** (TASK-2026-11-19-main-002): worktree 는 합류 뒤에도 살아 있어 같은 브랜치가 다시 쓰인다. 그때는
+`archived/<branch>/` 가 이미 있다 — 오류로 건너뛰지 않고 반영한 뒤 기존 아카이브에 파일 단위로 병합한다
+(`_merge_into_archive`: 내용이 갈린 같은 이름의 옛 것은 `superseded-<옛 날짜>.<이름>` 으로 남긴다).
+
 **protected main 호환**: 본 도구는 *파일 이동만* 수행하고 commit/push 는 하지 않는다.
 작업 브랜치에서 실행하면 그 변경이 해당 브랜치의 PR 에 실려 merge 된다 (piggyback).
 main 에 직접 쓰지 않으므로 protected branch 정책과 충돌하지 않는다.
@@ -154,6 +158,112 @@ def _move(src: Path, dst: Path, *, repo_root: Path) -> str | None:
         return None
     except OSError as exc:
         return f"{src.name}: {stderr or exc}"
+
+
+#: 병합에서 밀려난 옛 회차 파일의 이름 접두. **접두**인 이유: `TASK-*.md` · 날짜 glob 에 안 잡힌다.
+SUPERSEDED_PREFIX = "superseded-"
+ARCHIVE_META_NAME = ".archived.json"
+
+
+def _previous_rounds(dst: Path) -> list[str]:
+    """이미 있는 아카이브의 회차 날짜들 (옛 것부터). 메타가 없거나 못 읽으면 빈 목록."""
+    try:
+        meta = json.loads((dst / ARCHIVE_META_NAME).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    if not isinstance(meta, dict):  # 손으로 고친 메타가 목록 · 문자열이어도 죽지 않는다
+        return []
+    earlier = meta.get("previous_archived_at")
+    rounds = [str(d) for d in earlier if d] if isinstance(earlier, list) else []
+    if meta.get("archived_at"):
+        rounds.append(str(meta["archived_at"]))
+    return rounds
+
+
+def _same_content(a: Path, b: Path) -> bool:
+    """줄끝만 다른 텍스트는 같은 내용이다.
+
+    `.gitattributes` 가 `active/**` 메모리를 `eol=crlf` 로 두어, 같은 blob 이 `active/` 에서는 CRLF ·
+    `archived/` 에서는 LF 로 체크아웃된다. 바이트로 비교하면 같은 파일마다 superseded 사본이 생긴다.
+    """
+    return a.read_bytes().replace(b"\r\n", b"\n") == b.read_bytes().replace(b"\r\n", b"\n")
+
+
+def _stage(paths: list[Path], *, repo_root: Path) -> None:
+    """병합 결과를 index 에 올린다 — `_move` 의 git mv 와 같은 상태(이동이 staged).
+
+    경로마다 따로 부른다: 사라진 src 가 추적되지 않던 것이면 pathspec 불일치로 그 호출만 실패하고,
+    한 호출에 묶으면 dst 까지 통째로 안 올라간다. 저장소 밖 · ignore 된 배치는 조용히 넘어간다.
+    """
+    for path in paths:
+        try:
+            rel = path.relative_to(repo_root)
+        except ValueError:
+            continue
+        _git(["add", "-A", "--", str(rel)], repo_root=repo_root)
+
+
+def _merge_into_archive(src: Path, dst: Path, *, repo_root: Path, stamp: str,
+                        stop: Path | None = None) -> tuple[list[str], list[str]]:
+    """이미 있는 `archived/<branch>/` 에 `active/<branch>/` 를 **파일 단위로 병합**한다 (TASK-2026-11-19-main-002).
+
+    worktree 는 합류 뒤에도 살아 있어 같은 브랜치가 다시 쓰인다 — 두 번째 합류에는 대상이 이미 있다.
+    그 자리를 오류로 건너뛰면 2차 기록이 `active/` 에 고아로 남고 매 시작마다 같은 일이 반복된다.
+
+    규칙 (소실 0):
+
+    - 대상에 없는 파일 → 옮긴다
+    - 내용이 같은 파일 → 하나만 남긴다
+    - 내용이 다른 같은 이름 → 새 회차가 정식 이름을 갖고, 옛 것은 **같은 디렉터리**에
+      `superseded-<stamp>.<이름>` 으로 남긴다. 같은 디렉터리라 그 문서의 상대 링크가 그대로 풀린다.
+
+    Returns: (밀려난 옛 파일의 dst 상대 경로 목록, 오류 목록). 오류가 있으면 남은 것은 `src` 에 그대로다.
+    index 에 올리는 것은 호출자 몫이다 (`_stage`) — 메타 · 링크 재작성까지 끝난 뒤에 올려야 한 덩어리다.
+    """
+    superseded: list[str] = []
+    errors: list[str] = []
+    for path in sorted(p for p in src.rglob("*") if p.is_file()):
+        rel = path.relative_to(src)
+        target = dst / rel
+        try:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            if target.is_dir():
+                errors.append(f"{rel.as_posix()}: 대상 자리에 디렉터리가 있다")
+                continue
+            if target.exists():
+                if _same_content(target, path):
+                    path.unlink()
+                    continue
+                aside = target.with_name(f"{SUPERSEDED_PREFIX}{stamp}.{target.name}")
+                n = 2
+                while aside.exists():
+                    aside = target.with_name(f"{SUPERSEDED_PREFIX}{stamp}-{n}.{target.name}")
+                    n += 1
+                target.rename(aside)
+                superseded.append(aside.relative_to(dst).as_posix())
+            path.rename(target)
+        except OSError as exc:
+            errors.append(f"{rel.as_posix()}: {exc}")
+    if not errors:
+        for d in sorted((p for p in src.rglob("*") if p.is_dir()), key=lambda p: len(p.parts), reverse=True):
+            try:
+                d.rmdir()
+            except OSError as exc:
+                errors.append(f"{d.relative_to(src).as_posix()}/: {exc}")
+        try:
+            src.rmdir()
+        except OSError as exc:
+            errors.append(f"{src.name}/: {exc}")
+        else:
+            # `claude/w` 의 `claude/` 처럼 비게 된 부모도 걷는다 — `stop`(active/) 은 남긴다.
+            parent = src.parent
+            while stop is not None and parent != stop and stop in parent.parents:
+                try:
+                    parent.rmdir()
+                except OSError:
+                    break
+                parent = parent.parent
+    return superseded, errors
 
 
 def open_tasks(branch_dir: Path) -> list[tuple[str, str]]:
@@ -381,18 +491,28 @@ def _rewrite_relocated_links(
 
 def write_metadata(
     dst: Path, branch: str, *, repo_root: Path, open_task_list: list[tuple[str, str]],
+    previous_rounds: list[str] | None = None,
 ) -> None:
     """`.archived.json` — 과거 이력 조회를 위한 메타데이터."""
     tasks_dir = dst / "backlog" / "tasks"
     task_ids = sorted(p.stem for p in tasks_dir.glob("TASK-*.md")) if tasks_dir.is_dir() else []
+    # 재합류면 이 호출이 옛 메타를 덮는다 — 이전 회차의 날짜를 이어 적는다.
+    previous = previous_rounds or []
     merge_commit = _git(
         ["log", "-1", "--format=%H", "--all", f"--grep=Merge.*{branch}"], repo_root=repo_root
     ).stdout.strip() or None
-    (dst / ".archived.json").write_text(
+    rejoin = {} if not previous else {
+        # 같은 브랜치가 다시 쓰여 기존 아카이브에 병합됐다. 밀려난 옛 회차 파일은 `superseded-<날짜>.<이름>`.
+        "previous_archived_at": previous,
+        "superseded_files": sorted(p.relative_to(dst).as_posix()
+                                   for p in dst.rglob(f"{SUPERSEDED_PREFIX}*") if p.is_file()),
+    }
+    (dst / ARCHIVE_META_NAME).write_text(
         json.dumps(
             {
                 "branch": branch,
                 "archived_at": date.today().isoformat(),
+                **rejoin,
                 "merge_commit": merge_commit,
                 "task_ids": task_ids,
                 "task_count": len(task_ids),
@@ -581,6 +701,8 @@ def main() -> int:
         "path_source": path_source,
         "candidates": candidates,
         "archived": 0,
+        # 실제로 옮긴 브랜치 — 호출자는 `candidates` (계획)가 아니라 이것과 `errors` 로 보고한다.
+        "archived_branches": [],
         "blocked": sum(1 for c in candidates if c["action"] == "blocked"),
         "rewritten_references": [],
         "written_back": [],
@@ -594,9 +716,13 @@ def main() -> int:
             if c["action"] != "archive":
                 continue
             src, dst = Path(c["from"]), Path(c["to"])
-            if dst.exists():
-                result["errors"].append(f"{c['branch']}: 대상이 이미 존재 ({dst})")
+            # 대상이 이미 있으면 **재합류**다 — worktree 가 살아 같은 브랜치가 다시 쓰였다. 디렉터리면 병합하고,
+            # 그 밖의 것(파일 등)이 자리를 막고 있으면 반영 **전에** 멈춘다 — 반영만 되고 사본이 남으면 안 된다.
+            rejoin = dst.exists() or dst.is_symlink()
+            if rejoin and not dst.is_dir():
+                result["errors"].append(f"{c['branch']}: 대상 자리에 디렉터리가 아닌 것이 있다 ({dst})")
                 continue
+            previous_rounds = _previous_rounds(dst) if rejoin else []
             # 이동 **전에** 반영한다 — 사본은 아직 active/ 에 있다.
             if c.get("reflect"):
                 rep = branch_join.reflect_join(
@@ -615,19 +741,31 @@ def main() -> int:
                         inherit.apply_write_back(it)
                         result["written_back"].append(
                             f"{it.task_id}: active/{c['branch']} → active/{it.origin_branch}")
-            err = _move(src, dst, repo_root=workspace_root)
-            if err:
-                result["errors"].append(err)
-                continue
+            if rejoin:
+                stamp = previous_rounds[-1] if previous_rounds else "earlier"
+                _, merge_errors = _merge_into_archive(src, dst, repo_root=workspace_root, stamp=stamp,
+                                                      stop=active_dir)
+                if merge_errors:
+                    result["errors"].extend(f"{c['branch']}: {e}" for e in merge_errors)
+                    continue
+                previous_rounds = previous_rounds or ["earlier"]
+            else:
+                err = _move(src, dst, repo_root=workspace_root)
+                if err:
+                    result["errors"].append(f"{c['branch']}: {err}")
+                    continue
             open_list = [(o["id"], o["status"]) for o in c.get("open_tasks", [])]
             write_metadata(dst, c["branch"], repo_root=workspace_root,
-                           open_task_list=open_list)
+                           open_task_list=open_list, previous_rounds=previous_rounds)
             # 이동 **직후** 참조를 옮긴다. 이 한 걸음이 빠져 있어서 아카이브가
             # 이력을 끊어 왔다 (모듈 docstring 의 실측).
             result["rewritten_references"].extend(rewrite_moved_references(
                 branch=c["branch"], memory_root=memory_root, repo_root=workspace_root,
             ))
+            if rejoin:
+                _stage([src, dst], repo_root=workspace_root)
             result["archived"] += 1
+            result["archived_branches"].append(c["branch"])
 
     if args.json:
         print(json.dumps(result, ensure_ascii=False, indent=2))

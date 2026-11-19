@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-11-15",
+  "generated_at": "2026-11-17",
   "purpose_digest": "여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공",
   "purpose_digest_rev": "2026-09-28",
   "source_of_truth": {
@@ -10,7 +10,7 @@
     "daily_backlog_dir": "ai-workflow/memory/archived/claude/remote-sync-check-234c32/backlog",
     "tasks_dir": "ai-workflow/memory/archived/claude/remote-sync-check-234c32/backlog/tasks",
     "sessions_dir": "ai-workflow/memory/archived/claude/remote-sync-check-234c32/sessions",
-    "latest_backlog_path": "ai-workflow/memory/archived/claude/remote-sync-check-234c32/backlog/2026-11-15.md",
+    "latest_backlog_path": "ai-workflow/memory/archived/claude/remote-sync-check-234c32/backlog/2026-11-17.md",
     "repository_assessment_path": null
   },
   "project": {
@@ -27,11 +27,12 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**130차 세션 (2026-11-15, Linux 호스트) — main 합류 · 1.23.0 발행 준비 완료(게이트 442b9808, main fast-forward) + 합류 반영 결함 수리(task 11-15-003 — 완료 task 도 모 브랜치로): `origin/main@39a50a11` 병합(6ffa3f69, `roadmap_state.json` 충돌은 재생성) + 발행 차단 결함 수리.** main 의 TASK-2026-11-04-main-002 (MCP 도구 4종 — `summarize_git_history` · `assess_milestone_progress` · `rotate_workflow_logs` · `apply_robust_patch` — 성공 응답이 `Unknown family` 로 `invalid_tool_output_contract`, 1.22.0 발행본 포함)를 이 브랜치 task 11-15-001 로 고쳤다: 모델 셋 신설(`schemas/read_only.py`) + `ApplyRobustPatchOutput` 등록, rotate 오류 응답을 ErrorOutput 계약으로, 생성 스키마 4종 재생성, 결함을 기대값으로 고정하던 `check_v0_8_10_…` 의 UNMODELED 예외 제거. 새 검사 `check_mcp_tool_output_contracts` 4 case(되주입 10/10 red), verifier 1회 PASS 3/3. 검사 319. 등급 minor → 1.23.0 (feat 5 · fix 17 · breaking 0)",
+    "current_baseline": "claude/remote-sync-check-234c32 워크스페이스 — `main@90124a3a` 에서 이어받음 (2026-11-17). **133차 세션 (2026-11-17, Linux 호스트) — v1.27.0 발행 완료 (minor: 코드 커밋 3, breaking 0).** 태그 `v1.27.0` = `aa34ed8d`(발행 준비 커밋, 전량 게이트 native · slash 332×2 증거) = origin/main, GitHub Release Latest · asset 5종. task close 3(-003 진행 기록 상기 · -005 여러 워크벤치 · -006 발행), -002 · -004 는 소유자 iPad todo 한 번만 남음. §2.8 5채널 → doctor behind=[] · disabled=[]. 재시작 필요: claude 34204 · 2109009, codex 34205 · 34444 · 35601 · 3081284 (CLI 재시작). 이 worktree 워크벤치는 :8847(해시 포트, 100.90.113.29 바인드). 모 브랜치 기준선: **132차 세션 말 (2026-11-16, Linux 호스트) — v1.26.0 발행 완료 (minor: feat 2 · fix 4 · breaking 0).** 태그 `v1.26.0` = `632cb661`(발행 준비 커밋, 전량 게이트 native · slash 329×2 증거), GitHub Release Latest · asset 5종. 내용: 워크벤치 todo(브랜치 할 일 · task 체크리스트, `todo` 명령) · 응답 도착 신호 + hook 자동 반영 + 수리 넷(drift 패널 null 두 가지 · release 재검사 집계 · 글자 넘침). §2.8 5채널 재적용 → doctor behind=[] · disabled=[] (claude-code 는 원래 checkout ff). 재시작 필요: claude 34203 · 34204, codex 34205 · 34444 · 35601 · 3081284 (CLI 재시작 — /clear 로는 안 된다). 이 worktree 워크벤치 :8766 을 1.26.0 코드로 다시 띄움('할 일' 확인).",
     "current_axis": "**로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · ~~[TASK-2026-08-13-main-004] mypy flake 관찰~~ ✅ (66차 close — 33/33 표본, mypy 실패 0).",
-    "current_focus": "TASK-2026-11-15-claude-remote-sync-check-234c32-002 v1.23.0 발행 — main 합류 · 발행 준비 · 태그 · GitHub Release",
+    "current_focus": "TASK-2026-11-17-claude-remote-sync-check-234c32-004 iPad Chrome(CriOS 156 · iPadOS 27)에서 워크벤치 폼 제출이 서버에 닿지 않는다 — 응답 보내기 · todo 추가 전부",
     "in_progress_items": [
-      "TASK-2026-11-15-claude-remote-sync-check-234c32-002 v1.23.0 발행 — main 합류 · 발행 준비 · 태그 · GitHub Release",
+      "TASK-2026-11-17-claude-remote-sync-check-234c32-004 iPad Chrome(CriOS 156 · iPadOS 27)에서 워크벤치 폼 제출이 서버에 닿지 않는다 — 응답 보내기 · todo 추가 전부",
+      "TASK-2026-11-17-claude-remote-sync-check-234c32-002 워크벤치 응답 · todo 변경이 Claude Code 컨텍스트에 실제로 주입되는지 실측 (main-014 미측정분)",
       "TASK-2026-10-02-main-006 Windows 로캘(cp949)에서 wk 가 UnicodeEncodeError 로 죽는다 — stdout 과 기본 인코딩 I/O 를 UTF-8 로 고정",
       "TASK-2026-10-02-main-007 Windows V3 백신이 wk.exe 를 평판 기반으로 차단한다 — pip 생성 console-script 런처 대체 진입 경로"
     ],
@@ -42,44 +43,40 @@
       "TASK-2026-11-13-claude-remote-sync-check-234c32-005"
     ],
     "recent_done_items": [
-      "TASK-2026-11-15-claude-remote-sync-check-234c32-003 — 합류 반영이 완료 task 를 archived/ 로만 보내 main 집계가 근거를 잃는다 — 완료 task 도 모 브랜치로 옮긴다",
-      "TASK-2026-11-15-claude-remote-sync-check-234c32-001 — MCP 도구 4종 성공 경로 output contract 미등록 수리 (main-002 대응, 발행 차단 결함)",
-      "TASK-2026-11-14-claude-remote-sync-check-234c32-003 — M-029 ② MCP plan_inbox · plan_import + 체크인 생성물",
-      "TASK-2026-11-14-claude-remote-sync-check-234c32-002 — M-029 ② 워크벤치 서버 · 화면 · 검사 넷 · 스킬 (MCP 두 도구는 다음 task)",
-      "TASK-2026-11-14-claude-remote-sync-check-234c32-001 — M-029 ① 이월 정리 — inbox_census 단일 출처 · plan-import 건수 두 필드 · 받은편지함 우회 검출 · 정리 일곱",
-      "TASK-2026-11-13-claude-remote-sync-check-234c32-006 — 계획·진척 워크벤치 design — 프록시 · 브라우저 실측 + ADR-032 + core 스펙",
-      "TASK-2026-11-13-claude-remote-sync-check-234c32-004 — 주장 트리 계획 구현 2단계 — 응답 파일 · 받은편지함 · plan-import · 받은편지함 게이트 · 이어받기 · 정본 §11.1",
-      "TASK-2026-11-13-claude-remote-sync-check-234c32-003 — 주장 트리 계획 구현 1단계 — 라벨 · 파서 · 린트 · 게이트 · --decision-state · plan-status · open_decisions · 정본 §1",
-      "TASK-2026-11-13-claude-remote-sync-check-234c32-002 — 주장 트리 계획 design — ADR-031 + core 스펙 (필드 · 린트 · 게이트 · 응답 형식 · plan-import · 받은편지함 계약)",
-      "TASK-2026-11-13-claude-remote-sync-check-234c32-001 — 계획·진척 워크벤치 requirements — 미실측 실측 + 서버 · 응답 쓰기 · 알림 · 진척 화면 요구 사항 · design 진입 조건 확정"
+      "TASK-2026-11-17-claude-remote-sync-check-234c32-006 — v1.27.0 발행 — iPad 폼 제출 수리 · 진행 기록 상기 · 한 호스트 여러 워크벤치",
+      "TASK-2026-11-17-claude-remote-sync-check-234c32-005 — 한 호스트에 워크벤치 여러 개 — 포트 분배 + 화면에 저장소 · 브랜치 표시",
+      "TASK-2026-11-17-claude-remote-sync-check-234c32-003 — 작업 중 워크벤치 진행 기록(--progress-note) 지침 강화 — 정본 · 모든 하네스 진입점으로",
+      "TASK-2026-11-17-claude-remote-sync-check-234c32-001 — 브랜치 네임스페이스 자동 seed — `main` 에서 이어받음"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/archived/claude/remote-sync-check-234c32/backlog/2026-11-15.md",
-    "task_count": 3,
+    "latest_backlog_path": "ai-workflow/memory/archived/claude/remote-sync-check-234c32/backlog/2026-11-17.md",
+    "task_count": 6,
     "in_progress_items": [
-      "TASK-2026-11-15-claude-remote-sync-check-234c32-002 — v1.23.0 발행 — main 합류 · 발행 준비 · 태그 · GitHub Release"
+      "TASK-2026-11-17-claude-remote-sync-check-234c32-002 — 워크벤치 응답 · todo 변경이 Claude Code 컨텍스트에 실제로 주입되는지 실측 (main-014 미측정분)",
+      "TASK-2026-11-17-claude-remote-sync-check-234c32-004 — iPad Chrome(CriOS 156 · iPadOS 27)에서 워크벤치 폼 제출이 서버에 닿지 않는다 — 응답 보내기 · todo 추가 전부"
     ],
     "blocked_items": [],
     "done_items": [
-      "TASK-2026-11-15-claude-remote-sync-check-234c32-001 — MCP 도구 4종 성공 경로 output contract 미등록 수리 (main-002 대응, 발행 차단 결함)",
-      "TASK-2026-11-15-claude-remote-sync-check-234c32-003 — 합류 반영이 완료 task 를 archived/ 로만 보내 main 집계가 근거를 잃는다 — 완료 task 도 모 브랜치로 옮긴다"
+      "TASK-2026-11-17-claude-remote-sync-check-234c32-001 — 브랜치 네임스페이스 자동 seed — `main` 에서 이어받음",
+      "TASK-2026-11-17-claude-remote-sync-check-234c32-003 — 작업 중 워크벤치 진행 기록(--progress-note) 지침 강화 — 정본 · 모든 하네스 진입점으로",
+      "TASK-2026-11-17-claude-remote-sync-check-234c32-005 — 한 호스트에 워크벤치 여러 개 — 포트 분배 + 화면에 저장소 · 브랜치 표시",
+      "TASK-2026-11-17-claude-remote-sync-check-234c32-006 — v1.27.0 발행 — iPad 폼 제출 수리 · 진행 기록 상기 · 한 호스트 여러 워크벤치"
     ]
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",
     "ai-workflow/memory/archived/claude/remote-sync-check-234c32/session_handoff.md",
-    "ai-workflow/memory/archived/claude/remote-sync-check-234c32/backlog/2026-11-15.md",
+    "ai-workflow/memory/archived/claude/remote-sync-check-234c32/backlog/2026-11-17.md",
     "ai-workflow/memory/archived/claude/remote-sync-check-234c32/backlog",
     "ai-workflow/memory/archived/claude/remote-sync-check-234c32/sessions",
-    "ai-workflow/memory/archived/claude/remote-sync-check-234c32/baselines.md",
     "workflow-source/core/roadmap_milestone_wbs_spec.md",
     "workflow-source/core/workflow_deployment_idempotency.md",
     "ai-workflow/memory/active/main/session_handoff.md",
-    "workflow-source/core/plan_workbench_spec.md",
-    "docs/planning/plan-workbench-review-2026-11.md",
+    "ai-workflow/memory/archived/claude/remote-sync-check-234c32/session_handoff.md",
+    "ai-workflow/memory/active/main/sessions/merge_claude-remote-sync-check-234c32_2026-11-15.md",
     "ai-workflow/memory/archived/feat/auto-20261019-a0afcf36/session_handoff.md",
     "ai-workflow/memory/active/main/sessions/merge_feat-auto-20261019-a0afcf36_2026-10-19.md",
     "ai-workflow/memory/archived/feat/auto-20261002-4a5d394c/session_handoff.md",
@@ -248,8 +245,5 @@
       "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-015.json"
     }
   ],
-  "memory_entries_count": 30,
-  "open_decisions": {
-    "TASK-2026-11-15-claude-remote-sync-check-234c32-002": 1
-  }
+  "memory_entries_count": 30
 }

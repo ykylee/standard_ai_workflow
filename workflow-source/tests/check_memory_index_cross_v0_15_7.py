@@ -234,10 +234,14 @@ def case_5_one_snapshot_per_dashboard() -> bool:
         # 호출마다 1건씩 늘어난 로그 — 병렬 검사가 session-start 로 붙이는 모양.
         calls["n"] += 1
         base = real(workspace_root, **kw)
-        total = base.total_calls + calls["n"]
+        # **읽기마다 hit_rate 를 직접 달리 준다** (TASK-2026-11-19-main-003). 예전에는 total_calls 에 1 을
+        # 더해 `total_hits / total` 로 다시 나눴는데, 그 차이는 1/N² 꼴이라 로그가 커지면 4자리 반올림에
+        # 묻힌다 — 실측 2026-11-19: 1974건 · hit 170 에서 170/1976 == 170/1977 == 0.0860 이라 대조군이
+        # '주입이 죽었다' 로 red. total_hits 가 0 인 새 호스트에서도 같았다. events.jsonl 은 gitignore 라
+        # 호스트마다 누적량이 다르다 — 주입의 크기가 호스트 상태에 달리면 안 된다.
         return base.model_copy(update={
-            "total_calls": total,
-            "hit_rate": round(base.total_hits / total, 4),
+            "total_calls": base.total_calls + calls["n"],
+            "hit_rate": round(calls["n"] / 1000, 4),
         })
 
     memory_index.summarize_telemetry = drifting

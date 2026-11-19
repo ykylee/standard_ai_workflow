@@ -234,18 +234,29 @@ def _detect_stale_branch_memories(
         if c.get("action") == "blocked":
             warnings.append(f"브랜치 메모리 `{c['branch']}` 를 반영·아카이브하지 못했다: {c.get('reason')}")
     stale = [c["branch"] for c in payload.get("candidates", []) if c.get("action") == "archive"]
-    if stale:
-        if apply:
-            warnings.append(
-                f"종료된 브랜치 메모리 {len(stale)}건을 archived/ 로 이동했다: {', '.join(stale)}. "
-                f"이 변경을 현재 작업 브랜치의 commit 에 포함시켜라."
-            )
-        else:
-            warnings.append(
-                f"종료된 브랜치 메모리 {len(stale)}건이 active/ 에 남아 있다: {', '.join(stale)}. "
-                f"`python -m workflow_kit archive-branch-memory --apply` 로 아카이브하라."
-            )
-    return {"stale_branches": stale, "archived": bool(apply and stale)}
+    # **계획이 아니라 실행 결과를 보고한다** (TASK-2026-11-19-main-001). `candidates` 의 `archive` 는
+    # 도구가 *하려던* 일이다. 그것으로 '이동했다' 를 쓰면 도구가 `archived 0 · errors 1` 로 끝나도
+    # 매 시작마다 성공을 말한다 — 실측 2026-11-19: 재사용된 브랜치의 2차 합류가 막힌 채 그렇게 보고됐다.
+    moved = [b for b in payload.get("archived_branches", []) if b in stale] if apply else []
+    errors = [str(e) for e in payload.get("errors", [])]
+    if moved:
+        warnings.append(
+            f"종료된 브랜치 메모리 {len(moved)}건을 archived/ 로 이동했다: {', '.join(moved)}. "
+            f"이 변경을 현재 작업 브랜치의 commit 에 포함시켜라."
+        )
+    left = [b for b in stale if b not in moved]
+    if left and apply:
+        warnings.append(
+            f"종료된 브랜치 메모리 {len(left)}건을 archived/ 로 옮기지 못했다: {', '.join(left)} — "
+            + ("; ".join(errors) if errors else "도구가 사유 없이 이동 0건으로 끝났다")
+            + ". active/ 에 그대로 남아 있다."
+        )
+    elif left:
+        warnings.append(
+            f"종료된 브랜치 메모리 {len(left)}건이 active/ 에 남아 있다: {', '.join(left)}. "
+            f"`python -m workflow_kit archive-branch-memory --apply` 로 아카이브하라."
+        )
+    return {"stale_branches": stale, "archived": bool(moved), "archived_branches": moved, "errors": errors}
 
 def _auto_seed_branch_memory(project_profile_path: Path) -> dict[str, Any] | None:
     """브랜치 네임스페이스가 없으면 seed 해서 **시작할 수 있게** 한다 (TASK-2026-09-30-claude-session-start-e6eb83-002).

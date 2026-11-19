@@ -9,6 +9,10 @@
 > 이 파일은 **읽기 대상이 아니라 조회 대상**이다. 세션 시작에 읽지 않는다 —
 > handoff §1 이 최근 4개만 들고 있고, 그 이전이 필요할 때만 여기를 본다.
 
+## 롤오프 2026-11-19
+
+- **131차 세션 (2026-11-15, Linux 호스트) — v1.23.0 발행 완료 (minor: feat 5 · fix 18 · breaking 0).** 태그 `v1.23.0` = `d16eab89`(합류 반영 커밋, 전량 게이트 native · slash 319×2 증거), GitHub Release Latest(draft=false · prerelease=false) · asset 5종(whl · sdist · claude-code · codex · minimax-code ZIP). 발행 완료 커밋에 post-step 산출물(dashboard · drift_ledger · CHANGELOG · maturity_matrix · 노트 bidir audit). §2.8 재적용 codex · grok-build · antigravity · minimax-code → doctor `behind=[]` · `disabled=[]` (claude-code 는 directory 소스 = 원 저장소 `plugin/`). **재시작 필요**: codex 실행 중 호스트 4개(runtime_load stale). grok-build 의 설치 소스 경로는 이제 `/home/yklee/repos/standard_ai_workflow-main/plugin` 이다 — 이 워크트리를 지우면 재설치. task -002 verifier PASS 4/4 로 close.
+
 ## 롤오프 2026-11-16
 
 - **122차 세션 (2026-10-31, Windows 호스트 DESKTOP-DGPLBF7) — v1.22.0 발행 완료 (minor: feat 1 · fix 3 · breaking 0).** main 은 `v1.22.0` 태그 커밋 `a44b7d31` + 발행 완료 커밋 — **origin/main 에 push 완료**, GitHub Release `v1.22.0` 생성(draft=false · prerelease=false) · asset 5종(whl · sdist · claude-code · codex · minimax-code plugin ZIP). **저장소에서 처음 시도한 Windows 발행**이라 발행 경로 격차가 2건 더 드러났다 — ①**pre_check `packaging`** — 임시 venv 의 `pip` 를 `venv/bin/pip` 로 고정(Windows 는 `Scripts/pip.exe`) → FileNotFoundError ②같은 자리에서 `pip.exe install --upgrade pip` 이 Windows venv 에서 자기수정을 거부 → `python -m pip` 로 교체. `common/paths.py` 에 `venv_executable()` 정본 신설(복제돼 있던 POSIX 고정 3곳 정리). 추가로 **서브프로세스 `text=True` encoding 누락 10곳**(별칭 호출로 앞선 수리가 놓쳤던 것) 과 **drift_ledger append 의 CRLF** 수리. 전량 게이트 native·slash 309×2 rc 0(증거 `a44b7d31…json` · 커밋 후 clean tree) · mypy 227 files 0 errors · packaging 사전점검 PASS(1.22.0 휠을 Windows 임시 venv 에 심어 13 서브패키지 import smoke). **미해결**: ①**POSIX(Linux/macOS) 회귀 게이트는 이 호스트에서 돌릴 수 없다** — 309×2 는 별도 호스트 확인 필요 ②해석기 매트릭스 3.11 셀 UNMEASURED(해석기 미설치) ③case 수 선언 대조 75건 미측정 ④§2.8 소비채널 재적용은 발행 완료 커밋 뒤에 남음.

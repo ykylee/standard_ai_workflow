@@ -1,5 +1,7 @@
 ---
-carried_over_to: TASK-2026-11-13-claude-remote-sync-check-234c32-005@main
+inherited_from: main@90124a3a
+inherited_hash: sha256:51ac4eb6d637ce318a5429bf4409c15d4fe07e28931a18913aed7cd0c06e6623
+merged_from: claude/remote-sync-check-234c32@7fdf0eb5
 id: TASK-2026-11-13-claude-remote-sync-check-234c32-005
 status: planned
 created_at: 2026-11-13

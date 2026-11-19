@@ -4,7 +4,7 @@
 - 범위: 해당 일자(task 단위)의 모든 task.
 - 대상 독자: AI agent (session-start / backlog-update), maintainer.
 - 상태: stable (v0.14.0 append-only layout).
-- 최종 수정일: 2026-11-17
+- 최종 수정일: 2026-11-12
 - 관련 문서: [./tasks/](./tasks/) (per-task SSOT)
 
 ## Tasks

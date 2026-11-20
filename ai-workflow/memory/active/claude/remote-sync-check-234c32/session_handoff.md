@@ -16,21 +16,19 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
+- TASK-2026-11-20-claude-remote-sync-check-234c32-001 호스트 역할 가이드 — 읽기 전용 소비자는 pull · 환경 맞추기 · 버전 업데이트만, push 는 hook 이 막는다
 - TASK-2026-10-02-main-006 Windows 로캘(cp949)에서 wk 가 UnicodeEncodeError 로 죽는다 — stdout 과 기본 인코딩 I/O 를 UTF-8 로 고정
 - TASK-2026-10-02-main-007 Windows V3 백신이 wk.exe 를 평판 기반으로 차단한다 — pip 생성 console-script 런처 대체 진입 경로
 - TASK-2026-11-17-claude-remote-sync-check-234c32-002 워크벤치 응답 · todo 변경이 Claude Code 컨텍스트에 실제로 주입되는지 실측 (main-014 미측정분)
 - TASK-2026-11-17-claude-remote-sync-check-234c32-004 iPad Chrome(CriOS 156 · iPadOS 27)에서 워크벤치 폼 제출이 서버에 닿지 않는다 — 응답 보내기 · todo 추가 전부
-
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:
 - TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다
-
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
 - TASK-2026-11-19-claude-remote-sync-check-234c32-001 브랜치 네임스페이스 자동 seed — `main` 에서 이어받음
-
 ## 5. 다음 세션 시작 포인트
 
 - (135차, 2026-11-19, Linux) **다음 일**: ①**`TASK-2026-11-19-claude-remote-sync-check-234c32-002`** — 자동 seed 가 `roadmap_state.json` 을 재생성하지 않아 seed 커밋 뒤 게이트 `check_roadmap_state_generated` · `check_state_json_generated` red(완료 기준 3개 등록됨). ②관련 관찰(미등록): 합류·아카이브 직후 seed 전 worktree 에선 `check_branch_context_matrix` 가 native 에서도 `release_pre_check` 7b SKIP 으로 13/13 → red — 브랜치 state.json 부재를 환경 전제로 둔 검사. ③이월 `…-234c32-002` · `-004` 는 소유자 iPad todo 한 번 대기 그대로.

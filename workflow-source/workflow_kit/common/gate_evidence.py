@@ -32,6 +32,12 @@ push 전 게이트가 동등 검사를 맡게 됐다. 그런데 발행 게이트
   CLAUDE.md 를 고쳐 게이트 없이 push 됐고, 스탬프 위반이 CI 에서만 드러났다 — 로컬
   green 은 다른 sha 의 green 이었다. CI 가 없는 지금은 그 커밋을 아무도 안 잰다.
   우회는 `git push --no-verify` (쓰면 그 push 는 게이트 근거가 없다).
+
+## 읽기 전용 소비자 클론 (TASK-2026-11-20-claude-remote-sync-check-234c32-001)
+
+`git config workflow.role consumer` 인 클론은 push 를 **모두** 막는다 — 게이트 기록이
+있어도. 소비자는 pull · 환경 맞추기 · 버전 업데이트만 한다 (`docs/HOST_ROLES.md`).
+미선언 · `contributor` 는 위 판정 그대로다 (역할 확인은 pull 전 에이전트의 몫).
 """
 
 from __future__ import annotations
@@ -140,6 +146,25 @@ def is_protected_delete(remote_ref: str) -> bool:
     return remote_ref in PROTECTED_DELETE_REFS or remote_ref.startswith(PROTECTED_DELETE_PREFIXES)
 
 
+#: 이 클론의 역할을 담는 git 로컬 설정 키 — `docs/HOST_ROLES.md` §2.
+ROLE_CONFIG_KEY = "workflow.role"
+CONSUMER_ROLE = "consumer"
+
+
+def host_role(repo_root: Path) -> str | None:
+    """`git config --get workflow.role` — 미선언(또는 git 실패)이면 None."""
+    value = _git(repo_root, "config", "--get", ROLE_CONFIG_KEY)
+    return value.strip().lower() if value else None
+
+
+def check_consumer_push(repo_root: Path, lines: list[str]) -> list[str]:
+    """소비자 클론이면 올리려는 ref 마다 막는다 — 게이트 기록과 무관하다."""
+    if host_role(repo_root) != CONSUMER_ROLE:
+        return []
+    return [f"{parts[0]} → {parts[2]}: 읽기 전용 소비자 클론({ROLE_CONFIG_KEY}={CONSUMER_ROLE})은 push 하지 않는다"
+            for parts in (raw.split() for raw in lines) if len(parts) == 4]
+
+
 def check_push(repo_root: Path, lines: list[str]) -> list[str]:
     """pre-push 표준입력(`<local ref> <local sha> <remote ref> <remote sha>`)을 판정한다.
 
@@ -183,7 +208,17 @@ def main(argv: list[str] | None = None) -> int:
         print("usage: python -m workflow_kit.common.gate_evidence pre-push <repo_root>",
               file=sys.stderr)
         return 2
-    problems = check_push(Path(args[1]), sys.stdin.read().splitlines())
+    repo_root, lines = Path(args[1]), sys.stdin.read().splitlines()
+    consumer = check_consumer_push(repo_root, lines)
+    if consumer:
+        print("[pre-push] 읽기 전용 소비자 클론은 push 하지 않는다 — pull · 환경 맞추기 · "
+              "버전 업데이트만 한다 (docs/HOST_ROLES.md):", file=sys.stderr)
+        for item in consumer:
+            print(f"  - {item}", file=sys.stderr)
+        print(f"  고칠 것은 소유자에게 보고한다. 이 클론이 참여자라면 "
+              f"`git config {ROLE_CONFIG_KEY} contributor` 로 다시 선언한다.", file=sys.stderr)
+        return 1
+    problems = check_push(repo_root, lines)
     if not problems:
         return 0
     print("[pre-push] 게이트를 돌지 않은 커밋 · main · 태그의 삭제는 push 하지 않는다 "

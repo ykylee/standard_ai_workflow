@@ -283,6 +283,10 @@ Run `omx setup` to install all components. Run `omx doctor` to verify installati
 Claude Code 판은 `CLAUDE.md` 에 있으며 **둘은 같은 정본에서 파생**된다
 (`workflow-source/core/global_workflow_standard.md` §1 · §3 · §8 · §11).
 
+## 호스트 역할 (먼저)
+
+`git config --get workflow.role` 이 `consumer` 면 [`docs/HOST_ROLES.md`](docs/HOST_ROLES.md) §3 (pull · 환경 맞추기 · 버전 업데이트)만 한다 — 아래 세션 시작 · 변경 · push 는 하지 않는다. 비었으면 pull · 업데이트 · 세션 시작 전에 멈추고 소유자에게 묻는다.
+
 ## 항상 먼저 읽을 문서
 
 - `ai-workflow/memory/active/<branch>/state.json` (생성물 — 손으로 고치지 않는다)

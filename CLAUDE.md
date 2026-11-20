@@ -8,14 +8,15 @@
 - 범위: 세션 복원, 작업 원칙, 세션 종료 순서, 실행 · 검증 명령
 - 대상 독자: Claude Code, 저장소 관리자
 - 상태: beta
-- 최종 수정일: 2026-11-17
-- 관련 문서: `docs/PROJECT_PROFILE.md`, `docs/LOCAL_GATE.md`, `ai-workflow/memory/active/<branch>/session_handoff.md`
+- 최종 수정일: 2026-11-20
+- 관련 문서: `docs/PROJECT_PROFILE.md`, `docs/LOCAL_GATE.md`, `docs/HOST_ROLES.md`, `ai-workflow/memory/active/<branch>/session_handoff.md`
 
 > 아래 `## Working Principles` · `## Session Close Order` · `## Memory Update Paths` 는
 > `core/global_workflow_standard.md` 의 생성물이다 — 여기서 고치지 말고 정본을 고친다.
 
 ## 세션 시작
 
+- **먼저 역할**: `git config --get workflow.role` — `consumer` 면 [`docs/HOST_ROLES.md`](docs/HOST_ROLES.md) §3 만 한다(아래 세션 시작 · 변경 · push 없음). 비었으면 pull · 업데이트 · 세션 시작 전에 멈추고 소유자에게 묻는다.
 - `python -m workflow_kit session-start` (플러그인 스킬 `/standard-ai-workflow:session-start`) 가
   `ai-workflow/memory/active/<branch>/` 의 `state.json` · handoff · backlog, `docs/PROJECT_PROFILE.md`,
   `PURPOSE.md` 를 복원한다. `<branch>` 는 현재 git 브랜치다.

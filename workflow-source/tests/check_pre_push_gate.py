@@ -13,6 +13,8 @@ green 이었다. CI 가 폐지된 지금은 그런 커밋을 아무도 안 잰�
   삭제 stdin 을 채취해 fixture 모양과 대조) · 태그는 가리키는 커밋으로 벗긴다 · 못 읽는 sha 는 막는다 (모름 ≠ 통과)
 - 저장소의 `.githooks/pre-push` 가 실행 가능하고, 실제로 그 판정을 exit code 로 낸다
 - hooksPath 로 꺼지는 `.git/hooks/pre-push` 를 같은 인자·입력으로 이어 부른다
+- `workflow.role=consumer` 클론은 게이트 기록이 있어도 막는다 · 미선언 · contributor 는 기존 판정
+  (TASK-2026-11-20-claude-remote-sync-check-234c32-001, `docs/HOST_ROLES.md`)
 """
 
 from __future__ import annotations
@@ -258,8 +260,40 @@ def test_hook_script_enforces_verdict() -> None:
     _record("test_hook_script_enforces_verdict", not problems, "; ".join(problems))
 
 
+def test_consumer_role_blocks_push() -> None:
+    """소비자 클론은 기록 있는 sha 도 hook 경로에서 exit 1 — 미선언 · contributor 는 통과."""
+    problems: list[str] = []
+    sh = _sh_command()
+    if sh is None:
+        _record("test_consumer_role_blocks_push", False, "셸(sh) 을 찾지 못했다 — 훅 스크립트를 실행할 수 없다")
+        return
+    with tempfile.TemporaryDirectory(prefix="pre-push-role-") as tmpdir:
+        repo, gated, ungated = _repo(Path(tmpdir))
+        # (역할, sha, 기대 exit) — 미선언 · contributor 는 게이트 판정 그대로, consumer 는 기록과 무관하게 막는다
+        for role, sha, want in ((None, gated, 0), (None, ungated, 1), ("contributor", gated, 0),
+                                ("contributor", ungated, 1), ("consumer", gated, 1), ("Consumer", gated, 1)):
+            if role is None:
+                subprocess.run(["git", "-C", str(repo), "config", "--unset", "workflow.role"],
+                               capture_output=True)
+            else:
+                _git(repo, "config", "workflow.role", role)
+            consumer = role is not None and role.lower() == "consumer"
+            verdict = gate_evidence.check_consumer_push(repo, [_line(sha)])
+            if bool(verdict) != consumer:
+                problems.append(f"role={role}: check_consumer_push={verdict}")
+            proc = subprocess.run([*sh, str(HOOK)], cwd=repo, input=_line(sha) + "\n",
+                                  env=_hook_env(), capture_output=True, text=True, timeout=60,
+                                  encoding="utf-8", errors="replace")
+            if proc.returncode != want:
+                problems.append(f"role={role} {sha[:8]}: exit {proc.returncode} (기대 {want}) {proc.stderr[-200:]!r}")
+            if consumer and "HOST_ROLES.md" not in proc.stderr:
+                problems.append(f"role={role}: 막을 때 가이드를 가리키지 않는다")
+    _record("test_consumer_role_blocks_push", not problems, "; ".join(problems))
+
+
 def main() -> int:
-    cases = [test_check_push_verdicts, test_delete_push_stdin_matches_real_git, test_hook_script_enforces_verdict]
+    cases = [test_check_push_verdicts, test_delete_push_stdin_matches_real_git, test_hook_script_enforces_verdict,
+             test_consumer_role_blocks_push]
     for case in cases:
         case()
     print(f"\n{len(cases) - len(FAILURES)}/{len(cases)} passed")

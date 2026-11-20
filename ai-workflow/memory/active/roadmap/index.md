@@ -73,7 +73,7 @@
   - path: [`./M-029-plan-workbench-implementation.md`](./M-029-plan-workbench-implementation.md)
 - **M-030** [concept] 워크플로우 허브 — 2.0.0 준비, 여러 환경이 함께 쓰는 task 관리 서버 (arcturus-port 대시보드의 일반화) — status: done
   - path: [`./M-030-workflow-hub.md`](./M-030-workflow-hub.md)
-- **M-031** [requirements] 2.0 허브 — requirements (요구 목록 · design 전 실측 · PURPOSE 2.0 판 · 1.x 정책) — status: in_progress
+- **M-031** [requirements] 2.0 허브 — requirements (요구 목록 · design 전 실측 · PURPOSE 2.0 판 · 1.x 정책) — status: done
   - path: [`./M-031-workflow-hub-requirements.md`](./M-031-workflow-hub-requirements.md)
 - **M-032** [design] 2.0 허브 — design (ADR-033 Accepted + core 스펙) — status: planned
   - path: [`./M-032-workflow-hub-design.md`](./M-032-workflow-hub-design.md)

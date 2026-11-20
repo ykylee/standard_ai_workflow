@@ -2,7 +2,7 @@
 id: M-031
 title: 2.0 허브 — requirements (요구 목록 · design 전 실측 · PURPOSE 2.0 판 · 1.x 정책)
 sdlc_phase: requirements
-status: in_progress
+status: done
 order: 31
 parallel_allowed:
   - M-007

@@ -3,7 +3,7 @@
 - 문서 목적: arcturus-port 에서 시험 중인 공유 대시보드 task 관리를 kit 전체로 넓히는 개념을 정하고, 소유자가 정할 것을 기본값과 함께 모은다 (TASK-2026-11-20-claude-workflow-hub-concept-002, M-030/WBS-30.1).
 - 범위: arcturus 실험의 구성 · 효과 · 드러난 문제, 허브 개념 (kit 없는 부트스트랩 · 허브가 관리하는 task · handoff · 이력), kit 표면 영향, 단계, 위험, 열린 결정. 코드 · 스펙 변경은 없다.
 - 대상 독자: 소유자 (M-030 다음 단계 결정), maintainer
-- 상태: **종결 (2026-11-20)** — **2.0.0 준비** · 방향 H1~H13 (§3) · 결정 D1~D11 (§10) · E1~E6 (§11) · F1~F5 (§12) · G1~G3 (§13) · I1~I4 (§14) 모두 권고안. 다음은 requirements (M-031)
+- 상태: **종결 (2026-11-20)** — **2.0.0 준비** · 방향 H1~H14 (§3) · 결정 D1~D11 (§10) · E1~E6 (§11) · F1~F5 (§12) · G1~G3 (§13) · I1~I4 (§14) 모두 권고안. 다음은 requirements (M-031)
 - 최종 수정일: 2026-11-20
 - 관련 문서: [`M-030`](../../ai-workflow/memory/active/roadmap/M-030-workflow-hub.md), [`ADR-033`](../../ai-workflow/wiki/decisions/adr-033-workflow-hub.md), [`plan_workbench_spec.md`](../../workflow-source/core/plan_workbench_spec.md), [`multi_workspace_orchestration.md`](../../workflow-source/core/multi_workspace_orchestration.md), [`claim_plan_spec.md`](../../workflow-source/core/claim_plan_spec.md), [`PURPOSE.md`](../../ai-workflow/memory/active/PURPOSE.md)
 
@@ -27,6 +27,7 @@
 그리고 "지침에는 **세션 시작 시 항상 허브와 저장소의 최신 상태를 확인**하도록 지침이 들어가야하겠다".
 그리고 "이번 변경은 **2.0.0 준비**야 완전히 흐름이 바뀐다." → 물음 'D1 재결정' 답: **2.0 은 허브 단일, 1.x 유지보수**.
 그리고 "**레거시 1.x.x를 사용하는 프로젝트의 경우 처음 2.0.0을 사용할 때 부트스트랩을 통해서 전환**을 하도록 유도하자".
+그리고 "**compact 동작 직후에도 허브 확인 및 기록된 작업 내역 f/u** 수행하도록 하자".
 
 arcturus-port 의 흐름 (그 저장소 문서 기준):
 
@@ -89,6 +90,7 @@ P5 · P7 은 허브 정본을 고르는 순간 kit 이 같이 떠안는다 (§6)
 | H11 | 세션 시작 지침 | **세션 시작 때 항상 허브와 저장소의 최신 상태를 확인**하는 규칙을 지침(표준 규칙 층)에 넣는다 (§4.2.3) | 허브만 확인 · 저장소 동기화는 각자 |
 | H12 | 판 | **2.0.0 준비 — 흐름이 완전히 바뀐다.** 2.0 의 표준 흐름은 허브 하나, 로컬 kit + git 흐름은 1.x 줄에서 유지보수 (D1 을 고침 — §10) | 허브를 켜는 기능으로 1.x 안에서 (옛 D1) |
 | H13 | 1.x 전환 | **1.x 프로젝트는 처음 2.0.0 을 쓸 때 부트스트랩이 전환으로 이끈다** (§16.1) | 따로 마이그레이션 도구 · 문서만 |
+| H14 | compact 직후 | **컨텍스트 압축 직후에도 허브를 확인하고 기록된 작업 내역을 이어 간다** (§4.2.4) — 1.x compact 중계(ADR-030)의 허브판 | 세션 시작 때만 확인 |
 
 H2 로 PURPOSE 제외 영역 '비 Python runtime' 은 그대로다. H1 · H4 는 PURPOSE §4 Evolving Thesis 두 번째 줄
 ("workflow state docs … 는 세션 복원의 SSOT 이며, 그 정본은 `backlog/tasks/` + `session_handoff.md`") 을 허브 모드에서 고친다 — 문구는 D9.
@@ -158,6 +160,20 @@ H2 로 PURPOSE 제외 영역 '비 Python runtime' 은 그대로다. H1 · H4 는
 
 - 두 쪽의 결과를 대조한다: 허브 task 가 가리키는 커밋 · 브랜치가 저장소에 없으면(push 전 · 다른 원격) 그 사실을 보고한다.
 - 보고에는 무엇을 확인했고 무엇을 확인하지 못했는지를 나눠 적는다.
+
+#### 4.2.4 compact 직후 — 허브 확인 · 기록된 작업 이어 가기 (H14)
+
+1.x 는 압축 전후를 `compact-checkpoint` 로 중계한다 (ADR-030, `core/compact_relay_spec.md`) — 압축 직전 기계 층(진행 task · 브랜치)과
+판단 층(검증 · 미검증 사실 · 다음 걸음)을 `.compact/` 에 적고, 압축 뒤 `SessionStart(compact)` 가 재주입한다.
+2.0 에서는 그 기록의 자리가 **허브의 콜사인 공간**(H8)이고, 압축 직후 할 일이 셋이다:
+
+1. **허브 확인** — 세션 시작 확인(§4.2.3)의 허브 쪽 가벼운 판: 내 task 의 지금 상태 · 진행 한 줄 · 결정 응답 도착 · 다른 콜사인이 그 사이 바꾼 것 (version 차이).
+2. **기록 대조** — 압축 직전 체크포인트(다음 걸음 · 미검증 사실)와 압축 요약을 대조해 빠진 식별자를 알린다 (1.x §5 의 대조를 허브가 한다).
+3. **이어 가기 (f/u)** — 체크포인트의 '다음 걸음' 과 진행 중 task 의 진행 기록에서 이어 간다. 이미 끝난 것으로 기록된 일을 다시 하지 않고, 미검증으로 남은 것은 미검증으로 보고한다.
+
+- 전달 경로: 압축 hook 이 있는 하네스(Claude Code `PreCompact` · `PostCompact` · `SessionStart(compact)`)는 hook 이 체크포인트를 올리고 재주입한다 —
+  hook 은 MCP 도구를 못 부르므로 **선택 로컬 클라이언트(I1)** 가 이 몫이다. hook 이 없는 하네스는 **표준 규칙 층의 지침**("압축 직후 첫 행동은 허브 확인 · 기록 대조")이 받친다.
+- 체크포인트도 비밀을 싣지 않는다 (허브에 남는다).
 
 ### 4.3 프로젝트 공유 지침 — 허브에서 셋업 · 공유 (H5)
 
@@ -240,7 +256,7 @@ arcturus 는 main 의 AGENTS.md · docs/42 를 브리핑으로 나른다 — 정
 
 | 단계 | 내용 |
 |---|---|
-| concept (이 문서 · M-030) | 방향 H1~H13 · 결정 D1~D11 · E1~E6 · F1~F5 · G1~G3 · I1~I4 |
+| concept (이 문서 · M-030) | 방향 H1~H14 · 결정 D1~D11 · E1~E6 · F1~F5 · G1~G3 · I1~I4 |
 | requirements | 허브 API (부트스트랩 · 콜사인 · 지침 · task · handoff · 이력 · 맡기 · 게이트 · 브리핑) · 클라이언트 · 오프라인 · 노출 · 들여오기 / 내보내기 요구 |
 | design (ADR-033 Accepted + core 스펙) | DB 스키마 · API 형식 · 클라이언트 명령 · 규칙 렌더링 · 화면 |
 | implementation | P1 허브 서버 (콜사인 · task · 이력 · 409) → P2 얇은 클라이언트 + 부트스트랩 + **프로젝트 지침 셋업 · 갱신** → P3 handoff · 상태 생성 · 게이트 · 결정 응답 → P4 허브 화면 (워크벤치 확장) → P5 들여오기 / 내보내기 · 오프라인 보낼편지함 → P6 arcturus 이전 (D7) |
@@ -266,7 +282,7 @@ arcturus 는 main 의 AGENTS.md · docs/42 를 브리핑으로 나른다 — 정
 ## 9. 다음
 
 - requirements 마일스톤(M-031)을 연다.
-- ADR-033 은 design 이 끝날 때까지 **Proposed** — 방향 H1~H13 과 결정 전부를 적어 둔다.
+- ADR-033 은 design 이 끝날 때까지 **Proposed** — 방향 H1~H14 와 결정 전부를 적어 둔다.
 - design 전 조사 하나: 판정 함수(`plan_claims` · 게이트 · 상태 생성)가 파일 경로 없이 데이터만으로 부를 수 있는지 (§5).
 
 ## 10. 결정 (2026-11-20 소유자)

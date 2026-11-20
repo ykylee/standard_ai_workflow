@@ -27,6 +27,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-11-20-claude-workflow-hub-concept-006 2.0 요구 입력 — compact 직후 허브 확인 · 기록된 작업 f/u (H14)
 - TASK-2026-11-20-claude-workflow-hub-concept-005 2.0.0 로드맵 기획 — M-031~M-040
 - TASK-2026-11-20-claude-workflow-hub-concept-004 허브 프로젝트 등록 · 식별 — 등록 전 부트스트랩퍼 · git 주소 기반 식별
 - TASK-2026-11-20-claude-workflow-hub-concept-003 위키 허브 관리 검토 — kit 위키를 허브에서 관리할 수 있는지

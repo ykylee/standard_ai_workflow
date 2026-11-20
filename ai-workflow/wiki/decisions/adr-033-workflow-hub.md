@@ -15,7 +15,7 @@ r9_skip: true
 ## Status
 
 **Proposed** (2026-11-20, TASK-2026-11-20-claude-workflow-hub-concept-002, M-030/WBS-30.1). 위키 (§11, WBS-30.2) · 등록 · 식별 · 콜사인 기억 · MCP (§12~§14, WBS-30.3) 도 같은 날 결정.
-방향 H1~H13 과 결정 D1~D11 · E1~E6 · F1~F5 · G1~G3 · I1~I4 (concept 문서 `docs/planning/workflow-hub-review-2026-11.md` 의 권고안 전부, §10 · §15) 를 소유자가 정했다 (2026-11-20).
+방향 H1~H14 와 결정 D1~D11 · E1~E6 · F1~F5 · G1~G3 · I1~I4 (concept 문서 `docs/planning/workflow-hub-review-2026-11.md` 의 권고안 전부, §10 · §15) 를 소유자가 정했다 (2026-11-20).
 design (DB 스키마 · API · 클라이언트 · 렌더링) 이 끝나면 Accepted 로 올린다.
 
 ## Context
@@ -47,6 +47,7 @@ design (DB 스키마 · API · 클라이언트 · 렌더링) 이 끝나면 Accep
 | H11 | **세션 시작 때 항상 허브와 저장소의 최신 상태를 확인**하는 규칙을 표준 규칙 층(모든 진입 파일)에 넣는다 — 확인 항목은 concept §4.2.3 |
 | H12 | **2.0.0 준비** — 2.0 의 흐름은 허브 하나. 로컬 kit + git 흐름은 1.x 유지보수 줄 (D1 을 고침) |
 | H13 | **1.x 프로젝트는 처음 2.0.0 을 쓸 때 부트스트랩이 전환으로 이끈다** — 감지 · 전환 계획 · 들여오기 · git 표식 (concept §16.1) |
+| H14 | **compact 직후에도 허브를 확인하고 기록된 작업을 이어 간다** — 체크포인트는 허브 콜사인 공간, hook 이 있으면 선택 로컬 클라이언트, 없으면 지침 (concept §4.2.4) |
 
 ### 세부 결정 (D1~D11, concept §10)
 

@@ -20,6 +20,6 @@ concept(M-030, docs/planning/workflow-hub-review-2026-11.md) 의 H1~H13 · 결�
 
 ## WBS
 
-- **WBS-31.1** 요구 목록 — API · MCP 도구 · 부트스트랩 · 등록 · 콜사인 기억 · 지침 · 위키 · 로드맵 · 세션 시작 확인 · 오프라인 · 노출 · 1.x 전환 — 산출물: docs/planning/workflow-hub-requirements-2026-11.md
+- **WBS-31.1** 요구 목록 — API · MCP 도구 · 부트스트랩 · 등록 · 콜사인 기억 · 지침 · 위키 · 로드맵 · 세션 시작 확인 · 오프라인 · 노출 · 1.x 전환 · compact 직후 확인 (H14) — 산출물: docs/planning/workflow-hub-requirements-2026-11.md
 - **WBS-31.2** design 전 실측 — 판정 함수 데이터 입구 · 위키 검사 경로 인자화 범위 · 하네스별 원격 MCP 지원 — 산출물: requirements 문서 §실측
 - **WBS-31.3** PURPOSE 2.0 판 (G1 · G3 · §4 명제 = D9) · 1.x 유지보수 정책 (G4 deprecation) — 산출물: PURPOSE.md 개정안 · requirements 문서 §1.x

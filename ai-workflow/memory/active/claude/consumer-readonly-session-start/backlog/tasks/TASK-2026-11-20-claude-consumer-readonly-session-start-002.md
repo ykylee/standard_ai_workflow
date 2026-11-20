@@ -1,6 +1,6 @@
 ---
 id: TASK-2026-11-20-claude-consumer-readonly-session-start-002
-status: in_progress
+status: done
 created_at: 2026-11-20
 source_anchor: generic-task-2026-11-20-claude-consumer-readonly-session-start-002
 source_path: backlog/2026-11-20.md
@@ -12,7 +12,7 @@ wbs: M-007/WBS-7.4
 
 ## 📝 Description
 
-- Status: in_progress
+- Status: done
 - Priority: high
 - Request date: 2026-11-20
 - Owner:
@@ -42,7 +42,7 @@ wbs: M-007/WBS-7.4
 
 ## 🛠️ Implementation / Content
 
-- Progress: `2026-11-20 03:38` 커밋 · 전량 게이트
+- Progress: `2026-11-20 03:50` done — 게이트 · push 완료
 - Next session starting point:
 - Remaining risks:
 
@@ -51,4 +51,6 @@ wbs: M-007/WBS-7.4
 - Result: 작성 세션 측정: check_consumer_readonly_session_start 6/6 · 되주입 7건(seed · 합류 반영 · telemetry · 안내 warning · --local · 대소문자 · 진입점 생성) 각각 red · 실물: origin/main 임시 클론 2벌에서 수정 코드로 session-start — consumer 바뀐 파일 0 · 미선언은 telemetry events.jsonl 1 (실물 클론에서는 미선언도 합류 반영이 일어나지 않아 합류 경로는 fixture case 2 로만 측정) · 워크벤치 자동 기동 차단은 검사 환경이 자동 기동을 끄므로 미측정 · 검사 수 332→333 문서 2곳 반영
 - Result: verifier 1차 FAIL 2 · UNMEASURED 1 반영: 오류 경로 warnings 에도 읽기 전용 안내 · case 추가(조기 경로 진입점 · --archive-stale-branches · 워크벤치 자동 기동) · 중복 역할 재판정 줄 삭제. 재측정: 6/6, 되주입 11건(seed · 조기/끝 진입점 · archive 플래그 · reflect · 자동 기동 · telemetry · 오류/정상 안내 · --local · 대소문자) 각각 red, 복원 cmp 일치, 남은 서버 프로세스 0
 - Result: verifier 2차: 기준 1~3 PASS · 되주입 16곳 중 red 14 · SKIP 1(삭제된 줄) · green 1(recovery_hint) → case_1 에 recovery_hint 판정 추가, 되주입 red 확인. 기준 4 전량 게이트는 커밋 뒤
+- Result: verifier 2회 — 2차 기준 1~3 PASS(6/6 · 실물 클론 consumer diff 0 · 대조군 seed/server.log) · 되주입 16곳 red 14, 남은 green 1(recovery_hint) 은 case_1 판정 추가 후 red 확인. 기준 4: 전량 게이트 cb31e317 native · slash 333×2 rc 0 · 브랜치 push 완료
+- Verification: verifier 2회 — 2차 기준 1~3 PASS(6/6 · 실물 클론 consumer diff 0 · 대조군 seed/server.log) · 되주입 16곳 red 14, 남은 green 1(recovery_hint) 은 case_1 판정 추가 후 red 확인. 기준 4: 전량 게이트 cb31e317 native · slash 333×2 rc 0 · 브랜치 push 완료
 - Follow-up:

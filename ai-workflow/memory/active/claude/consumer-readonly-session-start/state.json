@@ -40,7 +40,8 @@
       "TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다"
     ],
     "planned_items": [
-      "TASK-2026-11-13-claude-remote-sync-check-234c32-005"
+      "TASK-2026-11-13-claude-remote-sync-check-234c32-005",
+      "TASK-2026-11-20-claude-consumer-readonly-session-start-003"
     ],
     "recent_done_items": [
       "TASK-2026-11-20-claude-consumer-readonly-session-start-002 — 소비자 클론(workflow.role=consumer)에서 session-start 가 저장소에 쓰지 않는다",
@@ -51,7 +52,7 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/claude/consumer-readonly-session-start/backlog/2026-11-20.md",
-    "task_count": 2,
+    "task_count": 3,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [

@@ -4,7 +4,7 @@
 - 범위: git log 에서 추출한 release 별 Added / Changed / Fixed 항목.
 - 대상 독자: maintainer, 릴리스 매니저, 외부 consumer
 - 상태: stable (자동 생성물)
-- 최종 수정일: 2026-11-17
+- 최종 수정일: 2026-11-20
 - 관련 문서: [`./releases/`](./releases/) (release note), [`../docs/RELEASE.md`](../docs/RELEASE.md) (릴리스 절차)
 
 All notable changes to this project will be documented in this file.
@@ -12,10 +12,11 @@ All notable changes to this project will be documented in this file.
 본 파일은 `tools/release_pipeline.py changelog-gen` 으로 자동 생성됩니다 (v0.7.14+).
 수동 편집은 다음 생성 시 덮어써진다 — 형식/metadata 변경은 생성기를 고칠 것.
 
-## [Unreleased] - 2026-11-17
+## [Unreleased] - 2026-11-20
 
 ### Added
 
+- feat(workflow): 호스트 역할 — 읽기 전용 소비자 클론은 pull · 환경 맞추기 · 버전 업데이트만, push 는 pre-push 가 막는다 (-001) (1fdcddc5)
 - feat(workbench): iPad 폼 제출 수리 · 진행 기록 상기 · 한 호스트 여러 워크벤치 (-003 · -004 · -005) (0c23165f)
 - feat(workbench): todo — 브랜치 할 일 · task 체크리스트를 워크벤치에서 보고 고친다 (main-016 · main-017) (78b66be9)
 - feat(workbench): 응답 도착 신호 + 작업 세션 hook 자동 반영 · 알림 (main-014) (4dba0962)
@@ -45,11 +46,16 @@ All notable changes to this project will be documented in this file.
 - feat(doctor): plugin_enabled 절 신설 — 설치됐는데 꺼진 플러그인을 발견으로 (09-28-main-017) (880f8327)
 - feat(doctor): 설치본 < 정본 버전을 발견으로 + RELEASE §2.8 채널 재적용 (TASK-2026-09-23-main-014) (22653225)
 - feat(context-budget): 이관 실행 + 이 저장소 게이트 red 활성 — 필독 195KB → 111KB (M-017/WBS-17.5) (8b7119de)
-- feat(handoff): wk rollover-handoff-notes — §5 누적형 절의 출구 (M-017/WBS-17.3) (0292d421)
-- ... (178 more)
+- ... (179 more)
 
 ### Changed
 
+- test(workbench): check_workbench_multi case 3 — 호스트의 실제 워크벤치가 쥔 해시 포트면 fixture 를 다시 만든다 (8786cc4d)
+- docs(workflow): 호스트 역할은 이 저장소 한정 — 소비자의 개선은 수정 · push 대신 GitHub Issue 로 (-001 보충) (289e2124)
+- chore(memory): 호스트 역할 가이드 task close (-001) — 게이트 332×2 · contributor 클론 push 통과 (4ad517e5)
+- chore(memory): 135차 세션 메모리 — 원격 동기화 · 재seed · push, seed roadmap_state 미갱신 결함 task 등록 (-002) (219a8460)
+- chore(memory): claude/remote-sync-check-234c32 네임스페이스 재seed — main@ca3f59ea 에서 이어받음 (2787e9e0)
+- chore(session): 134차 handoff 상태 정합 — 전량 게이트 통과 · push 완료 사실 반영 (ca3f59ea)
 - chore(memory): 133차 세션 메모리 — -003 · -005 close, -002 · -004 는 소유자 iPad todo 한 번 대기 (e4bc269c)
 - test(workbench): check_workbench_multi 보강 — TIME_WAIT 포트로 '다음 포트' 경로를 비켜 가던 blocker · 해시 분산 · 목록 파일 해제 (-005 verifier) (b58c0f28)
 - chore(entry): 진입점 절 해시 재채취 — 0c23165f (정본 §1 진행 기록 원칙) (1b94a470)
@@ -74,16 +80,11 @@ All notable changes to this project will be documented in this file.
 - chore(memory): M-028/WBS-28.1 주장 트리 계획 구현 1단계 종결 — task 11-13-003 done, handoff · state 갱신 (a4d9495c)
 - chore(entry): 진입점 템플릿 변경(f45c6da1) 의 절 해시 재채취 — check_entry_diet case 6 (9951d406)
 - docs(design): 주장 트리 계획 design 종결 (M-026) — ADR-031 accepted + core 스펙 → M-027 · M-028 개설 (36e6540c)
-- docs(planning): 계획·진척 워크벤치 requirements 종결 (M-025) — 실측 + R0~R12, 소유자 sign-off Q1 · Q2 (df602c4f)
-- chore(session): 11-04 세션 메모리 반영 — minimax-code 채널 재적용 완료(main-001) + MCP 도구 4종 output contract 결함 등록(main-002) (39a50a11)
-- docs(planning): 주장 트리 계획 requirements 종결 (M-023) — 실측 3건 + R0~R13, 소유자 sign-off Q1~Q7 → M-026 design 개설 (0a7da7b0)
-- docs(planning): 워크벤치 concept 정정 — 접속 위치 무가정 (W6 · W7) (179b3ea7)
-- chore(session): 123차 handoff — 두 수리 코드만 흡수 · 전량 게이트 green 반영 (63c2829c)
-- docs(planning): 계획·진척 워크벤치 concept 종결 (W1~W5) + 하네스 중립 지시로 M-022 안 B 정정 → M-025 개설 (01f82984)
-- ... (498 more)
+- ... (504 more)
 
 ### Fixed
 
+- fix(memory): 재사용된 브랜치의 재합류가 반영 없이 막히고 '이동했다' 로 보고되던 결함 — 아카이브 병합 · 실행 결과 보고 (main-001 · main-002 · main-003) (7df480f9)
 - fix(dashboard): drift 가드가 돌지 못하면 '0/0 pass' 로 그리던 결함 — 측정 실패로 (main-015) (8640b4c0)
 - fix(workbench): 글자가 박스를 넘던 결함 — 긴 글 · 좁은 폭 · 다른 글꼴에서도 박스 안에 (main-013) (c5cc35d0)
 - fix(dashboard): inline_guard=False 패널이 가드를 돌리지 않고 guard_cases 7 · pass 0 을 실측처럼 싣던 결함 (main-012) (b82944d8)
@@ -113,13 +114,19 @@ All notable changes to this project will be documented in this file.
 - fix(windows): task 파일 줄바꿈 CRLF→LF 뒤집힘 — 정본 writer EOL 보존으로 재발 차단 (826af874)
 - fix(windows): Windows 격차 52건 수리 완성 — cp949 인코딩·교차 플랫폼 락·POSIX 경로·검사 결함 + 121차 세션 메모리 갱신 (main-003) (712e9414)
 - fix(windows): 한글 Windows 프로필 — 자식 환경(home·UTF-8·PATH) 통일 · python3 하드코딩 제거 · 저장소 텍스트 LF 고정 (main-003 착수) (b5148946)
-- fix(gate): 게이트 러너가 Windows 에서 첫 검사 완료와 함께 죽는다 — _kill_process_group 가 POSIX 전용 os.getpgid 를 쓴다 (main-002) (46701fda)
-- ... (235 more)
+- ... (236 more)
+
+## [1.28.0] - 2026-11-20
+
+### Changed
+
+- release(v1.28.0): 발행 준비 — 호스트 역할(소비자 클론 push 차단) · 재사용 브랜치 재합류 수리 (minor) (256d36d0)
 
 ## [1.27.0] - 2026-11-17
 
 ### Changed
 
+- release(v1.27.0): 발행 완료 — 태그 push + GitHub Release(asset 5종) + §2.8 5채널 · task -006 close (fc814642)
 - release(v1.27.0): 발행 준비 — iPad 폼 제출 수리 · 진행 기록 상기 · 한 호스트 여러 워크벤치 (minor) (aa34ed8d)
 - chore(memory): v1.27.0 발행 task 등록 (-006) (fef0d7b5)
 

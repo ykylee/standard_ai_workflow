@@ -16,8 +16,8 @@ v1.27.0 이후 코드 4커밋(메모리 · 세션 커밋 제외)이다. 소유�
 
 ## 1. 릴리스 요약
 
-- 범위: `v1.27.0..` **4 commit** — feat 1 · fix 1 · docs 1 · test 1 (+ 메모리 · 세션 커밋 4 · 발행 준비 1).
-- 누적 smoke **332/332 PASS** (로컬 `--branch-context=all` = 332 × native/slash, 발행 준비 커밋에서 실행).
+- 범위: `v1.27.0..` **4 commit** — feat 1 · fix 1 · docs 1 · test 1 (+ 메모리 · 세션 커밋 5 — v1.27.0 발행 완료 `fc814642` 포함 · 발행 준비 1).
+- 누적 smoke **332/332 PASS** (로컬 `--branch-context=all` = 332 × native/slash, 태그 커밋 `8786cc4d` 에서 실행).
 - 검사 파일 수 332 → 332 (새 파일 없음 — 기존 검사에 case 추가: `check_pre_push_gate` 3 → 4, `check_branch_join_reflect` 7 → 10).
 
 ## 2. 소비자에게 보이는 변화
@@ -41,7 +41,7 @@ v1.27.0 이후 코드 4커밋(메모리 · 세션 커밋 제외)이다. 소유�
 
 ## 3. 검증
 
-- **전량 게이트** `--branch-context=all` — native 332/332 · slash 332/332 · rc 0. 발행 준비 커밋의 clean tree 에서 실행하고,
+- **전량 게이트** `--branch-context=all` — native 332/332 · slash 332/332 · rc 0. 태그 커밋 `8786cc4d` 의 clean tree 에서 실행하고(발행 준비 커밋 `256d36d0` 의 첫 게이트는 아래 간헐 red 로 기록 없음),
   결과는 게이트 증거 파일(`<git common dir>/gate_evidence/<sha>.json`)에 남는다.
 - **커밋 전** `--changed` 게이트 · **스모크** `check_self_application` 8/8 rc 0.
 - 호스트 역할: 되주입 3건(hook 경로의 판정 건너뛰기 · 대소문자 정규화 제거 · 역할 무시하고 항상 거절)이 모두 red — 작성 세션과 verifier 가 각각 쟀다.
@@ -66,3 +66,20 @@ v1.27.0 이후 코드 4커밋(메모리 · 세션 커밋 제외)이다. 소유�
 - **Windows 실측은 이번 판에도 없다** (M-028/WBS-28.3).
 - **case 수 선언 대조 축은 컨텍스트마다 83건이 미측정**이다(개수 선언 없음 79 · case 줄 없음 4, native · slash 합계 166) — 통과가 아니다.
 - **PyPI 업로드는 하지 않는다**(§1 각주 0 — 2026-08-14 소유자 최종 결정). 배포는 GitHub Releases 하나다.
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-11-20T01:33:26Z)_
+
+- total wiki pages: **99**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

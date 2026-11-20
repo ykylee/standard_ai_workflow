@@ -1,6 +1,6 @@
 ---
 id: TASK-2026-11-20-claude-remote-sync-check-234c32-001
-status: in_progress
+status: done
 created_at: 2026-11-20
 source_anchor: generic-task-2026-11-20-claude-remote-sync-check-234c32-001
 source_path: backlog/2026-11-20.md
@@ -12,7 +12,7 @@ wbs: M-007/WBS-7.4
 
 ## 📝 Description
 
-- Status: in_progress
+- Status: done
 - Priority: high
 - Request date: 2026-11-20
 - Owner:
@@ -46,11 +46,13 @@ wbs: M-007/WBS-7.4
 
 ## 🛠️ Implementation / Content
 
-- Progress: `2026-11-20 00:18` verifier 1~3 PASS · 4 미측정 — case 사각(미선언 · contributor 의 기록 없는 sha) 보강, 커밋 · 전량 게이트로
+- Progress: `2026-11-20 00:30` done — 게이트 · push 완료
 - Next session starting point:
 - Remaining risks:
 
 ## ✅ Outcome
 
-- Result:
-- Follow-up:
+- Result: docs/HOST_ROLES.md + CLAUDE.md · AGENTS.md 역할 확인 규칙 + gate_evidence.check_consumer_push + check_pre_push_gate case. 이 호스트 workflow.role=contributor 선언.
+- Verification: verifier 기준 1~3 PASS(되주입 3건 red · 역할×sha hook 실측) · 기준 4 전량 게이트 1fdcddc5 native · slash 332×2 rc 0 · Proof: workflow.role=contributor 인 이 클론에서 실제 push 통과(219a8460..1fdcddc5)
+- Follow-up: 소비자 클론에서 세션 시작 hook 이 생성물 날짜를 다시 써 트리가 더러워진다 — role=consumer 면 session-start 가 쓰지 않게 할지 소유자 결정 필요
+- Follow-up: 소비자 호스트의 첫 pull 은 옛 CLAUDE.md 로 시작한다 — 소유자가 한 번 '역할 먼저 확인' 을 지시하거나 workflow.role 을 직접 선언

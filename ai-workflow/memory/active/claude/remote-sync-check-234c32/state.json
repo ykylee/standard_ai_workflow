@@ -27,11 +27,10 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "claude/remote-sync-check-234c32 워크스페이스 — `main@ca3f59ea` 에서 이어받음 (2026-11-19). **135차 세션 (2026-11-19, Linux 호스트) — 원격 동기화 · 재seed · push, 코드 변경 없음.** 134차가 이 브랜치를 main 으로 합류·아카이브한 뒤라 `origin/main@ca3f59ea` 로 fast-forward(충돌 0) → 네임스페이스 재seed 커밋 `2787e9e0`(seed 가 `roadmap_state.json` 을 안 갱신해 손으로 refresh-state 합침) → 전량 게이트 native · slash 332×2 rc 0 → `origin/claude/remote-sync-check-234c32` push. 그 결함을 `…-234c32-002`(planned)로 등록. 모 브랜치 기준선: **134차 세션 (2026-11-19, macOS 호스트 Mac mini — 종전 맥과 다른 두 번째 맥) — 발행 없음, 정본 v1.27.0 + 미발행 수리 3건.** 이 호스트를 1.22.0 → 1.27.0 으로 올림(전역 `wk` uv tool · `.venv` editable · claude-code · codex · grok-build · minimax-code; antigravity 는 `agy` 부재) → doctor behind=[] · disabled=[]. `core.hooksPath=.githooks` 켬. 133차(worktree `claude/remote-sync-check-234c32`, v1.27.0 발행)의 기록이 재합류 결함으로 main 메모리에 못 들어와 있던 것을 수리와 함께 반영(완료 3 · 이월 2). 수리: main-001(session-start 가 아카이브 실패를 '이동했다' 로 보고) · main-002(`archived/<branch>/` 가 있으면 반영까지 건너뜀 → 파일 단위 병합, `superseded-<옛 날짜>.<이름>`) · main-003(`check_memory_index_cross_v0_15_7` case 5 대조군이 telemetry 누적량에 의존). 셋 다 verifier PASS. `run_all_checks --changed` green · smoke 8/8. **전량 게이트(`--branch-context=all`) 이 호스트 첫 실행 통과 — `7df480f9` 664 PASS · 실패 0, push 완료(`fc814642..7df480f9`).**",
+    "current_baseline": "claude/remote-sync-check-234c32 워크스페이스 — `main@ca3f59ea` 에서 이어받음 (2026-11-19). **135차 세션 (2026-11-19, Linux 호스트) — 원격 동기화 · 재seed · push, 코드 변경 없음.** 134차가 이 브랜치를 main 으로 합류·아카이브한 뒤라 `origin/main@ca3f59ea` 로 fast-forward(충돌 0) → 네임스페이스 재seed 커밋 `2787e9e0`(seed 가 `roadmap_state.json` 을 안 갱신해 손으로 refresh-state 합침) → 전량 게이트 native · slash 332×2 rc 0 → `origin/claude/remote-sync-check-234c32` push. 그 결함을 `…-234c32-002`(planned)로 등록. **이어서 (2026-11-20) 호스트 역할 가이드 close(`TASK-2026-11-20-…-001`, `1fdcddc5`, 게이트 332×2)** — `docs/HOST_ROLES.md` · 클론별 `git config workflow.role consumer|contributor` · 소비자 push 는 pre-push 가 막음 · 이 호스트는 contributor 선언. 모 브랜치 기준선: **134차 세션 (2026-11-19, macOS 호스트 Mac mini — 종전 맥과 다른 두 번째 맥) — 발행 없음, 정본 v1.27.0 + 미발행 수리 3건.** 이 호스트를 1.22.0 → 1.27.0 으로 올림(전역 `wk` uv tool · `.venv` editable · claude-code · codex · grok-build · minimax-code; antigravity 는 `agy` 부재) → doctor behind=[] · disabled=[]. `core.hooksPath=.githooks` 켬. 133차(worktree `claude/remote-sync-check-234c32`, v1.27.0 발행)의 기록이 재합류 결함으로 main 메모리에 못 들어와 있던 것을 수리와 함께 반영(완료 3 · 이월 2). 수리: main-001(session-start 가 아카이브 실패를 '이동했다' 로 보고) · main-002(`archived/<branch>/` 가 있으면 반영까지 건너뜀 → 파일 단위 병합, `superseded-<옛 날짜>.<이름>`) · main-003(`check_memory_index_cross_v0_15_7` case 5 대조군이 telemetry 누적량에 의존). 셋 다 verifier PASS. `run_all_checks --changed` green · smoke 8/8. **전량 게이트(`--branch-context=all`) 이 호스트 첫 실행 통과 — `7df480f9` 664 PASS · 실패 0, push 완료(`fc814642..7df480f9`).**",
     "current_axis": "**로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · ~~[TASK-2026-08-13-main-004] mypy flake 관찰~~ ✅ (66차 close — 33/33 표본, mypy 실패 0).",
-    "current_focus": "TASK-2026-11-20-claude-remote-sync-check-234c32-001 호스트 역할 가이드 — 읽기 전용 소비자는 pull · 환경 맞추기 · 버전 업데이트만, push 는 hook 이 막는다",
+    "current_focus": "TASK-2026-10-02-main-006 Windows 로캘(cp949)에서 wk 가 UnicodeEncodeError 로 죽는다 — stdout 과 기본 인코딩 I/O 를 UTF-8 로 고정",
     "in_progress_items": [
-      "TASK-2026-11-20-claude-remote-sync-check-234c32-001 호스트 역할 가이드 — 읽기 전용 소비자는 pull · 환경 맞추기 · 버전 업데이트만, push 는 hook 이 막는다",
       "TASK-2026-10-02-main-006 Windows 로캘(cp949)에서 wk 가 UnicodeEncodeError 로 죽는다 — stdout 과 기본 인코딩 I/O 를 UTF-8 로 고정",
       "TASK-2026-10-02-main-007 Windows V3 백신이 wk.exe 를 평판 기반으로 차단한다 — pip 생성 console-script 런처 대체 진입 경로",
       "TASK-2026-11-17-claude-remote-sync-check-234c32-002 워크벤치 응답 · todo 변경이 Claude Code 컨텍스트에 실제로 주입되는지 실측 (main-014 미측정분)",
@@ -45,6 +44,7 @@
       "TASK-2026-11-19-claude-remote-sync-check-234c32-002"
     ],
     "recent_done_items": [
+      "TASK-2026-11-20-claude-remote-sync-check-234c32-001 — 호스트 역할 가이드 — 읽기 전용 소비자는 pull · 환경 맞추기 · 버전 업데이트만, push 는 hook 이 막는다",
       "TASK-2026-11-19-claude-remote-sync-check-234c32-001 — 브랜치 네임스페이스 자동 seed — `main` 에서 이어받음"
     ],
     "unknown_status_items": [],
@@ -53,11 +53,11 @@
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/claude/remote-sync-check-234c32/backlog/2026-11-20.md",
     "task_count": 1,
-    "in_progress_items": [
-      "TASK-2026-11-20-claude-remote-sync-check-234c32-001 — 호스트 역할 가이드 — 읽기 전용 소비자는 pull · 환경 맞추기 · 버전 업데이트만, push 는 hook 이 막는다"
-    ],
+    "in_progress_items": [],
     "blocked_items": [],
-    "done_items": []
+    "done_items": [
+      "TASK-2026-11-20-claude-remote-sync-check-234c32-001 — 호스트 역할 가이드 — 읽기 전용 소비자는 pull · 환경 맞추기 · 버전 업데이트만, push 는 hook 이 막는다"
+    ]
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",

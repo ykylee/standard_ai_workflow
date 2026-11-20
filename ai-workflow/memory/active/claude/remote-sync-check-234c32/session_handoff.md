@@ -4,19 +4,18 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-11-19
+- 최종 수정일: 2026-11-20
 - 관련 문서: [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: claude/remote-sync-check-234c32 워크스페이스 — `main@ca3f59ea` 에서 이어받음 (2026-11-19). **135차 세션 (2026-11-19, Linux 호스트) — 원격 동기화 · 재seed · push, 코드 변경 없음.** 134차가 이 브랜치를 main 으로 합류·아카이브한 뒤라 `origin/main@ca3f59ea` 로 fast-forward(충돌 0) → 네임스페이스 재seed 커밋 `2787e9e0`(seed 가 `roadmap_state.json` 을 안 갱신해 손으로 refresh-state 합침) → 전량 게이트 native · slash 332×2 rc 0 → `origin/claude/remote-sync-check-234c32` push. 그 결함을 `…-234c32-002`(planned)로 등록. 모 브랜치 기준선: **134차 세션 (2026-11-19, macOS 호스트 Mac mini — 종전 맥과 다른 두 번째 맥) — 발행 없음, 정본 v1.27.0 + 미발행 수리 3건.** 이 호스트를 1.22.0 → 1.27.0 으로 올림(전역 `wk` uv tool · `.venv` editable · claude-code · codex · grok-build · minimax-code; antigravity 는 `agy` 부재) → doctor behind=[] · disabled=[]. `core.hooksPath=.githooks` 켬. 133차(worktree `claude/remote-sync-check-234c32`, v1.27.0 발행)의 기록이 재합류 결함으로 main 메모리에 못 들어와 있던 것을 수리와 함께 반영(완료 3 · 이월 2). 수리: main-001(session-start 가 아카이브 실패를 '이동했다' 로 보고) · main-002(`archived/<branch>/` 가 있으면 반영까지 건너뜀 → 파일 단위 병합, `superseded-<옛 날짜>.<이름>`) · main-003(`check_memory_index_cross_v0_15_7` case 5 대조군이 telemetry 누적량에 의존). 셋 다 verifier PASS. `run_all_checks --changed` green · smoke 8/8. **전량 게이트(`--branch-context=all`) 이 호스트 첫 실행 통과 — `7df480f9` 664 PASS · 실패 0, push 완료(`fc814642..7df480f9`).**
+- 현재 기준선: claude/remote-sync-check-234c32 워크스페이스 — `main@ca3f59ea` 에서 이어받음 (2026-11-19). **135차 세션 (2026-11-19, Linux 호스트) — 원격 동기화 · 재seed · push, 코드 변경 없음.** 134차가 이 브랜치를 main 으로 합류·아카이브한 뒤라 `origin/main@ca3f59ea` 로 fast-forward(충돌 0) → 네임스페이스 재seed 커밋 `2787e9e0`(seed 가 `roadmap_state.json` 을 안 갱신해 손으로 refresh-state 합침) → 전량 게이트 native · slash 332×2 rc 0 → `origin/claude/remote-sync-check-234c32` push. 그 결함을 `…-234c32-002`(planned)로 등록. **이어서 (2026-11-20) 호스트 역할 가이드 close(`TASK-2026-11-20-…-001`, `1fdcddc5`, 게이트 332×2)** — `docs/HOST_ROLES.md` · 클론별 `git config workflow.role consumer|contributor` · 소비자 push 는 pre-push 가 막음 · 이 호스트는 contributor 선언. 모 브랜치 기준선: **134차 세션 (2026-11-19, macOS 호스트 Mac mini — 종전 맥과 다른 두 번째 맥) — 발행 없음, 정본 v1.27.0 + 미발행 수리 3건.** 이 호스트를 1.22.0 → 1.27.0 으로 올림(전역 `wk` uv tool · `.venv` editable · claude-code · codex · grok-build · minimax-code; antigravity 는 `agy` 부재) → doctor behind=[] · disabled=[]. `core.hooksPath=.githooks` 켬. 133차(worktree `claude/remote-sync-check-234c32`, v1.27.0 발행)의 기록이 재합류 결함으로 main 메모리에 못 들어와 있던 것을 수리와 함께 반영(완료 3 · 이월 2). 수리: main-001(session-start 가 아카이브 실패를 '이동했다' 로 보고) · main-002(`archived/<branch>/` 가 있으면 반영까지 건너뜀 → 파일 단위 병합, `superseded-<옛 날짜>.<이름>`) · main-003(`check_memory_index_cross_v0_15_7` case 5 대조군이 telemetry 누적량에 의존). 셋 다 verifier PASS. `run_all_checks --changed` green · smoke 8/8. **전량 게이트(`--branch-context=all`) 이 호스트 첫 실행 통과 — `7df480f9` 664 PASS · 실패 0, push 완료(`fc814642..7df480f9`).**
 - 현재 주 작업 축: **로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · ~~[TASK-2026-08-13-main-004] mypy flake 관찰~~ ✅ (66차 close — 33/33 표본, mypy 실패 0).
 - 원류: `main@ca3f59ea` — [`active/main/session_handoff.md`](../../main/session_handoff.md) 의 기준선 · 주 작업 축 · 열린 task 6건 · §5 를 옮겨 적었다 (모 브랜치에는 쓰지 않았다). 옮겨 온 task 는 frontmatter `inherited_from` 로 원류를 갖고, 합류 아카이브 때 고친 것만 원본에 되돌려 적힌다.
 
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
-- TASK-2026-11-20-claude-remote-sync-check-234c32-001 호스트 역할 가이드 — 읽기 전용 소비자는 pull · 환경 맞추기 · 버전 업데이트만, push 는 hook 이 막는다
 - TASK-2026-10-02-main-006 Windows 로캘(cp949)에서 wk 가 UnicodeEncodeError 로 죽는다 — stdout 과 기본 인코딩 I/O 를 UTF-8 로 고정
 - TASK-2026-10-02-main-007 Windows V3 백신이 wk.exe 를 평판 기반으로 차단한다 — pip 생성 console-script 런처 대체 진입 경로
 - TASK-2026-11-17-claude-remote-sync-check-234c32-002 워크벤치 응답 · todo 변경이 Claude Code 컨텍스트에 실제로 주입되는지 실측 (main-014 미측정분)
@@ -28,9 +27,11 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-11-20-claude-remote-sync-check-234c32-001 호스트 역할 가이드 — 읽기 전용 소비자는 pull · 환경 맞추기 · 버전 업데이트만, push 는 hook 이 막는다
 - TASK-2026-11-19-claude-remote-sync-check-234c32-001 브랜치 네임스페이스 자동 seed — `main` 에서 이어받음
 ## 5. 다음 세션 시작 포인트
 
+- (135차 후속, 2026-11-20) **호스트 역할 도입** — 다른 호스트는 다음 pull 뒤 `git config --get workflow.role` 이 비어 있으면 소유자에게 묻고 선언한다(소비자는 `docs/HOST_ROLES.md` §3 만). 소비자 클론의 첫 pull 은 옛 CLAUDE.md 로 시작하니 소유자가 한 번 지시해야 한다. 열린 결정: 소비자 클론에서 세션 시작 hook 이 생성물 날짜를 다시 써 트리가 더러워지는 것 — `session-start` 가 role=consumer 면 쓰지 않게 할지.
 - (135차, 2026-11-19, Linux) **다음 일**: ①**`TASK-2026-11-19-claude-remote-sync-check-234c32-002`** — 자동 seed 가 `roadmap_state.json` 을 재생성하지 않아 seed 커밋 뒤 게이트 `check_roadmap_state_generated` · `check_state_json_generated` red(완료 기준 3개 등록됨). ②관련 관찰(미등록): 합류·아카이브 직후 seed 전 worktree 에선 `check_branch_context_matrix` 가 native 에서도 `release_pre_check` 7b SKIP 으로 13/13 → red — 브랜치 state.json 부재를 환경 전제로 둔 검사. ③이월 `…-234c32-002` · `-004` 는 소유자 iPad todo 한 번 대기 그대로.
 - (`main@ca3f59ea` handoff §5 에서 이어받음 — 아래 29줄은 모 브랜치의 다음 시작 포인트다)
 - (134차, 2026-11-19, Mac mini) **다음 일**: ①~~push 전 전량 게이트~~ ✅ 이 맥에서 통과 · push 완료(`7df480f9`) ②Claude · MiniMax 재시작 뒤 `doctor --json` 의 `runtime_load` 확인(설치보다 먼저 뜬 pid 2개) ③main-002 후속 미수리 둘 — 병합 중간 실패 뒤 재실행 시 §5 합류 줄 · 합류 기록 중복, 브랜치 메모리 안 심링크가 매 시작 errors 반복(둘 다 소실 0) ④이월된 `…-234c32-002` · `-004` 는 소유자 iPad 실측 대기 그대로.

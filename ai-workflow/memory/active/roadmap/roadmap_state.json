@@ -1141,7 +1141,8 @@
           "linked_task_ids": [
             "TASK-2026-11-20-claude-workflow-hub-concept-006",
             "TASK-2026-11-20-claude-workflow-hub-concept-008",
-            "TASK-2026-11-20-claude-workflow-hub-concept-009"
+            "TASK-2026-11-20-claude-workflow-hub-concept-009",
+            "TASK-2026-11-20-claude-workflow-hub-concept-011"
           ],
           "total_leaves": 1,
           "done_leaves": 1,

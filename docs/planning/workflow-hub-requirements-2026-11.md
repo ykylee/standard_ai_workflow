@@ -3,7 +3,7 @@
 - 문서 목적: 2.0.0 워크플로우 허브의 concept 방향(H1~H14)과 소유자 결정(D1~D11 · E1~E6 · F1~F5 · G1~G3 · I1~I4)을 **판정할 수 있는 요구(R 번호)**로 옮긴다. design(DB 스키마 · API 형식 · 도구 이름 · 화면)이 이 문서를 입력으로 받는다 (TASK-2026-11-20-claude-workflow-hub-concept-008, M-031/WBS-31.1).
 - 범위: 허브 서버 · 허브 MCP 도구 · 부트스트랩과 등록 · 콜사인과 작업 기억 · task와 판정 · handoff와 상태 요약 · 공유 지침 · 위키 · 로드맵 · 세션 시작 확인 · compact 직후 확인 · 오프라인 · 노출 · git 내보내기 · 1.x 전환. 방향과 결정은 [concept](./workflow-hub-review-2026-11.md)이 정본이라 **여기서 다시 정하지 않는다**. design 전 실측(WBS-31.2)과 PURPOSE 2.0판 · 1.x 유지보수 정책(WBS-31.3)은 이 문서에 자리만 둔다 (§16 · §17).
 - 대상 독자: 소유자 (sign-off), design 단계 작성자
-- 상태: **draft (2026-11-20)** — WBS-31.1 완료. 소유자 결정 Q1~Q5 반영 (§20 · §24 — Q4 는 arcturus 과제 대시보드 방식). Q6 은 WBS-31.3, 실측(§16)은 WBS-31.2 가 채운다
+- 상태: **draft (2026-11-20)** — WBS-31.1 · 31.2 완료. 소유자 결정 Q1~Q5 반영 (§20 · §24 — Q4 는 arcturus 과제 대시보드 방식). 실측 S1~S3 (§16). 열림: Q6 (WBS-31.3) · Q7 (토큰 참조를 못 하는 하네스)
 - 최종 수정일: 2026-11-20
 - 관련 문서: [`workflow-hub-review-2026-11.md`](./workflow-hub-review-2026-11.md) (concept — 아래에서 "concept §n" 으로 부른다), [`M-031`](../../ai-workflow/memory/active/roadmap/M-031-workflow-hub-requirements.md), [`ADR-033`](../../ai-workflow/wiki/decisions/adr-033-workflow-hub.md) (Proposed), [`plan-workbench-requirements-2026-11.md`](./plan-workbench-requirements-2026-11.md) (받은편지함 · 노출의 선례), arcturus-port `portal/` (`8d24fcd7` — 화면 인증 Q4 의 선례: `backend/internal/api/api.go` · `backend/internal/store/callsign.go` · `site/src/pages/tasks/index.astro` · `deploy/homelab/Caddyfile`), [`claim_plan_spec.md`](../../workflow-source/core/claim_plan_spec.md), [`compact_relay_spec.md`](../../workflow-source/core/compact_relay_spec.md), [`multi_workspace_orchestration.md`](../../workflow-source/core/multi_workspace_orchestration.md)
 
@@ -72,7 +72,7 @@
   [검증] 토큰 없이 도구 목록 = 부트스트랩 묶음, task 도구 호출 → 거절.
 - **R2.4 쓰기 지시 + 확인** — 로컬 파일이 필요한 도구(진입 파일 · `.gitignore` · `.workflow-hub/env`)는 파일을 직접 쓰지 않고 **쓰기 지시**(경로 · 내용 · sha256)를 돌려준다. 확인 도구는 에이전트가 보낸 실제 파일 해시를 지시와 대조하고, 다르면 '미확인' 으로 보고한다 — 확인을 거치지 않은 셋업은 허브가 완료로 적지 않는다 (I1).
   [검증] 지시대로 쓴 경우 확인 통과 · 한 바이트 바꾼 경우 '미확인' · 확인 안 부른 경우 셋업 상태 '미완료'.
-- **R2.5 토큰 전달** — 하네스 MCP 설정에는 `${WORKFLOW_HUB_TOKEN}` 꼴의 **환경 변수 참조만** 쓴다. 값은 `.workflow-hub/env` 에 둔다 (I3). 허브가 내주는 하네스별 설정 조각에 토큰 값이 들어 있으면 안 된다.
+- **R2.5 토큰 전달** — 하네스 MCP 설정에는 `${WORKFLOW_HUB_TOKEN}` 꼴의 **환경 변수 참조만** 쓴다 (하네스마다 칸이 다르다 — Codex 는 `bearer_token_env_var`, §16.3. 참조를 못 하는 하네스는 Q7). 값은 `.workflow-hub/env` 에 둔다 (I3). 허브가 내주는 하네스별 설정 조각에 토큰 값이 들어 있으면 안 된다.
   [검증] 안내 페이지 · 도구가 내는 설정 조각에 토큰 문자열 0.
 - **R2.6 안내 페이지** — 허브 주소 `/` 는 하네스별 한 줄 등록 명령을 보인다 (I4). 토큰을 보이지 않는다.
   [검증] 페이지에 지원 하네스마다 명령 한 줄 · 토큰 0.
@@ -126,7 +126,8 @@
 - **R5.4 상태 하나** — `planned` · `in_progress` · `blocked` · `done` 중 정확히 하나 (1.x 규칙).
   [검증] 다른 값 → 거절.
 - **R5.5 게이트** — 계획 린트 · 결정 상태 · done 게이트(검증 기록 필수 · 열린 결정이 있으면 닫지 않음 · 대기 중 결정 응답)는 1.x 와 같은 규칙 · 같은 거절 코드 (R0.7).
-  [검증] 1.x 의 게이트 fixture 를 허브 경로로 돌려 같은 판정 · 같은 `error_code`.
+  허브에는 작업 트리가 없어 L5 (git HEAD 줄 수) 가 조용히 빠진다 (§16.1) — 줄 수를 공급하지 못하면 그 규칙은 '미측정' 으로 보고한다. 응답은 `has_error_rules` → `qualify` → `compute_states` 순서로만 반영한다.
+  [검증] 1.x 의 게이트 fixture 를 허브 경로로 돌려 같은 판정 · 같은 `error_code`. L5 를 공급하지 않은 경우 결과에 '미측정' 표식.
 - **R5.6 WBS 게이트** — task 는 WBS leaf 또는 `exempt` + 사유를 단다. 로드맵이 허브에 있으므로 판정도 허브 로드맵으로 (D8).
   [검증] 없는 leaf → 거절 · `exempt` 사유 없음 → 거절.
 - **R5.7 진행 기록** — 단계마다 진행 한 줄을 남길 수 있고 허브가 시각을 붙인다 (1.x `--progress-note`). 화면 '지금 하는 일' 이 이것이다.
@@ -175,7 +176,8 @@
 - **R8.2 ingest = 묶음 쓰기 하나** — 여러 페이지를 한 번에 쓰는 묶음 하나가 ingest 하나이고, `log` 항목은 허브가 만든다. 페이지 단위 `version` 409 (E4 · concept §11.3).
   [검증] 묶음 안 한 페이지 version 충돌 → 묶음 전체 거절 · 부분 반영 0.
 - **R8.3 lint** — 있는 검사(V-1 위치 · V-4 index 구조)는 **경로를 인자로 받게 고쳐** 허브가 펼친 임시 디렉터리에서 1.x 와 같은 함수로 돌린다. 없는 lint (모순 · 스테일 · 깨진 backlink)는 허브에서 새로 짠다 (E2). 인자화 범위는 §16 실측 S2 가 정한다.
-  [검증] 같은 위키를 저장소 뿌리 · 펼친 디렉터리에서 판정 → 같은 결과.
+  저장소 배치 규칙(V-1 의 금지 위치)과 저장소 · git 에 묶인 점수(operational · trend)는 허브 lint 에서 뺀다. freshness 는 소스 시각을 못 받으면 '미측정' 이고 측정 대상 수를 결과에 싣는다 (§16.2 — 지금 코드는 대상이 34 → 1 로 줄며 점수가 오른다).
+  [검증] 같은 위키를 저장소 뿌리 · 펼친 디렉터리에서 판정 → 같은 결과. 소스 시각 없이 freshness → '미측정' · 대상 수 0 표시.
 - **R8.4 저장소 참조** — 페이지 출처에 저장소 키 + 커밋 sha 를 싣는다. 프로젝트가 켜면 허브가 git 원격을 **읽기 전용**으로 읽어 링크 · 신선도를 잰다. 못 읽으면 결과를 '통과' 가 아니라 **'미측정'** 으로 보인다 (E3).
   [검증] 원격을 끈 프로젝트 → 링크 · 신선도 '미측정' (통과 0건).
 - **R8.5 읽기 도구** — kit 없는 에이전트가 위키를 찾고 읽는 도구(검색 · 보기)를 낸다 (concept §11.3).
@@ -244,15 +246,78 @@
 - **R13.5 크기 상한** — 요청 본문 상한을 둔다 (기본 256KiB, 워크벤치와 같음). 위키 묶음 쓰기는 별도 상한 (design).
   [검증] 상한 + 1 바이트 → 413.
 
-## 16. design 전 실측 (WBS-31.2) — 자리
+## 16. design 전 실측 (WBS-31.2, 2026-11-20, Linux 호스트, kit 1.29.0)
 
-이 절은 WBS-31.2 가 채운다. 무엇을 재는지와 판정만 먼저 적는다.
+실측 스크립트 · 탐침 서버 · 로그는 세션 scratchpad 에만 있고 **남기지 않는다** — 여기에는 절차와 결과만 적는다. 같은 측정은 design 뒤 각 R 의 [검증] 으로 저장소에 고정된다.
 
-| # | 재는 것 | 판정 | 결과가 바꾸는 요구 |
-|---|---|---|---|
-| S1 | 판정 함수(`plan_claims` · done 게이트 · 결정 상태 · 상태 생성 · 로드맵 진척)를 **파일 경로 없이 데이터만으로** 부를 수 있는가 — 함수별로 입력이 경로인지 데이터인지 | 함수별 '그대로 / 얇은 입구 추가 / 리팩터 필요' | R0.7 · R5.5 · R6.3 · R9.1 |
-| S2 | `check_wiki_location` · `check_wiki_index_structure` · `score_wiki_*` · `bidir_link` 를 저장소 뿌리 대신 **펼친 임시 디렉터리**로 돌렸을 때 같은 판정인가 | 함수별 '같음 / 경로 고정 지점 n곳' | R8.3 |
-| S3 | 하네스별 **원격 MCP(HTTP)** 지원 — 등록 방법 · 헤더 인증(환경 변수 참조) · 도구 목록 표시 | 하네스별 '실측 지원 / 문서 근거 / 미지원' (미실측은 미실측으로) | R2.1 · R2.5 · R2.6 · R7.2 |
+### 16.1 S1 — 판정 함수를 데이터만으로 부를 수 있는가
+
+방법: 함수별로 입력 · I/O 위치를 읽고, '그대로' · '얇은 입구' 판정은 메모리 데이터로 직접 불러 확인했다 (경로 앞 `wk/` = `workflow-source/workflow_kit/`).
+
+| # | 진입 (file:line) | 입력 | I/O 위치 | 판정 |
+|---|---|---|---|---|
+| 1 | 계획 파싱 · 린트 · 결정 상태 — `parse_plan` `wk/common/plan_claims.py:340` · `lint_plan`:524 · `has_error_rules`:656 · `compute_states`:724 · `open_decision_ids`:774 | 줄 목록 · `Plan` · 응답 | 없음 (L5 만 `file_line_count` 콜백) | **그대로** — 실측: 메모리 줄 → 주장 2 · 결정 1, 없는 주장을 가리키는 결정 → `has_error_rules=True` |
+| 2a | 응답 파싱 · 자격 — `parse_response` `wk/common/plan_responses.py:107` · `qualify`:213 · `render_response`:602 | bytes · `Plan` | 없음 | **그대로** — 실측: render → parse → qualify `eligible=True` → `compute_states` 로 열린 결정 0 |
+| 2b | `judge` :536 · `qualified_archive`:544 · `inbox_census`:341 | 경로 · 디렉터리 | 파일 읽기 · 디렉터리 순회 | **얇은 입구** — `judge` 는 읽기 + `qualify` 두 줄 |
+| 3a | 계획 · 결정 · done 게이트 — `enforce_plan_contract` `wk/tools/backlog_update.py:322` | 줄 목록 + `workspace_root` · `branch_dir` | `_head_line_counter`:285 가 `git show HEAD:<path>` (L5), 받은편지함 · 보관 FS | **얇은 입구** — 실측: done 요청 → `open_decisions` 거절, 결정 답 주입 → 통과. 응답 목록 · 줄 수 콜백 · 대기 수를 인자로 바꾸면 된다 |
+| 3b | done 은 검증 기록 필수 — `determine_conservative_task_status` `wk/common/planning.py:30` | 문자열 | 없음 | **그대로** — 실측 `('done', None)` → in_progress |
+| 3c | WBS 게이트 — `evaluate_wbs_gate` `wk/common/state/roadmap.py:690` | `workspace_root` | 함수 안에서 로드맵 존재 · draft · 로드 | **얇은 입구** — 판정부(:723~772, SDLC 순서 · `parallel_allowed`)는 `Roadmap` 객체만 쓴다 (미실측) |
+| 4a | 상태 생성 — `build_workflow_state_payload` `wk/common/state/builder.py:313` · `_aggregate_from_appendonly_layout`:120 | 경로 8개 · 디렉터리 3개 | 분류 로직 사이에 glob · read | **리팩터** — 파일별 분류 블록은 순수 정규식이라 `(text, stem)` 단위로 뗄 수 있다 |
+| 4b | handoff 파서 — `HandoffParser.parse` `wk/common/project_docs.py:253` | 경로 | `markdown_targets(self.path)`:266 가 파일을 다시 읽음 · `next_documents` 는 `path.parent` 기준 | **리팩터** — 실측: 줄을 메모리로 넣어도 `FileNotFoundError` |
+| 5a | 로드맵 파싱 — `parse_milestone_text` `wk/common/state/roadmap.py:184` · `parse_index_text`:279 | 텍스트 | 없음 | **그대로** (실측) |
+| 5b | 진척 계산 — `derive_state` :602 | `Roadmap` + 연결 + `workspace_root` | 산출물 `.exists()`:632 · 시계:679 | **얇은 입구** — 실측: 메모리 로드맵 → `M-001 done 1/1`, `generated_at` 은 오늘 |
+| 5c | 입력 수집 — `load_roadmap`:311 · `collect_task_wbs_links`:444 · `build_roadmap_state`:775 | `workspace_root` | 저장소 배치(`active/**/backlog/tasks`) · 브랜치 상속 | **리팩터** (입력 층만 — 허브는 이 층을 DB 조회로 대신한다) |
+
+결론 — R0.7 은 지킬 수 있다. 판정 **핵심**은 모두 '그대로' 또는 '얇은 입구'이고, '리팩터' 는 입력 수집 층(상태 생성 · handoff 파서 · 로드맵 수집)뿐이다. design 이 지켜야 할 결합 다섯:
+
+1. **자격 판정과 상태 계산이 갈라져 있다** — `compute_states` 는 받은 응답의 자격을 다시 보지 않는다. 허브는 `has_error_rules` → `qualify` → `compute_states` 순서를 강제해야 한다 (지금은 FS 의 `qualified_archive` 가 걸러 준다).
+2. **L5 린트가 git HEAD 에 묶여 있다** — 작업 트리가 없는 허브에서 L5 는 **조용히 빠진다**. 줄 수 콜백을 주거나 '미측정' 으로 표시한다 (R5.5 에 더함).
+3. **시계** — `derive_state` 의 `generated_at` · 진행 기록 시각 · 요청 날짜. 같은 입력이 날짜마다 다른 바이트를 낸다 → 시각은 인자로.
+4. **WBS 게이트 함수 하나가 확인 · 로드 · 판정을 다 한다** — 판정부를 떼고 기존 함수는 그 위의 래퍼로 남겨 정본을 하나로 (규약 단일 출처).
+5. **handoff 파서의 경로 의존** — `next_documents` 가 파일 위치 기준 상대 경로다. 허브의 handoff 는 파일이 아니므로 이 칸의 뜻을 design 에서 다시 정한다.
+
+### 16.2 S2 — 위키 검사를 펼친 임시 디렉터리에서
+
+방법: `ai-workflow/wiki/` (100 페이지) 와 memory_index (30 entry) 를 임시 디렉터리에 저장소 배치로 복사(135 파일, `diff -r` 동일)하고, 원본과 사본에 같은 드라이버를 돌려 결과를 비교했다. 경로가 상수인 대상은 드라이버에서 상수를 바꿔 끼웠다. **바꿔 끼운 것이 먹혔는지** 사본에만 결함 3개(index 가 가리키는 페이지 삭제 · 금지 위치 `docs/wiki/a.md` · L2 stub 삭제)를 넣어 확인했다 — 원본 green 그대로, 사본만 바뀜.
+
+| 대상 | 경로 고정 지점 | 저장소 밖 의존 | 실측 | 판정 |
+|---|---|---|---|---|
+| V-1 `check_wiki_location.py` | :10 `REPO_ROOT`, :13~14 위키 · index, :19~22 금지 위치 4곳 | 없음 — 금지 위치 규칙은 저장소 배치 규칙이라 허브에서는 뜻이 없다 | 같음 · 결함 사본 FAIL | 인자화 필요 (3곳) — 허브는 정위치 확인만 |
+| V-4 `check_wiki_index_structure.py` | `main` :119~121, :213 · `_validate(lines, wiki_root)` 는 이미 인자 | 없음 | 같음 (83 항목) · 결함 사본 FAIL | 인자화 필요 (`main` 3곳), `_validate` 재사용 |
+| lint `check_wiki_lint.py` | :268, 위 두 모듈의 상수를 따름 | 없음 | 같음 | 위 둘을 고치면 추가 0 |
+| 점수 `wk/tools/score_wiki_maintainability.py` (`score_coverage` · `score_freshness` · `score_discoverability` · `score_cross_ref` · `score_lifecycle` · `score_operational`) | :41~44 · :139/145/151/157 · :395 · :592 (대시보드를 위키 안에 씀) | freshness = `last_ingested_from` 소스 파일 mtime · L2 선언 = kit 코드(`L2_STUBS`) · lifecycle = `datetime.now()` · operational = 저장소 검사 11개 실행 | 위키 경로만 바꾸면 5개 같음. **소스 경로까지 옮기면 freshness 만 다름 — 대상 34 → 1 로 줄며 점수 4.85 → 5.0 (조용히 좁아지며 오름)**. operational 미실측 | 인자화 필요 (6곳) + 입력 공급 |
+| `score_wiki_trend` | :38~40 (패키지 안에 이력 씀), :66~70 `git log`, :93~95 · :332~334 git | git 이력 | 미실측 | 허브 lint 대상 아님 |
+| `wk/common/state/bidir_link.py` | 하위 경로 상수만, `workspace_root` **인자 있음** | memory_index entries | 같음 (위키 100 · entry 30 · 비대칭 2 · sync dry-run 2) | 그대로 |
+
+결론 — E2 (있는 검사 재사용) 는 성립한다. 요구에 더할 것:
+
+- 허브가 위키 디렉터리 밖에서 공급해야 할 입력: freshness 의 소스 시각(E3 의 원격 읽기), L2 선언 목록, memory_index, 기준 시각.
+- **freshness 는 소스를 못 받으면 '미측정' 이어야 하고, 측정 대상 수를 결과에 실어야 한다** — 지금 코드는 대상이 줄어도 점수가 오른다 (R8.4 의 '미측정' 이 실제로 필요한 자리. 1.x 결함 후보로도 남긴다).
+- operational · trend 는 저장소 검사 · git 에 묶여 허브 lint 에서 뺀다.
+- 부수 발견 (1.x 결함 후보): `bidir_link.py` 의 위키 쪽 비대칭 루프가 `entry_id_stem` 을 읽는데, 이 변수는 위키 언급이 있는 entry 에서만 만들어진다 — 정렬상 첫 entry 에 언급이 없으면 `UnboundLocalError`, 아니면 앞 entry 의 id 가 남는다 (사본에서 첫 entry 를 지워 재현). 이 저장소는 위키 → memory 링크가 0건이라 드러나지 않았다.
+
+### 16.3 S3 — 하네스별 원격 MCP (HTTP)
+
+탐침: 표준 MCP SDK(`mcp` 1.27.0)의 streamable HTTP 서버 + `Authorization: Bearer <토큰>` 이 맞지 않으면 401 을 내는 앞단, 도구 `hub_ping` 하나(표식 문자열 반환). 서버가 요청마다 인증 결과 · User-Agent · 도구 호출을 기록한다. 하네스 설정에는 **환경 변수 참조만** 넣고(I3), 같은 설정에서 변수를 뺀 실행을 대조로 했다. 사용자 설정은 건드리지 않았다 — 명령줄 덮어쓰기 · 프로젝트 범위 설정 · 실행 뒤 제거(Antigravity, 아래) 로만.
+
+| 하네스 (이 호스트의 판) | 등록 방법 | 환경 변수 참조 인증 | 모델이 도구를 불렀나 | 대조 (변수 없음) | 판정 |
+|---|---|---|---|---|---|
+| Claude Code 2.1.330 | `--mcp-config` JSON (`type: http`, `headers.Authorization: "Bearer ${WORKFLOW_HUB_TOKEN}"`) + `--strict-mcp-config` | **확장됨** (요청 9 중 8 인증 통과) | **불렀다** — 표식 반환, 서버 기록 1 | 요청 2 · 인증 0 · `NONE` | **실측 지원** |
+| Codex 0.167.1 | `-c mcp_servers.<n>.url=…` · `-c mcp_servers.<n>.bearer_token_env_var="WORKFLOW_HUB_TOKEN"` (`codex mcp add --url --bearer-token-env-var` 와 같은 칸) | **됨** (승인 설정 전 요청 3 중 3 · 뒤 5 중 4) | **불렀다** — 단 비대화 `exec` 는 승인 정책 `never` 라 `MCP tool call requires approval` 로 거절됐고, 서버 단위 `default_tools_approval_mode="approve"` 를 더하자 성공 | 서버에 연결 자체를 안 함 (요청 0) · `NONE` | **실측 지원** (비대화는 서버 단위 승인 설정 필요) |
+| Grok Build 1.0.44 | `grok mcp add -s project -t http -H 'Authorization: Bearer ${…}'` → `./.grok/config.toml` | **확장됨** (요청 4 중 4) | **미실측** — 이 호스트 Grok 모델 자격 증명 없음 (`401 … no auth context`) | 요청 2 · 인증 0 | **연결 · 인증 실측, 도구 호출 미실측**. 프로젝트 범위 서버는 **폴더 신뢰**(`--trust` 또는 대화형 허용) 가 있어야 뜬다 |
+| Antigravity (`agy` 1.2.12) | `agy mcp add --header … <name> <url>` → 사용자 범위 `~/.gemini/config/mcp_config.json` (`serverUrl` · `headers`). 프로젝트 범위 없음 | **확장되지 않음** — 헤더는 가지만(4건) 인증 0, `NONE` | 리터럴 토큰으로 바꾸면 **불렀다** (인증 8 · 도구 1, 호출 경로 미구분) | — | **원격 MCP 지원 · `${VAR}` 참조 미지원** |
+| MiniMax Code 0.7.7 | 작업 디렉터리 `.mcp.json` (Claude 와 같은 형식) · `mcode exec` | **확장됨** (요청 6 중 5) | **불렀다** (MCP 클라이언트 `undici`) | 요청 2 · 인증 0 · `NONE` | **실측 지원** |
+
+측정 결함 하나와 정정: MiniMax 첫 대조 실행에서 에이전트가 MCP 등록 실패 뒤 **탐침 디렉터리의 토큰 파일을 찾아 HTTP 로 직접 호출**했다. 토큰을 파일 · 프로세스 인자에서 빼고(서버는 환경 변수에서 읽고 지움) 다시 잰 값이 위 표다. Claude Code 실행은 MCP 도구만 허용(`--allowedTools`)했고, Codex 는 출력에 `mcp: hubprobe/hub_ping (completed)` 가 남아 MCP 경로임이 확인된다. Antigravity 의 리터럴 토큰 실행은 토큰 파일이 남아 있던 때라 호출 경로를 가리지 못했다.
+
+뒷정리: Antigravity 는 사용자 범위에만 쓰므로 추가 → 측정 → `agy mcp remove` 했다. 실행 뒤 `~/.gemini/config/mcp_config.json` 은 `{"mcpServers": {}}` 이고, 측정 전에 이 파일이 있었는지는 판별하지 못했다(제거가 파일을 새로 써 생성 시각이 지워졌다 — 내용은 빈 목록이라 동작 영향 없음). Grok 사용자 설정은 해시로 불변을 확인했다.
+
+결론 — 5 하네스 모두 원격 MCP(HTTP)로 허브에 닿는다 (R2.1). 요구에 더할 것:
+
+- **토큰 전달은 하네스별로 (R2.5)** — `${VAR}` 헤더 참조는 Claude Code · Grok · MiniMax, Codex 는 `bearer_token_env_var` 칸, **Antigravity 는 참조를 못 한다**. 그 하네스의 토큰 전달 방식은 Q7.
+- **비대화 실행의 도구 승인** — Codex 비대화는 서버 단위 승인 설정이 없으면 허브 도구를 못 부른다. 안내 페이지(R2.6)의 하네스별 명령에 이것을 포함한다.
+- **프로젝트 범위 설정의 신뢰** — Grok 의 프로젝트 범위 서버는 폴더 신뢰가 있어야 뜬다. 진입 파일 · 안내가 이것을 적는다.
+- **허브 토큰을 에이전트가 볼 수 있는 곳에 두지 않는다** — 위 측정 결함처럼, 에이전트는 MCP 가 막히면 작업 디렉터리의 비밀을 찾아 직접 부를 수 있다. `.workflow-hub/env` (R4.3) 는 에이전트 작업 공간 안에 있으므로, 토큰 권한은 그 콜사인의 권한을 넘지 않아야 하고(R4.6), 허브는 MCP 밖 직접 호출도 같은 인증 · 같은 이력으로 다룬다 (R2.7 의 '같은 API').
 
 ## 17. PURPOSE 2.0판 · 1.x 유지보수 정책 (WBS-31.3) — 자리
 
@@ -290,7 +355,7 @@
 - **R15.4 arcturus 이전은 2.0 뒤** — arcturus 포털의 task · handoff 를 kit 허브로 옮기는 일(D7)은 2.0.0 발행 조건이 아니다. 들여오기 형식(R14 · OKF)이 그 입구다.
   [검증] — (로드맵 범위 선언)
 
-## 20. 소유자 결정 항목 — Q1~Q5 확정 (2026-11-20), Q6 열림
+## 20. 소유자 결정 항목 — Q1~Q5 확정 (2026-11-20), Q6 · Q7 열림
 
 concept 이 requirements 로 넘긴 세부와 이 문서를 쓰며 생긴 물음이다. 기록은 §24.
 
@@ -302,12 +367,13 @@ concept 이 requirements 로 넘긴 세부와 이 문서를 쓰며 생긴 물음
 | Q4 | 허브 화면 인증 | **arcturus 과제 대시보드 방식** — 로그인 없음, 브라우저가 화면에서 콜사인 등록 → 토큰을 브라우저 저장소에 두고 `Bearer` 로 쓰기, 토큰 없는 화면 요청은 공용 `web` 토큰 권한(읽기 · 등록, 기본 꺼짐). 권고안(워크벤치 쿠키 로그인)을 대신한다 | R13.2 · R13.2a · R13.4 · R2.3 |
 | Q5 | 세션 시작의 저장소 확인을 원격 MCP 에서 | **허브가 명령 · 판정 규칙을 내주고 에이전트가 결과를 돌려줘 허브가 대조** (권고안) | R10.1 |
 | Q6 | 1.x 유지보수 줄의 기간 · 끝 (G4) | **열림** — WBS-31.3 에서 정한다 | §17 |
+| Q7 | 환경 변수 참조를 못 하는 하네스(Antigravity — §16.3)에 토큰을 주는 길 | **열림** — 권고: **그 하네스만 사용자 범위 설정(저장소 밖)에 값을 넣는다** — 허브가 그 하네스 명령에 경고를 붙이고, 프로젝트 범위 파일에는 어떤 하네스든 값을 넣지 않는다 (R2.5). 다른 길: 그 하네스는 선택 클라이언트를 거치는 stdio 다리 · 지원 대상에서 뺀다 | R2.5 · R2.6 |
 
 ## 21. 검증 · design 진입 조건
 
 - 각 R 의 **[검증]** 은 design 뒤 저장소 검사로 고정한다. 서버를 띄우는 왕복 검사는 실제 프로세스 · 실제 포트로 하고(가짜 HTTP 클라이언트가 출처 · 쿠키를 대신 싣지 않게), kit 없는 환경 검증(R0.4)은 venv 없는 깨끗한 해석기로 한다.
 - 하네스 쪽 실측(R2.1 · R11.3)은 '실측 / 문서 근거 / 미실측' 을 나눠 적는다. 미실측은 통과가 아니다.
-- **design 진입 조건**: ① §16 S1~S3 결과가 이 문서에 있다 ② §17 · R14.8 이 WBS-31.3 으로 채워졌다 ③ Q1~Q5 결정 반영 ✅ (2026-11-20) · Q6 은 WBS-31.3 ④ §22 추적표에 concept 항목 누락이 없다.
+- **design 진입 조건**: ① §16 S1~S3 결과가 이 문서에 있다 ✅ (2026-11-20) ② §17 · R14.8 이 WBS-31.3 으로 채워졌다 ③ Q1~Q5 결정 반영 ✅ (2026-11-20) · Q6 은 WBS-31.3 · Q7 결정 ④ §22 추적표에 concept 항목 누락이 없다.
 
 ## 22. 추적표 — concept → 요구
 

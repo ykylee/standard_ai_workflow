@@ -1129,9 +1129,9 @@
       "sdlc_phase": "requirements",
       "declared_status": "in_progress",
       "derived_status": "in_progress",
-      "progress": 0.3333333333333333,
+      "progress": 0.6666666666666666,
       "total_leaves": 3,
-      "done_leaves": 1,
+      "done_leaves": 2,
       "deliverables_missing": [],
       "wbs": [
         {
@@ -1150,10 +1150,12 @@
         {
           "id": "WBS-31.2",
           "title": "design 전 실측 — 판정 함수 데이터 입구 · 위키 검사 경로 인자화 범위 · 하네스별 원격 MCP 지원",
-          "derived_status": "planned",
-          "linked_task_ids": [],
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-20-claude-workflow-hub-concept-010"
+          ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         },
         {

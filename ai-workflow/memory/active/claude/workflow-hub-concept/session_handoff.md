@@ -27,13 +27,14 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-11-20-claude-workflow-hub-concept-005 2.0.0 로드맵 기획 — M-031~M-040
 - TASK-2026-11-20-claude-workflow-hub-concept-004 허브 프로젝트 등록 · 식별 — 등록 전 부트스트랩퍼 · git 주소 기반 식별
 - TASK-2026-11-20-claude-workflow-hub-concept-003 위키 허브 관리 검토 — kit 위키를 허브에서 관리할 수 있는지
 - TASK-2026-11-20-claude-workflow-hub-concept-002 워크플로우 허브 concept — arcturus 대시보드 task 관리를 kit 전체로 (개념 문서 + ADR-033 초안)
 - TASK-2026-11-20-claude-workflow-hub-concept-001 브랜치 네임스페이스 자동 seed — `main` 에서 이어받음
 ## 5. 다음 세션 시작 포인트
 
-- (135차 후속, 2026-11-20) **다음 일**: ①requirements 마일스톤 M-031 개설 (2.0.0 허브 — API · MCP 도구 · 부트스트랩 · 1.x 전환 · PURPOSE 2.0 판) ②kit 결함 후보: `backlog-update` 가 예외를 `ValidationError` 이름만 내고 원인(필드 · 메시지)을 감춘다 — 이번에 WBS 제목 200자 초과가 그렇게 숨었다 ③design 전 조사 두 가지 — 판정 함수(`plan_claims` · 게이트 · 상태 생성)를 데이터만으로 부를 수 있는지, `check_wiki_*` · `score_wiki_*` · `bidir_link` 가 펼친 임시 디렉터리에서 같은 판정을 내는지 · 하네스별 원격 MCP(HTTP) 지원 실측 (kit MCP 는 지금 stdio 전용)
+- (135차 후속, 2026-11-20) **다음 일**: ①2.0.0 로드맵 M-031~M-040 작성됨 (2.0.0 = M-033~M-039 전부, 1.x 는 결함 수리만 병행) — **M-031 requirements 착수** (WBS-31.1 요구 목록 · 31.2 design 전 실측 · 31.3 PURPOSE 2.0 판) ②kit 결함 후보: `backlog-update` 가 예외를 `ValidationError` 이름만 내고 원인(필드 · 메시지)을 감춘다 — 이번에 WBS 제목 200자 초과가 그렇게 숨었다 ③design 전 조사 두 가지 — 판정 함수(`plan_claims` · 게이트 · 상태 생성)를 데이터만으로 부를 수 있는지, `check_wiki_*` · `score_wiki_*` · `bidir_link` 가 펼친 임시 디렉터리에서 같은 판정을 내는지 · 하네스별 원격 MCP(HTTP) 지원 실측 (kit MCP 는 지금 stdio 전용)
 - (`main@fff952cd` handoff §5 에서 이어받음 — 아래 29줄은 모 브랜치의 다음 시작 포인트다)
 - (134차, 2026-11-19, Mac mini) **다음 일**: ①~~push 전 전량 게이트~~ ✅ 이 맥에서 통과 · push 완료(`7df480f9`) ②Claude · MiniMax 재시작 뒤 `doctor --json` 의 `runtime_load` 확인(설치보다 먼저 뜬 pid 2개) ③main-002 후속 미수리 둘 — 병합 중간 실패 뒤 재실행 시 §5 합류 줄 · 합류 기록 중복, 브랜치 메모리 안 심링크가 매 시작 errors 반복(둘 다 소실 0) ④이월된 `…-234c32-002` · `-004` 는 소유자 iPad 실측 대기 그대로.
 - (합류 `claude/remote-sync-check-234c32@fc814642`, 2026-11-19) claude/remote-sync-check-234c32 워크스페이스 — `main@90124a3a` 에서 이어받음 (2026-11-17). **133차 세션 (2026-11-17, Linux 호스트) — v1.27.0 발행 완료 (minor: 코드 커밋 3, breaking 0).** 태그 `v1.27.0` = `aa34ed8d`(발행 준비 커밋, 전량 게이트 native · slash 332×2 증거) = origin/ma… — 완료 3건(TASK-2026-11-17-claude-remote-sync-check-234c32-003, TASK-2026-11-17-claude-remote-sync-check-234c32-005, TASK-2026-11-17-claude-remote-sync-check-234c32-006) · 이월 2건(TASK-2026-11-17-claude-remote-sync-check-234c32-002, TASK-2026-11-17-claude-remote-sync-check-234c32-004) · 되돌려 적음 0건. 기록: [`archived/claude/remote-sync-check-234c32/session_handoff.md`](../../../archived/claude/remote-sync-check-234c32/session_handoff.md) · [합류 기록](../../main/sessions/merge_claude-remote-sync-check-234c32_2026-11-19.md)

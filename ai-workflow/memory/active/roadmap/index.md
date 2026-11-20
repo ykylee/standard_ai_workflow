@@ -73,3 +73,23 @@
   - path: [`./M-029-plan-workbench-implementation.md`](./M-029-plan-workbench-implementation.md)
 - **M-030** [concept] 워크플로우 허브 — 2.0.0 준비, 여러 환경이 함께 쓰는 task 관리 서버 (arcturus-port 대시보드의 일반화) — status: done
   - path: [`./M-030-workflow-hub.md`](./M-030-workflow-hub.md)
+- **M-031** [requirements] 2.0 허브 — requirements (요구 목록 · design 전 실측 · PURPOSE 2.0 판 · 1.x 정책) — status: in_progress
+  - path: [`./M-031-workflow-hub-requirements.md`](./M-031-workflow-hub-requirements.md)
+- **M-032** [design] 2.0 허브 — design (ADR-033 Accepted + core 스펙) — status: planned
+  - path: [`./M-032-workflow-hub-design.md`](./M-032-workflow-hub-design.md)
+- **M-033** [implementation] 2.0 허브 — implementation 1: 허브 코어 (서버 · SQLite · 프로젝트 · 콜사인 · task · 이력 · 원격 MCP 골격) — status: planned
+  - path: [`./M-033-workflow-hub-core.md`](./M-033-workflow-hub-core.md)
+- **M-034** [implementation] 2.0 허브 — implementation 2: 부트스트랩 · 공유 지침 · 세션 시작 확인 — status: planned
+  - path: [`./M-034-workflow-hub-bootstrap.md`](./M-034-workflow-hub-bootstrap.md)
+- **M-035** [implementation] 2.0 허브 — implementation 3: 콜사인별 기억 · 로드맵 · 판정 — status: planned
+  - path: [`./M-035-workflow-hub-memory.md`](./M-035-workflow-hub-memory.md)
+- **M-036** [implementation] 2.0 허브 — implementation 4: 위키 · memory_index · 들여오기/내보내기 · 오프라인 — status: planned
+  - path: [`./M-036-workflow-hub-wiki.md`](./M-036-workflow-hub-wiki.md)
+- **M-037** [implementation] 2.0 허브 — implementation 5: 허브 화면 (워크벤치 확장) — status: planned
+  - path: [`./M-037-workflow-hub-ui.md`](./M-037-workflow-hub-ui.md)
+- **M-038** [implementation] 2.0 허브 — implementation 6: 1.x 전환 · 1.x 유지보수 판 — status: planned
+  - path: [`./M-038-workflow-hub-migration.md`](./M-038-workflow-hub-migration.md)
+- **M-039** [stabilization] 2.0 허브 — stabilization (하네스 실측 · 이 저장소 전환 · arcturus 이전) — status: planned
+  - path: [`./M-039-workflow-hub-stabilization.md`](./M-039-workflow-hub-stabilization.md)
+- **M-040** [release] 2.0.0 발행 · 1.x 유지보수 줄 분기 — status: planned
+  - path: [`./M-040-workflow-hub-release.md`](./M-040-workflow-hub-release.md)

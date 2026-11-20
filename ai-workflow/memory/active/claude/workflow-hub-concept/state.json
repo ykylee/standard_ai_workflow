@@ -43,6 +43,7 @@
       "TASK-2026-11-13-claude-remote-sync-check-234c32-005"
     ],
     "recent_done_items": [
+      "TASK-2026-11-20-claude-workflow-hub-concept-005 — 2.0.0 로드맵 기획 — M-031~M-040",
       "TASK-2026-11-20-claude-workflow-hub-concept-004 — 허브 프로젝트 등록 · 식별 — 등록 전 부트스트랩퍼 · git 주소 기반 식별",
       "TASK-2026-11-20-claude-workflow-hub-concept-003 — 위키 허브 관리 검토 — kit 위키를 허브에서 관리할 수 있는지",
       "TASK-2026-11-20-claude-workflow-hub-concept-002 — 워크플로우 허브 concept — arcturus 대시보드 task 관리를 kit 전체로 (개념 문서 + ADR-033 초안)",
@@ -53,14 +54,15 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/claude/workflow-hub-concept/backlog/2026-11-20.md",
-    "task_count": 4,
+    "task_count": 5,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
       "TASK-2026-11-20-claude-workflow-hub-concept-001 — 브랜치 네임스페이스 자동 seed — `main` 에서 이어받음",
       "TASK-2026-11-20-claude-workflow-hub-concept-002 — 워크플로우 허브 concept — arcturus 대시보드 task 관리를 kit 전체로 (개념 문서 + ADR-033 초안)",
       "TASK-2026-11-20-claude-workflow-hub-concept-003 — 위키 허브 관리 검토 — kit 위키를 허브에서 관리할 수 있는지",
-      "TASK-2026-11-20-claude-workflow-hub-concept-004 — 허브 프로젝트 등록 · 식별 — 등록 전 부트스트랩퍼 · git 주소 기반 식별"
+      "TASK-2026-11-20-claude-workflow-hub-concept-004 — 허브 프로젝트 등록 · 식별 — 등록 전 부트스트랩퍼 · git 주소 기반 식별",
+      "TASK-2026-11-20-claude-workflow-hub-concept-005 — 2.0.0 로드맵 기획 — M-031~M-040"
     ]
   },
   "next_documents": [

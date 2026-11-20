@@ -3,7 +3,7 @@
 - 문서 목적: 2.0.0 워크플로우 허브의 concept 방향(H1~H14)과 소유자 결정(D1~D11 · E1~E6 · F1~F5 · G1~G3 · I1~I4)을 **판정할 수 있는 요구(R 번호)**로 옮긴다. design(DB 스키마 · API 형식 · 도구 이름 · 화면)이 이 문서를 입력으로 받는다 (TASK-2026-11-20-claude-workflow-hub-concept-008, M-031/WBS-31.1).
 - 범위: 허브 서버 · 허브 MCP 도구 · 부트스트랩과 등록 · 콜사인과 작업 기억 · task와 판정 · handoff와 상태 요약 · 공유 지침 · 위키 · 로드맵 · 세션 시작 확인 · compact 직후 확인 · 오프라인 · 노출 · git 내보내기 · 1.x 전환. 방향과 결정은 [concept](./workflow-hub-review-2026-11.md)이 정본이라 **여기서 다시 정하지 않는다**. design 전 실측(WBS-31.2)과 PURPOSE 2.0판 · 1.x 유지보수 정책(WBS-31.3)은 이 문서에 자리만 둔다 (§16 · §17).
 - 대상 독자: 소유자 (sign-off), design 단계 작성자
-- 상태: **draft (2026-11-20)** — WBS-31.1 · 31.2 완료. 소유자 결정 Q1~Q5 반영 (§20 · §24 — Q4 는 arcturus 과제 대시보드 방식). 실측 S1~S3 (§16). 지원 하네스 4종 (Q8). Q7 결정 (Antigravity 토큰은 사용자 범위). 열림: Q6 (WBS-31.3)
+- 상태: **draft (2026-11-20)** — WBS-31.1 · 31.2 · 31.3 완료. 소유자 결정 Q1~Q5 반영 (§20 · §24 — Q4 는 arcturus 과제 대시보드 방식). 실측 S1~S3 (§16). 지원 하네스 4종 (Q8). Q7 결정 (Antigravity 토큰은 사용자 범위). WBS-31.3 (§17 PURPOSE 2.0 개정안 · R16 1.x 유지보수) 완료. 열림: Q6 · Q9 · Q10
 - 최종 수정일: 2026-11-20
 - 관련 문서: [`workflow-hub-review-2026-11.md`](./workflow-hub-review-2026-11.md) (concept — 아래에서 "concept §n" 으로 부른다), [`M-031`](../../ai-workflow/memory/active/roadmap/M-031-workflow-hub-requirements.md), [`ADR-033`](../../ai-workflow/wiki/decisions/adr-033-workflow-hub.md) (Proposed), [`plan-workbench-requirements-2026-11.md`](./plan-workbench-requirements-2026-11.md) (받은편지함 · 노출의 선례), arcturus-port `portal/` (`8d24fcd7` — 화면 인증 Q4 의 선례: `backend/internal/api/api.go` · `backend/internal/store/callsign.go` · `site/src/pages/tasks/index.astro` · `deploy/homelab/Caddyfile`), [`claim_plan_spec.md`](../../workflow-source/core/claim_plan_spec.md), [`compact_relay_spec.md`](../../workflow-source/core/compact_relay_spec.md), [`multi_workspace_orchestration.md`](../../workflow-source/core/multi_workspace_orchestration.md)
 
@@ -324,9 +324,49 @@
 - **프로젝트 범위 설정의 신뢰** — Grok 의 프로젝트 범위 서버는 폴더 신뢰가 있어야 뜬다. Grok 은 지원 4종(R2.8)에서 빠졌으므로 기록으로만 둔다.
 - **허브 토큰을 에이전트가 볼 수 있는 곳에 두지 않는다** — 위 측정 결함처럼, 에이전트는 MCP 가 막히면 작업 디렉터리의 비밀을 찾아 직접 부를 수 있다. `.workflow-hub/env` (R4.3) 는 에이전트 작업 공간 안에 있으므로, 토큰 권한은 그 콜사인의 권한을 넘지 않아야 하고(R4.6), 허브는 MCP 밖 직접 호출도 같은 인증 · 같은 이력으로 다룬다 (R2.7 의 '같은 API').
 
-## 17. PURPOSE 2.0판 · 1.x 유지보수 정책 (WBS-31.3) — 자리
+## 17. PURPOSE 2.0판 · 1.x 유지보수 정책 (WBS-31.3, 2026-11-20)
 
-이 절과 R14 의 1.x 유지보수 요구는 WBS-31.3 이 채운다. 입력: concept §16 (G1 · G3 · §4 명제를 2.0판으로, D9 는 2.0 의 명제), G4 deprecation.
+입력: concept §16 (G1 · G3 · §4 명제를 2.0판으로, D9 는 '허브 모드에서는' 이 아니라 2.0 의 명제), E1 (위키도 허브 정본), G4 deprecation,
+[`stable_guarantee.md`](../../workflow-source/core/stable_guarantee.md) (공개 API 25 항목, **2026-07-20 ~ 2028-07-20** backward compat),
+[`v0_9_0_deprecation_policy_spec.md`](../../workflow-source/core/v0_9_0_deprecation_policy_spec.md) (1 release 경고 → 다음 release 제거), `docs/RELEASE.md` §1 (등급 판단).
+
+### 17.1 PURPOSE 2.0 개정안
+
+바뀌는 칸만 적는다 — 나머지(G2 · G5 · Q1 · Q3 · Q4 · 제외 영역 · §4 의 다른 명제)는 그대로다. 적용 시점은 Q9.
+
+| 칸 | 지금 (`purpose_version: 1`) | 2.0판 (`purpose_version: 2`) |
+|---|---|---|
+| G1 | 여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공 | 여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 **허브**로 제공한다 — 작업 환경은 kit 을 깔지 않고 허브 주소 하나로 참여하고, kit 은 허브 서버 안에서 돈다 (H2 · H4). 독립 패키지 형태는 1.x 줄로 유지보수한다 |
+| G3 | SemVer 2-year guarantee (v0.8.0 → 2.0.0) 운영 | 1.x 공개 API(stable_guarantee 25 항목)는 2.0 에서도 지움 없이 이어지고 (R0.2), **1.x 줄은 2028-07-20 까지 결함 수리**로 보장 기간을 지킨다 (R16.3). 2.0 의 새 계약(허브 API · MCP 도구 · 생성물 형식)의 보장 기간은 2.0 stable 선언 때 정한다 |
+| G4 | deprecation / breaking change 를 1 release 경고 → 1 release 제거로 예측 가능하게 | 같은 약속을 **허브 API · MCP 도구 이름 · 인자**에도 적용한다 — 허브가 경고를 응답에 싣고 다음 판에서 지운다. 흐름 전환(1.x → 2.0)은 1.x 마지막 minor 의 안내(R16.4)가 경고 판이다 |
+| Q2 | AI agent 가 세션 단위로 작업을 복원하고 handoff 를 안정적으로 이어가는 법 | 같은 물음을 **허브와 콜사인 단위**로 — 허브가 닿지 않을 때 · 컨텍스트 압축 직후에도 (R10 · R11 · R12) |
+| 포함: workflow state docs | session_handoff / work_backlog / state.json | **허브 상태** (task · handoff · 이력 · 로드맵 · 공유 지침 · 위키 · memory_index) + 그 git 내보내기 (D6) |
+| 포함: 하네스 배포 | 플러그인 채널 중심 (Claude Code / Codex / Grok Build / Antigravity / pi-dev) + bootstrap, 그 밖의 하네스 가이드 | **허브 원격 MCP + 진입 지침** — 지원 하네스 4종 Claude Code · Codex · MiniMax Code · Antigravity (R2.8). 플러그인 채널은 1.x 줄 |
+| 포함 (추가) | — | 허브 서버 (Python · SQLite) 와 그 운영 가이드 — 배치 자동화는 여전히 제외 (IaC) |
+| 포함 (추가) | — | 1.x 유지보수 줄 (R16) |
+| §4 명제 둘째 | workflow state docs (`ai-workflow/memory/active/<branch>/`) 는 세션 복원의 SSOT 이며, 그 정본은 `backlog/tasks/` + `session_handoff.md` 다. `state.json` 은 생성물이다 | **세션 복원의 정본은 허브다** — task · handoff · 이력 · 로드맵 · 공유 지침 · 위키의 정본이 허브에 있고, git 은 그 내보내기다 (D6 · D9 · E1). `state.json` 형식의 상태 요약은 허브가 1.x 와 같은 판정 함수로 만드는 생성물이다 (R0.7 · R6.3). 1.x 줄에서는 옛 명제가 그대로다 |
+| §4 명제 셋째 | deprecation policy 의 1 release 경고 → 1 release 제거는 stable API 의 운영 약속, contract test 가 자동 verify | 같은 문장 + "허브 API · MCP 도구 계약에도 같다" |
+
+`purpose_digest` (state.json) 는 G1 첫 문장에서 파생되므로 적용 시 자동으로 바뀐다 — 손으로 고치지 않는다.
+
+### 17.2 1.x 유지보수 정책 (R16)
+
+- **R16.1 결함 수리만** — 1.x 줄은 새 기능 · 새 명령 · 새 하네스 지원을 받지 않는다. 결함은 ① 문서화된 동작과 다른 것 ② 데이터 손실 · 저장소 오염 ③ 보안 ④ Python · 하네스 판 변화로 깨진 것이다.
+  [검증] 1.x 줄 발행의 등급 판정(`release-status`)이 `feat` 커밋을 보면 `requires_decision` 을 세운다.
+- **R16.2 판 번호** — 1.x 줄은 patch(`1.N.x`)만 낸다. minor 는 R16.4 의 안내 판 하나뿐이다.
+  [검증] 1.x 줄에서 안내 판 뒤 minor · major 요청 → 거절.
+- **R16.3 기간 = 2028-07-20 (Q6)** — stable_guarantee 의 보장 끝까지 결함 수리를 한다. 그 뒤 1.x 는 끝(EOL)이고, 끝난 뒤의 1.x `session-start` 는 EOL 을 한 줄로 알린다 (막지 않는다).
+  [검증] 기준 시각을 주입한 fixture — 날짜 전 안내 없음 · 뒤 EOL 한 줄 · 종료 코드 불변.
+- **R16.4 안내 판** — 2.0.0 발행과 같은 때 1.x 마지막 minor 를 낸다: `session-start` 의 2.0 안내 한 줄(R14.8) · '허브로 옮김' 표식 거절(R14.6) · README 와 발행 노트에 2.0 · 전환 경로(부트스트랩) · 1.x EOL 날짜. 이것이 G4 의 '1 release 경고' 의 흐름판이다 — 1.x 흐름은 1.x 줄에서 지워지지 않고 2.0 에서 대체된다.
+  [검증] 안내 판의 `session-start` 출력 · 표식 저장소에서 쓰기 거절 · 노트의 세 항목.
+- **R16.5 분기** — 2.0 작업이 기본 브랜치에 들어가기 **전에** 1.x 줄을 별도 브랜치로 분기한다(이름은 design). 1.x 발행은 그 브랜치 머리에서, 같은 전량 게이트 · 발행 절차(RELEASE.md)로 한다. 1.x 에서 고친 결함이 2.0 에도 있으면 2.0 에도 고친다 (1.x → 2.0 방향만).
+  [검증] 1.x 태그가 1.x 브랜치 위에 있고 게이트 증거가 그 커밋의 것. 1.x 결함 수리 커밋마다 2.0 쪽 대응(고침 · 해당 없음)이 기록돼 있다.
+- **R16.6 1.x 소비자는 자동 갱신으로 2.0 을 받지 않는다** — 지금 플러그인 채널(`.claude-plugin/marketplace.json` → `source: ./plugin`)은 저장소의 브랜치를 따라 갱신된다. 2.0 이 기본 브랜치에 들어가도 1.x 소비자의 채널 갱신은 1.x 를 받아야 한다. 방법은 Q10.
+  [검증] 1.x 를 설치한 하네스에서 2.0 발행 뒤 채널 갱신 → 설치 판이 1.x 그대로 (지원 4종 중 플러그인 채널이 있는 하네스마다).
+- **R16.7 'latest' 는 2.0** — 2.0.0 발행 뒤 1.x patch 발행은 GitHub Release 의 'latest' 표시를 가져가지 않는다.
+  [검증] 1.x patch 발행 뒤 저장소의 latest release = 2.x.
+- **R16.8 1.x 결함 후보의 자리** — 2.0 작업 중 드러난 1.x 결함(예: §16.2 의 `bidir_link` · freshness)은 1.x 줄 backlog 에 올리고 R16.1 로 분류한다.
+  [검증] 1.x 줄 backlog 에 해당 task 존재.
 
 ## 18. 1.x 전환 (R14)
 
@@ -344,7 +384,7 @@
   [검증] 표식이 있는 저장소에서 1.x `backlog-update --apply` → 거절 · 파일 변화 0.
 - **R14.7 되돌리기** — 표식만 걷으면 1.x 흐름으로 돌아간다. 전환이 원본을 바꾸지 않았으므로 되돌림에 데이터 이동이 없다.
   [검증] 표식 제거 → 1.x `session-start` 정상.
-- **R14.8 반대쪽 유도** — 1.x 유지보수 판의 `session-start` 는 2.0 의 존재와 전환 방법(허브 주소 · 부트스트랩)을 안내한다 (G4 의 deprecation 안내와 같은 자리). 안내는 한 줄이고 막지 않는다.
+- **R14.8 반대쪽 유도** — 1.x 안내 판(R16.4)부터 `session-start` 는 2.0 의 존재와 전환 방법(허브 주소 · 부트스트랩)을 안내한다 (G4 의 deprecation 안내와 같은 자리). 안내는 한 줄이고 막지 않는다.
   [검증] 1.x 유지보수 판 `session-start` 출력에 안내 1줄 · 종료 코드 불변.
 - **R14.9 플러그인 · MCP 설정** — kit 플러그인 · hook · stdio MCP 설정은 허브 MCP 로 바꾸는 하네스별 안내를 내고, 지우는 것은 등록자 확인 뒤 (I4). 1.x 가 지원하던 하네스 가운데 2.0 지원 4종(R2.8) 밖의 것(Grok Build · OpenCode · pi-dev 등)을 쓰는 프로젝트에는 '2.0 지원 대상 아님 — 1.x 줄에 남거나 원격 MCP 수동 등록' 을 감지 보고에 적는다.
   [검증] 안내 문구 · 확인 전 삭제 지시 0.
@@ -360,7 +400,7 @@
 - **R15.4 arcturus 이전은 2.0 뒤** — arcturus 포털의 task · handoff 를 kit 허브로 옮기는 일(D7)은 2.0.0 발행 조건이 아니다. 들여오기 형식(R14 · OKF)이 그 입구다.
   [검증] — (로드맵 범위 선언)
 
-## 20. 소유자 결정 항목 — Q1~Q5 · Q7 · Q8 확정 (2026-11-20), Q6 열림
+## 20. 소유자 결정 항목 — Q1~Q5 · Q7 · Q8 확정 (2026-11-20), Q6 · Q9 · Q10 열림
 
 concept 이 requirements 로 넘긴 세부와 이 문서를 쓰며 생긴 물음이다. 기록은 §24.
 
@@ -371,7 +411,9 @@ concept 이 requirements 로 넘긴 세부와 이 문서를 쓰며 생긴 물음
 | Q3 | 콜사인 종류(사람 · 에이전트)를 누가 정하나 | **등록 때 본인이 고르고, `human` 은 소유자 승인 전까지 `agent` 권한** (권고안) | R7.7 · R13.2a |
 | Q4 | 허브 화면 인증 | **arcturus 과제 대시보드 방식** — 로그인 없음, 브라우저가 화면에서 콜사인 등록 → 토큰을 브라우저 저장소에 두고 `Bearer` 로 쓰기, 토큰 없는 화면 요청은 공용 `web` 토큰 권한(읽기 · 등록, 기본 꺼짐). 권고안(워크벤치 쿠키 로그인)을 대신한다 | R13.2 · R13.2a · R13.4 · R2.3 |
 | Q5 | 세션 시작의 저장소 확인을 원격 MCP 에서 | **허브가 명령 · 판정 규칙을 내주고 에이전트가 결과를 돌려줘 허브가 대조** (권고안) | R10.1 |
-| Q6 | 1.x 유지보수 줄의 기간 · 끝 (G4) | **열림** — WBS-31.3 에서 정한다 | §17 |
+| Q6 | 1.x 유지보수 줄의 기간 · 끝 (G4) | **열림** — 권고: **2028-07-20 (stable_guarantee 의 보장 끝)까지 결함 수리**, 그 뒤 EOL (R16.3). 다른 길: 2.0.0 발행 뒤 n 개월 · 2.0 stable 선언까지 | R16.3 · G3 |
+| Q9 | PURPOSE 2.0판(§17.1)을 언제 PURPOSE.md 에 적용하나 | **열림** — 권고: **design 이 끝나 ADR-033 이 Accepted 될 때** (그때부터 주 작업 축이 2.0 이고, 1.x 분기 브랜치의 PURPOSE 는 v1 그대로). 다른 길: 지금 바로 · 2.0.0 발행 때 | §17.1 |
+| Q10 | 1.x 소비자의 플러그인 채널을 1.x 에 고정하는 법 (R16.6) | **열림** — 권고: **2.0 은 kit 플러그인 채널(같은 marketplace 이름 · 경로)을 내지 않는다** (2.0 작업 환경은 kit 을 깔지 않는다 — H4) — 기존 채널은 1.x 소유로 1.x 브랜치에서 갱신하고, 1.x 안내 판(R16.4)이 채널을 1.x 브랜치로 다시 등록하는 하네스별 한 줄을 싣는다. 2.0 에 플러그인이 필요해지면 새 이름. 다른 길: 2.0 개발을 별도 저장소로 · 기본 브랜치를 1.x 로 두고 2.0 을 다른 브랜치에서 | R16.6 · R16.5 |
 | Q7 | 환경 변수 참조를 못 하는 하네스(Antigravity — §16.3)에 토큰을 주는 길 | **그 하네스만 사용자 범위 설정(저장소 밖)에 값을 넣고 허브가 경고를 붙인다. 프로젝트 범위 파일에는 어떤 하네스든 값을 넣지 않는다** (권고안) | R2.5a · R2.6 |
 | Q8 | 2.0.0 지원 하네스 | **Claude Code · Codex · MiniMax Code · Antigravity 4종** (소유자 2026-11-20 "우선 추리자") — 나머지는 실측 뒤 추가 결정 | R2.8 · R2.1 · R2.6 · R7.2 · R14.9 |
 
@@ -379,7 +421,7 @@ concept 이 requirements 로 넘긴 세부와 이 문서를 쓰며 생긴 물음
 
 - 각 R 의 **[검증]** 은 design 뒤 저장소 검사로 고정한다. 서버를 띄우는 왕복 검사는 실제 프로세스 · 실제 포트로 하고(가짜 HTTP 클라이언트가 출처 · 쿠키를 대신 싣지 않게), kit 없는 환경 검증(R0.4)은 venv 없는 깨끗한 해석기로 한다.
 - 하네스 쪽 실측(R2.1 · R11.3)은 '실측 / 문서 근거 / 미실측' 을 나눠 적는다. 미실측은 통과가 아니다.
-- **design 진입 조건**: ① §16 S1~S3 결과가 이 문서에 있다 ✅ (2026-11-20) ② §17 · R14.8 이 WBS-31.3 으로 채워졌다 ③ Q1~Q5 · Q8 결정 반영 ✅ (2026-11-20) · Q6 은 WBS-31.3 · Q7 결정 ✅ (2026-11-20) ④ §22 추적표에 concept 항목 누락이 없다.
+- **design 진입 조건**: ① §16 S1~S3 결과가 이 문서에 있다 ✅ (2026-11-20) ② §17 · R14.8 이 WBS-31.3 으로 채워졌다 ✅ (2026-11-20) ③ Q1~Q5 · Q8 결정 반영 ✅ (2026-11-20) · Q7 결정 ✅ (2026-11-20) · **Q6 · Q9 · Q10 결정** ④ §22 추적표에 concept 항목 누락이 없다.
 
 ## 22. 추적표 — concept → 요구
 
@@ -396,10 +438,10 @@ concept 이 requirements 로 넘긴 세부와 이 문서를 쓰며 생긴 물음
 | H9 콜사인 등록은 `.gitignore` | R4.2 · R4.3 · R10.1 |
 | H10 도구는 허브 MCP | R2.1 ~ R2.7 |
 | H11 세션 시작 허브 · 저장소 확인 | R10.1 ~ R10.4 · R7.3 |
-| H12 2.0 허브 단일 · 1.x 유지보수 | R0.1 · R0.2 · R14 · §17 |
+| H12 2.0 허브 단일 · 1.x 유지보수 | R0.1 · R0.2 · R14 · R16 · §17.1 |
 | H13 1.x 는 첫 부트스트랩에서 전환 | R14.1 ~ R14.9 |
 | H14 compact 직후 허브 확인 · 이어 가기 | R11.1 ~ R11.4 · R7.3 |
-| D1 (고침) 2.0 허브 단일 | R14 · §17 |
+| D1 (고침) 2.0 허브 단일 | R14 · R16 · §17.1 |
 | D2 허브 하나 = 여러 프로젝트 | R1.2 · R3.1 |
 | D3 진입 규칙만 필수 | R7.3 · R11.3 · R2.7 |
 | D4 오프라인 보낼편지함 · 409 | R12.2 · R1.2 |
@@ -407,7 +449,7 @@ concept 이 requirements 로 넘긴 세부와 이 문서를 쓰며 생긴 물음
 | D6 git 내보내기 선택 | R15.1 · R15.2 |
 | D7 arcturus 이전 | R15.4 |
 | D8 로드맵 허브로 | R9.1 ~ R9.3 · R5.6 |
-| D9 PURPOSE 명제 | §17 (WBS-31.3) |
+| D9 PURPOSE 명제 | §17.1 (§4 명제 둘째) |
 | D10 진입 파일 커밋 | R7.6 · R7.4 |
 | D11 지침 편집 권한 · 에이전트 제안 | R7.7 · R14.5 · R13.2a |
 | E1 위키 정본 허브 | R8.1 |

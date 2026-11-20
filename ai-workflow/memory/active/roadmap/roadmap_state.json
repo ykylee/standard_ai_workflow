@@ -1128,10 +1128,10 @@
       "title": "2.0 허브 — requirements (요구 목록 · design 전 실측 · PURPOSE 2.0 판 · 1.x 정책)",
       "sdlc_phase": "requirements",
       "declared_status": "in_progress",
-      "derived_status": "in_progress",
-      "progress": 0.6666666666666666,
+      "derived_status": "done",
+      "progress": 1.0,
       "total_leaves": 3,
-      "done_leaves": 2,
+      "done_leaves": 3,
       "deliverables_missing": [],
       "wbs": [
         {
@@ -1163,10 +1163,12 @@
         {
           "id": "WBS-31.3",
           "title": "PURPOSE 2.0 판 (G1 · G3 · §4 명제 = D9) · 1.x 유지보수 정책 (G4 deprecation)",
-          "derived_status": "planned",
-          "linked_task_ids": [],
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-20-claude-workflow-hub-concept-013"
+          ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         }
       ]
@@ -1754,5 +1756,11 @@
       "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-10-06-main-004.md"
     }
   ],
-  "issues": []
+  "issues": [
+    {
+      "code": "declared_derived_mismatch",
+      "detail": "M-031: 선언 in_progress ≠ 파생 done (done 경계)",
+      "where": "M-031-workflow-hub-requirements.md"
+    }
+  ]
 }

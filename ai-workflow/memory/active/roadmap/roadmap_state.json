@@ -1178,40 +1178,44 @@
       "id": "M-032",
       "title": "2.0 허브 — design (ADR-033 Accepted + core 스펙)",
       "sdlc_phase": "design",
-      "declared_status": "planned",
-      "derived_status": "planned",
-      "progress": 0.0,
+      "declared_status": "in_progress",
+      "derived_status": "in_progress",
+      "progress": 0.75,
       "total_leaves": 4,
-      "done_leaves": 0,
-      "deliverables_missing": [
-        "workflow-source/core/hub_spec.md"
-      ],
+      "done_leaves": 3,
+      "deliverables_missing": [],
       "wbs": [
         {
           "id": "WBS-32.1",
           "title": "DB 스키마 · 이관 — 프로젝트(git 주소 별칭) · 콜사인 · task · 이력 · handoff · 지침 · 위키 · 로드맵",
-          "derived_status": "planned",
-          "linked_task_ids": [],
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-20-claude-workflow-hub-concept-015"
+          ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         },
         {
           "id": "WBS-32.2",
           "title": "MCP 도구 · HTTP API 형식 — 부트스트랩 묶음(토큰 없음) · 나머지(콜사인 토큰) · 판 협상",
-          "derived_status": "planned",
-          "linked_task_ids": [],
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-20-claude-workflow-hub-concept-016"
+          ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         },
         {
           "id": "WBS-32.3",
           "title": "흐름 — 부트스트랩 · 세션 시작 확인 · 세션 끝 · 지침 렌더링 · 1.x 전환 매핑",
-          "derived_status": "planned",
-          "linked_task_ids": [],
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-20-claude-workflow-hub-concept-017"
+          ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         },
         {

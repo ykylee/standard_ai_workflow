@@ -43,23 +43,23 @@
       "TASK-2026-11-13-claude-remote-sync-check-234c32-005"
     ],
     "recent_done_items": [
+      "TASK-2026-11-20-claude-workflow-hub-concept-017 — 허브 흐름 — 부트스트랩 · 세션 시작 확인 · 세션 끝 · compact · 지침 렌더링 · 1.x 전환 매핑",
+      "TASK-2026-11-20-claude-workflow-hub-concept-016 — 허브 MCP 도구 · HTTP API 형식 — 부트스트랩 묶음 · 토큰 묶음 · 판 협상 · 오류 코드",
+      "TASK-2026-11-20-claude-workflow-hub-concept-015 — 허브 스키마 · 이관 — 프로젝트(git 주소 별칭) · 콜사인 · task · 이력 · handoff · 지침 · 위키 · 로드맵",
       "TASK-2026-11-20-claude-workflow-hub-concept-014 — requirements Q6 · Q9 · Q10 결정 반영 · requirements 종결 · M-031 close",
       "TASK-2026-11-20-claude-workflow-hub-concept-013 — PURPOSE 2.0판 · 1.x 유지보수 정책 — G1 · G3 · §4 명제(D9) 개정안과 1.x 줄 운영 요구",
       "TASK-2026-11-20-claude-workflow-hub-concept-012 — requirements Q7 결정 반영 — 환경 변수 참조를 못 하는 하네스(Antigravity)는 사용자 범위 설정에 값",
       "TASK-2026-11-20-claude-workflow-hub-concept-011 — 2.0 허브 지원 하네스 4종으로 — Claude Code · Codex · MiniMax Code · Antigravity (소유자 결정)",
       "TASK-2026-11-20-claude-workflow-hub-concept-010 — 허브 design 전 실측 — S1 판정 함수 데이터 입구 · S2 위키 검사 펼친 디렉터리 · S3 하네스별 원격 MCP",
       "TASK-2026-11-20-claude-workflow-hub-concept-009 — requirements 소유자 결정 반영 — Q1~Q5 권고안, Q4 는 arcturus 과제 대시보드 방식(화면 콜사인 · Bearer · 공용 web 토큰)",
-      "TASK-2026-11-20-claude-workflow-hub-concept-008 — 2.0 허브 요구 목록 — concept 방향 · 결정을 검증 가능한 R 번호로 (requirements 문서 초판)",
-      "TASK-2026-11-20-claude-workflow-hub-concept-007 — 런타임 오류가 예외 이름만 내고 원인을 감춘다 — exception_message · pydantic 필드 오류를 오류 결과에 싣는다",
-      "TASK-2026-11-20-claude-workflow-hub-concept-006 — 2.0 요구 입력 — compact 직후 허브 확인 · 기록된 작업 f/u (H14)",
-      "TASK-2026-11-20-claude-workflow-hub-concept-005 — 2.0.0 로드맵 기획 — M-031~M-040"
+      "TASK-2026-11-20-claude-workflow-hub-concept-008 — 2.0 허브 요구 목록 — concept 방향 · 결정을 검증 가능한 R 번호로 (requirements 문서 초판)"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/claude/workflow-hub-concept/backlog/2026-11-20.md",
-    "task_count": 14,
+    "task_count": 17,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
@@ -76,7 +76,10 @@
       "TASK-2026-11-20-claude-workflow-hub-concept-011 — 2.0 허브 지원 하네스 4종으로 — Claude Code · Codex · MiniMax Code · Antigravity (소유자 결정)",
       "TASK-2026-11-20-claude-workflow-hub-concept-012 — requirements Q7 결정 반영 — 환경 변수 참조를 못 하는 하네스(Antigravity)는 사용자 범위 설정에 값",
       "TASK-2026-11-20-claude-workflow-hub-concept-013 — PURPOSE 2.0판 · 1.x 유지보수 정책 — G1 · G3 · §4 명제(D9) 개정안과 1.x 줄 운영 요구",
-      "TASK-2026-11-20-claude-workflow-hub-concept-014 — requirements Q6 · Q9 · Q10 결정 반영 · requirements 종결 · M-031 close"
+      "TASK-2026-11-20-claude-workflow-hub-concept-014 — requirements Q6 · Q9 · Q10 결정 반영 · requirements 종결 · M-031 close",
+      "TASK-2026-11-20-claude-workflow-hub-concept-015 — 허브 스키마 · 이관 — 프로젝트(git 주소 별칭) · 콜사인 · task · 이력 · handoff · 지침 · 위키 · 로드맵",
+      "TASK-2026-11-20-claude-workflow-hub-concept-016 — 허브 MCP 도구 · HTTP API 형식 — 부트스트랩 묶음 · 토큰 묶음 · 판 협상 · 오류 코드",
+      "TASK-2026-11-20-claude-workflow-hub-concept-017 — 허브 흐름 — 부트스트랩 · 세션 시작 확인 · 세션 끝 · compact · 지침 렌더링 · 1.x 전환 매핑"
     ]
   },
   "next_documents": [

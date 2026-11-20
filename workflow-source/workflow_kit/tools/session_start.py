@@ -17,6 +17,7 @@ if str(SOURCE_ROOT) not in sys.path:
 from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.child_process import child_env, module_command
 from workflow_kit.common.errors import build_error_result
+from workflow_kit.common.host_role import is_consumer
 from workflow_kit.common.contracts.stage_gate_runtime import build_stage_completion, merge_into_result
 from workflow_kit.common.normalize import (
     dedupe_normalized_backticked,
@@ -43,10 +44,18 @@ from workflow_kit.common.reconcile import compare_state_lists
 from workflow_kit.common.session_outputs import build_session_summary, make_session_recommended_action
 
 
+#: 읽기 전용 소비자 클론에서 세션을 열었을 때의 안내 — 이 클론에서 할 일은 가이드 §3 뿐이다.
+READ_ONLY_HINT = ("읽기 전용 소비자 클론(`git config --local workflow.role consumer`)이라 저장소에 쓰지 않았다 — "
+                  "브랜치 메모리 seed · 합류 반영 · 진입점 생성 · 워크벤치 자동 기동 · telemetry 를 건너뛰었다. "
+                  "이 클론에서는 docs/HOST_ROLES.md §3(pull · 환경 맞추기 · 버전 업데이트)만 한다.")
+
+
 def _build_memory_index_query_output(
     args: argparse.Namespace,
     workspace_root: Path,
     warnings: list[str],
+    *,
+    read_only: bool = False,
 ) -> dict[str, Any] | None:
     """v0.11.22+ Phase 3b: optional ADR-005 memory_index retrieval 3-tuple 호출.
 
@@ -69,10 +78,14 @@ def _build_memory_index_query_output(
     from workflow_kit.common.state.memory_index import (
         MemoryIndexTelemetryEvent,
         QUERY_SOURCE_EXPLICIT,
-        append_telemetry_event,
+        append_telemetry_event as _append_telemetry_event,
         derive_context_query_tokens,
         query_memory_index_for_dispatcher,
     )
+
+    def append_telemetry_event(*a: Any, **kw: Any) -> Any:
+        # 읽기 전용 소비자 클론은 telemetry sidecar 에도 쓰지 않는다 (TASK-2026-11-20-claude-consumer-readonly-session-start-002).
+        return None if read_only else _append_telemetry_event(*a, **kw)
 
     # W-2 (ADR-006): 고정 trio 는 공통 token 이 항상 같은 entry 를 집었다 —
     # flag 미지정 시 현재 컨텍스트(state.json 축 + 최근 done 제목)에서 유도.
@@ -367,7 +380,7 @@ def _task_id_collision_warnings(workspace_root: Path) -> list[str]:
     ]
 
 
-def _repair_missing_entrypoints(source_context: dict) -> dict:
+def _repair_missing_entrypoints(source_context: dict, *, apply: bool = True) -> dict:
     """부재 산출물을 현재 kit 버전으로 채운다. 실패해도 세션 진입을 막지 않는다.
 
     **낡은 것은 건드리지 않는다** — `ensure_entrypoints` 가 create-only 로 돈다.
@@ -382,7 +395,7 @@ def _repair_missing_entrypoints(source_context: dict) -> dict:
         profile = source_context.get("project_profile_path")
         if profile:
             root = Path(profile).resolve().parent.parent
-        return ensure_run(project_root=root, apply=True)
+        return ensure_run(project_root=root, apply=apply)
     except Exception as exc:  # noqa: BLE001 — 복구 실패가 진입을 막지 않는다
         return {"status": "repair_failed", "error": f"{type(exc).__name__}: {exc}"}
 
@@ -424,6 +437,11 @@ def main() -> int:
     }
 
     auto_seed: dict[str, Any] | None = None
+    # 읽기 전용 소비자 클론(`git config --local workflow.role consumer`, docs/HOST_ROLES.md)은 저장소에 쓰지 않는다 —
+    # seed · 합류 반영 · 진입점 생성 · 워크벤치 자동 기동 · telemetry 를 건너뛰고 보고만 한다
+    # (TASK-2026-11-20-claude-consumer-readonly-session-start-002). 프로필을 찾기 전에는 cwd 로 판정한다.
+    read_only = is_consumer(Path(args.project_profile_path).resolve().parent
+                            if args.project_profile_path else Path.cwd())
     try:
         profile_raw = args.project_profile_path
         if not profile_raw:
@@ -437,7 +455,7 @@ def main() -> int:
             profile_raw = str(discovered)
         project_profile_path = resolve_existing_path(profile_raw)
         # handoff 를 명시했으면 호출자가 자리를 골랐다 — seed 하지 않는다.
-        if not args.session_handoff_path:
+        if not args.session_handoff_path and not read_only:
             auto_seed = _auto_seed_branch_memory(project_profile_path)
         session_handoff_path = resolve_existing_path(
             args.session_handoff_path
@@ -461,7 +479,7 @@ def main() -> int:
         #
         # 부재만 채운다. 낡은 산출물을 여기서 덮으면, 포크를 **선언하지 않은**
         # 손수정이 세션을 여는 것만으로 사라진다 (소유자 결정 2026-08-24).
-        repair = _repair_missing_entrypoints(source_context)
+        repair = _repair_missing_entrypoints(source_context, apply=not read_only)
         if repair.get("created"):
             try:
                 return main()  # 채웠으니 한 번만 다시 시도한다
@@ -471,13 +489,14 @@ def main() -> int:
             tool_version=TOOL_VERSION,
             error="필수 입력 문서를 읽을 수 없다.",
             error_code="missing_required_document",
-            warnings=["session-start 기준선을 복원할 수 없어 후속 판단을 중단한다."],
+            warnings=([READ_ONLY_HINT] if read_only else [])
+            + ["session-start 기준선을 복원할 수 없어 후속 판단을 중단한다."],
             source_context=source_context | {
                 "missing_path_detail": str(exc),
                 "auto_repair": repair,
                 "auto_seed": auto_seed,
             },
-            recovery_hint=(
+            recovery_hint=(READ_ONLY_HINT if read_only else
                 "`python -m workflow_kit ensure-entrypoints --apply` 로 부재 산출물을 현재 kit 버전으로 "
                 "채운다. 브랜치 메모리(`active/<branch>/`)만 없으면 "
                 "`python -m workflow_kit seed-workspace-memory --axis <축> --task-title <제목> --apply` 로 만든다. "
@@ -490,6 +509,8 @@ def main() -> int:
         return 1
 
     warnings: list[str] = []
+    if read_only:
+        warnings.append(READ_ONLY_HINT)
     if auto_seed and auto_seed.get("status") == "ok":
         created = [item["path"] for item in auto_seed.get("planned", [])]
         warnings.append(
@@ -507,8 +528,8 @@ def main() -> int:
     # v1.0.0: 종료된 브랜치 메모리 역방향 점검 (고아 방지). 실패해도 세션 진입을 막지 않는다.
     _detect_stale_branch_memories(
         project_profile_path, warnings,
-        apply=getattr(args, "archive_stale_branches", False),
-        reflect=not getattr(args, "no_reflect", False),
+        apply=getattr(args, "archive_stale_branches", False) and not read_only,
+        reflect=not getattr(args, "no_reflect", False) and not read_only,
     )
     # **매 시작마다** 진입점을 점검한다 (TASK-2026-08-24-main-006).
     #
@@ -519,7 +540,9 @@ def main() -> int:
     #
     # 부재만 채우고 낡음은 경고로 남긴다. 여기서 덮으면 포크를 **선언하지 않은**
     # 손수정이 세션을 여는 것만으로 사라진다.
-    entrypoints = _repair_missing_entrypoints(source_context)
+    entrypoints = _repair_missing_entrypoints(source_context, apply=not read_only)
+    if read_only and (entrypoints.get("missing") or []):
+        warnings.append(f"부재 진입점 {len(entrypoints['missing'])}건 — 읽기 전용 소비자 클론이라 만들지 않았다")
     if entrypoints.get("created"):
         warnings.append(
             "부재 진입점 "
@@ -682,7 +705,7 @@ def main() -> int:
             workbench_url = running_public_url(workspace_root)
             if workbench_url:
                 workbench_line = f"워크벤치 실행 중: {workbench_url}"
-            else:
+            elif not read_only:
                 started_url, autostart_problem = autostart_if_configured(Path(project_profile_path).resolve())
                 if started_url:
                     workbench_line = f"워크벤치 시작: {started_url}"
@@ -766,7 +789,7 @@ def main() -> int:
             self_bootstrap_suggested=self_bootstrap_suggested,
             self_bootstrap_init_commands=self_bootstrap_init_commands,
             memory_index_query_output=_build_memory_index_query_output(
-                args, workspace_root, warnings
+                args, workspace_root, warnings, read_only=read_only
             ),
             roadmap_context=roadmap_context,
         )

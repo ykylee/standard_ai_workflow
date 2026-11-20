@@ -16,7 +16,7 @@
 
 ## 세션 시작
 
-- **먼저 역할**: `git config --get workflow.role` — `consumer` 면 [`docs/HOST_ROLES.md`](docs/HOST_ROLES.md) §3 만 한다(아래 세션 시작 · 변경 · push 없음). 비었으면 pull · 업데이트 · 세션 시작 전에 멈추고 소유자에게 묻는다.
+- **먼저 역할**: `git config --local --get workflow.role` — `consumer` 면 [`docs/HOST_ROLES.md`](docs/HOST_ROLES.md) §3 만 한다(아래 세션 시작 · 변경 · push 없음). 비었으면 pull · 업데이트 · 세션 시작 전에 멈추고 소유자에게 묻는다.
 - `python -m workflow_kit session-start` (플러그인 스킬 `/standard-ai-workflow:session-start`) 가
   `ai-workflow/memory/active/<branch>/` 의 `state.json` · handoff · backlog, `docs/PROJECT_PROFILE.md`,
   `PURPOSE.md` 를 복원한다. `<branch>` 는 현재 git 브랜치다.

@@ -1,7 +1,7 @@
 # 호스트 역할 — 개발 참여자와 읽기 전용 소비자
 
 - 문서 목적: 이 저장소를 클론한 호스트가 **개발 참여자**인지 **읽기 전용 소비자**인지 가르고, 소비자가 pull · 업데이트 때 할 일과 하지 말 일을 정한다.
-- 범위: **이 저장소(워크플로우 킷 원본) 한정** — 역할 표식(`git config workflow.role`), 미선언 호스트 처리, 소비자 업데이트 절차, 개선 제안 경로, pre-push 차단. 킷을 설치해 쓰는 다른 프로젝트에는 적용되지 않는다.
+- 범위: **이 저장소(워크플로우 킷 원본) 한정** — 역할 표식(`git config --local workflow.role`), 미선언 호스트 처리, 소비자 업데이트 절차, 개선 제안 경로, pre-push 차단. 킷을 설치해 쓰는 다른 프로젝트에는 적용되지 않는다.
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
 - 최종 수정일: 2026-11-20
@@ -20,12 +20,12 @@
 
 ## 2. 역할 표식
 
-역할은 클론마다 git 로컬 설정에 둔다. `.git/config` 에만 남아 커밋 · push 되지 않고, 같은 클론의 worktree 끼리 공유된다.
+역할은 클론마다 git 로컬 설정에 둔다. `.git/config` 에만 남아 커밋 · push 되지 않고, 같은 클론의 worktree 끼리 공유된다. **전역(`~/.gitconfig`) 값은 읽지 않는다** — 판정 정본은 `workflow_kit.common.host_role` 하나다.
 
 ```bash
-git config --get workflow.role          # 확인 — consumer / contributor / (빈 출력 = 미선언)
-git config workflow.role consumer       # 소비자로 선언
-git config workflow.role contributor    # 참여자로 선언
+git config --local --get workflow.role  # 확인 — consumer / contributor / (빈 출력 = 미선언)
+git config --local workflow.role consumer      # 소비자로 선언
+git config --local workflow.role contributor   # 참여자로 선언
 ```
 
 **pull · 업데이트 전에 먼저 확인한다.** 미선언이면 **멈추고 소유자에게 역할을 묻는다**. 답을 받으면 위 명령으로 선언한 뒤 진행한다 — 추측해서 진행하지 않는다. 한 번 선언하면 다시 묻지 않는다.
@@ -43,8 +43,8 @@ git status --porcelain
 ```
 
 - 비어 있으면 3.2 로.
-- 하네스의 세션 시작 hook 이 생성물(`ai-workflow/memory/active/**/state.json` · `roadmap/roadmap_state.json`)의 날짜를 다시 쓸 수 있다 — 이 둘의 `generated_at` 한 줄 변경은 알려진 잔여다.
-- 그 밖의 추적 파일 변경은 소비자가 만들 일이 없는 변경이다. 어느 쪽이든 커밋하지 말고 목록을 소유자에게 보고한 뒤, 지시가 없으면 `git stash push -m "consumer-residue-<날짜>"` 로 비켜 둔다(지우지 않는다 — `git checkout --` · `git reset --hard` · `git clean` 금지).
+- `session-start` 는 소비자 클론에서 저장소에 쓰지 않는다(v1.29.0+, 아래 §4) — 그런데도 트리가 바뀌어 있으면 그 자체가 보고할 사실이다.
+- 추적 파일 변경은 소비자가 만들 일이 없는 변경이다. 어느 쪽이든 커밋하지 말고 목록을 소유자에게 보고한 뒤, 지시가 없으면 `git stash push -m "consumer-residue-<날짜>"` 로 비켜 둔다(지우지 않는다 — `git checkout --` · `git reset --hard` · `git clean` 금지).
 
 ### 3.2 pull — fast-forward 만
 
@@ -96,7 +96,10 @@ git status --porcelain
 - 게이트 · 발행 — `run_all_checks.py`, `release`, `release-dist`
 - 결함 수리 · 개선 반영 — §4.1 로 보낸다
 
-`.githooks/pre-push` 는 `workflow.role=consumer` 인 클론의 push 를 **모두 막는다** (`workflow_kit.common.gate_evidence`). 에이전트가 이 문서를 놓쳐도 push 는 나가지 않는다 — 단 `core.hooksPath` 가 켜져 있어야 한다(§3.3).
+도구 쪽 방어가 둘이다. 에이전트가 이 문서를 놓쳐도 동작한다.
+
+- **세션 시작**: `session-start` 는 소비자 클론에서 **저장소에 쓰지 않는다** — 브랜치 메모리 seed · 기본 브랜치의 합류 반영(아카이브) · 부재 진입점 생성 · 워크벤치 자동 기동 · memory_index telemetry 를 건너뛰고, 출력 warnings 첫 줄에 읽기 전용임과 이 문서를 알린다. 읽기(기준선 · 후보 보고)는 그대로 한다.
+- **push**: `.githooks/pre-push` 는 `workflow.role=consumer` 인 클론의 push 를 **모두 막는다** (`workflow_kit.common.gate_evidence`). 단 `core.hooksPath` 가 켜져 있어야 한다(§3.3).
 
 ### 4.1 고칠 것을 찾았을 때 — 이슈로
 
@@ -112,4 +115,4 @@ git status --porcelain
 
 참여자의 흐름은 [`../CLAUDE.md`](../CLAUDE.md) 그대로다 — `session-start` 로 시작하고, 게이트 통과 기록이 있는 커밋만 push 한다.
 
-역할이 바뀌면 `git config workflow.role <새 역할>` 로 다시 선언한다.
+역할이 바뀌면 `git config --local workflow.role <새 역할>` 로 다시 선언한다.

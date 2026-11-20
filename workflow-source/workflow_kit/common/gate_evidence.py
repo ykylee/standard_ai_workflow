@@ -35,7 +35,7 @@ push 전 게이트가 동등 검사를 맡게 됐다. 그런데 발행 게이트
 
 ## 읽기 전용 소비자 클론 (TASK-2026-11-20-claude-remote-sync-check-234c32-001)
 
-`git config workflow.role consumer` 인 클론은 push 를 **모두** 막는다 — 게이트 기록이
+`git config --local workflow.role consumer` 인 클론은 push 를 **모두** 막는다 — 게이트 기록이
 있어도. 소비자는 pull · 환경 맞추기 · 버전 업데이트만 한다 (`docs/HOST_ROLES.md`).
 미선언 · `contributor` 는 위 판정 그대로다 (역할 확인은 pull 전 에이전트의 몫).
 """
@@ -49,6 +49,8 @@ import subprocess
 import sys
 from pathlib import Path
 from typing import Any
+
+from workflow_kit.common.host_role import CONSUMER_ROLE, ROLE_CONFIG_KEY, is_consumer
 
 EVIDENCE_DIRNAME = "gate_evidence"
 EVIDENCE_SCHEMA = 1
@@ -146,20 +148,9 @@ def is_protected_delete(remote_ref: str) -> bool:
     return remote_ref in PROTECTED_DELETE_REFS or remote_ref.startswith(PROTECTED_DELETE_PREFIXES)
 
 
-#: 이 클론의 역할을 담는 git 로컬 설정 키 — `docs/HOST_ROLES.md` §2.
-ROLE_CONFIG_KEY = "workflow.role"
-CONSUMER_ROLE = "consumer"
-
-
-def host_role(repo_root: Path) -> str | None:
-    """`git config --get workflow.role` — 미선언(또는 git 실패)이면 None."""
-    value = _git(repo_root, "config", "--get", ROLE_CONFIG_KEY)
-    return value.strip().lower() if value else None
-
-
 def check_consumer_push(repo_root: Path, lines: list[str]) -> list[str]:
-    """소비자 클론이면 올리려는 ref 마다 막는다 — 게이트 기록과 무관하다."""
-    if host_role(repo_root) != CONSUMER_ROLE:
+    """소비자 클론이면 올리려는 ref 마다 막는다 — 게이트 기록과 무관하다 (역할 판정 정본: :mod:`host_role`)."""
+    if not is_consumer(repo_root):
         return []
     return [f"{parts[0]} → {parts[2]}: 읽기 전용 소비자 클론({ROLE_CONFIG_KEY}={CONSUMER_ROLE})은 push 하지 않는다"
             for parts in (raw.split() for raw in lines) if len(parts) == 4]
@@ -216,7 +207,7 @@ def main(argv: list[str] | None = None) -> int:
         for item in consumer:
             print(f"  - {item}", file=sys.stderr)
         print(f"  고칠 것은 이슈로 보낸다 (docs/HOST_ROLES.md §4.1 · docs/FEEDBACK.md). 이 클론이 참여자라면 "
-              f"`git config {ROLE_CONFIG_KEY} contributor` 로 다시 선언한다.", file=sys.stderr)
+              f"`git config --local {ROLE_CONFIG_KEY} contributor` 로 다시 선언한다.", file=sys.stderr)
         return 1
     problems = check_push(repo_root, lines)
     if not problems:

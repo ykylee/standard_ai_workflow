@@ -71,3 +71,5 @@
   - path: [`./M-028-claim-plan-implementation.md`](./M-028-claim-plan-implementation.md)
 - **M-029** [implementation] 계획·진척 워크벤치 — implementation (이월 정리 · 서버 · 화면 · MCP · 검사) — status: done
   - path: [`./M-029-plan-workbench-implementation.md`](./M-029-plan-workbench-implementation.md)
+- **M-030** [concept] 워크플로우 허브 — 여러 환경이 함께 쓰는 task 관리 서버 (arcturus-port 대시보드의 일반화) — status: in_progress
+  - path: [`./M-030-workflow-hub.md`](./M-030-workflow-hub.md)

@@ -16,7 +16,7 @@ if str(SOURCE_ROOT) not in sys.path:
 
 from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.child_process import child_env, module_command
-from workflow_kit.common.errors import build_error_result
+from workflow_kit.common.errors import build_error_result, describe_exception, exception_context
 from workflow_kit.common.host_role import is_consumer
 from workflow_kit.common.contracts.stage_gate_runtime import build_stage_completion, merge_into_result
 from workflow_kit.common.normalize import (
@@ -807,10 +807,10 @@ def main() -> int:
     except Exception as exc:
         result = build_error_result(
             tool_version=TOOL_VERSION,
-            error="session-start 실행 중 예기치 않은 오류가 발생했다.",
+            error=f"session-start 실행 중 예기치 않은 오류가 발생했다 — {describe_exception(exc)}",
             error_code="session_start_runtime_error",
             warnings=["파서 또는 입력 문서 형식을 점검한 뒤 다시 실행해야 한다."],
-            source_context=source_context | {"exception_type": type(exc).__name__},
+            source_context=source_context | exception_context(exc),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 1

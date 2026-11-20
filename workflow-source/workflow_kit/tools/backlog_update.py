@@ -21,7 +21,7 @@ if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit import __version__ as TOOL_VERSION
-from workflow_kit.common.errors import build_error_result
+from workflow_kit.common.errors import build_error_result, describe_exception, exception_context
 from workflow_kit.common.contracts.stage_gate_runtime import build_stage_completion, merge_into_result
 from workflow_kit.common.normalize import normalize_backticked
 from workflow_kit.common.git import remote_known_task_ids
@@ -880,10 +880,10 @@ def main() -> int:
     except Exception as exc:
         result = build_error_result(
             tool_version=TOOL_VERSION,
-            error="backlog-update 실행 중 예기치 않은 오류가 발생했다.",
+            error=f"backlog-update 실행 중 예기치 않은 오류가 발생했다 — {describe_exception(exc)}",
             error_code="backlog_update_runtime_error",
             warnings=["입력 값과 backlog 파서 동작을 점검한 뒤 다시 실행해야 한다."],
-            source_context=source_context | {"exception_type": type(exc).__name__},
+            source_context=source_context | exception_context(exc),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 1
@@ -1416,8 +1416,7 @@ def main() -> int:
                         "대상 backlog 파일의 쓰기 권한과 디스크 상태를 점검한 뒤 다시 시도해야 한다.",
                         f"실패 경로: {daily_backlog_path}",
                     ],
-                    source_context=source_context | {
-                        "exception_type": type(exc).__name__,
+                    source_context=source_context | exception_context(exc) | {
                         "errno": getattr(exc, "errno", None),
                     },
                 )
@@ -1564,10 +1563,10 @@ def main() -> int:
     except Exception as exc:
         result = build_error_result(
             tool_version=TOOL_VERSION,
-            error="backlog-update 실행 중 예기치 않은 오류가 발생했다.",
+            error=f"backlog-update 실행 중 예기치 않은 오류가 발생했다 — {describe_exception(exc)}",
             error_code="backlog_update_runtime_error",
             warnings=["입력 값과 backlog 파서 동작을 점검한 뒤 다시 실행해야 한다."],
-            source_context=source_context | {"exception_type": type(exc).__name__},
+            source_context=source_context | exception_context(exc),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 1

@@ -1132,16 +1132,15 @@
       "progress": 0.3333333333333333,
       "total_leaves": 3,
       "done_leaves": 1,
-      "deliverables_missing": [
-        "docs/planning/workflow-hub-requirements-2026-11.md"
-      ],
+      "deliverables_missing": [],
       "wbs": [
         {
           "id": "WBS-31.1",
           "title": "요구 목록 — API · MCP 도구 · 부트스트랩 · 등록 · 콜사인 기억 · 지침 · 위키 · 로드맵 · 세션 시작 확인 · 오프라인 · 노출 · 1.x 전환 · compact 직후 확인 (H14)",
           "derived_status": "done",
           "linked_task_ids": [
-            "TASK-2026-11-20-claude-workflow-hub-concept-006"
+            "TASK-2026-11-20-claude-workflow-hub-concept-006",
+            "TASK-2026-11-20-claude-workflow-hub-concept-008"
           ],
           "total_leaves": 1,
           "done_leaves": 1,
@@ -1488,9 +1487,7 @@
       "progress": 0.0,
       "total_leaves": 3,
       "done_leaves": 0,
-      "deliverables_missing": [
-        "docs/planning/workflow-hub-requirements-2026-11.md"
-      ],
+      "deliverables_missing": [],
       "wbs": [
         {
           "id": "WBS-39.1",

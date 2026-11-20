@@ -1,6 +1,6 @@
 ---
 id: TASK-2026-11-20-claude-workflow-hub-concept-003
-status: in_progress
+status: done
 created_at: 2026-11-20
 source_anchor: generic-task-2026-11-20-claude-workflow-hub-concept-003
 source_path: backlog/2026-11-20.md
@@ -12,7 +12,7 @@ wbs: M-030/WBS-30.2
 
 ## 📝 Description
 
-- Status: in_progress
+- Status: done
 - Priority: high
 - Request date: 2026-11-20
 - Owner:
@@ -33,11 +33,12 @@ wbs: M-030/WBS-30.2
 
 ## 🛠️ Implementation / Content
 
-- Progress: `2026-11-20 14:43` §11 초안 작성 — 소유자 결정 E1~E6 대기
+- Progress: `2026-11-20 15:14` verifier 지적 반영 — close
 - Next session starting point:
 - Remaining risks:
 
 ## ✅ Outcome
 
-- Result:
+- Result: verifier: 기준 2·3·4 PASS, FAIL 1(위키 사실 2건 — 페이지 수 · lint 자동화 대부분 planned)을 §11.1 · E2 · 조사 문장 수정으로 해소, FAIL 5(--changed roadmap red)는 이 close 로 해소 — close 뒤 --changed 재측정
+- Verification: verifier: 기준 2·3·4 PASS, FAIL 1(위키 사실 2건 — 페이지 수 · lint 자동화 대부분 planned)을 §11.1 · E2 · 조사 문장 수정으로 해소, FAIL 5(--changed roadmap red)는 이 close 로 해소 — close 뒤 --changed 재측정
 - Follow-up:

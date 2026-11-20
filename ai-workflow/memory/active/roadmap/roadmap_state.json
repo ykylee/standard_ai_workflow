@@ -1079,13 +1079,13 @@
     },
     {
       "id": "M-030",
-      "title": "워크플로우 허브 — 여러 환경이 함께 쓰는 task 관리 서버 (arcturus-port 대시보드의 일반화)",
+      "title": "워크플로우 허브 — 2.0.0 준비, 여러 환경이 함께 쓰는 task 관리 서버 (arcturus-port 대시보드의 일반화)",
       "sdlc_phase": "concept",
-      "declared_status": "in_progress",
-      "derived_status": "in_progress",
-      "progress": 0.3333333333333333,
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
       "total_leaves": 3,
-      "done_leaves": 1,
+      "done_leaves": 3,
       "deliverables_missing": [],
       "wbs": [
         {
@@ -1102,23 +1102,23 @@
         {
           "id": "WBS-30.2",
           "title": "위키 허브 관리 검토 — kit 위키를 허브에서 관리할 수 있는지, 구성안 · 어려운 점 · 소유자 선택지 E1~E6",
-          "derived_status": "in_progress",
+          "derived_status": "done",
           "linked_task_ids": [
             "TASK-2026-11-20-claude-workflow-hub-concept-003"
           ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         },
         {
           "id": "WBS-30.3",
-          "title": "프로젝트 등록 · 식별 — 등록 전 부트스트랩퍼 · git 주소 기반 식별 (H6 · H7), 선택지 F1~F5 · 콜사인별 작업 기억 (H8), 선택지 G1~G3 · 콜사인 등록 정보 `.gitignore` (H9) · MCP 로 도구 제공 (H10), 선택지 I1~I4",
-          "derived_status": "in_progress",
+          "title": "2.0 흐름 세부 — 등록 · git 주소 식별 · 콜사인별 기억 · gitignore · MCP · 세션 시작 확인 · 2.0.0 · 1.x 전환 (H6~H13, F1~F5 · G1~G3 · I1~I4)",
+          "derived_status": "done",
           "linked_task_ids": [
             "TASK-2026-11-20-claude-workflow-hub-concept-004"
           ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         }
       ]

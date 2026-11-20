@@ -1,6 +1,6 @@
 ---
 id: TASK-2026-11-20-claude-workflow-hub-concept-004
-status: in_progress
+status: done
 created_at: 2026-11-20
 source_anchor: generic-task-2026-11-20-claude-workflow-hub-concept-004
 source_path: backlog/2026-11-20.md
@@ -12,7 +12,7 @@ wbs: M-030/WBS-30.3
 
 ## 📝 Description
 
-- Status: in_progress
+- Status: done
 - Priority: high
 - Request date: 2026-11-20
 - Owner:
@@ -33,11 +33,12 @@ wbs: M-030/WBS-30.3
 
 ## 🛠️ Implementation / Content
 
-- Progress: `2026-11-20 14:51` §4.2 · §12~§14 초안 — 소유자 결정 F1~F5 · G1~G3 · I1~I4 대기
+- Progress: `2026-11-20 15:14` verifier 지적 반영 · 2.0.0 · 1.x 전환 추가 — close
 - Next session starting point:
 - Remaining risks:
 
 ## ✅ Outcome
 
-- Result:
+- Result: verifier: 기준 1~4 PASS(H6~H11 원문 일치, §15 요약 23항 무모순, kit MCP stdio 확인), 문서 결함(§4.2.2 끊긴 링크 · 절 순서 · H1~H5 잔존) 수정, FAIL 5(--changed roadmap red)는 이 close 로 해소. 이후 H12(2.0.0) · H13(1.x 전환) 추가 — 검증 간소화 기간이라 verifier 재실행 없음, --changed 로만 확인
+- Verification: verifier: 기준 1~4 PASS(H6~H11 원문 일치, §15 요약 23항 무모순, kit MCP stdio 확인), 문서 결함(§4.2.2 끊긴 링크 · 절 순서 · H1~H5 잔존) 수정, FAIL 5(--changed roadmap red)는 이 close 로 해소. 이후 H12(2.0.0) · H13(1.x 전환) 추가 — 검증 간소화 기간이라 verifier 재실행 없음, --changed 로만 확인
 - Follow-up:

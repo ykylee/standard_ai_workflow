@@ -53,6 +53,7 @@ wbs: M-007/WBS-7.4
 ## ✅ Outcome
 
 - Result: docs/HOST_ROLES.md + CLAUDE.md · AGENTS.md 역할 확인 규칙 + gate_evidence.check_consumer_push + check_pre_push_gate case. 이 호스트 workflow.role=contributor 선언.
+- Result: 소유자 보충(2026-11-20): 구분은 이 저장소 한정 — 소비자가 워크플로우 코드를 고쳐 반영하려는 시도를 막는 것. 가이드에 범위 명시 + §4.1 개선은 FEEDBACK.md 의 GitHub Issue(제안 diff 는 본문 텍스트)로, pre-push 거절 문구도 이슈 경로로.
 - Verification: verifier 기준 1~3 PASS(되주입 3건 red · 역할×sha hook 실측) · 기준 4 전량 게이트 1fdcddc5 native · slash 332×2 rc 0 · Proof: workflow.role=contributor 인 이 클론에서 실제 push 통과(219a8460..1fdcddc5)
 - Follow-up: 소비자 클론에서 세션 시작 hook 이 생성물 날짜를 다시 써 트리가 더러워진다 — role=consumer 면 session-start 가 쓰지 않게 할지 소유자 결정 필요
 - Follow-up: 소비자 호스트의 첫 pull 은 옛 CLAUDE.md 로 시작한다 — 소유자가 한 번 '역할 먼저 확인' 을 지시하거나 workflow.role 을 직접 선언

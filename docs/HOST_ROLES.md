@@ -1,11 +1,11 @@
 # 호스트 역할 — 개발 참여자와 읽기 전용 소비자
 
 - 문서 목적: 이 저장소를 클론한 호스트가 **개발 참여자**인지 **읽기 전용 소비자**인지 가르고, 소비자가 pull · 업데이트 때 할 일과 하지 말 일을 정한다.
-- 범위: 역할 표식(`git config workflow.role`), 미선언 호스트 처리, 소비자 업데이트 절차, pre-push 차단
+- 범위: **이 저장소(워크플로우 킷 원본) 한정** — 역할 표식(`git config workflow.role`), 미선언 호스트 처리, 소비자 업데이트 절차, 개선 제안 경로, pre-push 차단. 킷을 설치해 쓰는 다른 프로젝트에는 적용되지 않는다.
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
 - 최종 수정일: 2026-11-20
-- 관련 문서: [`../CLAUDE.md`](../CLAUDE.md), [`../AGENTS.md`](../AGENTS.md), [`RELEASE.md`](./RELEASE.md) §2.8, [`INSTALLATION_AND_USAGE.md`](./INSTALLATION_AND_USAGE.md) §7.0, [`LOCAL_GATE.md`](./LOCAL_GATE.md)
+- 관련 문서: [`FEEDBACK.md`](./FEEDBACK.md), [`../CLAUDE.md`](../CLAUDE.md), [`../AGENTS.md`](../AGENTS.md), [`RELEASE.md`](./RELEASE.md) §2.8, [`INSTALLATION_AND_USAGE.md`](./INSTALLATION_AND_USAGE.md) §7.0, [`LOCAL_GATE.md`](./LOCAL_GATE.md)
 
 ## 1. 두 역할
 
@@ -14,7 +14,9 @@
 | 개발 참여자 | `contributor` | 코드 · 문서 변경, task · 메모리 갱신, 게이트, 커밋 · push, 발행 | — |
 | 읽기 전용 소비자 | `consumer` | pull(fast-forward 만), 로컬 환경 맞추기, 버전 업데이트 | 추적 파일 변경, 커밋, push, 브랜치 작업, task · 메모리 갱신, 발행 |
 
-소비자는 이 저장소를 **킷을 설치 · 갱신하는 원본**으로만 쓴다. 고칠 것을 찾으면 고치지 않고 소유자에게 보고한다 — 수리는 참여자 호스트의 일이다.
+이 구분은 **이 저장소에만** 있다. 소비자는 이 워크플로우를 자기 프로젝트에 설치해 쓰는 쪽이고, 이 저장소는 **킷을 설치 · 갱신하는 원본**으로만 쓴다. 자기 프로젝트에서 킷을 쓰며 메모리 · 문서를 쓰는 것은 이 문서와 무관하다.
+
+소비자가 워크플로우 코드 · 문서에서 고칠 것을 찾아도 **이 클론에서 수정 · 커밋 · push 하지 않는다** — §4.1 의 이슈로 보낸다. 반영은 참여자 호스트의 일이다.
 
 ## 2. 역할 표식
 
@@ -92,9 +94,19 @@ git status --porcelain
 - 추적 파일 편집, 커밋, push(`--no-verify` 포함), 브랜치 · 태그 생성, 병합 · rebase
 - `ai-workflow/` 메모리를 쓰는 명령 — `session-start` · `backlog-update` · `refresh-state` · `compact-checkpoint` · `plan-import` (이 저장소 안에서. 소비자가 *자기 프로젝트*에서 킷을 쓰는 것은 별개다)
 - 게이트 · 발행 — `run_all_checks.py`, `release`, `release-dist`
-- 결함 수리 — 재현 절차와 출력을 소유자에게 보고만 한다
+- 결함 수리 · 개선 반영 — §4.1 로 보낸다
 
 `.githooks/pre-push` 는 `workflow.role=consumer` 인 클론의 push 를 **모두 막는다** (`workflow_kit.common.gate_evidence`). 에이전트가 이 문서를 놓쳐도 push 는 나가지 않는다 — 단 `core.hooksPath` 가 켜져 있어야 한다(§3.3).
+
+### 4.1 고칠 것을 찾았을 때 — 이슈로
+
+[`FEEDBACK.md`](./FEEDBACK.md) 의 GitHub Issues(bug / enhancement, `consumer-feedback` 라벨)로 낸다. 본문에 담는 것:
+
+- 재현 명령과 실제 출력, 기대 결과
+- 킷 버전(`python3 -c "import workflow_kit; print(workflow_kit.__version__)"`) · OS · 하네스
+- 고치는 방법을 안다면 **제안 diff 를 본문에 텍스트로** — 이 클론에 적용하지 않는다
+
+이미 로컬에서 고쳐 버렸다면 `git diff > <이 저장소 밖 경로>/proposal.patch` 로 이슈에 첨부할 사본을 만들고, `git stash push -m "consumer-proposal-<날짜>"` 로 트리를 되돌린다(지우지 않는다). 그다음 §3 을 이어간다.
 
 ## 5. 참여자
 

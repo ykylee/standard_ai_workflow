@@ -215,7 +215,7 @@ def main(argv: list[str] | None = None) -> int:
               "버전 업데이트만 한다 (docs/HOST_ROLES.md):", file=sys.stderr)
         for item in consumer:
             print(f"  - {item}", file=sys.stderr)
-        print(f"  고칠 것은 소유자에게 보고한다. 이 클론이 참여자라면 "
+        print(f"  고칠 것은 이슈로 보낸다 (docs/HOST_ROLES.md §4.1 · docs/FEEDBACK.md). 이 클론이 참여자라면 "
               f"`git config {ROLE_CONFIG_KEY} contributor` 로 다시 선언한다.", file=sys.stderr)
         return 1
     problems = check_push(repo_root, lines)

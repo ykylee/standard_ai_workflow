@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- feat(workflow): 읽기 전용 소비자 클론에서 session-start 는 저장소에 쓰지 않는다 (-002) (cb31e317)
 - feat(workflow): 호스트 역할 — 읽기 전용 소비자 클론은 pull · 환경 맞추기 · 버전 업데이트만, push 는 pre-push 가 막는다 (-001) (1fdcddc5)
 - feat(workbench): iPad 폼 제출 수리 · 진행 기록 상기 · 한 호스트 여러 워크벤치 (-003 · -004 · -005) (0c23165f)
 - feat(workbench): todo — 브랜치 할 일 · task 체크리스트를 워크벤치에서 보고 고친다 (main-016 · main-017) (78b66be9)
@@ -45,11 +46,12 @@ All notable changes to this project will be documented in this file.
 - feat(doctor): plugin_enabled 절을 4채널로 — codex·grok-build·antigravity 활성 선언 실측 (09-28-main-018) (90e3d52a)
 - feat(doctor): plugin_enabled 절 신설 — 설치됐는데 꺼진 플러그인을 발견으로 (09-28-main-017) (880f8327)
 - feat(doctor): 설치본 < 정본 버전을 발견으로 + RELEASE §2.8 채널 재적용 (TASK-2026-09-23-main-014) (22653225)
-- feat(context-budget): 이관 실행 + 이 저장소 게이트 red 활성 — 필독 195KB → 111KB (M-017/WBS-17.5) (8b7119de)
-- ... (179 more)
+- ... (180 more)
 
 ### Changed
 
+- chore(memory): 소비자 클론 읽기 전용 session-start task close (-002) — 게이트 333×2 · 브랜치 push, main 미병합 (d31259e4)
+- chore(memory): 135차 세션 종료 — v1.28.0 발행 · 호스트 역할, 브랜치 main 합류 · 다음 작업은 새 브랜치로 (2757394f)
 - test(workbench): check_workbench_multi case 3 — 호스트의 실제 워크벤치가 쥔 해시 포트면 fixture 를 다시 만든다 (8786cc4d)
 - docs(workflow): 호스트 역할은 이 저장소 한정 — 소비자의 개선은 수정 · push 대신 GitHub Issue 로 (-001 보충) (289e2124)
 - chore(memory): 호스트 역할 가이드 task close (-001) — 게이트 332×2 · contributor 클론 push 통과 (4ad517e5)
@@ -78,9 +80,7 @@ All notable changes to this project will be documented in this file.
 - test(plan): 되주입이 빠져나간 자리 보강 — 한도 숫자 · 0 단계 · 배타 생성 · 순서 (ADR-031 2단계, M-028/WBS-28.2) (9577b9a3)
 - chore(entry): 진입점 템플릿 변경(c4c14c6b) 의 절 해시 재채취 — check_entry_diet case 6 (668051b3)
 - chore(memory): M-028/WBS-28.1 주장 트리 계획 구현 1단계 종결 — task 11-13-003 done, handoff · state 갱신 (a4d9495c)
-- chore(entry): 진입점 템플릿 변경(f45c6da1) 의 절 해시 재채취 — check_entry_diet case 6 (9951d406)
-- docs(design): 주장 트리 계획 design 종결 (M-026) — ADR-031 accepted + core 스펙 → M-027 · M-028 개설 (36e6540c)
-- ... (504 more)
+- ... (506 more)
 
 ### Fixed
 
@@ -116,10 +116,17 @@ All notable changes to this project will be documented in this file.
 - fix(windows): 한글 Windows 프로필 — 자식 환경(home·UTF-8·PATH) 통일 · python3 하드코딩 제거 · 저장소 텍스트 LF 고정 (main-003 착수) (b5148946)
 - ... (236 more)
 
+## [1.29.0] - 2026-11-20
+
+### Changed
+
+- release(v1.29.0): 발행 준비 — 읽기 전용 소비자 클론에서 session-start 는 저장소에 쓰지 않는다 (minor) (e3af1355)
+
 ## [1.28.0] - 2026-11-20
 
 ### Changed
 
+- release(v1.28.0): 발행 완료 — 태그 push + GitHub Release(asset 5종) + §2.8 5채널 · task -002 close (b05dec29)
 - release(v1.28.0): 발행 준비 — 호스트 역할(소비자 클론 push 차단) · 재사용 브랜치 재합류 수리 (minor) (256d36d0)
 
 ## [1.27.0] - 2026-11-17

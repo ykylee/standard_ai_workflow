@@ -1,6 +1,6 @@
 ---
 id: TASK-2026-11-20-claude-consumer-readonly-session-start-003
-status: planned
+status: done
 created_at: 2026-11-20
 source_anchor: generic-task-2026-11-20-claude-consumer-readonly-session-start-003
 source_path: backlog/2026-11-20.md
@@ -12,7 +12,7 @@ wbs: M-007/WBS-7.4
 
 ## 📝 Description
 
-- Status: planned
+- Status: done
 - Priority: high
 - Request date: 2026-11-20
 - Owner:
@@ -33,11 +33,12 @@ wbs: M-007/WBS-7.4
 
 ## 🛠️ Implementation / Content
 
-- Progress: `2026-11-20 06:41` 발행 준비 커밋 · 전량 게이트
+- Progress: `2026-11-20 06:53` 발행 완료 — verifier PASS, 완료 커밋 · push
 - Next session starting point:
 - Remaining risks:
 
 ## ✅ Outcome
 
-- Result:
+- Result: verifier 5/5 PASS — 버전 1.29.0 · 노트 --local 동작 변경 명시 · e3af1355 게이트 333×2 · 태그+Release asset 5종 · §2.8 5채널 doctor behind/disabled []
+- Verification: verifier 5/5 PASS — 버전 1.29.0 · 노트 --local 동작 변경 명시 · e3af1355 게이트 333×2 · 태그+Release asset 5종 · §2.8 5채널 doctor behind/disabled []
 - Follow-up:

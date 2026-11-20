@@ -3,20 +3,20 @@
 > **상태: 릴리스 준비.** package `1.28.0`, runtime `__version__ = 1.28.0`, tag `v1.28.0`.
 > **minor release** — 이 저장소의 호스트 역할(읽기 전용 소비자 클론의 push 차단) · 재사용된 브랜치의 재합류 수리.
 >
-> 등급 근거 (§1.5): v1.27.0 이후 코드 커밋 3 — feat 1 · fix 1 · docs 1, breaking 0 — **minor**.
+> 등급 근거 (§1.5): v1.27.0 이후 코드 커밋 4 — feat 1 · fix 1 · docs 1 · test 1, breaking 0 — **minor**.
 > 공개 Python API 시그니처 제거 0, 진입점 제거 0. `gate_evidence.host_role` · `check_consumer_push` 는 **추가**다.
 > **동작이 바뀌는 곳 하나**: 이 저장소의 `.githooks/pre-push` 가 `git config workflow.role consumer` 인 클론의 push 를 게이트 기록과 무관하게 막는다.
 > 역할을 선언하지 않은 클론 · `contributor` 는 이전 판정 그대로다. 킷을 설치해 쓰는 다른 프로젝트에는 영향이 없다(그쪽 hook 은 이 판정을 부르지 않는다).
 
 ## 0. 릴리스 판정
 
-v1.27.0 이후 코드 3커밋(메모리 · 세션 커밋 제외)이다. 소유자 지시 — "이 저장소의 소비자는 개발 참여자와 읽기 전용 소비자 둘이고,
+v1.27.0 이후 코드 4커밋(메모리 · 세션 커밋 제외)이다. 소유자 지시 — "이 저장소의 소비자는 개발 참여자와 읽기 전용 소비자 둘이고,
 소비자가 워크플로우 코드를 수정해 반영하려는 경우가 있다 — 소비자는 로컬 환경 맞추기 · 버전 업데이트만 하도록" — 와
 134차(macOS 호스트)가 찾아 고친 재합류 결함을 넣었다.
 
 ## 1. 릴리스 요약
 
-- 범위: `v1.27.0..` 발행 준비 직전까지 **3 commit** — feat 1 · fix 1 · docs 1 (+ 메모리 · 세션 커밋 4).
+- 범위: `v1.27.0..` **4 commit** — feat 1 · fix 1 · docs 1 · test 1 (+ 메모리 · 세션 커밋 4 · 발행 준비 1).
 - 누적 smoke **332/332 PASS** (로컬 `--branch-context=all` = 332 × native/slash, 발행 준비 커밋에서 실행).
 - 검사 파일 수 332 → 332 (새 파일 없음 — 기존 검사에 case 추가: `check_pre_push_gate` 3 → 4, `check_branch_join_reflect` 7 → 10).
 
@@ -48,6 +48,9 @@ v1.27.0 이후 코드 3커밋(메모리 · 세션 커밋 제외)이다. 소유�
   verifier 는 역할(미선언 · contributor · consumer · 잘못된 값) × sha(게이트 기록 있음 · 없음)를 hook 으로 직접 실행해 기대 exit 와 맞는지 확인했고,
   그때 드러난 case 의 사각(미선언 · contributor 의 기록 없는 sha)을 case 에 넣었다. `contributor` 로 선언한 이 클론에서 실제 push 가 통과했다.
 - 재합류 수리: `check_branch_join_reflect` 7 → 10 cases(수리 전 red 재현), verifier 3건 PASS(134차 기록).
+- **게이트 간헐 red 수리 (test)**: 발행 준비 커밋의 첫 게이트에서 `check_workbench_multi` case 3 이 red — 이 호스트의 실제 워크벤치가
+  쥔 포트(8766)가 fixture 의 해시 포트와 겹치면 '잴 수 없다' 로 끝났다(단독 3회 중 1회 재현). 막을 수 있는 해시 포트가 나올 때까지
+  fixture 를 다시 만든다(최대 20회). 범위 100 중 43 포트를 쥔 채 잰 결과: 수리판 10회 중 red 0 · 재시도 1회(되주입) 10회 중 5회 red.
 - 발행 호스트: Linux.
 
 ## 4. 알려진 한계 (감추지 않는다)

@@ -22,6 +22,7 @@ WATCHES = (
     "workflow-source/tests/_workbench_fixture.py",
 )
 
+import contextlib
 import json
 import re
 import socket
@@ -95,6 +96,11 @@ def case_names() -> list[str]:
     return problems
 
 
+#: case 3 이 a 의 해시 포트를 막을 수 있을 때까지 fixture 를 다시 만드는 횟수 — 범위 100 중 남이 쥔 포트가 k 개면
+#: 모두 실패할 확률은 (k/100)^n 이다.
+BLOCK_ATTEMPTS = 20
+
+
 def _env(reg: Path) -> dict[str, str]:
     env = fx.env()
     env[registry.REGISTRY_ENV] = str(reg)
@@ -131,19 +137,31 @@ def _port(url: str) -> int | None:
 
 def case_two_checkouts() -> list[str]:
     problems: list[str] = []
-    with fx.temp_workspace("wb-multi-3a-") as a, fx.temp_workspace("wb-multi-3b-") as b, \
-            tempfile.TemporaryDirectory(prefix="wb-multi-reg-") as reg_dir:
-        ws_a, ws_b, reg = fx.make_workspace(a), fx.make_workspace(b), Path(reg_dir)
+    with contextlib.ExitStack() as stack:
+        ws_b = fx.make_workspace(stack.enter_context(fx.temp_workspace("wb-multi-3b-")))
+        reg = Path(stack.enter_context(tempfile.TemporaryDirectory(prefix="wb-multi-reg-")))
         # a 의 해시 포트를 다른 프로세스가 쥔다 — SO_REUSEADDR 로 서버와 같은 규칙으로 bind 한다. 없으면 TIME_WAIT 포트를
         # 건너뛰어 다음 포트를 막고, a 는 해시 포트에 그대로 떠 '다음 빈 포트' 경로를 안 거친 채 green 이었다 (verifier R2, 5회 중 1회).
-        blocker = socket.socket()
-        blocker.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        blocked = registry.preferred_port(ws_a)
-        try:
-            blocker.bind(("127.0.0.1", blocked))
-        except OSError as exc:
-            blocker.close()
-            return [f"a 의 해시 포트 {blocked} 를 막지 못했다 — 이 호스트에서 무엇이 듣고 있다 ({exc}); 잴 수 없다"]
+        # 해시 포트를 이 호스트의 실제 워크벤치가 이미 쥐고 있으면 막을 수 없다 — 그 판만 red 였다(2026-11-20, 소유자의
+        # 개방 모드 워크벤치가 8766 을 쥔 채 게이트 1회 · 단독 3회 중 1회). a 를 새 경로로 다시 만들어 막을 수 있는 포트를 찾는다.
+        blocker: socket.socket | None = None
+        tried: list[str] = []
+        for _ in range(BLOCK_ATTEMPTS):
+            ws_a = fx.make_workspace(stack.enter_context(fx.temp_workspace("wb-multi-3a-")))
+            blocked = registry.preferred_port(ws_a)
+            sock = socket.socket()
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            try:
+                sock.bind(("127.0.0.1", blocked))
+            except OSError as exc:
+                sock.close()
+                tried.append(f"{blocked}({exc.errno})")
+                continue
+            blocker = sock
+            break
+        if blocker is None:
+            return [f"a 의 해시 포트를 {BLOCK_ATTEMPTS}번 모두 막지 못했다 {tried} — 이 호스트에서 무엇이 듣고 있다; 잴 수 없다"]
+        stack.callback(blocker.close)
         blocker.listen(1)
         procs: list[subprocess.Popen[str]] = []
         try:
@@ -184,7 +202,6 @@ def case_two_checkouts() -> list[str]:
         finally:
             for proc in procs:
                 _stop(proc)
-            blocker.close()
     return problems
 
 

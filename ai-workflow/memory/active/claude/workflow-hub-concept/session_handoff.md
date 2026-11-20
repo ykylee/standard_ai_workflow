@@ -27,6 +27,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-11-20-claude-workflow-hub-concept-012 requirements Q7 결정 반영 — 환경 변수 참조를 못 하는 하네스(Antigravity)는 사용자 범위 설정에 값
 - TASK-2026-11-20-claude-workflow-hub-concept-011 2.0 허브 지원 하네스 4종으로 — Claude Code · Codex · MiniMax Code · Antigravity (소유자 결정)
 - TASK-2026-11-20-claude-workflow-hub-concept-010 허브 design 전 실측 — S1 판정 함수 데이터 입구 · S2 위키 검사 펼친 디렉터리 · S3 하네스별 원격 MCP
 - TASK-2026-11-20-claude-workflow-hub-concept-009 requirements 소유자 결정 반영 — Q1~Q5 권고안, Q4 는 arcturus 과제 대시보드 방식(화면 콜사인 · Bearer · 공용 web 토큰)
@@ -36,7 +37,6 @@
 - TASK-2026-11-20-claude-workflow-hub-concept-005 2.0.0 로드맵 기획 — M-031~M-040
 - TASK-2026-11-20-claude-workflow-hub-concept-004 허브 프로젝트 등록 · 식별 — 등록 전 부트스트랩퍼 · git 주소 기반 식별
 - TASK-2026-11-20-claude-workflow-hub-concept-003 위키 허브 관리 검토 — kit 위키를 허브에서 관리할 수 있는지
-- TASK-2026-11-20-claude-workflow-hub-concept-002 워크플로우 허브 concept — arcturus 대시보드 task 관리를 kit 전체로 (개념 문서 + ADR-033 초안)
 ## 5. 다음 세션 시작 포인트
 
 - (136차, 2026-11-20) **결함 수리 1 + M-031 착수.** ①task -007 close — catch-all 오류 결과가 예외 이름만 싣던 결함 수리: `common/errors.py` `exception_context` · `describe_exception`, 6곳 적용, 오류 문안 끝에 `ValidationError(WbsNode) — title: …200 characters` 꼴의 첫 원인, 검사 `check_exception_context` (8 case, 되주입 4종 red). 1.x 결함 수리라 다음 1.x 발행 노트에 싣는다. ②task -008 close — WBS-31.1 requirements 초판 `docs/planning/workflow-hub-requirements-2026-11.md` (R0 불변 · R1~R15 · 95개 요구 전부 [검증] · 추적표 concept 43항목 누락 0). ③task -009 close — **소유자 결정 Q1~Q5 반영** ("권고안대로, Q4 는 arcturus 과제 대시보드 참조"): Q4 = 화면 로그인 없음 · 브라우저가 콜사인 등록 → 토큰 브라우저 저장소 → `Bearer`, 토큰 없는 화면 요청은 공용 `web` 토큰(기본 꺼짐), 근거 arcturus-port `8d24fcd7` (R13.2a). 후속 후보: `check_entry_points` 의 `--help` 하위 프로세스 timeout 10s 가 load 15 에서 red (오늘 2회, 단독 green). ④task -010 close — **WBS-31.2 실측** (requirements §16): S1 판정 핵심은 그대로 · 얇은 입구, 리팩터는 입력 수집 층(상태 생성 · handoff 파서 · 로드맵 수집)만 · S2 V-1/V-4/점수 인자화 필요, `bidir_link` 그대로 · S3 Claude Code · Codex · MiniMax 원격 MCP 실측 지원, Grok 연결 · 인증만(모델 자격 없음), **Antigravity 는 `${VAR}` 헤더 미확장 → Q7 신설**. 1.x 결함 후보 2: `bidir_link.py` `entry_id_stem` 미정의/잔존 · `score_freshness` 가 대상이 줄면 점수 상승. ⑤task -011 close — **지원 하네스 4종 확정 (Q8)**: Claude Code · Codex · MiniMax Code · Antigravity (R2.8), Grok 등은 실측 뒤 추가 결정. **다음 일**: ①~~WBS-31.2~~ ✅ ②**소유자 결정 Q7 — Antigravity 가 지원 4종이라 design 진입 필수**, Antigravity 도구 호출 경로 재실측 (권고: 참조 못 하는 하네스만 사용자 범위 설정에 값) ③WBS-31.3 PURPOSE 2.0판 · 1.x 유지보수 정책 → §17 · R14.8 ~~소유자 결정 Q1~Q5~~ ✅ (-009). Q6(1.x 유지보수 기간)은 WBS-31.3. `--changed` 중 `check_entry_points` · `check_v0_7_4_followup` 이 load 17 에서 timeout red → 단독 green (부하성).

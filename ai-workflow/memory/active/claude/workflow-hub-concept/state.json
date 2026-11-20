@@ -43,6 +43,7 @@
       "TASK-2026-11-13-claude-remote-sync-check-234c32-005"
     ],
     "recent_done_items": [
+      "TASK-2026-11-20-claude-workflow-hub-concept-009 — requirements 소유자 결정 반영 — Q1~Q5 권고안, Q4 는 arcturus 과제 대시보드 방식(화면 콜사인 · Bearer · 공용 web 토큰)",
       "TASK-2026-11-20-claude-workflow-hub-concept-008 — 2.0 허브 요구 목록 — concept 방향 · 결정을 검증 가능한 R 번호로 (requirements 문서 초판)",
       "TASK-2026-11-20-claude-workflow-hub-concept-007 — 런타임 오류가 예외 이름만 내고 원인을 감춘다 — exception_message · pydantic 필드 오류를 오류 결과에 싣는다",
       "TASK-2026-11-20-claude-workflow-hub-concept-006 — 2.0 요구 입력 — compact 직후 허브 확인 · 기록된 작업 f/u (H14)",
@@ -57,7 +58,7 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/claude/workflow-hub-concept/backlog/2026-11-20.md",
-    "task_count": 8,
+    "task_count": 9,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
@@ -68,7 +69,8 @@
       "TASK-2026-11-20-claude-workflow-hub-concept-005 — 2.0.0 로드맵 기획 — M-031~M-040",
       "TASK-2026-11-20-claude-workflow-hub-concept-006 — 2.0 요구 입력 — compact 직후 허브 확인 · 기록된 작업 f/u (H14)",
       "TASK-2026-11-20-claude-workflow-hub-concept-007 — 런타임 오류가 예외 이름만 내고 원인을 감춘다 — exception_message · pydantic 필드 오류를 오류 결과에 싣는다",
-      "TASK-2026-11-20-claude-workflow-hub-concept-008 — 2.0 허브 요구 목록 — concept 방향 · 결정을 검증 가능한 R 번호로 (requirements 문서 초판)"
+      "TASK-2026-11-20-claude-workflow-hub-concept-008 — 2.0 허브 요구 목록 — concept 방향 · 결정을 검증 가능한 R 번호로 (requirements 문서 초판)",
+      "TASK-2026-11-20-claude-workflow-hub-concept-009 — requirements 소유자 결정 반영 — Q1~Q5 권고안, Q4 는 arcturus 과제 대시보드 방식(화면 콜사인 · Bearer · 공용 web 토큰)"
     ]
   },
   "next_documents": [

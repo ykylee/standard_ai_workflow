@@ -4,7 +4,7 @@
 - 범위: 문서 계층과 배치, roadmap SSOT 형식, SDLC 단계 어휘, task 연결 계약, 게이트 계약, 생성물(roadmap_state.json), goal coverage 선언 사슬, skill/CLI 배선, 검사 계약, 단계별 구현 계획
 - 대상 독자: workflow 설계자, 구현자, AI agent (session-start / backlog-update), 프로젝트 온보딩 담당자
 - 상태: draft (ADR-027 accepted, 구현 전 — §10 의 M-002 부터가 구현이다)
-- 최종 수정일: 2026-09-21
+- 최종 수정일: 2026-11-21
 - 관련 문서: `../../ai-workflow/wiki/decisions/adr-027-roadmap-wbs-sdlc.md`, `./llm_wiki_concept_purpose_spec.md`, `./workflow_adoption_entrypoints.md`, `./existing_project_onboarding_contract.md`, `./global_workflow_standard.md`
 
 > **결정 근거는 ADR-027 에 있다** (2026-08-25 소유자 결정 3건: 문서 형태 =
@@ -186,6 +186,11 @@ wbs_exempt_reason: 로드맵 밖 긴급 수리 — CI red
   roadmap 부재 프로젝트에서는 파일을 만들지 않는다 (additive).
 - 내용: 마일스톤별 { 선언 status, 파생 progress, WBS 트리(leaf←task 파생
   상태 + 연결 task id 역방향 목록), 선언-파생 불일치 목록, exempt task 목록 }.
+- **현재 마일스톤** (`current_milestone_id`) — 병행 선언 기준 (소유자 결정 2026-11-21):
+  `in_progress` 선언 마일스톤 가운데 다른 `in_progress` 마일스톤의 `parallel_allowed`
+  에 오른 것은 **배경**이다. 배경이 아닌 것의 order 첫째가 현재이고, 전부가 서로의
+  배경이면(순환) order 첫 `in_progress` 다. 이전 규칙('order 첫 `in_progress`')은
+  상시 운영 마일스톤(M-007, order 7)이 늘 이겨 지금 하는 일을 가리키지 못했다.
 
 ### 7.2 진척 파생 규칙
 

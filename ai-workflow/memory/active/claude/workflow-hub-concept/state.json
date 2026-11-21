@@ -29,14 +29,16 @@
   "session": {
     "current_baseline": "claude/workflow-hub-concept 워크스페이스 — `main@fff952cd` 에서 이어받음 (2026-11-20). **136차 (2026-11-20 ~ 21, Linux 호스트) — 2.0 허브: M-031 requirements · M-032 design(ADR-033 Accepted · PURPOSE 2.0판 적용) · M-033 코어 · M-034 부트스트랩 · M-035 판정 · 기억 done. 다음 M-036.** 정본: `docs/planning/workflow-hub-requirements-2026-11.md` (R0~R16 · 실측 §16 · 결정 Q1~Q10) · `workflow-source/core/hub_spec.md` (DS1~DS9) · `core/hub_workflow_standard.md` · 코드 `workflow_kit/hub/` (DB 판 4, 도구 34종) · 검사 `check_hub_core` · `check_hub_bootstrap` · `check_hub_judge` · `check_hub_memory`. 1.x 결함 수리 1(-007 catch-all 오류 원인) · 1.x 판정 함수 데이터 입구(동작 불변). **이 브랜치는 1.x 분기(R16.5) 전에 main 에 합치지 않는다** (PURPOSE 2.0판). 이전 기준선 — 135차 후속 (2026-11-20): 2.0.0 준비: 워크플로우 허브 concept (M-030 done), 코드 변경 없음. 개념 문서 `docs/planning/workflow-hub-review-2026-11.md` + ADR-033(Proposed, design 뒤 Accepted). 소유자 방향 H1~H14 — 허브 DB 정본 · kit Python 허브 · kit 없는 환경 부트스트랩 · 허브가 task · handoff · 이력 · 공유 지침 · 위키 관리 · 등록 전 부트스트랩퍼 · git 주소로 프로젝트 구분 · 기억은 콜사인별 · 콜사인 등록은 `.gitignore` · 도구는 허브 원격 MCP · 세션 시작 때 허브와 저장소 최신 확인 · **2.0 은 허브 단일, 1.x 는 유지보수** · 1.x 는 첫 2.0 부트스트랩에서 전환 · compact 직후 허브 확인 · 기록된 작업 이어 가기(H14, concept §4.2.4). 로드맵 M-031~M-040 (task -005). 가드 hook 스위치 `b0e3dde9` — `<git common dir>/workflow-simplified-verification` 표식이 있으면 `--no-verify` push 만 통과(이 Linux 클론에만 표식, 기간 끝나면 지운다). 결정 D1(고침)~D11 · E1~E6 · F1~F5 · G1~G3 · I1~I4 전부 권고안. task -002 · -003 · -004 close. **검증 간소화 기간 (소유자 2026-11-20)**: verifier · push 전 전량 게이트 생략, `--changed` + 스모크 뒤 `--no-verify` push, 발행 때만 전량. 모 브랜치 기준선: **134차 세션 (2026-11-19, macOS 호스트 Mac mini — 종전 맥과 다른 두 번째 맥) — 발행 없음, 정본 v1.27.0 + 미발행 수리 3건.** 이 호스트를 1.22.0 → 1.27.0 으로 올림(전역 `wk` uv tool · `.venv` editable · claude-code · codex · grok-build · minimax-code; antigravity 는 `agy` 부재) → doctor behind=[] · disabled=[]. `core.hooksPath=.githooks` 켬. 133차(worktree `claude/remote-sync-check-234c32`, v1.27.0 발행)의 기록이 재합류 결함으로 main 메모리에 못 들어와 있던 것을 수리와 함께 반영(완료 3 · 이월 2). 수리: main-001(session-start 가 아카이브 실패를 '이동했다' 로 보고) · main-002(`archived/<branch>/` 가 있으면 반영까지 건너뜀 → 파일 단위 병합, `superseded-<옛 날짜>.<이름>`) · main-003(`check_memory_index_cross_v0_15_7` case 5 대조군이 telemetry 누적량에 의존). 셋 다 verifier PASS. `run_all_checks --changed` green · smoke 8/8. **전량 게이트(`--branch-context=all`) 이 호스트 첫 실행 통과 — `7df480f9` 664 PASS · 실패 0, push 완료(`fc814642..7df480f9`).**",
     "current_axis": "**로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · ~~[TASK-2026-08-13-main-004] mypy flake 관찰~~ ✅ (66차 close — 33/33 표본, mypy 실패 0).",
-    "current_focus": "TASK-2026-10-02-main-006 Windows 로캘(cp949)에서 wk 가 UnicodeEncodeError 로 죽는다 — stdout 과 기본 인코딩 I/O 를 UTF-8 로 고정",
+    "current_focus": "TASK-2026-11-21-claude-workflow-hub-concept-012 로드맵 현재 마일스톤을 병행 선언 기준으로 — 상시 운영 M-007 이 늘 '현재' 로 보고되던 것",
     "in_progress_items": [
-      "TASK-2026-10-02-main-006 Windows 로캘(cp949)에서 wk 가 UnicodeEncodeError 로 죽는다 — stdout 과 기본 인코딩 I/O 를 UTF-8 로 고정",
-      "TASK-2026-10-02-main-007 Windows V3 백신이 wk.exe 를 평판 기반으로 차단한다 — pip 생성 console-script 런처 대체 진입 경로",
-      "TASK-2026-11-17-claude-remote-sync-check-234c32-002 워크벤치 응답 · todo 변경이 Claude Code 컨텍스트에 실제로 주입되는지 실측 (main-014 미측정분)",
-      "TASK-2026-11-17-claude-remote-sync-check-234c32-004 iPad Chrome(CriOS 156 · iPadOS 27)에서 워크벤치 폼 제출이 서버에 닿지 않는다 — 응답 보내기 · todo 추가 전부"
+      "TASK-2026-11-21-claude-workflow-hub-concept-012 로드맵 현재 마일스톤을 병행 선언 기준으로 — 상시 운영 M-007 이 늘 '현재' 로 보고되던 것",
+      "TASK-2026-11-21-claude-workflow-hub-concept-013 handoff §5 서두의 회차 줄이 예산 밖에서 쌓인다 — 누적형으로 세고 이관"
     ],
     "blocked_items": [
+      "TASK-2026-11-17-claude-remote-sync-check-234c32-004 iPad Chrome(CriOS 156 · iPadOS 27)에서 워크벤치 폼 제출이 서버에 닿지 않는다 — 응답 보내기 · todo 추가 전부",
+      "TASK-2026-11-17-claude-remote-sync-check-234c32-002 워크벤치 응답 · todo 변경이 Claude Code 컨텍스트에 실제로 주입되는지 실측 (main-014 미측정분)",
+      "TASK-2026-10-02-main-007 Windows V3 백신이 wk.exe 를 평판 기반으로 차단한다 — pip 생성 console-script 런처 대체 진입 경로",
+      "TASK-2026-10-02-main-006 Windows 로캘(cp949)에서 wk 가 UnicodeEncodeError 로 죽는다 — stdout 과 기본 인코딩 I/O 를 UTF-8 로 고정",
       "TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다"
     ],
     "planned_items": [
@@ -59,9 +61,17 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/claude/workflow-hub-concept/backlog/2026-11-21.md",
-    "task_count": 11,
-    "in_progress_items": [],
-    "blocked_items": [],
+    "task_count": 17,
+    "in_progress_items": [
+      "TASK-2026-11-21-claude-workflow-hub-concept-012 — 로드맵 현재 마일스톤을 병행 선언 기준으로 — 상시 운영 M-007 이 늘 '현재' 로 보고되던 것",
+      "TASK-2026-11-21-claude-workflow-hub-concept-013 — handoff §5 서두의 회차 줄이 예산 밖에서 쌓인다 — 누적형으로 세고 이관"
+    ],
+    "blocked_items": [
+      "TASK-2026-10-02-main-006 — Windows 로캘(cp949)에서 wk 가 UnicodeEncodeError 로 죽는다 — stdout 과 기본 인코딩 I/O 를 UTF-8 로 고정",
+      "TASK-2026-10-02-main-007 — Windows V3 백신이 wk.exe 를 평판 기반으로 차단한다 — pip 생성 console-script 런처 대체 진입 경로",
+      "TASK-2026-11-17-claude-remote-sync-check-234c32-002 — 워크벤치 응답 · todo 변경이 Claude Code 컨텍스트에 실제로 주입되는지 실측 (main-014 미측정분)",
+      "TASK-2026-11-17-claude-remote-sync-check-234c32-004 — iPad Chrome(CriOS 156 · iPadOS 27)에서 워크벤치 폼 제출이 서버에 닿지 않는다 — 응답 보내기 · todo 추가 전부"
+    ],
     "done_items": [
       "TASK-2026-11-21-claude-workflow-hub-concept-001 — ADR-033 Accepted · DS1~DS9 확정 · PURPOSE 2.0판 적용 · M-032 close",
       "TASK-2026-11-21-claude-workflow-hub-concept-002 — 허브 코어 — 서버 · SQLite · 이관 · 백업",
@@ -84,20 +94,7 @@
     "ai-workflow/memory/active/claude/workflow-hub-concept/sessions",
     "workflow-source/core/roadmap_milestone_wbs_spec.md",
     "workflow-source/core/workflow_deployment_idempotency.md",
-    "ai-workflow/memory/active/main/session_handoff.md",
-    "ai-workflow/memory/archived/claude/remote-sync-check-234c32/session_handoff.md",
-    "ai-workflow/memory/active/main/sessions/merge_claude-remote-sync-check-234c32_2026-11-19.md",
-    "ai-workflow/memory/active/main/sessions/merge_claude-remote-sync-check-234c32_2026-11-15.md",
-    "ai-workflow/memory/archived/feat/auto-20261019-a0afcf36/session_handoff.md",
-    "ai-workflow/memory/active/main/sessions/merge_feat-auto-20261019-a0afcf36_2026-10-19.md",
-    "ai-workflow/memory/archived/feat/auto-20261002-4a5d394c/session_handoff.md",
-    "ai-workflow/memory/active/main/sessions/merge_feat-auto-20261002-4a5d394c_2026-10-03.md",
-    "ai-workflow/memory/archived/claude/remote-sync-status-1ce0a3/session_handoff.md",
-    "ai-workflow/memory/active/main/sessions/merge_claude-remote-sync-status-1ce0a3_2026-10-03.md",
-    "ai-workflow/memory/archived/claude/session-start-e6eb83/session_handoff.md",
-    "ai-workflow/memory/archived/claude/exciting-ardinghelli-a0680d/session_handoff.md",
-    "ai-workflow/memory/active/main/lessons.md",
-    "ai-workflow/memory/active/main/sessions"
+    "ai-workflow/memory/active/main/session_handoff.md"
   ],
   "repository_assessment": {
     "path": null,

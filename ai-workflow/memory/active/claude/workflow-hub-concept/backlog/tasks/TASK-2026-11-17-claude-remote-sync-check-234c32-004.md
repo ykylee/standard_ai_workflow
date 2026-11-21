@@ -3,7 +3,7 @@ inherited_from: main@fff952cd
 inherited_hash: sha256:38e3862422072c4153ee4e86b2a266b56911720891d9eee1fcddb0a70f1d8573
 merged_from: claude/remote-sync-check-234c32@fc814642
 id: TASK-2026-11-17-claude-remote-sync-check-234c32-004
-status: in_progress
+status: blocked
 created_at: 2026-11-17
 source_anchor: generic-task-2026-11-17-claude-remote-sync-check-234c32-004
 source_path: backlog/2026-11-17.md
@@ -15,7 +15,7 @@ wbs: M-007/WBS-7.1
 
 ## 📝 Description
 
-- Status: in_progress
+- Status: blocked
 - Priority: high
 - Request date: 2026-11-17
 - Owner:
@@ -43,7 +43,7 @@ wbs: M-007/WBS-7.1
 
 ## 🛠️ Implementation / Content
 
-- Progress: `2026-11-17 05:46` C1 · C3 · C4 PASS(verifier) · C5 워크벤치 14종 PASS — C2 iPad todo 추가만 남음 (소유자 대기)
+- Progress: `2026-11-21 01:31` blocked — 소유자 실측 대기 (iPad Chrome 실기기에서만 잰다)
 - Next session starting point: 실제 iPad 에서 todo 추가 한 번 → 서버 로그 POST /todo 303 + 소유자 화면 확인 → close (-002 C2 와 같은 한 번)
 - Remaining risks:
 

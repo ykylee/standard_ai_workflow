@@ -614,6 +614,22 @@ def collect_wbs_refs(roadmap: Roadmap) -> tuple[set[str], set[str]]:
     return leaf_refs, non_leaf_refs
 
 
+def _current_milestone_id(milestones: list[Milestone]) -> str | None:
+    """현재 마일스톤 — **병행 선언 기준** (스펙 §7.1, 소유자 결정 2026-11-21).
+
+    `in_progress` 선언 마일스톤 가운데, 다른 `in_progress` 마일스톤의 `parallel_allowed`
+    에 오른 것은 그 옆에서 함께 도는 **배경**이다 (상시 운영 M-007 처럼). 배경이 아닌 것의
+    order 첫째가 현재다. 전부가 서로의 배경이면(순환) order 첫 `in_progress` 로 떨어진다 —
+    열린 마일스톤이 있는데 '현재 없음' 을 내지 않는다.
+    """
+    open_ms = sorted((m for m in milestones if m.status is RoadmapItemStatus.IN_PROGRESS), key=lambda m: m.order)
+    if not open_ms:
+        return None
+    background = {pid for m in open_ms for pid in m.parallel_allowed if pid != m.id}
+    foreground = [m for m in open_ms if m.id not in background]
+    return (foreground or open_ms)[0].id
+
+
 def derive_state(roadmap: Roadmap, links: list[TaskWbsLink], workspace_root: Path,
                  base_issues: list[RoadmapIssue] | None = None, *,
                  deliverable_exists: Callable[[str], bool] | None = None,
@@ -696,7 +712,7 @@ def derive_state(roadmap: Roadmap, links: list[TaskWbsLink], workspace_root: Pat
             deliverables_missing=missing, wbs=wbs_states,
         ))
 
-    current = next((m.id for m in milestone_states if m.declared_status is RoadmapItemStatus.IN_PROGRESS), None)
+    current = _current_milestone_id(roadmap.milestones)
     return RoadmapState(
         generated_at=generated_at or datetime.now(timezone.utc).strftime("%Y-%m-%d"),
         milestones=milestone_states,

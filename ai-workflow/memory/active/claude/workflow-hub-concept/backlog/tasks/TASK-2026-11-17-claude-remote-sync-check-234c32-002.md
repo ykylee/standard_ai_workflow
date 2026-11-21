@@ -3,7 +3,7 @@ inherited_from: main@fff952cd
 inherited_hash: sha256:be948f35c9d1aac83631e14476d405d13d9ccd87342d73178f2153abc8ab36fc
 merged_from: claude/remote-sync-check-234c32@fc814642
 id: TASK-2026-11-17-claude-remote-sync-check-234c32-002
-status: in_progress
+status: blocked
 created_at: 2026-11-17
 source_anchor: generic-task-2026-11-17-claude-remote-sync-check-234c32-002
 source_path: backlog/2026-11-17.md
@@ -15,7 +15,7 @@ wbs: M-007/WBS-7.4
 
 ## 📝 Description
 
-- Status: in_progress
+- Status: blocked
 - Priority: high
 - Request date: 2026-11-17
 - Owner:
@@ -38,7 +38,7 @@ wbs: M-007/WBS-7.4
 
 ## 🛠️ Implementation / Content
 
-- Progress: `2026-11-17 05:46` C1 · C3 관측 기록 — C2 실제 화면 todo 변경 재측정만 남음 (소유자 대기)
+- Progress: `2026-11-21 01:31` blocked — 소유자 실측 대기 (대화형 Claude Code 세션에서만 잰다)
 - Next session starting point: 소유자가 워크벤치 화면에서 todo 하나를 바꾼다(iPad 가능) → 다음 메시지에 '[워크벤치] 소유자가 todo 를 바꿨다' 주입 관측 → C2 실측 · close (-004 C2 와 같은 한 번)
 - Remaining risks:
 

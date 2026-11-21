@@ -307,8 +307,10 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 
 | 1.x 원천 | 허브 | 규칙 |
 |---|---|---|
-| `active/<branch>/backlog/tasks/<ID>.md` | `task` (+ `plan_md`) | 같은 ID 여럿이면 그 파일을 마지막으로 바꾼 커밋 시각이 가장 늦은 것이 정본, 같으면 기본 브랜치 (Q1). 나머지는 그 task 의 `event` (`op=imported_variant`) |
-| `active/<branch>/session_handoff.md` · `sessions/*` · `lessons.md` | `memory_note(kind=archive_1x)` — 원문 그대로 + `meta_json{branch, path, commit, imported_at}` | 읽기 전용 (Q2). 전환한 콜사인의 `handoff` 는 **현재 브랜치** handoff 의 칸에서 시작 (R14.4) |
+| `active/<branch>/backlog/tasks/<ID>.md` · `archived/<branch>/backlog/tasks/<ID>.md` | `task` (+ `plan_md`, 아카이브 출처는 `branch = archived/<branch>`) | 같은 ID 여럿이면 그 파일을 마지막으로 바꾼 커밋 시각이 가장 늦은 것이 정본, 같으면 기본 브랜치 → 활성 브랜치 → 이름순 (Q1). 나머지는 그 task 의 `event` (`op=imported_variant`) |
+| `active · archived/<branch>/` 의 `session_handoff.md` · `sessions/*` · `lessons.md` · `baselines.md` · 날짜별 `backlog/<날짜>.md` · `.archived.json` | `memory_note(kind=archive_1x)` — 원문 그대로 + `meta_json{branch, archived, path, commit, imported_at}` | 읽기 전용 (Q2). 전환한 콜사인의 `handoff` 는 **현재 브랜치** handoff 의 칸에서 시작 (R14.4) |
+| `<branch>/plan_responses/<TASK>-<n>.md` (반영된 응답 — `inbox/` 은 반영 전이라 남김) | 지금 task 계획으로 자격이 있으면 `plan_response` (1.x 가 이미 계획 줄 상태를 고쳐 두었으므로 계획은 다시 쓰지 않는다), 없으면 `memory_note` 보관 + 사유 | 1.x `qualify` 그대로 — 결정 상태가 1.x 와 같다 |
+| `docs/PROJECT_PROFILE.md` (없으면 `active/PROJECT_PROFILE.md`) · `active/PURPOSE.md` | `project_doc(name=profile · purpose)` — 판 9 · `hub_project_doc_get` · `hub_project_doc_put` (승인된 human) | 상태 요약을 만들 때 1.x 자리에 펼쳐 목적 · 프로젝트 칸이 1.x 와 같다 |
 | `.compact/checkpoint.json` | `checkpoint` | 현재 브랜치 것만 |
 | `roadmap/*.md` | `roadmap_doc` | 원문 그대로 (R9.1) |
 | `ai-workflow/wiki/**` · `memory_index/entries/*.json` | `wiki_page` · `memory_entry` | 위키는 **디렉터리 무손실 운반** (`hub_wiki_import_dir` 와 같은 함수 — R8.6 소유자 결정 2026-11-21, 1.x `index.md` · `log.md` 원문은 보관 기록), 묶음 하나 = ingest 하나. memory_index 는 1.x 스키마로 검증 |

@@ -235,7 +235,10 @@ def cmd_migrate_import(mig: str, kinds_arg: str) -> int:
         return 2
     plan = json.loads(path.read_text(encoding="utf-8"))
     files_by_kind: dict[str, list[str]] = plan.get("files", {})
-    kinds = sorted(files_by_kind) if kinds_arg == "all" else [k.strip() for k in kinds_arg.split(",") if k.strip()]
+    # 계획 표의 순서대로 — 결정 응답은 그 task 뒤에 들어가야 자격을 판정할 수 있다
+    order = [row["kind"] for row in plan.get("table", [])] or sorted(files_by_kind)
+    wanted = set(order) if kinds_arg == "all" else {k.strip() for k in kinds_arg.split(",") if k.strip()}
+    kinds = [k for k in order if k in wanted] + sorted(wanted - set(order))
     paths: list[str] = []
     for k in kinds:
         for p in files_by_kind.get(k, []):

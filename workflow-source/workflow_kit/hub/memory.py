@@ -23,6 +23,8 @@ from workflow_kit.hub.errors import HubError, forbidden, invalid_field, not_foun
 from workflow_kit.hub.store import Ctx, Store, _iso, _json, scan_secrets
 
 RECENT_DONE_MAX = 10
+#: 프로젝트 문서 이름 (판 9) — 1.x 의 PURPOSE.md · PROJECT_PROFILE.md.
+PROJECT_DOCS = ("purpose", "profile")
 _LIST_KEYS = ("in_progress", "blocked", "recent_done", "next", "risks")
 _STR_KEYS = ("baseline", "focus")
 _TASK_ID = re.compile(TASK_ID_PATTERN)
@@ -57,6 +59,49 @@ def _validate_sections(sections: Any) -> dict[str, Any]:
 class Memory:
     def __init__(self, store: Store) -> None:
         self.store = store
+
+    # --- 프로젝트 문서 (PURPOSE · PROJECT_PROFILE) ---------------------------------------------
+
+    def doc_get(self, ctx: Ctx, name: str) -> dict[str, Any]:
+        p = self.store._need_reader(ctx)
+        if name not in PROJECT_DOCS:
+            raise invalid_field("name", " · ".join(PROJECT_DOCS))
+        with self.store.read() as conn:
+            row = conn.execute("SELECT body_md, version, updated_by, updated_at FROM project_doc WHERE project_id = ? AND name = ?",
+                               (p.project_id, name)).fetchone()
+        if row is None:
+            return {"name": name, "body": None, "version": 0}
+        return {"name": name, "body": row["body_md"], "version": row["version"], "updated_by": row["updated_by"],
+                "updated_at": row["updated_at"]}
+
+    def doc_put(self, ctx: Ctx, name: str, body: str, expected_version: int | None, *, actor: str | None = None,
+                conn: sqlite3.Connection | None = None) -> dict[str, Any]:
+        """프로젝트 문서 쓰기 — 승인된 human 만 (지침과 같은 기준: 모든 환경의 방향을 바꾼다). 새 문서는 0."""
+        p = self.store._need_callsign(ctx)
+        if conn is None and (p.callsign_kind != "human" or not p.human_approved):
+            raise forbidden("프로젝트 문서는 승인된 human 콜사인이 쓴다")
+        if name not in PROJECT_DOCS:
+            raise invalid_field("name", " · ".join(PROJECT_DOCS))
+        if not isinstance(body, str) or not body.strip() or len(body.encode("utf-8")) > 192 * 1024:
+            raise invalid_field("body", "비지 않은 문자열 · 192KB 이하")
+        scan_secrets(body, "body")
+
+        def do(c: sqlite3.Connection) -> dict[str, Any]:
+            row = c.execute("SELECT version FROM project_doc WHERE project_id = ? AND name = ?", (p.project_id, name)).fetchone()
+            current = row["version"] if row else 0
+            if expected_version is not None and expected_version != current:
+                raise HubError(409, "version_conflict", f"version 이 다르다 — 지금 {current}", {"current_version": current})
+            c.execute("INSERT INTO project_doc (project_id, name, body_md, version, updated_by, updated_at) VALUES (?, ?, ?, 1, ?, ?) "
+                      "ON CONFLICT(project_id, name) DO UPDATE SET body_md = excluded.body_md, version = project_doc.version + 1, "
+                      "updated_by = excluded.updated_by, updated_at = excluded.updated_at",
+                      (p.project_id, name, body, actor or p.callsign, _iso(ctx.now)))
+            self.store._event(c, ctx, p.project_id, "project_doc", name, "put", {"version": current}, {"version": current + 1})
+            return {"name": name, "version": current + 1}
+
+        if conn is not None:
+            return do(conn)
+        with self.store.write() as c:
+            return do(c)
 
     # --- handoff ----------------------------------------------------------------------
 
@@ -191,10 +236,12 @@ class Memory:
             row = conn.execute("SELECT sections_json FROM handoff WHERE project_id = ? AND callsign = ?",
                                (p.project_id, who)).fetchone()
             proj = conn.execute("SELECT display_name FROM project WHERE id = ?", (p.project_id,)).fetchone()
+            docs = {r["name"]: r["body_md"] for r in conn.execute(
+                "SELECT name, body_md FROM project_doc WHERE project_id = ?", (p.project_id,))}
         sections = json.loads(row["sections_json"]) if row else None
         with tempfile.TemporaryDirectory(prefix="hub-state-") as d:
             root = Path(d)
-            profile = materialize(root, who, proj["display_name"], sections, tasks)
+            profile = materialize(root, who, proj["display_name"], sections, tasks, docs)
             from workflow_kit.common.state.builder import build_workflow_state_payload
 
             handoff_path = path_in_active(memory_active_dir(root), HANDOFF_FILENAME, who)
@@ -247,11 +294,19 @@ def render_task(t: dict[str, Any]) -> str:
 
 
 def materialize(root: Path, callsign: str, display: str, sections: dict[str, Any] | None,
-                tasks: list[dict[str, Any]]) -> Path:
-    """허브 데이터 → 1.x 배치 (state 생성기 입력). 프로필 경로를 돌려준다."""
+                tasks: list[dict[str, Any]], docs: dict[str, str] | None = None) -> Path:
+    """허브 데이터 → 1.x 배치 (state 생성기 입력). 프로필 경로를 돌려준다.
+
+    프로젝트 문서(``project_doc`` — PURPOSE · PROJECT_PROFILE)가 있으면 1.x 자리에 펼쳐 목적 · 프로젝트 칸이 찬다.
+    """
+    docs = docs or {}
     (root / "docs").mkdir(parents=True)
     profile = root / "docs" / "PROJECT_PROFILE.md"
-    profile.write_text(f"# {display}\n", encoding="utf-8")
+    profile.write_text(docs.get("profile") or f"# {display}\n", encoding="utf-8")
+    if docs.get("purpose"):
+        purpose = memory_active_dir(root) / "PURPOSE.md"
+        purpose.parent.mkdir(parents=True, exist_ok=True)
+        purpose.write_text(docs["purpose"], encoding="utf-8")
     handoff_path = path_in_active(memory_active_dir(root), HANDOFF_FILENAME, callsign)
     branch_dir = handoff_path.parent
     (branch_dir / "backlog" / "tasks").mkdir(parents=True)

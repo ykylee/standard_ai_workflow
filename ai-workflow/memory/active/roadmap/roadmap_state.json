@@ -1528,9 +1528,9 @@
       "sdlc_phase": "stabilization",
       "declared_status": "in_progress",
       "derived_status": "in_progress",
-      "progress": 0.0,
+      "progress": 0.3333333333333333,
       "total_leaves": 3,
-      "done_leaves": 0,
+      "done_leaves": 1,
       "deliverables_missing": [],
       "wbs": [
         {
@@ -1548,14 +1548,14 @@
         {
           "id": "WBS-39.2",
           "title": "이 저장소 2.0 전환 (자기 적용)",
-          "derived_status": "in_progress",
+          "derived_status": "done",
           "linked_task_ids": [
             "TASK-2026-11-21-main-014",
             "TASK-2026-11-21-main-015",
             "TASK-2026-11-21-main-016"
           ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         },
         {

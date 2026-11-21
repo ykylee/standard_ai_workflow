@@ -19,6 +19,8 @@
 7. '허브로 옮김' 표식 (WBS-38.2 · R14.6) — 끝나지 않은 전환 409 · 소유자 아님 403, 쓰기 지시대로 쓰고 커밋 → sha 확인,
    다른 sha 미확인, 두 번 내도 같은 내용, 표식에 허브 · 프로젝트 · 전환 · 시각 · kit 판
 8. 되돌리기 (R14.7) — 삭제 지시 + 확인 명령, 아직 추적되면 미확인, 지우고 커밋하면 확인, 허브 데이터 불변 · 주의 보고
+10. 결정 응답 · 프로젝트 문서 (소유자 2026-11-21) — 자격 있는 1.x 응답은 결정 응답으로(상태 계산), 없는 것은 보관,
+    받은편지함은 남김. PURPOSE · PROFILE 이 허브 상태 요약의 목적 · 프로젝트 칸을 채운다, 쓰기는 승인된 human 만
 9. 선택 클라이언트 운반 (소유자 2026-11-21, 리허설 §16.5) — 허브가 내려준 hub_client.py 를 kit 없는 격리
    인터프리터로 migrate plan → import all: MCP 와 같은 결과, 계획은 캐시에. 전환 두 도구만 큰 요청 상한
 """
@@ -54,7 +56,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import check_roadmap_gates as rg  # noqa: E402
 from check_hub_core import Hub  # noqa: E402
-from workflow_kit.common import plan_claims  # noqa: E402
+from workflow_kit.common import plan_claims, plan_responses  # noqa: E402
 from workflow_kit.common.plan_tasks import read_task_plan  # noqa: E402
 from workflow_kit.hub.migrate1x import COMMANDS, parse_task_file  # noqa: E402
 
@@ -67,6 +69,12 @@ PLAN = ("- Claims: C1 전환은 칸을 잃지 않는다\n"
         "- Decisions: D1 [C1] 어디에 두나? | default: hub | options: hub = 허브; git = 저장소 | state: proposed\n"
         "- Files that change: `x.py`\n- Proof: 검사\n")
 HAND = "## 우리 프로젝트 규칙\n\n- 배포 전 반드시 스테이징에서 확인한다.\n"
+AR = "ai-workflow/memory/archived"
+OLD = "TASK-2026-10-01-old-001"
+# 1.x PURPOSE 실물 꼴 — 생성기는 `- **G<n>**: …` 첫 목표를 목적 요약으로 읽는다 (그 꼴이 아니면 1.x 에서도 빈 값)
+PURPOSE = ("---\nlast_purpose_review: 2026-11-01\n---\n# PURPOSE\n\n## 1. Goals\n\n- **G1**: 전환 fixture 의 목적 한 줄\n\n"
+           "## 2. Excluded\n\n- 없음\n")
+PROFILE = "# Project Profile\n\n- 프로젝트명: Legacy Fixture\n- 문서 위치: docs/index.md\n"
 
 
 def _record(case: str, ok: bool, detail: str = "") -> None:
@@ -143,8 +151,23 @@ def build_repo(tmp: Path) -> Path:
     _write(repo, ".grok/config.toml", "x = 1\n")
     # 계획이 들이지 않고 남기는 파일 (R14.2 — 숫자와 사유로 보여야 한다)
     _write(repo, f"{A}/main/backlog/2026-11-01.md", "# backlog\n")
+    _write(repo, f"{A}/main/baselines.md", "# baselines\n\n- 옛 기준선\n")
     _write(repo, f"{A}/main/state.json", "{}\n")
-    _write(repo, "ai-workflow/memory/archived/old/backlog/tasks/TASK-2026-10-01-old-001.md", "x\n")
+    # 아카이브된 브랜치 (소유자 2026-11-21 — 들인다): 고유 task · 같은 ID(ID2, 같은 커밋 → 기본 브랜치가 이김) · handoff · 메타
+    _write(repo, f"{AR}/old/backlog/tasks/{OLD}.md", _task_text(OLD, "합쳐진 브랜치의 task", "done"))
+    _write(repo, f"{AR}/old/backlog/tasks/{ID2}.md", _task_text(ID2, "같은 시각 (archived old)"))
+    _write(repo, f"{AR}/old/session_handoff.md", "# Session Handoff\n\n- 현재 기준선: 옛 브랜치\n")
+    _write(repo, f"{AR}/old/.archived.json", '{"branch": "old"}\n')
+    # 결정 응답: 반영된 것(자격 있음) · 없는 task 의 것(자격 없음 → 보관) · 받은편지함(반영 전 → 남김)
+    plan4 = plan_claims.parse_plan(_task_text(ID4, "칸이 많은 task", "done", full).splitlines())
+    good = plan_responses.render_response(task_id=ID4, plan=plan4, responder="owner-a",
+                                          received_at="2026-11-02T09:00:00+09:00", values={"D1": "git"}, opened={"D1": True})
+    _write(repo, f"{A}/main/plan_responses/{ID4}-1793000000000000.md", good)
+    _write(repo, f"{A}/main/plan_responses/TASK-2026-09-09-x-099-1793000000000001.md",
+           good.replace(f"task: {ID4}", "task: TASK-2026-09-09-x-099"))
+    _write(repo, f"{A}/main/plan_responses/inbox/{ID4}-1793000000000002.md", good)
+    _write(repo, f"{A}/PURPOSE.md", PURPOSE)
+    _write(repo, "docs/PROJECT_PROFILE.md", PROFILE)
     _git(repo, "add", "-A")
     _git(repo, "commit", "-q", "-m", "t1000", when=1000)
     # t=2000: hotfix 의 ID1 · t=3000: feat/x 의 ID1 (가장 늦다)
@@ -228,16 +251,16 @@ def main() -> int:
             ok1 = (s0 == 200 and set(p1.get("commands", {})) == set(COMMANDS) and s1 == 200
                    and det.get("namespaces") == ["feat/x", "hotfix", "main"] and det.get("current_namespace") == "main"
                    and det.get("default_branch") == "main" and det.get("kit_versions") == ["1.29.0"]
-                   and c == {"tasks": 8, "archive": 4, "handoff": 1, "roadmap": 3, "wiki": 2, "memory_index": 1,
-                             "checkpoint": 1, "guide_draft": 1}
+                   and c == {"tasks": 10, "archive": 8, "handoff": 1, "roadmap": 3, "wiki": 2, "memory_index": 1,
+                             "checkpoint": 1, "guide_draft": 1, "plan_responses": 2, "project_docs": 2}
+                   and det.get("archived_namespaces") == ["old"]
                    and det.get("unsupported_harnesses") == ["grok-build"] and det.get("unmeasured") == []
                    and any(".mcp.json" in g for g in plan.get("guidance", []))
                    and any("grok-build" in g for g in plan.get("guidance", []))
                    and det.get("uncommitted") == [f"{A}/main/backlog/tasks/TASK-2026-11-02-x-009.md"]
                    and any("커밋 안 된 파일 1개" in g for g in plan.get("guidance", []))
-                   and det.get("left_in_repo_total") == 3
-                   and {k.split(" — ")[0] for k in det.get("left_in_repo", {})}
-                   == {"생성물", "아카이브된 브랜치 기록", "날짜별 backlog"})
+                   and det.get("left_in_repo_total") == 2
+                   and {k.split(" — ")[0] for k in det.get("left_in_repo", {})} == {"생성물", "받은편지함"})
             _record("case 1 (감지 — 네임스페이스 · 브랜치 · kit 판 · 종류별 수 · checkpoint · 4종 밖 하네스)", ok1,
                     f"{s0} {s1} det={det} guidance={plan.get('guidance')}")
             mig = plan.get("migration_id", "")
@@ -257,12 +280,13 @@ def main() -> int:
                 ev = hub.call("hub_events", {"target_kind": "task", "target_id": tid}, tok)[1]["events"]
                 return sum(1 for e in ev if e["op"] == "imported_variant")
 
-            ok2 = (st_t == 200 and sorted(got) == [ID1, ID2, ID3, ID4]
+            ok2 = (st_t == 200 and set(got) == {ID1, ID2, ID3, ID4, OLD}
                    and conf[ID1]["canonical"]["namespace"] == "feat/x" and conf[ID1]["canonical"]["committed_at"] == 3000
                    and "늦다" in conf[ID1]["canonical"]["reason"] and got[ID1]["title"] == "같은 ID (feat/x, 최신)"
                    and conf[ID2]["canonical"]["namespace"] == "main" and "기본 브랜치" in conf[ID2]["canonical"]["reason"]
                    and conf[ID3]["canonical"]["namespace"] == "feat/x" and "이름순" in conf[ID3]["canonical"]["reason"]
-                   and got[ID1]["branch"] == "feat/x" and variants(ID1) == 2 and variants(ID2) == 1 and variants(ID3) == 1
+                   and got[ID1]["branch"] == "feat/x" and variants(ID1) == 2 and variants(ID2) == 2 and variants(ID3) == 1
+                   and got[OLD]["branch"] == "archived/old" and got[OLD]["status"] == "done"
                    and len(conf[ID1]["variants"]) == 2 and conf[ID1]["canonical"].get("commit"))
             _record("case 2 (같은 ID 정본 — 늦은 커밋 · 같은 시각은 기본 브랜치 · 없으면 이름순, 나머지는 이력)", ok2,
                     f"{st_t} {out_t.get('summary')} ids={sorted(got)} conf={ {k: (v['canonical']['namespace'], v['canonical']['reason']) for k, v in conf.items()} }")
@@ -284,7 +308,8 @@ def main() -> int:
                     f"t4={t4} corpus={n_corpus} bad={bad[:5]}")
 
             # 4 나머지 종류 · 보관 · handoff
-            rest = ["archive", "handoff", "roadmap", "wiki", "memory_index", "checkpoint", "guide_draft"]
+            rest = ["archive", "handoff", "roadmap", "wiki", "memory_index", "checkpoint", "guide_draft", "plan_responses",
+                    "project_docs"]
             paths = [p for k in rest for p in files.get(k, [])]
             st_r, out_r = send(hub, tok, mig, repo, rest, paths)
             after = snapshot(repo)
@@ -297,7 +322,10 @@ def main() -> int:
                     "SELECT title, body_md, meta_json FROM memory_note WHERE kind = 'archive_1x' AND title LIKE 'ai-workflow/%'")}
             s1_path = f"{A}/main/sessions/s1.md"
             ok4 = (notes_none.get("version") == 0 and st_r == 200 and before == after and status_clean
-                   and set(notes) == {f"{A}/main/session_handoff.md", f"{A}/feat/x/session_handoff.md", s1_path, f"{A}/main/lessons.md"}
+                   and set(notes) >= {f"{A}/main/session_handoff.md", f"{A}/feat/x/session_handoff.md", s1_path, f"{A}/main/lessons.md",
+                                       f"{A}/main/backlog/2026-11-01.md", f"{A}/main/baselines.md", f"{AR}/old/session_handoff.md",
+                                       f"{AR}/old/.archived.json"}
+                   and notes[f"{AR}/old/session_handoff.md"][1].get("archived") is True
                    and notes[s1_path][0].encode() == (repo / s1_path).read_bytes()
                    and notes[s1_path][1].get("branch") == "main" and notes[s1_path][1].get("commit")
                    and notes[f"{A}/feat/x/session_handoff.md"][1].get("branch") == "feat/x"
@@ -333,11 +361,27 @@ def main() -> int:
             e6, _ = send(hub, tok, mig, repo, ["tasks"], files["tasks"][:1])
             _, listing2, _ = hub.call("hub_task_list", {"limit": 500}, tok)
             ok6 = (e0 == 403 and e1 == 403 and e2 == 403 and e3 == 400 and bad_path["detail"].get("field") == "files[0].path" and e4 == 400
-                   and e5 == 200 and again.get("status") == "done" and again["summary"]["tasks"] == {"skipped_exists": 8}
-                   and again["summary"]["archive"].get("skipped_exists") == 4 and e6 == 409
-                   and len(listing2["tasks"]) == 4 and variants(ID1) == 2)
+                   and e5 == 200 and again.get("status") == "done" and again["summary"]["tasks"] == {"skipped_exists": 10}
+                   and again["summary"]["archive"].get("skipped_exists") == 8 and e6 == 409
+                   and len(listing2["tasks"]) == 5 and variants(ID1) == 2)
             _record("case 6 (권한 · 계획 밖 경로 · 고르지 않은 종류 · 다시 보내기 · final 뒤 409)", ok6,
                     f"{e0} {e1} {e2} {e3} {e4} {e5}/{again.get('summary')} {e6}")
+
+            # 10 결정 응답 · 프로젝트 문서 (소유자 2026-11-21 — 전환 범위 확장)
+            st10, ps, _ = hub.call("hub_plan_status", {"task_id": ID4}, tok)
+            rsum = out_r.get("summary", {}).get("plan_responses", {})
+            doc_p = hub.call("hub_project_doc_get", {"name": "purpose"}, tok)[1]
+            doc_f = hub.call("hub_project_doc_get", {"name": "profile"}, tok)[1]
+            state = hub.call("hub_state", {}, tok)[1].get("state", {})
+            d_put, _, _ = hub.call("hub_project_doc_put", {"name": "purpose", "body": "x", "expected_version": 1}, other)
+            # 기본값(hub)과 다른 답(git)은 1.x 의미로 changed:git
+            ok10 = (st10 == 200 and ps.get("responses") == 1 and ps.get("states", {}).get("D1") == "changed:git"
+                    and rsum == {"imported": 1, "archived_ineligible": 1}
+                    and doc_p.get("body") == PURPOSE and doc_f.get("body") == PROFILE
+                    and "전환 fixture 의 목적" in str(state.get("purpose_digest") or "")
+                    and (state.get("project") or {}).get("project_name") == "Legacy Fixture" and d_put == 403)
+            _record("case 10 (결정 응답 · 프로젝트 문서 — 자격 있는 응답만 결정 상태로, PURPOSE · PROFILE 이 상태 요약을 채움)", ok10,
+                    f"{st10}/{ps} rsum={rsum} purpose={str(state.get('purpose_digest'))[:40]} project={state.get('project')} put={d_put}")
 
             # 7 표식
             import hashlib
@@ -387,7 +431,7 @@ def main() -> int:
             rep8 = hub.call("hub_migrate_report", {"migration_id": mig}, tok)[1]["report"].get("marker", {})
             ok8 = (r1 == 200 and delete.get("path") == "ai-workflow/HUB_MIGRATED.json" and check.get("expect") == "empty"
                    and "데이터 이동은 없다" in rv.get("warning", "") and "건너뛴다" in rv.get("warning", "") and r2 == 200 and still.get("reverted") is False
-                   and r3 == 200 and done_rv.get("reverted") is True and n_before == n_after == 4
+                   and r3 == 200 and done_rv.get("reverted") is True and n_before == n_after == 5
                    and rep8.get("reverted_at") and rep8.get("confirmed_at") is None
                    and not (repo / "ai-workflow/HUB_MIGRATED.json").exists())
             _record("case 8 (되돌리기 — 삭제 지시 · 추적되면 미확인 · 지우면 확인 · 허브 데이터 불변)", ok8,
@@ -433,8 +477,9 @@ def main() -> int:
             s_big, s_other = raw_post("hub_migrate_plan", body), raw_post("hub_task_list", body)
             ok9 = (c1 == 0 and mig2.startswith("MIG-") and cplan.get("conflicts") == 3 and cached
                    and c2 == 0 and cimp.get("errors") == [] and cimp.get("unreadable") == []
-                   and sorted(t["id"] for t in tasks2) == [ID1, ID2, ID3, ID4]
-                   and cimp.get("total", {}).get("archive", {}).get("imported") == 4
+                   and {t["id"] for t in tasks2} == {ID1, ID2, ID3, ID4, OLD}
+                   and cimp.get("total", {}).get("archive", {}).get("imported") == 8
+                   and cimp.get("total", {}).get("plan_responses", {}).get("imported") == 1
                    and c3 == 1 and again2.get("errors", [{}])[0].get("error_code") == "already_done"
                    and len(body) > 256 * 1024 and s_big == 200 and s_other == 413)
             _record("case 9 (선택 클라이언트 운반 — kit 없는 클라이언트로 plan · import, 큰 상한은 전환 도구만)", ok9,

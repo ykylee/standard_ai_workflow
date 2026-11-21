@@ -32,6 +32,10 @@ from workflow_kit.hub.store import STATUSES, Ctx, Principal, Store, _iso, _json,
 from workflow_kit.hub.wiki import Wiki
 
 ACTIVE = "ai-workflow/memory/active/"
+#: 아카이브된 브랜치 (1.x ``archive-branch-memory``) — 소유자 2026-11-21: 전환이 이것도 들인다.
+ARCHIVED = "ai-workflow/memory/archived/"
+PROFILE_PATHS = ("docs/PROJECT_PROFILE.md", ACTIVE + "PROJECT_PROFILE.md")
+PURPOSE_PATH = ACTIVE + "PURPOSE.md"
 WIKI_ROOT = "ai-workflow/wiki/"
 ENTRY_FILES = ("CLAUDE.md", "AGENTS.md", "MiniMax.md", "ANTIGRAVITY.md", "GEMINI.md")
 #: 하네스 설정 흔적 → 하네스. 지원 4종 밖은 '2.0 지원 대상 아님' (R14.9).
@@ -41,7 +45,9 @@ HARNESS_TRACES: dict[str, str] = {
     ".grok/": "grok-build", ".opencode/": "opencode", "opencode.json": "opencode", ".pi/": "pi-dev",
 }
 SUPPORTED = ("claude-code", "codex", "minimax-code", "antigravity")
-KINDS = ("tasks", "archive", "handoff", "roadmap", "wiki", "memory_index", "checkpoint", "guide_draft")
+#: 종류 — 이 순서로 들인다 (결정 응답은 task 뒤: 응답의 자격은 그 task 의 계획으로 판정한다).
+KINDS = ("tasks", "archive", "handoff", "roadmap", "wiki", "memory_index", "checkpoint", "guide_draft",
+         "plan_responses", "project_docs")
 _TRACE_PATHS = sorted({p.rstrip("/") for p in HARNESS_TRACES})
 
 #: 에이전트가 저장소 뿌리에서 돌리는 명령 (읽기만). 결과는 ``{이름: {rc, output}}``.
@@ -49,9 +55,9 @@ COMMANDS: dict[str, list[str]] = {
     "branch": ["git", "rev-parse", "--abbrev-ref", "HEAD"],
     "default": ["git", "rev-parse", "--abbrev-ref", "origin/HEAD"],
     "head": ["git", "rev-parse", "HEAD"],
-    "ls_tracked": ["git", "ls-files", "--", "ai-workflow", *ENTRY_FILES, *_TRACE_PATHS],
+    "ls_tracked": ["git", "ls-files", "--", "ai-workflow", "docs/PROJECT_PROFILE.md", *ENTRY_FILES, *_TRACE_PATHS],
     "ls_ignored": ["git", "ls-files", "--others", "--ignored", "--exclude-standard", "--", "ai-workflow/memory/active"],
-    "times": ["git", "log", "--format=@%ct %H", "--name-only", "--", "ai-workflow/memory/active"],
+    "times": ["git", "log", "--format=@%ct %H", "--name-only", "--", "ai-workflow/memory/active", "ai-workflow/memory/archived"],
     "kit_marker": ["git", "grep", "-n", "-e", "standard-ai-workflow-kit:", "--", *ENTRY_FILES],
     # 커밋 안 된 · 추적 안 된 파일 — 감지는 추적 파일만 보므로 이것들은 계획에 없다 (경고로 알린다).
     "dirty": ["git", "status", "--porcelain", "--untracked-files=all", "--", "ai-workflow", *ENTRY_FILES],
@@ -60,12 +66,9 @@ COMMANDS: dict[str, list[str]] = {
 #: 계획이 들이지 않고 저장소에 남기는 파일의 사유 (R14.2 '무엇을 남기는지'). 위에서부터 첫 일치.
 LEFT_REASONS: tuple[tuple[str, str], ...] = (
     (r"(^|/)state\.json(\.template)?$|/roadmap_state\.json$", "생성물 — 허브가 다시 만든다"),
-    (r"^ai-workflow/memory/archived/", "아카이브된 브랜치 기록 — 이 전환은 활성 네임스페이스만 들인다"),
-    (r"^ai-workflow/memory/active/.+/backlog/\d{4}-\d{2}-\d{2}\.md$", "날짜별 backlog — task 파일이 정본이고 이것은 파생 목록"),
-    (r"/baselines\.md$", "기준선 이관 기록 — 이 전환이 다루지 않는다"),
-    (r"/plan_responses/", "결정 응답 보관 — 이 전환이 다루지 않는다 (결정 상태는 task 계획 줄에 있다)"),
+    (r"/plan_responses/inbox/", "받은편지함 — 아직 반영 안 된 응답 (1.x 에서 plan-import 한 뒤 다시 전환한다)"),
     (r"(^|/)\.gitkeep$|(^|/)\.frozen$|\.bak$", "자리 표시 · 백업 파일"),
-    (r"^ai-workflow/memory/active/(PURPOSE|PROJECT_PROFILE)\.md$", "프로젝트 문서 — 허브에 자리가 없다 (저장소에 남는다)"),
+    (r"^ai-workflow/memory/active/PROJECT_PROFILE\.md$", "프로젝트 프로필 사본 — docs/PROJECT_PROFILE.md 를 들였다"),
     (r"^ai-workflow/memory/(archive|release|plans)/|^ai-workflow/memory/log\.md$", "옛 스냅숏 · 발행 기록 — 저장소에 남는다"),
     (r"^ai-workflow/wiki/", "위키의 페이지가 아닌 파일"),
     (r"^ai-workflow/memory/active/memory_index/", "memory_index 의 entry 가 아닌 파일"),
@@ -74,7 +77,11 @@ LEFT_REASONS: tuple[tuple[str, str], ...] = (
 _KIT_MARKER = re.compile(r"standard-ai-workflow-kit:\s*v?([0-9][0-9A-Za-z.+-]*)")
 #: task 파일 이름의 ID 는 정규식으로 거르지 않는다 — 옛 ID(``TASK-021``)도 감지에서 빠지면 안 된다. 판정은 파서가 한다.
 _TASK_FILE = re.compile(r"^(?P<ns>.+?)/backlog/tasks/(?P<id>[^/]+)\.md$")  # 이름이 TASK- 로 시작하는지는 아래에서
-_ARCHIVE_FILE = re.compile(rf"^(?P<ns>.+?)/(?:{re.escape(HANDOFF_FILENAME)}|lessons\.md|sessions/.+\.md)$")
+#: 보관 원문으로 들이는 브랜치 기록 — handoff · lessons · sessions · baselines · 날짜별 backlog · 아카이브 메타.
+_ARCHIVE_FILE = re.compile(rf"^(?P<ns>.+?)/(?:{re.escape(HANDOFF_FILENAME)}|lessons\.md|baselines\.md|sessions/.+\.md"
+                           r"|backlog/\d{4}-\d{2}-\d{2}\.md|\.archived\.json)$")
+#: 반영된 결정 응답 (받은편지함 ``inbox/`` 은 아니다 — 아직 반영 전이라 들이면 1.x 와 결정 상태가 달라진다).
+_RESPONSE_FILE = re.compile(r"^(?P<ns>.+?)/plan_responses/(?P<name>[^/]+\.md)$")
 _FRONTMATTER = re.compile(r"\A---\n(.*?)\n---\n", re.S)
 _HEADER = re.compile(r"^#\s+(\S+)\s+[—-]\s+(.+)$", re.M)  # ID 는 frontmatter 의 것과 같은지로만 본다
 _SPECIAL_TOP = ("roadmap/", "memory_index/")
@@ -274,29 +281,37 @@ class Migrator:
         archive: list[dict[str, Any]] = []
         namespaces: set[str] = set()
         roadmap, wiki, memidx, entries, traces = [], [], [], [], []
+        archived_ns: set[str] = set()
+        responses: list[dict[str, Any]] = []
         for path in tracked:
-            if path.startswith(ACTIVE):
-                rest = path[len(ACTIVE):]
-                if rest.startswith("roadmap/") and rest.endswith(".md") and rest.count("/") == 1:
+            root = ACTIVE if path.startswith(ACTIVE) else ARCHIVED if path.startswith(ARCHIVED) else None
+            if root is not None:
+                rest = path[len(root):]
+                is_archived = root == ARCHIVED
+                if not is_archived and rest.startswith("roadmap/") and rest.endswith(".md") and rest.count("/") == 1:
                     roadmap.append(path)
                     continue
-                if rest.startswith("memory_index/entries/") and rest.endswith(".json"):
+                if not is_archived and rest.startswith("memory_index/entries/") and rest.endswith(".json"):
                     memidx.append(path)
                     continue
-                if rest.startswith(_SPECIAL_TOP):
+                if not is_archived and rest.startswith(_SPECIAL_TOP):
                     continue
+                ct, sha = times.get(path, (0, ""))
                 m = _TASK_FILE.match(rest)
                 if m and m.group("id").startswith("TASK-"):
-                    namespaces.add(m.group("ns"))
-                    ct, sha = times.get(path, (0, ""))
+                    (archived_ns if is_archived else namespaces).add(m.group("ns"))
                     tasks.setdefault(m.group("id"), []).append(
-                        {"namespace": m.group("ns"), "path": path, "committed_at": ct, "commit": sha})
+                        {"namespace": m.group("ns"), "archived": is_archived, "path": path, "committed_at": ct, "commit": sha})
                     continue
                 m = _ARCHIVE_FILE.match(rest)
                 if m:
-                    namespaces.add(m.group("ns"))
-                    ct, sha = times.get(path, (0, ""))
-                    archive.append({"namespace": m.group("ns"), "path": path, "commit": sha, "committed_at": ct})
+                    (archived_ns if is_archived else namespaces).add(m.group("ns"))
+                    archive.append({"namespace": m.group("ns"), "archived": is_archived, "path": path, "commit": sha,
+                                    "committed_at": ct})
+                    continue
+                m = _RESPONSE_FILE.match(rest)
+                if m:  # 이름에 / 가 없어 plan_responses/inbox/ (반영 전) 는 이 꼴에 맞지 않는다
+                    responses.append({"namespace": m.group("ns"), "archived": is_archived, "path": path})
             elif path.startswith(WIKI_ROOT) and path.endswith(".md"):
                 wiki.append(path)
             elif path in ENTRY_FILES:
@@ -306,8 +321,10 @@ class Migrator:
                     if path == prefix or path.startswith(prefix):
                         traces.append({"path": path, "harness": harness})
                         break
+        profile_src = next((p for p in PROFILE_PATHS if p in tracked), "")
+        docs_src = [p for p in (PURPOSE_PATH, profile_src) if p and p in tracked]
         covered_now = set(sorted(c["path"] for cands in tasks.values() for c in cands)) | {a["path"] for a in archive} \
-            | set(roadmap) | set(wiki) | set(memidx) | set(entries)
+            | set(roadmap) | set(wiki) | set(memidx) | set(entries) | {r["path"] for r in responses} | set(docs_src)
         left: dict[str, list[str]] = {}
         for path in tracked:
             if path in covered_now or not path.startswith("ai-workflow/"):
@@ -325,14 +342,17 @@ class Migrator:
         canonical: dict[str, dict[str, Any]] = {}
         conflicts = []
         for task_id, cands in sorted(tasks.items()):
-            ranked = sorted(cands, key=lambda c: (-c["committed_at"], c["namespace"] != default, c["namespace"]))
+            ranked = sorted(cands, key=lambda c: (-c["committed_at"], c["archived"] or c["namespace"] != default,
+                                                  c["archived"], c["namespace"]))
             win = ranked[0]
             if len(cands) > 1:
                 second = ranked[1]
                 if win["committed_at"] > second["committed_at"]:
                     reason = "마지막 커밋 시각이 가장 늦다"
-                elif win["namespace"] == default:
+                elif win["namespace"] == default and not win["archived"]:
                     reason = "커밋 시각이 같아 기본 브랜치"
+                elif not win["archived"] and second["archived"]:
+                    reason = "커밋 시각이 같아 활성 브랜치 (아카이브보다 앞)"
                 else:
                     reason = "커밋 시각이 같고 기본 브랜치가 없어 이름순"
                 win_with_reason: dict[str, Any] = {**win, "reason": reason}
@@ -349,9 +369,10 @@ class Migrator:
             if current_ns and f"{ACTIVE}{current_ns}/{HANDOFF_FILENAME}" in tracked else [],
             "roadmap": sorted(roadmap), "wiki": sorted(wiki), "memory_index": sorted(memidx),
             "checkpoint": [checkpoint] if checkpoint else [], "guide_draft": sorted(entries),
+            "plan_responses": sorted(r["path"] for r in responses), "project_docs": docs_src,
         }
         detected: dict[str, Any] = {
-            "namespaces": sorted(namespaces), "current_namespace": current_ns, "branch": branch,
+            "namespaces": sorted(namespaces), "archived_namespaces": sorted(archived_ns), "current_namespace": current_ns, "branch": branch,
             "default_branch": default, "head": head, "kit_versions": kit_versions,
             "counts": {k: len(v) for k, v in files.items()}, "task_ids": len(tasks),
             "entry_files": sorted(entries), "harness_traces": traces,
@@ -525,11 +546,62 @@ class Migrator:
 
     # --- 종류별 ---------------------------------------------------------------------
 
+    def _import_plan_responses(self, ctx: Ctx, p: Principal, plan: dict[str, Any], path: str, content: str, add: Any) -> None:
+        """반영된 결정 응답 → 자격이 있으면 허브의 결정 응답(``plan_response``), 없으면 보관 원문.
+
+        1.x 는 응답을 반영할 때 task 계획 줄의 결정 상태를 이미 고쳐 두었다 — 그래서 계획을 다시 쓰지 않고 응답만 둔다
+        (``hub_plan_status`` 가 같은 상태를 다시 계산한다). 옛 계획에 대한 응답은 자격이 없어 상태에 들어가지 않는다.
+        """
+        from workflow_kit.common import plan_claims, plan_responses  # noqa: PLC0415
+        from workflow_kit.hub.judge import task_lines  # noqa: PLC0415
+
+        pid = p.project_id or ""
+        name = path.rsplit("/", 1)[-1]
+        task_id = plan_responses.task_of_response_name(name)
+        data = content.encode("utf-8")
+        parsed = plan_responses.parse_response(data)
+        with self.store.write() as conn:
+            if conn.execute("SELECT 1 FROM plan_response WHERE project_id = ? AND body_sha256 = ?",
+                            (pid, parsed.content_sha256)).fetchone():
+                add("plan_responses", "skipped_exists", path)
+                return
+            row = conn.execute("SELECT plan_md, fields_json FROM task WHERE project_id = ? AND id = ?",
+                               (pid, task_id or "")).fetchone() if task_id else None
+            verdict = None
+            if row is not None:
+                lines = task_lines(row["plan_md"], json.loads(row["fields_json"] or "{}"))[0]
+                verdict = plan_responses.qualify(parsed, plan_claims.parse_plan(lines), task_id or "")
+            if row is not None and verdict is not None and verdict.eligible:
+                conn.execute("INSERT INTO plan_response (project_id, task_id, body, body_sha256, received_at, responder) "
+                             "VALUES (?, ?, ?, ?, ?, ?)",
+                             (pid, task_id, content, parsed.content_sha256, parsed.received_at, parsed.responder))
+                self.store._event(conn, ctx, pid, "task", task_id or "", "plan_response_1x", None,
+                                  {"responder": parsed.responder, "sha256": parsed.content_sha256, "path": path})
+                add("plan_responses", "imported", {"task_id": task_id, "path": path})
+                return
+            why = ("task 가 허브에 없다" if row is None else f"자격 {verdict.stage} 단계: {verdict.reason}" if verdict else "?")
+            ns, archived = _ns_of(path)
+            conn.execute("INSERT INTO memory_note (project_id, callsign, kind, title, body_md, meta_json, created_at) "
+                         "VALUES (?, ?, 'archive_1x', ?, ?, ?, ?)",
+                         (pid, p.callsign, path, content,
+                          _json({"branch": ns, "archived": archived, "path": path, "kind": "plan_response",
+                                 "not_applied": why, "imported_at": _iso(ctx.now)}), _iso(ctx.now)))
+        add("plan_responses", "archived_ineligible", {"path": path, "why": why})
+
+    def _import_project_docs(self, ctx: Ctx, p: Principal, plan: dict[str, Any], path: str, content: str, add: Any) -> None:
+        name = "purpose" if path == PURPOSE_PATH else "profile"
+        mem = Memory(self.store)
+        if mem.doc_get(ctx, name)["version"]:
+            add("project_docs", "skipped_exists", {"name": name, "path": path})
+            return
+        mem.doc_put(ctx, name, content, 0)
+        add("project_docs", "imported", {"name": name, "path": path})
+
     def _import_tasks(self, ctx: Ctx, p: Principal, plan: dict[str, Any], path: str, content: str, add: Any) -> None:
         t = parse_task_file(content)
         scan_secrets(t, "task")
         pid = p.project_id or ""
-        ns = path[len(ACTIVE):].split("/backlog/tasks/")[0]
+        ns, archived = _ns_of(path)
         ct, sha = plan["times"].get(path, [0, ""])
         if plan["canonical"].get(t["id"]) != path:
             with self.store.write() as conn:
@@ -540,7 +612,7 @@ class Migrator:
                     add("tasks", "skipped_exists", {"id": t["id"], "path": path, "variant": True})
                     return
                 self.store._event(conn, ctx, pid, "task", t["id"], "imported_variant", None,
-                                  {"namespace": ns, "path": path, "commit": sha, "committed_at": ct,
+                                  {"namespace": ns, "archived": archived, "path": path, "commit": sha, "committed_at": ct,
                                    "title": t["title"], "status": t["status"], "canonical": plan["canonical"].get(t["id"])})
             add("tasks", "variants", {"id": t["id"], "path": path})
             return
@@ -553,16 +625,17 @@ class Migrator:
                 "INSERT INTO task (project_id, id, title, status, priority, branch, wbs, wbs_exempt_reason, description, "
                 "plan_md, fields_json, progress_note, created_by, created_at, updated_at) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (pid, t["id"], t["title"], t["status"], t["priority"], ns, t["wbs"], t["wbs_exempt_reason"],
+                (pid, t["id"], t["title"], t["status"], t["priority"], ("archived/" if archived else "") + ns, t["wbs"],
+                 t["wbs_exempt_reason"],
                  t["description"], t["plan_md"], _json(t["fields"]), t["progress_note"], p.callsign, created, _iso(ctx.now)))
             self.store._event(conn, ctx, pid, "task", t["id"], "import_1x", None,
-                              {"namespace": ns, "path": path, "commit": sha, "committed_at": ct})
+                              {"namespace": ns, "archived": archived, "path": path, "commit": sha, "committed_at": ct})
         add("tasks", "imported", {"id": t["id"], "path": path})
 
     def _import_archive(self, ctx: Ctx, p: Principal, plan: dict[str, Any], path: str, content: str, add: Any) -> None:
         pid = p.project_id or ""
-        rest = path[len(ACTIVE):]
-        ns = next(a["namespace"] for a in _archive_rows(plan) if a["path"] == path)
+        ns, archived = _ns_of(path)
+        rest = path[len(ARCHIVED if archived else ACTIVE):]
         ct, sha = plan["times"].get(path, [0, ""])
         with self.store.write() as conn:
             dup = conn.execute("SELECT 1 FROM memory_note WHERE project_id = ? AND kind = 'archive_1x' AND title = ?",
@@ -573,8 +646,8 @@ class Migrator:
             conn.execute("INSERT INTO memory_note (project_id, callsign, kind, title, body_md, meta_json, created_at) "
                          "VALUES (?, ?, 'archive_1x', ?, ?, ?, ?)",
                          (pid, p.callsign, path, content,
-                          _json({"branch": ns, "path": path, "rel": rest, "commit": sha, "committed_at": ct,
-                                 "imported_at": _iso(ctx.now)}), _iso(ctx.now)))
+                          _json({"branch": ns, "archived": archived, "path": path, "rel": rest, "commit": sha,
+                                 "committed_at": ct, "imported_at": _iso(ctx.now)}), _iso(ctx.now)))
         add("archive", "imported", path)
 
     def _import_handoff(self, ctx: Ctx, p: Principal, plan: dict[str, Any], path: str, content: str, add: Any) -> None:
@@ -679,14 +752,16 @@ def marker_content(public_url: str, project_id: str, mig: str, migrated_at: str,
     return json.dumps(body, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
 
 
-def _archive_rows(plan: dict[str, Any]) -> list[dict[str, Any]]:
-    out = []
-    for path in plan["files"].get("archive", []):
-        m = _ARCHIVE_FILE.match(path[len(ACTIVE):])
+def _ns_of(path: str) -> tuple[str, bool]:
+    """경로 → (네임스페이스, 아카이브된 브랜치인가). 브랜치 기록 · task · 결정 응답 경로의 공통 꼴."""
+    archived = path.startswith(ARCHIVED)
+    rest = path[len(ARCHIVED if archived else ACTIVE):]
+    for pat in (_TASK_FILE, _ARCHIVE_FILE, _RESPONSE_FILE):
+        m = pat.match(rest)
         if m:
-            out.append({"path": path, "namespace": m.group("ns")})
-    return out
+            return m.group("ns"), archived
+    return rest.rsplit("/", 1)[0], archived
 
 
-__all__ = ["COMMANDS", "KINDS", "Migrator", "hand_written", "parse_handoff", "parse_task_file", "parse_times",
+__all__ = ["ARCHIVED", "COMMANDS", "KINDS", "Migrator", "hand_written", "parse_handoff", "parse_task_file", "parse_times",
            "task_label_aliases"]

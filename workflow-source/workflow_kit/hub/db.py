@@ -273,10 +273,24 @@ CREATE TABLE migration_1x (
 );
 """
 
+#: 판 9 (M-039 WBS-39.2) — 프로젝트 문서 (PURPOSE · PROJECT_PROFILE). 소유자 2026-11-21: 전환이 들이고,
+#: 상태 요약(state.json v1)의 목적 · 프로젝트 칸이 여기서 나온다.
+_V9 = """
+CREATE TABLE project_doc (
+    project_id TEXT NOT NULL REFERENCES project(id),
+    name TEXT NOT NULL CHECK (name IN ('purpose', 'profile')),
+    body_md TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    updated_by TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (project_id, name)
+);
+"""
+
 #: 판 순서 = 목록 순서. 판 n = ``MIGRATIONS[n-1]`` (SQL 스크립트).
 #: ``executescript`` 는 열린 트랜잭션을 먼저 커밋하므로, 판 하나의 원자성은
 #: 스크립트 **안의** ``BEGIN IMMEDIATE … COMMIT`` 으로 만든다 (:func:`_apply`).
-MIGRATIONS: list[str] = [_V1, _V2, _V3, _V4, _V5, _V6, _V7, _V8]
+MIGRATIONS: list[str] = [_V1, _V2, _V3, _V4, _V5, _V6, _V7, _V8, _V9]
 
 
 def latest_version() -> int:

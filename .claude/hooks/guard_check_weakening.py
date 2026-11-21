@@ -19,13 +19,20 @@ Claude Code hook 계약: stdin 으로 ``{"tool_name", "tool_input"}`` JSON 을 �
 가드가 살아 있는지를 잰다).
 
 정말 필요하면 사람이 프롬프트에서 ``!`` 로 직접 실행한다 — 사람의 명령은 이 hook 을 거치지 않는다.
+
+**검증 간소화 기간 스위치** (소유자 2026-11-20 "간소화 기간 동안 hook 차단 꺼줘"): 이 클론의
+``<git common dir>/workflow-simplified-verification`` 파일이 있으면 1번(``--no-verify``)만 통과시킨다.
+2 · 3번은 그대로 막는다. 파일은 ``.git`` 안이라 커밋되지 않고, 지우면 바로 원래대로다.
 """
 from __future__ import annotations
 
 import json
+import os
 import re
 import shlex
+import subprocess
 import sys
+from pathlib import Path
 
 _EVIDENCE = "gate_evidence"
 #: 명령 경계 토큰 — 이 사이를 한 명령으로 본다.
@@ -35,6 +42,10 @@ _WRITE_COMMANDS = {"tee", "cp", "mv", "rm", "touch", "ln", "install", "dd", "tru
 #: 한 토큰(예: `python -c "…"` 의 코드) 안에서 쓰기를 뜻하는 표기.
 _WRITE_IN_CODE = re.compile(r"write_text|write_bytes|open\([^)]*['\"][wax]")
 _FILE_TOOLS = {"Write", "Edit", "MultiEdit", "NotebookEdit"}
+#: 1번(--no-verify) 차단 이유의 머리 — 간소화 기간 스위치가 이것만 통과시킨다.
+NO_VERIFY_PREFIX = "`git push --no-verify`"
+#: 간소화 기간 표식 — `<git common dir>/` 아래.
+SIMPLIFIED_MARKER = "workflow-simplified-verification"
 
 GATE_HINT = (
     "게이트 근거는 커밋 후 깨끗한 트리에서 "
@@ -79,7 +90,7 @@ def _bash_verdict(command: str) -> str | None:
     for tokens in segments:
         names = [_basename(t) for t in tokens]
         if "git" in names and "push" in names[names.index("git"):] and "--no-verify" in tokens:
-            return ("`git push --no-verify` 는 pre-push 게이트(HEAD sha 의 통과 기록)를 건너뛴다 — "
+            return (NO_VERIFY_PREFIX + " 는 pre-push 게이트(HEAD sha 의 통과 기록)를 건너뛴다 — "
                     "근거 없는 커밋이 원격에 간다. " + GATE_HINT)
         if any(n in ("run_all_checks.py", "run_all_checks") for n in names) and "--no-lock" in tokens:
             return ("`run_all_checks.py --no-lock` 는 워킹 트리 배타 락을 끈다 — 다른 에이전트의 전량과 "
@@ -105,6 +116,24 @@ def verdict(tool_name: str, tool_input: dict) -> str | None:
     return None
 
 
+def simplified_period(project_dir: str | None) -> bool:
+    """간소화 기간 표식이 이 클론에 있는가. 모르면 False (차단 유지)."""
+    if not project_dir:
+        return False
+    try:
+        proc = subprocess.run(["git", "-C", project_dir, "rev-parse", "--git-common-dir"],
+                              capture_output=True, text=True, timeout=10, encoding="utf-8", errors="replace", check=False)
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    common = proc.stdout.strip() if proc.returncode == 0 else ""
+    if not common:
+        return False
+    path = Path(common)
+    if not path.is_absolute():
+        path = Path(project_dir) / path
+    return (path / SIMPLIFIED_MARKER).is_file()
+
+
 def main() -> int:
     try:
         payload = json.loads(sys.stdin.read() or "{}")
@@ -115,6 +144,8 @@ def main() -> int:
     tool_input = payload.get("tool_input")
     reason = verdict(str(payload.get("tool_name") or ""), tool_input if isinstance(tool_input, dict) else {})
     if reason is None:
+        return 0
+    if reason.startswith(NO_VERIFY_PREFIX) and simplified_period(os.environ.get("CLAUDE_PROJECT_DIR")):
         return 0
     sys.stderr.write(f"[guard_check_weakening] 차단: {reason}\n")
     return 2

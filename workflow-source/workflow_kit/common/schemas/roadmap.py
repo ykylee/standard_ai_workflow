@@ -293,6 +293,6 @@ class RoadmapState(BaseModel):
     )
     generated_at: str = Field(default="", description="YYYY-MM-DD. 재생성 대조에서는 제외한다 (매일 바뀌는 값은 비교에서 뺀다)")
     milestones: list[MilestoneState] = Field(default_factory=list)
-    current_milestone_id: str | None = Field(default=None, description="order 순 첫 in_progress (선언 기준)")
+    current_milestone_id: str | None = Field(default=None, description="in_progress 중 다른 in_progress 의 parallel_allowed 에 없는 것(배경 제외)의 order 첫째, 전부 배경이면 order 첫 in_progress (스펙 §7.1)")
     exempt_tasks: list[TaskWbsLink] = Field(default_factory=list, description="wbs=exempt 선언 task — 게이트 우회는 침묵이 아니라 선언이고, 여기서 세어진다")
     issues: list[RoadmapIssue] = Field(default_factory=list, description="format + integrity 불일치 전체 (report-only)")

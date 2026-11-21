@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from pathlib import Path
 from collections.abc import Iterable
-from typing import Any
+from typing import Any, Callable
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
@@ -21,7 +21,7 @@ if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit import __version__ as TOOL_VERSION
-from workflow_kit.common.errors import build_error_result
+from workflow_kit.common.errors import build_error_result, describe_exception, exception_context
 from workflow_kit.common.contracts.stage_gate_runtime import build_stage_completion, merge_into_result
 from workflow_kit.common.normalize import normalize_backticked
 from workflow_kit.common.git import remote_known_task_ids
@@ -282,6 +282,11 @@ class PlanVerdict:
     error: str | None = None
 
 
+#: ``enforce_plan_contract`` 의 ``line_counter`` 기본값 표식 — "저장소 git HEAD 에서 센다" (1.x 동작).
+#: 허브처럼 작업 트리가 없는 호출자는 ``None``(L5 건너뜀) 이나 자기 콜백을 넘긴다 (hub_spec §2.2).
+_GIT_HEAD_LINES: Any = object()
+
+
 def _head_line_counter(root: Path) -> Any:
     """HEAD 의 파일 줄 수를 돌려주는 함수 — git 밖이면 ``None`` (L5 를 건너뛴다)."""
     try:
@@ -336,6 +341,9 @@ def enforce_plan_contract(
     branch_dir: Path | None = None,
     task_id: str | None = None,
     census: plan_responses.InboxCensus | None = None,
+    responses_provider: Callable[[plan_claims.Plan], tuple[plan_claims.Response, ...]] | None = None,
+    pending_count: int | None = None,
+    line_counter: Any = _GIT_HEAD_LINES,
 ) -> PlanVerdict:
     """task 파일에 쓰기 **전에** 주장 · 결정 계약을 적용한다.
 
@@ -354,14 +362,19 @@ def enforce_plan_contract(
 
     def responses_for(target: plan_claims.Plan) -> tuple[plan_claims.Response, ...]:
         """그 계획에 자격이 있는 보관 응답 — **쓰기 뒤의** 계획으로 본다 (지문을 바꾸는 쓰기는 옛 응답을 잃는다)."""
+        if responses_provider is not None:
+            return responses_provider(target)
         if branch_dir is None or not task_id:
             return ()
         return plan_responses.qualified_archive(branch_dir, task_id, target)
 
     #: 그 task 의 받은편지함 건수 (스펙 §7-7, ADR-032 결정 16). 읽기만 한다 — 디렉터리를 만들지 않는다.
-    if census is None and branch_dir is not None:
-        census = plan_responses.inbox_census(branch_dir)
-    pending = census.count(task_id) if census is not None and task_id else 0
+    if pending_count is not None:
+        pending = pending_count
+    else:
+        if census is None and branch_dir is not None:
+            census = plan_responses.inbox_census(branch_dir)
+        pending = census.count(task_id) if census is not None and task_id else 0
     to_in_progress = status == "in_progress" and current_status != "in_progress"
     #: 실제 전이인가 — 같은 상태를 다시 준 호출은 전이가 아니다 (경고를 되풀이하지 않는다, 스펙 §3).
     transition = requested_status is not None and requested_status != current_status
@@ -433,8 +446,8 @@ def enforce_plan_contract(
 
     # ② 린트.
     criteria = read_task_list_field(lines, task_label("done_criteria"))
-    issues = plan_claims.lint_plan(
-        plan, criteria=criteria, file_line_count=_head_line_counter(workspace_root))
+    counter = _head_line_counter(workspace_root) if line_counter is _GIT_HEAD_LINES else line_counter
+    issues = plan_claims.lint_plan(plan, criteria=criteria, file_line_count=counter)
     errors = plan_claims.lint_errors(issues)
     if errors:
         rendered = [issue.render() for issue in errors]
@@ -880,10 +893,10 @@ def main() -> int:
     except Exception as exc:
         result = build_error_result(
             tool_version=TOOL_VERSION,
-            error="backlog-update 실행 중 예기치 않은 오류가 발생했다.",
+            error=f"backlog-update 실행 중 예기치 않은 오류가 발생했다 — {describe_exception(exc)}",
             error_code="backlog_update_runtime_error",
             warnings=["입력 값과 backlog 파서 동작을 점검한 뒤 다시 실행해야 한다."],
-            source_context=source_context | {"exception_type": type(exc).__name__},
+            source_context=source_context | exception_context(exc),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 1
@@ -1416,8 +1429,7 @@ def main() -> int:
                         "대상 backlog 파일의 쓰기 권한과 디스크 상태를 점검한 뒤 다시 시도해야 한다.",
                         f"실패 경로: {daily_backlog_path}",
                     ],
-                    source_context=source_context | {
-                        "exception_type": type(exc).__name__,
+                    source_context=source_context | exception_context(exc) | {
                         "errno": getattr(exc, "errno", None),
                     },
                 )
@@ -1564,10 +1576,10 @@ def main() -> int:
     except Exception as exc:
         result = build_error_result(
             tool_version=TOOL_VERSION,
-            error="backlog-update 실행 중 예기치 않은 오류가 발생했다.",
+            error=f"backlog-update 실행 중 예기치 않은 오류가 발생했다 — {describe_exception(exc)}",
             error_code="backlog_update_runtime_error",
             warnings=["입력 값과 backlog 파서 동작을 점검한 뒤 다시 실행해야 한다."],
-            source_context=source_context | {"exception_type": type(exc).__name__},
+            source_context=source_context | exception_context(exc),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 1

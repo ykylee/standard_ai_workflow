@@ -22,7 +22,7 @@ if str(SOURCE_ROOT) not in sys.path:
 
 from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.doc_sync import build_doc_sync_candidates
-from workflow_kit.common.errors import build_error_result
+from workflow_kit.common.errors import build_error_result, describe_exception, exception_context
 from workflow_kit.common.contracts.stage_gate_runtime import build_stage_completion, merge_into_result
 from workflow_kit.common.markdown import rel_link_from_doc
 from workflow_kit.common.paths import project_workspace_root, resolve_existing_path, workflow_memory_dir, workflow_state_path, memory_active_dir
@@ -355,10 +355,10 @@ def main() -> int:
     except Exception as exc:
         result = build_error_result(
             tool_version=TOOL_VERSION,
-            error="doc-sync 실행 중 예기치 않은 오류가 발생했다.",
+            error=f"doc-sync 실행 중 예기치 않은 오류가 발생했다 — {describe_exception(exc)}",
             error_code="doc_sync_runtime_error",
             warnings=["입력 값과 문서 후보 추천 로직을 점검한 뒤 다시 실행해야 한다."],
-            source_context=source_context | {"exception_type": type(exc).__name__},
+            source_context=source_context | exception_context(exc),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 1

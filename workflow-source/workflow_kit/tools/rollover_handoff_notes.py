@@ -38,6 +38,7 @@ from workflow_kit.common.context_budget import (  # noqa: E402
     S5Block,
     section_span,
     split_s5_blocks,
+    split_s5_head,
 )
 
 LESSONS_FILENAME = "lessons.md"
@@ -130,30 +131,50 @@ def _prepend(path: Path, header: str, blocks: list[S5Block], today: str) -> None
 
 
 def _pointer(lessons: int, notes: int) -> str:
-    return (
-        f"{_POINTER_PREFIX} [`{LESSONS_FILENAME}`](./{LESSONS_FILENAME}) (규칙 {lessons}절) · "
-        f"[`sessions/{NOTES_PREFIX}*.md`](./sessions/) (기록 {notes}절) 로 이관됐다 — 최신이 위, "
-        "세션 시작에 읽지 않는다."
-    )
+    """이관처 포인터 — 건수 0 인 대상은 싣지 않는다 (없는 파일을 가리키면 죽은 링크다)."""
+    targets = []
+    if lessons:
+        targets.append(f"[`{LESSONS_FILENAME}`](./{LESSONS_FILENAME}) (규칙 {lessons}절)")
+    if notes:
+        targets.append(f"[`sessions/{NOTES_PREFIX}*.md`](./sessions/) (기록 {notes}절)")
+    return f"{_POINTER_PREFIX} {' · '.join(targets)} 로 이관됐다 — 최신이 위, 세션 시작에 읽지 않는다."
 
 
 def rewrite_s5(handoff_text: str, moved_idx: list[int], pointer: str) -> str:
-    """§5 에서 옮긴 절(`split_s5_blocks` 의 인덱스)을 걷고, 서두의 포인터를 정확히 하나로 맞춘다.
+    """§5 에서 옮긴 블록(`split_s5_blocks` 의 인덱스)을 걷고, 서두의 포인터를 정확히 하나로 맞춘다.
 
-    인덱스로 가른다 — 본문 대조로 고르면 같은 본문의 두 절 중 엉뚱한 쪽을 걷는다.
+    인덱스로 가른다 — 본문 대조로 고르면 같은 본문의 두 절 중 엉뚱한 쪽을 걷는다. 서두는
+    `split_s5_head` 조각 순서로 다시 짓는다 — 옮긴 회차 줄만 빠지고 나머지 순서는 그대로다.
     """
     span = section_span(handoff_text, 5)
     assert span is not None
     blocks = split_s5_blocks(handoff_text)
-    # 서두는 늘 있다 — `## 5.` 제목 줄이 첫 `###` 앞에 있기 때문이다.
-    has_head = bool(blocks) and blocks[0].title == "(서두)"
-    head = blocks[0].text if has_head else ""
     drop = set(moved_idx)
-    kept = [b.text for i, b in enumerate(blocks) if i not in drop and not (has_head and i == 0)]
-    head_lines = [ln for ln in head.rstrip("\n").split("\n") if not ln.startswith(_POINTER_PREFIX)]
+    dropped_pos = {b.head_pos for i, b in enumerate(blocks) if i in drop and b.head_pos is not None}
+    s5 = handoff_text[span[0]:span[1]]
+    m = re.search(r"(?m)^### ", s5)
+    head = s5[: m.start()] if m else s5
+    head_parts: list[str] = []
+    for pos, (is_note, piece) in enumerate(split_s5_head(head)):
+        if is_note:
+            if pos not in dropped_pos:
+                head_parts.append(piece)
+            continue
+        head_parts.append("".join(ln for ln in piece.splitlines(keepends=True)
+                                  if not ln.startswith(_POINTER_PREFIX)))
+    head_lines = "".join(head_parts).rstrip("\n").split("\n")
     while head_lines and not head_lines[-1].strip():
         head_lines.pop()
-    new_head = "\n".join(head_lines + ["", pointer, "", ""])
+    # 서두에 `####` 소절(작업 후보 등)이 있으면 포인터는 그 앞이다 — 끝에 붙이면 소절의 항목이 된다.
+    sub = next((i for i, ln in enumerate(head_lines) if ln.startswith("#### ")), None)
+    if sub is None:
+        new_head = "\n".join(head_lines + ["", pointer, "", ""])
+    else:
+        above = head_lines[:sub]
+        while above and not above[-1].strip():
+            above.pop()
+        new_head = "\n".join(above + ["", pointer, ""] + head_lines[sub:] + ["", ""])
+    kept = [b.text for i, b in enumerate(blocks) if i not in drop and b.head_pos is None and b.title != "(서두)"]
     body = "".join(kept)
     if body and not body.endswith("\n"):
         body += "\n"
@@ -169,7 +190,16 @@ def run(handoff_path: Path, *, limit: int, apply: bool, today: str) -> dict:
     lessons_path = branch_dir / LESSONS_FILENAME
     notes_path = branch_dir / "sessions" / f"{NOTES_PREFIX}{today}.md"
     to_lessons = [b for b in moved if is_rules_block(b)]
-    to_notes = [b for b in moved if not is_rules_block(b)]
+    to_notes = [b for b in moved if not is_rules_block(b) and b.head_pos is None]
+    head_notes = [b for b in moved if b.head_pos is not None]
+    if head_notes:
+        # 서두 회차 줄은 `###` 절이 아니다 — 한 절로 묶어 옮긴다 (줄은 바이트 그대로, 절 수 = 포인터 건수).
+        to_notes.insert(0, S5Block(
+            title=f"§5 서두 회차 줄 ({len(head_notes)}블록)",
+            text=f"### §5 서두 회차 줄 ({len(head_notes)}블록)\n\n"
+                 + "".join(b.text if b.text.endswith("\n") else b.text + "\n" for b in head_notes),
+            current=False,
+        ))
     lessons_before = count_blocks(lessons_path.read_text(encoding="utf-8")) if lessons_path.is_file() else 0
     notes_before = sum(
         count_blocks(f.read_text(encoding="utf-8"))

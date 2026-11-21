@@ -19,8 +19,10 @@ WATCHES = (
 
 import json
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -134,15 +136,53 @@ def case_5_settings_registration_runs_end_to_end() -> None:
         tools = set(matcher.split("|"))
         if not {"Bash", "Write", "Edit"} <= tools:
             problems.append(f"matcher 가 좁다: {matcher!r}")
-        env = dict(os.environ)
-        env["CLAUDE_PROJECT_DIR"] = str(REPO_ROOT)
-        for payload, want in ((_bash("git push --no-verify"), 2), (_bash("git push origin main"), 0)):
-            proc = subprocess.run(["bash", "-c", command], input=json.dumps(payload), capture_output=True,
-                                  encoding="utf-8", errors="replace", env=env, timeout=30, check=False)
-            if proc.returncode != want:
-                problems.append(f"{payload['tool_input']['command']!r}: rc={proc.returncode} (기대 {want}) "
-                                f"{proc.stderr[:120]!r}")
+        # 실제 저장소에는 간소화 기간 표식이 있을 수 있다 — 같은 hook 사본을 표식 없는 임시 git 저장소에 둔다.
+        with tempfile.TemporaryDirectory() as tmp:
+            project = _project_with_guard(Path(tmp))
+            env = dict(os.environ)
+            env["CLAUDE_PROJECT_DIR"] = str(project)
+            for payload, want in ((_bash("git push --no-verify"), 2), (_bash("git push origin main"), 0)):
+                proc = subprocess.run(["bash", "-c", command], input=json.dumps(payload), capture_output=True,
+                                      encoding="utf-8", errors="replace", env=env, timeout=30, check=False)
+                if proc.returncode != want:
+                    problems.append(f"{payload['tool_input']['command']!r}: rc={proc.returncode} (기대 {want}) "
+                                    f"{proc.stderr[:120]!r}")
     _record("case 5 (settings.json 등록 → 실제 hook 명령이 차단한다)", not problems, "; ".join(problems))
+
+
+def _project_with_guard(root: Path) -> Path:
+    """hook 사본을 담은 임시 git 저장소 — 실제 저장소의 표식에 판정이 흔들리지 않게."""
+    project = root / "project"
+    (project / ".claude" / "hooks").mkdir(parents=True)
+    shutil.copy2(GUARD, project / ".claude" / "hooks" / GUARD.name)
+    subprocess.run(["git", "init", "-q", str(project)], check=True, timeout=30)
+    return project
+
+
+def case_6_simplified_period_marker() -> None:
+    """간소화 기간 표식이 있으면 --no-verify 만 통과, --no-lock · gate_evidence 쓰기는 그대로 막는다."""
+    problems: list[str] = []
+    with tempfile.TemporaryDirectory() as tmp:
+        project = _project_with_guard(Path(tmp))
+        hook = project / ".claude" / "hooks" / GUARD.name
+        env = dict(os.environ)
+        env["CLAUDE_PROJECT_DIR"] = str(project)
+
+        def run(cmd: str) -> int:
+            proc = subprocess.run([sys.executable, str(hook)], input=json.dumps(_bash(cmd)), capture_output=True,
+                                  encoding="utf-8", errors="replace", env=env, timeout=30, check=False)
+            return proc.returncode
+
+        if run("git push --no-verify") != 2:
+            problems.append("표식 없음인데 --no-verify 가 통과했다")
+        (project / ".git" / "workflow-simplified-verification").write_text("", encoding="utf-8")
+        for cmd, want in (("git push --no-verify origin main", 0),
+                          ("python3 workflow-source/tests/run_all_checks.py --no-lock", 2),
+                          ("echo x > .git/gate_evidence/abc.json", 2)):
+            got = run(cmd)
+            if got != want:
+                problems.append(f"표식 있음 {cmd!r}: rc={got} (기대 {want})")
+    _record("case 6 (간소화 기간 표식 → --no-verify 만 통과)", not problems, "; ".join(problems))
 
 
 def main() -> int:
@@ -151,7 +191,8 @@ def main() -> int:
                case_2_allows_normal_commands,
                case_3_file_tools_on_evidence_are_blocked,
                case_4_unreadable_input_passes,
-               case_5_settings_registration_runs_end_to_end):
+               case_5_settings_registration_runs_end_to_end,
+               case_6_simplified_period_marker):
         try:
             fn()
         except Exception as exc:  # noqa: BLE001

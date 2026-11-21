@@ -334,8 +334,52 @@ def test_source_paths_are_posix_on_any_host() -> None:
     _record("test_source_paths_are_posix_on_any_host", not problems, "; ".join(problems))
 
 
+def _multi_fixture(root: Path, specs: list[tuple[str, str, list[str]]]) -> Path:
+    """specs: (id, status, parallel_allowed) — order 는 목록 순서."""
+    roadmap = root / "ai-workflow" / "memory" / "active" / "roadmap"
+    roadmap.mkdir(parents=True)
+    index = ["# Roadmap — fixture", "", "## Milestones", ""]
+    for order, (mid, status, parallel) in enumerate(specs, start=1):
+        slug = f"{mid}-m{order}.md"
+        index += [f"- **{mid}** [implementation] 마일스톤 {order} — status: {status}",
+                  f"  - path: [`./{slug}`](./{slug})"]
+        par = "".join(f"\n  - {p}" for p in parallel) or " []"
+        (roadmap / slug).write_text(
+            f"---\nid: {mid}\ntitle: 마일스톤 {order}\nsdlc_phase: implementation\nstatus: {status}\n"
+            f"order: {order}\nparallel_allowed:{par}\ndeliverables: []\n---\n\n# {mid}\n\n## WBS\n\n"
+            f"- **WBS-{order}.1** 일\n", encoding="utf-8")
+    (roadmap / "index.md").write_text("\n".join(index) + "\n", encoding="utf-8")
+    return root
+
+
+def test_current_milestone_skips_parallel_background() -> None:
+    """스펙 §7.1 — 다른 in_progress 의 parallel_allowed 에 오른 마일스톤은 배경이다."""
+    scenarios = [
+        # (이름, specs, 기대 current)
+        ("단독", [("M-001", "done", []), ("M-002", "in_progress", [])], "M-002"),
+        ("상시 배경 1", [("M-001", "in_progress", []), ("M-002", "done", []),
+                       ("M-003", "in_progress", ["M-001"])], "M-003"),
+        ("배경 2단", [("M-001", "in_progress", []), ("M-002", "in_progress", ["M-001"]),
+                    ("M-003", "in_progress", ["M-001", "M-002"])], "M-003"),
+        ("planned 의 선언은 배경을 만들지 않는다", [("M-001", "in_progress", []),
+                                              ("M-002", "planned", ["M-001"])], "M-001"),
+        ("순환 → order 첫 in_progress", [("M-001", "in_progress", ["M-002"]),
+                                       ("M-002", "in_progress", ["M-001"])], "M-001"),
+        ("열린 것 없음", [("M-001", "done", []), ("M-002", "planned", [])], None),
+    ]
+    bad: list[str] = []
+    for name, specs, expected in scenarios:
+        with tempfile.TemporaryDirectory() as tmp:
+            state = build_roadmap_state(_multi_fixture(Path(tmp), specs))
+            got = state.current_milestone_id if state else "<no state>"
+            if got != expected:
+                bad.append(f"{name}: {got} ≠ {expected}")
+    _record("current_milestone_skips_parallel_background", not bad, "; ".join(bad))
+
+
 def main() -> int:
     cases = [
+        test_current_milestone_skips_parallel_background,
         test_repo_roadmap_is_clean,
         test_dangling_and_non_leaf_links_detected,
         test_denominator_is_declared_leaves,

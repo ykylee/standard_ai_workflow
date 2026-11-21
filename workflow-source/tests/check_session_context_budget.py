@@ -402,6 +402,88 @@ def case_11_claude_md_move_is_linked() -> None:
     _record("case 11 CLAUDE.md 이관 — 링크 · 이관 절 · 명령 보존 (R4.3)", problems)
 
 
+HEAD_NOTES_HANDOFF = """# Session Handoff
+
+## 1. 현재 작업 요약
+
+- 현재 기준선: **x**
+
+## 5. 다음 세션 시작 포인트
+
+서두 문장.
+- (3차, 2026-11-21) 새 회차 {pad}
+  이어지는 줄
+- (`main@abc` handoff §5 에서 이어받음 — 아래 3줄은 모 브랜치의 다음 시작 포인트다)
+- (2차) 옛 회차 {pad}
+- 누적 기록은 [`lessons.md`](../../main/lessons.md) (규칙 1절) 로 이관됐다.
+
+- (1차) 더 옛 회차 {pad}
+- 실제 작업은 backlog-update 로 기록한다.
+
+#### 작업 후보 — 정본은 state.json
+
+- `TASK-X` 후보
+
+### 무엇이 끝났나 (2026-08-14)
+
+- 기록 하나
+
+## 6. 남은 리스크
+
+- r
+"""
+
+
+def case_12_head_session_lines_are_accumulated() -> None:
+    """§5 서두의 회차 줄(`- (`)은 누적형이다 — 서두 통째 현재형이면 예산 밖에서 쌓인다 (-013)."""
+    from workflow_kit.common.context_budget import split_s5_head
+    from workflow_kit.tools.rollover_handoff_notes import run
+    problems: list[str] = []
+    text = HEAD_NOTES_HANDOFF.format(pad="가" * 600)
+    blocks = split_s5_blocks(text)
+    notes = [b for b in blocks if b.head_pos is not None]
+    residue = next((b for b in blocks if b.title == "(서두)"), None)
+    if len(notes) != 2 or any(b.current for b in notes):
+        problems.append(f"서두 회차 블록 {[(b.title[:20], b.current) for b in notes]} (기대: 누적형 2 — 3차 · 이어받음 묶음)")
+    elif "이어지는 줄" not in notes[0].text:
+        problems.append("들여쓴 이어지는 줄이 회차 블록에 붙지 않았다")
+    elif not all(k in notes[1].text for k in ("(2차)", "누적 기록은", "(1차)")) or "실제 작업은" in notes[1].text:
+        problems.append(f"이어받음 머리줄이 뒤 3줄(빈 줄 제외)과 한 블록이 아니다: {notes[1].text!r}")
+    if residue is None or "- (" in residue.text or not all(k in residue.text for k in ("서두 문장", "실제 작업은", "TASK-X")):
+        problems.append(f"현재형 잔여가 틀렸다: {residue.text if residue else None!r}")
+    s5 = text[text.index("## 5."):text.index("### 무엇이")]
+    if "".join(t for _, t in split_s5_head(s5)) != s5:
+        problems.append("서두 조각을 이어 붙여도 원문이 아니다")
+    with tempfile.TemporaryDirectory() as tmp:
+        h = Path(tmp) / "session_handoff.md"
+        h.write_text(text, encoding="utf-8")
+        res = run(h, limit=2500, apply=True, today="2026-11-21")
+        after = h.read_text(encoding="utf-8")
+        nf = Path(tmp) / "sessions" / "handoff-notes_2026-11-21.md"
+        moved_file = nf.read_text(encoding="utf-8") if nf.exists() else ""
+        if res.get("moved_count") != 2:
+            problems.append(f"옮긴 블록 {res.get('moved_count')} (기대 2 — 아래의 ### 절과 이어받음 묶음)")
+        if notes and notes[1].text.rstrip("\n") not in moved_file:
+            problems.append("이어받음 묶음이 노트 파일에 바이트 그대로 없다")
+        if "(2차)" in after or "(1차)" in after or "(3차, 2026-11-21)" not in after:
+            problems.append("서두에서 옮긴 줄 / 남긴 줄이 틀렸다")
+        for keep in ("서두 문장", "실제 작업은", "`TASK-X` 후보", "## 6. 남은 리스크"):
+            if keep not in after:
+                problems.append(f"현재형 {keep!r} 가 사라졌다")
+        ptrs = [ln for ln in after.splitlines() if ln.startswith("- 누적 기록은")]
+        n_sections = sum(1 for ln in moved_file.splitlines() if ln.startswith("### "))
+        if len(ptrs) != 1 or f"(기록 {n_sections}절)" not in ptrs[0]:
+            problems.append(f"포인터 {ptrs} / 노트 절 {n_sections}")
+        elif "lessons.md" in ptrs[0]:
+            problems.append("규칙을 옮기지 않았는데 포인터가 lessons.md 를 가리킨다 — 없는 파일의 죽은 링크")
+        elif after.index(ptrs[0]) > after.index("#### 작업 후보"):
+            problems.append("포인터가 서두의 `####` 소절 안에 들어갔다 — 소절 앞이어야 한다")
+        again = run(h, limit=2500, apply=True, today="2026-11-21")
+        if again.get("applied"):
+            problems.append("두 번째 실행이 무언가를 썼다 (멱등 아님)")
+    _record("case 12 §5 서두 회차 줄 = 누적형 · 이어받음 묶음 · 무손실 이관", problems)
+
+
 CASES = (
     case_1_current_vs_accumulated,
     case_2_unlisted_section_is_accumulated,
@@ -414,6 +496,7 @@ CASES = (
     case_9_this_repo_red_budgets,
     case_10_state_pointers_resolve,
     case_11_claude_md_move_is_linked,
+    case_12_head_session_lines_are_accumulated,
 )
 
 

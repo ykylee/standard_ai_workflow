@@ -20,7 +20,7 @@ from __future__ import annotations
 import re
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Final
+from typing import Callable, Final
 
 from pydantic import ValidationError
 
@@ -103,7 +103,12 @@ def roadmap_is_draft(workspace_root: Path) -> bool:
     index_path = roadmap_root(workspace_root) / INDEX_FILE
     if not index_path.is_file():
         return False
-    return bool(_INDEX_DRAFT_RE.search(index_path.read_text(encoding="utf-8")))
+    return index_text_is_draft(index_path.read_text(encoding="utf-8"))
+
+
+def index_text_is_draft(text: str) -> bool:
+    """:func:`roadmap_is_draft` 의 텍스트 판정부 (허브가 DB 의 index 원문으로 부른다)."""
+    return bool(_INDEX_DRAFT_RE.search(text))
 
 
 # --- Frontmatter (YAML subset — 외부 의존 없이, kit 관행대로 손파서) -----------
@@ -315,30 +320,42 @@ def load_roadmap(workspace_root: Path) -> tuple[Roadmap | None, list[RoadmapIssu
     if not index_path.is_file():
         return None, []
 
+    texts = {path.name: path.read_text(encoding="utf-8") for path in sorted(root.glob("M-*.md"))}
+    roadmap, issues = assemble_roadmap(index_path.read_text(encoding="utf-8"), texts)
+    issues.extend(_goal_link_issues(workspace_root, roadmap.milestones))
+    return roadmap, issues
+
+
+def assemble_roadmap(index_text: str, milestone_texts: dict[str, str]) -> tuple[Roadmap, list[RoadmapIssue]]:
+    """index 원문 + 마일스톤 원문(파일명 → 본문) → Roadmap — **파일을 읽지 않는다** (hub_spec §2.2).
+
+    :func:`load_roadmap` 이 저장소에서 읽어 부르고, 허브는 DB 의 원문으로 부른다. goal 링크 검사
+    (PURPOSE 대조)는 저장소가 있는 호출자 몫이라 여기서 하지 않는다.
+    """
     issues: list[RoadmapIssue] = []
-    entries, index_issues = parse_index_text(index_path.read_text(encoding="utf-8"))
+    entries, index_issues = parse_index_text(index_text)
     issues.extend(index_issues)
 
     milestones: list[Milestone] = []
     seen_milestone_ids: set[str] = set()
     files_by_id: dict[str, str] = {}
-    for path in sorted(root.glob("M-*.md")):
-        file_match = MILESTONE_FILE_RE.match(path.name)
+    for name in sorted(milestone_texts):
+        file_match = MILESTONE_FILE_RE.match(name)
         if not file_match:
-            issues.append(RoadmapIssue(code="milestone_filename_format", detail=f"파일명 형식 위반 (M-NNN-<slug>.md): {path.name}", where=path.name))
+            issues.append(RoadmapIssue(code="milestone_filename_format", detail=f"파일명 형식 위반 (M-NNN-<slug>.md): {name}", where=name))
             continue
-        milestone, m_issues = parse_milestone_text(path.read_text(encoding="utf-8"), path.name)
+        milestone, m_issues = parse_milestone_text(milestone_texts[name], name)
         issues.extend(m_issues)
         if milestone is None:
             continue
         if milestone.id != file_match.group(1):
-            issues.append(RoadmapIssue(code="index_id_mismatch", detail=f"frontmatter id {milestone.id} ≠ 파일명 {file_match.group(1)}", where=path.name))
+            issues.append(RoadmapIssue(code="index_id_mismatch", detail=f"frontmatter id {milestone.id} ≠ 파일명 {file_match.group(1)}", where=name))
             continue
         if milestone.id in seen_milestone_ids:
-            issues.append(RoadmapIssue(code="duplicate_milestone_id", detail=f"milestone id 중복: {milestone.id}", where=path.name))
+            issues.append(RoadmapIssue(code="duplicate_milestone_id", detail=f"milestone id 중복: {milestone.id}", where=name))
             continue
         seen_milestone_ids.add(milestone.id)
-        files_by_id[milestone.id] = path.name
+        files_by_id[milestone.id] = name
         milestones.append(milestone)
 
     by_id = {m.id: m for m in milestones}
@@ -363,8 +380,6 @@ def load_roadmap(workspace_root: Path) -> tuple[Roadmap | None, list[RoadmapIssu
     for milestone in milestones:
         if milestone.id not in indexed_ids:
             issues.append(RoadmapIssue(code="index_entry_missing_for_file", detail=f"{milestone.id} 가 index 목록에 없다", where=milestone.source_path))
-
-    issues.extend(_goal_link_issues(workspace_root, milestones))
 
     return Roadmap(index_entries=entries, milestones=milestones), issues
 
@@ -599,9 +614,32 @@ def collect_wbs_refs(roadmap: Roadmap) -> tuple[set[str], set[str]]:
     return leaf_refs, non_leaf_refs
 
 
+def _current_milestone_id(milestones: list[Milestone]) -> str | None:
+    """현재 마일스톤 — **병행 선언 기준** (스펙 §7.1, 소유자 결정 2026-11-21).
+
+    `in_progress` 선언 마일스톤 가운데, 다른 `in_progress` 마일스톤의 `parallel_allowed`
+    에 오른 것은 그 옆에서 함께 도는 **배경**이다 (상시 운영 M-007 처럼). 배경이 아닌 것의
+    order 첫째가 현재다. 전부가 서로의 배경이면(순환) order 첫 `in_progress` 로 떨어진다 —
+    열린 마일스톤이 있는데 '현재 없음' 을 내지 않는다.
+    """
+    open_ms = sorted((m for m in milestones if m.status is RoadmapItemStatus.IN_PROGRESS), key=lambda m: m.order)
+    if not open_ms:
+        return None
+    background = {pid for m in open_ms for pid in m.parallel_allowed if pid != m.id}
+    foreground = [m for m in open_ms if m.id not in background]
+    return (foreground or open_ms)[0].id
+
+
 def derive_state(roadmap: Roadmap, links: list[TaskWbsLink], workspace_root: Path,
-                 base_issues: list[RoadmapIssue] | None = None) -> RoadmapState:
-    """선언 + task 링크 → RoadmapState. 불일치는 자동 수정하지 않고 issue 로 보고한다."""
+                 base_issues: list[RoadmapIssue] | None = None, *,
+                 deliverable_exists: Callable[[str], bool] | None = None,
+                 generated_at: str | None = None) -> RoadmapState:
+    """선언 + task 링크 → RoadmapState. 불일치는 자동 수정하지 않고 issue 로 보고한다.
+
+    ``deliverable_exists`` · ``generated_at`` 은 작업 트리 · 시계가 없는 호출자(허브)의 입구다
+    (hub_spec §2.2). 주지 않으면 ``workspace_root`` 아래 파일 존재와 지금 날짜 — 1.x 동작 그대로.
+    """
+    exists = deliverable_exists or (lambda rel: (workspace_root / rel).exists())
     issues: list[RoadmapIssue] = list(base_issues or [])
     leaf_refs, non_leaf_refs = collect_wbs_refs(roadmap)
 
@@ -629,7 +667,7 @@ def derive_state(roadmap: Roadmap, links: list[TaskWbsLink], workspace_root: Pat
         wbs_states = [_derive_node(node, milestone.id, links_by_ref) for node in milestone.wbs]
         total = sum(s.total_leaves for s in wbs_states)
         done = sum(s.done_leaves for s in wbs_states)
-        missing = [d for d in milestone.deliverables if not (workspace_root / d).exists()]
+        missing = [d for d in milestone.deliverables if not exists(d)]
 
         all_leaves_done = total > 0 and done == total
         statuses = {s.derived_status for s in wbs_states}
@@ -674,9 +712,9 @@ def derive_state(roadmap: Roadmap, links: list[TaskWbsLink], workspace_root: Pat
             deliverables_missing=missing, wbs=wbs_states,
         ))
 
-    current = next((m.id for m in milestone_states if m.declared_status is RoadmapItemStatus.IN_PROGRESS), None)
+    current = _current_milestone_id(roadmap.milestones)
     return RoadmapState(
-        generated_at=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+        generated_at=generated_at or datetime.now(timezone.utc).strftime("%Y-%m-%d"),
         milestones=milestone_states,
         current_milestone_id=current,
         exempt_tasks=exempt_tasks,
@@ -707,12 +745,29 @@ def evaluate_wbs_gate(
     if not roadmap_exists(workspace_root):
         return WbsGateVerdict(allowed=True, code="not_applicable", detail="roadmap 부재 — 게이트 해당 없음")
     if roadmap_is_draft(workspace_root):
+        return judge_wbs(None, is_draft=True, wbs=wbs, exempt_reason=exempt_reason)
+    roadmap, _ = load_roadmap(workspace_root)
+    return judge_wbs(roadmap, is_draft=False, wbs=wbs, exempt_reason=exempt_reason)
+
+
+def judge_wbs(
+    roadmap: Roadmap | None,
+    *,
+    is_draft: bool,
+    wbs: str | None,
+    exempt_reason: str | None = None,
+) -> WbsGateVerdict:
+    """WBS 게이트의 **판정부** — 파일을 읽지 않는다 (hub_spec §2.2). :func:`evaluate_wbs_gate` 가
+    저장소에서 로드맵을 읽어 이 함수를 부르고, 허브는 DB 의 로드맵으로 부른다 — 판정은 여기 하나.
+
+    ``roadmap is None`` 은 "로드맵 없음" 이다 (게이트 해당 없음).
+    """
+    if is_draft:
         return WbsGateVerdict(
             allowed=True, code="draft_roadmap",
             detail="로드맵이 draft(소유자 미확정 초안)라 게이트가 아직 서지 않는다 — "
                    "index.md 상태를 active 로 바꾸고 현재 마일스톤을 선언하면 발동한다.",
         )
-    roadmap, _ = load_roadmap(workspace_root)
     if roadmap is None or not roadmap.milestones:
         return WbsGateVerdict(allowed=True, code="not_applicable", detail="roadmap 을 읽지 못했다 — 게이트 해당 없음")
 

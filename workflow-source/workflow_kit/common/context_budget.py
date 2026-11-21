@@ -101,6 +101,8 @@ class S5Block:
     title: str
     text: str
     current: bool
+    #: 서두 회차 줄 블록이면 `split_s5_head` 조각 위치, `###` 절이면 None.
+    head_pos: int | None = None
 
     @property
     def size(self) -> int:
@@ -127,8 +129,52 @@ def is_current_section(title: str) -> bool:
     return title.strip().startswith(HANDOFF_S5_CURRENT_SECTIONS)
 
 
+#: §5 서두의 **회차 줄** — `- (` 로 여는 줄 (session-end `- (N차, 날짜) …` · 합류 `- (합류 …)` ·
+#: seed 의 이어받음 머리줄). 세션마다 위에 쌓이므로 누적형이다 (ADR-029 의 서두 예외를 좁힌 것,
+#: TASK-2026-11-21-claude-workflow-hub-concept-013).
+_HEAD_NOTE = re.compile(r"^- \(")
+#: seed 가 쓰는 이어받음 머리줄 — 뒤의 N줄과 한 블록이다 (일부만 옮기면 'N줄' 이 거짓이 된다).
+_HEAD_INHERIT = re.compile(r"^- \(.*에서 이어받음 — 아래 (\d+)줄은")
+
+
+def split_s5_head(head: str) -> list[tuple[bool, str]]:
+    """§5 서두를 **순서 그대로** `(회차 줄인가, 텍스트)` 조각으로 나눈다 (이어 붙이면 원문).
+
+    회차 줄은 줄 하나(들여쓴 이어지는 줄 포함)가 한 조각, 이어받음 머리줄은 뒤의 N줄과 한
+    조각이다. 그 밖의 줄은 연속한 것끼리 현재형 조각 하나다.
+    """
+    lines = head.splitlines(keepends=True)
+    pieces: list[tuple[bool, str]] = []
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        if _HEAD_NOTE.match(line):
+            j = i + 1
+            m = _HEAD_INHERIT.match(line)
+            want = int(m.group(1)) if m else 0
+            while j < len(lines) and want > 0:   # 머리줄 뒤 N개의 비지 않은 줄
+                if lines[j].strip():
+                    want -= 1
+                j += 1
+            while j < len(lines) and lines[j].startswith((" ", "\t")) and lines[j].strip():
+                j += 1                            # 들여쓴 이어지는 줄
+            pieces.append((True, "".join(lines[i:j])))
+            i = j
+            continue
+        if pieces and not pieces[-1][0]:
+            pieces[-1] = (False, pieces[-1][1] + line)
+        else:
+            pieces.append((False, line))
+        i += 1
+    return pieces
+
+
 def split_s5_blocks(handoff_text: str) -> list[S5Block]:
-    """§5 를 `###` 절 단위로 나눈다. `###` 앞의 서두는 현재형으로 친다."""
+    """§5 를 블록으로 나눈다 — `(서두)` 현재형 잔여 하나 + 서두 회차 줄 + `###` 절.
+
+    `(서두)` 블록의 text 는 서두에서 회차 줄을 뺀 현재형 조각들의 합이다 (예산 · 포인터 판정용).
+    원문 재조립은 `split_s5_head` 의 조각 순서로 한다 (`head_pos`).
+    """
     s5 = _section(handoff_text, 5)
     if not s5:
         return []
@@ -136,7 +182,13 @@ def split_s5_blocks(handoff_text: str) -> list[S5Block]:
     blocks: list[S5Block] = []
     head = parts[0]
     if head.strip():
-        blocks.append(S5Block(title="(서두)", text=head, current=True))
+        pieces = split_s5_head(head)
+        residue = "".join(t for is_note, t in pieces if not is_note)
+        blocks.append(S5Block(title="(서두)", text=residue, current=True))
+        for pos, (is_note, t) in enumerate(pieces):
+            if is_note:
+                blocks.append(S5Block(title=f"(서두 회차) {t.splitlines()[0][2:62]}", text=t,
+                                      current=False, head_pos=pos))
     for part in parts[1:]:
         title = part.splitlines()[0][4:]
         blocks.append(S5Block(title=title, text=part, current=is_current_section(title)))

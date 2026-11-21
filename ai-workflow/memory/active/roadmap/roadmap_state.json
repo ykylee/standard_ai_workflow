@@ -240,7 +240,7 @@
       "title": "운영 축 (상설)",
       "sdlc_phase": "stabilization",
       "declared_status": "in_progress",
-      "derived_status": "in_progress",
+      "derived_status": "blocked",
       "progress": 0.5,
       "total_leaves": 4,
       "done_leaves": 2,
@@ -249,8 +249,11 @@
         {
           "id": "WBS-7.1",
           "title": "결함 수리 — 플랫폼·크로스호스트 (Windows 경로·해석기, federation 형식)",
-          "derived_status": "in_progress",
+          "derived_status": "blocked",
           "linked_task_ids": [
+            "TASK-2026-10-02-main-006",
+            "TASK-2026-10-02-main-007",
+            "TASK-2026-11-17-claude-remote-sync-check-234c32-004",
             "TASK-2026-08-25-main-017",
             "TASK-2026-08-29-main-003",
             "TASK-2026-09-01-main-001",
@@ -266,8 +269,6 @@
             "TASK-2026-09-29-main-017",
             "TASK-2026-09-29-main-018",
             "TASK-2026-09-30-main-002",
-            "TASK-2026-10-02-main-006",
-            "TASK-2026-10-02-main-007",
             "TASK-2026-10-31-main-002",
             "TASK-2026-10-31-main-003",
             "TASK-2026-11-15-claude-remote-sync-check-234c32-002",
@@ -290,7 +291,6 @@
             "TASK-2026-11-16-main-015",
             "TASK-2026-11-16-main-016",
             "TASK-2026-11-16-main-017",
-            "TASK-2026-11-17-claude-remote-sync-check-234c32-004",
             "TASK-2026-11-19-main-003"
           ],
           "total_leaves": 1,
@@ -302,6 +302,8 @@
           "title": "결함 수리 — 탐침·도구 ('잰 단위' 결함족, doctor/release 탐침, kit 자체 결함)",
           "derived_status": "done",
           "linked_task_ids": [
+            "TASK-2026-11-21-claude-workflow-hub-concept-012",
+            "TASK-2026-11-21-claude-workflow-hub-concept-013",
             "TASK-2026-08-25-main-022",
             "TASK-2026-08-25-main-023",
             "TASK-2026-08-28-main-002",
@@ -414,8 +416,9 @@
         {
           "id": "WBS-7.4",
           "title": "릴리스·채널 운영 (발행 사이클, 소비 채널 재적용, 브랜치 메모리 정비)",
-          "derived_status": "in_progress",
+          "derived_status": "blocked",
           "linked_task_ids": [
+            "TASK-2026-11-17-claude-remote-sync-check-234c32-002",
             "TASK-2026-08-30-main-004",
             "TASK-2026-08-31-main-001",
             "TASK-2026-08-31-main-005",
@@ -462,7 +465,6 @@
             "TASK-2026-10-31-main-004",
             "TASK-2026-11-04-main-001",
             "TASK-2026-11-16-main-018",
-            "TASK-2026-11-17-claude-remote-sync-check-234c32-002",
             "TASK-2026-11-17-claude-remote-sync-check-234c32-003",
             "TASK-2026-11-17-claude-remote-sync-check-234c32-005",
             "TASK-2026-11-17-claude-remote-sync-check-234c32-006",
@@ -1076,10 +1078,525 @@
           "children": []
         }
       ]
+    },
+    {
+      "id": "M-030",
+      "title": "워크플로우 허브 — 2.0.0 준비, 여러 환경이 함께 쓰는 task 관리 서버 (arcturus-port 대시보드의 일반화)",
+      "sdlc_phase": "concept",
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
+      "total_leaves": 3,
+      "done_leaves": 3,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-30.1",
+          "title": "concept 검토 + ADR-033 초안 — arcturus 실험의 효과 · 문제, 허브 개념, kit 표면 영향, 단계, 결정 H1~H5 · D1~D11 (ADR Proposed, design 뒤 Accepted)",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-20-claude-workflow-hub-concept-002"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        },
+        {
+          "id": "WBS-30.2",
+          "title": "위키 허브 관리 검토 — kit 위키를 허브에서 관리할 수 있는지, 구성안 · 어려운 점 · 소유자 선택지 E1~E6",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-20-claude-workflow-hub-concept-003"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        },
+        {
+          "id": "WBS-30.3",
+          "title": "2.0 흐름 세부 — 등록 · git 주소 식별 · 콜사인별 기억 · gitignore · MCP · 세션 시작 확인 · 2.0.0 · 1.x 전환 (H6~H13, F1~F5 · G1~G3 · I1~I4)",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-20-claude-workflow-hub-concept-004"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "M-031",
+      "title": "2.0 허브 — requirements (요구 목록 · design 전 실측 · PURPOSE 2.0 판 · 1.x 정책)",
+      "sdlc_phase": "requirements",
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
+      "total_leaves": 3,
+      "done_leaves": 3,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-31.1",
+          "title": "요구 목록 — API · MCP 도구 · 부트스트랩 · 등록 · 콜사인 기억 · 지침 · 위키 · 로드맵 · 세션 시작 확인 · 오프라인 · 노출 · 1.x 전환 · compact 직후 확인 (H14)",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-20-claude-workflow-hub-concept-006",
+            "TASK-2026-11-20-claude-workflow-hub-concept-008",
+            "TASK-2026-11-20-claude-workflow-hub-concept-009",
+            "TASK-2026-11-20-claude-workflow-hub-concept-011",
+            "TASK-2026-11-20-claude-workflow-hub-concept-012"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        },
+        {
+          "id": "WBS-31.2",
+          "title": "design 전 실측 — 판정 함수 데이터 입구 · 위키 검사 경로 인자화 범위 · 하네스별 원격 MCP 지원",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-20-claude-workflow-hub-concept-010"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        },
+        {
+          "id": "WBS-31.3",
+          "title": "PURPOSE 2.0 판 (G1 · G3 · §4 명제 = D9) · 1.x 유지보수 정책 (G4 deprecation)",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-20-claude-workflow-hub-concept-013",
+            "TASK-2026-11-20-claude-workflow-hub-concept-014"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "M-032",
+      "title": "2.0 허브 — design (ADR-033 Accepted + core 스펙)",
+      "sdlc_phase": "design",
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
+      "total_leaves": 4,
+      "done_leaves": 4,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-32.1",
+          "title": "DB 스키마 · 이관 — 프로젝트(git 주소 별칭) · 콜사인 · task · 이력 · handoff · 지침 · 위키 · 로드맵",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-20-claude-workflow-hub-concept-015"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        },
+        {
+          "id": "WBS-32.2",
+          "title": "MCP 도구 · HTTP API 형식 — 부트스트랩 묶음(토큰 없음) · 나머지(콜사인 토큰) · 판 협상",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-20-claude-workflow-hub-concept-016"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        },
+        {
+          "id": "WBS-32.3",
+          "title": "흐름 — 부트스트랩 · 세션 시작 확인 · 세션 끝 · 지침 렌더링 · 1.x 전환 매핑",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-20-claude-workflow-hub-concept-017"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        },
+        {
+          "id": "WBS-32.4",
+          "title": "ADR-033 Accepted",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-21-claude-workflow-hub-concept-001"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "M-033",
+      "title": "2.0 허브 — implementation 1: 허브 코어 (서버 · SQLite · 프로젝트 · 콜사인 · task · 이력 · 원격 MCP 골격)",
+      "sdlc_phase": "implementation",
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
+      "total_leaves": 4,
+      "done_leaves": 4,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-33.1",
+          "title": "서버 · SQLite · 이관 · 백업 (파일 복사)",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-21-claude-workflow-hub-concept-002"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        },
+        {
+          "id": "WBS-33.2",
+          "title": "프로젝트 등록 (git 주소 정규화 · 별칭) · 콜사인 등록 · 토큰",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-21-claude-workflow-hub-concept-003"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        },
+        {
+          "id": "WBS-33.3",
+          "title": "task CRUD · 이력 · version 409 · 맡기",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-21-claude-workflow-hub-concept-004"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        },
+        {
+          "id": "WBS-33.4",
+          "title": "원격 MCP 골격 — 부트스트랩 묶음 · 인증 경계",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-21-claude-workflow-hub-concept-005"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "M-034",
+      "title": "2.0 허브 — implementation 2: 부트스트랩 · 공유 지침 · 세션 시작 확인",
+      "sdlc_phase": "implementation",
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
+      "total_leaves": 3,
+      "done_leaves": 3,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-34.1",
+          "title": "부트스트랩 흐름 — 등록 · 합류 · `.gitignore` 확인 (H9) · 쓸 파일 + 해시 반환 · 확인 도구 (I1)",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-21-claude-workflow-hub-concept-006"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        },
+        {
+          "id": "WBS-34.2",
+          "title": "지침 — 표준 규칙(허브판) · 프로젝트 지침 · 하네스 어댑터 렌더링 · 판 · 로컬 수정 감지",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-21-claude-workflow-hub-concept-007"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        },
+        {
+          "id": "WBS-34.3",
+          "title": "세션 시작 확인 — 허브 상태 + 저장소 대조 보고 (H11) · 하네스별 MCP 등록 안내 (I4)",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-21-claude-workflow-hub-concept-008"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "M-035",
+      "title": "2.0 허브 — implementation 3: 콜사인별 기억 · 로드맵 · 판정",
+      "sdlc_phase": "implementation",
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
+      "total_leaves": 3,
+      "done_leaves": 3,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-35.1",
+          "title": "콜사인별 handoff · state · 세션 기록 · 콜사인 보관 (G1 · G2)",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-21-claude-workflow-hub-concept-011"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        },
+        {
+          "id": "WBS-35.2",
+          "title": "로드맵 · 마일스톤 · WBS · 진척 파생 (D8)",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-21-claude-workflow-hub-concept-010"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        },
+        {
+          "id": "WBS-35.3",
+          "title": "계획 린트 · done 게이트 · 결정 응답 (plan-response/1)",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-21-claude-workflow-hub-concept-009"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "M-036",
+      "title": "2.0 허브 — implementation 4: 위키 · memory_index · 들여오기/내보내기 · 오프라인",
+      "sdlc_phase": "implementation",
+      "declared_status": "planned",
+      "derived_status": "planned",
+      "progress": 0.0,
+      "total_leaves": 3,
+      "done_leaves": 0,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-36.1",
+          "title": "위키 페이지 · ingest 묶음 · index/log 생성 · lint (E2)",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        },
+        {
+          "id": "WBS-36.2",
+          "title": "memory_index · 양방향 링크 (E5) · 저장소 참조 sha · 미측정 표시 (E3)",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        },
+        {
+          "id": "WBS-36.3",
+          "title": "들여오기 · 내보내기 (OKF · git 스냅샷) · 오프라인 보낼편지함 (선택 클라이언트)",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "M-037",
+      "title": "2.0 허브 — implementation 5: 허브 화면 (워크벤치 확장)",
+      "sdlc_phase": "implementation",
+      "declared_status": "planned",
+      "derived_status": "planned",
+      "progress": 0.0,
+      "total_leaves": 3,
+      "done_leaves": 0,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-37.1",
+          "title": "목록 · task 계획 · 결정 답 · 이력",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        },
+        {
+          "id": "WBS-37.2",
+          "title": "콜사인별 handoff · 지금 누가 무엇을 · 지침 판 현황",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        },
+        {
+          "id": "WBS-37.3",
+          "title": "지침 편집 · 에이전트 제안 승인 (D11) · 위키 읽기",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "M-038",
+      "title": "2.0 허브 — implementation 6: 1.x 전환 · 1.x 유지보수 판",
+      "sdlc_phase": "implementation",
+      "declared_status": "planned",
+      "derived_status": "planned",
+      "progress": 0.0,
+      "total_leaves": 3,
+      "done_leaves": 0,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-38.1",
+          "title": "1.x 감지 · 전환 계획 · 들여오기 (branch → 콜사인 · 보관 기록 매핑)",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        },
+        {
+          "id": "WBS-38.2",
+          "title": "git 쪽 '허브로 옮김' 표식 · 되돌리기",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        },
+        {
+          "id": "WBS-38.3",
+          "title": "1.x 유지보수 판 — 표식 거절 · session-start 2.0 안내 · deprecation (G4)",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "M-039",
+      "title": "2.0 허브 — stabilization (하네스 실측 · 이 저장소 전환 · arcturus 이전)",
+      "sdlc_phase": "stabilization",
+      "declared_status": "planned",
+      "derived_status": "planned",
+      "progress": 0.0,
+      "total_leaves": 3,
+      "done_leaves": 0,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-39.1",
+          "title": "하네스별 실측 — 원격 MCP · 부트스트랩 · 세션 시작 확인 (Linux · macOS · Windows)",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        },
+        {
+          "id": "WBS-39.2",
+          "title": "이 저장소 2.0 전환 (자기 적용)",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        },
+        {
+          "id": "WBS-39.3",
+          "title": "arcturus-port 이전 — task · handoff · 지침 (위키 · 실측 화면은 arcturus 에)",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "M-040",
+      "title": "2.0.0 발행 · 1.x 유지보수 줄 분기",
+      "sdlc_phase": "release",
+      "declared_status": "planned",
+      "derived_status": "planned",
+      "progress": 0.0,
+      "total_leaves": 2,
+      "done_leaves": 0,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-40.1",
+          "title": "2.0.0 릴리스 노트 · 배포 산출물 · 전환 안내",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        },
+        {
+          "id": "WBS-40.2",
+          "title": "1.x 유지보수 줄 분기 · 마지막 1.x 판 deprecation 안내",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        }
+      ]
     }
   ],
-  "current_milestone_id": "M-007",
+  "current_milestone_id": "M-028",
   "exempt_tasks": [
+    {
+      "task_id": "TASK-2026-11-20-claude-workflow-hub-concept-001",
+      "task_status": "done",
+      "wbs_ref": "exempt",
+      "exempt_reason": "로드맵 밖 — worktree 브랜치 네임스페이스 자동 seed 사건 기록",
+      "source_path": "ai-workflow/memory/active/claude/workflow-hub-concept/backlog/tasks/TASK-2026-11-20-claude-workflow-hub-concept-001.md"
+    },
+    {
+      "task_id": "TASK-2026-11-20-claude-workflow-hub-concept-005",
+      "task_status": "done",
+      "wbs_ref": "exempt",
+      "exempt_reason": "로드맵 자체를 세우는 작업 — 아직 연결할 WBS 가 없다",
+      "source_path": "ai-workflow/memory/active/claude/workflow-hub-concept/backlog/tasks/TASK-2026-11-20-claude-workflow-hub-concept-005.md"
+    },
+    {
+      "task_id": "TASK-2026-11-20-claude-workflow-hub-concept-007",
+      "task_status": "done",
+      "wbs_ref": "exempt",
+      "exempt_reason": "1.x 결함 수리 — 로드맵 밖",
+      "source_path": "ai-workflow/memory/active/claude/workflow-hub-concept/backlog/tasks/TASK-2026-11-20-claude-workflow-hub-concept-007.md"
+    },
     {
       "task_id": "TASK-2026-08-25-main-010",
       "task_status": "done",

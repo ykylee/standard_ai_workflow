@@ -55,6 +55,8 @@ TOOL_MODULES: Final[dict[str, str]] = {
     "plan-status": "workflow_kit.tools.plan_status",
     "plan-import": "workflow_kit.tools.plan_import",
     "workbench": "workflow_kit.tools.workbench",
+    # M-033 (hub_spec §2.1) — 2.0 워크플로우 허브 서버. 허브 쪽만 깐다 (workflow_kit[hub]).
+    "hub": "workflow_kit.tools.hub",
     # TASK-2026-11-16-main-016 — 브랜치 할 일 · task 체크리스트 (워크벤치와 같은 todo.md).
     "todo": "workflow_kit.tools.todo",
     # TASK-2026-11-17-claude-remote-sync-check-234c32-003 — 진행 기록 상기 (작업 세션 hook).

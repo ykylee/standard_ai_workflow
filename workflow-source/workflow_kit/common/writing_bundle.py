@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from workflow_kit.common.errors import exception_context
 from workflow_kit.common.paths import resolve_existing_path
 from workflow_kit.common.patching import apply_robust_patch
 from workflow_kit.common.schemas.base import Status
@@ -81,7 +82,7 @@ def apply_robust_patch_payload(
             warnings=[f"apply_robust_patch_runtime_error: {exc}"],
             error=str(exc),
             error_code="apply_robust_patch_runtime_error",
-            source_context={"file_path": str(path), "exception_type": type(exc).__name__},
+            source_context={"file_path": str(path)} | exception_context(exc),
         ).model_dump(mode="json")
 
     # 4. ok path (or partial error with error_code="malformed_patch_block" if any block failed)

@@ -1,8 +1,8 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-11-19",
-  "purpose_digest": "여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공",
-  "purpose_digest_rev": "2026-09-28",
+  "generated_at": "2026-11-21",
+  "purpose_digest": "여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 **허브**로 제공한다 — 작업 환경은 kit 을 깔지 않고 허브 주소 하나로 참여하고, kit 은 허브 서버 안에서 돈다 (H2 · H4). 독립 패키지 형태는 1.x 줄로 유지보수한다",
+  "purpose_digest_rev": "2026-11-21",
   "source_of_truth": {
     "project_profile_path": "docs/PROJECT_PROFILE.md",
     "session_handoff_path": "ai-workflow/memory/active/main/session_handoff.md",

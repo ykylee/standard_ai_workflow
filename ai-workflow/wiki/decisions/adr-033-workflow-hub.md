@@ -1,12 +1,12 @@
 ---
 type: decision
-status: proposed
+status: accepted
 adr_id: ADR-033
 decided_at: 2026-11-20
 alternatives_considered: [git-ssot-hub-as-view, project-chooses-ssot, kit-protocol-client-only, move-go-portal-into-kit, kit-installed-on-every-env, instructions-ssot-in-repo-main]
 related_pages: [decisions/adr-032-plan-workbench, decisions/adr-031-claim-plan, decisions/adr-027-roadmap-wbs-sdlc]
 created: 2026-11-20
-updated: 2026-11-20
+updated: 2026-11-21
 r9_skip: true
 ---
 
@@ -14,9 +14,9 @@ r9_skip: true
 
 ## Status
 
-**Proposed** (2026-11-20, TASK-2026-11-20-claude-workflow-hub-concept-002, M-030/WBS-30.1). 위키 (§11, WBS-30.2) · 등록 · 식별 · 콜사인 기억 · MCP (§12~§14, WBS-30.3) 도 같은 날 결정.
+**Accepted** (2026-11-21, TASK-2026-11-21-claude-workflow-hub-concept-001, M-032/WBS-32.4) — requirements(M-031) · design(M-032) 완료, design 결정 DS1~DS9 소유자 확정. Proposed 2026-11-20 (TASK-2026-11-20-claude-workflow-hub-concept-002, M-030/WBS-30.1). 위키 (§11, WBS-30.2) · 등록 · 식별 · 콜사인 기억 · MCP (§12~§14, WBS-30.3) 도 같은 날 결정.
 방향 H1~H14 와 결정 D1~D11 · E1~E6 · F1~F5 · G1~G3 · I1~I4 (concept 문서 `docs/planning/workflow-hub-review-2026-11.md` 의 권고안 전부, §10 · §15) 를 소유자가 정했다 (2026-11-20).
-design (DB 스키마 · API · 클라이언트 · 렌더링) 이 끝나면 Accepted 로 올린다.
+계약 정본: [`hub_spec.md`](../../../workflow-source/core/hub_spec.md) · 요구와 실측: [`workflow-hub-requirements-2026-11.md`](../../../docs/planning/workflow-hub-requirements-2026-11.md).
 
 ## Context
 
@@ -57,9 +57,15 @@ design (DB 스키마 · API · 클라이언트 · 렌더링) 이 끝나면 Accep
 - D10 허브가 쓴 진입 파일은 커밋 (판 대조, 직접 수정 시 멈춤) · D11 지침 편집은 권한 콜사인, 에이전트 변경은 제안 → 사람 승인
 - E1~E6 위키 · F1~F5 등록 · 식별 · G1~G3 콜사인 기억 · I1~I4 MCP — concept §15 요약
 
+### requirements · design 결정 (2026-11-20 ~ 21)
+
+- requirements Q1~Q10 (요구 §20): 1.x 전환 같은 ID 정본 = 마지막 커밋이 가장 늦은 브랜치 · 브랜치 기록 원문 보관 · `human` 콜사인은 소유자 승인 · **화면 인증 = arcturus 과제 대시보드 방식** (로그인 없음, 브라우저 콜사인 · Bearer · 공용 `web` 토큰 기본 꺼짐) · 저장소 확인은 명령을 내주고 결과 대조 · 1.x 2028-07-20 까지 결함 수리 · 참조 못 하는 하네스(Antigravity)는 사용자 범위 토큰 · **지원 하네스 4종 Claude Code · Codex · MiniMax Code · Antigravity** · PURPOSE 2.0판은 이 ADR Accepted 때 적용 · 2.0 은 같은 이름의 kit 플러그인 채널을 내지 않음.
+- design DS1~DS9 (스펙 §10): MCP 공식 SDK + `workflow_kit[hub]` · task 계획은 1.x Plan 원문 · 새 task ID 네임스페이스 = 콜사인 · 등록 직후 셋업 도구만 `token` 인자 · HTTP API = MCP 도구 거울 · 2.0 표준 규칙 정본 `core/hub_workflow_standard.md` · 콜사인은 프로젝트마다 · 주소 대소문자는 대형 호스트만 소문자 · 표식 `ai-workflow/HUB_MIGRATED.json`.
+- 실측 근거 (요구 §16): 판정 핵심은 데이터로 부를 수 있다 (리팩터는 상태 생성 입력 층) · 위키 검사는 펼친 디렉터리에서 같은 판정 · 4종 원격 MCP 실측 (Antigravity 는 헤더 환경 변수 참조 미지원).
+
 ## Consequences
 
-- **2.0.0 으로 낸다** (H12). PURPOSE 의 G1 · G3 · §4 명제를 2.0 판으로 다시 쓴다 (D9 가 2.0 의 명제).
+- **2.0.0 으로 낸다** (H12). PURPOSE 를 2.0판(`purpose_version: 2`)으로 적용했다 (2026-11-21, Q9) — 1.x 분기 브랜치의 PURPOSE 는 v1 그대로.
 - 1.x 프로젝트는 2.0 부트스트랩의 전환 과정으로 옮긴다 (H13). 1.x 유지보수 판은 '허브로 옮김' 표식에서 쓰기를 거절하고 2.0 을 안내한다.
 - 새 표면: 허브 서버(표준 라이브러리 HTTP + SQLite) · **원격 MCP** · 얇은 클라이언트(선택) · 지침 렌더링 · 허브 화면(워크벤치 확장) · 들여오기 / 내보내기.
 - 지켜야 할 것: 생성물 형식(`state.json` v1 · `roadmap_state` v1 · `workbench-state/1` · `workflow-kit-plan-response/1`)은 허브가 같은 형식으로 낸다 · 로컬 흐름은 1.x 유지보수 줄에서 그대로 (G3 의 범위는 1.x, 2.0 은 major — H12).

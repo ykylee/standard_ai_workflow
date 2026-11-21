@@ -62,13 +62,23 @@ def test_purpose_4_element_sections_v0_9_2() -> None:
 
 
 def test_purpose_frontmatter_v0_9_2() -> None:
-    """Acceptance §5 #2: frontmatter `purpose_version: 1` + `last_purpose_review` (YYYY-MM-DD)."""
+    """Acceptance §5 #2: frontmatter `purpose_version: <양의 정수>` + `last_purpose_review` (YYYY-MM-DD).
+
+    판은 형식 계약(양의 정수)으로 잰다 — 살아 있는 PURPOSE 의 그때 값(1)을 기대값으로
+    박으면 정당한 개정(2026-11-21 2.0판, ADR-033 · Q9)이 red 가 된다. 판을 올리면
+    본문 상태 줄이 그 판을 밝혀야 한다 (판만 오르고 개정 근거가 없는 것을 막는다).
+    """
     src = PURPOSE_PATH.read_text()
     m = re.match(r"^---\n(.+?)\n---", src, re.S)
     assert m is not None, "PURPOSE.md frontmatter missing"
     fm = m.group(1)
     assert "purpose_version" in fm, "purpose_version missing in frontmatter"
-    assert re.search(r"purpose_version\s*:\s*1\b", fm), "purpose_version must be 1"
+    ver = re.search(r"purpose_version\s*:\s*(\d+)\s*$", fm, re.MULTILINE)
+    assert ver is not None and int(ver.group(1)) >= 1, "purpose_version must be a positive integer"
+    if int(ver.group(1)) >= 2:
+        assert f"purpose_version: {ver.group(1)}" in src.split("---", 2)[-1], (
+            f"purpose_version {ver.group(1)} 인데 본문 상태 줄이 그 판을 밝히지 않는다"
+        )
     assert "last_purpose_review" in fm, "last_purpose_review missing in frontmatter"
     assert re.search(
         r"last_purpose_review\s*:\s*\d{4}-\d{2}-\d{2}", fm

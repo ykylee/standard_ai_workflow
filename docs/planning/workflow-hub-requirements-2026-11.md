@@ -4,7 +4,7 @@
 - 범위: 허브 서버 · 허브 MCP 도구 · 부트스트랩과 등록 · 콜사인과 작업 기억 · task와 판정 · handoff와 상태 요약 · 공유 지침 · 위키 · 로드맵 · 세션 시작 확인 · compact 직후 확인 · 오프라인 · 노출 · git 내보내기 · 1.x 전환. 방향과 결정은 [concept](./workflow-hub-review-2026-11.md)이 정본이라 **여기서 다시 정하지 않는다**. design 전 실측(WBS-31.2)과 PURPOSE 2.0판 · 1.x 유지보수 정책(WBS-31.3)은 이 문서에 자리만 둔다 (§16 · §17).
 - 대상 독자: 소유자 (sign-off), design 단계 작성자
 - 상태: **종결 (2026-11-20)** — WBS-31.1 · 31.2 · 31.3 완료, 소유자 결정 Q1~Q10 전부 확정 (§20 · §24), design 진입 조건 충족 (§21). 다음은 design (M-032 — ADR-033 Accepted + `core/hub_spec.md`)
-- 최종 수정일: 2026-11-20
+- 최종 수정일: 2026-11-21
 - 관련 문서: [`workflow-hub-review-2026-11.md`](./workflow-hub-review-2026-11.md) (concept — 아래에서 "concept §n" 으로 부른다), [`M-031`](../../ai-workflow/memory/active/roadmap/M-031-workflow-hub-requirements.md), [`ADR-033`](../../ai-workflow/wiki/decisions/adr-033-workflow-hub.md) (Proposed), [`plan-workbench-requirements-2026-11.md`](./plan-workbench-requirements-2026-11.md) (받은편지함 · 노출의 선례), arcturus-port `portal/` (`8d24fcd7` — 화면 인증 Q4 의 선례: `backend/internal/api/api.go` · `backend/internal/store/callsign.go` · `site/src/pages/tasks/index.astro` · `deploy/homelab/Caddyfile`), [`claim_plan_spec.md`](../../workflow-source/core/claim_plan_spec.md), [`compact_relay_spec.md`](../../workflow-source/core/compact_relay_spec.md), [`multi_workspace_orchestration.md`](../../workflow-source/core/multi_workspace_orchestration.md)
 
 ## 0. 요약
@@ -332,7 +332,7 @@
 
 ### 17.1 PURPOSE 2.0 개정안
 
-바뀌는 칸만 적는다 — 나머지(G2 · G5 · Q1 · Q3 · Q4 · 제외 영역 · §4 의 다른 명제)는 그대로다. **적용 시점 (Q9 결정): design 이 끝나 ADR-033 이 Accepted 될 때** PURPOSE.md 에 `purpose_version: 2` 로 적용한다. 1.x 분기 브랜치의 PURPOSE 는 v1 그대로다.
+바뀌는 칸만 적는다 — 나머지(G2 · G5 · Q1 · Q3 · Q4 · 제외 영역 · §4 의 다른 명제)는 그대로다. **적용 시점 (Q9 결정): design 이 끝나 ADR-033 이 Accepted 될 때** PURPOSE.md 에 `purpose_version: 2` 로 적용한다 — **적용 2026-11-21**. 1.x 분기 브랜치의 PURPOSE 는 v1 그대로다.
 
 | 칸 | 지금 (`purpose_version: 1`) | 2.0판 (`purpose_version: 2`) |
 |---|---|---|
@@ -344,7 +344,7 @@
 | 포함: 하네스 배포 | 플러그인 채널 중심 (Claude Code / Codex / Grok Build / Antigravity / pi-dev) + bootstrap, 그 밖의 하네스 가이드 | **허브 원격 MCP + 진입 지침** — 지원 하네스 4종 Claude Code · Codex · MiniMax Code · Antigravity (R2.8). 플러그인 채널은 1.x 줄 |
 | 포함 (추가) | — | 허브 서버 (Python · SQLite) 와 그 운영 가이드 — 배치 자동화는 여전히 제외 (IaC) |
 | 포함 (추가) | — | 1.x 유지보수 줄 (R16) |
-| §4 명제 둘째 | workflow state docs (`ai-workflow/memory/active/<branch>/`) 는 세션 복원의 SSOT 이며, 그 정본은 `backlog/tasks/` + `session_handoff.md` 다. `state.json` 은 생성물이다 | **세션 복원의 정본은 허브다** — task · handoff · 이력 · 로드맵 · 공유 지침 · 위키의 정본이 허브에 있고, git 은 그 내보내기다 (D6 · D9 · E1). `state.json` 형식의 상태 요약은 허브가 1.x 와 같은 판정 함수로 만드는 생성물이다 (R0.7 · R6.3). 1.x 줄에서는 옛 명제가 그대로다 |
+| §4 명제 둘째 | workflow state docs (`ai-workflow/memory/active/<branch>/`) 는 세션 복원의 SSOT 이며, 그 정본은 `backlog/tasks/` + `session_handoff.md` 다. `state.json` 은 생성물이다 | **세션 복원의 정본은 허브다** — task · handoff · 이력 · 로드맵 · 공유 지침 · 위키의 정본이 허브에 있고, git 은 그 내보내기다 (D6 · D9 · E1). `state.json` 형식의 상태 요약은 허브가 1.x 와 같은 판정 함수로 만드는 생성물이다 (R0.7 · R6.3). 1.x 줄에서는 옛 명제(workflow state docs `ai-workflow/memory/active/<branch>/` 가 세션 복원의 SSOT, 정본은 `backlog/tasks/` + `session_handoff.md`, `state.json` 은 생성물)가 그대로다 |
 | §4 명제 셋째 | deprecation policy 의 1 release 경고 → 1 release 제거는 stable API 의 운영 약속, contract test 가 자동 verify | 같은 문장 + "허브 API · MCP 도구 계약에도 같다" |
 
 `purpose_digest` (state.json) 는 G1 첫 문장에서 파생되므로 적용 시 자동으로 바뀐다 — 손으로 고치지 않는다.

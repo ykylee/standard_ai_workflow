@@ -3,8 +3,8 @@
 - 문서 목적: 2.0.0 워크플로우 허브의 kit 계약 — 프로세스 · 모듈 · DB 스키마와 이관 · MCP 도구와 HTTP API · 흐름(부트스트랩 · 세션 시작 · 세션 끝 · compact · 지침 렌더링 · 1.x 전환) · 검증 — 을 정의한다.
 - 범위: `python -m workflow_kit hub …` 명령, 허브가 여는 경로(`/mcp` · `/v1/…` · 화면 · `/healthz` · `/v1/bootstrap`), SQLite 스키마, 허브 MCP 도구, 쓰기 지시 형식, 진입 파일 렌더 영역, 1.x 들여오기 매핑. 화면의 구체 디자인은 M-037, 선택 클라이언트의 명령 세부는 M-034 가 정한다.
 - 대상 독자: 구현자(M-033~M-039), workflow 설계자, 소유자 (DS 결정)
-- 상태: draft (M-032 — WBS-32.1~32.3 초판 2026-11-20, DS1~DS9 는 소유자 확인 전 · ADR-033 Proposed)
-- 최종 수정일: 2026-11-20
+- 상태: draft (ADR-033 accepted 2026-11-21 — M-032 design 완료, DS1~DS9 소유자 확정. 구현은 M-033~M-039)
+- 최종 수정일: 2026-11-21
 - 관련 문서: `../../docs/planning/workflow-hub-requirements-2026-11.md` (요구 R0~R16 · 실측 §16 — 아래에서 "요구 R…" · "실측 §16.n"), `../../docs/planning/workflow-hub-review-2026-11.md` (concept), `../../ai-workflow/wiki/decisions/adr-033-workflow-hub.md`, `./claim_plan_spec.md`, `./plan_workbench_spec.md`, `./compact_relay_spec.md`, `./roadmap_milestone_wbs_spec.md`, `./stable_guarantee.md`
 
 > **결정 근거는 concept · ADR-033 에, 요구와 실측은 requirements 에 있다.** 이 문서는 *계약* 만 적는다.
@@ -317,9 +317,9 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 | R15.1~R15.4 | §2.2 (`export.py`) · §4.5 · (A2A · 유휴 점검 도구 없음) |
 | R16.1~R16.8 | 1.x 줄 정책 — 이 스펙 밖 (1.x 발행 절차 · RELEASE.md). 허브 쪽 접점은 §6.6 의 표식 |
 
-## 10. design 결정 (DS) — 소유자 확인 대기
+## 10. design 결정 (DS) — 소유자 확정 (2026-11-21, 권고안 전부)
 
-| # | 결정 | 권고 (이 스펙이 가정한 것) | 다른 길 |
+| # | 결정 | 확정 (권고안) | 버린 길 |
 |---|---|---|---|
 | DS1 | 허브의 HTTP · MCP 서버 구현 | **MCP 공식 SDK (`mcp`) + 그 ASGI 서버**, `workflow_kit[hub]` 추가 의존 · 판 범위 상한 고정 (§2.3) — 원격 MCP 전송 · 세션 · 형식을 직접 짜지 않는다 | 표준 라이브러리 HTTP 위에 MCP JSON-RPC 를 직접 구현 (1.x 읽기 전용 서버의 lines 구현처럼) |
 | DS2 | task 계획 절의 저장 형태 | **1.x Plan 절 원문 텍스트 (`plan_md`)** — 판정 함수 재사용 · 내보내기 왕복 (§3.3) | 주장 · 결정을 표로 정규화 (판정 함수 대폭 수정) |

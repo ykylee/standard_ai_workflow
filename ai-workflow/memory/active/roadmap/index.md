@@ -75,7 +75,7 @@
   - path: [`./M-030-workflow-hub.md`](./M-030-workflow-hub.md)
 - **M-031** [requirements] 2.0 허브 — requirements (요구 목록 · design 전 실측 · PURPOSE 2.0 판 · 1.x 정책) — status: done
   - path: [`./M-031-workflow-hub-requirements.md`](./M-031-workflow-hub-requirements.md)
-- **M-032** [design] 2.0 허브 — design (ADR-033 Accepted + core 스펙) — status: in_progress
+- **M-032** [design] 2.0 허브 — design (ADR-033 Accepted + core 스펙) — status: done
   - path: [`./M-032-workflow-hub-design.md`](./M-032-workflow-hub-design.md)
 - **M-033** [implementation] 2.0 허브 — implementation 1: 허브 코어 (서버 · SQLite · 프로젝트 · 콜사인 · task · 이력 · 원격 MCP 골격) — status: planned
   - path: [`./M-033-workflow-hub-core.md`](./M-033-workflow-hub-core.md)

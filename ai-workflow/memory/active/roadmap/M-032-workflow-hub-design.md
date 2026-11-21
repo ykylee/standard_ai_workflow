@@ -2,7 +2,7 @@
 id: M-032
 title: 2.0 허브 — design (ADR-033 Accepted + core 스펙)
 sdlc_phase: design
-status: in_progress
+status: done
 order: 32
 parallel_allowed:
   - M-007

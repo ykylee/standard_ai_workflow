@@ -2,7 +2,7 @@
 id: M-035
 title: 2.0 허브 — implementation 3: 콜사인별 기억 · 로드맵 · 판정
 sdlc_phase: implementation
-status: planned
+status: done
 order: 35
 parallel_allowed:
   - M-007

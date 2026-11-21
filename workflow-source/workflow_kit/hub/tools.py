@@ -16,6 +16,7 @@ from typing import Any, Callable
 
 from workflow_kit.hub.errors import HubError, invalid_field, unauthorized, unknown_field
 from workflow_kit.hub.judge import Judge
+from workflow_kit.hub.memory import Memory
 from workflow_kit.hub.session import SessionStart
 from workflow_kit.hub.setup import Setup
 from workflow_kit.hub.store import Ctx, Store, scan_secrets
@@ -195,6 +196,23 @@ TOOLS: dict[str, ToolSpec] = {
                  lambda s, c, a: Judge(s).plan_respond(c, a["task_id"], a["body"])),
         ToolSpec("hub_plan_status", "token", "task 계획의 결정 상태 · 열린 결정 · 반영된 응답 수.",
                  {"task_id": _STR}, ("task_id",), lambda s, c, a: Judge(s).plan_status(c, a["task_id"])),
+        ToolSpec("hub_handoff_get", "token", "콜사인의 handoff (기본: 나). 다른 콜사인 것도 읽을 수 있다 (G3).",
+                 {"callsign": _STR}, (), lambda s, c, a: Memory(s).handoff_get(c, a.get("callsign"))),
+        ToolSpec("hub_handoff_put", "token",
+                 "내 handoff 를 쓴다 — 칸: baseline · focus · in_progress · blocked · recent_done(10건 넘치면 옮긴다) · next · risks.",
+                 {"handoff": _OBJ, "expected_version": _INT}, ("handoff",),
+                 lambda s, c, a: Memory(s).handoff_put(c, a.get("expected_version"), a["handoff"])),
+        ToolSpec("hub_session_end", "token",
+                 "세션 끝 — handoff 와 진행 한 줄들을 한 트랜잭션으로 쓴다. 다음은 커밋 → push.",
+                 {"handoff": _OBJ, "expected_version": _INT, "progress": _ARR}, ("handoff",),
+                 lambda s, c, a: Memory(s).session_end(c, a["handoff"], a.get("expected_version"), a.get("progress") or [])),
+        ToolSpec("hub_checkpoint_put", "token", "compact 직전 체크포인트 — next · unverified · verified · rejected · tasks · branch.",
+                 {"body": _OBJ}, ("body",), lambda s, c, a: Memory(s).checkpoint_put(c, a["body"])),
+        ToolSpec("hub_compact_resume", "token",
+                 "compact 직후 — 체크포인트 · 내 task · 그 사이 다른 콜사인의 변경 · 요약에서 빠진 식별자 (summary_ids 없으면 대조 불가).",
+                 {"summary_ids": _ARR}, (), lambda s, c, a: Memory(s).compact_resume(c, a.get("summary_ids"))),
+        ToolSpec("hub_state", "token", "상태 요약 (state.json v1 — 1.x 생성기로 만든다). callsign 기본: 나.",
+                 {"callsign": _STR}, (), lambda s, c, a: Memory(s).state(c, a.get("callsign"))),
         ToolSpec("hub_roadmap_get", "token", "로드맵 원문 (index.md · M-NNN-*.md).", {}, (),
                  lambda s, c, a: Judge(s).roadmap_get(c)),
         ToolSpec("hub_roadmap_put", "token",

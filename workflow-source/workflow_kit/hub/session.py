@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 import sqlite3
 from typing import Any
@@ -38,6 +39,14 @@ def _commands(entry_paths: list[str], shas: list[str]) -> dict[str, list[str]]:
     for sha in shas:
         cmds[f"commit:{sha}"] = ["git", "cat-file", "-e", f"{sha}^{{commit}}"]
     return cmds
+
+
+def _handoff(conn: sqlite3.Connection, p: Principal) -> dict[str, Any] | None:
+    row = conn.execute("SELECT sections_json, version, updated_at FROM handoff WHERE project_id = ? AND callsign = ?",
+                       (p.project_id, p.callsign)).fetchone()
+    if row is None:
+        return None
+    return {"sections": json.loads(row["sections_json"]), "version": row["version"], "updated_at": row["updated_at"]}
 
 
 class SessionStart:
@@ -70,8 +79,7 @@ class SessionStart:
             "my_tasks": mine,
             "unassigned_open_tasks": free,
             # M-035 · M-036 이 채운다 — 그 전에는 미측정으로 보고한다 (확인한 척하지 않는다)
-            "handoff": {"status": "unmeasured", "reason": "handoff 저장은 M-035"},
-            "plan_responses": {"status": "unmeasured", "reason": "결정 응답은 M-035"},
+            "handoff": _handoff(conn, p),
             "_entries": sorted(set(entries)),
             "_commits": commits,
         }
@@ -84,8 +92,8 @@ class SessionStart:
         entries: list[str] = hub.pop("_entries")
         commits: dict[str, list[str]] = hub.pop("_commits")
         commands = _commands(entries, sorted(commits))
-        confirmed = ["hub: 닿음", "hub: 지침 판", "hub: 내 task", "hub: 맡은 이 없는 열린 task"]
-        unconfirmed = ["hub: handoff (M-035)", "hub: 결정 응답 (M-035)"]
+        confirmed = ["hub: 닿음", "hub: 지침 판", "hub: 내 task", "hub: 맡은 이 없는 열린 task", "hub: 내 handoff"]
+        unconfirmed: list[str] = []
         if hub["guide"]["changed"]:
             hub["guide"]["notice"] = "[바뀜] 지침이 바뀌었다 — hub_guide_render 로 진입 파일을 다시 쓰고 먼저 읽는다"
         if repo_results is None:

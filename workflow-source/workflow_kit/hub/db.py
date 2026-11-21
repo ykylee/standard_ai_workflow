@@ -170,10 +170,39 @@ CREATE TABLE roadmap_doc (
 );
 """
 
+#: 판 4 (M-035 WBS-35.1) — 콜사인별 handoff · 작업 기억 · compact 체크포인트 (hub_spec §3.3).
+_V4 = """
+CREATE TABLE handoff (
+    project_id TEXT NOT NULL,
+    callsign TEXT NOT NULL,
+    sections_json TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    PRIMARY KEY (project_id, callsign),
+    FOREIGN KEY (project_id, callsign) REFERENCES callsign(project_id, id)
+);
+CREATE TABLE memory_note (
+    project_id TEXT NOT NULL,
+    callsign TEXT NOT NULL,
+    kind TEXT NOT NULL CHECK (kind IN ('session', 'lesson', 'handoff_rollover', 'archive_1x')),
+    title TEXT NOT NULL,
+    body_md TEXT NOT NULL,
+    meta_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL
+);
+CREATE TABLE checkpoint (
+    project_id TEXT NOT NULL,
+    callsign TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    body_json TEXT NOT NULL,
+    summary_md TEXT NOT NULL DEFAULT ''
+);
+"""
+
 #: 판 순서 = 목록 순서. 판 n = ``MIGRATIONS[n-1]`` (SQL 스크립트).
 #: ``executescript`` 는 열린 트랜잭션을 먼저 커밋하므로, 판 하나의 원자성은
 #: 스크립트 **안의** ``BEGIN IMMEDIATE … COMMIT`` 으로 만든다 (:func:`_apply`).
-MIGRATIONS: list[str] = [_V1, _V2, _V3]
+MIGRATIONS: list[str] = [_V1, _V2, _V3, _V4]
 
 
 def latest_version() -> int:

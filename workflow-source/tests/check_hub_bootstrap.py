@@ -275,7 +275,7 @@ def case_7_session(hub: Hub, tmp: Path, db: Path, pid: str, tok: str, repo: Path
     cmds = p1.get("repo_check", {}).get("commands", {})
     ok_p1 = (p1.get("verdict") == "unconfirmed" and "status" in cmds and any(k.startswith("entry_head:") for k in cmds)
              and any(k.startswith("commit:") for k in cmds) and [t["id"] for t in p1["hub"]["my_tasks"]] == [tid]
-             and any("handoff" in u for u in p1.get("unconfirmed", [])))
+             and p1["hub"].get("handoff") is None and "hub: 내 handoff" in p1.get("confirmed", []))
     clean = start(_run_cmds(repo, cmds))
     # 뒤처짐 — 다른 클론이 push
     other = tmp / "other"

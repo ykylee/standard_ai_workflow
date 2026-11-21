@@ -60,7 +60,7 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 | done 게이트 | `planning.determine_conservative_task_status` + `enforce_plan_contract` 의 판정부 | `enforce_plan_contract` 에 응답 목록 · 줄 수 콜백 · 대기 수 인자 입구 |
 | WBS 게이트 | `state/roadmap.evaluate_wbs_gate` | 판정부를 `judge_wbs(roadmap, is_draft, wbs)` 로 떼고 기존 함수는 그 래퍼 (정본 하나) |
 | 로드맵 파싱 · 진척 | `parse_milestone_text` · `parse_index_text` · `derive_state` | `derive_state` 에 산출물 존재 콜백 · 시각 인자 |
-| 상태 생성 | `state/builder.build_workflow_state_payload` | **리팩터** — 파싱된 객체를 받는 순수 조립 함수를 떼고 파일 수집은 1.x 래퍼에 남긴다 |
+| 상태 생성 | `state/builder.build_workflow_state_payload` | **손질 없음** — 허브 데이터를 임시 디렉터리에 1.x 배치로 펼쳐 그대로 부른다 (`hub/memory.py`, 위키 lint §6.7 과 같은 방식). 펼침이 1.x 배치를 잘못 흉내 내면 생성기가 조용히 빈 값을 내므로, 검사는 **손으로 쓴 1.x 배치**의 출력과 대조한다 (`check_hub_memory` case 2) |
 | handoff 파싱 | `project_docs.HandoffParser` | 허브는 handoff 를 구조로 저장하므로 파싱이 필요 없다 (1.x 들여오기 때만 — 파일이 있는 자리에서) |
 
 ### 2.3 의존 (DS1)

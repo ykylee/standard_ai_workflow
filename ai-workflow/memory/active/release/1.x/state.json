@@ -46,6 +46,7 @@
       "TASK-2026-11-21-release-1.x-003"
     ],
     "recent_done_items": [
+      "TASK-2026-11-21-release-1.x-006 — run_all_checks 잠금 파일 보유자 정보가 깨진다 — a+b 모드 (main 의 같은 수리를 1.x 로)",
       "TASK-2026-11-21-release-1.x-005 — '허브로 옮김' 표식이 있으면 1.x 쓰기 거절 · session-start 는 허브를 가리킨다 (main 의 M-038 WBS-38.3 1.x 쪽)",
       "TASK-2026-11-21-release-1.x-004 — v1.29.1 발행 — 1.x 결함 수리 patch (.long-lived 표시)",
       "TASK-2026-11-21-release-1.x-001 — 브랜치 네임스페이스 자동 seed — `main` 에서 이어받음"
@@ -55,13 +56,14 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/release/1.x/backlog/2026-11-21.md",
-    "task_count": 5,
+    "task_count": 6,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
       "TASK-2026-11-21-release-1.x-001 — 브랜치 네임스페이스 자동 seed — `main` 에서 이어받음",
       "TASK-2026-11-21-release-1.x-004 — v1.29.1 발행 — 1.x 결함 수리 patch (.long-lived 표시)",
-      "TASK-2026-11-21-release-1.x-005 — '허브로 옮김' 표식이 있으면 1.x 쓰기 거절 · session-start 는 허브를 가리킨다 (main 의 M-038 WBS-38.3 1.x 쪽)"
+      "TASK-2026-11-21-release-1.x-005 — '허브로 옮김' 표식이 있으면 1.x 쓰기 거절 · session-start 는 허브를 가리킨다 (main 의 M-038 WBS-38.3 1.x 쪽)",
+      "TASK-2026-11-21-release-1.x-006 — run_all_checks 잠금 파일 보유자 정보가 깨진다 — a+b 모드 (main 의 같은 수리를 1.x 로)"
     ]
   },
   "next_documents": [

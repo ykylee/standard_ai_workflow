@@ -1263,6 +1263,13 @@
       "wbs_ref": "exempt",
       "exempt_reason": "main M-038/WBS-38.3 의 1.x 쪽 — 2.0 전환 표식 거절 (R14.6 · R16.5)",
       "source_path": "ai-workflow/memory/active/release/1.x/backlog/tasks/TASK-2026-11-21-release-1.x-005.md"
+    },
+    {
+      "task_id": "TASK-2026-11-21-release-1.x-006",
+      "task_status": "done",
+      "wbs_ref": "exempt",
+      "exempt_reason": "1.x 결함 수리 (R16.1)",
+      "source_path": "ai-workflow/memory/active/release/1.x/backlog/tasks/TASK-2026-11-21-release-1.x-006.md"
     }
   ],
   "issues": []

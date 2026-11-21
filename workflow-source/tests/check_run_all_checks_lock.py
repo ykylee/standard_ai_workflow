@@ -142,11 +142,16 @@ def case_4_lock_lives_in_gitdir() -> None:
 
 
 def case_5_free_acquire_and_holder_info() -> None:
+    # 이전 보유자 정보가 더 길게 남아 있는 잠금 파일 — 덮어쓰기가 처음부터 쓰고 잘라야 온전한 JSON 이 된다
+    # (덧붙이기 모드로 열면 옛 내용 앞부분이 남았다, TASK-2026-11-21-main-019).
+    LOCK_PATH.write_text(json.dumps({"pid": 1, "started_at": "1999-01-01T00:00:00", "branch": "x" * 300, "argv": []}),
+                         encoding="utf-8")
     proc = _run([], with_marker=False)
     assert proc.returncode == 0, f"자유 상태 획득 실패:\n{proc.stderr}"
     info = json.loads(LOCK_PATH.read_text(encoding="utf-8"))
     for key in ("pid", "started_at", "branch", "argv"):
         assert key in info, f"보유자 정보에 {key} 가 없다: {info}"
+    assert info["pid"] != 1 and "x" * 300 != info["branch"], f"옛 보유자 정보가 남았다: {info}"
     # 종료된 프로세스의 락은 OS 가 해제한다 — 즉시 다시 잡혀야 한다.
     with open(LOCK_PATH, "a+b") as fd:
         assert try_lock_exclusive(fd), "종료된 프로세스의 락이 해제되지 않았다"

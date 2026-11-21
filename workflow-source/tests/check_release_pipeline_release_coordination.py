@@ -155,9 +155,10 @@ def test_version_sort_key() -> None:
     # v0.7.15 < v0.7.16 < v0.7.17
     assert key_fn("v0.7.15") < key_fn("v0.7.16")
     assert key_fn("v0.7.16") < key_fn("v0.7.17")
-    # v0.7.16 > v0.7.16-beta (release > beta 인 default — 동일 base 의 release 가 더 큼)
-    # 본 tool 의 sort: suffix_rank ''=0, 'beta'=2. v0.7.16 → (0,7,16, 0) < v0.7.16-beta (0,7,16, 2)
-    # 즉 *본 tool* 은 release < beta 정렬. wheel/sdist build 시 rc/beta 가 release 뒤.
+    # 같은 숫자면 사전 판(-beta · b1 · rc1)이 정식 판보다 앞선다 — PEP 440 (TASK-2026-11-21-main-026 에서 바로잡음:
+    # 옛 정렬은 release < beta 였다. 2.0.0b1 을 내면서 드러났다)
+    assert key_fn("v0.7.16-beta") < key_fn("v0.7.16")
+    assert key_fn("v2.0.0b1") < key_fn("v2.0.0rc1") < key_fn("v2.0.0")
     # cross-version 비교: v0.7.16-beta < v0.7.17 (numeric 16 < 17)
     assert key_fn("v0.7.16-beta") < key_fn("v0.7.17")
     # v0.7.18-beta < v0.7.19

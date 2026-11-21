@@ -11,6 +11,10 @@
 
 ## 롤오프 2026-11-21
 
+- **132차 세션 후반 (2026-11-16, Linux 호스트) — v1.25.0 발행 완료 (minor: feat 3 · fix 2 · breaking 0).** 태그 `v1.25.0` = `d00fbfbd`(발행 준비 커밋, 전량 게이트 native · slash 325×2 증거), GitHub Release Latest · asset 5종. 내용: 워크벤치 지속 갱신 — 자동 새로고침(`--refresh`) · 진척 실시간 값(같은 생성기, 지문 캐시) · 작업 중 진행 기록('지금 하는 일', `--progress-note` 시각) + 실제 브라우저 폼 POST 403(Referrer-Policy) · `--stop` pid 대조(instance) 수리. §2.8 5채널 재적용 → doctor behind=[] · disabled=[] (claude-code 는 원래 checkout ff). claude-code 2 · codex 4 프로세스 재시작 필요. 이 worktree 워크벤치 :8766 을 1.25.0 코드로 다시 띄움.
+
+## 롤오프 2026-11-21
+
 - **132차 세션 (2026-11-16, Linux 호스트) — v1.24.0 발행 완료 (minor: feat 3 · fix 2 · breaking 0).** 태그 `v1.24.0` = `5d3419fa`(발행 준비 커밋, 전량 게이트 native · slash 322×2 증거), GitHub Release Latest(draft=false · prerelease=false) · asset 5종. 내용: 워크벤치 개방 모드(`--open`) · 자동 기동(`--autostart` · `--stop` · SessionEnd hook) · 화면 개편(대시보드형) + 경고 분류기 `/var/tmp` · MCP 오류 신호 수리. §2.8: codex · grok-build · antigravity · minimax-code 1.24.0 재적용, claude-code 는 원래 checkout 브랜치를 origin/main 으로 ff 해 재적용 → doctor behind=[] · disabled=[]. claude-code 2 · codex 4 프로세스 재시작 필요.
 
 ## 롤오프 2026-11-19

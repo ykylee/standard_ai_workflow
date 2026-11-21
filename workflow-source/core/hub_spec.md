@@ -111,7 +111,7 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 | `roadmap_doc` | `project_id` · `path` (`index.md` · `M-NNN-*.md`) · `body_md` · `version` | `(project_id, path)` | R9.1 |
 | `wiki_page` | `project_id` · `path` · `body_md` · `source_repo_key` · `source_sha` · `version` · `updated_by` · `updated_at` · `last_ingest` | `(project_id, path)` · `index.md` · `log.md` 는 저장하지 않는다 (생성물) | R8.1~R8.4 |
 | `wiki_ingest` | `project_id` · `id` (`ING-<5자리>`) · `seq` · `callsign` · `at` · `log_line` · `pages_json` | `(project_id, seq)` 유일 — 거절된 묶음은 번호를 먹지 않는다 | R8.2 |
-| `memory_entry` | `project_id` · `id` · `body_json` · `version` | — | R8.1 (E5) |
+| `memory_entry` | `project_id` · `id` · `body_json` (1.x `MemoryEntry` 로 검증한 그대로) · `version` · `updated_by` · `updated_at` | `(project_id, id)` — 판 6 | R8.1 (E5) |
 | `event` | `seq` (자동 증가) · `project_id` · `at` · `callsign` · `target_kind` · `target_id` · `op` · `before_json` · `after_json` · `via` (`mcp`/`http`/`client`) · `client_version` | 추가만 | R1.5 · R5.10 · R2.7 |
 | `applied_request` | `project_id` · `callsign` · `request_id` · `result_json` · `at` | 유일 | §3.1 |
 | `migration_1x` | `project_id` · `id` · `at` · `callsign` · `plan_json` · `report_json` | — | R14 |
@@ -189,8 +189,10 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 | handoff · 상태 | `hub_handoff_get(callsign?)` · `hub_handoff_put(expected_version, sections)` · `hub_state(scope)` | `scope` = `callsign` / `project`, 결과는 `state.json` v1 (R6.3) |
 | 결정 응답 | `hub_plan_respond(task_id, body)` · `hub_plan_status(task_id)` | body = response/1 바이트 그대로 (R5.8) |
 | 지침 | `hub_guide_render(harness)` · `hub_guide_propose(base_version, body)` · `hub_guide_decide(proposal_id, approve)` | `decide` 는 승인된 `human` 만 (R7.7) |
+| memory_index | `hub_memory_entry_put(entry, expected_version)` · `hub_memory_entry_get(id)` · `hub_memory_entry_list()` | 1.x `MemoryEntry` 스키마 · 새 entry 는 0 · 다르면 409 (M-036 WBS-36.2) |
+| 위키 원격 읽기 | `hub_wiki_remote_set(fetch_url)` | **소유자만** — `project.settings_json.wiki_remote`. 빈 값이면 끈다. `https://` · `ssh://` · `git@host:path` · `file:///` 만 (git 원격 도우미 `ext::` 등 거절) (R3.7 · R8.4) |
 | 로드맵 | `hub_roadmap_get()` · `hub_roadmap_put(path, expected_version, body)` · `hub_roadmap_state()` | 스키마 오류는 필드 · 제약과 함께 (R9.2) |
-| 위키 | `hub_wiki_search(query, limit?)` · `hub_wiki_get(path)` · `hub_wiki_list(prefix?)` · `hub_wiki_ingest(pages[{path, body \| delete, expected_version}], summary)` · `hub_wiki_lint()` | 묶음 하나 = ingest 하나, 하나라도 409 면 전체 거절 (R8.2). 새 페이지는 `expected_version` 0. `log` 줄 `## [날짜] ingest \| <summary>` 은 허브가 만든다. 페이지 ≤ 192KB · 묶음 ≤ 200 페이지 — 요청 본문 상한(256KB)을 넘는 들여오기는 여러 ingest 로 (M-036 WBS-36.1) |
+| 위키 | `hub_wiki_search(query, limit?)` · `hub_wiki_get(path)` · `hub_wiki_list(prefix?)` · `hub_wiki_ingest(pages[{path, body \| delete, expected_version, source?{repo_key, sha}}], summary)` · `hub_wiki_lint()` | 묶음 하나 = ingest 하나, 하나라도 409 면 전체 거절 (R8.2). 새 페이지는 `expected_version` 0. `log` 줄 `## [날짜] ingest \| <summary>` 은 허브가 만든다. 페이지 ≤ 192KB · 묶음 ≤ 200 페이지 — 요청 본문 상한(256KB)을 넘는 들여오기는 여러 ingest 로 (M-036 WBS-36.1) |
 | 전환 | `hub_migrate_plan(scan)` · `hub_migrate_import(batch, choices)` · `hub_migrate_report(id)` | §6.6 |
 | 내보내기 | `hub_export(kinds[])` | 쓰기 지시로 1.x 형식 파일 (R15) |
 
@@ -287,8 +289,11 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 
 - **위키 링크** `[[대상]]` 은 `<wiki>/<대상>.md` 로 푼다 (코드 펜스 · 인라인 코드 안은 링크가 아니다). `.md` 로 끝나는 대상은 위키 페이지가 아니라 **저장소 참조**로 따로 센다 (이 저장소 위키 527 링크 중 3건 — 깨짐으로 세면 위양성).
 - **index · log 는 생성물** — index 는 첫 디렉터리(SCHEMA 종류)를 절로, anchor 는 파일 이름(겹치면 경로 전체 slug). log 는 ingest 기록에서 오래된 것부터.
-- **미측정** — 저장소 참조 · freshness 는 원격 읽기(R8.4, WBS-36.2) 전이라 `status: unmeasured` (freshness `targets: 0`). 빈 위키는 `ok: null` · `status: empty` — 잴 것이 없음은 통과가 아니다.
-- 점수 함수(coverage · cross_ref · discoverability · lifecycle)와 `bidir_link` 는 WBS-36.2 에서 더한다. operational · trend 는 돌지 않는다.
+- **양방향 링크 (E5, WBS-36.2)** — memory entry 를 같은 임시 디렉터리의 `ai-workflow/memory/active/memory_index/entries/` 에 펼쳐 1.x `audit_bidirectional_links` 를 그대로 부른다. 비대칭이 있으면 `ok: false`. (1.x 결함 — 위키 언급이 없는 entry 에서 `UnboundLocalError` 또는 앞 entry id 로 거짓 비대칭 — 은 실측 §16.2 대로 고쳤다, `release/1.x` 에도.)
+- **출처 (R8.4)** — ingest 페이지의 `source{repo_key, sha}`. `repo_key` 는 이 프로젝트의 등록 키(주 키 · 별칭)여야 한다. 출처 없이 다시 쓰면 출처를 지운다 — 옛 sha 가 새 본문의 출처인 척하지 않게.
+- **원격 읽기 (R8.4 · E3, `hub/wiki_remote.py`)** — 소유자가 켜면 lint 때 `git clone --bare --filter=blob:none` 을 임시 디렉터리에 받아(트리 · 커밋만, 끝나면 지움, 시간 상한 120초) 잰다: 저장소 참조가 기본 브랜치 머리 트리에 있는가(`missing`) · 출처 sha 가 있는가(`unknown`) · freshness — 출처 sha 이후 frontmatter `last_ingested_from` 의 경로가 바뀌었는가(`stale`, 대상 = sha 와 경로가 둘 다 있는 페이지 수 `targets`). 셋은 `ok` 에 넣지 않고 따로 보인다.
+- **미측정** — 원격 읽기가 꺼졌거나 받기에 실패하면 셋 다 `status: unmeasured` + 이유 (freshness `targets: 0`) — 통과 0건. 빈 위키는 `ok: null` · `status: empty` — 잴 것이 없음은 통과가 아니다.
+- 점수 함수(coverage · cross_ref · discoverability · lifecycle)는 M-036 WBS 에 없다 — 1.x 함수가 저장소 상수 · kit 선언에 묶여 있어(실측 §16.2) 인자화가 따로 필요하다. 후속 후보. operational · trend 는 돌지 않는다.
 
 ## 7. 선택 클라이언트 (요구 R2.7 · R11.3 · R12)
 

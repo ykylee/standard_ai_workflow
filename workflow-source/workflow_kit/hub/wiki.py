@@ -20,8 +20,14 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+from pydantic import ValidationError
+
+from workflow_kit.common.schemas.memory_index import MemoryEntry
 from workflow_kit.common.wiki_rules import check_canonical_location, classify_wikilinks, validate_index
-from workflow_kit.hub.errors import HubError, invalid_field
+from workflow_kit.common.state.bidir_link import audit_bidirectional_links
+from workflow_kit.common.state.memory_index import entries_dir
+from workflow_kit.hub import wiki_remote
+from workflow_kit.hub.errors import HubError, forbidden, invalid_field
 from workflow_kit.hub.store import Ctx, Store, _iso, scan_secrets
 
 #: 생성물 — 페이지로 쓸 수 없다.
@@ -39,6 +45,7 @@ SECTION_TITLES = {
 }
 _FM_TITLE = re.compile(r"^title:\s*(.+?)\s*$", re.M)
 _H1 = re.compile(r"^# (.+)$", re.M)
+_SHA = re.compile(r"^[0-9a-f]{7,40}$")
 
 
 def check_path(path: Any, field: str = "path") -> str:
@@ -122,8 +129,8 @@ class Wiki:
         seen: set[str] = set()
         for i, page in enumerate(pages):
             f = f"pages[{i}]"
-            if not isinstance(page, dict) or set(page) - {"path", "body", "expected_version", "delete"}:
-                raise invalid_field(f, "칸은 path · body · expected_version · delete")
+            if not isinstance(page, dict) or set(page) - {"path", "body", "expected_version", "delete", "source"}:
+                raise invalid_field(f, "칸은 path · body · expected_version · delete · source")
             path = check_path(page.get("path"), f"{f}.path")
             if path in seen:
                 raise invalid_field(f"{f}.path", f"묶음 안에서 겹친다: {path}")
@@ -142,12 +149,23 @@ class Wiki:
             ev = page.get("expected_version", 0)
             if not isinstance(ev, int) or isinstance(ev, bool) or ev < 0:
                 raise invalid_field(f"{f}.expected_version", "0 이상 정수 (새 페이지는 0)")
-            clean.append({"path": path, "body": body, "expected_version": ev, "delete": delete})
+            source = page.get("source")
+            if source is not None:
+                if delete or not isinstance(source, dict) or set(source) != {"repo_key", "sha"} \
+                        or not isinstance(source["repo_key"], str) or not isinstance(source["sha"], str) \
+                        or not _SHA.match(source["sha"].lower()):
+                    raise invalid_field(f"{f}.source", "{repo_key, sha(16진 7~40)} — 삭제에는 줄 수 없다")
+                source = {"repo_key": source["repo_key"], "sha": source["sha"].lower()}
+            clean.append({"path": path, "body": body, "expected_version": ev, "delete": delete, "source": source})
         summary = summary.strip()
         scan_secrets(summary, "summary")
         now = _iso(ctx.now)
 
         def do(conn: sqlite3.Connection) -> dict[str, Any]:
+            keys = {r["key"] for r in conn.execute("SELECT key FROM project_alias WHERE project_id = ?", (pid,))}
+            for i, page in enumerate(clean):
+                if page["source"] and page["source"]["repo_key"] not in keys:
+                    raise invalid_field(f"pages[{i}].source.repo_key", f"이 프로젝트의 저장소 키가 아니다 (등록된 키: {sorted(keys)})")
             conflicts = []
             current: dict[str, int] = {}
             for page in clean:
@@ -173,12 +191,15 @@ class Wiki:
                     conn.execute("DELETE FROM wiki_page WHERE project_id = ? AND path = ?", (pid, page["path"]))
                     written.append({"path": page["path"], "version": cur, "deleted": True})
                     continue
+                # 출처는 이번 쓰기가 말하는 것 — 주지 않으면 지운다 (옛 sha 가 새 본문의 출처인 척하지 않게).
+                src = page["source"] or {"repo_key": "", "sha": ""}
                 conn.execute(
-                    "INSERT INTO wiki_page (project_id, path, body_md, version, updated_by, updated_at, last_ingest) "
-                    "VALUES (?, ?, ?, 1, ?, ?, ?) ON CONFLICT(project_id, path) DO UPDATE SET "
+                    "INSERT INTO wiki_page (project_id, path, body_md, version, updated_by, updated_at, last_ingest, "
+                    "source_repo_key, source_sha) VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?) ON CONFLICT(project_id, path) DO UPDATE SET "
                     "body_md = excluded.body_md, version = wiki_page.version + 1, updated_by = excluded.updated_by, "
-                    "updated_at = excluded.updated_at, last_ingest = excluded.last_ingest",
-                    (pid, page["path"], page["body"], p.callsign, now, ing_id))
+                    "updated_at = excluded.updated_at, last_ingest = excluded.last_ingest, "
+                    "source_repo_key = excluded.source_repo_key, source_sha = excluded.source_sha",
+                    (pid, page["path"], page["body"], p.callsign, now, ing_id, src["repo_key"], src["sha"]))
                 written.append({"path": page["path"], "version": cur + 1})
             log_line = f"## [{ctx.now.strftime('%Y-%m-%d')}] ingest | {summary}"
             conn.execute(
@@ -247,16 +268,96 @@ class Wiki:
 
     # --- lint -------------------------------------------------------------------
 
+    # --- memory_index (E5) --------------------------------------------------------
+
+    def memory_put(self, ctx: Ctx, entry: Any, expected_version: int | None) -> dict[str, Any]:
+        p = self.store._need_callsign(ctx)
+        pid = p.project_id
+        assert pid is not None
+        if not isinstance(entry, dict):
+            raise invalid_field("entry", "객체여야 한다")
+        scan_secrets(entry, "entry")
+        try:
+            model = MemoryEntry.model_validate(entry)
+        except ValidationError as exc:
+            first = exc.errors()[0]
+            loc = ".".join(str(x) for x in first.get("loc", ())) or "entry"
+            raise invalid_field(f"entry.{loc}", f"1.x memory entry 스키마 — {first.get('msg', '')}") from None
+        body = model.model_dump(mode="json")
+        with self.store.write() as conn:
+            row = conn.execute("SELECT version FROM memory_entry WHERE project_id = ? AND id = ?", (pid, model.id)).fetchone()
+            cur = row["version"] if row else 0
+            if (expected_version or 0) != cur:
+                raise HubError(409, "version_conflict", f"version 이 다르다 — 지금 {cur} (새 entry 는 0)",
+                               {"current_version": cur, "id": model.id})
+            conn.execute(
+                "INSERT INTO memory_entry (project_id, id, body_json, version, updated_by, updated_at) VALUES (?, ?, ?, 1, ?, ?) "
+                "ON CONFLICT(project_id, id) DO UPDATE SET body_json = excluded.body_json, version = memory_entry.version + 1, "
+                "updated_by = excluded.updated_by, updated_at = excluded.updated_at",
+                (pid, model.id, json.dumps(body, ensure_ascii=False), p.callsign, _iso(ctx.now)))
+            self.store._event(conn, ctx, pid, "memory_entry", model.id, "put", {"version": cur}, {"version": cur + 1})
+        return {"id": model.id, "version": cur + 1}
+
+    def memory_get(self, ctx: Ctx, entry_id: str) -> dict[str, Any]:
+        pid = self._pid(ctx)
+        with self.store.read() as conn:
+            row = conn.execute("SELECT body_json, version, updated_by, updated_at FROM memory_entry "
+                               "WHERE project_id = ? AND id = ?", (pid, entry_id)).fetchone()
+        if row is None:
+            raise HubError(404, "not_found", f"memory entry 가 없다: {entry_id}", {"id": entry_id})
+        return {"id": entry_id, "entry": json.loads(row["body_json"]), "version": row["version"],
+                "updated_by": row["updated_by"], "updated_at": row["updated_at"]}
+
+    def memory_list(self, ctx: Ctx) -> dict[str, Any]:
+        pid = self._pid(ctx)
+        with self.store.read() as conn:
+            rows = list(conn.execute("SELECT id, body_json, version FROM memory_entry WHERE project_id = ? ORDER BY id", (pid,)))
+        return {"entries": [{"id": r["id"], "version": r["version"],
+                             "primary_abstraction": json.loads(r["body_json"]).get("primary_abstraction", "")} for r in rows]}
+
+    # --- 원격 읽기 설정 (R8.4 · E3) ---------------------------------------------------
+
+    def remote_set(self, ctx: Ctx, fetch_url: str) -> dict[str, Any]:
+        p = self.store._need_callsign(ctx)
+        pid = p.project_id
+        assert pid is not None
+        if p.role != "owner":
+            raise forbidden("위키 원격 읽기는 소유자만 켜고 끈다 — 허브가 외부에 접속하는 유일한 설정이다 (R3.7 · R8.4)")
+        if fetch_url:
+            try:
+                wiki_remote.check_fetch_url(fetch_url)
+            except ValueError as exc:
+                raise invalid_field("fetch_url", str(exc)) from None
+        with self.store.write() as conn:
+            row = conn.execute("SELECT settings_json FROM project WHERE id = ?", (pid,)).fetchone()
+            settings = json.loads(row["settings_json"] or "{}")
+            before = settings.get("wiki_remote")
+            if fetch_url:
+                settings["wiki_remote"] = {"fetch_url": fetch_url}
+            else:
+                settings.pop("wiki_remote", None)
+            conn.execute("UPDATE project SET settings_json = ? WHERE id = ?", (json.dumps(settings, ensure_ascii=False), pid))
+            self.store._event(conn, ctx, pid, "project", pid, "wiki_remote", before, settings.get("wiki_remote"))
+        return {"wiki_remote": settings.get("wiki_remote"), "enabled": bool(fetch_url)}
+
+    # --- lint -------------------------------------------------------------------
+
     def lint(self, ctx: Ctx) -> dict[str, Any]:
         pid = self._pid(ctx)
         with self.store.read() as conn:
-            pages = [(r["path"], r["body_md"]) for r in self._pages(conn, pid)]
+            rows = self._pages(conn, pid)
+            pages = [(r["path"], r["body_md"]) for r in rows]
+            shas = {r["path"]: r["source_sha"] for r in rows}
             ingests = self._ingests(conn, pid)
+            entries = [(r["id"], r["body_json"]) for r in conn.execute(
+                "SELECT id, body_json FROM memory_entry WHERE project_id = ? ORDER BY id", (pid,))]
+            settings = json.loads(conn.execute("SELECT settings_json FROM project WHERE id = ?", (pid,)).fetchone()["settings_json"] or "{}")
         if not pages:
             # 잴 것이 없음은 통과가 아니다 — ok 를 비워 둔다.
-            return {"ok": None, "status": "empty", "pages": 0}
+            return {"ok": None, "status": "empty", "pages": 0, "memory_entries": len(entries)}
         with tempfile.TemporaryDirectory(prefix="hubwiki-") as d:
-            root = Path(d) / "ai-workflow" / "wiki"
+            workspace = Path(d)
+            root = workspace / "ai-workflow" / "wiki"
             root.mkdir(parents=True)
             for path, body in pages:
                 f = root / path
@@ -265,19 +366,29 @@ class Wiki:
             index = render_index([path for path, _ in pages])
             (root / "index.md").write_text(index, encoding="utf-8")
             (root / "log.md").write_text(render_log(ingests), encoding="utf-8")
+            # 1.x audit 가 읽는 자리를 1.x 정본 함수로 — 펼침과 읽기가 같은 경로 규약을 쓴다.
+            ed = entries_dir(workspace_root=workspace)
+            ed.mkdir(parents=True)
+            for eid, body_json in entries:
+                (ed / f"{eid}.json").write_text(body_json, encoding="utf-8")
             location = check_canonical_location(root)
-            index_errors, entries = validate_index(index.splitlines(), root)
+            index_errors, n_entries = validate_index(index.splitlines(), root)
             broken, repo_refs = classify_wikilinks(root)
-        ok = not location and not index_errors and not broken
+            bidir = audit_bidirectional_links(workspace)
+        remote = wiki_remote.measure((settings.get("wiki_remote") or {}).get("fetch_url"),
+                                     [{"path": path, "body": body, "source_sha": shas.get(path, "")} for path, body in pages],
+                                     repo_refs)
+        ok = not location and not index_errors and not broken and bidir.is_symmetric
         return {
             "ok": ok,
             "status": "ok" if ok else "violations",
             "pages": len(pages),
             "location": {"errors": location},
-            "index": {"errors": index_errors, "entries": entries},
+            "index": {"errors": index_errors, "entries": n_entries},
             "broken_links": [{"page": a, "target": b} for a, b in broken],
-            # 원격 읽기(R8.4, WBS-36.2) 전 — 재지 못한 것은 통과가 아니라 미측정이다.
-            "repo_references": {"status": "unmeasured", "count": len(repo_refs),
-                                "reason": "저장소 원격 읽기 미설정 (R8.4)"},
-            "freshness": {"status": "unmeasured", "targets": 0, "reason": "소스 시각 없음 — 원격 읽기 미설정 (R8.4)"},
+            "bidir": {"memory_entries": bidir.total_memory_entries, "symmetric": bidir.symmetric_links,
+                      "asymmetric": [{"entry": x.memory_entry_id, "page": x.wiki_page, "direction": x.direction}
+                                     for x in bidir.asymmetric]},
+            # 원격 읽기(R8.4)를 못 하면 미측정 — 통과가 아니다. ok 판정에 넣지 않고 따로 보인다.
+            **remote,
         }

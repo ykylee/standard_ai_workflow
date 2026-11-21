@@ -8,11 +8,15 @@
 3. 읽기 — 보기 · 목록 · 검색 왕복, 없는 페이지 404 (R8.5)
 4. lint — 깨진 위키 링크를 잡고 고치면 통과, 저장소 참조 · freshness 는 '미측정' (대상 수 0), 빈 위키는 ok 없음 (R8.3 · R8.4)
 5. 같은 함수 — 이 저장소 위키를 허브로 들여와 펼친 디렉터리에서 잰 링크 판정이 저장소 뿌리에서 잰 판정과 같다 (R8.3 [검증])
+6. memory_index — 1.x 스키마 검증 · version 409 · 보기 · 목록 (R8.1 · E5, WBS-36.2)
+7. 양방향 링크 — lint 가 1.x audit 함수로 대칭 · 비대칭을 잰다 (E5)
+8. 출처 — 저장소 키 · sha 를 싣고, 프로젝트 밖 키 · 틀린 sha 는 거절, 출처 없이 다시 쓰면 지운다 (R8.4)
+9. 원격 읽기 — 소유자만 켠다, 켜면 저장소 참조 · 출처 sha · freshness 를 재고, 못 받거나 끄면 미측정 (R8.4 · E3)
 """
 
 from __future__ import annotations
 
-CHECK_TIMEOUT_S = 240
+CHECK_TIMEOUT_S = 300
 
 WATCHES = (
     "workflow-source/workflow_kit/*",
@@ -21,6 +25,8 @@ WATCHES = (
     "ai-workflow/wiki/*",
 )
 
+import os
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -165,14 +171,129 @@ def run(hub: Hub, tmp: Path) -> None:
     _record(f"case 5 같은 함수 — 저장소 위키 {len(pages)} 페이지, 저장소 뿌리 판정 = 허브 판정", not problems, "; ".join(problems))
 
 
+def _entry(eid: str, mentioned: list[str]) -> dict:
+    return {"id": eid, "schema_version": 1, "source_paths": ["ai-workflow/x.md"], "primary_abstraction": f"entry {eid}",
+            "cue_anchors": ["x"], "value_digest": "x", "owners": ["o"], "scope": ["s"], "merge_state": "active",
+            "mentioned_in": mentioned, "related_ids": [], "created_at": "2026-01-01", "updated_at": "2026-01-01"}
+
+
+def _git(repo: Path, *args: str) -> str:
+    env = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@example.invalid",
+           "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@example.invalid", "GIT_CONFIG_NOSYSTEM": "1"}
+    return subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True, text=True, env=env).stdout.strip()
+
+
+def run_36_2(hub: Hub, tmp: Path) -> None:
+    reg = hub.call("hub_project_register", {"remote_url": "git@github.com:acme/mem2.git", "display_name": "Mem2",
+                                             "callsign": "owner-a", "kind": "agent"})[1]
+    tok, key = reg["token"], reg["key"]
+    tok_e = hub.call("hub_callsign_register", {"project_id": reg["project_id"], "callsign": "editor-b", "kind": "agent"})[1]["token"]
+
+    # --- 6. memory_index --------------------------------------------------------
+    e1 = _entry("MEM-2026-01-01-001", ["ai-workflow/wiki/topics/p.md"])
+    s1, r1, _ = hub.call("hub_memory_entry_put", {"entry": e1, "expected_version": 0}, tok)
+    s_stale, _, _ = hub.call("hub_memory_entry_put", {"entry": e1, "expected_version": 0}, tok_e)
+    s_bad, bad, _ = hub.call("hub_memory_entry_put", {"entry": {**e1, "id": "MEM-bad"}}, tok)
+    got = hub.call("hub_memory_entry_get", {"id": "MEM-2026-01-01-001"}, tok_e)[1]
+    lst = hub.call("hub_memory_entry_list", {}, tok)[1]
+    problems = []
+    if s1 != 200 or r1.get("version") != 1 or s_stale != 409:
+        problems.append(f"쓰기 {s1} {r1} · 낡은 version {s_stale}")
+    if s_bad != 400 or "entry.id" not in str((bad.get("detail") or {}).get("field", "")):
+        problems.append(f"스키마 거절 {s_bad} {bad}")
+    if got.get("entry", {}).get("mentioned_in") != e1["mentioned_in"] or [e["id"] for e in lst.get("entries", [])] != [e1["id"]]:
+        problems.append(f"보기 · 목록 {got} {lst}")
+    _record("case 6 memory_index — 1.x 스키마 · 409 · 보기 · 목록", not problems, "; ".join(problems))
+
+    # --- 7. 양방향 링크 ---------------------------------------------------------
+    hub.call("hub_memory_entry_put", {"entry": _entry("MEM-2026-01-01-000", []), "expected_version": 0}, tok)
+    page = "---\ntype: topic\ntitle: p\nrelated_pages: [MEM-2026-01-01-001]\n---\n\n# p\n"
+    hub.call("hub_wiki_ingest", {"summary": "p", "pages": [{"path": "topics/p.md", "body": page}]}, tok)
+    sym = hub.call("hub_wiki_lint", {}, tok)[1]
+    hub.call("hub_memory_entry_put", {"entry": _entry("MEM-2026-01-01-002", ["ai-workflow/wiki/topics/p.md"]),
+                                      "expected_version": 0}, tok)
+    asym = hub.call("hub_wiki_lint", {}, tok)[1]
+    problems = []
+    if sym.get("ok") is not True or sym.get("bidir", {}).get("symmetric") != 1 or sym["bidir"].get("asymmetric"):
+        problems.append(f"대칭 {sym.get('ok')} {sym.get('bidir')}")
+    if asym.get("ok") is not False or asym.get("bidir", {}).get("asymmetric") != [
+            {"entry": "MEM-2026-01-01-002", "page": "topics/p.md", "direction": "memory_only"}]:
+        problems.append(f"비대칭 {asym.get('ok')} {asym.get('bidir')}")
+    _record("case 7 양방향 링크 — 1.x audit 함수 (대칭 · 비대칭)", not problems, "; ".join(problems))
+
+    # --- 8. 출처 ----------------------------------------------------------------
+    sha = "a" * 40
+    s_ok, _, _ = hub.call("hub_wiki_ingest", {"summary": "출처", "pages": [
+        {"path": "topics/src.md", "body": "# s\n", "source": {"repo_key": key, "sha": sha}}]}, tok)
+    src = hub.call("hub_wiki_get", {"path": "topics/src.md"}, tok)[1].get("source")
+    s_key, _, _ = hub.call("hub_wiki_ingest", {"summary": "남의 키", "pages": [
+        {"path": "topics/x.md", "body": "# x\n", "source": {"repo_key": "github.com/other/repo", "sha": sha}}]}, tok)
+    s_sha, _, _ = hub.call("hub_wiki_ingest", {"summary": "틀린 sha", "pages": [
+        {"path": "topics/x.md", "body": "# x\n", "source": {"repo_key": key, "sha": "zz"}}]}, tok)
+    hub.call("hub_wiki_ingest", {"summary": "출처 없이", "pages": [
+        {"path": "topics/src.md", "body": "# s2\n", "expected_version": 1}]}, tok)
+    cleared = hub.call("hub_wiki_get", {"path": "topics/src.md"}, tok)[1].get("source")
+    problems = []
+    if s_ok != 200 or src != {"repo_key": key, "sha": sha}:
+        problems.append(f"출처 싣기 {s_ok} {src}")
+    if s_key != 400 or s_sha != 400:
+        problems.append(f"남의 키 {s_key} · 틀린 sha {s_sha} (기대 400)")
+    if cleared != {"repo_key": "", "sha": ""}:
+        problems.append(f"출처 없이 다시 쓴 뒤 옛 출처가 남았다: {cleared}")
+    _record("case 8 출처 — 저장소 키 · sha 싣기 · 거절 · 지움", not problems, "; ".join(problems))
+
+    # --- 9. 원격 읽기 -----------------------------------------------------------
+    repo = tmp / "origin"
+    repo.mkdir()
+    _git(repo, "init", "-q", "-b", "main")
+    (repo / "src").mkdir()
+    (repo / "src" / "a.py").write_text("a = 1\n", encoding="utf-8")
+    (repo / "README.md").write_text("# r\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "c1")
+    c1 = _git(repo, "rev-parse", "HEAD")
+    (repo / "src" / "a.py").write_text("a = 2\n", encoding="utf-8")
+    _git(repo, "commit", "-q", "-am", "c2")
+    c2 = _git(repo, "rev-parse", "HEAD")
+    fm = "---\ntype: topic\ntitle: {t}\nlast_ingested_from: src/a.py\n---\n\n# {t}\n\n[[README.md]] [[docs/none.md]]\n"
+    hub.call("hub_wiki_ingest", {"summary": "원격 대상", "pages": [
+        {"path": "topics/old.md", "body": fm.format(t="old"), "source": {"repo_key": key, "sha": c1}},
+        {"path": "topics/new.md", "body": fm.format(t="new"), "source": {"repo_key": key, "sha": c2}},
+        {"path": "topics/ghost.md", "body": "# g\n", "source": {"repo_key": key, "sha": "b" * 40}}]}, tok)
+    off = hub.call("hub_wiki_lint", {}, tok)[1]
+    s_editor, _, _ = hub.call("hub_wiki_remote_set", {"fetch_url": repo.as_uri()}, tok_e)
+    s_ext, _, _ = hub.call("hub_wiki_remote_set", {"fetch_url": "ext::sh -c id"}, tok)
+    s_on, _, _ = hub.call("hub_wiki_remote_set", {"fetch_url": repo.as_uri()}, tok)
+    on = hub.call("hub_wiki_lint", {}, tok)[1]
+    hub.call("hub_wiki_remote_set", {"fetch_url": (tmp / "no-such-repo").as_uri()}, tok)
+    fail = hub.call("hub_wiki_lint", {}, tok)[1]
+    problems = []
+    for name, res in (("꺼짐", off), ("받기 실패", fail)):
+        st = [res.get(k, {}).get("status") for k in ("repo_references", "source_sha", "freshness")]
+        if st != ["unmeasured"] * 3 or res.get("freshness", {}).get("targets") != 0 or not res.get("freshness", {}).get("reason"):
+            problems.append(f"{name}: 미측정이 아니다 {st}")
+    if s_editor != 403 or s_ext != 400 or s_on != 200:
+        problems.append(f"설정 권한 · 주소: 편집자 {s_editor} (403) · ext:: {s_ext} (400) · 소유자 {s_on} (200)")
+    rr, ss, fr = on.get("repo_references", {}), on.get("source_sha", {}), on.get("freshness", {})
+    missing = sorted({m["target"] for m in rr.get("missing", [])})
+    if rr.get("status") != "measured" or missing != ["docs/none.md"] or rr.get("head") != c2:
+        problems.append(f"저장소 참조 {rr}")
+    if ss.get("status") != "measured" or [u["page"] for u in ss.get("unknown", [])] != ["topics/ghost.md"]:
+        problems.append(f"출처 sha {ss}")
+    if fr.get("status") != "measured" or fr.get("targets") != 2 or [x["page"] for x in fr.get("stale", [])] != ["topics/old.md"]:
+        problems.append(f"freshness {fr}")
+    _record("case 9 원격 읽기 — 소유자만 · 켜면 측정 · 못 받거나 끄면 미측정", not problems, "; ".join(problems))
+
+
 def main() -> int:
-    print("=== 허브 위키 (M-036 WBS-36.1) ===")
+    print("=== 허브 위키 (M-036 WBS-36.1 · 36.2) ===")
     with tempfile.TemporaryDirectory(prefix="hubwiki-") as d:
         tmp = Path(d)
         hub = Hub(tmp / "hub.db")
         try:
             try:
                 run(hub, tmp)
+                run_36_2(hub, tmp)
             except Exception as exc:  # noqa: BLE001 — 예외도 판정으로
                 _record("run (예외)", False, repr(exc))
         finally:

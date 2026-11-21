@@ -227,10 +227,24 @@ CREATE TABLE wiki_ingest (
 );
 """
 
+#: 판 6 (M-036 WBS-36.2) — memory_index entry (hub_spec §3.3, 요구 R8.1 · E5).
+#: 위키 원격 읽기 설정은 ``project.settings_json`` 의 ``wiki_remote`` 칸이다 (표를 늘리지 않는다).
+_V6 = """
+CREATE TABLE memory_entry (
+    project_id TEXT NOT NULL REFERENCES project(id),
+    id TEXT NOT NULL,
+    body_json TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    updated_by TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (project_id, id)
+);
+"""
+
 #: 판 순서 = 목록 순서. 판 n = ``MIGRATIONS[n-1]`` (SQL 스크립트).
 #: ``executescript`` 는 열린 트랜잭션을 먼저 커밋하므로, 판 하나의 원자성은
 #: 스크립트 **안의** ``BEGIN IMMEDIATE … COMMIT`` 으로 만든다 (:func:`_apply`).
-MIGRATIONS: list[str] = [_V1, _V2, _V3, _V4, _V5]
+MIGRATIONS: list[str] = [_V1, _V2, _V3, _V4, _V5, _V6]
 
 
 def latest_version() -> int:

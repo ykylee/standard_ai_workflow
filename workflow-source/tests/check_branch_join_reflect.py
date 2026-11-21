@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-r"""worktree 합류 반영 — 모 브랜치에 병합된 브랜치 메모리가 모 브랜치 메모리에 기록된다 (10 cases).
+r"""worktree 합류 반영 — 모 브랜치에 병합된 브랜치 메모리가 모 브랜치 메모리에 기록된다 (12 cases).
 
 ## 왜 이 검사가 필요한가 (TASK-2026-10-02-main-004)
 
@@ -37,6 +37,9 @@ r"""worktree 합류 반영 — 모 브랜치에 병합된 브랜치 메모리가
      '1건을 archived/ 로 이동했다' 고 적었다 (TASK-2026-11-19-main-001)
   8b) 두 브랜치 중 하나만 실패하면 보고가 **갈린다** — 옮긴 것만 '이동했다', 막힌 것은 '옮기지 못했다' + 사유.
      막힌 브랜치는 반영도 되지 않는다 (반영만 되고 사본이 남는 반쪽 상태 방지)
+  9) 오래 사는 브랜치 표시 (`active/<branch>/.long-lived`) 가 있으면 병합돼 있어도 반영 · 아카이브하지 않는다 —
+     브랜치를 계속 쓰면서 main 에 자주 합치는 경우 (실측 2026-11-21: 사본 충돌이 풀리자 살아 있는 브랜치가 아카이브됐다)
+  9b) 표시가 있어도 브랜치가 git 에서 사라지면 평소대로 종료로 보고 아카이브한다
 """
 
 from __future__ import annotations
@@ -70,6 +73,7 @@ from workflow_kit.common.child_process import platform_child_env  # noqa: E402
 from workflow_kit.common.state.memory_index import TELEMETRY_SKIP_ROOT_ENV  # noqa: E402
 from workflow_kit.common.state.roadmap import collect_task_wbs_links  # noqa: E402
 from workflow_kit.common.branch_join import SEED_TITLE_PREFIX  # noqa: E402
+from workflow_kit.tools.archive_branch_memory import LONG_LIVED_MARKER  # noqa: E402
 
 FAILURES: list[str] = []
 JOIN_MARK = "합류한 브랜치"
@@ -418,11 +422,38 @@ def main() -> int:
                 and not (active / "main" / "backlog" / "tasks" / f"{x_task}.md").exists(),
                 f"warnings={[w[:140] for w in warnings]}")
 
+        # --- case 9: 오래 사는 브랜치 표시 → 병합돼 있어도 반영 · 아카이브 안 함 -----------
+        clone, wt = _make(tmp / "c9")
+        _work_in_worktree(wt)
+        marker = wt / MEM / "active" / "claude" / "w" / LONG_LIVED_MARKER
+        marker.write_text("계속 쓰는 브랜치 — 자주 main 에 합친다\n", encoding="utf-8")
+        _git(wt, "add", "-A")
+        _git(wt, "commit", "-qm", "long-lived marker")
+        _git(clone, "merge", "-q", "--ff-only", "claude/w")
+        result = _session_start(clone)
+        proc = _module(clone, "workflow_kit.tools.archive_branch_memory", "--json")
+        plan = {c["branch"]: c for c in json.loads(proc.stdout).get("candidates", [])}
+        active, archived = clone / MEM / "active", clone / MEM / "archived"
+        _record("test_long_lived_marker_keeps_merged_branch",
+                not any(JOIN_MARK in w or "archived/" in w for w in result.get("warnings", []))
+                and (active / "claude" / "w").is_dir() and not (archived / "claude" / "w").exists()
+                and plan.get("claude/w", {}).get("action") == "skip"
+                and LONG_LIVED_MARKER in plan.get("claude/w", {}).get("reason", ""),
+                f"warnings={[w[:100] for w in result.get('warnings', [])]} plan={plan.get('claude/w')}")
+
+        # --- case 9b: 표시가 있어도 브랜치가 git 에서 사라지면 평소대로 종료 ---------------
+        _git(clone, "worktree", "remove", "--force", str(wt))
+        _git(clone, "branch", "-D", "claude/w")
+        result = _session_start(clone)
+        _record("test_long_lived_marker_ends_with_branch",
+                not (active / "claude" / "w").exists() and (archived / "claude" / "w").is_dir(),
+                f"warnings={[w[:120] for w in result.get('warnings', [])]}")
+
     print()
     if FAILURES:
         print(f"=== FAIL: {len(FAILURES)} case(s) — {FAILURES} ===")
         return 1
-    print("=== PASS: branch join reflect (10 cases) ===")
+    print("=== PASS: branch join reflect (12 cases) ===")
     return 0
 
 

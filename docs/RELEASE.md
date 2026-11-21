@@ -3,8 +3,8 @@
 - 문서 목적: Standard AI Workflow 릴리스 절차 (버전 박기 → 빌드 → 스모크 → GitHub Release attach) 를 한 자리에 정리한다.
 - 범위: 채널 정책, 사전 점검, 빌드, 로컬 smoke, GitHub Release 생성, 트러블슈팅, 회귀 표
 - 대상 독자: 저장소 maintainer (`ykylee`), 릴리스 매니저
-- 상태: stable (v1.29.0 기준; 절차 자체는 v0.5.7+ 부터 정식 도입된 정책 유지)
-- 현재 package version: 1.29.0 (`workflow-source/pyproject.toml`)
+- 상태: beta (v2.0.0 기준; 절차 자체는 v0.5.7+ 부터 정식 도입된 정책 유지)
+- 현재 package version: 2.0.0 (`workflow-source/pyproject.toml`)
 - 최종 수정일: 2026-11-21
 - 관련 문서: [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md), [./INSTALLATION_AND_USAGE.md](./INSTALLATION_AND_USAGE.md), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md), [workflow-source/releases/](https://github.com/ykylee/standard_ai_workflow/tree/main/workflow-source/releases/)
 
@@ -33,13 +33,13 @@
 
 | 줄 | 브랜치 | asset | GitHub 'latest' | 판 번호 |
 |---|---|---|---|---|
-| **2.x 허브** | `main` | wheel + sdist **만** — kit 플러그인 ZIP 을 만들지도 요구하지도 않는다 (`plugin_payload.KIT_PLUGIN_CHANNEL` 거짓, 요구 R16.6) | 원격 태그 가운데 가장 높으면 latest — 베타(`2.0.0b1`)도 (소유자 2026-11-21) | PEP 440 — 사전 판은 `2.0.0b1` 처럼 pyproject · `__version__` · wheel · 태그(`v2.0.0b1`)가 같은 문자열 |
+| **2.x 허브** | `main` | wheel + sdist **만** — kit 플러그인 ZIP 을 만들지도 요구하지도 않는다 (`plugin_payload.KIT_PLUGIN_CHANNEL` 거짓, 요구 R16.6) | 원격 태그 가운데 가장 높으면 latest (소유자 2026-11-21) | 정수 판 `X.Y.Z` — 베타 여부는 판 번호가 아니라 Release 제목 · 노트 · README 의 표기로 (소유자 2026-11-21: 키트 곳곳 · 플러그인 manifest(SemVer)가 정수 판을 가정해 `2.0.0` 은 16곳을 깼다). 정렬 함수는 PEP 440 사전 판도 바르게 다룬다 |
 | **1.x 유지보수** | `release/1.x` | wheel + sdist + 아래 플러그인 ZIP | 2.x 태그가 원격에 있으면 `--latest=false` (요구 R16.7) — 발행 도구가 `release_latest_decision` 으로 정한다 | patch 만 (`1.N.x`, R16.2). minor 는 안내 판 1.30.0 하나 |
 
 - 판정 정본은 코드다: 정렬 `release_pipeline.release_version_key` (PEP 440 — 사전 판 < 정식 판, 옛 `-beta` 태그는 `b0`),
   latest `release_pipeline.release_latest_decision` (원격 최고일 때만). `gh release create` 는 `--target <현재 브랜치>`.
-- **같은 날 두 줄을 낼 때 (2.0.0b1 + 1.30.0)**: 1.x 를 먼저 낸다 — 그때는 원격에 2.x 가 없어 1.30.0 이 잠시 latest 가
-  된다. 이어 2.0.0b1 이 latest 를 가져간다. 순서를 바꾸면 1.30.0 은 처음부터 `--latest=false` 다. 어느 쪽이든 끝 상태는
+- **같은 날 두 줄을 낼 때 (2.0.0 + 1.30.0)**: 1.x 를 먼저 낸다 — 그때는 원격에 2.x 가 없어 1.30.0 이 잠시 latest 가
+  된다. 이어 2.0.0 이 latest 를 가져간다. 순서를 바꾸면 1.30.0 은 처음부터 `--latest=false` 다. 어느 쪽이든 끝 상태는
   같다 — 끝난 뒤 `gh release list` 로 latest 가 2.x 인지 본다.
 - 1.x 줄 발행은 1.x 워크트리(`../standard_ai_workflow-1x`)에서 main `.venv` + `PYTHONPATH=<worktree>/workflow-source` 로 한다.
 - §2.8 채널 재적용은 1.x 줄에만 해당한다 — 2.x 는 소비 채널이 허브 MCP 라 재적용할 플러그인이 없다 (허브 서버 판 올리기는
@@ -523,7 +523,7 @@ gh release edit "v<X>.<Y>.<Z>" --repo "$REPO" --draft=false
 ## 다음에 읽을 문서
 
 - [릴리스 노트 디렉토리](https://github.com/ykylee/standard_ai_workflow/tree/main/workflow-source/releases/)
-- [현재 릴리스 노트 v1.29.0](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/releases/Beta-v1.29.0.md)
+- [현재 릴리스 노트 v2.0.0](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/releases/Beta-v2.0.0.md)
 - [Maturity Matrix](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/maturity_matrix.json)
 - [설치·사용 가이드](./INSTALLATION_AND_USAGE.md)
 - [Project Profile](./PROJECT_PROFILE.md)

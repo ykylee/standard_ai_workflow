@@ -755,11 +755,16 @@ def read_version() -> str:
 
 
 def write_version(new_version: str) -> None:
-    """pyproject.toml 의 [project] version 갱신."""
+    """pyproject.toml 의 [project] version 갱신 — 판 문자열 **전체**를 바꾼다.
+
+    옛 정규식은 숫자 부분(``[0-9.]+``)만 바꾸고 뒤를 남겼다 (``-beta`` 접미사를 지키려던 것). 2.0.0b1 처럼 판에 사전 판
+    표시가 든 뒤로는 두 번째 쓰기(version-bump 는 이 함수를 두 번 부른다)가 ``2.0.0b1b1`` 을 만들었다
+    (TASK-2026-11-21-main-026). 접미사 판은 v1.2.1 에 버렸다 — 부르는 쪽이 온전한 판을 준다.
+    """
     text = PYPROJECT.read_text(encoding="utf-8")
     text = re.sub(
-        r'(version\s*=\s*)"[\d.]+([^"]*)"',
-        rf'\1"{new_version}\2"',
+        r'(version\s*=\s*)"[^"]*"',
+        rf'\1"{new_version}"',
         text,
         count=1,
     )

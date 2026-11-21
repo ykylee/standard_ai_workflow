@@ -133,12 +133,20 @@ def case_5_self_application() -> None:
     """
     from workflow_kit.common.paths import resolve_branch_for_workspace
 
-    branch = resolve_branch_for_workspace(REPO_ROOT).slug
+    # checkout 의 git 브랜치로 판정한다 — 러너의 브랜치 컨텍스트 축(slash 셀)이 넣는 가상 브랜치
+    # (``CODEX_WORKFLOW_BRANCH=feature/ci-slash-probe``)는 이 저장소에 네임스페이스가 없다. env 를 따르면 slash 셀에서만
+    # '대상 문서 없음' 으로 red 였다 (2.0.0 발행 게이트에서 드러남, TASK-2026-11-21-main-026).
+    saved = os.environ.pop("CODEX_WORKFLOW_BRANCH", None)
+    try:
+        branch = resolve_branch_for_workspace(REPO_ROOT).slug
+    finally:
+        if saved is not None:
+            os.environ["CODEX_WORKFLOW_BRANCH"] = saved
     profile = REPO_ROOT / "docs" / "PROJECT_PROFILE.md"
     state_path = REPO_ROOT / "ai-workflow" / "memory" / "active" / branch / "state.json"
     if not profile.is_file() or not state_path.is_file():
         raise AssertionError(f"자기 적용 대상 문서가 없다 (profile 또는 {state_path} 부재)")
-    rc, payload = _run_tool(["--project-profile-path", str(profile), "--check"], branch=None)
+    rc, payload = _run_tool(["--project-profile-path", str(profile), "--check"], branch=branch)
     if payload.get("state_path") and Path(payload["state_path"]).resolve() != state_path.resolve():
         raise AssertionError(f"도구가 잰 생성물 {payload['state_path']} 이 현재 브랜치의 것 {state_path} 이 아니다")
     # `refresh-state --check` 는 state.json **또는** roadmap_state.json 중 하나만

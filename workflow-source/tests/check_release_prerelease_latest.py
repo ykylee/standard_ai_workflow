@@ -9,6 +9,7 @@
 3. latest 판정 — 2.0.0b1(원격 최고 1.29.1) latest · 그 뒤 1.30.0 · 1.30.1 은 아님 · 2.0.0 은 latest
 4. 발행 명령 — ``gh release create`` 인자에 latest 판정이 들어가고 ``--target`` 이 main 고정이 아니다
 5. 산출물 이름 — ``2.0.0b1`` 의 wheel · sdist 파일명이 판 문자열 그대로 (PEP 440 정규화가 바꾸지 않는다)
+6. 판 쓰기 — ``write_version`` 을 두 번 불러도 ``2.0.0b1`` (옛 정규식은 ``2.0.0b1b1``), 정식 판 · 옛 접미사 판에서도 전체를 바꾼다
 """
 
 from __future__ import annotations
@@ -87,6 +88,24 @@ def main() -> int:
 
     _record("case 5 (산출물 이름 — 2.0.0b1 은 그대로)", _expected_dist_pattern("2.0.0b1") == "2.0.0b1",
             _expected_dist_pattern("2.0.0b1"))
+
+    import tempfile  # noqa: PLC0415
+
+    results6 = {}
+    original = rp.PYPROJECT
+    try:
+        with tempfile.TemporaryDirectory(prefix="ver-") as d:
+            for start, target in (("1.29.0", "2.0.0b1"), ("2.0.0b1", "2.0.0b1"), ("0.7.17-beta", "2.0.0b1"), ("2.0.0b1", "2.0.0")):
+                f = Path(d) / "pyproject.toml"
+                f.write_text(f'[project]\nname = "x"\nversion = "{start}"\n[tool.x]\nversion = "keep"\n', encoding="utf-8")
+                rp.PYPROJECT = f
+                rp.write_version(target)
+                rp.write_version(target)  # version-bump 은 두 번 쓴다
+                results6[(start, target)] = (rp.read_version(), 'version = "keep"' in f.read_text(encoding="utf-8"))
+    finally:
+        rp.PYPROJECT = original
+    bad6 = {k: v for k, v in results6.items() if v != (k[1], True)}
+    _record("case 6 (판 쓰기 — 두 번 써도 2.0.0b1 · 전체 교체 · 다른 version 키 보존)", not bad6, str(bad6))
 
     print(f"PASS {len(_passes)} · FAIL {len(_failures)}")
     for f in _failures:

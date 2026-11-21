@@ -72,6 +72,18 @@ OPTIONAL_DEPENDENCIES: tuple[OptionalDependency, ...] = (
         ),
     ),
     OptionalDependency(
+        extra="hub",
+        distributions=("mcp", "uvicorn", "starlette"),
+        required_modules=(
+            "mcp.types",
+            "mcp.server.lowlevel",
+            "mcp.server.streamable_http_manager",
+            "uvicorn",
+            "starlette.applications",
+        ),
+        note="2.0 워크플로우 허브 서버 (core/hub_spec.md §2.3, DS1) — 허브 쪽에만 깐다. mcp<2 로 고정.",
+    ),
+    OptionalDependency(
         extra="mcp-jsonrpc",
         distributions=(),
         note="의존성 없는 draft fixture — 항상 사용 가능하다 (pyproject 에서도 빈 목록).",

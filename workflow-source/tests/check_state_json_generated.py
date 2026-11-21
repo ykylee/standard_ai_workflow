@@ -39,9 +39,11 @@ TOOL_PATH = SOURCE_ROOT / "workflow_kit" / "tools" / "refresh_state.py"
 BRANCH = "main"
 
 
-def _run_tool(args: list[str], cwd: Path | None = None) -> tuple[int, dict]:
+def _run_tool(args: list[str], cwd: Path | None = None, *, branch: str | None = BRANCH) -> tuple[int, dict]:
+    """``branch=None`` 이면 브랜치를 고정하지 않는다 — 도구가 현재 브랜치를 스스로 해석한다."""
     env = dict(os.environ)
-    env["CODEX_WORKFLOW_BRANCH"] = BRANCH
+    if branch is not None:
+        env["CODEX_WORKFLOW_BRANCH"] = branch
     proc = subprocess.run(
         [sys.executable, str(TOOL_PATH), *args],
         capture_output=True, text=True, timeout=120,
@@ -121,11 +123,24 @@ def case_4_missing_state(profile: Path, state_path: Path) -> None:
 
 
 def case_5_self_application() -> None:
+    """이 저장소 **현재 브랜치**의 생성물이 생성기 출력과 같다.
+
+    예전에는 브랜치를 ``main`` 으로 고정했다. 그러면 작업 브랜치에서 브랜치 공용 원천
+    (PURPOSE.md 등)을 고칠 때 main 네임스페이스의 생성물을 다시 만들라고 요구하는데,
+    작업 브랜치가 다른 브랜치 네임스페이스에 쓰는 것은 ``check_branch_memory_namespace``
+    가 금지한다 — 두 검사가 서로를 red 로 만든다 (TASK-2026-11-21-claude-workflow-hub-concept-002 에서
+    드러남). 자기 적용은 지금 checkout 의 브랜치가 책임지는 생성물만 잰다.
+    """
+    from workflow_kit.common.paths import resolve_branch_for_workspace
+
+    branch = resolve_branch_for_workspace(REPO_ROOT).slug
     profile = REPO_ROOT / "docs" / "PROJECT_PROFILE.md"
-    state_path = REPO_ROOT / "ai-workflow" / "memory" / "active" / BRANCH / "state.json"
+    state_path = REPO_ROOT / "ai-workflow" / "memory" / "active" / branch / "state.json"
     if not profile.is_file() or not state_path.is_file():
-        raise AssertionError("자기 적용 대상 문서가 없다 (profile 또는 state.json 부재)")
-    rc, payload = _run_tool(["--project-profile-path", str(profile), "--check"])
+        raise AssertionError(f"자기 적용 대상 문서가 없다 (profile 또는 {state_path} 부재)")
+    rc, payload = _run_tool(["--project-profile-path", str(profile), "--check"], branch=None)
+    if payload.get("state_path") and Path(payload["state_path"]).resolve() != state_path.resolve():
+        raise AssertionError(f"도구가 잰 생성물 {payload['state_path']} 이 현재 브랜치의 것 {state_path} 이 아니다")
     # `refresh-state --check` 는 state.json **또는** roadmap_state.json 중 하나만
     # 갈라져도 rc=1 이다. 어느 쪽인지 payload 를 보고 말한다 — 예전에는 문구가 늘
     # state.json 을 지목해서, roadmap 만 갈라진 경우 읽는 쪽이 멀쩡한 state.json 을

@@ -68,6 +68,14 @@ mcp-sdk = [
     # `check_mcp_lowlevel_sdk_compat.py` 가 먼저 실패한다.
     "mcp[cli]>=1.0",
 ]
+# M-033 (hub_spec §2.3, DS1): 2.0 워크플로우 허브 서버 — 허브 쪽만 깐다. 작업 환경은 이 의존이 없다.
+# 판 범위를 상한까지 고정한다: 허브는 lowlevel Server · StreamableHTTPSessionManager 를 쓰고
+# 1.27 에서 4 하네스 원격 MCP 를 실측했다 (requirements §16.3). 판을 올리면 그 실측을 다시 돈다.
+hub = [
+    "mcp>=1.27,<2",
+    "uvicorn>=0.30",
+    "starlette>=0.40",
+]
 # v0.7.4+ Property-Based Testing (PBT) — hypothesis framework (optional)
 pbt = [
     "hypothesis>=6.0",
@@ -133,6 +141,7 @@ workflow-compact-checkpoint = "workflow_kit.tools.compact_checkpoint:main"
 workflow-plan-status = "workflow_kit.tools.plan_status:main"
 workflow-plan-import = "workflow_kit.tools.plan_import:main"
 workflow-workbench = "workflow_kit.tools.workbench:main"
+workflow-hub = "workflow_kit.tools.hub:main"
 workflow-todo = "workflow_kit.tools.todo:main"
 workflow-progress-nudge = "workflow_kit.tools.progress_nudge:main"
 workflow-consumer-metrics = "workflow_kit.tools.consumer_metrics:main"
@@ -222,6 +231,8 @@ packages = [
     "workflow_kit.tools",
     # M-029/WBS-29.2: 계획·진척 워크벤치 서버 (core/plan_workbench_spec.md §10).
     "workflow_kit.workbench",
+    # M-033: 2.0 워크플로우 허브 (core/hub_spec.md §2.2).
+    "workflow_kit.hub",
 ]
 
 # Single-file modules that don't live inside a package directory.

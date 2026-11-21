@@ -1235,49 +1235,55 @@
       "id": "M-033",
       "title": "2.0 허브 — implementation 1: 허브 코어 (서버 · SQLite · 프로젝트 · 콜사인 · task · 이력 · 원격 MCP 골격)",
       "sdlc_phase": "implementation",
-      "declared_status": "planned",
-      "derived_status": "planned",
-      "progress": 0.0,
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
       "total_leaves": 4,
-      "done_leaves": 0,
-      "deliverables_missing": [
-        "workflow-source/workflow_kit/hub/"
-      ],
+      "done_leaves": 4,
+      "deliverables_missing": [],
       "wbs": [
         {
           "id": "WBS-33.1",
           "title": "서버 · SQLite · 이관 · 백업 (파일 복사)",
-          "derived_status": "planned",
-          "linked_task_ids": [],
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-21-claude-workflow-hub-concept-002"
+          ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         },
         {
           "id": "WBS-33.2",
           "title": "프로젝트 등록 (git 주소 정규화 · 별칭) · 콜사인 등록 · 토큰",
-          "derived_status": "planned",
-          "linked_task_ids": [],
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-21-claude-workflow-hub-concept-003"
+          ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         },
         {
           "id": "WBS-33.3",
           "title": "task CRUD · 이력 · version 409 · 맡기",
-          "derived_status": "planned",
-          "linked_task_ids": [],
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-21-claude-workflow-hub-concept-004"
+          ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         },
         {
           "id": "WBS-33.4",
           "title": "원격 MCP 골격 — 부트스트랩 묶음 · 인증 경계",
-          "derived_status": "planned",
-          "linked_task_ids": [],
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-21-claude-workflow-hub-concept-005"
+          ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         }
       ]
@@ -1291,9 +1297,7 @@
       "progress": 0.0,
       "total_leaves": 3,
       "done_leaves": 0,
-      "deliverables_missing": [
-        "workflow-source/workflow_kit/hub/"
-      ],
+      "deliverables_missing": [],
       "wbs": [
         {
           "id": "WBS-34.1",
@@ -1333,9 +1337,7 @@
       "progress": 0.0,
       "total_leaves": 3,
       "done_leaves": 0,
-      "deliverables_missing": [
-        "workflow-source/workflow_kit/hub/"
-      ],
+      "deliverables_missing": [],
       "wbs": [
         {
           "id": "WBS-35.1",
@@ -1375,9 +1377,7 @@
       "progress": 0.0,
       "total_leaves": 3,
       "done_leaves": 0,
-      "deliverables_missing": [
-        "workflow-source/workflow_kit/hub/"
-      ],
+      "deliverables_missing": [],
       "wbs": [
         {
           "id": "WBS-36.1",
@@ -1417,9 +1417,7 @@
       "progress": 0.0,
       "total_leaves": 3,
       "done_leaves": 0,
-      "deliverables_missing": [
-        "workflow-source/workflow_kit/hub/"
-      ],
+      "deliverables_missing": [],
       "wbs": [
         {
           "id": "WBS-37.1",
@@ -1459,9 +1457,7 @@
       "progress": 0.0,
       "total_leaves": 3,
       "done_leaves": 0,
-      "deliverables_missing": [
-        "workflow-source/workflow_kit/hub/"
-      ],
+      "deliverables_missing": [],
       "wbs": [
         {
           "id": "WBS-38.1",

@@ -2,7 +2,7 @@
 id: M-033
 title: 2.0 허브 — implementation 1: 허브 코어 (서버 · SQLite · 프로젝트 · 콜사인 · task · 이력 · 원격 MCP 골격)
 sdlc_phase: implementation
-status: planned
+status: done
 order: 33
 parallel_allowed:
   - M-007

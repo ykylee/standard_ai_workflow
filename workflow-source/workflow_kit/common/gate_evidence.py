@@ -50,7 +50,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-# host_role: v1.28.0 공개 이름 유지 — 정본은 common.host_role 로 옮겼다 (v1.29.0). 제거하지 않는다.
+# host_role: v1.28.0 공개 이름 유지 — 정본은 common.host_role 로 옮겼다 (v1.29.1). 제거하지 않는다.
 from workflow_kit.common.host_role import CONSUMER_ROLE, ROLE_CONFIG_KEY, is_consumer
 from workflow_kit.common.host_role import host_role as host_role  # noqa: F401
 

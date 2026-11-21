@@ -1,6 +1,6 @@
-# Beta v1.29.0 (2026-11-20)
+# Beta v1.29.1 (2026-11-20)
 
-> **상태: 릴리스 준비.** package `1.29.0`, runtime `__version__ = 1.29.0`, tag `v1.29.0`.
+> **상태: 릴리스 준비.** package `1.29.1`, runtime `__version__ = 1.29.1`, tag `v1.29.1`.
 > **minor release** — 읽기 전용 소비자 클론에서 `session-start` 가 저장소에 쓰지 않는다.
 >
 > 등급 근거 (§1.5): v1.28.0 이후 코드 커밋 1 — feat 1, breaking 0 — **minor**.

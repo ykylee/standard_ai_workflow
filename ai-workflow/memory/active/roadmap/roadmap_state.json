@@ -1263,6 +1263,13 @@
       "wbs_ref": "exempt",
       "exempt_reason": "로드맵 밖 — worktree 브랜치 네임스페이스 자동 seed 사건 기록",
       "source_path": "ai-workflow/memory/active/release/1.x/backlog/tasks/TASK-2026-11-21-release-1.x-001.md"
+    },
+    {
+      "task_id": "TASK-2026-11-21-release-1.x-004",
+      "task_status": "in_progress",
+      "wbs_ref": "exempt",
+      "exempt_reason": "1.x 결함 수리 줄 발행 (R16.1 · R16.2)",
+      "source_path": "ai-workflow/memory/active/release/1.x/backlog/tasks/TASK-2026-11-21-release-1.x-004.md"
     }
   ],
   "issues": []

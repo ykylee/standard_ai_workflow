@@ -1,4 +1,5 @@
 ---
+merged_from: claude/consumer-readonly-session-start
 id: TASK-2026-11-20-claude-consumer-readonly-session-start-003
 status: done
 created_at: 2026-11-20

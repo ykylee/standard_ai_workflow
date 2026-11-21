@@ -1,5 +1,5 @@
 ---
-inherited_from: main@ca3f59ea
+inherited_from: main@90124a3a
 inherited_hash: sha256:ec1cb7282f480b2e0212193553a4a2130492adc89a2ec721d4d1f872bf76118b
 id: TASK-2026-10-02-main-006
 status: in_progress

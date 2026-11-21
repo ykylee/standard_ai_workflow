@@ -1,0 +1,19 @@
+{
+  "branch": "claude/consumer-readonly-session-start",
+  "archived_at": "2026-11-21",
+  "merge_commit": null,
+  "task_ids": [
+    "TASK-2026-08-25-main-017",
+    "TASK-2026-10-02-main-006",
+    "TASK-2026-10-02-main-007",
+    "TASK-2026-11-13-claude-remote-sync-check-234c32-005",
+    "TASK-2026-11-17-claude-remote-sync-check-234c32-002",
+    "TASK-2026-11-17-claude-remote-sync-check-234c32-004",
+    "TASK-2026-11-20-claude-consumer-readonly-session-start-001",
+    "TASK-2026-11-20-claude-consumer-readonly-session-start-002",
+    "TASK-2026-11-20-claude-consumer-readonly-session-start-003"
+  ],
+  "task_count": 9,
+  "open_task_ids": [],
+  "note": "종료된 브랜치의 메모리. 과거 이력 조회 대상 (읽기 전용)."
+}

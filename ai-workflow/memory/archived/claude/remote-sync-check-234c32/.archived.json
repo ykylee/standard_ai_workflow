@@ -1,19 +1,32 @@
 {
   "branch": "claude/remote-sync-check-234c32",
-  "archived_at": "2026-11-19",
+  "archived_at": "2026-11-21",
   "previous_archived_at": [
-    "2026-11-15"
+    "2026-11-15",
+    "2026-11-19"
   ],
   "superseded_files": [
     "backlog/superseded-2026-11-15.2026-08-25.md",
     "backlog/superseded-2026-11-15.2026-10-02.md",
     "backlog/superseded-2026-11-15.2026-11-13.md",
+    "backlog/superseded-2026-11-19.2026-08-25.md",
+    "backlog/superseded-2026-11-19.2026-10-02.md",
+    "backlog/superseded-2026-11-19.2026-11-13.md",
+    "backlog/superseded-2026-11-19.2026-11-17.md",
     "backlog/tasks/superseded-2026-11-15.TASK-2026-08-25-main-017.md",
     "backlog/tasks/superseded-2026-11-15.TASK-2026-10-02-main-006.md",
     "backlog/tasks/superseded-2026-11-15.TASK-2026-10-02-main-007.md",
     "backlog/tasks/superseded-2026-11-15.TASK-2026-11-13-claude-remote-sync-check-234c32-005.md",
+    "backlog/tasks/superseded-2026-11-19.TASK-2026-08-25-main-017.md",
+    "backlog/tasks/superseded-2026-11-19.TASK-2026-10-02-main-006.md",
+    "backlog/tasks/superseded-2026-11-19.TASK-2026-10-02-main-007.md",
+    "backlog/tasks/superseded-2026-11-19.TASK-2026-11-13-claude-remote-sync-check-234c32-005.md",
+    "backlog/tasks/superseded-2026-11-19.TASK-2026-11-17-claude-remote-sync-check-234c32-002.md",
+    "backlog/tasks/superseded-2026-11-19.TASK-2026-11-17-claude-remote-sync-check-234c32-004.md",
     "superseded-2026-11-15.session_handoff.md",
-    "superseded-2026-11-15.state.json"
+    "superseded-2026-11-15.state.json",
+    "superseded-2026-11-19.session_handoff.md",
+    "superseded-2026-11-19.state.json"
   ],
   "merge_commit": null,
   "task_ids": [
@@ -42,9 +55,13 @@
     "TASK-2026-11-17-claude-remote-sync-check-234c32-003",
     "TASK-2026-11-17-claude-remote-sync-check-234c32-004",
     "TASK-2026-11-17-claude-remote-sync-check-234c32-005",
-    "TASK-2026-11-17-claude-remote-sync-check-234c32-006"
+    "TASK-2026-11-17-claude-remote-sync-check-234c32-006",
+    "TASK-2026-11-19-claude-remote-sync-check-234c32-001",
+    "TASK-2026-11-19-claude-remote-sync-check-234c32-002",
+    "TASK-2026-11-20-claude-remote-sync-check-234c32-001",
+    "TASK-2026-11-20-claude-remote-sync-check-234c32-002"
   ],
-  "task_count": 26,
+  "task_count": 30,
   "open_task_ids": [],
   "note": "종료된 브랜치의 메모리. 과거 이력 조회 대상 (읽기 전용)."
 }

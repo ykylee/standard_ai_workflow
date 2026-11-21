@@ -1,4 +1,5 @@
 ---
+carried_over_to: TASK-2026-11-20-claude-remote-sync-check-234c32-002@main
 id: TASK-2026-11-20-claude-remote-sync-check-234c32-002
 status: done
 created_at: 2026-11-20

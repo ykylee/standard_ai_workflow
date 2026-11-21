@@ -1,6 +1,6 @@
 ---
 id: TASK-2026-11-21-claude-workflow-hub-concept-013
-status: in_progress
+status: done
 created_at: 2026-11-21
 source_anchor: generic-task-2026-11-21-claude-workflow-hub-concept-013
 source_path: backlog/2026-11-21.md
@@ -12,7 +12,7 @@ wbs: M-007/WBS-7.2
 
 ## 📝 Description
 
-- Status: in_progress
+- Status: done
 - Priority: high
 - Request date: 2026-11-21
 - Owner:
@@ -42,11 +42,12 @@ wbs: M-007/WBS-7.2
 
 ## 🛠️ Implementation / Content
 
-- Progress: `2026-11-21 01:33` 계획 기록
+- Progress: `2026-11-21 01:49` close
 - Next session starting point:
 - Remaining risks:
 
 ## ✅ Outcome
 
-- Result:
+- Result: 이 브랜치 §5 누적형 29,068B → 6,092B, handoff 38.5KB → 16KB, 옮긴 줄 누락 0 (sessions/handoff-notes_2026-11-21.md). 함께 고친 것: 포인터가 서두 #### 소절 안에 들어감 · 건수 0 대상 링크(죽은 링크)
+- Verification: check_session_context_budget 12/12 (case 12 신규), 되주입 5종 red(서두 통째 현재형 · 묶음 무시 · rewrite 미제거 · 포인터 위치 · 죽은 링크) · --changed 323 PASS · 스모크 PASS · verifier 생략(검증 간소화 기간)
 - Follow-up:

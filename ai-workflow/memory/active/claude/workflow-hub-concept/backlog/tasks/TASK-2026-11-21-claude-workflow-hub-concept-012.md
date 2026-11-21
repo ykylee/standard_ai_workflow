@@ -1,6 +1,6 @@
 ---
 id: TASK-2026-11-21-claude-workflow-hub-concept-012
-status: in_progress
+status: done
 created_at: 2026-11-21
 source_anchor: generic-task-2026-11-21-claude-workflow-hub-concept-012
 source_path: backlog/2026-11-21.md
@@ -12,7 +12,7 @@ wbs: M-007/WBS-7.2
 
 ## 📝 Description
 
-- Status: in_progress
+- Status: done
 - Priority: high
 - Request date: 2026-11-21
 - Owner:
@@ -39,11 +39,12 @@ wbs: M-007/WBS-7.2
 
 ## 🛠️ Implementation / Content
 
-- Progress: `2026-11-21 01:34` 구현 · 스펙 · fixture 6시나리오 PASS, 옛 규칙 되주입 red(2/6) — 커밋 전 검사 대기
+- Progress: `2026-11-21 01:49` close
 - Next session starting point:
 - Remaining risks:
 
 ## ✅ Outcome
 
-- Result:
+- Result: 이 저장소 current_milestone_id M-007 → M-028 (M-036 개시 뒤 M-036)
+- Verification: check_roadmap_integrity 10/10 (신규 case 6시나리오), 옛 규칙 되주입 red 2/6 · run_all_checks --changed --changed-base d3d8c9a7 323 PASS 0 FAIL · 스모크 PASS · verifier 생략(검증 간소화 기간)
 - Follow-up:

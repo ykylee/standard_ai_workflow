@@ -19,6 +19,7 @@ from workflow_kit.common.child_process import child_env, module_command
 from workflow_kit.common.errors import build_error_result
 from workflow_kit.common.host_role import is_consumer
 from workflow_kit.common.hub_marker import describe, find_marker
+from workflow_kit.common.transition_notice import notice as transition_notice
 from workflow_kit.common.contracts.stage_gate_runtime import build_stage_completion, merge_into_result
 from workflow_kit.common.normalize import (
     dedupe_normalized_backticked,
@@ -775,7 +776,9 @@ def main() -> int:
         output_model = SessionStartOutput(
             status="warning" if self_bootstrap_suggested else "ok",
             tool_version=TOOL_VERSION,
-            summary=[*build_session_summary(handoff, backlog, profile), *([workbench_line] if workbench_line else [])],
+            # 1.x 안내 판 (R14.8 · R16.3): 2.0 안내 또는 EOL 한 줄 — 요약 끝. warnings 에 두면 권장 행동이 바뀐다.
+            summary=[*build_session_summary(handoff, backlog, profile), *([workbench_line] if workbench_line else []),
+                     transition_notice()],
             in_progress_items=dedupe_normalized_backticked(
                 handoff.get("in_progress_items", []) + backlog.get("in_progress_items", [])
             ),

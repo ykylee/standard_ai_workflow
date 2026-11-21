@@ -4,7 +4,7 @@
 - 범위: 공통 표준 문서, 프로젝트 프로파일 템플릿, 세션 상태 문서 템플릿, skill/MCP/agent 설계 참고 문서
 - 대상 독자: 개발자, 운영자, AI agent 설계자, 프로젝트 온보딩 담당자
 - 상태: stable
-- 최종 수정일: 2026-11-20
+- 최종 수정일: 2026-11-21
 - 버전: v1.29.1 (chapter 1~14 done; **v1.0.0 stable 진입 (6/6 entry gate PASS) + Phase 13 follow-up 진행 중** — v0.13.0 Quality Dashboard + v0.13.1 telemetry + v0.13.2 self-recover + v0.13.3 bidir-link + v0.14.0 append-only memory + v0.14.1~v0.14.2 MCP 1st/2nd batch stable + v0.14.3 Phase 15 dashboard Panel 6/7/8 + **v0.15.0 2nd deprecation cycle 종결 ⚠️ BREAKING**: `work_backlog.md.bak` (5.7 MB / 330 lines) drop, pre-v0.15.0 caller 중 silent fallback 사용은 자동 fallback 불가, migration 가이드 3가지 (`legacy_memory=True` opt-in / 명시 path / `.bak` 미존재 정공법) + v0.15.1~v0.15.15 cross-check discipline anchor + **v0.15.16 Grok Build (xAI CLI TUI) 11번째 하네스** + v0.15.17 release memory cycle close-out + v0.15.18 TST-WF-01 historical smoke 보강 + v0.15.19 cross-panel final 정합 + **v0.15.20 v1.0.0 pre-release final** (stable API 25/25 frozen + SemVer 2-year guarantee) + **v0.15.21 Phase 13 follow-up 1차** (telemetry source 다양성 ≥ 4 AC2 수렴 — 3 skill retrieval 자동 활성 + 자립형 diversity smoke + CHANGELOG auto-gen lockdown — release changelog pre-step + RELEASE_RE bare 형식 확장 + semver 정렬) + **v1.0.0 stable release** (v1.0.0 entry gate 6/6 PASS — dashboard 8 panel 정합 + smoke 24종 + mypy strict 117 file 0 errors + backward compat + stable API 25/25 frozen + deprecation roadmap 종결; SemVer 2-year backward compat guarantee 발효); package: standard-ai-workflow 1.29.1, runtime `__version__` = 1.29.1, latest tag **v1.29.1**)
 - 관련 문서: `./workflow-source/core/global_workflow_standard.md`, `./workflow-source/core/workflow_agent_topology.md`
 - 상태 진단 문서: `./workflow-source/core/project_status_assessment.md`
@@ -23,6 +23,34 @@
 - workflow kit 패키지 가이드: `./workflow-source/workflow_kit/README.md`
 - **개발자용 설치·사용 가이드 (v0.5.10 신규)**: [`./docs/INSTALLATION_AND_USAGE.md`](./docs/INSTALLATION_AND_USAGE.md)
 - **릴리스 절차 가이드 (v0.5.7+)**: [`./docs/RELEASE.md`](./docs/RELEASE.md)
+
+> **2.0 워크플로우 허브가 나왔다.** 이 1.x 줄(`release/1.x`)은 **2028-07-20 까지 결함 수리만** 한다 (새 기능 ·
+> 새 하네스 지원 없음). 그날 뒤 1.x 는 끝(EOL)이다. 옮기는 길과 1.x 에 머무는 법은 아래 §0.
+
+## 0. 2.0 으로 옮기기 · 1.x 에 머물기
+
+**2.0 은 무엇이 다른가** — 1.x 는 각 저장소에 kit 를 깔고 상태를 `ai-workflow/` 파일로 들고 다닌다. 2.0 은 상태
+(task · handoff · 이력 · 로드맵 · 지침 · 위키)의 정본이 **워크플로우 허브**(서버 하나)에 있고, 작업 환경은 kit 를
+깔지 않고 허브 주소 하나로 참여한다 — 하네스는 허브의 원격 MCP 로 붙는다. 지원 하네스: Claude Code · Codex ·
+MiniMax Code · Antigravity.
+
+**옮기는 길** (허브는 관리자가 띄운다 — 2.0 의 `docs/HUB_OPERATIONS.md`):
+
+1. 저장소에서 에이전트에게 한 줄: `<허브 주소>/setup.md 를 읽고 이 저장소를 셋업해. 콜사인은 <이름>, 나는 사람이다.`
+   — 에이전트가 등록 · `.gitignore` · 토큰 파일 · 진입 파일 · 하네스 설정을 하고 사람 몫(하네스 승인 등)을 넘긴다.
+2. 1.x 기록 들여오기: `python3 .workflow-hub/hub_client.py migrate plan` → `migrate import <MIG> all`.
+3. 확인한 뒤 '허브로 옮김' 표식(`ai-workflow/HUB_MIGRATED.json`)을 커밋한다 — 그 저장소에서 1.x 쓰기 명령은 종료 코드
+   3 으로 거절되고 `session-start` 는 허브를 가리킨다. 표식을 지우면 1.x 로 돌아온다.
+
+**1.x 에 머물기** — 2.0 이 기본 브랜치에 들어간 뒤에도 1.x 를 받으려면 채널을 `release/1.x` 로 고정한다
+(2.0 은 같은 이름의 플러그인 채널을 내지 않는다 — 요구 R16.6):
+
+| 채널 | 1.x 에 고정하는 법 |
+|---|---|
+| Claude Code (GitHub marketplace) | `claude plugin marketplace remove standard-ai-workflow` → `claude plugin marketplace add "ykylee/standard_ai_workflow#release/1.x"` → `claude plugin install standard-ai-workflow@standard-ai-workflow` (remove 는 그 플러그인의 저장된 옵션 · 데이터도 지운다) |
+| Claude Code (Folder marketplace) · Grok Build · Antigravity · MiniMax Code · pi-dev | 그 소스 clone 에서 `git switch release/1.x` 뒤 각 채널의 재적용 (`docs/RELEASE.md` §2.8) |
+| Codex | 버전이 박힌 zip 이라 자동 갱신이 없다 — 1.x 릴리스의 zip 을 쓴다 |
+| kit 패키지 (`workflow_kit`) | GitHub Releases 의 'latest' 는 2.x 다 — 1.x 태그(`v1.*`)의 wheel 을 골라 깐다 |
 
 ## 1. 이 폴더의 역할
 

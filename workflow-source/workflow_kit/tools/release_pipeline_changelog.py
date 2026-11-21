@@ -150,7 +150,7 @@ def categorize_by_section(subject: str) -> str:
     return SECTION_PREFIXES.get(prefix, "Changed")
 
 
-def _changelog_version_sort_key(version: str) -> tuple[int, int, int]:
+def _changelog_version_sort_key(version: str) -> tuple:
     """changelog 전용 semver 정렬 key. "unreleased" 는 최상단 sentinel.
 
     (모듈 상단의 `_version_sort_key(tag)` 는 git *tag* (vX.Y.Z-suffix) 전용이라
@@ -161,14 +161,11 @@ def _changelog_version_sort_key(version: str) -> tuple[int, int, int]:
     """
     if version == "unreleased":
         return (10**9, 10**9, 10**9)
-    parts = version.split(".")
-    try:
-        nums = [int(p) for p in parts[:3]]
-    except ValueError:
-        return (0, 0, 0)
-    while len(nums) < 3:
-        nums.append(0)
-    return (nums[0], nums[1], nums[2])
+    # PEP 440 사전 판(2.0.0b1)도 같은 규칙으로 — 정렬 정본은 release_pipeline.release_version_key (main-026).
+    from workflow_kit.tools.release_pipeline import release_version_key  # noqa: PLC0415
+
+    key = release_version_key(version)
+    return key if key != (-1,) else (0, 0, 0)
 
 
 def draft_changelog(commits: list[dict], unreleased_label: str = "Unreleased") -> str:

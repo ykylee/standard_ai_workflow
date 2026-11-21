@@ -633,26 +633,46 @@ def _list_remote_tags(pattern: str = "v*", *, timeout: int = 15) -> list[str]:
     return sorted(tags, key=_version_sort_key)
 
 
-def _version_sort_key(tag: str) -> tuple:
-    """PEP 440 + suffix sort key. v0.7.17-beta → (0, 7, 17, 'beta'), v0.7.18 → (0, 7, 18, '').
+#: PEP 440 의 사전 판(pre-release) 꼴 + 옛 태그 접미사(``-beta`` 등). 사전 판은 같은 숫자의 정식 판보다 앞선다.
+_PRE_RE = re.compile(r"^v?(?P<nums>\d+(?:\.\d+)*)(?:[-_.]?(?P<pre>a|alpha|b|beta|c|rc|pre|preview)[-_.]?(?P<pren>\d*))?(?P<rest>.*)$",
+                     re.IGNORECASE)
+_PRE_RANK = {"a": 0, "alpha": 0, "b": 1, "beta": 1, "c": 2, "rc": 2, "pre": 2, "preview": 2}
 
-    SemVer-ish + PEP 440 suffix 순서 (release < alpha < beta < rc). 정수 tuple 이므로
-    `sorted(tags, key=_version_sort_key)` 가 *자동으로* numeric + suffix 순서.
+
+def release_version_key(version: str) -> tuple:
+    """판 · 태그 → 정렬 key (PEP 440, TASK-2026-11-21-main-026). ``v`` 접두사 · 옛 ``-beta`` 접미사도 받는다.
+
+    ``2.0.0b1`` < ``2.0.0rc1`` < ``2.0.0`` < ``2.0.1`` — 사전 판(a · b · rc)은 같은 숫자의 정식 판보다 **앞선다**.
+    옛 판(0.x · 1.0.0 의 ``-beta`` 태그)은 ``b0`` 로 읽는다. 읽을 수 없는 꼴은 맨 앞 (``(-1,)``).
     """
-    # 'v' prefix 제거
-    s = tag.lstrip("v")
-    # '-suffix' 분리
-    if "-" in s:
-        base, suffix = s.split("-", 1)
-    else:
-        base, suffix = s, ""
-    # base = 'X.Y.Z' → int tuple
-    parts = base.split(".")
-    nums = tuple(int(p) for p in parts if p.isdigit())
-    # suffix sort: '' (release) < 'alpha' < 'beta' < 'rc'
-    suffix_order = {"": 0, "alpha": 1, "beta": 2, "rc": 3}
-    suffix_rank = suffix_order.get(suffix.split(".")[0], 99)
-    return nums + (suffix_rank, suffix)
+    m = _PRE_RE.match(version.strip())
+    if not m:
+        return (-1,)
+    nums = tuple(int(p) for p in m.group("nums").split("."))
+    nums = nums + (0,) * (3 - len(nums)) if len(nums) < 3 else nums
+    pre = (m.group("pre") or "").lower()
+    if pre:
+        return nums + (_PRE_RANK[pre], int(m.group("pren") or 0), m.group("rest"))
+    return nums + (3, 0, m.group("rest"))
+
+
+def is_prerelease(version: str) -> bool:
+    """사전 판(a · b · rc · 옛 ``-beta``)인가."""
+    key = release_version_key(version)
+    return len(key) > 3 and key[3] < 3
+
+
+def release_latest_decision(tag: str, remote_tags: list[str]) -> dict:
+    """GitHub Release 의 'latest' 여부 — 원격 태그(이 태그 제외) 가운데 이 판이 가장 높은가 (R16.7)."""
+    others = [t for t in remote_tags if t != tag and release_version_key(t) != (-1,)]
+    higher = sorted((t for t in others if release_version_key(t) > release_version_key(tag)), key=release_version_key)
+    return {"latest": not higher, "higher_tags": higher[-3:],
+            "reason": "원격에 더 높은 판이 없다" if not higher else f"원격에 더 높은 판이 있다: {higher[-1]}"}
+
+
+def _version_sort_key(tag: str) -> tuple:
+    """git 태그 정렬 key — :func:`release_version_key` 와 같다 (PEP 440 사전 판 순서)."""
+    return release_version_key(tag)
 
 
 def next_available_version(local_version: str, *, remote_tags: list[str] | None = None) -> dict:
@@ -2737,13 +2757,20 @@ def cmd_release(args) -> dict:
     repo = repo_remote.stdout.strip().replace("https://github.com/", "").replace(".git", "")
     results["repo"] = repo
 
+    # 'latest' 표시 (요구 R16.7 · 소유자 2026-11-21): 원격 태그 가운데 이 판이 가장 높을 때만 latest — 2.x 가 나온 뒤의
+    # 1.x 판(release/1.x)은 latest 를 가져가지 않는다. 2.0 베타도 가장 높으면 latest 다 (사전 판 표시를 하지 않는다).
+    latest = release_latest_decision(tag, _list_remote_tags())
+    results["latest"] = latest
+    branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=str(REPO_ROOT), capture_output=True,
+                            text=True, timeout=10, encoding="utf-8", errors="replace").stdout.strip() or "main"
     gh_cmd = [
         "gh", "release", "create", tag,
         "--repo", repo,
         "--title", f"v{version}",
         "--notes-file", str(notes_file),
-        "--target", "main",
+        "--target", branch,
         "--verify-tag",
+        "--latest" if latest["latest"] else "--latest=false",
     ] + [str(f) for f in release_files]
     results["gh_command"] = " ".join(gh_cmd)
 

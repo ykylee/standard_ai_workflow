@@ -171,8 +171,9 @@ TOOLS: dict[str, ToolSpec] = {
                  {"project_id": _STR, "token": _STR, "files": _ARR, "checks": _ARR},
                  ("project_id", "token"), _setup_confirm),
         ToolSpec("hub_session_start", "token",
-                 "세션 시작 확인 — 인자 없이 부르면 허브 쪽 결과와 저장소에서 돌릴 명령, repo_results 를 실어 다시 부르면 판정.",
-                 {"repo_results": _OBJ, "client": _OBJ}, (), _session_start),
+                 "세션 시작 확인 — 인자 없이 부르면 허브 쪽 결과와 저장소에서 돌릴 명령, repo_results 를 실어 다시 부르면 판정. "
+                 "repo_results 는 {name: {rc, output}} 객체 또는 [{name, rc, output}] 목록 (이름에 : · . 가 든 키를 못 싣는 하네스는 목록으로).",
+                 {"repo_results": {"type": ["object", "array"]}, "client": _OBJ}, (), _session_start),
         ToolSpec("hub_guide_render", "token",
                  "하네스 진입 파일의 새 내용 (렌더 영역 갱신). current = 지금 파일 내용 (없으면 생략). 로컬에서 고친 영역이면 blocked.",
                  {"harness": _STR, "current": _STR}, ("harness",), _guide_render),

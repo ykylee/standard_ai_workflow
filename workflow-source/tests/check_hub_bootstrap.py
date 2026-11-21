@@ -267,7 +267,7 @@ def case_7_session(hub: Hub, tmp: Path, db: Path, pid: str, tok: str, repo: Path
     hub.call("hub_task_claim", {"id": tid}, tok)
     hub.call("hub_task_link_commit", {"id": tid, "sha": "deadbeef" * 5}, tok)
 
-    def start(results: dict[str, Any] | None) -> dict[str, Any]:
+    def start(results: dict[str, Any] | list[Any] | None) -> dict[str, Any]:
         args = {} if results is None else {"repo_results": results}
         return hub.call("hub_session_start", args, tok)[1]
 
@@ -277,6 +277,10 @@ def case_7_session(hub: Hub, tmp: Path, db: Path, pid: str, tok: str, repo: Path
              and any(k.startswith("commit:") for k in cmds) and [t["id"] for t in p1["hub"]["my_tasks"]] == [tid]
              and p1["hub"].get("handoff") is None and "hub: 내 handoff" in p1.get("confirmed", []))
     clean = start(_run_cmds(repo, cmds))
+    # 목록 꼴 — 이름의 : · . 를 키로 못 싣는 하네스 (M-039 실측: Antigravity). 같은 판정이어야 한다.
+    as_list = start([{"name": k, **v} for k, v in _run_cmds(repo, cmds).items()])
+    same_list = all(as_list.get(k) == clean.get(k) for k in ("verdict", "confirmed", "unconfirmed", "findings"))
+    st_dup, dup_list, _ = hub.call("hub_session_start", {"repo_results": [{"name": "status", "rc": 0, "output": ""}] * 2}, tok)
     # 뒤처짐 — 다른 클론이 push
     other = tmp / "other"
     subprocess.run(["git", "clone", "-q", str(tmp / "setup-origin.git"), str(other)], check=True, capture_output=True, timeout=60)
@@ -310,11 +314,13 @@ def case_7_session(hub: Hub, tmp: Path, db: Path, pid: str, tok: str, repo: Path
           and g.returncode == 0 and changed["hub"]["guide"]["changed"] is True
           and any(f.startswith("[바뀜]") for f in changed.get("findings", []))
           and "make check" in rerender.get("step", {}).get("content", "")
-          and st_bad == 400 and bad_key.get("error_code") == "invalid_field")
-    _record("case 7 (세션 시작 — 미확인 · start · fast-forward · 멈춤 · 지침 바뀜 · 없는 커밋)", ok,
+          and st_bad == 400 and bad_key.get("error_code") == "invalid_field"
+          and same_list and st_dup == 400 and dup_list.get("detail", {}).get("field") == "repo_results[1].name")
+    _record("case 7 (세션 시작 — 미확인 · start · fast-forward · 멈춤 · 지침 바뀜 · 없는 커밋 · 목록 꼴 같은 판정)", ok,
             f"p1={ok_p1} clean={clean.get('verdict')}/{clean.get('findings')} behind={behind.get('verdict')} "
             f"dirty={dirty.get('verdict')} diverged={diverged.get('verdict')} guide_set_rc={g.returncode} "
-            f"changed={changed['hub']['guide']} findings={changed.get('findings')} bad={st_bad}")
+            f"changed={changed['hub']['guide']} findings={changed.get('findings')} bad={st_bad} "
+            f"list_same={same_list} list={as_list.get('verdict')} dup={st_dup}")
 
 
 def case_8_page(hub: Hub, tok: str) -> None:

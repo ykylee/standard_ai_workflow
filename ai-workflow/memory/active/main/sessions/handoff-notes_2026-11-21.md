@@ -10,6 +10,12 @@
 
 ### §5 서두 회차 줄 (1블록)
 
+- (합류 `claude/consumer-readonly-session-start`, 2026-11-21) claude/consumer-readonly-session-start 워크스페이스 — `main@2757394f` 에서 이어받음 (2026-11-20). **135차 후속 (2026-11-20, Linux 호스트) — v1.29.0 발행(태그 `e3af1355` = origin/main, Release asset 5종, §2.8 5채널 doctor behind · disabled []).** `-002` close(`cb31e… — 완료 2건(TASK-2026-11-20-claude-consumer-readonly-session-start-002, TASK-2026-11-20-claude-consumer-readonly-session-start-003) · 이월 0건 · 되돌려 적음 0건. 기록: [`archived/claude/consumer-readonly-session-start/session_handoff.md`](../../../archived/claude/consumer-readonly-session-start/session_handoff.md) · [합류 기록](../sessions/merge_claude-consumer-readonly-session-start_2026-11-21.md)
+
+## 이관 2026-11-21
+
+### §5 서두 회차 줄 (1블록)
+
 - (134차, 2026-11-19, Mac mini) **다음 일**: ①~~push 전 전량 게이트~~ ✅ 이 맥에서 통과 · push 완료(`7df480f9`) ②Claude · MiniMax 재시작 뒤 `doctor --json` 의 `runtime_load` 확인(설치보다 먼저 뜬 pid 2개) ③main-002 후속 미수리 둘 — 병합 중간 실패 뒤 재실행 시 §5 합류 줄 · 합류 기록 중복, 브랜치 메모리 안 심링크가 매 시작 errors 반복(둘 다 소실 0) ④이월된 `…-234c32-002` · `-004` 는 소유자 iPad 실측 대기 그대로.
 
 ## 이관 2026-11-21

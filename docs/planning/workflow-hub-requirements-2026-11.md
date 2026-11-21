@@ -324,6 +324,19 @@
 - **프로젝트 범위 설정의 신뢰** — Grok 의 프로젝트 범위 서버는 폴더 신뢰가 있어야 뜬다. Grok 은 지원 4종(R2.8)에서 빠졌으므로 기록으로만 둔다.
 - **허브 토큰을 에이전트가 볼 수 있는 곳에 두지 않는다** — 위 측정 결함처럼, 에이전트는 MCP 가 막히면 작업 디렉터리의 비밀을 찾아 직접 부를 수 있다. `.workflow-hub/env` (R4.3) 는 에이전트 작업 공간 안에 있으므로, 토큰 권한은 그 콜사인의 권한을 넘지 않아야 하고(R4.6), 허브는 MCP 밖 직접 호출도 같은 인증 · 같은 이력으로 다룬다 (R2.7 의 '같은 API').
 
+### 16.4 구현 뒤 실측 — 하네스 4종 부트스트랩 · 세션 시작 (M-039 WBS-39.1, 2026-11-21, Linux 호스트, kit 1.29.0 + 허브 DB 판 8)
+
+방법: 실제 허브(`hub serve` 와 같은 앱, 요청마다 User-Agent · 인증 머리 유무 · 상태를 기록하는 앞단)와 하네스별 빈 저장소(`origin` 은 실제 호스트 꼴의 없는 저장소 — fetch 는 실패한다). 하네스의 비대화 실행으로 ① 토큰 없이 "허브에 등록하고 셋업해" ② 사람 몫(커밋 · 토큰을 환경에 올리기)을 한 뒤 셋업이 쓴 설정으로 "세션을 시작해". **판정은 하네스의 자기 보고가 아니라 허브 DB**(프로젝트 · 콜사인 · 셋업 단계 · `setup_complete` · `guide_version_seen` · 이벤트)다. 사용자 전역 설정은 격리했다 — Claude Code 는 명령줄 MCP 설정, Codex 는 임시 `CODEX_HOME`(인증 파일만 복사), MiniMax 는 저장소 `.mcp.json`, Antigravity 는 사용자 범위뿐이라 백업 → 측정 → 복원 → 해시 대조 (Codex · Antigravity 사용자 설정 해시 불변 확인). 권한은 하네스의 기본 정책 또는 필요한 도구만 명시 허용 — 전부 자동 승인(`--dangerously-*` · `--permission full`)은 쓰지 않았다. 실측 스크립트 · 로그는 세션 scratchpad 에만 있다.
+
+| 하네스 (판) | ① 부트스트랩 (허브 DB) | ② 세션 시작 | MCP 경로 (User-Agent) | 막힌 곳 · 관찰 |
+|---|---|---|---|---|
+| Claude Code 2.1.330 | 4/4 확인 · `setup_complete` — 단 `.mcp.json` 은 **사람이 만들고** 에이전트가 sha 확인 | 완주 · `unconfirmed` (원격 fetch 실패 2건만 미확인, 지침 판 확인) | `claude-code/2.1.330` | `.mcp.json` 을 민감 파일로 다뤄 허용 규칙을 줘도 비대화에서 사람 승인을 요구, 셸로 쓰기도 `${WORKFLOW_HUB_TOKEN}` 문자열 때문에 막힘 — 에이전트는 우회하지 않고 보고. 변수가 없으면 `${VAR}` 를 글자 그대로 실어 보낸다(틀린 토큰 → 부트스트랩 도구 5종만 보임, 대조 실행에서 우회 없이 보고). 새 프로토콜 `server/discover` (2026-07-28) 를 먼저 시험해 SDK 1.27 이 400 → `initialize` 로 돌아감 (지장 없음) |
+| Codex 0.167.1 | 4/4 확인 · `setup_complete` (사람 개입 없음) | **셋업 뒤 그대로는 실패** — `MCP tool call requires approval, but approval policy is never`. 실행마다 `-c 'mcp_servers.workflow-hub.default_tools_approval_mode="approve"'` 를 주자 완주 · `unconfirmed` | `codex-mcp-client/0.167.1` | **결함 (수리)**: 셋업의 `codex mcp add --bearer-token-env-var` 가 서버 항목을 다시 써 사람이 넣어 둔 승인 설정이 사라지고, 허브는 그것을 '안내 문구' 로만 냈다 — 에이전트는 보안 설정이라 일부러 바꾸지 않았다. 자동 승인은 사람의 선택이라 허브는 설정에 쓰지 않고, 셋업 지시 · 안내 페이지가 '대화형은 매번 승인, 비대화는 실행마다 -c' 를 말하게 고쳤다. 샌드박스(`workspace-write`)가 `.git` 을 읽기 전용으로 둬 fetch 가 실패 |
+| MiniMax Code 0.7.7 | 4/4 확인 · `setup_complete` (`.mcp.json` 도 에이전트가 씀). 하네스는 마지막 답변 생성에서 런타임 오류로 끝남(rc 4) — 허브 기록은 완주 | 완주 · `unconfirmed` | `undici` + **`curl` 6건 (토큰 실음)** | 부트스트랩 도중 에이전트가 MCP 클라이언트 대신 `curl` 로 `/mcp` 를 직접 불렀다 — 허브는 같은 인증 · 같은 이력으로 처리해 결과는 정상(R2.7)이지만 'MCP 경로만으로 완주' 는 아니다 (§16.3 의 우회와 같은 꼴, 이번엔 자기 토큰) |
+| Antigravity `agy` 1.5.13 | 4/4 확인 · `setup_complete` (토큰은 설계대로 사용자 범위에 평문 — R2.5a) | 처음엔 `ANTIGRAVITY.md` 지침 판 **미확인** → 수리 뒤 다시 재니 확인 | `Go-http-client/1.1` | **결함 (수리)**: 도구 호출이 키에 `:` · `.` 가 든 객체(`entry_head:ANTIGRAVITY.md`)를 싣지 못한다 — 명령은 돌렸지만 결과를 못 보냈다. `repo_results` 를 `[{name, rc, output}]` 목록으로도 받게 했다 (객체와 같은 판정 — `check_hub_bootstrap` case 7). `--mode auto` 는 이 호스트에 터미널 샌드박스가 없어 기본 모드로 돌았다 |
+
+결론 — 4종 모두 **허브 MCP 로 부트스트랩 · 세션 시작을 완주한다** (R2.1 · R3 · R10). 사람 몫이 남는 곳은 하네스 자신의 안전 장치다: Claude Code 의 `.mcp.json` 승인, Codex 비대화의 도구 승인. 허브가 그 둘을 대신 풀지 않는다 — 셋업 지시 · 안내 페이지가 사람 몫을 말한다. 남은 측정: macOS · Windows 호스트, 대화형 실행, 실제 원격(fetch 성공) 저장소.
+
 ## 17. PURPOSE 2.0판 · 1.x 유지보수 정책 (WBS-31.3, 2026-11-20)
 
 입력: concept §16 (G1 · G3 · §4 명제를 2.0판으로, D9 는 '허브 모드에서는' 이 아니라 2.0 의 명제), E1 (위키도 허브 정본), G4 deprecation,

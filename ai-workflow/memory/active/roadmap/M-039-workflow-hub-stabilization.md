@@ -2,11 +2,12 @@
 id: M-039
 title: 2.0 허브 — stabilization (하네스 실측 · 이 저장소 전환 · arcturus 이전)
 sdlc_phase: stabilization
-status: planned
+status: in_progress
 order: 39
 parallel_allowed:
   - M-007
   - M-028
+  - M-038
 deliverables:
   - docs/planning/workflow-hub-requirements-2026-11.md
 goals: [G1, G2]

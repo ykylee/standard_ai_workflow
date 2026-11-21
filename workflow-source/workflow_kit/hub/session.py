@@ -64,6 +64,26 @@ def _local_client(client: Any) -> dict[str, Any]:
     return out
 
 
+def normalize_results(results: Any, field: str = "repo_results") -> dict[str, Any]:
+    """명령 결과 — ``{name: {rc, output}}`` 객체 또는 ``[{name, rc, output}]`` 목록.
+
+    목록 꼴은 키에 ``:`` · ``.`` 가 든 객체를 도구 인자로 싣지 못하는 하네스를 위한 것이다 (M-039 실측:
+    Antigravity 가 ``entry_head:ANTIGRAVITY.md`` 를 보내지 못해 지침 판이 미확인으로 남았다). 두 꼴은 같은 판정을 낸다.
+    """
+    if isinstance(results, dict):
+        return results
+    if not isinstance(results, list):
+        raise invalid_field(field, "{name: {rc, output}} 객체 또는 [{name, rc, output}] 목록")
+    out: dict[str, Any] = {}
+    for i, item in enumerate(results):
+        if not isinstance(item, dict) or not isinstance(item.get("name"), str) or "rc" not in item:
+            raise invalid_field(f"{field}[{i}]", "{name, rc, output}")
+        if item["name"] in out:
+            raise invalid_field(f"{field}[{i}].name", f"같은 이름이 두 번: {item['name']}")
+        out[item["name"]] = {"rc": item["rc"], "output": item.get("output", "")}
+    return out
+
+
 class SessionStart:
     def __init__(self, setup: Setup) -> None:
         self.setup = setup
@@ -120,7 +140,8 @@ class SessionStart:
                 "repo_check": {
                     "commands": commands,
                     "rules": [
-                        "각 명령을 저장소 뿌리에서 그대로 돌리고 {name: {rc, output}} 로 repo_results 에 싣는다",
+                        "각 명령을 저장소 뿌리에서 그대로 돌리고 {name: {rc, output}} 로 repo_results 에 싣는다 — "
+                        "이름의 : · . 를 키로 못 싣는 하네스는 [{name, rc, output}] 목록으로",
                         "명령을 고치거나 건너뛰지 않는다 — 못 돌린 명령은 싣지 않는다 (미확인으로 남는다)",
                     ],
                 },
@@ -129,8 +150,7 @@ class SessionStart:
                 "unconfirmed": unconfirmed + [f"repo: {name}" for name in commands],
                 "next": "hub_session_start(repo_results=…)",
             }
-        if not isinstance(repo_results, dict):
-            raise invalid_field("repo_results", "{name: {rc, output}} 객체")
+        repo_results = normalize_results(repo_results)
         unknown = set(repo_results) - set(commands)
         if unknown:
             raise invalid_field("repo_results", f"요청하지 않은 명령 결과: {', '.join(sorted(unknown))}")

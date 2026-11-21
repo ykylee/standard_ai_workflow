@@ -19,12 +19,14 @@ def harness_commands(public_url: str) -> dict[str, dict[str, str]]:
     table = {
         "claude-code": {
             "before": f"claude mcp add --transport http workflow-hub {mcp}",
-            "after": "부트스트랩이 .mcp.json 에 'Authorization: Bearer ${WORKFLOW_HUB_TOKEN}' 를 쓴다 — 토큰을 환경에 올리고 다시 시작",
+            "after": "부트스트랩이 .mcp.json 에 'Authorization: Bearer ${WORKFLOW_HUB_TOKEN}' 를 쓴다 (Claude Code 는 이 파일 쓰기에 "
+                     "사람 승인을 요구한다) — 토큰을 환경에 올리고 다시 시작",
         },
         "codex": {
             "before": f"codex mcp add workflow-hub --url {mcp}",
-            "after": "부트스트랩이 --bearer-token-env-var WORKFLOW_HUB_TOKEN 로 다시 등록한다. 비대화(codex exec)는 "
-                     "[mcp_servers.workflow-hub] default_tools_approval_mode = \"approve\" 가 있어야 허브 도구를 부른다",
+            "after": "부트스트랩이 --bearer-token-env-var WORKFLOW_HUB_TOKEN 로 다시 등록한다. 대화형은 허브 도구마다 승인을 묻고, "
+                     "비대화(codex exec)는 실행마다 -c 'mcp_servers.workflow-hub.default_tools_approval_mode=\"approve\"' 를 "
+                     "줘야 허브 도구를 부른다 (부트스트랩 때도 같다 — 자동 승인은 사람의 선택이라 설정에 쓰지 않는다)",
         },
         "minimax-code": {
             "before": f"저장소 뿌리의 .mcp.json 에 {{\"mcpServers\": {{\"workflow-hub\": {{\"type\": \"http\", \"url\": \"{mcp}\"}}}}}}",

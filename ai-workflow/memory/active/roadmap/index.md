@@ -89,7 +89,7 @@
   - path: [`./M-037-workflow-hub-ui.md`](./M-037-workflow-hub-ui.md)
 - **M-038** [implementation] 2.0 허브 — implementation 6: 1.x 전환 · 1.x 유지보수 판 — status: in_progress
   - path: [`./M-038-workflow-hub-migration.md`](./M-038-workflow-hub-migration.md)
-- **M-039** [stabilization] 2.0 허브 — stabilization (하네스 실측 · 이 저장소 전환 · arcturus 이전) — status: planned
+- **M-039** [stabilization] 2.0 허브 — stabilization (하네스 실측 · 이 저장소 전환 · arcturus 이전) — status: in_progress
   - path: [`./M-039-workflow-hub-stabilization.md`](./M-039-workflow-hub-stabilization.md)
 - **M-040** [release] 2.0.0 발행 · 1.x 유지보수 줄 분기 — status: planned
   - path: [`./M-040-workflow-hub-release.md`](./M-040-workflow-hub-release.md)

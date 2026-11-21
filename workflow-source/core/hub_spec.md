@@ -267,7 +267,7 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 
 ### 6.1 부트스트랩 (요구 R3 · R4.2 · R2.4)
 
-1. 사람이 안내 페이지(`/`)의 그 하네스 한 줄로 허브 MCP 를 등록한다 (R2.6). 지원 4종의 등록 방식은 실측 §16.3 표 그대로: Claude Code `.mcp.json` · Codex `bearer_token_env_var` + `default_tools_approval_mode` · MiniMax `.mcp.json` · Antigravity 사용자 범위 + 경고.
+1. 사람이 안내 페이지(`/`)의 그 하네스 한 줄로 허브 MCP 를 등록한다 (R2.6). 지원 4종의 등록 방식은 실측 §16.3 표 그대로: Claude Code `.mcp.json` · Codex `bearer_token_env_var` · MiniMax `.mcp.json` · Antigravity 사용자 범위 + 경고. 하네스 자신의 안전 장치는 허브가 대신 풀지 않는다 (실측 §16.4): Claude Code 는 `.mcp.json` 쓰기에 사람 승인, Codex 비대화(`codex exec`)는 실행마다 `-c 'mcp_servers.workflow-hub.default_tools_approval_mode="approve"'` (자동 승인은 사람의 선택 — 셋업 지시는 설정에 쓰지 않고 말만 한다).
 2. 에이전트가 `git remote get-url origin` (없으면 원격 목록) 을 읽어 `hub_project_lookup`.
 3. 없으면 `hub_project_register`, 있으면 `hub_callsign_register` → 토큰.
 4. 에이전트가 `hub_setup_plan` 에 **저장소 훑기 결과**를 실어 부른다. 훑기는 허브가 정한 명령 목록(에이전트가 실행): 진입 파일 4종의 존재 · 머리 줄, `ai-workflow/` 의 1.x 흔적 (§6.6), `.gitignore` 의 해당 줄. 1.x 흔적이 있으면 결과에 전환 계획이 같이 온다.
@@ -278,7 +278,7 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 
 `hub_session_start` 는 두 번 부른다.
 
-1. 인자 없이 → `{hub: {…}, repo_check: {commands: [...], rules: [...]}, outbox_hint}`. 허브 쪽 결과: 지침 판(바뀌면 `[바뀜]` 과 렌더 지시) · 클라이언트 · 규칙 판 · 내 handoff · 내 task (진행 한 줄 포함) · 맡은 이 없는 열린 task · 대기 중 결정 응답. 저장소 쪽 명령 (`hub/session.py` 가 정본): `git fetch --prune`, `git status --porcelain=v2 --branch` (앞섬 · 뒤처짐은 `# branch.ab` 줄에서), `git rev-parse --abbrev-ref origin/HEAD`, `git check-ignore -v .workflow-hub/env`, 셋업한 진입 파일마다 `git grep --no-index -h -e workflow-hub:begin -- <파일>`, 내 task 에 묶인 커밋마다 `git cat-file -e <sha>^{commit}`. 명령 결과는 `{이름: {rc, output}}` — 요청하지 않은 이름은 거절한다.
+1. 인자 없이 → `{hub: {…}, repo_check: {commands: [...], rules: [...]}, outbox_hint}`. 허브 쪽 결과: 지침 판(바뀌면 `[바뀜]` 과 렌더 지시) · 클라이언트 · 규칙 판 · 내 handoff · 내 task (진행 한 줄 포함) · 맡은 이 없는 열린 task · 대기 중 결정 응답. 저장소 쪽 명령 (`hub/session.py` 가 정본): `git fetch --prune`, `git status --porcelain=v2 --branch` (앞섬 · 뒤처짐은 `# branch.ab` 줄에서), `git rev-parse --abbrev-ref origin/HEAD`, `git check-ignore -v .workflow-hub/env`, 셋업한 진입 파일마다 `git grep --no-index -h -e workflow-hub:begin -- <파일>`, 내 task 에 묶인 커밋마다 `git cat-file -e <sha>^{commit}`. 명령 결과는 `{이름: {rc, output}}` 객체 또는 `[{name, rc, output}]` 목록 (이름의 `:` · `.` 를 키로 싣지 못하는 하네스 — M-039 실측 Antigravity; 두 꼴은 같은 판정) — 요청하지 않은 이름 · 목록 안 중복 이름은 거절한다.
 2. `repo_results` 를 실어 다시 → 대조 보고: 뒤처짐 → 'fast-forward 후 시작' · 갈라짐 / 미커밋 변경 → **'멈추고 묻기'** · `.gitignore` 규칙 빠짐 → 경고 · 내 task 의 묶인 sha 가 저장소에 없음 → 보고 (R10.4). 진입 파일 판을 모두 쟀고 하나로 같으면 그 판을 `guide_version_seen` 에 적는다 (R7.8 — §4.7 받은 판 기록).
 3. 보고는 `confirmed[]` 와 `unconfirmed[]` 를 나눈다. 두 번째 호출이 없으면 저장소 항목은 전부 `unconfirmed` 다 (R10.3).
 4. 허브에 닿지 않으면 도구 자체가 없다 — 표준 규칙 층의 지침이 "허브 미확인 · 캐시(있으면)로 연다" 를 말하고, 선택 클라이언트가 있으면 캐시 · 보낼편지함 건수로 보고한다 (R12.1 · R12.3).

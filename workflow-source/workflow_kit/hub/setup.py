@@ -176,15 +176,20 @@ class Setup:
                     self._issue(conn, ctx, p, "harness:mcp-json", "harness", MCP_JSON, render.sha256(content))
                     steps.append({"id": "harness:mcp-json", "op": "write", "path": MCP_JSON, "content": content,
                                   "sha256_after": render.sha256(content),
-                                  "note": f"Claude Code · MiniMax Code 가 읽는다. 토큰은 환경 변수 {TOKEN_ENV} 참조만 (요구 R2.5)"})
+                                  "note": f"Claude Code · MiniMax Code 가 읽는다. 토큰은 환경 변수 {TOKEN_ENV} 참조만 (요구 R2.5). "
+                                          "Claude Code 는 .mcp.json 을 민감 파일로 다뤄 쓰기에 사람 승인이 필요하다 — 비대화 실행에서 막히면 "
+                                          "사람이 이 내용 그대로 만들고 sha256 확인만 맡긴다 (M-039 실측)"})
                     mcp_json_written = True
                 elif h == "codex":
                     self._issue(conn, ctx, p, "harness:codex", "harness")
                     steps.append({"id": "harness:codex", "op": "run_and_report",
                                   "run": ["codex", "mcp", "add", SERVER_NAME, "--url", self.mcp_url,
                                           "--bearer-token-env-var", TOKEN_ENV],
-                                  "note": "비대화 실행(codex exec)은 허브 도구 승인이 필요하다 — config 의 "
-                                          f"[mcp_servers.{SERVER_NAME}] 에 default_tools_approval_mode = \"approve\" (requirements §16.3)"})
+                                  "note": "이 명령은 서버 항목을 다시 써 도구 승인 설정을 남기지 않는다. 대화형 Codex 는 허브 도구를 부를 "
+                                          "때마다 사람에게 승인을 묻는다. 비대화 실행(codex exec)은 승인 정책이 never 라 그대로는 허브 도구를 "
+                                          "못 부른다 — 사람이 실행마다 -c 'mcp_servers." + SERVER_NAME
+                                          + ".default_tools_approval_mode=\"approve\"' 를 준다. 자동 승인은 사람의 선택이라 이 지시는 "
+                                          "설정에 쓰지 않는다 (M-039 실측)"})
                 elif h == "antigravity":
                     self._issue(conn, ctx, p, "harness:antigravity", "harness")
                     steps.append({"id": "harness:antigravity", "op": "user_scope_write",

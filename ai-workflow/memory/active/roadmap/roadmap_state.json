@@ -1252,7 +1252,7 @@
     },
     {
       "task_id": "TASK-2026-11-21-release-1.x-004",
-      "task_status": "in_progress",
+      "task_status": "done",
       "wbs_ref": "exempt",
       "exempt_reason": "1.x 결함 수리 줄 발행 (R16.1 · R16.2)",
       "source_path": "ai-workflow/memory/active/release/1.x/backlog/tasks/TASK-2026-11-21-release-1.x-004.md"

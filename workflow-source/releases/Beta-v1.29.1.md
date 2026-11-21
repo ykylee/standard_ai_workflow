@@ -49,3 +49,20 @@
 - 발행 준비 중 이 호스트의 MiniMax MCP 채널이 가리키는 주 체크아웃이 `origin/main` 보다 137 커밋 뒤처져 `check_mavis_attach_e2e` 가 red 였다 (도구 11 · `plan_inbox` 없음). 체크아웃을 앞으로 감아 고쳤다 — §2.8 재적용 누락의 한 예.
 - **Windows 실측은 이번 판에도 없다** (M-028/WBS-28.3).
 - **PyPI 업로드는 하지 않는다**(§1 각주 0 — 2026-08-14 소유자 최종 결정). 배포는 GitHub Releases 하나다.
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-11-21T03:55:29Z)_
+
+- total wiki pages: **99**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

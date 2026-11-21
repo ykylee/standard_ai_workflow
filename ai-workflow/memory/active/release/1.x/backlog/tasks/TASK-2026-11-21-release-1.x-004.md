@@ -1,6 +1,6 @@
 ---
 id: TASK-2026-11-21-release-1.x-004
-status: in_progress
+status: done
 created_at: 2026-11-21
 source_anchor: release-task-2026-11-21-release-1.x-004
 source_path: backlog/2026-11-21.md
@@ -13,7 +13,7 @@ wbs_exempt_reason: 1.x 결함 수리 줄 발행 (R16.1 · R16.2)
 
 ## 📝 Description
 
-- Status: in_progress
+- Status: done
 - Priority: high
 - Request date: 2026-11-21
 - Owner:
@@ -40,5 +40,6 @@ wbs_exempt_reason: 1.x 결함 수리 줄 발행 (R16.1 · R16.2)
 
 ## ✅ Outcome
 
-- Result:
+- Result: https://github.com/ykylee/standard_ai_workflow/releases/tag/v1.29.1 · 채널 재적용 (§2.8) 은 이 호스트 해당 채널만 — 후속
+- Verification: 전량 게이트 --branch-context=all native 333/333 · slash 333/333 rc 0 (148e6cdc 통과 기록) · release --apply: tag v1.29.1 → 148e6cdc push · GitHub Release Latest · asset 5 (wheel · sdist · plugin zip 3)
 - Follow-up:

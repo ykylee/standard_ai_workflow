@@ -342,6 +342,14 @@ def call(store: Store, name: str, args: dict[str, Any], ctx: Ctx) -> dict[str, A
         if ctx.principal.kind != "callsign":
             raise HubError(403, "forbidden", "이 도구는 콜사인 토큰이 필요하다 (web · admin 토큰은 쓸 수 없다)")
     clean = validate_args(spec, args)
+    # 봉인된(다른 허브로 옮긴) 프로젝트 — 조회 말고는 410 + 새 주소 (M-039 WBS-39.4). 셋업 도구는 인자로 프로젝트를 준다.
+    pid = ctx.principal.project_id if ctx.principal is not None else clean.get("project_id")
+    if name != "hub_project_lookup":
+        to = store.project_moved(pid)
+        if to:
+            from workflow_kit.hub.transfer import moved_error  # noqa: PLC0415
+
+            raise moved_error(str(pid), to)
     # 모든 도구 인자 — 기록에 토큰이 실리지 않게 (hub_spec §1-4). 셋업 도구의 인자 ``token`` 은
     # 인증 수단이라 검사에서 뺀다 (DS4) — 기록에는 쓰지 않는다.
     scan_secrets({k: v for k, v in clean.items() if k != "token"})

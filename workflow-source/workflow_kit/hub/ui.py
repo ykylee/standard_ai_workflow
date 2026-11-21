@@ -126,7 +126,14 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
                 now = clock()
 
                 def run() -> dict[str, Any]:
-                    return handler(request, resolve(request, now), now, payload)
+                    principal = resolve(request, now)
+                    pid = request.path_params.get("pid") or principal.project_id
+                    to = store.project_moved(pid)
+                    if to:  # 봉인된 프로젝트 — 화면도 410 + 새 주소 (M-039 WBS-39.4)
+                        from workflow_kit.hub.transfer import moved_error  # noqa: PLC0415
+
+                        raise moved_error(str(pid), to)
+                    return handler(request, principal, now, payload)
 
                 return JSONResponse(await run_in_threadpool(run), headers=headers)
             except HubError as e:

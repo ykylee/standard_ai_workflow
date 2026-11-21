@@ -230,7 +230,9 @@ class RunnerLock:
         self.lock_path.parent.mkdir(parents=True, exist_ok=True)
         # Windows 는 빈 파일을 잠그면 그 파일 전체가 읽히지 않는다 — 1 바이트 확보.
         prepare_lock_file(self.lock_path)
-        fd = open(self.lock_path, "a+b")
+        # r+b — 덧붙이기 모드(a+b)는 seek 해도 쓰기가 늘 끝으로 가서, 아래 덮어쓰기가 옛 보유자 정보 앞부분을
+        # 남긴 채 잘렸다 (깨진 JSON, TASK-2026-11-21-main-019). prepare 가 best effort 라 없으면 만든다.
+        fd = os.fdopen(os.open(self.lock_path, os.O_RDWR | os.O_CREAT, 0o644), "r+b")
         if not try_lock_exclusive(fd):
             try:
                 fd.seek(0)

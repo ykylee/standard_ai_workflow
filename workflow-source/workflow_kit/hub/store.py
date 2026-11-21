@@ -254,6 +254,15 @@ class Store:
 
     # --- 프로젝트 · 콜사인 (WBS-33.2) ---------------------------------------------
 
+    def project_moved(self, project_id: str | None) -> str | None:
+        """봉인된(다른 허브로 옮긴) 프로젝트면 새 주소 (M-039 WBS-39.4)."""
+        if not project_id:
+            return None
+        from workflow_kit.hub.transfer import moved_to  # noqa: PLC0415
+
+        with self.read() as conn:
+            return moved_to(conn, project_id)
+
     def lookup_project(self, remote_url: str) -> dict[str, Any]:
         key = gitkey.normalize(remote_url)
         with self.read() as conn:
@@ -263,7 +272,11 @@ class Store:
             ).fetchone()
         if not row:
             return {"key": key, "project_id": None, "display_name": None}
-        return {"key": key, "project_id": row["id"], "display_name": row["display_name"]}
+        out = {"key": key, "project_id": row["id"], "display_name": row["display_name"]}
+        to = self.project_moved(row["id"])
+        if to:  # 옮긴 프로젝트 — 조회는 거절하지 않고 새 주소를 알린다 (부트스트랩이 새 허브로 가게)
+            out["moved_to"] = to
+        return out
 
     @staticmethod
     def _check_callsign(callsign: str, kind: str) -> None:

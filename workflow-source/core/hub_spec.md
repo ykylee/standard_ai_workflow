@@ -31,6 +31,8 @@ python -m workflow_kit hub serve   --db PATH [--bind 127.0.0.1] [--port 8770] [-
 python -m workflow_kit hub backup  --db PATH --out PATH
 python -m workflow_kit hub admin   --db PATH token issue --role {web,admin} --name NAME | token revoke --name NAME
 python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --callsign NAME
+python -m workflow_kit hub admin   --db PATH project export --project ID --out FILE [--seal-to URL] [--public-url URL]
+python -m workflow_kit hub admin   --db PATH project import --file FILE | seal --project ID --to URL | unseal --project ID
 ```
 
 - `serve` 는 DB 판이 모자라면 이관(§3.4)한 뒤 뜬다. loopback 이 아닌 `--bind` 는 기동 때 경고 한 줄 — "누구나 프로젝트를 등록할 수 있다" 를 포함한다 (R13.1 · R13.3).
@@ -127,6 +129,16 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 - DB 판이 허브가 아는 최신보다 크면 기동을 거절한다 (`db_newer_than_hub`).
 - `hub backup` 은 SQLite 온라인 백업 API 로 일관된 사본을 만든다 — 허브가 도는 중에도.
 
+### 3.5 허브 서버 간 프로젝트 이전 (M-039 WBS-39.4, 소유자 2026-11-21)
+
+결정: **토큰은 그대로 이어받는다**(콜사인 행 — 토큰 해시 포함 — 을 옮긴다. 환경은 주소만 바꾸고, 새 허브의 `hub_setup_plan` 이 `.workflow-hub/env` · `.mcp.json` 을 새 주소로 다시 쓴다) · **원본은 봉인한다**(지우지 않는다) · **운반은 관리자 CLI 파일 묶음 먼저, HTTP 는 같은 묶음 형식으로 뒤에**.
+
+- **묶음** `workflow-hub-project-bundle/1` — `{format, source{public_url, kit_version, db_version, exported_at}, project(행), tables{표: {columns, rows}}, counts, digest}`. 옮기는 표는 **`project_id` 열을 가진 표 전부**를 DB 에서 파생한다 (`transfer.project_tables`) — 허브 전역 표(`meta` · `hub_token` · `project` 행 자체는 따로)가 아닌 새 표는 저절로 따라오고, `check_hub_transfer` case 1 이 미분류 표를 red 로 본다. `digest` 는 project + tables 의 정규 JSON sha256. 파일은 600 으로 쓴다 (토큰 해시 · 프로젝트 기록).
+- **순서** — ① 원본에서 `project export --seal-to <새 주소>` (먼저 봉인해 그 뒤 쓰기를 막고 묶음을 뜬다) ② 대상에서 `project import --file` (들이기 전 DB 사본 `.pre-import-<시각>-<난수>`) ③ 환경마다 허브 주소를 바꾸고 새 허브의 `hub_setup_plan` → `hub_setup_confirm` (토큰은 그대로) ④ 1.x 에서 전환한 저장소는 새 허브의 `hub_migrate_marker(action=issue)` 로 표식의 허브 주소를 다시 쓴다. 들이기가 실패하면 원본에서 `project unseal`.
+- **들이기** — 한 트랜잭션, 외래 키는 커밋 때 본다. 이력(`event`)은 순서를 지키고 번호를 새로 매긴 뒤 `project_imported` 한 줄을 더한다. 거절(대상 변화 0): 형식 · `digest` 불일치 · 묶음 DB 판이 대상보다 새로움 · 대상에 없는 표 · 열 · 같은 프로젝트가 봉인되지 않은 채 있음(`project_exists`) · 다른 프로젝트가 쓰는 저장소 주소 키(`alias_taken`). **되옮기기**: 대상에 같은 프로젝트의 **봉인된** 사본이 있으면 그것을 새 묶음으로 바꾼다 (A → B → A).
+- **봉인** — `project.settings_json.moved = {to, at}`. 그 프로젝트의 모든 도구 호출(셋업 도구는 인자의 `project_id` 로) · 화면 `/api` 가 `410 project_moved` + `moved_to`. 주소 조회는 `moved_to` 를 싣는다. 같은 허브의 다른 프로젝트는 그대로. `project unseal` 로 푼다.
+- HTTP 경로(원본 소유자 토큰으로 export → 대상 import, 대상 허브에 누가 들일 수 있는지의 정책 포함)는 후속 — 같은 묶음 형식.
+
 ## 4. 도구 · HTTP API (WBS-32.2)
 
 ### 4.1 경로
@@ -168,6 +180,8 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 | `ignore_not_effective` | 409 | `.gitignore` 확인 실패 — 토큰 지시를 내지 않음 (R4.2) |
 | `unknown_contract` · `client_outdated` | 400 | §4.2 |
 | `payload_too_large` | 413 | 본문 상한 (기본 256KiB — R13.5. HTTP `hub_migrate_plan` · `hub_migrate_import` 만 8MiB: 선택 클라이언트의 전환 운반, `app.BIG_BODY_TOOLS`) |
+| `project_moved` | 410 | 봉인된(다른 허브로 옮긴) 프로젝트의 도구 · 화면 호출 — `detail.moved_to` 에 새 주소 (§3.5). 주소 조회(`hub_project_lookup`)는 거절하지 않고 `moved_to` 를 싣는다 |
+| `invalid_bundle` · `bundle_digest_mismatch` · `bundle_newer_than_hub` · `bundle_unknown_table` · `bundle_unknown_column` · `project_exists` · `alias_taken` | 400 · 409 | 이전 묶음 들이기 거절 (§3.5) — 대상 허브 변화 0 |
 | `unsupported_media_type` | 415 | 화면 `/api` 쓰기의 본문이 `application/json` 이 아니다 (§4.7 — 다른 출처 폼 위조 차단) |
 
 ### 4.4 도구 — 부트스트랩 묶음 (토큰 없이, 요구 R2.3 · R3)

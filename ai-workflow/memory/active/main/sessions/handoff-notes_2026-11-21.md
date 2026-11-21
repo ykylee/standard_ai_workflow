@@ -10,6 +10,12 @@
 
 ### §5 서두 회차 줄 (1블록)
 
+- (합류 `claude/remote-sync-check-234c32`, 2026-11-21) claude/remote-sync-check-234c32 워크스페이스 — `main@ca3f59ea` 에서 이어받음 (2026-11-19). **135차 세션 (2026-11-19, Linux 호스트) — 원격 동기화 · 재seed · push, 코드 변경 없음.** 134차가 이 브랜치를 main 으로 합류·아카이브한 뒤라 `origin/main@ca3f59ea` 로 fast-forward(충돌 0) → 네임스페이스 재see… — 완료 2건(TASK-2026-11-20-claude-remote-sync-check-234c32-001, TASK-2026-11-20-claude-remote-sync-check-234c32-002) · 이월 1건(TASK-2026-11-19-claude-remote-sync-check-234c32-002) · 되돌려 적음 0건. 기록: [`archived/claude/remote-sync-check-234c32/session_handoff.md`](../../../archived/claude/remote-sync-check-234c32/session_handoff.md) · [합류 기록](../sessions/merge_claude-remote-sync-check-234c32_2026-11-21.md)
+
+## 이관 2026-11-21
+
+### §5 서두 회차 줄 (1블록)
+
 - (합류 `claude/consumer-readonly-session-start`, 2026-11-21) claude/consumer-readonly-session-start 워크스페이스 — `main@2757394f` 에서 이어받음 (2026-11-20). **135차 후속 (2026-11-20, Linux 호스트) — v1.29.0 발행(태그 `e3af1355` = origin/main, Release asset 5종, §2.8 5채널 doctor behind · disabled []).** `-002` close(`cb31e… — 완료 2건(TASK-2026-11-20-claude-consumer-readonly-session-start-002, TASK-2026-11-20-claude-consumer-readonly-session-start-003) · 이월 0건 · 되돌려 적음 0건. 기록: [`archived/claude/consumer-readonly-session-start/session_handoff.md`](../../../archived/claude/consumer-readonly-session-start/session_handoff.md) · [합류 기록](../sessions/merge_claude-consumer-readonly-session-start_2026-11-21.md)
 
 ## 이관 2026-11-21

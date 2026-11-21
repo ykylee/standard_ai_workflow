@@ -24,3 +24,4 @@ goals: [G1, G2]
 - **WBS-39.1** 하네스별 실측 — 원격 MCP · 부트스트랩 · 세션 시작 확인 (Linux · macOS · Windows) — 산출물: 실측 기록
 - **WBS-39.2** 이 저장소 2.0 전환 (자기 적용) — 산출물: 전환 기록
 - **WBS-39.3** arcturus-port 이전 — task · handoff · 지침 (위키 · 실측 화면은 arcturus 에) — 산출물: 이전 기록
+- **WBS-39.4** 허브 서버 간 프로젝트 이전 — 묶음 형식 · 관리자 CLI export/import · 원본 봉인(410 + 새 주소) · 토큰 이어받기, 이어서 같은 묶음의 HTTP 경로 (소유자 2026-11-21) — 산출물: workflow_kit/hub/

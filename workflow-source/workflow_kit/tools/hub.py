@@ -3,6 +3,7 @@
     hub serve  --db PATH [--bind 127.0.0.1] [--port 8770] [--public-url URL] [--web-token-name NAME]
     hub backup --db PATH --out PATH
     hub admin  --db PATH token issue --role {web,admin} --name NAME
+    hub admin  --db PATH project export --project ID --out FILE [--seal-to URL] | import --file FILE | seal --project ID --to URL | unseal --project ID
     hub admin  --db PATH token revoke --name NAME
     hub admin  --db PATH callsign revoke --project ID --callsign NAME
     hub admin  --db PATH guide set --project ID --file PATH [--actor NAME]
@@ -68,6 +69,21 @@ def _parser() -> argparse.ArgumentParser:
     cr = csub.add_parser("revoke")
     cr.add_argument("--project", required=True)
     cr.add_argument("--callsign", required=True)
+    # 허브 서버 간 프로젝트 이전 (M-039 WBS-39.4) — 묶음 파일 · 원본 봉인
+    pj = asub.add_parser("project", help="허브 간 프로젝트 이전 — export · import · seal · unseal")
+    psub = pj.add_subparsers(dest="action", required=True)
+    pe = psub.add_parser("export", help="프로젝트 묶음을 파일로 (권장: --seal-to 로 먼저 봉인해 그 뒤 쓰기를 막는다)")
+    pe.add_argument("--project", required=True)
+    pe.add_argument("--out", required=True, type=Path)
+    pe.add_argument("--seal-to", default=None, help="새 허브 주소 — 주면 봉인한 뒤 묶음을 뜬다")
+    pe.add_argument("--public-url", default="", help="이 허브의 공개 주소 (묶음의 출처 기록)")
+    pi = psub.add_parser("import", help="묶음을 이 허브에 들인다 (봉인된 같은 프로젝트가 있으면 되옮기기로 교체)")
+    pi.add_argument("--file", required=True, type=Path)
+    ps = psub.add_parser("seal", help="봉인 — 그 프로젝트의 호출에 410 project_moved + 새 주소")
+    ps.add_argument("--project", required=True)
+    ps.add_argument("--to", required=True)
+    pu = psub.add_parser("unseal", help="봉인을 푼다 (이전을 되돌릴 때)")
+    pu.add_argument("--project", required=True)
     return p
 
 
@@ -98,6 +114,29 @@ def main(argv: list[str] | None = None) -> int:
             elif args.what == "token":
                 store.revoke_hub_token(args.name, now)
                 print(json.dumps({"status": "ok", "revoked": args.name}, ensure_ascii=False))
+            elif args.what == "project":
+                from workflow_kit.hub.transfer import Transfer, write_bundle
+
+                t = Transfer(store)
+                if args.action == "export":
+                    sealed = t.seal(args.project, args.seal_to, now) if args.seal_to else None
+                    bundle = t.export(args.project, now, args.public_url)
+                    write_bundle(bundle, args.out)
+                    print(json.dumps({"status": "ok", "out": str(args.out), "digest": bundle["digest"],
+                                      "counts": bundle["counts"], "sealed": sealed}, ensure_ascii=False))
+                elif args.action == "import":
+                    if copies:
+                        print(json.dumps({"status": "info", "pre_migration_copies": [str(c) for c in copies]}), file=sys.stderr)
+                    import secrets  # noqa: PLC0415
+
+                    hubdb.backup(args.db, args.db.with_name(
+                        f"{args.db.name}.pre-import-{now.strftime('%Y%m%dT%H%M%SZ')}-{secrets.token_hex(3)}"))
+                    out = t.import_bundle(json.loads(args.file.read_text(encoding="utf-8")), now)
+                    print(json.dumps({"status": "ok", **out}, ensure_ascii=False))
+                elif args.action == "seal":
+                    print(json.dumps({"status": "ok", **t.seal(args.project, args.to, now)}, ensure_ascii=False))
+                else:
+                    print(json.dumps({"status": "ok", **t.unseal(args.project, now)}, ensure_ascii=False))
             elif args.what == "guide":
                 from workflow_kit.hub.setup import Setup
 

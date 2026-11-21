@@ -12,6 +12,9 @@
 4. 거절 — 같은 프로젝트(봉인 안 됨) · 묶음 변조 · 더 새로운 DB 판 · 다른 프로젝트가 쓰는 주소 키 → 거절, 대상 변화 0
 5. 되옮기기 — B 에서 바뀐 뒤 B → A(봉인된 사본) 로 옮기면 교체되고 A 가 다시 정본 · B 는 봉인
 6. 봉인 풀기 — unseal 뒤 다시 쓴다
+7. HTTP 경로 (소유자 2026-11-21 — 대상 허브 일회용 초대 코드): 허브가 내려준 클라이언트의 move —
+   다른 프로젝트용 · 만료된 코드는 대상이 거절하고 원본 봉인이 풀린다(원래 봉인돼 있던 것은 그대로), 맞는 코드면 옮겨지고
+   같은 토큰으로 B 응답이 같고 A 는 봉인 · env 주소가 B 로, 쓴 코드는 다시 못 쓴다
 """
 
 from __future__ import annotations
@@ -235,6 +238,62 @@ def main() -> int:
             ru, _ = admin(db_b, "unseal", "--project", pid)
             s10, _, _ = b.call("hub_task_list", {}, tok)
             _record("case 6 (봉인 풀기 — 다시 쓴다)", ru == 0 and s10 == 200, f"{ru} {s10}")
+
+            # 7 HTTP 경로 — 새 프로젝트 R (A 에서 B 로)
+            import os
+            import urllib.request
+            _, reg_r, _ = a.call("hub_project_register", {"remote_url": "git@github.com:acme/http-move.git",
+                                                           "display_name": "http-move", "callsign": "owner-r", "kind": "human"})
+            pid_r, tok_r = reg_r["project_id"], reg_r["token"]
+            tid_r = fill(a, tok_r, "R")
+            before_r = snapshot(a, tok_r, tid_r)
+            work = tmp / "env-r"
+            (work / ".workflow-hub").mkdir(parents=True)
+            (work / ".workflow-hub" / "env").write_text(f"WORKFLOW_HUB_URL={a.base}\nWORKFLOW_HUB_TOKEN={tok_r}\n", encoding="utf-8")
+            with urllib.request.urlopen(a.base + "/v1/bootstrap/hub_client.py", timeout=20) as r:
+                (work / ".workflow-hub" / "hub_client.py").write_bytes(r.read())
+            clean = {k: v for k, v in os.environ.items() if k not in ("PYTHONPATH", "WORKFLOW_HUB_URL", "WORKFLOW_HUB_TOKEN")}
+
+            def client(*args: str) -> tuple[int, dict[str, Any]]:
+                r = subprocess.run([sys.executable, "-I", ".workflow-hub/hub_client.py", *args], cwd=work, capture_output=True,
+                                   text=True, env=clean, timeout=300)
+                try:
+                    return r.returncode, json.loads(r.stdout)
+                except json.JSONDecodeError:
+                    return r.returncode, {"raw": r.stdout[-300:], "err": r.stderr[-300:]}
+
+            def invite(project: str, hours: str = "24") -> str:
+                r = subprocess.run([sys.executable, "-m", "workflow_kit", "hub", "admin", "--db", str(db_b), "project", "invite",
+                                    "--project", project, "--hours", hours], capture_output=True, encoding="utf-8", env=_env(), timeout=60)
+                return str(json.loads(r.stdout.strip().splitlines()[-1]).get("code", ""))
+
+            env_text = lambda: (work / ".workflow-hub" / "env").read_text(encoding="utf-8")  # noqa: E731
+            m1, wrong = client("move", b.base, invite("P-nope"))
+            a_after_wrong, _, _ = a.call("hub_task_list", {}, tok_r)
+            m2, expired = client("move", b.base, invite(pid_r, "0"))
+            a_after_exp, _, _ = a.call("hub_task_list", {}, tok_r)
+            # 원래 봉인돼 있던 프로젝트는 실패해도 그대로 (정본 둘 방지)
+            admin(db_a, "seal", "--project", pid_r, "--to", "http://elsewhere.invalid")
+            m3, pre_sealed = client("move", b.base, invite("P-nope"))
+            still, _, _ = a.call("hub_task_list", {}, tok_r)
+            admin(db_a, "unseal", "--project", pid_r)
+            code = invite(pid_r)
+            m4, moved = client("move", b.base, code)
+            after_r = snapshot(b, tok_r, tid_r)
+            diff_r = sorted(k for k in before_r if before_r[k] != after_r[k])
+            a_sealed, a_body, _ = a.call("hub_task_list", {}, tok_r)
+            c_ok, via_env = client("call", "hub_task_list", "{}")
+            bundle_again = json.loads(json.dumps({"invite": code, "bundle": {"format": "x"}}))
+            reuse, reuse_out, _ = b.call("hub_project_import", bundle_again)
+            ok7 = (m1 == 1 and wrong.get("target", {}).get("error_code") == "invite_wrong_project" and wrong.get("source_unsealed") is True
+                   and a_after_wrong == 200 and m2 == 1 and expired.get("target", {}).get("error_code") == "invite_expired"
+                   and a_after_exp == 200 and m3 == 1 and still == 410
+                   and m4 == 0 and moved.get("status") == "moved" and not diff_r and a_sealed == 410
+                   and a_body.get("detail", {}).get("moved_to") == b.base and f"WORKFLOW_HUB_URL={b.base}" in env_text()
+                   and c_ok == 0 and via_env.get("http") == 200 and reuse == 403 and reuse_out.get("error_code") == "invite_used")
+            _record("case 7 (HTTP 경로 — 초대 코드 · 실패 복구 · 옮겨진 뒤 같은 토큰 · 봉인 · env 주소 · 코드 1회)", ok7,
+                    f"wrong={m1}/{wrong} a={a_after_wrong} exp={m2}/{expired.get('target')} a={a_after_exp} presealed={m3}/{still} "
+                    f"move={m4}/{moved.get('status')} diff={diff_r} a_sealed={a_sealed} via_env={c_ok}/{via_env.get('http')} reuse={reuse}/{reuse_out}")
         finally:
             a.stop()
             b.stop()

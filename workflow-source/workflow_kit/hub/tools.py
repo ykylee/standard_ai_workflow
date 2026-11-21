@@ -216,6 +216,16 @@ TOOLS: dict[str, ToolSpec] = {
                  "프로젝트 문서를 쓴다 — 승인된 human 만. expected_version 이 다르면 409 (새 문서는 0). 상태 요약의 목적 · 프로젝트 칸이 여기서 나온다.",
                  {"name": _STR, "body": _STR, "expected_version": _INT}, ("name", "body"),
                  lambda s, c, a: Memory(s).doc_put(c, a["name"], a["body"], a.get("expected_version"))),
+        ToolSpec("hub_project_export", "token",
+                 "허브 간 이전 — 소유자가 자기 프로젝트 묶음을 뜬다. seal_to(새 허브 주소)를 주면 먼저 봉인한다 (그 뒤 410). "
+                 "묶음은 크다 — 선택 클라이언트(hub_client.py move)가 나른다.",
+                 {"seal_to": _STR}, (), lambda s, c, a: _transfer().tool_export(s, c, a.get("seal_to"))),
+        ToolSpec("hub_project_unseal", "token", "허브 간 이전이 실패했을 때 — 소유자가 봉인을 푼다.", {}, (),
+                 lambda s, c, a: _transfer().tool_unseal(s, c)),
+        ToolSpec("hub_project_import", "bootstrap",
+                 "허브 간 이전 — 대상 허브 관리자가 준 일회용 초대 코드로 묶음을 들인다 (토큰 없이, 코드가 권한).",
+                 {"invite": _STR, "bundle": _OBJ}, ("invite", "bundle"),
+                 lambda s, c, a: _transfer().tool_import(s, c, a["invite"], a["bundle"])),
         ToolSpec("hub_whoami", "token", "이 토큰의 프로젝트 · 콜사인 · 권한.", {}, (), _whoami),
         ToolSpec("hub_task_list", "token", "task 목록 (status · assignee 로 거른다, assignee='' 는 맡은 이 없음).",
                  {"status": _STR, "assignee": _STR, "limit": _INT}, (),
@@ -326,6 +336,12 @@ TOOLS: dict[str, ToolSpec] = {
 }
 
 
+def _transfer() -> Any:
+    from workflow_kit.hub import transfer  # noqa: PLC0415 — 순환 import 를 피한다
+
+    return transfer
+
+
 def visible_tools(authenticated: bool) -> list[ToolSpec]:
     """토큰 없는 연결에는 부트스트랩 묶음만 (요구 R2.3)."""
     return [t for t in TOOLS.values() if authenticated or t.bundle == "bootstrap"]
@@ -344,7 +360,9 @@ def call(store: Store, name: str, args: dict[str, Any], ctx: Ctx) -> dict[str, A
     clean = validate_args(spec, args)
     # 봉인된(다른 허브로 옮긴) 프로젝트 — 조회 말고는 410 + 새 주소 (M-039 WBS-39.4). 셋업 도구는 인자로 프로젝트를 준다.
     pid = ctx.principal.project_id if ctx.principal is not None else clean.get("project_id")
-    if name != "hub_project_lookup":
+    from workflow_kit.hub.transfer import SEALED_ALLOWED  # noqa: PLC0415
+
+    if name not in SEALED_ALLOWED:
         to = store.project_moved(pid)
         if to:
             from workflow_kit.hub.transfer import moved_error  # noqa: PLC0415

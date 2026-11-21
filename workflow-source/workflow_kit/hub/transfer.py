@@ -29,7 +29,10 @@ from workflow_kit.hub.store import Ctx, Store, _iso, _json
 
 BUNDLE_FORMAT = "workflow-hub-project-bundle/1"
 #: 허브 전역 표 — 프로젝트와 함께 옮기지 않는다. 그 밖의 표는 전부 '프로젝트 표' 여야 한다 (검사가 대조한다).
-HUB_SCOPED_TABLES = frozenset({"meta", "hub_token", "sqlite_sequence", "project"})
+HUB_SCOPED_TABLES = frozenset({"meta", "hub_token", "sqlite_sequence", "project", "hub_invite"})
+#: 봉인된 프로젝트에서도 받는 도구 — 조회(새 주소를 알림) · 소유자의 다시 뜨기 · 봉인 풀기 (이전 실패 복구).
+SEALED_ALLOWED = frozenset({"hub_project_lookup", "hub_project_export", "hub_project_unseal"})
+INVITE_HOURS = 24
 
 
 def project_tables(conn: sqlite3.Connection) -> list[str]:
@@ -175,6 +178,76 @@ class Transfer:
             conn.execute("UPDATE project SET settings_json = ?, version = version + 1 WHERE id = ?", (_json(settings), project_id))
             self.store._event(conn, Ctx(now=now, via="admin"), project_id, "project", project_id, "unsealed", was, None, "hub")
         return {"project_id": project_id, "sealed": False}
+
+
+# --- HTTP 경로 (소유자 2026-11-21 '둘 다' · 대상 허브 일회용 초대 코드) ---------------------------------
+
+
+def _owner(ctx: Ctx) -> str:
+    p = ctx.principal
+    if p is None or p.kind != "callsign" or p.role != "owner" or p.callsign_kind != "human" or not p.human_approved:
+        raise HubError(403, "forbidden", "프로젝트 이전은 그 프로젝트의 소유자(승인된 human)가 한다")
+    return p.project_id or ""
+
+
+def tool_export(store: Store, ctx: Ctx, seal_to: str | None) -> dict[str, Any]:
+    """소유자가 자기 프로젝트를 뜬다 — ``seal_to`` 가 있으면 먼저 봉인 (그 뒤 쓰기를 막는다)."""
+    pid = _owner(ctx)
+    if seal_to and ctx.public_url and seal_to.rstrip("/") == ctx.public_url.rstrip("/"):
+        raise HubError(400, "invalid_field", "seal_to: 지금 허브와 같은 주소다")
+    t = Transfer(store)
+    was = store.project_moved(pid)  # 이미 봉인돼 있었나 — 실패 복구 때 이 실행이 건 봉인만 푼다
+    sealed = t.seal(pid, seal_to, ctx.now) if seal_to else None
+    return {"sealed": sealed, "was_sealed": was is not None, "bundle": t.export(pid, ctx.now, ctx.public_url)}
+
+
+def tool_unseal(store: Store, ctx: Ctx) -> dict[str, Any]:
+    """소유자가 봉인을 푼다 — 이전이 실패했을 때 되돌리는 길."""
+    return Transfer(store).unseal(_owner(ctx), ctx.now)
+
+
+def issue_invite(store: Store, project_id: str, now: datetime, hours: int = INVITE_HOURS, note: str = "") -> dict[str, Any]:
+    """대상 허브 관리자가 만드는 일회용 초대 코드 — 그 프로젝트 ID 하나 · 만료 시각. 코드는 해시만 남긴다."""
+    import secrets  # noqa: PLC0415
+    from datetime import timedelta  # noqa: PLC0415
+
+    from workflow_kit.hub.store import hash_token  # noqa: PLC0415
+
+    if not project_id.strip():
+        raise HubError(400, "invalid_field", "project: 들일 프로젝트 ID")
+    code = "wfi_" + secrets.token_urlsafe(24)
+    expires = now + timedelta(hours=hours)
+    with store.write() as conn:
+        conn.execute("INSERT INTO hub_invite (code_hash, for_project, created_at, expires_at, note) VALUES (?, ?, ?, ?, ?)",
+                     (hash_token(code), project_id, _iso(now), _iso(expires), note))
+        store._event(conn, Ctx(now=now, via="admin"), None, "hub_invite", project_id, "issue", None,
+                     {"expires_at": _iso(expires)}, "hub")
+    return {"code": code, "project_id": project_id, "expires_at": _iso(expires)}
+
+
+def tool_import(store: Store, ctx: Ctx, invite: str, bundle: Any) -> dict[str, Any]:
+    """초대 코드로 묶음을 들인다 (토큰 없이 — 코드가 권한). 코드는 한 번 · 그 프로젝트만 · 만료 전."""
+    from workflow_kit.hub.store import hash_token  # noqa: PLC0415
+
+    if not isinstance(bundle, dict):
+        raise HubError(400, "invalid_bundle", "bundle 이 객체가 아니다")
+    h = hash_token(str(invite or ""))
+    with store.read() as conn:
+        row = conn.execute("SELECT for_project, expires_at, used_at FROM hub_invite WHERE code_hash = ?", (h,)).fetchone()
+    if row is None:
+        raise HubError(403, "invalid_invite", "초대 코드가 없다")
+    if row["used_at"]:
+        raise HubError(403, "invite_used", "이미 쓴 초대 코드다")
+    if row["expires_at"] <= _iso(ctx.now):
+        raise HubError(403, "invite_expired", "초대 코드가 만료됐다")
+    pid = str((bundle.get("project") or {}).get("id") or "")
+    if pid != row["for_project"]:
+        raise HubError(403, "invite_wrong_project", f"이 초대 코드는 {row['for_project']} 용이다 (묶음: {pid})",
+                       {"invite_project": row["for_project"], "bundle_project": pid})
+    out = Transfer(store).import_bundle(bundle, ctx.now)
+    with store.write() as conn:
+        conn.execute("UPDATE hub_invite SET used_at = ? WHERE code_hash = ?", (_iso(ctx.now), h))
+    return out
 
 
 def write_bundle(bundle: dict[str, Any], out: Path) -> None:

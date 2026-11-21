@@ -287,10 +287,23 @@ CREATE TABLE project_doc (
 );
 """
 
+#: 판 10 (M-039 WBS-39.4) — 허브 간 이전 초대 코드 (소유자 2026-11-21: 대상 허브 일회용 초대 코드).
+#: 허브 전역 표다 — 프로젝트 표로 파생되지 않도록 열 이름을 ``for_project`` 로 둔다 (``project_id`` 아님).
+_V10 = """
+CREATE TABLE hub_invite (
+    code_hash TEXT PRIMARY KEY,
+    for_project TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    used_at TEXT,
+    note TEXT NOT NULL DEFAULT ''
+);
+"""
+
 #: 판 순서 = 목록 순서. 판 n = ``MIGRATIONS[n-1]`` (SQL 스크립트).
 #: ``executescript`` 는 열린 트랜잭션을 먼저 커밋하므로, 판 하나의 원자성은
 #: 스크립트 **안의** ``BEGIN IMMEDIATE … COMMIT`` 으로 만든다 (:func:`_apply`).
-MIGRATIONS: list[str] = [_V1, _V2, _V3, _V4, _V5, _V6, _V7, _V8, _V9]
+MIGRATIONS: list[str] = [_V1, _V2, _V3, _V4, _V5, _V6, _V7, _V8, _V9, _V10]
 
 
 def latest_version() -> int:

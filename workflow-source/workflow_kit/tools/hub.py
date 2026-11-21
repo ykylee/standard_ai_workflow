@@ -84,6 +84,10 @@ def _parser() -> argparse.ArgumentParser:
     ps.add_argument("--to", required=True)
     pu = psub.add_parser("unseal", help="봉인을 푼다 (이전을 되돌릴 때)")
     pu.add_argument("--project", required=True)
+    pv = psub.add_parser("invite", help="이 허브로 들일 프로젝트의 일회용 초대 코드 (HTTP 이전 — hub_client.py move)")
+    pv.add_argument("--project", required=True, help="들일 프로젝트 ID (원본 허브의 ID 그대로)")
+    pv.add_argument("--hours", type=int, default=24)
+    pv.add_argument("--note", default="")
     return p
 
 
@@ -133,6 +137,12 @@ def main(argv: list[str] | None = None) -> int:
                         f"{args.db.name}.pre-import-{now.strftime('%Y%m%dT%H%M%SZ')}-{secrets.token_hex(3)}"))
                     out = t.import_bundle(json.loads(args.file.read_text(encoding="utf-8")), now)
                     print(json.dumps({"status": "ok", **out}, ensure_ascii=False))
+                elif args.action == "invite":
+                    from workflow_kit.hub.transfer import issue_invite
+
+                    out = issue_invite(store, args.project, now, args.hours, args.note)
+                    print(json.dumps({"status": "ok", **out, "note": "코드는 지금 한 번만 보인다 — 소유자에게 전한다"},
+                                     ensure_ascii=False))
                 elif args.action == "seal":
                     print(json.dumps({"status": "ok", **t.seal(args.project, args.to, now)}, ensure_ascii=False))
                 else:

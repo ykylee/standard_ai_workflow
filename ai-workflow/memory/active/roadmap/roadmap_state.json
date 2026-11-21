@@ -1528,9 +1528,9 @@
       "sdlc_phase": "stabilization",
       "declared_status": "in_progress",
       "derived_status": "in_progress",
-      "progress": 0.25,
+      "progress": 0.5,
       "total_leaves": 4,
-      "done_leaves": 1,
+      "done_leaves": 2,
       "deliverables_missing": [],
       "wbs": [
         {
@@ -1570,13 +1570,13 @@
         {
           "id": "WBS-39.4",
           "title": "허브 서버 간 프로젝트 이전 — 묶음 형식 · 관리자 CLI export/import · 원본 봉인(410 + 새 주소) · 토큰 이어받기, 이어서 같은 묶음의 HTTP 경로 (소유자 2026-11-21)",
-          "derived_status": "in_progress",
+          "derived_status": "done",
           "linked_task_ids": [
             "TASK-2026-11-21-main-017",
             "TASK-2026-11-21-main-018"
           ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         }
       ]

@@ -32,7 +32,7 @@ python -m workflow_kit hub backup  --db PATH --out PATH
 python -m workflow_kit hub admin   --db PATH token issue --role {web,admin} --name NAME | token revoke --name NAME
 python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --callsign NAME
 python -m workflow_kit hub admin   --db PATH project export --project ID --out FILE [--seal-to URL] [--public-url URL]
-python -m workflow_kit hub admin   --db PATH project import --file FILE | seal --project ID --to URL | unseal --project ID
+python -m workflow_kit hub admin   --db PATH project import --file FILE | seal --project ID --to URL | unseal --project ID | invite --project ID [--hours N]
 ```
 
 - `serve` 는 DB 판이 모자라면 이관(§3.4)한 뒤 뜬다. loopback 이 아닌 `--bind` 는 기동 때 경고 한 줄 — "누구나 프로젝트를 등록할 수 있다" 를 포함한다 (R13.1 · R13.3).
@@ -137,7 +137,7 @@ python -m workflow_kit hub admin   --db PATH project import --file FILE | seal -
 - **순서** — ① 원본에서 `project export --seal-to <새 주소>` (먼저 봉인해 그 뒤 쓰기를 막고 묶음을 뜬다) ② 대상에서 `project import --file` (들이기 전 DB 사본 `.pre-import-<시각>-<난수>`) ③ 환경마다 허브 주소를 바꾸고 새 허브의 `hub_setup_plan` → `hub_setup_confirm` (토큰은 그대로) ④ 1.x 에서 전환한 저장소는 새 허브의 `hub_migrate_marker(action=issue)` 로 표식의 허브 주소를 다시 쓴다. 들이기가 실패하면 원본에서 `project unseal`.
 - **들이기** — 한 트랜잭션, 외래 키는 커밋 때 본다. 이력(`event`)은 순서를 지키고 번호를 새로 매긴 뒤 `project_imported` 한 줄을 더한다. 거절(대상 변화 0): 형식 · `digest` 불일치 · 묶음 DB 판이 대상보다 새로움 · 대상에 없는 표 · 열 · 같은 프로젝트가 봉인되지 않은 채 있음(`project_exists`) · 다른 프로젝트가 쓰는 저장소 주소 키(`alias_taken`). **되옮기기**: 대상에 같은 프로젝트의 **봉인된** 사본이 있으면 그것을 새 묶음으로 바꾼다 (A → B → A).
 - **봉인** — `project.settings_json.moved = {to, at}`. 그 프로젝트의 모든 도구 호출(셋업 도구는 인자의 `project_id` 로) · 화면 `/api` 가 `410 project_moved` + `moved_to`. 주소 조회는 `moved_to` 를 싣는다. 같은 허브의 다른 프로젝트는 그대로. `project unseal` 로 푼다.
-- HTTP 경로(원본 소유자 토큰으로 export → 대상 import, 대상 허브에 누가 들일 수 있는지의 정책 포함)는 후속 — 같은 묶음 형식.
+- **HTTP 경로** (소유자 2026-11-21 '둘 다' · **대상 허브 일회용 초대 코드**) — ① 대상 허브 관리자가 `hub admin project invite --project <ID> [--hours 24]` 로 코드(`wfi_…`, 해시만 `hub_invite` 에 — 판 10, 허브 전역 표)를 만들어 소유자에게 준다 ② 소유자 환경에서 `hub_client.py move <대상 주소> <코드>` — 원본 `hub_project_export(seal_to)` (소유자 · 승인된 human, 먼저 봉인) → 대상 `hub_project_import(invite, bundle)` (토큰 없이 — 코드가 권한, 상한 64MiB) → 성공하면 `.workflow-hub/env` 의 주소를 대상으로 (토큰 그대로), 실패하면 **이 실행이 건 봉인만** `hub_project_unseal` 로 푼다 (원래 봉인돼 있던 프로젝트는 그대로 — 풀면 정본이 둘). 코드는 한 번 · 그 프로젝트 ID 만 · 만료 전 (`invalid_invite` · `invite_used` · `invite_expired` · `invite_wrong_project` 403). 봉인된 프로젝트에서도 `hub_project_lookup` · `hub_project_export` · `hub_project_unseal` 은 받는다 (`transfer.SEALED_ALLOWED`). 지금 허브와 같은 주소로 봉인하려 하면 거절.
 
 ## 4. 도구 · HTTP API (WBS-32.2)
 
@@ -182,6 +182,7 @@ python -m workflow_kit hub admin   --db PATH project import --file FILE | seal -
 | `payload_too_large` | 413 | 본문 상한 (기본 256KiB — R13.5. HTTP `hub_migrate_plan` · `hub_migrate_import` 만 8MiB: 선택 클라이언트의 전환 운반, `app.BIG_BODY_TOOLS`) |
 | `project_moved` | 410 | 봉인된(다른 허브로 옮긴) 프로젝트의 도구 · 화면 호출 — `detail.moved_to` 에 새 주소 (§3.5). 주소 조회(`hub_project_lookup`)는 거절하지 않고 `moved_to` 를 싣는다 |
 | `invalid_bundle` · `bundle_digest_mismatch` · `bundle_newer_than_hub` · `bundle_unknown_table` · `bundle_unknown_column` · `project_exists` · `alias_taken` | 400 · 409 | 이전 묶음 들이기 거절 (§3.5) — 대상 허브 변화 0 |
+| `invalid_invite` · `invite_used` · `invite_expired` · `invite_wrong_project` | 403 | 허브 간 이전 초대 코드 (§3.5) |
 | `unsupported_media_type` | 415 | 화면 `/api` 쓰기의 본문이 `application/json` 이 아니다 (§4.7 — 다른 출처 폼 위조 차단) |
 
 ### 4.4 도구 — 부트스트랩 묶음 (토큰 없이, 요구 R2.3 · R3)
@@ -362,6 +363,7 @@ python -m workflow_kit hub admin   --db PATH project import --file FILE | seal -
 | `call <tool> [json]` | 부른다. 허브에 닿지 않으면 **쓰기**(`QUEUEABLE` — `request_id` 를 받는 도구만)는 `.workflow-hub/outbox/<ns 시각>-<난수>.json` 에 `request_id` 를 붙여 쌓고 exit 3, 읽기 · 그 밖은 쌓지 않고 exit 2 (낡은 답을 지금 답처럼 내지 않게) |
 | `flush` | 보낼편지함을 **오래된 것부터** 보낸다. 성공은 지운다 · 같은 항목을 두 번 보내도 `request_id` 로 한 번만 반영 · **409 는 자동 병합하지 않고 남긴 채 보고** (D4 · R12.2) · 그 밖 오류도 남긴다 · 닿지 않으면 멈춘다 |
 | `status` | 남은 항목 수 · 목록 · 캐시 시각 |
+| `move <대상 주소> <초대 코드>` | 허브 간 이전 (§3.5) — 소유자 환경에서 봉인 · 뜨기 · 대상에 들이기 · env 주소 바꾸기, 실패하면 이 실행이 건 봉인만 푼다 |
 | `migrate plan` · `migrate import <MIG> <종류,…\|all>` | 1.x 전환의 대량 운반 (소유자 2026-11-21, 리허설 §16.5) — 허브가 낸 감지 명령을 저장소 뿌리에서 돌려 보내고 계획 요약을 낸다 (전체는 `.workflow-hub/cache/migrate-<MIG>.json`). import 는 계획의 파일을 읽어 2MiB 묶음으로 보내고 마지막 묶음에 `final`. 에이전트(LLM)는 요약을 사람에게 보이고 고른 종류만 넘긴다 — 큰 출력 · 파일 내용이 모델 컨텍스트를 지나지 않는다. 다시 돌려도 허브가 있는 것을 건너뛰고, 끝난 전환은 409 |
 | `session-start [json]` | `hub_session_start(client={version, outbox_pending})` — 허브 보고 `hub.local_client` 에 남은 수가 실린다 (R12.3). 응답을 `.workflow-hub/cache/session_start.json` 에 둔다. 허브가 꺼졌으면 캐시로 열고 `허브 미확인 · 캐시 (<시각>)`, 캐시도 없으면 `허브 미확인 · 캐시 없음` (R12.1) |
 

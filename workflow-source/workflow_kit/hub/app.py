@@ -35,7 +35,8 @@ from workflow_kit.hub.store import Ctx, Principal, Store
 MAX_BODY = 256 * 1024
 #: 큰 상한을 받는 도구 — 1.x 전환의 대량 운반은 선택 클라이언트가 한다 (소유자 2026-11-21, 리허설 §16.5:
 #: 이 저장소의 감지 결과만 ~430KB). LLM 이 도구 인자로 싣는 경로(MCP)에는 해당하지 않는다.
-BIG_BODY_TOOLS: dict[str, int] = {"hub_migrate_plan": 8 * 1024 * 1024, "hub_migrate_import": 8 * 1024 * 1024}
+BIG_BODY_TOOLS: dict[str, int] = {"hub_migrate_plan": 8 * 1024 * 1024, "hub_migrate_import": 8 * 1024 * 1024,
+                                  "hub_project_import": 64 * 1024 * 1024}  # 허브 간 이전 묶음 (클라이언트가 나른다)
 
 Clock = Callable[[], datetime]
 

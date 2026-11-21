@@ -10,6 +10,7 @@
     python .workflow-hub/hub_client.py session-start                # 남은 보낼편지함 수를 싣고 시작, 브리핑을 캐시
     python .workflow-hub/hub_client.py migrate plan                 # 1.x 전환 계획 — 허브 명령 실행 · 감지 전송 · 요약
     python .workflow-hub/hub_client.py migrate import <MIG> <종류,…|all>  # 고른 종류의 파일을 묶음으로 보내고 끝낸다
+    python .workflow-hub/hub_client.py move <대상 허브 주소> <초대 코드>   # 허브 간 이전 (소유자) — 봉인 · 뜨기 · 들이기 · 주소 바꾸기
 
 1.x 전환 (hub_spec §6.6 · 소유자 2026-11-21): 감지 결과와 파일 내용은 크다(리허설: task 600여 개 저장소의 감지만
 ~430KB). 에이전트(LLM)가 도구 인자로 싣지 않도록 이 클라이언트가 운반한다 — 에이전트는 계획 요약을 사람에게
@@ -278,6 +279,62 @@ def cmd_migrate_import(mig: str, kinds_arg: str) -> int:
     return 0 if not errors and not unreadable else 1
 
 
+def cmd_move(target: str, invite: str) -> int:
+    """허브 간 이전 (hub_spec §3.5, 소유자 2026-11-21) — 원본에서 봉인+묶음 → 대상에 초대 코드로 들이기.
+
+    실패하면 원본 봉인을 풀어 되돌린다. 성공하면 ``.workflow-hub/env`` 의 주소를 바꾼다 (토큰은 그대로 —
+    이어받는다). 그 뒤 새 허브의 셋업(hub_setup_plan)으로 .mcp.json 등 하네스 설정의 주소를 다시 쓴다.
+    """
+    target = target.rstrip("/")
+    try:
+        status, out = _post("hub_project_export", {"seal_to": target}, timeout=600)
+    except Unreachable as e:
+        print(json.dumps({"status": "unreachable", "where": "source", "reason": str(e)}, ensure_ascii=False))
+        return 2
+    if status >= 400:
+        print(json.dumps({"status": "export_failed", "http": status, **out}, ensure_ascii=False))
+        return 1
+    bundle = out["bundle"]
+    req = urllib.request.Request(f"{target}/v1/tools/hub_project_import",
+                                 data=json.dumps({"invite": invite, "bundle": bundle}, ensure_ascii=False).encode("utf-8"),
+                                 method="POST", headers={"content-type": "application/json", "x-hub-client": CLIENT_VERSION})
+    imported: dict[str, Any] | None = None
+    error: dict[str, Any] = {}
+    try:
+        with urllib.request.urlopen(req, timeout=600) as r:
+            imported = json.loads(r.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        try:
+            error = {"http": e.code, **json.loads(e.read().decode("utf-8"))}
+        except ValueError:
+            error = {"http": e.code}
+    except (urllib.error.URLError, TimeoutError, ConnectionError, OSError) as e:
+        error = {"status": "unreachable", "where": "target", "reason": str(getattr(e, "reason", e))}
+    if imported is None:
+        # 되돌린다 — 이 실행이 건 봉인만 푼다 (대상은 거절했다). 원래 봉인돼 있던 프로젝트는 그대로 둔다 —
+        # 풀면 이미 옮겨 간 정본과 둘이 된다.
+        if out.get("was_sealed"):
+            u_status, u_out = 0, {"note": "원래 봉인돼 있던 프로젝트 — 풀지 않았다"}
+        else:
+            try:
+                u_status, u_out = _post("hub_project_unseal", {})
+            except Unreachable as e:
+                u_status, u_out = 0, {"reason": str(e)}
+        print(json.dumps({"status": "import_failed", "target": error, "source_unsealed": u_status == 200, "unseal": u_out},
+                         ensure_ascii=False))
+        return 1
+    env_path = HUB_DIR / "env"
+    lines = env_path.read_text(encoding="utf-8").splitlines() if env_path.is_file() else []
+    lines = [ln for ln in lines if not ln.startswith("WORKFLOW_HUB_URL=")] + [f"WORKFLOW_HUB_URL={target}"]
+    env_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(json.dumps({"status": "moved", "project_id": imported.get("project_id"), "target": target,
+                      "digest": imported.get("digest"), "env_updated": str(env_path),
+                      "next": "새 허브에서 셋업을 다시 돌려(hub_setup_plan → hub_setup_confirm) .mcp.json 등 하네스 설정의 주소를 "
+                              "바꾼다 — 토큰은 그대로다. 1.x 에서 전환한 저장소면 hub_migrate_marker(action='issue') 로 표식 주소도"},
+                     ensure_ascii=False, indent=1))
+    return 0
+
+
 def main(argv: list[str]) -> int:
     if not argv:
         print(__doc__)
@@ -291,6 +348,8 @@ def main(argv: list[str]) -> int:
         return cmd_status()
     if cmd == "session-start":
         return cmd_session_start(rest[0] if rest else "{}")
+    if cmd == "move" and len(rest) == 2:
+        return cmd_move(rest[0], rest[1])
     if cmd == "migrate" and rest[:1] == ["plan"]:
         return cmd_migrate_plan()
     if cmd == "migrate" and len(rest) == 3 and rest[0] == "import":

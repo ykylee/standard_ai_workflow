@@ -99,6 +99,7 @@ __all__ = [
     "CODEX_HOOKS_RELPATH",
     "GROK_HOOKS_RELPATH",
     "MARKETPLACE_RELPATH",
+    "KIT_PLUGIN_CHANNEL",
     "PluginSkillSpec",
     "current_kit_version",
     "default_payload_root",
@@ -230,6 +231,13 @@ OPENCODE_SNIPPET_RELPATH = "adapters/opencode/opencode-snippet.json"
 #: marketplace manifest 는 payload 밖 — **저장소 루트**가 marketplace 다
 #: (`/plugin marketplace add <owner>/<repo>`).
 MARKETPLACE_RELPATH = ".claude-plugin/marketplace.json"
+
+#: 이 줄이 kit 플러그인 **채널**을 내는가 (요구 R16.6 · Q10, TASK-2026-11-21-main-025).
+#: 2.0 줄(main)은 같은 marketplace 이름 · 경로의 채널을 내지 않는다 — 2.0 이 기본 브랜치에 들어가도 1.x 소비자의
+#: 채널 갱신이 2.0 을 받지 않게. 1.x 채널은 ``release/1.x`` 에서 갱신되고 그 줄에서는 이 값이 참이다.
+#: 거짓이면 저장소 루트의 ``.claude-plugin/marketplace.json`` 을 만들지 않고(남은 사본은 drift '미등록 파일'),
+#: 발행이 플러그인 zip 을 만들지도 요구하지도 않는다. ``plugin/`` payload 는 그대로 만든다 (패키지 · 검사가 쓴다).
+KIT_PLUGIN_CHANNEL = False
 
 #: manifest 의 author 필드. 없으면 `claude plugin validate --strict` 가 경고를
 #: 에러로 올린다 (실측).
@@ -1466,7 +1474,8 @@ def render_repo_plugin_files(
         f"{PAYLOAD_DIRNAME}/{rel}": content
         for rel, content in render_agent_plugin(rules, version=version, source_root=source_root).items()
     }
-    files[MARKETPLACE_RELPATH] = render_marketplace_manifest(version)
+    if KIT_PLUGIN_CHANNEL:
+        files[MARKETPLACE_RELPATH] = render_marketplace_manifest(version)
     return files
 
 

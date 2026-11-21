@@ -1590,10 +1590,10 @@
       "title": "2.0.0-beta 발행 · 1.x 유지보수 줄 분기",
       "sdlc_phase": "release",
       "declared_status": "planned",
-      "derived_status": "in_progress",
-      "progress": 0.5,
+      "derived_status": "done",
+      "progress": 1.0,
       "total_leaves": 2,
-      "done_leaves": 1,
+      "done_leaves": 2,
       "deliverables_missing": [],
       "wbs": [
         {
@@ -1610,10 +1610,12 @@
         {
           "id": "WBS-40.2",
           "title": "1.x 유지보수 줄 분기 · 마지막 1.x 판 deprecation 안내",
-          "derived_status": "planned",
-          "linked_task_ids": [],
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-21-main-025"
+          ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         }
       ]
@@ -1804,5 +1806,11 @@
       "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-11-21-main-019.md"
     }
   ],
-  "issues": []
+  "issues": [
+    {
+      "code": "declared_derived_mismatch",
+      "detail": "M-040: 선언 planned ≠ 파생 done (done 경계)",
+      "where": "M-040-workflow-hub-release.md"
+    }
+  ]
 }

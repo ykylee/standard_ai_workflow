@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Native plugin archives are isolated by harness and ready for release assets."""
+"""Native plugin archives are isolated by harness and ready for release assets.
+
+채널 판단 (R16.6): 이 줄이 kit 플러그인 채널을 내지 않으면(``KIT_PLUGIN_CHANNEL`` 거짓 — 2.0) 발행이 계획 · 빌드하는
+zip 은 0 이다. 하네스를 지정한 빌드는 줄과 관계없이 돈다 — 아래 묶음 검사는 그 길로 잰다.
+"""
 
 from __future__ import annotations
 
@@ -18,13 +22,22 @@ from workflow_kit.plugin_distribution import (  # noqa: E402
     PLUGIN_HARNESS_SPECS,
     archive_name,
     build_plugin_archives,
+    planned_plugin_archives,
 )
+from workflow_kit.plugin_payload import KIT_PLUGIN_CHANNEL  # noqa: E402
 
 
 def main() -> int:
     with tempfile.TemporaryDirectory() as tmpdir:
         output_dir = Path(tmpdir) / "dist"
-        archives = build_plugin_archives(output_dir, version=VERSION)
+        default_build = build_plugin_archives(Path(tmpdir) / "default", version=VERSION)
+        planned = planned_plugin_archives(Path(tmpdir) / "default", VERSION)
+        if KIT_PLUGIN_CHANNEL:
+            if len(planned) != len(PLUGIN_HARNESS_SPECS) or len(default_build) != len(PLUGIN_HARNESS_SPECS):
+                raise AssertionError(f"채널을 내는 줄인데 발행 zip 이 모자란다: planned={len(planned)} built={len(default_build)}")
+        elif planned or default_build or (Path(tmpdir) / "default").exists():
+            raise AssertionError(f"채널을 내지 않는 줄(2.0)인데 발행 zip 이 계획 · 빌드됐다: {planned} {default_build}")
+        archives = build_plugin_archives(output_dir, version=VERSION, harnesses=list(PLUGIN_HARNESS_SPECS))
         if {path.name for path in archives} != {
             archive_name(spec, VERSION) for spec in PLUGIN_HARNESS_SPECS.values()
         }:

@@ -104,6 +104,7 @@ from workflow_kit.plugin_payload import (  # noqa: E402
     CODEX_MANIFEST_RELPATH,
     ANTIGRAVITY_MCP_RELPATH,
     GOOSE_SNIPPET_RELPATH,
+    KIT_PLUGIN_CHANNEL,
     MARKETPLACE_RELPATH,
     MINIMAX_MANIFEST_RELPATH,
     OPENCODE_SNIPPET_RELPATH,
@@ -118,6 +119,7 @@ from workflow_kit.plugin_payload import (  # noqa: E402
     diff_payload,
     diff_repo_plugin_files,
     render_agent_plugin,
+    render_marketplace_manifest,
     render_repo_plugin_files,
     write_agent_plugin,
 )
@@ -578,8 +580,7 @@ def test_claude_code_adapter() -> None:
 
 def test_marketplace_manifest() -> None:
     """9) marketplace 가 payload 를 가리키고 버전이 동기인가."""
-    files = render_repo_plugin_files()
-    market = json.loads(files[MARKETPLACE_RELPATH])
+    market = json.loads(render_marketplace_manifest())  # 렌더러 계약 — 채널을 내는 줄(1.x)이 쓴다
     problems: list[str] = []
     if not market.get("description"):
         problems.append("description 누락 — `validate --strict` 가 경고를 에러로 올린다")
@@ -617,6 +618,43 @@ VERSION_BEARING_RELPATHS = (
     MARKETPLACE_RELPATH,
 )
 
+#: 저장소에 실제로 있는 것 — 채널을 내지 않는 줄(2.0)은 marketplace 가 없다 (R16.6). 디스크 대조 · 게이트 검출 수는 이것으로.
+ON_DISK_VERSION_BEARING_RELPATHS = tuple(r for r in VERSION_BEARING_RELPATHS if r != MARKETPLACE_RELPATH or KIT_PLUGIN_CHANNEL)
+
+
+def test_channel_decision_marketplace() -> None:
+    """9b) 채널 판단 (R16.6 · Q10) — 2.0 줄은 marketplace 를 내지 않고, 남은 사본을 drift 로 본다.
+
+    ``KIT_PLUGIN_CHANNEL`` 하나가 정한다. 참(1.x)이면 렌더 묶음에 marketplace 가 있고 저장소에 있어야 한다.
+    거짓(2.0)이면 묶음에 없고, 저장소 사본에 marketplace 가 있으면 '미등록 파일' 이다.
+    """
+    import shutil
+    import tempfile
+
+    files = render_repo_plugin_files()
+    on_disk = (default_repo_root() / MARKETPLACE_RELPATH).is_file()
+    problems: list[str] = []
+    if KIT_PLUGIN_CHANNEL != (MARKETPLACE_RELPATH in files):
+        problems.append(f"채널={KIT_PLUGIN_CHANNEL} 인데 렌더 묶음의 marketplace={MARKETPLACE_RELPATH in files}")
+    if KIT_PLUGIN_CHANNEL != on_disk:
+        problems.append(f"채널={KIT_PLUGIN_CHANNEL} 인데 저장소의 marketplace 있음={on_disk}")
+    if not KIT_PLUGIN_CHANNEL:
+        with tempfile.TemporaryDirectory(prefix="channel-") as d:
+            root = Path(d)
+            for rel, content in files.items():
+                (root / rel).parent.mkdir(parents=True, exist_ok=True)
+                (root / rel).write_text(content, encoding="utf-8")
+            clean = diff_repo_plugin_files(root, files)
+            (root / MARKETPLACE_RELPATH).parent.mkdir(parents=True, exist_ok=True)
+            (root / MARKETPLACE_RELPATH).write_text(render_marketplace_manifest(), encoding="utf-8")
+            stray = diff_repo_plugin_files(root, files)
+            shutil.rmtree(root / ".claude-plugin")
+        if clean:
+            problems.append(f"깨끗한 사본이 drift: {clean[:3]}")
+        if f"미등록 파일: {MARKETPLACE_RELPATH}" not in stray:
+            problems.append(f"남은 marketplace 를 drift 로 못 봤다: {stray[:3]}")
+    _record("test_channel_decision_marketplace", not problems, "; ".join(problems) or f"채널={KIT_PLUGIN_CHANNEL}")
+
 
 def test_version_resolved_at_call_time() -> None:
     """10) 버전이 **호출 시점**에 결정되는가 (bump→재생성 stale 함정).
@@ -638,6 +676,7 @@ def test_version_resolved_at_call_time() -> None:
     try:
         pp.current_kit_version = lambda: sentinel  # type: ignore[assignment]
         rendered = pp.render_repo_plugin_files()
+        rendered.setdefault(MARKETPLACE_RELPATH, pp.render_marketplace_manifest())
     finally:
         pp.current_kit_version = original  # type: ignore[assignment]
 
@@ -652,6 +691,7 @@ def test_version_resolved_at_call_time() -> None:
 
     # 명시 인자 경로도 같은 3장을 덮어야 한다 (파이프라인이 쓰는 계약).
     explicit = render_repo_plugin_files(version="v0.0.0-explicit")
+    explicit.setdefault(MARKETPLACE_RELPATH, render_marketplace_manifest("v0.0.0-explicit"))
     for relpath in VERSION_BEARING_RELPATHS:
         doc = json.loads(explicit[relpath])
         found = doc["plugins"][0]["version"] if relpath == MARKETPLACE_RELPATH else doc["version"]
@@ -712,7 +752,7 @@ def test_release_gate_catches_plugin_drift() -> None:
 
     # ③ 게이트가 어긋남을 잡는다 + 판정이 원본을 건드리지 않는다.
     before = {
-        rel: (default_repo_root() / rel).read_bytes() for rel in VERSION_BEARING_RELPATHS
+        rel: (default_repo_root() / rel).read_bytes() for rel in ON_DISK_VERSION_BEARING_RELPATHS
     }
     drifted = rp.plugin_payload_status("v0.0.0-gatetest")
     if not drifted.get("ok"):
@@ -720,10 +760,10 @@ def test_release_gate_catches_plugin_drift() -> None:
     else:
         if drifted.get("in_sync"):
             problems.append("다른 버전인데 in_sync=True — 게이트가 못 잡는다")
-        if drifted.get("drifted_count") != len(VERSION_BEARING_RELPATHS):
+        if drifted.get("drifted_count") != len(ON_DISK_VERSION_BEARING_RELPATHS):
             problems.append(
                 f"{drifted.get('drifted_count')}장을 짚었다 — "
-                f"버전 담은 {len(VERSION_BEARING_RELPATHS)}장이어야 한다"
+                f"버전 담은 {len(ON_DISK_VERSION_BEARING_RELPATHS)}장이어야 한다"
             )
         if not drifted.get("fix"):
             problems.append("fix 명령이 비어 있다 — 어긋났을 때 무엇을 하라는 안내가 없다")
@@ -741,7 +781,7 @@ def test_release_gate_catches_plugin_drift() -> None:
         not problems,
         "; ".join(problems[:3])
         if problems
-        else f"bump {len(call_lines)}경로 보고 + 쓰기 0 + 게이트가 {len(VERSION_BEARING_RELPATHS)}장 검출",
+        else f"bump {len(call_lines)}경로 보고 + 쓰기 0 + 게이트가 {len(ON_DISK_VERSION_BEARING_RELPATHS)}장 검출",
     )
 
 
@@ -759,7 +799,7 @@ def test_descriptions_count_skills() -> None:
     expected = len(PLUGIN_SKILLS)
     files = render_repo_plugin_files()
     manifest = json.loads(files[f"{PAYLOAD_DIRNAME}/plugin.json"])
-    market_entry = json.loads(files[MARKETPLACE_RELPATH])
+    market_entry = json.loads(files.get(MARKETPLACE_RELPATH) or render_marketplace_manifest())
     targets = {
         "plugin.json description": manifest["description"],
         "marketplace description": market_entry["description"],
@@ -798,7 +838,7 @@ def test_status_targets_working_tree() -> None:
     from workflow_kit.tools import release_pipeline as rp  # noqa: PLC0415
 
     repo = default_repo_root()
-    targets = [repo / rel for rel in VERSION_BEARING_RELPATHS]
+    targets = [repo / rel for rel in ON_DISK_VERSION_BEARING_RELPATHS]
     if not all(p.is_file() for p in targets):
         _record("test_status_targets_working_tree", False, "산출물 부재 — 먼저 생성한다")
         return
@@ -1355,6 +1395,7 @@ def main() -> int:
         test_detector_catches_drift,
         test_claude_code_adapter,
         test_marketplace_manifest,
+        test_channel_decision_marketplace,
         test_version_resolved_at_call_time,
         test_release_gate_catches_plugin_drift,
         test_descriptions_count_skills,

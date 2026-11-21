@@ -228,7 +228,7 @@ def check_archive_isolation() -> None:
     if "minimax-code" not in PLUGIN_HARNESS_SPECS:
         return
     with tempfile.TemporaryDirectory() as tmpdir:
-        archives = {path.name: path for path in build_plugin_archives(Path(tmpdir), version=VERSION)}
+        archives = {path.name: path for path in build_plugin_archives(Path(tmpdir), version=VERSION, harnesses=list(PLUGIN_HARNESS_SPECS))}
         archive = next((path for name, path in archives.items() if "minimax-code" in name), None)
         _assert(archive is not None, "minimax-code ZIP 이 생성되지 않았다")
         if archive is None:

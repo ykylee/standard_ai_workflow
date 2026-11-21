@@ -441,6 +441,7 @@
   [검증] 1.x 태그가 1.x 브랜치 위에 있고 게이트 증거가 그 커밋의 것. 1.x 결함 수리 커밋마다 2.0 쪽 대응(고침 · 해당 없음)이 기록돼 있다.
 - **R16.6 1.x 소비자는 자동 갱신으로 2.0 을 받지 않는다** — 지금 플러그인 채널(`.claude-plugin/marketplace.json` → `source: ./plugin`)은 저장소의 브랜치를 따라 갱신된다. 2.0 이 기본 브랜치에 들어가도 1.x 소비자의 채널 갱신은 1.x 를 받아야 한다. 방법 (Q10 결정): 2.0 은 같은 marketplace 이름 · 경로의 kit 플러그인 채널을 내지 않는다. 기존 채널은 1.x 소유로 1.x 브랜치(R16.5)에서 갱신하고, 1.x 안내 판(R16.4)이 채널을 1.x 브랜치로 다시 등록하는 하네스별 한 줄 명령을 싣는다. 2.0 에 플러그인이 필요해지면 새 이름으로 낸다.
   [검증] 1.x 를 설치한 하네스에서 2.0 발행 뒤 채널 갱신 → 설치 판이 1.x 그대로 (지원 4종 중 플러그인 채널이 있는 하네스마다).
+  **구현 (TASK-2026-11-21-main-025)**: 상수 `plugin_payload.KIT_PLUGIN_CHANNEL` 하나 — main 은 거짓(저장소 루트 `.claude-plugin/marketplace.json` 을 만들지 않고 남은 사본은 drift, 발행이 플러그인 zip 을 계획 · 빌드 · 요구하지 않음), `release/1.x` 는 참. 1.x 고정 실측 (Claude Code 2.1.330, 임시 HOME): `claude plugin marketplace remove standard-ai-workflow` → `claude plugin marketplace add "ykylee/standard_ai_workflow#release/1.x"` → `claude plugin install standard-ai-workflow@standard-ai-workflow` → 설치 판 1.29.1 · 저장소 브랜치 `release/1.x` (remove 는 저장된 옵션 · 데이터도 지운다). Folder 소스(로컬 clone)는 그 clone 을 `release/1.x` 로 옮긴다 — 이 저장소의 개발 호스트는 Folder 소스가 main 체크아웃이라 `../standard_ai_workflow-1x` 로 다시 가리켜야 한다.
 - **R16.7 'latest' 는 2.0** — 2.0.0 발행 뒤 1.x patch 발행은 GitHub Release 의 'latest' 표시를 가져가지 않는다.
   [검증] 1.x patch 발행 뒤 저장소의 latest release = 2.x.
 - **R16.8 1.x 결함 후보의 자리** — 2.0 작업 중 드러난 1.x 결함(예: §16.2 의 `bidir_link` · freshness)은 1.x 줄 backlog 에 올리고 R16.1 로 분류한다.

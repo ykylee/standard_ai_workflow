@@ -23,6 +23,7 @@ from workflow_kit.plugin_payload import (
     MINIMAX_ICON_DARK_RELPATH,
     MINIMAX_ICON_RELPATH,
     MINIMAX_MANIFEST_RELPATH,
+    KIT_PLUGIN_CHANNEL,
     PAYLOAD_DIRNAME,
     PLUGIN_NAME,
     current_kit_version,
@@ -128,7 +129,12 @@ def build_plugin_archives(
     harnesses: Iterable[str] | None = None,
     repo_root: Path | None = None,
 ) -> list[Path]:
-    """Build native plugin archives and return their absolute paths."""
+    """Build native plugin archives and return their absolute paths.
+
+    채널을 내지 않는 줄(:data:`KIT_PLUGIN_CHANNEL` 거짓 — 2.0)에서는 하네스를 지정하지 않으면 아무것도 만들지 않는다.
+    """
+    if not KIT_PLUGIN_CHANNEL and harnesses is None:
+        return []
     root = repo_root or default_repo_root()
     payload = root / PAYLOAD_DIRNAME
     resolved_version = version or current_kit_version()
@@ -161,6 +167,9 @@ def build_plugin_archives(
 
 
 def planned_plugin_archives(output_dir: Path, version: str) -> list[Path]:
+    """발행이 만들고 붙일 zip — 채널을 내지 않는 줄(2.0)에서는 없다 (R16.6)."""
+    if not KIT_PLUGIN_CHANNEL:
+        return []
     return [archive_path(output_dir, spec, version) for spec in selected_specs()]
 
 

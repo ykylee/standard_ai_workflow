@@ -18,6 +18,7 @@ from workflow_kit.hub.errors import HubError, invalid_field, unauthorized, unkno
 from workflow_kit.hub.guide import Guides
 from workflow_kit.hub.judge import Judge
 from workflow_kit.hub.memory import Memory
+from workflow_kit.hub.migrate1x import Migrator
 from workflow_kit.hub.session import SessionStart
 from workflow_kit.hub.setup import Setup
 from workflow_kit.hub.store import Ctx, Store, scan_secrets
@@ -187,6 +188,20 @@ TOOLS: dict[str, ToolSpec] = {
         ToolSpec("hub_guide_decide", "token", "열린 지침 제안을 승인(approve=true) · 거절한다 — 승인된 human 만.",
                  {"proposal_id": _STR, "approve": {"type": "boolean"}}, ("proposal_id", "approve"),
                  lambda s, c, a: Guides(s).decide(c, a["proposal_id"], bool(a["approve"]))),
+        ToolSpec("hub_migrate_plan", "token",
+                 "1.x 전환 계획 (소유자만) — 인자 없이 부르면 저장소에서 돌릴 명령, scan={name:{rc,output}} 을 실어 다시 부르면 "
+                 "감지 보고 · 전환 표 · 같은 ID 정본 · 하네스 안내와 migration_id. 원본은 건드리지 않는다.",
+                 {"scan": _OBJ}, (), lambda s, c, a: Migrator(s).plan(c, a.get("scan"))),
+        ToolSpec("hub_migrate_import", "token",
+                 "1.x 들여오기 묶음 (소유자만) — kinds: tasks · archive · handoff · roadmap · wiki · memory_index · checkpoint · "
+                 "guide_draft 가운데 소유자가 고른 것. files=[{path, content}] 는 계획에 있는 경로만. 요청 상한(256KB) 안으로 나눠 "
+                 "보내고 마지막에 final=true. 다시 보내도 있는 것은 건너뛴다.",
+                 {"migration_id": _STR, "kinds": _ARR, "files": _ARR, "final": {"type": "boolean"}},
+                 ("migration_id", "kinds"),
+                 lambda s, c, a: Migrator(s).import_batch(c, a["migration_id"], a["kinds"], a.get("files") or [],
+                                                          bool(a.get("final")))),
+        ToolSpec("hub_migrate_report", "token", "1.x 전환 기록 — 계획 · 종류별 들인 것 · 건너뛴 것 · 실패.",
+                 {"migration_id": _STR}, ("migration_id",), lambda s, c, a: Migrator(s).report(c, a["migration_id"])),
         ToolSpec("hub_whoami", "token", "이 토큰의 프로젝트 · 콜사인 · 권한.", {}, (), _whoami),
         ToolSpec("hub_task_list", "token", "task 목록 (status · assignee 로 거른다, assignee='' 는 맡은 이 없음).",
                  {"status": _STR, "assignee": _STR, "limit": _INT}, (),

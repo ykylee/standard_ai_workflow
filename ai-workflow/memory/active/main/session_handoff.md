@@ -81,6 +81,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-11-21-main-008 허브 1.x 전환 — 감지 · 전환 계획 · 들여오기 (M-038 WBS-38.1)
 - TASK-2026-11-21-main-007 허브 화면 — 지침 편집 · 에이전트 제안 승인(D11) · 위키 읽기 (M-037 WBS-37.3)
 - TASK-2026-11-21-main-006 허브 화면 — 콜사인별 handoff · 지금 누가 무엇을 · 지침 판 현황 (M-037 WBS-37.2)
 - TASK-2026-11-21-main-005 허브 화면 첫 판 — 프로젝트 · task 목록 · 계획 · 결정 답 · 이력 (M-037 WBS-37.1)
@@ -90,12 +91,11 @@
 - TASK-2026-11-21-main-001 허브 위키 — 페이지 · ingest 묶음 · index/log 생성 · 읽기 · lint (WBS-36.1)
 - TASK-2026-11-21-claude-workflow-hub-concept-013 handoff §5 서두의 회차 줄이 예산 밖에서 쌓인다 — 누적형으로 세고 이관
 - TASK-2026-11-21-claude-workflow-hub-concept-012 로드맵 현재 마일스톤을 병행 선언 기준으로 — 상시 운영 M-007 이 늘 '현재' 로 보고되던 것
-- TASK-2026-11-21-claude-workflow-hub-concept-011 허브 콜사인별 기억 — handoff · 세션 끝 · compact 체크포인트 · state.json v1 · 보관
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
 
-- (138차, 2026-11-21) **M-037 in_progress — WBS-37.1 done** (TASK-2026-11-21-main-005: 허브 화면 `/ui/` · `/api`, 공용 web 토큰 `serve --web-token-name`(기본 꺼짐), hub_spec §4.7). 소유자 결정: **결정 답은 승인된 human 만 · responder = 그 콜사인** — MCP `hub_plan_respond` 도 같은 규칙, 승인은 새 도구 `hub_callsign_approve`(소유자). 실브라우저 실측 도구: 시스템에 playwright 가 없어 scratchpad 에 `playwright-core@1.56.1` + `~/.cache/ms-playwright/chromium-1223` 로 돌렸다. 이어 **WBS-37.2 done** (TASK-2026-11-21-main-006: 콜사인 표 · handoff 화면 · 화면 승인, 받은 판 기록 수리 — `guide_version_seen` 은 세션 시작 2단계에서도 · `client_version_seen` 은 `X-Hub-Client` 머리로). 이어 **WBS-37.3 done → M-037 done** (TASK-2026-11-21-main-007: DB 판 7 `guide_proposal` · 도구 `hub_guide_get` · `propose` · `decide` — 사람만 판을 올리고 에이전트는 제안, 낡은 기준 409 · 렌더 예산 422 · 화면 지침 · 위키 읽기). **다음 M-038** (허브 전환 — 1.x 들여오기).
+- (138차, 2026-11-21) **M-037 in_progress — WBS-37.1 done** (TASK-2026-11-21-main-005: 허브 화면 `/ui/` · `/api`, 공용 web 토큰 `serve --web-token-name`(기본 꺼짐), hub_spec §4.7). 소유자 결정: **결정 답은 승인된 human 만 · responder = 그 콜사인** — MCP `hub_plan_respond` 도 같은 규칙, 승인은 새 도구 `hub_callsign_approve`(소유자). 실브라우저 실측 도구: 시스템에 playwright 가 없어 scratchpad 에 `playwright-core@1.56.1` + `~/.cache/ms-playwright/chromium-1223` 로 돌렸다. 이어 **WBS-37.2 done** (TASK-2026-11-21-main-006: 콜사인 표 · handoff 화면 · 화면 승인, 받은 판 기록 수리 — `guide_version_seen` 은 세션 시작 2단계에서도 · `client_version_seen` 은 `X-Hub-Client` 머리로). 이어 **WBS-37.3 done → M-037 done** (TASK-2026-11-21-main-007: DB 판 7 `guide_proposal` · 도구 `hub_guide_get` · `propose` · `decide` — 사람만 판을 올리고 에이전트는 제안, 낡은 기준 409 · 렌더 예산 422 · 화면 지침 · 위키 읽기). 이어 **M-038 in_progress — WBS-38.1 done** (TASK-2026-11-21-main-008: DB 판 8 `migration_1x` · `hub_migrate_plan` · `import` · `report`, 이 저장소 task 603개 전수 파싱 미분류 0). **다음 WBS-38.2** ('허브로 옮김' 표식 `ai-workflow/HUB_MIGRATED.json` 쓰기 지시 · 되돌리기).
 - (137차 후속, 2026-11-21) **M-036 done** — WBS-36.3 A (TASK-2026-11-21-main-003: 위키 운반 = 1.x 디렉터리 무손실, OKF 는 출판 · 남의 묶음 loose 만 — R8.6 소유자 결정으로 정정) · B (TASK-2026-11-21-main-004: 선택 클라이언트 `hub_client.py` 첫 판 — 보낼편지함 · 캐시 · 세션 시작 보고). 1.x OKF 결함 2건은 `release/1.x` backlog (`release-1.x-002` · `-003` — 그 브랜치 메모리에). **다음 M-037** (허브 화면 · 워크벤치 확장). 후속 후보: 클라이언트 hook 체크포인트(§7 ①) · 위키 점수 함수 인자화 · 원격 clone 캐시.
 - (137차 후속, 2026-11-21) **M-036 WBS-36.2 done** (TASK-2026-11-21-main-002 — memory_index · 양방향 링크 · 출처 sha · 위키 원격 읽기, `check_hub_wiki` 9/9). 1.x 결함 `bidir_link` 수리는 main(`41b39d51`) · `release/1.x`(`05678400`) 둘 다 — 다음 1.x patch 노트에 싣는다. **다음 WBS-36.3** — 들여오기 · 내보내기 (OKF · git 스냅샷) · 오프라인 보낼편지함. 들여오기는 요청 상한 256KB 로 묶음을 나눈다. 후속 후보: 위키 점수 함수 인자화 · 원격 clone 캐시.
 - (137차 후속, 2026-11-21) **M-036 WBS-36.1 done** (TASK-2026-11-21-main-001 — 허브 위키: DB 판 5 · `hub/wiki.py` · 도구 5종 · V-1/V-4 본체 `common/wiki_rules.py` 공유 · `check_hub_wiki` 5/5). **다음 WBS-36.2** — memory_index · 양방향 링크(E5) · 저장소 참조 sha · freshness 원격 읽기(R8.4, 지금은 미측정) · 점수 함수. 36.3 OKF 들여오기는 요청 상한 256KB 때문에 묶음을 나눠 보내야 한다. kit 결함 후보: 주장 린트 L7 이 인용된 주장을 '재지 않는' 으로 경고.

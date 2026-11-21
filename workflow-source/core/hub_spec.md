@@ -115,7 +115,7 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 | `memory_entry` | `project_id` · `id` · `body_json` (1.x `MemoryEntry` 로 검증한 그대로) · `version` · `updated_by` · `updated_at` | `(project_id, id)` — 판 6 | R8.1 (E5) |
 | `event` | `seq` (자동 증가) · `project_id` · `at` · `callsign` · `target_kind` · `target_id` · `op` · `before_json` · `after_json` · `via` (`mcp`/`http`/`client`) · `client_version` | 추가만 | R1.5 · R5.10 · R2.7 |
 | `applied_request` | `project_id` · `callsign` · `request_id` · `result_json` · `at` | 유일 | §3.1 |
-| `migration_1x` | `project_id` · `id` · `at` · `callsign` · `plan_json` · `report_json` | — | R14 |
+| `migration_1x` | `project_id` · `id` (`MIG-<4자리>`) · `at` · `callsign` · `status` (`planned`/`importing`/`done`) · `plan_json` · `report_json` (누적) | `(project_id, id)` — 판 8 (M-038 WBS-38.1) | R14 |
 
 - **task 의 칸 (DS2)** — 1.x task 파일의 Description 칸은 구조 칼럼과 `fields_json` (영향 문서 · 완료 기준 · 결과 · 위험 · 후속 · 검증 결과)에, **`## 🧭 Plan` 절은 `plan_md` 에 1.x 원문 그대로** 둔다. 판정 함수가 줄 목록을 받기 때문이다 (실측 §16.1 1 · 3a). 내보내기(R15)는 같은 칸에서 1.x 파일을 다시 만든다.
 - **ID 네임스페이스 (DS3)** — 새 task ID 는 `TASK-<UTC 날짜>-<콜사인>-<NNN>`. 1.x 의 브랜치 slug 자리에 콜사인이 들어간다. 들여온 task 는 원래 ID 그대로 (R5.2).
@@ -197,7 +197,7 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 | 위키 원격 읽기 | `hub_wiki_remote_set(fetch_url)` | **소유자만** — `project.settings_json.wiki_remote`. 빈 값이면 끈다. `https://` · `ssh://` · `git@host:path` · `file:///` 만 (git 원격 도우미 `ext::` 등 거절) (R3.7 · R8.4) |
 | 로드맵 | `hub_roadmap_get()` · `hub_roadmap_put(path, expected_version, body)` · `hub_roadmap_state()` | 스키마 오류는 필드 · 제약과 함께 (R9.2) |
 | 위키 | `hub_wiki_search(query, limit?)` · `hub_wiki_get(path)` · `hub_wiki_list(prefix?)` · `hub_wiki_ingest(pages[{path, body \| delete, expected_version, source?{repo_key, sha}}], summary)` · `hub_wiki_lint()` | 묶음 하나 = ingest 하나, 하나라도 409 면 전체 거절 (R8.2). 새 페이지는 `expected_version` 0. `log` 줄 `## [날짜] ingest \| <summary>` 은 허브가 만든다. 페이지 ≤ 192KB · 묶음 ≤ 200 페이지 — 요청 본문 상한(256KB)을 넘는 들여오기는 여러 ingest 로 (M-036 WBS-36.1) |
-| 전환 | `hub_migrate_plan(scan)` · `hub_migrate_import(batch, choices)` · `hub_migrate_report(id)` | §6.6 |
+| 전환 | `hub_migrate_plan(scan?)` · `hub_migrate_import(migration_id, kinds[], files[{path, content}], final?)` · `hub_migrate_report(migration_id)` | 소유자(승인된 `human` · `owner`)만. §6.6 |
 | 내보내기 | `hub_export(kinds[])` | 쓰기 지시로 1.x 형식 파일 (R15) |
 
 ### 4.6 화면 인증 (요구 R13.2 · R13.2a)
@@ -311,11 +311,16 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 | `active/<branch>/session_handoff.md` · `sessions/*` · `lessons.md` | `memory_note(kind=archive_1x)` — 원문 그대로 + `meta_json{branch, path, commit, imported_at}` | 읽기 전용 (Q2). 전환한 콜사인의 `handoff` 는 **현재 브랜치** handoff 의 칸에서 시작 (R14.4) |
 | `.compact/checkpoint.json` | `checkpoint` | 현재 브랜치 것만 |
 | `roadmap/*.md` | `roadmap_doc` | 원문 그대로 (R9.1) |
-| `ai-workflow/wiki/**` · memory_index | `wiki_page` · `memory_entry` | OKF v0.2 로 운반 (R8.6) · 출처에 저장소 키 + 지금 HEAD sha |
+| `ai-workflow/wiki/**` · `memory_index/entries/*.json` | `wiki_page` · `memory_entry` | 위키는 **디렉터리 무손실 운반** (`hub_wiki_import_dir` 와 같은 함수 — R8.6 소유자 결정 2026-11-21, 1.x `index.md` · `log.md` 원문은 보관 기록), 묶음 하나 = ingest 하나. memory_index 는 1.x 스키마로 검증 |
 | 진입 파일 | 생성 블록은 버림 · 손 문단은 `guide_proposal` (초안, D11 승인 대상) | R14.5 |
 | kit 플러그인 · hook · stdio MCP | 하네스별 교체 안내 · 삭제는 등록자 확인 뒤 | R14.9 · 4종 밖 하네스는 '지원 대상 아님' |
 
-- 들여오기는 `hub_migrate_import` 로 묶음 전송(에이전트가 파일을 읽어 싣는다 · 묶음 상한 §4.3). 원본 파일은 지우지 않는다.
+- **감지 (R14.1 · I1)** — `hub_migrate_plan()` 이 돌릴 명령을 낸다 (`hub/migrate1x.py` 의 `COMMANDS` 가 정본: 현재 · 기본 브랜치 · HEAD · `git ls-files` (추적 · 무시 파일) · 경로별 마지막 커밋(`git log --format=@%ct %H --name-only`) · 진입 파일의 kit 판 표식). 결과를 실어 다시 부르면 감지 보고(네임스페이스 · 현재 네임스페이스 · kit 판 · 종류별 수 · 하네스 흔적 · 4종 밖 하네스 · 못 돌린 명령)와 전환 표 · 같은 ID 정본 · 하네스 안내를 내고 `MIG-NNNN` 으로 남긴다.
+- **정본 (Q1)** — 같은 ID 는 그 파일을 마지막으로 바꾼 커밋 시각이 가장 늦은 네임스페이스, 같으면 기본 브랜치, 기본 브랜치도 없으면 이름순. 근거(네임스페이스 · 커밋 · 시각 · 사유)를 계획에 싣는다. 나머지는 그 task 의 `imported_variant` 이력 — 다시 보내도 한 번.
+- **들여오기 (R14.2)** — 종류 `tasks` · `archive` · `handoff` · `roadmap` · `wiki` · `memory_index` · `checkpoint` · `guide_draft` 가운데 소유자가 고른 것만. 계획에 없는 경로 · 고르지 않은 종류의 파일은 거절. 한 파일이 여러 종류에 속할 수 있다 (현재 네임스페이스 handoff = 보관 + 콜사인 handoff). 이미 있는 것은 건너뛴다 — 묶음을 다시 보내도 같다. 응답의 `summary` 는 이번 묶음, `total` 은 누적. `final=true` 뒤에는 409.
+- **task 칸** — 1.x 리더(`read_task_list_field` · `read_task_affected_documents`) 그대로, `## 🧭 Plan` 절은 원문 그대로 `plan_md`, 상태는 frontmatter 우선 (`done` 도 그대로 — 1.x 에서 이미 게이트를 거쳤다). 못 읽는 파일은 `failed` 로 보고한다 (조용히 버리지 않는다). handoff 의 진행 · 막힘 · 최근 완료는 `TASK-` 줄만 들이고 나머지 줄은 `dropped_lines` 로 보고.
+- 진입 파일의 kit 생성 절 판정은 1.x `entry_diet` 의 '알려진 생성물' 해시 + `generated-from` 표식 — 손 문단만 `guide_proposal(open)` 초안이 된다 (승인된 사람이 보내도 판은 오르지 않는다).
+- 들여오기는 묶음 전송(에이전트가 파일을 읽어 싣는다 · 요청 상한 §4.3). 원본 파일은 지우지 않고 허브는 쓰기 지시도 내지 않는다.
 - 끝나면 쓰기 지시로 **'허브로 옮김' 표식** `ai-workflow/HUB_MIGRATED.json` `{hub: public_url, project_id, migrated_at, kit_version}` 을 쓰고 커밋을 안내한다 (R14.6). 1.x 안내 판(R16.4)의 쓰기 도구는 이 파일을 보면 거절한다. 표식을 지우면 1.x 로 돌아간다 (R14.7).
 
 ### 6.7 위키 lint (요구 R8.3 · 실측 §16.2)

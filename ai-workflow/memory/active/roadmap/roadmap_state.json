@@ -1805,6 +1805,13 @@
       "wbs_ref": "exempt",
       "exempt_reason": "테스트 러너 결함 수리 — 로드맵 밖",
       "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-11-21-main-019.md"
+    },
+    {
+      "task_id": "TASK-2026-11-21-main-027",
+      "task_status": "planned",
+      "wbs_ref": "exempt",
+      "exempt_reason": "발행 도구 결함 수리 — 마일스톤 밖",
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-11-21-main-027.md"
     }
   ],
   "issues": []

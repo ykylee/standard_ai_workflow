@@ -1,0 +1,134 @@
+# 워크플로우 허브 운영 가이드 (2.0)
+
+- 문서 목적: 2.0 워크플로우 허브를 설치하고 띄우고 지키는 법 — 사람(허브 관리자)이 읽는다
+- 범위: 설치 · 띄우기 · 노출과 공개 주소 · 토큰 · 프로젝트 셋업 안내 · 지침 · 백업과 복원 · 판 올리기 · 허브 간 이전 · 점검
+- 대상 독자: 허브 관리자, 저장소 관리자
+- 상태: beta
+- 최종 수정일: 2026-11-21
+- 관련 문서: [`../workflow-source/core/hub_spec.md`](../workflow-source/core/hub_spec.md) (계약 정본), [`planning/workflow-hub-requirements-2026-11.md`](./planning/workflow-hub-requirements-2026-11.md) (요구 · 실측 §16), [`RELEASE.md`](./RELEASE.md)
+
+허브는 **프로세스 하나와 SQLite 파일 하나**다. 작업 환경(저장소 · 하네스)은 kit 을 깔지 않는다 — 허브 주소 하나로
+참여한다. 하네스는 허브의 원격 MCP(`/mcp`)로 붙고, 셋업이 쓰는 파일은 `.gitignore` 한 줄 · 진입 파일 영역 ·
+하네스 설정 · 토큰 파일(`.workflow-hub/env`, git 제외) 뿐이다.
+
+## 1. 설치
+
+허브를 돌릴 기계에만 깐다. Python 3.10 이상.
+
+```sh
+python3 -m venv ~/workflow-hub/venv
+~/workflow-hub/venv/bin/python -m pip install "<GitHub Release 의 workflow_kit wheel 경로>[hub]"
+```
+
+- `[hub]` 추가 의존이 허브 서버 몫(`uvicorn` · `starlette`)을 깐다. 없으면 `hub serve` 가
+  `허브 의존이 없다 — pip install 'workflow_kit[hub]'` 로 멈춘다.
+- 배포는 GitHub Releases 하나다 (PyPI 에 올리지 않는다 — [`RELEASE.md`](./RELEASE.md) §1 각주 0).
+
+## 2. 띄우기
+
+```sh
+python -m workflow_kit hub serve --db ~/workflow-hub/hub.db [--bind 127.0.0.1] [--port 8770] \
+    [--public-url https://hub.example.org] [--web-token-name screen]
+```
+
+- 시작할 때 DB 를 최신 판으로 이관한다. 이관이 있으면 먼저 `hub.db.pre-v<판>-<시각>` 사본을 만들고 그 경로를
+  알린다. 첫 줄 출력: `{"status": "serving", "url", "public_url", "db_version"}`.
+- 앞에서(foreground) 돈다. 상시로 두려면 서비스 관리자(systemd 등)에 맡긴다 — 이 kit 은 배치 자동화를 내지
+  않는다 (PURPOSE 제외 영역).
+- 이 저장소의 테스트베드 예: `~/workflow-hub-testbed/start.sh` (loopback `:8770`, requirements §16.6).
+
+## 3. 노출과 공개 주소
+
+- **기본은 loopback** (`127.0.0.1`). loopback 이 아닌 주소에 bind 하면 경고한다 — 허브에 닿는 누구나 프로젝트를
+  등록할 수 있다 (요구 R3.4 · R13.3). 바깥 노출은 **TLS 를 거는 리버스 프록시 뒤**에서 하고 허브는 loopback 에 둔다.
+- **`--public-url` = 사람과 하네스가 쓰는 바깥 주소**. 셋업이 쓰는 `.workflow-hub/env` · `.mcp.json` · Codex 등록
+  명령, 안내 페이지(`/`), 에이전트용 절차(`/setup.md`) 의 주소가 모두 이 값에서 나온다. 추측하지 않는다 — 프록시
+  뒤라면 반드시 준다. 바꾸면 이미 셋업한 환경은 셋업을 다시 돌려(`hub_setup_plan`) 주소를 고친다.
+- 화면(`/ui/`)의 링크 · API 호출은 상대 경로라 접두사 프록시(`https://host/hub/`) 뒤에서도 돈다 (R13.4).
+  MCP 주소는 `<public-url>/mcp` 다.
+- `GET /healthz` 의 `exposure` (`loopback` / `non-loopback`) 로 지금 노출을 확인한다.
+
+## 4. 토큰
+
+| 토큰 | 누가 · 어떻게 | 권한 | 거두기 |
+|---|---|---|---|
+| 콜사인 (`wfh_…`) | 프로젝트 등록 · 합류 때 허브가 **한 번만** 준다. 작업 환경의 `.workflow-hub/env` (600, git 제외) 에만 | 그 프로젝트의 도구 · 화면. 결정 답 · 지침 판 올리기 · 원격 묶기는 **승인된 human** 만 | `hub admin --db … callsign revoke --project <ID> --callsign <c>` |
+| 화면 공용 `web` | `hub admin --db … token issue --role web --name screen` → `hub serve … --web-token-name screen` | 토큰 없는 화면 요청이 **읽기 · 콜사인 등록** 권한으로 돈다 (기본 꺼짐) | `token revoke --name screen` — 즉시 꺼진다 |
+| `admin` | `token issue --role admin --name <이름>` | 화면에서 모든 프로젝트 읽기 · 콜사인 등록 (공용 토큰을 켜지 않고 관리자만 보기) | `token revoke --name <이름>` |
+
+- `hub admin` 은 DB 파일에 직접 접근하는 **로컬 명령**이다 — 네트워크로 열지 않는다. 토큰 값은 발급 출력에서
+  한 번만 보인다. DB 에는 해시만 있다.
+- Antigravity 는 MCP 헤더의 환경 변수 참조를 확장하지 않아, 그 하네스의 토큰은 사용자 범위
+  `~/.gemini/config/mcp_config.json` 에 평문으로 남는다 (R2.5a) — 그 파일을 공유하지 않게 알린다.
+
+## 5. 프로젝트 셋업 안내 (사용자에게 줄 말)
+
+가장 쉬운 길 — 작업 환경의 에이전트에게 한 줄:
+
+> `<public-url>/setup.md` 를 읽고 이 저장소를 셋업해. 콜사인은 `<이름>`, 나는 사람(human)이다.
+
+에이전트가 허브의 선택 클라이언트로 등록(또는 합류) · `.gitignore` 확인 · 토큰 파일 · 진입 파일 · 하네스 설정을
+하고, 하네스의 안전 장치가 걸린 단계(Claude Code 의 `.mcp.json` 승인, Codex 샌드박스, Antigravity 평문 토큰)는
+사람에게 넘긴다. 끝나면 `.workflow-hub/env` 의 토큰을 하네스 환경에 올리고 하네스를 다시 시작한다. 실측: 4 하네스
+모두 빈 폴더에서 페이지만 읽고 셋업을 마쳤다 (requirements §16.7).
+
+- 하네스별 등록 명령과 사람 몫은 안내 페이지 `<public-url>/` 에 있다.
+- git 원격이 없는 저장소는 로컬 키로 등록된다 — 원격을 만든 뒤 소유자가 `hub_project_bind_remote` 로 묶어야
+  다른 환경이 주소로 찾아 합류한다.
+- 새로 합류한 `human` 콜사인은 소유자가 승인하기 전까지 `agent` 권한이다 — 화면의 콜사인 표 또는
+  `hub_callsign_approve`.
+
+### 1.x 저장소의 전환
+
+1.x kit 를 쓰던 저장소는 셋업이 `legacy_1x` 로 알린다 — 셋업만으로는 1.x 기록이 허브에 들어오지 않는다.
+
+```sh
+python3 .workflow-hub/hub_client.py migrate plan                 # 계획 — 종류별 파일 수 · 충돌 · 남는 파일
+python3 .workflow-hub/hub_client.py migrate import <MIG> all     # 고른 종류를 묶음으로 보낸다
+```
+
+들여온 뒤 사람이 확인하고 `hub_migrate_marker(action='issue')` 로 '허브로 옮김' 표식을 커밋하면 그 저장소의 1.x
+쓰기 명령이 거절된다(종료 코드 3). 표식을 지우면 되돌아간다. 상세: hub_spec §6.6.
+
+## 6. 지침
+
+프로젝트 지침은 허브가 정본이고 진입 파일의 렌더 영역으로 내려간다. 판을 올리는 길은 둘:
+
+- 화면 — 에이전트 · 사람이 제안하고 승인된 human 이 승인한다 (`/ui/` 의 지침).
+- 관리자 — `hub admin --db … guide set --project <ID> --file <지침.md> [--actor <이름>]`.
+
+렌더 예산을 넘는 본문은 거절된다(422). 세션 시작이 판이 바뀐 것을 알리고 렌더 지시를 낸다.
+
+## 7. 백업과 복원
+
+```sh
+python -m workflow_kit hub backup --db ~/workflow-hub/hub.db --out ~/backup/hub-$(date +%F).db
+```
+
+- 돌고 있는 허브에서도 일관된 사본을 만든다 (SQLite 온라인 백업). 대상 파일이 이미 있으면 거절한다
+  (`backup_target_exists`) — 덮어쓰지 않는다. 주기는 운영자가 정한다.
+- 복원: 허브를 멈추고 DB 파일을 사본으로 바꾼 뒤 다시 띄운다. 사본이 더 낮은 판이면 시작 때 이관된다.
+- 프로젝트 하나만 옮기거나 되살릴 때는 §9 의 묶음을 쓴다.
+
+## 8. 판 올리기
+
+새 wheel 을 같은 venv 에 `[hub]` 로 깔고 허브를 다시 띄운다. DB 판이 오르면 시작 때 이관 전 사본을 남긴다.
+작업 환경은 아무것도 다시 깔지 않는다 — 지침 판이 바뀌었으면 다음 세션 시작이 렌더 지시를 낸다. 선택
+클라이언트(`hub_client.py`)는 허브가 `/v1/bootstrap/hub_client.py` 로 내려주며 요청마다 지금 판을 준다.
+
+## 9. 허브 간 프로젝트 이전
+
+| 길 | 원본 허브 | 대상 허브 |
+|---|---|---|
+| 관리자 CLI | `hub admin --db … project export --project <ID> --out bundle.json --seal-to <대상 public-url>` | `hub admin --db … project import --file bundle.json` (들이기 전 DB 사본을 만든다) |
+| HTTP (소유자가) | 소유자 환경에서 `python3 .workflow-hub/hub_client.py move <대상 주소> <초대 코드>` | 관리자가 `hub admin --db … project invite --project <ID> [--hours 24]` 로 일회용 코드를 만들어 소유자에게 준다 |
+
+- 봉인된 원본은 그 프로젝트 호출에 `410 project_moved` + 새 주소를 돌려준다. 콜사인 토큰은 그대로 이어진다.
+- 되돌리기: 원본에서 `project unseal --project <ID>`. 같은 프로젝트를 다시 원본으로 옮기면(A → B → A) 봉인된
+  사본을 교체한다. 상세: hub_spec §3.5.
+
+## 10. 점검
+
+- `GET /healthz` → `{ok, kit_version, contract, db_version, exposure, public_url, web_token}`.
+- 화면 `/ui/` — 프로젝트 · task · 이력 · 콜사인 표(누가 무엇을 · 받은 지침 판 · 셋업 끝 여부).
+- 프로젝트마다 이력(`event`)이 남는다 — 누가(콜사인) · 어디서(`mcp` / `http` / `admin`) · 무엇을.

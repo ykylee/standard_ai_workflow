@@ -1587,22 +1587,24 @@
     },
     {
       "id": "M-040",
-      "title": "2.0.0 발행 · 1.x 유지보수 줄 분기",
+      "title": "2.0.0-beta 발행 · 1.x 유지보수 줄 분기",
       "sdlc_phase": "release",
       "declared_status": "planned",
-      "derived_status": "planned",
-      "progress": 0.0,
+      "derived_status": "in_progress",
+      "progress": 0.5,
       "total_leaves": 2,
-      "done_leaves": 0,
+      "done_leaves": 1,
       "deliverables_missing": [],
       "wbs": [
         {
           "id": "WBS-40.1",
           "title": "2.0.0 릴리스 노트 · 배포 산출물 · 전환 안내",
-          "derived_status": "planned",
-          "linked_task_ids": [],
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-21-main-024"
+          ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         },
         {

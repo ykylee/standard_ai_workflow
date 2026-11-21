@@ -82,6 +82,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-11-21-main-027 발행 산출물 선택이 접두사 glob — 2.0.0 이 2.0.0b1 산출물까지 첨부 후보로 잡는다 (find_dist_files)
 - TASK-2026-11-21-main-011 1.x 안내 판 발행 — 2.0 안내 한 줄 · README · 발행 노트 · 1.x EOL (2.0.0 발행 때, R16.4 · R14.8)
 - TASK-2026-11-21-main-026 2.0.0-beta 발행 준비 — README · 설치 문서 · 발행 노트 · RELEASE.md 2.0 절차(R16.7) · 판 번호 · 전량 게이트 (M-040 WBS-40.1)
 - TASK-2026-11-21-main-025 2.0 줄에서 kit 플러그인 채널 내리기 — marketplace.json · 발행 zip (R16.6 · Q10, M-040 WBS-40.2)
@@ -91,7 +92,6 @@
 - TASK-2026-11-21-main-021 이 저장소를 테스트베드 허브에 실제 등록 — 등록 · 셋업 · 들여오기, 표식 보류 (M-039 WBS-39.2)
 - TASK-2026-11-21-main-020 이 호스트 테스트베드 허브 — 이 저장소 clone 을 2.0 으로 전환해 실사용 시험 (M-039 WBS-39.2)
 - TASK-2026-11-21-main-018 허브 서버 간 프로젝트 이전 — HTTP 경로 (같은 묶음, 소유자 2026-11-21 '둘 다')
-- TASK-2026-11-21-main-019 run_all_checks 잠금 파일 보유자 정보가 깨진다 — a+b 모드에서 seek 가 쓰기 위치를 못 바꿈
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

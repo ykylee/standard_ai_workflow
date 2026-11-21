@@ -10,6 +10,8 @@
 4. 발행 명령 — ``gh release create`` 인자에 latest 판정이 들어가고 ``--target`` 이 main 고정이 아니다
 5. 산출물 이름 — ``2.0.0b1`` 의 wheel · sdist 파일명이 판 문자열 그대로 (PEP 440 정규화가 바꾸지 않는다)
 6. 판 쓰기 — ``write_version`` 을 두 번 불러도 ``2.0.0b1`` (옛 정규식은 ``2.0.0b1b1``), 정식 판 · 옛 접미사 판에서도 전체를 바꾼다
+7. 산출물 고르기 — ``find_dist_files("2.0.0")`` 이 ``2.0.0`` 의 wheel · sdist 만 (``2.0.0b1`` · ``2.0.01`` · ``2.0.0.post1`` ·
+   플러그인 zip 은 안 잡음), 옛 ``-beta`` 판은 ``b0`` 파일명으로 (TASK-2026-11-21-main-027)
 """
 
 from __future__ import annotations
@@ -106,6 +108,35 @@ def main() -> int:
         rp.PYPROJECT = original
     bad6 = {k: v for k, v in results6.items() if v != (k[1], True)}
     _record("case 6 (판 쓰기 — 두 번 써도 2.0.0b1 · 전체 교체 · 다른 version 키 보존)", not bad6, str(bad6))
+
+    results7 = {}
+    g = rp.find_dist_files.__globals__  # release_pipeline 이 재-export 한 바로 그 모듈의 REPO_ROOT
+    original_root = g["REPO_ROOT"]
+    names = [
+        "standard_ai_workflow-2.0.0-py3-none-any.whl", "standard_ai_workflow-2.0.0.tar.gz",
+        "standard_ai_workflow-2.0.0b1-py3-none-any.whl", "standard_ai_workflow-2.0.0b1.tar.gz",
+        "standard_ai_workflow-2.0.01-py3-none-any.whl", "standard_ai_workflow-2.0.0.post1.tar.gz",
+        "standard_ai_workflow-2.0.0-plugin.zip", "standard_ai_workflow-0.7.10b0-py3-none-any.whl",
+    ]
+    try:
+        with tempfile.TemporaryDirectory(prefix="dist-") as d:
+            (Path(d) / "dist").mkdir()
+            for n in names:
+                (Path(d) / "dist" / n).write_bytes(b"")
+            g["REPO_ROOT"] = Path(d)
+            for v in ("2.0.0", "v2.0.0", "2.0.0b1", "0.7.10-beta", "9.9.9"):
+                results7[v] = sorted(f.name for f in rp.find_dist_files(v))
+    finally:
+        g["REPO_ROOT"] = original_root
+    want7 = {
+        "2.0.0": sorted(names[:2]),
+        "v2.0.0": sorted(names[:2]),
+        "2.0.0b1": sorted(names[2:4]),
+        "0.7.10-beta": [names[7]],
+        "9.9.9": [],
+    }
+    bad7 = {k: v for k, v in results7.items() if v != want7[k]}
+    _record("case 7 (산출물 고르기 — 이 판의 wheel · sdist 만, 접두사가 같은 다른 판 제외)", not bad7, str(bad7))
 
     print(f"PASS {len(_passes)} · FAIL {len(_failures)}")
     for f in _failures:

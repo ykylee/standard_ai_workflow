@@ -3148,7 +3148,7 @@ def cmd_dist(args) -> dict:
         wheel_only=getattr(args, "wheel_only", False),
     )
     results["command"] = " ".join(cmd)
-    results["expected_pattern"] = f"standard_ai_workflow-{_expected_dist_pattern(current_version)}*"
+    results["expected_pattern"] = f"standard_ai_workflow-{dist_version(current_version)}-*.whl · standard_ai_workflow-{dist_version(current_version)}.tar.gz"
     results["planned_plugin_archives"] = [
         path.relative_to(REPO_ROOT).as_posix() for path in planned_plugin_archives(_dist_dir, current_version)
     ]

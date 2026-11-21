@@ -289,7 +289,10 @@ class Store:
 
     def register_project(self, ctx: Ctx, remote_url: str, display_name: str, callsign: str, kind: str,
                          label: str = "", host: str = "") -> dict[str, Any]:
-        key = gitkey.normalize(remote_url)
+        # 원격이 없는 저장소 (소유자 2026-11-21 '로컬 키 발급 · 나중에 묶기') — 허브가 로컬 키를 낸다. 원격이 생기면
+        # 소유자가 hub_project_bind_remote 로 묶는다. 그 전에는 주소 조회로 찾을 수 없어 다른 환경은 합류할 수 없다.
+        local = not (remote_url or "").strip()
+        key = gitkey.local_key() if local else gitkey.normalize(remote_url)
         self._check_callsign(callsign, kind)
         if not display_name.strip():
             raise invalid_field("display_name", "비었다")
@@ -318,7 +321,36 @@ class Store:
                         {"key": key, "display_name": display_name.strip(), "owner": callsign}, callsign)
             self._event(conn, ctx, project_id, "callsign", callsign, "register", None,
                         {"kind": kind, "role": "owner"}, callsign)
-        return {"project_id": project_id, "key": key, "callsign": callsign, "role": "owner", "token": token}
+        out: dict[str, Any] = {"project_id": project_id, "key": key, "callsign": callsign, "role": "owner", "token": token}
+        if local:
+            out["local_key"] = True
+            out["next"] = ("원격이 없어 로컬 키로 등록했다 — 주소 조회로는 찾을 수 없다. git 원격을 만든 뒤 "
+                           "hub_project_bind_remote(remote_url) 로 묶어야 다른 환경이 합류한다")
+        return out
+
+    def bind_remote(self, ctx: Ctx, remote_url: str) -> dict[str, Any]:
+        """프로젝트에 git 원격 주소를 묶는다 (별칭 키) — 원격 없이 등록한 프로젝트 · 같은 저장소의 다른 표기.
+
+        승인된 human 소유자만. 이미 이 프로젝트의 키면 그대로 (already), 다른 프로젝트의 키면 409 ``alias_taken``.
+        """
+        p = self._need_callsign(ctx)
+        if p.role != "owner" or p.callsign_kind != "human" or not p.human_approved:
+            raise forbidden("원격 묶기는 승인된 human 소유자만 한다")
+        key = gitkey.normalize(remote_url)
+        with self.write() as conn:
+            row = conn.execute("SELECT project_id FROM project_alias WHERE key = ?", (key,)).fetchone()
+            if row and row["project_id"] == p.project_id:
+                return {"project_id": p.project_id, "key": key, "already": True}
+            if row:
+                raise HubError(409, "alias_taken",
+                               "다른 프로젝트가 이 저장소 주소로 등록돼 있다 — 묶지 않는다. 두 프로젝트를 합치는 길은 없다: "
+                               "사람이 어느 쪽을 쓸지 정한다", {"key": key})
+            conn.execute(
+                "INSERT INTO project_alias (key, project_id, kind, added_by, added_at) VALUES (?, ?, 'alias', ?, ?)",
+                (key, p.project_id, p.callsign, _iso(ctx.now)),
+            )
+            self._event(conn, ctx, p.project_id, "project", p.project_id or "", "bind_remote", None, {"key": key}, p.callsign)
+        return {"project_id": p.project_id, "key": key, "already": False}
 
     def register_callsign(self, ctx: Ctx, project_id: str, callsign: str, kind: str,
                           label: str = "", host: str = "") -> dict[str, Any]:

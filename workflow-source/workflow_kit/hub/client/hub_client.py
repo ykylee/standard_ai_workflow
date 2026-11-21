@@ -11,6 +11,8 @@
     python .workflow-hub/hub_client.py migrate plan                 # 1.x 전환 계획 — 허브 명령 실행 · 감지 전송 · 요약
     python .workflow-hub/hub_client.py migrate import <MIG> <종류,…|all>  # 고른 종류의 파일을 묶음으로 보내고 끝낸다
     python .workflow-hub/hub_client.py move <대상 허브 주소> <초대 코드>   # 허브 간 이전 (소유자) — 봉인 · 뜨기 · 들이기 · 주소 바꾸기
+    python .workflow-hub/hub_client.py bootstrap <허브 주소> --harness <h> --callsign <c> [--kind human|agent] [--name <표시 이름>]
+                                                    # 빈 환경 부트스트랩 — 등록(또는 합류) · 셋업 지시 실행 · 확인 (토큰은 env 에만)
 
 1.x 전환 (hub_spec §6.6 · 소유자 2026-11-21): 감지 결과와 파일 내용은 크다(리허설: task 600여 개 저장소의 감지만
 ~430KB). 에이전트(LLM)가 도구 인자로 싣지 않도록 이 클라이언트가 운반한다 — 에이전트는 계획 요약을 사람에게
@@ -335,6 +337,179 @@ def cmd_move(target: str, invite: str) -> int:
     return 0
 
 
+# --- 부트스트랩 (M-039 WBS-39.1 · 소유자 2026-11-21 '가이드 페이지만 읽고 스스로 셋업') -----------------------
+
+def _http(base: str, name: str, args: dict[str, Any]) -> tuple[int, dict[str, Any]]:
+    """토큰 없는 부트스트랩 묶음 호출 (env 가 아직 없다)."""
+    req = urllib.request.Request(f"{base}/v1/tools/{name}", data=json.dumps(args, ensure_ascii=False).encode("utf-8"),
+                                 method="POST", headers={"content-type": "application/json", "x-hub-client": CLIENT_VERSION})
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            return r.status, json.loads(r.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        try:
+            return e.code, json.loads(e.read().decode("utf-8"))
+        except ValueError:
+            return e.code, {"error_code": "http_error"}
+    except (urllib.error.URLError, TimeoutError, ConnectionError, OSError) as e:
+        raise Unreachable(str(getattr(e, "reason", e))) from None
+
+
+def _sha(path: Path) -> str:
+    import hashlib  # noqa: PLC0415
+
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+#: 스크립트가 직접 쓰지 않고 에이전트(또는 사람)에게 넘기는 단계 — 하네스의 안전 장치를 지나야 하는 것.
+#: Claude Code 는 .mcp.json 쓰기에 사람 승인을 받는다 (M-039 실측). 스크립트가 쓰면 그 장치를 우회한다.
+HANDOFF_STEPS = ("harness:mcp-json", "harness:antigravity")
+
+
+def _scan() -> dict[str, Any]:
+    paths = (".gitignore", "CLAUDE.md", "AGENTS.md", "MiniMax.md", "ANTIGRAVITY.md", ".mcp.json")
+    return {"files": {p: (Path(p).read_text(encoding="utf-8") if Path(p).is_file() else None) for p in paths}}
+
+
+def _bootstrap_out(payload: dict[str, Any], rc: int) -> int:
+    print(json.dumps(payload, ensure_ascii=False, indent=1))
+    return rc
+
+
+def cmd_bootstrap(argv: list[str]) -> int:
+    """빈 환경 부트스트랩 — 등록(또는 합류) → .gitignore 확인 → env → 진입 파일 → 하네스 설정 지시.
+
+    토큰은 출력하지 않는다 (env 에만). 다시 부르면 env 로 이어 간다 (확인된 단계는 허브가 건너뛴다).
+    하네스의 안전 장치를 지나야 하는 단계(:data:`HANDOFF_STEPS`)는 쓰지 않고 ``for_agent`` 로 넘긴다 —
+    에이전트가 자기 도구로 쓴 뒤(사람 승인) 이 명령을 다시 부르면 sha256 으로 확인한다.
+    1.x kit 흔적이 있으면 진입 파일을 쓰지 않는다 — 전환(표식)은 사람이 정한다.
+    """
+    import argparse  # noqa: PLC0415
+
+    ap = argparse.ArgumentParser(prog="hub_client.py bootstrap")
+    ap.add_argument("hub")
+    ap.add_argument("--harness", action="append", required=True)
+    ap.add_argument("--callsign", required=True)
+    ap.add_argument("--kind", default="agent", choices=("human", "agent"))
+    ap.add_argument("--name", default="")
+    ap.add_argument("--label", default="")
+    a = ap.parse_args(argv)
+    base = a.hub.rstrip("/")
+    top = _run(["git", "rev-parse", "--show-toplevel"])
+    if top["rc"] != 0:
+        return _bootstrap_out({"status": "not_git_repo",
+                               "next": "git 저장소가 아니다. 빈 폴더면 `git init` 뒤 다시 부른다. 파일이 있는 폴더면 git 저장소로 "
+                                       "만들어도 되는지 사람에게 묻는다"}, 1)
+    if Path(top["output"].strip()).resolve() != Path.cwd().resolve():
+        return _bootstrap_out({"status": "not_repo_root", "root": top["output"].strip(),
+                               "next": "저장소 뿌리에서 다시 부른다"}, 1)
+    env = _env()
+    joined: dict[str, Any] = {}
+    try:
+        if env.get("WORKFLOW_HUB_TOKEN") and env.get("WORKFLOW_HUB_PROJECT"):
+            if env.get("WORKFLOW_HUB_URL", "").rstrip("/") != base:
+                return _bootstrap_out({"status": "other_hub", "hub_in_env": env.get("WORKFLOW_HUB_URL"),
+                                       "next": "이 저장소는 이미 다른 허브에 셋업돼 있다 — 사람에게 묻는다"}, 1)
+            project_id, token = env["WORKFLOW_HUB_PROJECT"], env["WORKFLOW_HUB_TOKEN"]
+            joined = {"resumed": True}
+        else:
+            remote = _run(["git", "remote", "get-url", "origin"])
+            url = remote["output"].strip() if remote["rc"] == 0 else ""
+            if not url:
+                names = _run(["git", "remote"])["output"].split()
+                url = _run(["git", "remote", "get-url", names[0]])["output"].strip() if names else ""
+            name = a.name or Path.cwd().name
+            found: dict[str, Any] = {}
+            if url:
+                st, found = _http(base, "hub_project_lookup", {"remote_url": url})
+                if st != 200:
+                    return _bootstrap_out({"status": "lookup_failed", "http": st, **found}, 1)
+                if found.get("moved_to"):
+                    return _bootstrap_out({"status": "moved", "moved_to": found["moved_to"],
+                                           "next": "이 프로젝트는 다른 허브로 옮겼다 — 그 주소로 다시 부른다"}, 1)
+            if found.get("project_id"):
+                st, reg = _http(base, "hub_callsign_register", {"project_id": found["project_id"], "callsign": a.callsign,
+                                                                "kind": a.kind, "label": a.label})
+            else:
+                st, reg = _http(base, "hub_project_register", {"remote_url": url, "display_name": name, "callsign": a.callsign,
+                                                               "kind": a.kind, "label": a.label})
+            if st != 200:
+                return _bootstrap_out({"status": "register_failed", "http": st,
+                                       **{k: v for k, v in reg.items() if k != "token"}}, 1)
+            project_id, token = reg["project_id"], reg["token"]
+            joined = {"joined" if found.get("project_id") else "registered": True, "key": reg.get("key"),
+                      "local_key": bool(reg.get("local_key")), "role": reg.get("role")}
+        base_args = {"project_id": project_id, "token": token, "harnesses": a.harness}
+        done: list[str] = []
+        pending: list[dict[str, Any]] = []
+        for_agent: list[dict[str, Any]] = []
+        legacy: Any = None
+        for _ in range(3):
+            st, plan = _http(base, "hub_setup_plan", {**base_args, "scan": _scan()})
+            if st != 200:
+                return _bootstrap_out({"status": "plan_failed", "http": st, **plan, "project_id": project_id, **joined}, 1)
+            legacy = plan.get("legacy_1x") or legacy
+            files: list[dict[str, str]] = []
+            checks: list[dict[str, Any]] = []
+            for s in plan["steps"]:
+                sid, path = s["id"], Path(s.get("path") or ".")
+                if s["op"] == "append_line":
+                    if not s.get("already_present"):
+                        prev = path.read_text(encoding="utf-8") if path.is_file() else ""
+                        sep = "" if not prev or prev.endswith("\n") else "\n"
+                        path.write_text(prev + sep + s["content"], encoding="utf-8")
+                elif sid == "check_ignore":
+                    HUB_DIR.mkdir(exist_ok=True)
+                    checks.append({"name": "check_ignore", **_run(s["run"])})
+                elif s["op"] == "write" and sid not in HANDOFF_STEPS:
+                    if sid.startswith("entry:") and legacy:
+                        pending.append({"id": sid, "reason": "1.x kit 흔적이 있어 진입 파일을 쓰지 않았다 — 전환은 사람이 정한다"})
+                        continue
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_text(s["content"], encoding="utf-8")
+                    if s.get("mode") == "600":
+                        os.chmod(path, 0o600)
+                    files.append({"path": s["path"], "sha256": _sha(path)})
+                elif s["op"] == "write":  # 에이전트에게 넘긴다 — 이미 지시대로 있으면 확인만
+                    if path.is_file() and _sha(path) == s.get("sha256_after"):
+                        files.append({"path": s["path"], "sha256": _sha(path)})
+                    else:
+                        for_agent.append({"id": sid, "op": "write", "path": s["path"], "content": s["content"],
+                                          "note": s.get("note", "")})
+                elif sid == "harness:codex":
+                    checks.append({"name": sid, **_run(s["run"])})
+                else:  # antigravity — 사용자 범위에 토큰 평문: 사람이 정한다. 명령은 토큰을 가린다
+                    pending.append({"id": sid, "reason": "사람이 정한다", "warning": s.get("warning", ""),
+                                    "run_masked": [("Authorization: Bearer <WORKFLOW_HUB_TOKEN>" if "Bearer" in x else x)
+                                                   for x in s.get("run", [])]})
+            for b in plan.get("blocked") or []:
+                pending.append({"id": b["id"], "reason": b.get("message", b.get("reason", ""))})
+            st, conf = _http(base, "hub_setup_confirm", {"project_id": project_id, "token": token,
+                                                          "files": files, "checks": checks})
+            if st != 200:
+                return _bootstrap_out({"status": "confirm_failed", "http": st, **conf}, 1)
+            done += conf.get("confirmed", [])
+            if conf.get("error_code") == "ignore_not_effective":
+                return _bootstrap_out({"status": "ignore_not_effective", "unconfirmed": conf["unconfirmed"],
+                                       "next": ".gitignore 의 /.workflow-hub/ 가 먹지 않는다 — 사람에게 보인다 (토큰 파일을 쓰지 않았다)"}, 1)
+            if plan["stage"] == "files":
+                complete = bool(conf.get("setup_complete"))
+                break
+        else:
+            complete = False
+    except Unreachable as e:
+        return _bootstrap_out({"status": "unreachable", "hub": base, "reason": str(e)}, 2)
+    pending_ids = {p["id"] for p in pending} | {f["id"] for f in for_agent}
+    out = {"status": "complete" if complete else "partial", "hub": base, "project_id": project_id,
+           "callsign": a.callsign, **joined, "confirmed": done, "for_agent": for_agent, "pending": pending,
+           "legacy_1x": legacy,
+           "next": ("셋업 완료 — .workflow-hub/env 의 WORKFLOW_HUB_TOKEN 을 환경에 올리고 하네스를 다시 시작한 뒤 hub_session_start"
+                    if complete else
+                    "for_agent 의 파일을 내용 그대로 쓰고(하네스가 승인을 물으면 사람이 답한다) 이 명령을 다시 부른다. "
+                    "pending 은 사람에게 보인다" if pending_ids else "이 명령을 다시 부른다")}
+    return _bootstrap_out(out, 0 if complete else 3)
+
+
 def main(argv: list[str]) -> int:
     if not argv:
         print(__doc__)
@@ -348,6 +523,8 @@ def main(argv: list[str]) -> int:
         return cmd_status()
     if cmd == "session-start":
         return cmd_session_start(rest[0] if rest else "{}")
+    if cmd == "bootstrap":
+        return cmd_bootstrap(rest)
     if cmd == "move" and len(rest) == 2:
         return cmd_move(rest[0], rest[1])
     if cmd == "migrate" and rest[:1] == ["plan"]:

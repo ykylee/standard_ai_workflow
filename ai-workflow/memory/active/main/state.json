@@ -45,6 +45,7 @@
       "TASK-2026-11-21-main-013"
     ],
     "recent_done_items": [
+      "TASK-2026-11-21-main-022 — 허브 에이전트용 셋업 가이드 /setup.md — 페이지만 읽고 스스로 부트스트랩 + 원격 없는 저장소 등록 (M-039 WBS-39.1)",
       "TASK-2026-11-21-main-021 — 이 저장소를 테스트베드 허브에 실제 등록 — 등록 · 셋업 · 들여오기, 표식 보류 (M-039 WBS-39.2)",
       "TASK-2026-11-21-main-020 — 이 호스트 테스트베드 허브 — 이 저장소 clone 을 2.0 으로 전환해 실사용 시험 (M-039 WBS-39.2)",
       "TASK-2026-11-21-main-019 — run_all_checks 잠금 파일 보유자 정보가 깨진다 — a+b 모드에서 seek 가 쓰기 위치를 못 바꿈",
@@ -53,15 +54,14 @@
       "TASK-2026-11-21-main-016 — 1.x 전환 범위 확장 — 아카이브 브랜치 · 결정 응답 · baselines · PURPOSE/PROFILE · 날짜별 backlog (소유자 2026-11-21)",
       "TASK-2026-11-21-main-015 — 1.x 전환 운반을 선택 클라이언트로 — hub_client.py migrate · 감지 도구 큰 상한 (소유자 2026-11-21)",
       "TASK-2026-11-21-main-014 — 이 저장소 2.0 전환 리허설 — 로컬 임시 허브로 들여오기 · 대조 (표식 없음, M-039 WBS-39.2 일부)",
-      "TASK-2026-11-21-main-012 — 허브 하네스 실측 (Linux) — 원격 MCP 부트스트랩 · 세션 시작, 4 하네스 (M-039 WBS-39.1 일부)",
-      "TASK-2026-11-21-main-010 — 1.x 쪽 '허브로 옮김' 표식 거절 · session-start 표식 인지 (M-038 WBS-38.3 일부 — 안내 문구 · 발행은 2.0 때)"
+      "TASK-2026-11-21-main-012 — 허브 하네스 실측 (Linux) — 원격 MCP 부트스트랩 · 세션 시작, 4 하네스 (M-039 WBS-39.1 일부)"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-11-21.md",
-    "task_count": 34,
+    "task_count": 35,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
@@ -96,7 +96,8 @@
       "TASK-2026-11-21-main-018 — 허브 서버 간 프로젝트 이전 — HTTP 경로 (같은 묶음, 소유자 2026-11-21 '둘 다')",
       "TASK-2026-11-21-main-019 — run_all_checks 잠금 파일 보유자 정보가 깨진다 — a+b 모드에서 seek 가 쓰기 위치를 못 바꿈",
       "TASK-2026-11-21-main-020 — 이 호스트 테스트베드 허브 — 이 저장소 clone 을 2.0 으로 전환해 실사용 시험 (M-039 WBS-39.2)",
-      "TASK-2026-11-21-main-021 — 이 저장소를 테스트베드 허브에 실제 등록 — 등록 · 셋업 · 들여오기, 표식 보류 (M-039 WBS-39.2)"
+      "TASK-2026-11-21-main-021 — 이 저장소를 테스트베드 허브에 실제 등록 — 등록 · 셋업 · 들여오기, 표식 보류 (M-039 WBS-39.2)",
+      "TASK-2026-11-21-main-022 — 허브 에이전트용 셋업 가이드 /setup.md — 페이지만 읽고 스스로 부트스트랩 + 원격 없는 저장소 등록 (M-039 WBS-39.1)"
     ]
   },
   "next_documents": [

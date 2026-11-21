@@ -378,6 +378,19 @@
 
 드러난 결함 (수리): ① 셋업이 1.x 흔적을 알리지 않아 에이전트가 '1.x 흔적 없음' 으로 보고 → 응답에 `legacy_1x` ② 전환 안내가 `.claude/` 아래 파일 전부와 허브 항목이 든 `.mcp.json` 까지 '지운다' 로 냄 → 하네스별 한 줄, 남길 것(프로젝트 에이전트 · hook · 허브 항목)을 말함 ③ 세션 시작의 handoff 꼴(`sections`)이 `hub_handoff_get`(`handoff`)과 달라 에이전트의 첫 세션 끝이 `unknown_field` → 같은 꼴 ④ 화면 task 목록이 가장 오래된 200개를 보임 → 최근 것부터 + 전체 수 ⑤ 실제 규모에서 표 칸 배분이 깨짐(긴 ID) → 고정 배치 · 칸 폭. 소유자 결정 (2026-11-21): 맡기(`hub_task_claim`)는 `planned` 면 `in_progress` 로 바꾼다(놓아도 되돌리지 않음) · 로드맵 밖 선언은 1.x 와 같이 `wbs="exempt"` 를 요구하되, 거절 메시지가 허브 도구 인자로 고칠 길을 말한다 (`wbs_exempt_reason` 만 온 경우를 짚는다).
 
+### 16.7 가이드 페이지만 읽고 스스로 셋업 (M-039 WBS-39.1, 2026-11-21, Linux 호스트)
+
+소유자 2026-11-21 '가이드 페이지를 읽게 하면 스스로 셋업' · 원격 없는 저장소는 '로컬 키 발급 · 나중에 묶기'. 허브가 `GET /setup.md` (에이전트용 절차, 토큰 없음) 를 내고, 페이지가 선택 클라이언트 `hub_client.py bootstrap` 을 쓰게 한다 (hub_spec §6.1 7).
+
+| 단계 | 결과 |
+|---|---|
+| 빈 폴더 · 허브 MCP 미등록 · Claude Code 비대화 (`claude -p "<허브>/setup.md 를 읽고 이 폴더를 셋업해. 콜사인 …, 나는 사람"`, 도구 허용: curl · python3 · git · mkdir · Read · Write · Edit) | 8턴 · `git init` → 클라이언트 받기(내용 먼저 읽음) → bootstrap → `for_agent` 의 `.mcp.json` 을 자기 도구로 쓰고 다시 부름 → `complete` (gitignore · env 600 · entry · mcp-json). 원격 없음 → 로컬 키, 묶기 안내 · 커밋은 사람에게 넘김 |
+| 토큰 노출 | 출력 · stderr · 세션 transcript 에서 토큰 문자열 0회 |
+| 다시 시작 | env 를 올리고 `claude -p` → `.mcp.json` 의 허브 MCP 로 `hub_session_start` 성공 (저장소 명령 5 미확인 — 2단계 안내) |
+| 검사 | `check_hub_setup_guide` 6 case, 되주입 8건 모두 해당 case 가 잡음 |
+
+이번 실측에서 Claude Code 비대화는 `Write` 를 허용하자 `.mcp.json` 쓰기를 따로 묻지 않았다 (§16.6 의 승인 요구는 기존 저장소 · 다른 허용 조합 — 조건 차이는 재지 않았다). 다른 하네스 3종(Codex · MiniMax · Antigravity)의 페이지 실측은 아직 — Codex 단계(`codex mcp add`)는 검사의 가짜 명령으로만 쟀다 (실제 실행은 사용자 범위 설정을 바꾼다).
+
 ## 17. PURPOSE 2.0판 · 1.x 유지보수 정책 (WBS-31.3, 2026-11-20)
 
 입력: concept §16 (G1 · G3 · §4 명제를 2.0판으로, D9 는 '허브 모드에서는' 이 아니라 2.0 의 명제), E1 (위키도 허브 정본), G4 deprecation,

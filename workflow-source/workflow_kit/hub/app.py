@@ -122,6 +122,12 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
             "Referrer-Policy": "same-origin",
         })
 
+    async def setup_md(request: Request) -> Response:
+        # 에이전트용 셋업 절차 (M-039 WBS-39.1) — 토큰 없이. 비밀이 없다.
+        from workflow_kit.hub.guide_page import render_setup_md
+
+        return Response(render_setup_md(public_url), media_type="text/markdown; charset=utf-8", headers=_hub_headers(store))
+
     async def hub_client_source(request: Request) -> Response:
         # 선택 클라이언트 원문 (hub_spec §7) — 토큰 없이 받는다: 비밀이 없고, 토큰은 .workflow-hub/env 에서 읽는다.
         src = (Path(__file__).resolve().parent / "client" / "hub_client.py").read_text(encoding="utf-8")
@@ -181,6 +187,7 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
             *ui_routes,
             Route("/", guide_page, methods=["GET"]),
             Route("/healthz", healthz, methods=["GET"]),
+            Route("/setup.md", setup_md, methods=["GET"]),
             Route("/v1/bootstrap/hub_client.py", hub_client_source, methods=["GET"]),
             Route("/v1/tools/{name}", tool_http, methods=["POST"]),
             Route("/mcp", _McpEndpoint(), methods=["GET", "POST", "DELETE"]),

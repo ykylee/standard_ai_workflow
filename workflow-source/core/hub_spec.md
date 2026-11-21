@@ -149,7 +149,8 @@ python -m workflow_kit hub admin   --db PATH project import --file FILE | seal -
 | `/mcp` | Bearer (부트스트랩 묶음은 없음) | MCP streamable HTTP (R2.1) |
 | `POST /v1/tools/<name>` | 같음 | **MCP 도구와 같은 함수 · 같은 인자 · 같은 결과** (DS5 · R2.7) |
 | `GET /v1/bootstrap` | 없음 | 선택 클라이언트 원문 (`text/x-python`, 머리 `X-Hub-Client-Version` · `X-Hub-Client-Sha256`) (R2.7) |
-| `GET /` | 없음 | 안내 페이지 — 지원 하네스 4종의 등록 명령 (R2.6) |
+| `GET /` | 없음 | 안내 페이지 — 지원 하네스 4종의 등록 명령 (R2.6) · `/setup.md` 링크 |
+| `GET /setup.md` | 없음 | **에이전트용 셋업 절차** (`text/markdown`, M-039 WBS-39.1 · 소유자 2026-11-21) — 사람은 "이 주소를 읽고 셋업해" 한 줄만. 순서 · 지킬 것(토큰 비노출 · 지시 밖 파일 0 · 커밋은 사람) · 멈출 자리만 싣고 쓸 내용은 싣지 않는다(셋업 지시가 낸다). 하네스 명령은 안내 페이지와 한 정본(`guide_page.harness_commands`), 부르는 도구는 `guide_page.SETUP_TOOLS` |
 | `GET /ui/…` · `GET /api/…` | 화면 (§4.6) | 허브 화면 (M-037) |
 
 ### 4.2 판 협상 (요구 R0.6 · R1.6)
@@ -190,7 +191,7 @@ python -m workflow_kit hub admin   --db PATH project import --file FILE | seal -
 | 도구 | 인자 | 결과 |
 |---|---|---|
 | `hub_project_lookup` | `remote_url` | `{key, project_id \| null, display_name}` |
-| `hub_project_register` | `remote_url` · `display_name` · `callsign` · `kind` · `label` · `host` | `{project_id, callsign, token}` — 토큰은 **이 응답에서 한 번만**. 등록자 = `owner`, `human` 바로 승인 (Q3) |
+| `hub_project_register` | `remote_url`? · `display_name` · `callsign` · `kind` · `label` · `host` | `{project_id, key, callsign, token}` — 토큰은 **이 응답에서 한 번만**. 등록자 = `owner`, `human` 바로 승인 (Q3). **원격이 없으면 `remote_url` 을 빼거나 비운다** — 키 `local:<난수>` (`gitkey.local_key`, 정규화 키와 겹치지 않음) · `local_key: true` · 주소 조회로는 못 찾아 다른 환경이 합류할 수 없다 → 원격이 생기면 `hub_project_bind_remote` (소유자 2026-11-21 '로컬 키 발급 · 나중에 묶기') |
 | `hub_callsign_register` | `project_id` · `callsign` · `kind` · `label` · `host` | `{callsign, token, human_pending}` — `human` 은 소유자 승인 전 `agent` 권한 (Q3) |
 | `hub_setup_plan` | `project_id` · `token` · `harnesses[]` · `scan` (`{files: {경로: 지금 내용 \| null}}` — `.gitignore` · `.mcp.json` · 진입 파일) | `{stage, steps: [쓰기 지시 …], blocked: […]}` — `stage` 는 `gitignore` → `files` (§6.1). 1.x 전환 계획은 M-038 |
 | `hub_setup_confirm` | `project_id` · `token` · `files: [{path, sha256}]` · `checks: [{name, output}]` | `{confirmed[], unconfirmed[], next_steps[]}` (R2.4) |
@@ -206,6 +207,7 @@ python -m workflow_kit hub admin   --db PATH project import --file FILE | seal -
 | handoff · 상태 | `hub_handoff_get(callsign?)` · `hub_handoff_put(expected_version, sections)` · `hub_state(scope)` | `scope` = `callsign` / `project`, 결과는 `state.json` v1 (R6.3) |
 | 결정 응답 | `hub_plan_respond(task_id, body)` · `hub_plan_status(task_id)` | body = response/1 바이트 그대로 (R5.8). **보내는 쪽은 승인된 `human` 콜사인이고 body 의 `responder` 는 그 콜사인** — 아니면 `forbidden` (소유자 2026-11-21 · R4.6: 에이전트가 자기 계획의 결정을 닫거나 남의 이름으로 답하지 못한다) |
 | 콜사인 승인 | `hub_callsign_approve(callsign)` | 승인된 `human` 소유자만. 승인 전 `human` 은 `agent` 권한 (Q3) |
+| 원격 묶기 | `hub_project_bind_remote(remote_url)` | 승인된 `human` 소유자만. 별칭 키(`project_alias.kind='alias'`)로 더한다 — 이미 이 프로젝트 키면 `already`, 다른 프로젝트 키면 409 `alias_taken` (합치는 길은 없다). 원격 없이 등록한 프로젝트 · 같은 저장소의 다른 표기 (DS8) |
 | 지침 | `hub_guide_render(harness)` · `hub_guide_get()` · `hub_guide_propose(base_version, body, note?)` · `hub_guide_decide(proposal_id, approve)` | `decide` 는 승인된 `human` 만 (R7.7). `base_version` 이 지금 판이 아니면 409, 렌더 예산을 넘는 본문은 422 (§6.5) |
 | 위키 운반 | `hub_wiki_import_dir(files[{path, content}], summary, overwrite?)` · `hub_wiki_export(format=dir\|okf, out_dir?, cursor?)` · `hub_wiki_import_okf(files, summary)` | 운반 = 1.x 위키 디렉터리 그대로 (R8.6 2026-11-21 결정). 내보내기는 쓰기 지시(§5.1 `op: write` · `sha256`)로 — 허브는 저장소에 쓰지 않는다 (R15.1). 응답 150KB 넘으면 `next_cursor`. `dir` 은 표식 `.hub-export.json` (R15.2) 을 함께 낸다. `okf` 는 출판(손실) — `excluded` (묶음에 없는 페이지 전부) · `excluded_by_error`. 남의 OKF 들여오기는 loose · 한 방향 · 묶음 하나가 요청 상한(256KB) 안 (M-036 WBS-36.3) |
 | memory_index | `hub_memory_entry_put(entry, expected_version)` · `hub_memory_entry_get(id)` · `hub_memory_entry_list()` | 1.x `MemoryEntry` 스키마 · 새 entry 는 0 · 다르면 409 (M-036 WBS-36.2) |
@@ -288,6 +290,7 @@ python -m workflow_kit hub admin   --db PATH project import --file FILE | seal -
 4. 에이전트가 `hub_setup_plan` 에 **저장소 훑기 결과**를 실어 부른다. 훑은 파일에 1.x kit 표식(`setup.LEGACY_1X_MARKERS`)이 있으면 응답의 `legacy_1x` 가 그 파일과 전환 안내(선택 클라이언트 `migrate plan`)를 싣는다 — 셋업은 전환을 하지 않는다 (테스트베드 §16.6). 훑기는 허브가 정한 명령 목록(에이전트가 실행): 진입 파일 4종의 존재 · 머리 줄, `ai-workflow/` 의 1.x 흔적 (§6.6), `.gitignore` 의 해당 줄. 1.x 흔적이 있으면 결과에 전환 계획이 같이 온다.
 5. 지시 순서: ① `.gitignore` `append_line` + `check-ignore` 확인 → ② (확인 통과 시에만) `.workflow-hub/env` `write` (모드 600 — Windows 는 사실대로 보고, R4.3) → ③ 진입 파일 렌더 영역 → ④ 하네스 설정 조각 (환경 변수 참조 · Antigravity 는 사용자 범위) → ⑤ 사람에게 '하네스를 다시 연결' 안내.
 6. `hub_setup_confirm` 이 모두 확인되면 콜사인의 셋업 상태 = 완료. 확인 안 된 단계가 있으면 '미완료' 그대로 (R2.4).
+7. **가이드 페이지 길** (M-039 WBS-39.1 · 소유자 2026-11-21) — 사람이 에이전트에게 `/setup.md` 를 읽게 하면 1 의 MCP 등록 없이도 끝까지 간다: 페이지가 선택 클라이언트 `hub_client.py bootstrap <허브> --harness <h> --callsign <c> --kind <k>` 를 쓰게 한다. 클라이언트가 2~6 을 HTTP 로 한 번에 한다 — 원격 조회(없으면 로컬 키 등록) · 합류 · 지시 실행 · 확인. **토큰은 출력하지 않는다** (env 에만, 다시 부르면 env 로 이어 간다). 하네스의 안전 장치를 지나야 하는 단계(`HANDOFF_STEPS` — `.mcp.json` · Antigravity 사용자 범위 평문 토큰)는 쓰지 않고 `for_agent` · `pending` 으로 넘긴다 — 에이전트가 자기 도구로 쓰고(사람 승인) 다시 부르면 sha256 으로 확인. Codex 등록 명령은 클라이언트가 실행한다. 1.x 흔적(`legacy_1x`)이 있으면 진입 파일을 쓰지 않는다. git 저장소가 아니면 `not_git_repo` 로 멈춘다 (빈 폴더면 페이지가 `git init` 을 시킨다). Python 이 없으면 페이지의 HTTP 직접 절차.
 
 ### 6.2 세션 시작 확인 (요구 R10 · Q5)
 
@@ -364,6 +367,7 @@ python -m workflow_kit hub admin   --db PATH project import --file FILE | seal -
 | `flush` | 보낼편지함을 **오래된 것부터** 보낸다. 성공은 지운다 · 같은 항목을 두 번 보내도 `request_id` 로 한 번만 반영 · **409 는 자동 병합하지 않고 남긴 채 보고** (D4 · R12.2) · 그 밖 오류도 남긴다 · 닿지 않으면 멈춘다 |
 | `status` | 남은 항목 수 · 목록 · 캐시 시각 |
 | `move <대상 주소> <초대 코드>` | 허브 간 이전 (§3.5) — 소유자 환경에서 봉인 · 뜨기 · 대상에 들이기 · env 주소 바꾸기, 실패하면 이 실행이 건 봉인만 푼다 |
+| `bootstrap <허브 주소> --harness <h> --callsign <c> [--kind] [--name]` | 빈 환경 부트스트랩 (§6.1 7) — env 없이 HTTP 로 등록(원격 없으면 로컬 키) · 합류 · 셋업 지시 실행 · 확인. 토큰 비출력, `for_agent` · `pending` 으로 하네스 안전 장치 단계를 넘김. 종료 코드 0 complete · 3 partial · 1 멈춤 · 2 닿지 않음 |
 | `migrate plan` · `migrate import <MIG> <종류,…\|all>` | 1.x 전환의 대량 운반 (소유자 2026-11-21, 리허설 §16.5) — 허브가 낸 감지 명령을 저장소 뿌리에서 돌려 보내고 계획 요약을 낸다 (전체는 `.workflow-hub/cache/migrate-<MIG>.json`). import 는 계획의 파일을 읽어 2MiB 묶음으로 보내고 마지막 묶음에 `final`. 에이전트(LLM)는 요약을 사람에게 보이고 고른 종류만 넘긴다 — 큰 출력 · 파일 내용이 모델 컨텍스트를 지나지 않는다. 다시 돌려도 허브가 있는 것을 건너뛰고, 끝난 전환은 409 |
 | `session-start [json]` | `hub_session_start(client={version, outbox_pending})` — 허브 보고 `hub.local_client` 에 남은 수가 실린다 (R12.3). 응답을 `.workflow-hub/cache/session_start.json` 에 둔다. 허브가 꺼졌으면 캐시로 열고 `허브 미확인 · 캐시 (<시각>)`, 캐시도 없으면 `허브 미확인 · 캐시 없음` (R12.1) |
 

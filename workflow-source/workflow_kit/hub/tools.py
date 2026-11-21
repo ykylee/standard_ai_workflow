@@ -84,8 +84,12 @@ def _lookup(store: Store, ctx: Ctx, a: dict[str, Any]) -> dict[str, Any]:
 
 
 def _register_project(store: Store, ctx: Ctx, a: dict[str, Any]) -> dict[str, Any]:
-    return store.register_project(ctx, a["remote_url"], a["display_name"], a["callsign"], a["kind"],
+    return store.register_project(ctx, a.get("remote_url", ""), a["display_name"], a["callsign"], a["kind"],
                                   a.get("label", ""), a.get("host", ""))
+
+
+def _bind_remote(store: Store, ctx: Ctx, a: dict[str, Any]) -> dict[str, Any]:
+    return store.bind_remote(ctx, a["remote_url"])
 
 
 def _register_callsign(store: Store, ctx: Ctx, a: dict[str, Any]) -> dict[str, Any]:
@@ -153,9 +157,10 @@ TOOLS: dict[str, ToolSpec] = {
         ToolSpec("hub_project_lookup", "bootstrap", "git 원격 주소로 허브의 프로젝트를 찾는다 (없으면 project_id=null).",
                  {"remote_url": _STR}, ("remote_url",), _lookup),
         ToolSpec("hub_project_register", "bootstrap",
-                 "프로젝트를 등록한다 — 등록자가 소유자 콜사인이 되고 토큰을 이 응답에서 한 번만 받는다.",
+                 "프로젝트를 등록한다 — 등록자가 소유자 콜사인이 되고 토큰을 이 응답에서 한 번만 받는다. "
+                 "git 원격이 없으면 remote_url 을 빼거나 비운다 — 로컬 키로 등록하고, 원격이 생기면 hub_project_bind_remote.",
                  {"remote_url": _STR, "display_name": _STR, "callsign": _STR, "kind": _STR, "label": _STR, "host": _STR},
-                 ("remote_url", "display_name", "callsign", "kind"), _register_project),
+                 ("display_name", "callsign", "kind"), _register_project),
         ToolSpec("hub_callsign_register", "bootstrap",
                  "등록된 프로젝트에 콜사인으로 합류한다 — 토큰을 이 응답에서 한 번만 받는다. human 은 소유자 승인 전 agent 권한.",
                  {"project_id": _STR, "callsign": _STR, "kind": _STR, "label": _STR, "host": _STR},
@@ -180,6 +185,10 @@ TOOLS: dict[str, ToolSpec] = {
         ToolSpec("hub_callsign_approve", "token",
                  "사람(human) 콜사인을 승인한다 — 승인된 human 소유자만. 승인 전 human 은 agent 권한이라 결정에 답할 수 없다.",
                  {"callsign": _STR}, ("callsign",), lambda s, c, a: s.approve_callsign(c, a["callsign"])),
+        ToolSpec("hub_project_bind_remote", "token",
+                 "프로젝트에 git 원격 주소를 묶는다 — 원격 없이(로컬 키로) 등록한 뒤 원격을 만들었을 때. 승인된 human 소유자만. "
+                 "다른 프로젝트가 쓰는 주소면 409 alias_taken.",
+                 {"remote_url": _STR}, ("remote_url",), _bind_remote),
         ToolSpec("hub_guide_get", "token", "프로젝트 지침 — 지금 판 · 판 이력 · 제안(열린 제안은 diff).", {}, (),
                  lambda s, c, a: Guides(s).get(c)),
         ToolSpec("hub_guide_propose", "token",

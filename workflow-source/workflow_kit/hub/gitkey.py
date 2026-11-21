@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import re
+import secrets
 
 from workflow_kit.hub.errors import HubError
 
@@ -59,3 +60,12 @@ def normalize(url: str) -> str:
     if host in CASE_INSENSITIVE_HOSTS:
         path = path.lower()
     return f"{host}/{path}"
+
+
+#: 원격 없는 프로젝트의 키 머리 — :func:`normalize` 의 결과(``host/path``, 호스트에 ``:`` 없음)와 겹치지 않는다.
+LOCAL_PREFIX = "local:"
+
+
+def local_key() -> str:
+    """원격이 없는 저장소의 프로젝트 키 (소유자 2026-11-21) — 무작위, 주소 조회로는 닿지 않는다."""
+    return LOCAL_PREFIX + secrets.token_hex(8)

@@ -116,7 +116,18 @@ def case_1_wbs_parity(hub: Hub, tmp: Path) -> None:
             allowed, code = _hub_gate(hub, tok, wbs, reason)
             if allowed != v1.allowed or (not allowed and code != v1.code):
                 problems.append(f"{label} {wbs!r}: 1.x {v1.allowed}/{v1.code} ≠ 허브 {allowed}/{code}")
-    _record("case 1 (WBS 게이트 — 1.x 매트릭스와 같은 판정)", not problems, "; ".join(problems))
+    # 사유만 준 생성 — 거절 메시지가 허브 도구 인자로 고칠 길을 말한다 (소유자 2026-11-21, 테스트베드 실측)
+    # 초안이 아닌 로드맵 — 초안이면 게이트가 통과시킨다
+    with tempfile.TemporaryDirectory(prefix="wbs-hint-") as d:
+        hint_root = Path(d)
+        rg._fixture(hint_root)
+        tok_h = _hub_project(hub, "wbs-hint")
+        _put_roadmap(hub, tok_h, _roadmap_docs(hint_root))
+    st_r, only_reason, _ = hub.call("hub_task_create", {"title": "사유만", "wbs_exempt_reason": "테스트"}, tok_h)
+    msg = only_reason.get("message", "")
+    if not (st_r == 422 and 'wbs="exempt"' in msg and "wbs_exempt_reason 만 왔다" in msg):
+        problems.append(f"사유만 준 생성의 안내: {st_r} {msg[:160]}")
+    _record("case 1 (WBS 게이트 — 1.x 매트릭스와 같은 판정 · 허브 인자로 안내)", not problems, "; ".join(problems))
 
 
 def case_2_roadmap_write(hub: Hub, tmp: Path) -> None:

@@ -317,7 +317,7 @@ TOOLS: dict[str, ToolSpec] = {
                  "남의 OKF 묶음을 들인다 — files [{path(묶음 뿌리 상대), content}], loose 한 방향 (OKF 형태 그대로 페이지가 된다).",
                  {"files": _ARR, "summary": _STR, "request_id": _REQ_ID}, ("files", "summary"),
                  lambda s, c, a: Wiki(s).import_okf(c, a["files"], a["summary"], a.get("request_id"))),
-        ToolSpec("hub_task_claim", "token", "task 를 맡는다 — 다른 콜사인이 맡고 있으면 409.",
+        ToolSpec("hub_task_claim", "token", "task 를 맡는다 — 다른 콜사인이 맡고 있으면 409. planned 면 in_progress 로 바꾼다 (놓아도 되돌리지 않는다).",
                  {"id": _STR, "request_id": _REQ_ID}, ("id",),
                  lambda s, c, a: s.task_claim(c, a["id"], a.get("request_id"))),
         ToolSpec("hub_task_release", "token", "맡은 task 를 놓는다 (맡은 이 · 소유자).",

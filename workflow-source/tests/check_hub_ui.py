@@ -260,10 +260,13 @@ def case_4_5_6(tmp: Path) -> None:
                             body={"plan_digest": "0" * 64, "values": {"D1": "pg"}})
         f4, badv, _ = _req(hub.base, f"/api/projects/{pid}/tasks/{tid2}/responses", token=owner, method="POST",
                            body={"plan_digest": d2["plan"]["digest"], "values": {"D1": "mysql"}})
+        # 목록은 최근 것부터 · 전체 수 (테스트베드 실측: 649개에서 가장 오래된 200개만 보였다)
+        l1, latest, _ = _req(hub.base, f"/api/projects/{pid}/tasks?limit=1", token=owner)
         ok6 = (f1 == 415 and f2 in (401, 415) and written == 0 and f3 == 409 and stale.get("error_code") == "version_conflict"
-               and f4 == 400 and badv.get("detail", {}).get("field") == "values.D1")
+               and f4 == 400 and badv.get("detail", {}).get("field") == "values.D1"
+               and l1 == 200 and [t["id"] for t in latest.get("tasks", [])] == [tid2] and latest.get("total") == 2)
         _record("case 6 (위조 방지 — text/plain POST 415 · 쓰기 0, 낡은 지문 409, 선택지 밖 400)", ok6,
-                f"{f1} {f2} written={written} {f3} {f4}/{badv}")
+                f"{f1} {f2} written={written} {f3} {f4}/{badv} latest={l1}/{latest}")
     finally:
         hub.stop()
 

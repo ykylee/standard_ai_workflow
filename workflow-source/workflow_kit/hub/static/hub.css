@@ -37,8 +37,14 @@ main { max-width: 76rem; margin: 0 auto; padding: 1.25rem; display: grid; gap: 1
 .grid { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); }
 table { width: 100%; border-collapse: collapse; }
 th, td { text-align: left; padding: .45rem .5rem; border-bottom: 1px solid var(--line); vertical-align: top; }
-th { color: var(--muted); font-weight: 600; font-size: .85rem; }
+th { color: var(--muted); font-weight: 600; font-size: .85rem; white-space: nowrap; }
 .nowrap { white-space: nowrap; }
+/* task 표 — 자동 폭 배분은 긴 ID 에 폭을 몰아준다 (테스트베드 실측). 칸 폭을 정하고 넘치면 표만 가로로 민다. */
+.table-wrap { overflow-x: auto; }
+table.tasks { table-layout: fixed; min-width: 56rem; }
+col.c-id { width: 15.5rem; } col.c-status { width: 6.5rem; } col.c-who { width: 7.5rem; } col.c-when { width: 9.5rem; }
+col.c-title { width: 34%; } col.c-doing { width: 30%; }
+table.tasks td.mono.nowrap { font-size: .78rem; overflow: hidden; text-overflow: ellipsis; }
 .chip { white-space: nowrap; display: inline-block; padding: .05rem .55rem; border-radius: 999px; font-size: .8rem; background: var(--neutral-soft); }
 .chip.planned { background: var(--neutral-soft); }
 .chip.in_progress { background: var(--info-soft); color: var(--info); }

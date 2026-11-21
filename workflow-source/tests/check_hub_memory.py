@@ -159,7 +159,7 @@ def run(hub: Hub, db: Path, tmp: Path) -> None:
                          "--project", pid, "--callsign", "agent-a"], capture_output=True, encoding="utf-8", env=_env(), timeout=60)
     s10, arch, _ = hub.call("hub_handoff_get", {"callsign": "agent-a"}, tok_b)
     s11, _, _ = hub.call("hub_handoff_put", {"handoff": h}, tok_a)
-    ok5 = (start["hub"]["handoff"]["sections"]["baseline"] == "끝" and rv.returncode == 0
+    ok5 = (start["hub"]["handoff"]["handoff"]["baseline"] == "끝" and rv.returncode == 0
            and s10 == 200 and arch["archived"] is True and arch["handoff"]["baseline"] == "끝" and s11 == 401)
     _record("case 5 (거두기 뒤 읽기 전용 보관 · 세션 시작의 handoff)", ok5, f"start={start['hub'].get('handoff')} {s10}/{arch} {s11}")
 

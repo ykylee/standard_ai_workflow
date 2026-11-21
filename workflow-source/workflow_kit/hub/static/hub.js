@@ -201,12 +201,12 @@
     const base = `#/p/${encodeURIComponent(pid)}`;
     const filters = el("nav", { class: "filters", "aria-label": "상태" }, STATUSES.map((s) =>
       el("a", { href: s ? `${base}/s/${s}` : base, class: s === (status || "") ? "on" : "" }, s || "전체")));
-    const rows = tr.status === 200 ? tr.data.tasks.slice().reverse().map((t) => el("tr", {},
-      el("td", { class: "mono" }, el("a", { href: `${base}/t/${encodeURIComponent(t.id)}` }, t.id)),
-      el("td", {}, t.title),
+    const rows = tr.status === 200 ? tr.data.tasks.map((t) => el("tr", {},  // 서버가 최근 것부터 준다
+      el("td", { class: "mono nowrap" }, el("a", { href: `${base}/t/${encodeURIComponent(t.id)}`, title: t.id }, t.id)),
+      el("td", { class: "title" }, t.title),
       el("td", {}, chip(t.status)),
       el("td", {}, t.assignee || "—"),
-      el("td", { class: "muted" }, t.progress_note ? `${t.progress_note}` : ""),
+      el("td", { class: "muted progress" }, t.progress_note ? `${t.progress_note}` : ""),
       el("td", { class: "muted nowrap" }, when(t.updated_at)))) : [];
     render(
       el("section", { class: "card" },
@@ -218,8 +218,13 @@
           : el("div", {}, el("h2", {}, "이 브라우저의 콜사인"), registerForm(pid, route), tokenForm(() => route()))),
       callsignSection(pid, principal, cr),
       el("section", { class: "card" }, el("h2", {}, "task"), filters,
+        tr.status === 200 && tr.data.total > tr.data.tasks.length
+          ? el("p", { class: "muted" }, `최근 ${tr.data.tasks.length}개 / 전체 ${tr.data.total}개`) : null,
         tr.status !== 200 ? alertBox("bad", errorText(tr))
-          : rows.length ? el("table", {}, el("thead", {}, el("tr", {}, ["ID", "제목", "상태", "맡은 이", "지금 하는 일", "고친 때"].map((h) => el("th", {}, h)))), el("tbody", {}, rows))
+          : rows.length ? el("div", { class: "table-wrap" }, el("table", { class: "tasks" },
+              el("colgroup", {}, ["c-id", "c-title", "c-status", "c-who", "c-doing", "c-when"].map((c) => el("col", { class: c }))),
+              el("thead", {}, el("tr", {}, ["ID", "제목", "상태", "맡은 이", "지금 하는 일", "고친 때"].map((h) => el("th", {}, h)))),
+              el("tbody", {}, rows)))
           : el("p", { class: "muted" }, "task 가 없다.")));
   }
 

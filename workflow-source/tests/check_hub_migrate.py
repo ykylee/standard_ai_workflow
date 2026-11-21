@@ -255,7 +255,8 @@ def main() -> int:
                              "checkpoint": 1, "guide_draft": 1, "plan_responses": 2, "project_docs": 2}
                    and det.get("archived_namespaces") == ["old"]
                    and det.get("unsupported_harnesses") == ["grok-build"] and det.get("unmeasured") == []
-                   and any(".mcp.json" in g for g in plan.get("guidance", []))
+                   and any(g.startswith("claude-code: 설정 흔적 2개") and ".mcp.json" in g and "남긴다" in g
+                           for g in plan.get("guidance", []))
                    and any("grok-build" in g for g in plan.get("guidance", []))
                    and det.get("uncommitted") == [f"{A}/main/backlog/tasks/TASK-2026-11-02-x-009.md"]
                    and any("커밋 안 된 파일 1개" in g for g in plan.get("guidance", []))
@@ -346,7 +347,15 @@ def main() -> int:
             drafts = [x for x in g.get("proposals", []) if x["status"] == "open"]
             ok5 = (g.get("version") == 0 and len(drafts) == 1 and drafts[0]["body_md"].strip() == HAND.strip()
                    and "kit 이 만든 줄" not in drafts[0]["body_md"] and "standard-ai-workflow-kit" not in drafts[0]["body_md"])
-            _record("case 5 (진입 파일 — 생성 절은 버리고 손 문단만 초안, 판 불변)", ok5, f"v={g.get('version')} drafts={drafts}")
+            # 셋업이 1.x 흔적을 알린다 (테스트베드 실측: 알리지 않아 에이전트가 '1.x 흔적 없음' 으로 보고했다)
+            _, sp, _ = hub.call("hub_setup_plan", {"project_id": pid, "token": tok, "harnesses": ["claude-code"],
+                                                   "scan": {"files": {".gitignore": None, "CLAUDE.md": (repo / "CLAUDE.md").read_text(encoding="utf-8")}}})
+            ok5 = ok5 and (sp.get("legacy_1x") or {}).get("files") == ["CLAUDE.md"] and "migrate plan" in sp["legacy_1x"]["next"]
+            _, sp2, _ = hub.call("hub_setup_plan", {"project_id": pid, "token": tok, "harnesses": ["claude-code"],
+                                                    "scan": {"files": {".gitignore": None, "CLAUDE.md": "# 새 프로젝트\n"}}})
+            ok5 = ok5 and sp2.get("legacy_1x") is None
+            _record("case 5 (진입 파일 — 생성 절은 버리고 손 문단만 초안, 판 불변 · 셋업이 1.x 흔적을 알림)", ok5,
+                    f"v={g.get('version')} drafts={drafts} legacy={sp.get('legacy_1x')} none={sp2.get('legacy_1x')}")
 
             # 6 권한 · 입력 · 다시 보내기
             human = hub.call("hub_callsign_register", {"project_id": pid, "callsign": "yk-h", "kind": "human"})[1]["token"]

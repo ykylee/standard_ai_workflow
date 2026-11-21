@@ -23,6 +23,9 @@ from workflow_kit.hub.store import Ctx, Principal, Store, _iso
 
 GITIGNORE_LINE = "/.workflow-hub/"
 ENV_PATH = ".workflow-hub/env"
+#: 진입 파일 · 설정에 남은 1.x kit 의 표식 — 셋업이 1.x 흔적을 알리는 근거 (테스트베드 실측: 알리지 않아 에이전트가
+#: '1.x 흔적 없음' 으로 보고했다).
+LEGACY_1X_MARKERS = ("standard-ai-workflow-kit:", "generated-from: core/global_workflow_standard.md", "workflow_kit.server.")
 MCP_JSON = ".mcp.json"
 SERVER_NAME = "workflow-hub"
 TOKEN_ENV = "WORKFLOW_HUB_TOKEN"
@@ -131,6 +134,12 @@ class Setup:
         extra = set(scan) - {"files"}
         if extra:
             raise HubError(400, "unknown_field", f"scan 의 모르는 칸: {', '.join(sorted(extra))}", {"fields": sorted(extra)})
+        legacy = sorted(path for path, text in files.items()
+                        if isinstance(text, str) and any(m in text for m in LEGACY_1X_MARKERS))
+        legacy_1x = {"files": legacy,
+                     "next": "1.x kit 흔적이 있다 — 전환은 사람이 선택 클라이언트로 한다: "
+                             "python .workflow-hub/hub_client.py migrate plan → (표를 보이고 고른 종류로) migrate import "
+                             "(hub_spec §6.6). 셋업만으로는 1.x 기록이 허브에 들어오지 않는다"} if legacy else None
         with self.store.write() as conn:
             done = {k: r["status"] for k, r in self._steps(conn, p).items()}
             if done.get("gitignore") != "confirmed":
@@ -146,6 +155,7 @@ class Setup:
                          "note": "출력과 종료 코드를 hub_setup_confirm 의 checks 로 보낸다"},
                     ],
                     "next": "hub_setup_confirm — 이 단계가 확인되기 전에는 토큰 파일 지시를 내지 않는다 (요구 R4.2)",
+                    "legacy_1x": legacy_1x,
                 }
             steps: list[dict[str, Any]] = []
             blocked: list[dict[str, Any]] = []
@@ -199,6 +209,8 @@ class Setup:
                 "stage": "files",
                 "steps": steps,
                 "blocked": blocked,
+                # 1.x 흔적 (요구 R14.1) — 셋업은 전환을 하지 않는다. 사람에게 알리고 클라이언트 전환으로 안내한다.
+                "legacy_1x": legacy_1x,
                 "next": "hub_setup_confirm — 쓴 파일의 sha256 과 명령 결과를 보낸다. 끝나면 "
                         f"`{TOKEN_ENV}` 를 .workflow-hub/env 에서 환경에 올리고 하네스를 다시 연결한다",
             }

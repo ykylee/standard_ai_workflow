@@ -386,9 +386,16 @@ class Migrator:
                     if dirty else []) + [
             f"{h}: 2.0 지원 대상 아님 — 1.x 줄에 남거나 원격 MCP 를 손으로 등록한다 (R14.9)"
             for h in detected["unsupported_harnesses"]
-        ] + [
-            f"{t['path']}: kit 플러그인 · hook · stdio MCP 설정 — 허브 MCP 로 바꾼 뒤 지운다. 지우는 것은 소유자 확인 뒤 (I4)"
-            for t in traces if t["harness"] in SUPPORTED
+        ]
+        by_harness: dict[str, list[str]] = {}
+        for t in traces:
+            if t["harness"] in SUPPORTED:
+                by_harness.setdefault(t["harness"], []).append(t["path"])
+        guidance += [
+            f"{h}: 설정 흔적 {len(paths)}개 ({', '.join(paths[:4])}{' …' if len(paths) > 4 else ''}) — 이 가운데 kit 가 만든 "
+            "플러그인 · hook · stdio MCP 서버(workflow_kit.server…)만 허브 MCP 로 바꾼 뒤 지운다. 프로젝트가 직접 만든 "
+            "에이전트 · hook 과 허브 항목(workflow-hub)은 남긴다. 지우는 것은 소유자 확인 뒤 (I4)"
+            for h, paths in sorted(by_harness.items())
         ]
         plan = {"detected": detected, "files": files, "conflicts": conflicts,
                 "canonical": {k: v["path"] for k, v in canonical.items()},

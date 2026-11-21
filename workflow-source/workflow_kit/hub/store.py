@@ -536,7 +536,8 @@ class Store:
             )]
         return {"task": task}
 
-    def task_list(self, ctx: Ctx, status: str | None = None, assignee: str | None = None, limit: int = 100) -> dict[str, Any]:
+    def task_list(self, ctx: Ctx, status: str | None = None, assignee: str | None = None, limit: int = 100,
+                  newest_first: bool = False) -> dict[str, Any]:
         p = self._need_reader(ctx)
         if status is not None and status not in STATUSES:
             raise invalid_field("status", f"{' · '.join(STATUSES)} 가운데 하나")
@@ -553,7 +554,8 @@ class Store:
             else:
                 sql += " AND assignee = ?"
                 args.append(assignee)
-        sql += " ORDER BY created_at, id LIMIT ?"
+        # 화면은 최근 것부터 (테스트베드 실측: 649개 저장소에서 가장 오래된 200개만 보였다)
+        sql += " ORDER BY created_at DESC, id DESC LIMIT ?" if newest_first else " ORDER BY created_at, id LIMIT ?"
         args.append(limit)
         with self.read() as conn:
             return {"tasks": [self._task_row(r) for r in conn.execute(sql, args)]}
@@ -622,7 +624,8 @@ class Store:
                                {"assignee": before["assignee"], "current_version": before["version"]})
             if before["status"] == "done":
                 raise HubError(409, "task_done", "닫힌 task 는 맡을 수 없다")
-            return {"assignee": p.callsign}
+            # 맡는 순간 시작이다 — planned 면 in_progress 로 (소유자 2026-11-21, 테스트베드 실측). blocked 는 그대로.
+            return {"assignee": p.callsign, **({"status": "in_progress"} if before["status"] == "planned" else {})}
 
         return self._versioned_update(ctx, task_id, None, "claim", mutate, request_id)
 

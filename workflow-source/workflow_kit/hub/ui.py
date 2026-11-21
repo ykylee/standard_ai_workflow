@@ -162,8 +162,12 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
         v = scope(p, request.path_params["pid"])
         q = request.query_params
         assignee = q.get("assignee")
-        return store.task_list(Ctx(now=now, via="ui", principal=v), q.get("status") or None, assignee,
-                               int(q.get("limit") or 200))
+        out = store.task_list(Ctx(now=now, via="ui", principal=v), q.get("status") or None, assignee,
+                              int(q.get("limit") or 200), newest_first=True)
+        with store.read() as conn:  # 전체 수 — 목록이 잘렸는지 화면이 말하게
+            sql = "SELECT COUNT(*) AS n FROM task WHERE project_id = ?" + (" AND status = ?" if q.get("status") else "")
+            out["total"] = conn.execute(sql, (v.project_id, *([q["status"]] if q.get("status") else []))).fetchone()["n"]
+        return out
 
     def get_task(request: Request, p: Principal, now: datetime, _b: Any) -> dict[str, Any]:
         pid, tid = request.path_params["pid"], request.path_params["tid"]

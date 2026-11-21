@@ -46,7 +46,10 @@ def _handoff(conn: sqlite3.Connection, p: Principal) -> dict[str, Any] | None:
                        (p.project_id, p.callsign)).fetchone()
     if row is None:
         return None
-    return {"sections": json.loads(row["sections_json"]), "version": row["version"], "updated_at": row["updated_at"]}
+    # hub_handoff_get 과 같은 꼴 — 읽은 것을 그대로 hub_handoff_put · hub_session_end 의 handoff 로 쓸 수 있게
+    # (테스트베드 실측: 꼴이 달라 에이전트의 첫 세션 끝이 unknown_field 로 거부됐다)
+    return {"callsign": p.callsign, "handoff": json.loads(row["sections_json"]), "version": row["version"],
+            "updated_at": row["updated_at"]}
 
 
 def _local_client(client: Any) -> dict[str, Any]:

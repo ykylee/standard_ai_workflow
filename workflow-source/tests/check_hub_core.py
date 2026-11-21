@@ -310,13 +310,15 @@ def case_4_to_10(tmp: Path) -> None:
                 f"{s0} {s1} {s2} id={id1} {s4}/{long.get('message','')[:40]} {s5} {s6} {s7} tasks={len(listing.get('tasks', []))} {s8} {s9}")
 
         # 7 맡기
-        c1, _, _ = hub.call("hub_task_claim", {"id": id1}, tok_a)
+        c1, claim_a, _ = hub.call("hub_task_claim", {"id": id1}, tok_a)
         c2, clash, _ = hub.call("hub_task_claim", {"id": id1}, tok_b)
         c3, rel_b, _ = hub.call("hub_task_release", {"id": id1}, tok_b)
         c4, _, _ = hub.call("hub_task_release", {"id": id1}, tok_a)
         c5, claim_b, _ = hub.call("hub_task_claim", {"id": id1}, tok_b)
         ok7 = (c1 == 200 and c2 == 409 and clash.get("error_code") == "already_claimed" and c3 == 403
-               and c4 == 200 and c5 == 200 and claim_b["task"]["assignee"] == "codex-b")
+               and c4 == 200 and c5 == 200 and claim_b["task"]["assignee"] == "codex-b"
+               # 맡는 순간 시작 — planned → in_progress, 놓아도 되돌리지 않는다 (소유자 2026-11-21)
+               and claim_a["task"]["status"] == "in_progress" and claim_b["task"]["status"] == "in_progress")
         _record("case 7 (맡기 409 · 놓기 권한)", ok7, f"{c1} {c2} {c3} {c4} {c5}")
 
         # 8 이력 · request_id

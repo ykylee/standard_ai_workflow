@@ -116,7 +116,11 @@ class Judge:
         roadmap, draft, _ = self.roadmap(conn, project_id)
         verdict = rm.judge_wbs(roadmap, is_draft=draft, wbs=wbs or None, exempt_reason=exempt_reason)
         if not verdict.allowed:
-            raise _gate("wbs_gate_denied", f"WBS 게이트 거부 ({verdict.code}): {verdict.detail}", [verdict.code])
+            # 1.x 판정 문구는 CLI 플래그(--wbs)로 말한다 — 허브 도구 인자로도 말한다 (테스트베드 실측: 사유만 주고 거절됨)
+            hint = ' 허브 도구에서는 wbs="M-NNN/WBS-N.N", 로드맵 밖이면 wbs="exempt" 와 wbs_exempt_reason 을 함께 준다.'
+            if exempt_reason and not wbs:
+                hint += " (wbs_exempt_reason 만 왔다 — wbs=\"exempt\" 가 함께 있어야 로드맵 밖 선언이다)"
+            raise _gate("wbs_gate_denied", f"WBS 게이트 거부 ({verdict.code}): {verdict.detail}{hint}", [verdict.code])
         return verdict.code
 
     def roadmap_state(self, ctx: Ctx) -> dict[str, Any]:

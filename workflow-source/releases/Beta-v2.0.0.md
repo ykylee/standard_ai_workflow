@@ -88,3 +88,20 @@
 - 허브는 loopback 이 기본이다 — 바깥 노출은 TLS 리버스 프록시 뒤에서 (`HUB_OPERATIONS.md` §3). 허브에 닿는 누구나
   프로젝트를 등록할 수 있다.
 - **PyPI 업로드는 하지 않는다**(RELEASE.md §1 각주 0). 배포는 GitHub Releases 하나다.
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-11-21T22:53:50Z)_
+
+- total wiki pages: **100**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

@@ -1479,11 +1479,11 @@
       "id": "M-038",
       "title": "2.0 허브 — implementation 6: 1.x 전환 · 1.x 유지보수 판",
       "sdlc_phase": "implementation",
-      "declared_status": "in_progress",
-      "derived_status": "in_progress",
-      "progress": 0.6666666666666666,
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
       "total_leaves": 3,
-      "done_leaves": 2,
+      "done_leaves": 3,
       "deliverables_missing": [],
       "wbs": [
         {
@@ -1511,13 +1511,13 @@
         {
           "id": "WBS-38.3",
           "title": "1.x 유지보수 판 — 표식 거절 · session-start 2.0 안내 · deprecation (G4)",
-          "derived_status": "in_progress",
+          "derived_status": "done",
           "linked_task_ids": [
             "TASK-2026-11-21-main-010",
             "TASK-2026-11-21-main-011"
           ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         }
       ]
@@ -1589,23 +1589,23 @@
       "id": "M-040",
       "title": "2.0.0-beta 발행 · 1.x 유지보수 줄 분기",
       "sdlc_phase": "release",
-      "declared_status": "planned",
-      "derived_status": "in_progress",
-      "progress": 0.5,
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
       "total_leaves": 2,
-      "done_leaves": 1,
+      "done_leaves": 2,
       "deliverables_missing": [],
       "wbs": [
         {
           "id": "WBS-40.1",
           "title": "2.0.0 릴리스 노트 · 배포 산출물 · 전환 안내",
-          "derived_status": "in_progress",
+          "derived_status": "done",
           "linked_task_ids": [
             "TASK-2026-11-21-main-024",
             "TASK-2026-11-21-main-026"
           ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         },
         {

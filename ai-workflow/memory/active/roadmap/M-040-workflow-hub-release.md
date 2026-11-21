@@ -2,7 +2,7 @@
 id: M-040
 title: 2.0.0-beta 발행 · 1.x 유지보수 줄 분기
 sdlc_phase: release
-status: planned
+status: done
 order: 40
 parallel_allowed:
   - M-007

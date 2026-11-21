@@ -2,7 +2,7 @@
 id: M-038
 title: 2.0 허브 — implementation 6: 1.x 전환 · 1.x 유지보수 판
 sdlc_phase: implementation
-status: in_progress
+status: done
 order: 38
 parallel_allowed:
   - M-007

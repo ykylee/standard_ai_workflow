@@ -1,20 +1,20 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-11-20T06:51:03Z`
-- tool_version: `1.29.0`
+- generated_at: `2026-11-21T22:53:50Z`
+- tool_version: `2.0.0`
 - workspace_root: `/home/yklee/repos/standard_ai_workflow`
 
 ## Panel 1 — Drift Prevention Status
 
 - guard_status: `pass`
 - guard_cases: `7 / 7`
-- maturity_last_updated: `2026-11-20`
+- maturity_last_updated: `2026-11-21`
 - maturity_surface_changed_at: `2026-11-20`
 - maturity_stale: `False` (source: `maturity_surface_commit`)
 - harness_supported_count: `10`
-- head_commit_date: `2026-11-20`
+- head_commit_date: `2026-11-21`
 - last_updated_delta_days: `0`
-- silent_failing_cycles_count: `0` (측정 cycle 43건)
+- silent_failing_cycles_count: `0` (측정 cycle 44건)
 
 ## Panel 2 — Maturity Distribution
 
@@ -75,39 +75,39 @@
 
 ## Panel 4 — Smoke Trend
 
-- cumulative_total: `333`
-- cumulative_pass: `333`
+- cumulative_total: `346`
+- cumulative_pass: `346`
 - cumulative_pass_rate: `1.0000`
-- smoke_files_count: `333`
+- smoke_files_count: `346`
 
 ### Recent release smoke counts
 
 | version | pass | total |
 |---|---|---|
+| Beta-v2.0.0 | 346 | 346 |
 | Beta-v1.29.0 | 333 | 333 |
 | Beta-v1.28.0 | 332 | 332 |
 | Beta-v1.27.0 | 332 | 332 |
 | Beta-v1.26.0 | 329 | 329 |
-| Beta-v1.25.0 | 325 | 325 |
 
 ## Panel 5 — Recent Release Cycle
 
-- items_total: `30`
+- items_total: `25`
 - top_n: `10`
 - confidence: `fresh=10`
 
 ### Timeline (preview, first 120 char)
 
-- [0] TASK-2026-11-20-claude-consumer-readonly-session-start-002 — 소비자 클론(workflow.role=consumer)에서 session-start 가 저장소에 쓰지 않는…  `[fresh]`
-- [1] TASK-2026-11-20-claude-consumer-readonly-session-start-001 — 브랜치 네임스페이스 자동 seed — `main` 에서 이어받음  `[fresh]`
-- [2] TASK-2026-11-20-claude-remote-sync-check-234c32-002 — v1.28.0 발행 — 호스트 역할(소비자 push 차단) · 재사용 브랜치 재합류 수리  `[fresh]`
-- [3] TASK-2026-11-20-claude-remote-sync-check-234c32-001 — 호스트 역할 가이드 — 읽기 전용 소비자는 pull · 환경 맞추기 · 버전 업데이트만, push 는 hook 이 막는…  `[fresh]`
-- [4] TASK-2026-11-19-claude-remote-sync-check-234c32-001 — 브랜치 네임스페이스 자동 seed — `main` 에서 이어받음  `[fresh]`
-- [5] TASK-2026-11-19-main-003 — check_memory_index_cross_v0_15_7 case 5 대조군이 telemetry 가 커지면 반올림에 묻혀 red 가 된다  `[fresh]`
-- [6] TASK-2026-11-19-main-002 — 재사용된 브랜치의 두 번째 합류를 아카이브 도구가 처리하지 못한다 — archived/ 에 같은 이름이 있으면 반영까지 건너뛴다  `[fresh]`
-- [7] TASK-2026-11-19-main-001 — session-start 가 브랜치 메모리 아카이브 실패를 '이동했다' 로 보고한다  `[fresh]`
-- [8] TASK-2026-11-17-claude-remote-sync-check-234c32-006 — v1.27.0 발행 — iPad 폼 제출 수리 · 진행 기록 상기 · 한 호스트 여러 워크벤치  `[fresh]`
-- [9] TASK-2026-11-17-claude-remote-sync-check-234c32-005 — 한 호스트에 워크벤치 여러 개 — 포트 분배 + 화면에 저장소 · 브랜치 표시  `[fresh]`
+- [0] TASK-2026-11-21-main-025 — 2.0 줄에서 kit 플러그인 채널 내리기 — marketplace.json · 발행 zip (R16.6 · Q10, M-040 WBS-40.2)  `[fresh]`
+- [1] TASK-2026-11-21-main-024 — 2.0.0-beta 발행 범위 확정 · 허브 운영 가이드 (M-040 WBS-40.1)  `[fresh]`
+- [2] TASK-2026-11-21-main-023 — /setup.md 가이드 실측 — Codex · MiniMax Code · Antigravity (Linux, 빈 폴더) (M-039 WBS-39.1)  `[fresh]`
+- [3] TASK-2026-11-21-main-022 — 허브 에이전트용 셋업 가이드 /setup.md — 페이지만 읽고 스스로 부트스트랩 + 원격 없는 저장소 등록 (M-039 WBS-39.1)  `[fresh]`
+- [4] TASK-2026-11-21-main-021 — 이 저장소를 테스트베드 허브에 실제 등록 — 등록 · 셋업 · 들여오기, 표식 보류 (M-039 WBS-39.2)  `[fresh]`
+- [5] TASK-2026-11-21-main-020 — 이 호스트 테스트베드 허브 — 이 저장소 clone 을 2.0 으로 전환해 실사용 시험 (M-039 WBS-39.2)  `[fresh]`
+- [6] TASK-2026-11-21-main-019 — run_all_checks 잠금 파일 보유자 정보가 깨진다 — a+b 모드에서 seek 가 쓰기 위치를 못 바꿈  `[fresh]`
+- [7] TASK-2026-11-21-main-018 — 허브 서버 간 프로젝트 이전 — HTTP 경로 (같은 묶음, 소유자 2026-11-21 '둘 다')  `[fresh]`
+- [8] TASK-2026-11-21-main-017 — 허브 서버 간 프로젝트 이전 — 묶음 · 관리자 CLI export/import · 원본 봉인 (M-039 WBS-39.4)  `[fresh]`
+- [9] TASK-2026-11-21-main-016 — 1.x 전환 범위 확장 — 아카이브 브랜치 · 결정 응답 · baselines · PURPOSE/PROFILE · 날짜별 backlog (소유자 2026-11-21)  `[fresh]`
 
 ## Panel 6 — Multi-Agent Concurrent Write Conflict
 
@@ -137,10 +137,10 @@
 
 - phase_15_north_star: `utilization_3tuple (query_diversity / entries_new_30d / distinct_entries_retrieved — ADR-006 W-4; hit_rate 는 보조)`
 - entries_total: `30`
-- telemetry_events_total: `3246`
-- telemetry_total_queries: `3246`
-- telemetry_hit_count: `1472`
-- telemetry_hit_rate: `0.4535`
+- telemetry_events_total: `3426`
+- telemetry_total_queries: `3426`
+- telemetry_hit_count: `1651`
+- telemetry_hit_rate: `0.4819`
 
 ### Entries by merge_state
 
@@ -152,8 +152,8 @@
 
 | source | events |
 |---|---|
-| `backlog-update` | 709 |
+| `backlog-update` | 877 |
 | `dispatcher` | 13 |
 | `doc-sync` | 2 |
-| `session-start` | 2522 |
+| `session-start` | 2534 |
 

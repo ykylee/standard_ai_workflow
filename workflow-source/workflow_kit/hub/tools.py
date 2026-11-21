@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from typing import Any, Callable
 
 from workflow_kit.hub.errors import HubError, invalid_field, unauthorized, unknown_field
+from workflow_kit.hub.guide import Guides
 from workflow_kit.hub.judge import Judge
 from workflow_kit.hub.memory import Memory
 from workflow_kit.hub.session import SessionStart
@@ -176,6 +177,16 @@ TOOLS: dict[str, ToolSpec] = {
         ToolSpec("hub_callsign_approve", "token",
                  "사람(human) 콜사인을 승인한다 — 승인된 human 소유자만. 승인 전 human 은 agent 권한이라 결정에 답할 수 없다.",
                  {"callsign": _STR}, ("callsign",), lambda s, c, a: s.approve_callsign(c, a["callsign"])),
+        ToolSpec("hub_guide_get", "token", "프로젝트 지침 — 지금 판 · 판 이력 · 제안(열린 제안은 diff).", {}, (),
+                 lambda s, c, a: Guides(s).get(c)),
+        ToolSpec("hub_guide_propose", "token",
+                 "프로젝트 지침 변경 — base_version 은 지금 판(다르면 409). 승인된 human 이면 바로 판 +1, "
+                 "agent · 승인 전 human 은 제안으로 남는다 (D11). 렌더 예산(8KB)을 넘으면 422.",
+                 {"base_version": _INT, "body": _STR, "note": _STR}, ("base_version", "body"),
+                 lambda s, c, a: Guides(s).propose(c, a["base_version"], a["body"], a.get("note", ""))),
+        ToolSpec("hub_guide_decide", "token", "열린 지침 제안을 승인(approve=true) · 거절한다 — 승인된 human 만.",
+                 {"proposal_id": _STR, "approve": {"type": "boolean"}}, ("proposal_id", "approve"),
+                 lambda s, c, a: Guides(s).decide(c, a["proposal_id"], bool(a["approve"]))),
         ToolSpec("hub_whoami", "token", "이 토큰의 프로젝트 · 콜사인 · 권한.", {}, (), _whoami),
         ToolSpec("hub_task_list", "token", "task 목록 (status · assignee 로 거른다, assignee='' 는 맡은 이 없음).",
                  {"status": _STR, "assignee": _STR, "limit": _INT}, (),

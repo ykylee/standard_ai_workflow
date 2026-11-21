@@ -26,8 +26,10 @@ from starlette.routing import BaseRoute, Route
 
 from workflow_kit.common import plan_claims, plan_responses
 from workflow_kit.hub.errors import HubError, forbidden, invalid_field, not_found, unauthorized
+from workflow_kit.hub.guide import Guides
 from workflow_kit.hub.judge import Judge, task_lines
 from workflow_kit.hub.memory import Memory
+from workflow_kit.hub.wiki import Wiki
 from workflow_kit.hub.store import Ctx, Principal, Store
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
@@ -75,6 +77,8 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
                  hub_headers: Callable[[], dict[str, str]], max_body: int) -> list[BaseRoute]:
     judge = Judge(store)
     memory = Memory(store)
+    guides = Guides(store)
+    wiki = Wiki(store)
 
     def resolve(request: Request, now: datetime) -> Principal:
         token = _bearer(request)
@@ -200,7 +204,49 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
         handoff = memory.handoff_get(Ctx(now=now, via="ui", principal=v), cs)
         return {"guide_current": board["guide_current"], "callsign": row, "handoff": handoff}
 
+    def get_guide(request: Request, p: Principal, now: datetime, _b: Any) -> dict[str, Any]:
+        """지침 — 지금 판 · 판 이력 · 제안과 diff (WBS-37.3)."""
+        pid = request.path_params["pid"]
+        out = guides.get(Ctx(now=now, via="ui", principal=scope(p, pid)))
+        me = _principal_summary(p)
+        out["can_decide"] = me["can_answer"] and p.project_id == pid
+        out["can_propose"] = p.kind == "callsign" and p.project_id == pid
+        return out
+
+    def get_wiki(request: Request, p: Principal, now: datetime, _b: Any) -> dict[str, Any]:
+        """위키 — ``q`` 가 있으면 검색, 아니면 목록 (``prefix``)."""
+        ctx = Ctx(now=now, via="ui", principal=scope(p, request.path_params["pid"]))
+        q = request.query_params
+        if (q.get("q") or "").strip():
+            return wiki.search(ctx, q["q"], int(q.get("limit") or 50))
+        return wiki.list_pages(ctx, q.get("prefix") or "")
+
+    def get_wiki_page(request: Request, p: Principal, now: datetime, _b: Any) -> dict[str, Any]:
+        path = request.query_params.get("path") or ""
+        if not path:
+            raise invalid_field("path", "필수")
+        return wiki.get(Ctx(now=now, via="ui", principal=scope(p, request.path_params["pid"])), path)
+
     # --- 쓰기 ---------------------------------------------------------------------
+
+    def _own(p: Principal, pid: str) -> Principal:
+        if p.kind != "callsign" or p.project_id != pid:
+            raise forbidden("쓰기는 이 프로젝트의 콜사인 토큰으로만 한다 (화면 공용 토큰은 읽기 · 등록만)")
+        return p
+
+    def post_guide(request: Request, p: Principal, now: datetime, b: dict[str, Any]) -> dict[str, Any]:
+        """지침 변경 — 승인된 human 은 판 +1, 그 밖은 제안 (``hub_guide_propose`` 와 같은 함수)."""
+        pid = request.path_params["pid"]
+        base = b.get("base_version")
+        if not isinstance(base, int) or isinstance(base, bool):
+            raise invalid_field("base_version", "정수")
+        return guides.propose(Ctx(now=now, via="ui", principal=_own(p, pid)), base, b.get("body", ""), b.get("note", ""))
+
+    def post_decide(request: Request, p: Principal, now: datetime, b: dict[str, Any]) -> dict[str, Any]:
+        pid = request.path_params["pid"]
+        if not isinstance(b.get("approve"), bool):
+            raise invalid_field("approve", "true · false")
+        return guides.decide(Ctx(now=now, via="ui", principal=_own(p, pid)), request.path_params["gid"], b["approve"])
 
     def post_approve(request: Request, p: Principal, now: datetime, _b: Any) -> dict[str, Any]:
         """사람 콜사인 승인 — ``hub_callsign_approve`` 와 같은 함수 (승인된 human 소유자만)."""
@@ -287,6 +333,11 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
         Route("/api/projects/{pid}/tasks", api(get_tasks), methods=["GET"]),
         Route("/api/projects/{pid}/tasks/{tid}", api(get_task), methods=["GET"]),
         Route("/api/projects/{pid}/events", api(get_events), methods=["GET"]),
+        Route("/api/projects/{pid}/guide", api(get_guide), methods=["GET"]),
+        Route("/api/projects/{pid}/guide", api(post_guide, body=True), methods=["POST"]),
+        Route("/api/projects/{pid}/guide/proposals/{gid}", api(post_decide, body=True), methods=["POST"]),
+        Route("/api/projects/{pid}/wiki", api(get_wiki), methods=["GET"]),
+        Route("/api/projects/{pid}/wiki/page", api(get_wiki_page), methods=["GET"]),
         Route("/api/projects/{pid}/callsigns", api(get_callsigns), methods=["GET"]),
         Route("/api/projects/{pid}/callsigns", api(post_callsign, body=True), methods=["POST"]),
         Route("/api/projects/{pid}/callsigns/{cs}", api(get_callsign), methods=["GET"]),

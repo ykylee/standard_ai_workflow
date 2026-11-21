@@ -108,7 +108,7 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 | `memory_note` | `project_id` · `callsign` · `kind` (`session`/`lesson`/`handoff_rollover`/`archive_1x`) · `title` · `body_md` · `meta_json` · `created_at` | — (추가만) | R4.5 · R6.2 · R14.4 |
 | `checkpoint` | `project_id` · `callsign` · `created_at` · `body_json` (1.x `checkpoint.json` 칸) · `summary_md` | — (추가만) | R11.1 |
 | `guide` | `project_id` · `version` · `body_md` · `updated_by` · `updated_at` | `(project_id, version)` — 판마다 한 줄 | R7.1 · R7.4 |
-| `guide_proposal` | `project_id` · `id` · `base_version` · `body_md` · `proposed_by` · `status` (`open`/`approved`/`rejected`) · `decided_by` · `decided_at` | — | R7.5 · R7.7 |
+| `guide_proposal` | `project_id` · `id` (`GP-<4자리>`) · `base_version` · `body_md` · `note` · `proposed_by` · `proposed_at` · `status` (`open`/`approved`/`rejected`) · `decided_by` · `decided_at` · `applied_version` | `(project_id, id)` — 판 7 (M-037 WBS-37.3) | R7.5 · R7.7 |
 | `roadmap_doc` | `project_id` · `path` (`index.md` · `M-NNN-*.md`) · `body_md` · `version` | `(project_id, path)` | R9.1 |
 | `wiki_page` | `project_id` · `path` · `body_md` · `source_repo_key` · `source_sha` · `version` · `updated_by` · `updated_at` · `last_ingest` | `(project_id, path)` · `index.md` · `log.md` 는 저장하지 않는다 (생성물) | R8.1~R8.4 |
 | `wiki_ingest` | `project_id` · `id` (`ING-<5자리>`) · `seq` · `callsign` · `at` · `log_line` · `pages_json` | `(project_id, seq)` 유일 — 거절된 묶음은 번호를 먹지 않는다 | R8.2 |
@@ -191,7 +191,7 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 | handoff · 상태 | `hub_handoff_get(callsign?)` · `hub_handoff_put(expected_version, sections)` · `hub_state(scope)` | `scope` = `callsign` / `project`, 결과는 `state.json` v1 (R6.3) |
 | 결정 응답 | `hub_plan_respond(task_id, body)` · `hub_plan_status(task_id)` | body = response/1 바이트 그대로 (R5.8). **보내는 쪽은 승인된 `human` 콜사인이고 body 의 `responder` 는 그 콜사인** — 아니면 `forbidden` (소유자 2026-11-21 · R4.6: 에이전트가 자기 계획의 결정을 닫거나 남의 이름으로 답하지 못한다) |
 | 콜사인 승인 | `hub_callsign_approve(callsign)` | 승인된 `human` 소유자만. 승인 전 `human` 은 `agent` 권한 (Q3) |
-| 지침 | `hub_guide_render(harness)` · `hub_guide_propose(base_version, body)` · `hub_guide_decide(proposal_id, approve)` | `decide` 는 승인된 `human` 만 (R7.7) |
+| 지침 | `hub_guide_render(harness)` · `hub_guide_get()` · `hub_guide_propose(base_version, body, note?)` · `hub_guide_decide(proposal_id, approve)` | `decide` 는 승인된 `human` 만 (R7.7). `base_version` 이 지금 판이 아니면 409, 렌더 예산을 넘는 본문은 422 (§6.5) |
 | 위키 운반 | `hub_wiki_import_dir(files[{path, content}], summary, overwrite?)` · `hub_wiki_export(format=dir\|okf, out_dir?, cursor?)` · `hub_wiki_import_okf(files, summary)` | 운반 = 1.x 위키 디렉터리 그대로 (R8.6 2026-11-21 결정). 내보내기는 쓰기 지시(§5.1 `op: write` · `sha256`)로 — 허브는 저장소에 쓰지 않는다 (R15.1). 응답 150KB 넘으면 `next_cursor`. `dir` 은 표식 `.hub-export.json` (R15.2) 을 함께 낸다. `okf` 는 출판(손실) — `excluded` (묶음에 없는 페이지 전부) · `excluded_by_error`. 남의 OKF 들여오기는 loose · 한 방향 · 묶음 하나가 요청 상한(256KB) 안 (M-036 WBS-36.3) |
 | memory_index | `hub_memory_entry_put(entry, expected_version)` · `hub_memory_entry_get(id)` · `hub_memory_entry_list()` | 1.x `MemoryEntry` 스키마 · 새 entry 는 0 · 다르면 409 (M-036 WBS-36.2) |
 | 위키 원격 읽기 | `hub_wiki_remote_set(fetch_url)` | **소유자만** — `project.settings_json.wiki_remote`. 빈 값이면 끈다. `https://` · `ssh://` · `git@host:path` · `file:///` 만 (git 원격 도우미 `ext::` 등 거절) (R3.7 · R8.4) |
@@ -207,7 +207,7 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 - 토큰 없는 화면 요청은 허브 설정의 **화면 공용 `web` 토큰**이 켜져 있을 때만 `web` 권한(읽기 · 콜사인 등록)으로 돈다 — `hub serve --web-token-name NAME` 또는 앞단 프록시가 '토큰 없는 요청에만' 머리를 붙인다. **기본 꺼짐.**
 - 화면 응답은 `Content-Security-Policy: default-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'` · `Referrer-Policy: same-origin` (워크벤치 선례). 링크 · API 호출은 상대 경로 (R13.4).
 
-### 4.7 화면 (M-037 WBS-37.1 · 37.2)
+### 4.7 화면 (M-037 WBS-37.1 · 37.2 · 37.3)
 
 **경로** — 모두 §4.6 의 머리(CSP · Referrer-Policy)를 싣는다. 정적 자산은 데이터가 없어 인증 없이 내린다.
 
@@ -219,6 +219,8 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 | `GET /api/projects` | 프로젝트 목록 + status 별 task 수 — 콜사인 토큰은 자기 프로젝트 하나 |
 | `GET /api/projects/{id}/callsigns` | 콜사인 표 (WBS-37.2) — 콜사인마다 종류 · 승인 · 역할 · 마지막 활동(`last_seen_at`) · 받은 지침 판과 `guide_state` (`current` / `stale` / `never` — 허브 판은 세션 시작과 같은 `render.guide_version`) · 클라이언트 판(`client_version_seen`) · 셋업 끝 여부 · 보관(거둔 콜사인) · handoff 시각 · **맡은 열린 task 와 진행 한 줄** ('지금 누가 무엇을', R5.7) |
 | `GET /api/projects/{id}/callsigns/{cs}` | 표의 줄 + 그 콜사인의 handoff 칸 · version (읽기는 프로젝트 안 누구나 — G3) |
+| `GET /api/projects/{id}/guide` · `POST …/guide` · `POST …/guide/proposals/{gid}` | 지침 (WBS-37.3) — 지금 판 · 본문 · 판 이력 · 제안(지금 판 대비가 아니라 **기준 판 대비** unified diff · `stale`) · `can_decide` · `can_propose`. 쓰기는 `hub_guide_propose` · `hub_guide_decide` 와 같은 함수, 콜사인 토큰만 (web 403) |
+| `GET /api/projects/{id}/wiki` · `/wiki/page?path=` | 위키 읽기 (WBS-37.3) — `q` 가 있으면 검색, 아니면 목록(`prefix`) · 생성물(`index.md` · `log.md`) · 페이지. `hub_wiki_list` · `search` · `get` 과 같은 함수. 화면은 페이지 본문을 글자 그대로 보이고, 상대 `.md` 링크와 `[[경로]]` 위키 링크만 화면 길로 바꾼다 |
 | `POST /api/projects/{id}/callsigns/{cs}/approve` | 사람 콜사인 승인 (`hub_callsign_approve` 와 같은 함수 — 승인된 `human` 소유자만, 그 밖 403) |
 | `GET /api/projects/{id}` · `/tasks` · `/tasks/{task}` · `/events` | 프로젝트 · task 목록(`status` · `assignee`) · task 상세(계획 원문 · 주장 · 결정 상태 · 열린 결정 · 린트 · 그 task 의 이력 · 커밋) · 프로젝트 이력 |
 | `POST /api/projects/{id}/callsigns` | 콜사인 등록 (`hub_callsign_register` 와 같은 함수) — 토큰은 이 응답에서 한 번만 |
@@ -232,7 +234,7 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 
 **받은 판 기록 (R7.8 · R4.7)** — 표가 보이는 값은 실제로 받은 것이어야 한다. `last_seen_at` 은 콜사인 토큰 인증마다, `client_version_seen` 은 그 요청에 `X-Hub-Client` 머리가 있을 때 적는다. `guide_version_seen` 은 셋업 확인(§6.1)과 **세션 시작 2단계(§6.2)** 에서 적는다 — 진입 파일을 모두 쟀고 판이 하나로 같을 때만 그 판, 섞이면 그대로 둔다 (한쪽만 다시 렌더한 환경을 '최신' 으로 보이지 않게).
 
-**검증** — `check_hub_ui` (게이트, HTTP): 공용 토큰 꺼짐 401 · 켜짐 읽기 200 / 답 403 / 등록 1회 / 409 / 거두면 401 · 화면 머리 · 상대 경로 · 읽기 범위 · 결정 답 권한(화면 · MCP) · 415 · 409 · 400 · 콜사인 표(지금 하는 일 · 마지막 활동 · 클라이언트 판 · 보관 · handoff 읽기 범위) · 받은 지침 판(렌더 → 세션 시작 뒤 최신 · 새 판 뒤 옛 지침 · 섞이면 불변, 양쪽 순서) · 화면 승인. 실브라우저 왕복(등록 → 소유자 승인 → 결정 답 → 이력의 콜사인 이름 · 콘솔 오류 0)은 게이트가 아니라 task Proof 의 헤드리스 Chromium 실측이다 (워크벤치 선례).
+**검증** — `check_hub_ui` (게이트, HTTP): 공용 토큰 꺼짐 401 · 켜짐 읽기 200 / 답 403 / 등록 1회 / 409 / 거두면 401 · 화면 머리 · 상대 경로 · 읽기 범위 · 결정 답 권한(화면 · MCP) · 415 · 409 · 400 · 콜사인 표(지금 하는 일 · 마지막 활동 · 클라이언트 판 · 보관 · handoff 읽기 범위) · 받은 지침 판(렌더 → 세션 시작 뒤 최신 · 새 판 뒤 옛 지침 · 섞이면 불변, 양쪽 순서) · 화면 승인 · 지침 제안(D11 — agent · 승인 전 human 은 제안, 사람만 판, 승인 · 거절 · 낡은 기준 409 · 예산 422, admin 포함) · 위키 읽기(목록 · 검색 · 페이지 · 생성물 · 범위). 실브라우저 왕복(등록 → 소유자 승인 → 결정 답 → 이력의 콜사인 이름 · 콘솔 오류 0)은 게이트가 아니라 task Proof 의 헤드리스 Chromium 실측이다 (워크벤치 선례).
 
 ## 5. 쓰기 지시 · 렌더 영역
 
@@ -294,8 +296,10 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 
 - `hub_guide_render(harness)` = 표준 층(kit 판) + 프로젝트 층(`guide` 최신 판) → 하네스 어댑터 → §5.2 영역 + 쓰기 지시.
 - 지침 판 = `<kit 판>+p<프로젝트 판>`. kit 판이 바뀌어도(허브 업그레이드) 판이 바뀐다 → 다음 세션 시작이 `[바뀜]` 으로 알린다.
-- 승인 흐름: `hub_guide_propose` → `guide_proposal(open)` → 승인된 `human` 이 `hub_guide_decide` → `guide` 새 판. 승인된 `human` 의 제안은 바로 판이 오른다 (R7.7).
-- 콜사인이 렌더를 받으면 `callsign.guide_version_seen` 갱신 — 화면에 '옛 지침으로 도는 환경' (R7.8).
+- 승인 흐름: `hub_guide_propose` → `guide_proposal(open)` → 승인된 `human` 이 `hub_guide_decide` → `guide` 새 판. 승인된 `human` 의 제안은 바로 판이 오른다 (제안 줄은 `approved` · 결정자 = 본인으로 남는다, R7.7). `agent` · 승인 전 `human` 의 제안은 판을 바꾸지 않는다. 거절은 판 불변. 결정된 제안을 다시 결정하면 `already_decided` 409.
+- 기준 판: 제안 · 승인 모두 `base_version` 이 지금 판과 같을 때만 — 그 사이 판이 오른 제안은 승인할 수 없고(409, 화면은 '낡음' 표시) 새 판 위에서 다시 낸다. 자동 병합하지 않는다.
+- 예산: 새 판이 될 본문을 지원 하네스 넷 모두에 렌더해 본 뒤에만 판을 올린다 (`entry_budget_exceeded` 422) — `hub admin guide set` 도 같다. 넘는 판이 서면 그 뒤 모든 렌더 · 세션 시작이 깨진다.
+- 콜사인이 받은 판은 셋업 확인 · 세션 시작 2단계에서 `callsign.guide_version_seen` 에 적는다 — 화면에 '옛 지침으로 도는 환경' (R7.8, §4.7).
 
 ### 6.6 1.x 전환 매핑 (요구 R14)
 

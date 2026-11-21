@@ -18,6 +18,10 @@ task Proof 의 CDP 실측이다 (워크벤치 선례 — 게이트는 브라우�
 8. 받은 지침 판 (R7.8) — 진입 파일을 다시 렌더하고 세션 시작에서 그 판을 재면 '최신', 지침 새 판 뒤 '옛 지침',
    진입 파일 판이 섞이면 기록을 바꾸지 않는다
 9. 화면 승인 — agent · 승인 전 human 403, 소유자 200 → 그 human 의 can_answer true
+10. 지침 제안 (WBS-37.3 · R7.7 · D11) — agent · 승인 전 human 의 변경은 판 불변 · 제안 1, 승인된 human 의 변경은 판 +1,
+    사람 승인 → 판 +1 · 거절 → 판 불변, agent 의 승인 403 · web 쓰기 403, 화면 · MCP 같은 함수
+11. 지침 판 지키기 — 낡은 base 의 제안 · 승인 409, 렌더 예산을 넘는 본문은 판을 올리기 전 422 (admin guide set 도)
+12. 위키 읽기 — 목록 · 검색 · 페이지 · 생성물 index.md 를 web 공용 토큰 · 콜사인 토큰으로, 남의 프로젝트 403
 """
 
 from __future__ import annotations
@@ -356,6 +360,87 @@ def case_7_8_9(tmp: Path) -> None:
         hub.stop()
 
 
+def case_10_11_12(tmp: Path) -> None:
+    db = tmp / "guide.db"
+    Hub(db).stop()
+    _admin(db, "token", "issue", "--role", "web", "--name", "screen")
+    hub = Hub(db, extra=("--web-token-name", "screen"))
+    try:
+        pid, owner = _project(hub, "guide")
+        _, owner_b = _project(hub, "guide-b", "owner-b")
+        regs = {cs: hub.call("hub_callsign_register", {"project_id": pid, "callsign": cs, "kind": kind})[1]["token"]
+                for cs, kind in (("bot-a", "agent"), ("yk-p", "human"))}
+        bot, pending = regs["bot-a"], regs["yk-p"]
+        gpath = f"/api/projects/{pid}/guide"
+
+        def version() -> int:
+            return int(_req(hub.base, gpath)[1]["version"])
+
+        # 10 제안 · 승인
+        e1, d1 = _tool(hub.base, "hub_guide_propose", {"base_version": 0, "body": "# 지침 A\n", "note": "봇 제안"}, bot)
+        e2, d2, _ = _req(hub.base, gpath, token=pending, method="POST", body={"base_version": 0, "body": "# 지침 B\n"})
+        v_after_props = version()
+        e3, _, _ = _req(hub.base, f"{gpath}/proposals/{d1.get('proposal_id')}", token=bot, method="POST", body={"approve": True})
+        e4, _, _ = _req(hub.base, f"{gpath}/proposals/{d1.get('proposal_id')}", method="POST", body={"approve": True})
+        e5, ap, _ = _req(hub.base, f"{gpath}/proposals/{d1.get('proposal_id')}", token=owner, method="POST", body={"approve": True})
+        v1 = version()
+        e6, dup, _ = _req(hub.base, f"{gpath}/proposals/{d1.get('proposal_id')}", token=owner, method="POST", body={"approve": False})
+        e7, direct = _tool(hub.base, "hub_guide_propose", {"base_version": 1, "body": "# 지침 C\n"}, owner)
+        v2 = version()
+        e8, d8 = _tool(hub.base, "hub_guide_propose", {"base_version": 2, "body": "# 지침 D\n"}, bot)
+        e9, rej = _tool(hub.base, "hub_guide_decide", {"proposal_id": d8.get("proposal_id"), "approve": False}, owner)
+        s_view, view, _ = _req(hub.base, gpath)
+        statuses = {x["id"]: x["status"] for x in view.get("proposals", [])}
+        _, ev, _ = _req(hub.base, f"/api/projects/{pid}/events?target_kind=guide", token=owner)
+        ok10 = (e1 == 200 and d1.get("status") == "open" and e2 == 200 and d2.get("status") == "open" and v_after_props == 0
+                and e3 == 403 and e4 == 403 and e5 == 200 and ap.get("applied_version") == 1 and v1 == 1
+                and e6 == 409 and dup.get("error_code") == "already_decided"
+                and e7 == 200 and direct.get("status") == "approved" and direct.get("applied_version") == 2 and v2 == 2
+                and e8 == 200 and e9 == 200 and rej.get("status") == "rejected" and version() == 2
+                and s_view == 200 and view["body"] == "# 지침 C\n" and statuses.get(d2.get("proposal_id")) == "open"
+                and view["can_decide"] is False and "+# 지침 A" in next((x["diff"] for x in view.get("proposals", []) if x["id"] == d1.get("proposal_id")), "")
+                and [e["callsign"] for e in ev["events"] if e["op"] == "set"] == ["owner-a", "owner-a"])
+        _record("case 10 (지침 제안 — agent · 승인 전 human 은 제안, 사람만 판을 올린다, 승인 · 거절 · web 403)", ok10,
+                f"{e1}/{d1} {e2}/{d2.get('status')} v={v_after_props} {e3} {e4} {e5} v1={v1} {e6} {e7}/{direct} v2={v2} {e8} {e9}")
+
+        # 11 판 지키기 — 지금 판은 2, yk-p 의 제안(기준 0)은 낡았다.
+        f1, stale_p = _tool(hub.base, "hub_guide_propose", {"base_version": 1, "body": "# 낡은\n"}, bot)
+        f2, stale_d, _ = _req(hub.base, f"{gpath}/proposals/{d2.get('proposal_id')}", token=owner, method="POST", body={"approve": True})
+        big = "# 큰 지침\n" + ("가나다라마바사 " * 1200)
+        f3, budget = _tool(hub.base, "hub_guide_propose", {"base_version": 2, "body": big}, owner)
+        f3b, budget_b = _tool(hub.base, "hub_guide_propose", {"base_version": 2, "body": big}, bot)
+        (tmp / "big.md").write_text(big, encoding="utf-8")
+        f4 = _admin(db, "guide", "set", "--project", pid, "--file", str(tmp / "big.md"))
+        _, still, _ = _req(hub.base, gpath)
+        stale_flag = next((x["stale"] for x in still.get("proposals", []) if x["id"] == d2.get("proposal_id")), None)
+        ok11 = (f1 == 409 and stale_p.get("error_code") == "version_conflict" and f2 == 409
+                and f3 == 422 and budget.get("error_code") == "entry_budget_exceeded" and f3b == 422
+                and f4.returncode != 0 and "entry_budget_exceeded" in f4.stdout and still["version"] == 2 and stale_flag is True
+                and len([x for x in still["proposals"] if x["body_md"] == big]) == 0)
+        _record("case 11 (지침 판 지키기 — 낡은 base 409, 예산 초과 422 · admin 도 거절, 판 불변)", ok11,
+                f"{f1} {f2}/{stale_d} {f3}/{budget.get('error_code')} {f3b} admin={f4.returncode}:{f4.stdout[:120]} v={still['version']}")
+
+        # 12 위키 읽기
+        hub.call("hub_wiki_ingest", {"summary": "첫 페이지", "pages": [
+            {"path": "concepts/hub.md", "body": "---\ntitle: 허브\n---\n# 허브\n\n[화면](../decisions/ui.md) 을 본다.\n", "expected_version": 0},
+            {"path": "decisions/ui.md", "body": "# 화면 결정\n\n허브 화면은 상대 경로.\n", "expected_version": 0}]}, owner)
+        w1, lst, _ = _req(hub.base, f"/api/projects/{pid}/wiki")
+        w2, hits, _ = _req(hub.base, f"/api/projects/{pid}/wiki?q=%EC%83%81%EB%8C%80", token=bot)
+        w3, page, _ = _req(hub.base, f"/api/projects/{pid}/wiki/page?path=concepts/hub.md", token=pending)
+        w4, idx, _ = _req(hub.base, f"/api/projects/{pid}/wiki/page?path=index.md")
+        w5, _, _ = _req(hub.base, f"/api/projects/{pid}/wiki", token=owner_b)
+        w6, _, _ = _req(hub.base, f"/api/projects/{pid}/wiki/page?path=../etc.md", token=owner)
+        w7, _, _ = _req(hub.base, f"/api/projects/{pid}/wiki/page?path=nope.md", token=owner)
+        ok12 = (w1 == 200 and sorted(x["path"] for x in lst["pages"]) == ["concepts/hub.md", "decisions/ui.md"]
+                and "index.md" in lst["generated"] and w2 == 200 and [h["path"] for h in hits["hits"]] == ["decisions/ui.md"]
+                and w3 == 200 and "../decisions/ui.md" in page["body"] and w4 == 200 and idx.get("generated") is True
+                and "[[concepts/hub]]" in idx["body"] and w5 == 403 and w6 == 400 and w7 == 404)
+        _record("case 12 (위키 읽기 — 목록 · 검색 · 페이지 · index.md, 남의 프로젝트 403)", ok12,
+                f"{w1} {w2}/{hits} {w3} {w4} {w5} {w6} {w7}")
+    finally:
+        hub.stop()
+
+
 def main() -> int:
     print("check_hub_ui")
     with tempfile.TemporaryDirectory(prefix="hub-ui-") as d:
@@ -364,6 +449,7 @@ def main() -> int:
         case_3_web_on(tmp)
         case_4_5_6(tmp)
         case_7_8_9(tmp)
+        case_10_11_12(tmp)
     print(f"PASS {len(_passes)} · FAIL {len(_failures)}")
     for f in _failures:
         print(f"  FAIL {f}")

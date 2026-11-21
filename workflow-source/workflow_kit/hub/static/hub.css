@@ -69,4 +69,8 @@ ul.doing { margin: 0; padding-left: 1rem; }
 .handoff-part { margin-bottom: .75rem; }
 .handoff-part h2 { font-size: .95rem; color: var(--muted); margin-bottom: .25rem; }
 .handoff-part ul { margin: 0; padding-left: 1.1rem; }
+textarea.guide-edit { min-height: 16rem; font: .85rem/1.5 var(--mono); }
+pre.diff { max-height: 24rem; overflow: auto; }
+ul.hits { padding-left: 1.1rem; display: grid; gap: .5rem; }
+input[type=search] { border: 1px solid var(--line); border-radius: 8px; padding: .35rem .5rem; background: var(--surface); color: var(--fg); min-width: 16rem; }
 @media (max-width: 40rem) { main { padding: .75rem; } th:nth-child(n+4), td:nth-child(n+4) { display: none; } }

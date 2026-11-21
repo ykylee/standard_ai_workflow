@@ -43,6 +43,7 @@
       "TASK-2026-11-19-claude-remote-sync-check-234c32-002"
     ],
     "recent_done_items": [
+      "TASK-2026-11-21-main-007 — 허브 화면 — 지침 편집 · 에이전트 제안 승인(D11) · 위키 읽기 (M-037 WBS-37.3)",
       "TASK-2026-11-21-main-006 — 허브 화면 — 콜사인별 handoff · 지금 누가 무엇을 · 지침 판 현황 (M-037 WBS-37.2)",
       "TASK-2026-11-21-main-005 — 허브 화면 첫 판 — 프로젝트 · task 목록 · 계획 · 결정 답 · 이력 (M-037 WBS-37.1)",
       "TASK-2026-11-21-main-004 — 허브 선택 클라이언트 — 오프라인 보낼편지함 · 캐시 · 세션 시작 보고 (WBS-36.3 B)",
@@ -51,15 +52,14 @@
       "TASK-2026-11-21-main-001 — 허브 위키 — 페이지 · ingest 묶음 · index/log 생성 · 읽기 · lint (WBS-36.1)",
       "TASK-2026-11-21-claude-workflow-hub-concept-013 — handoff §5 서두의 회차 줄이 예산 밖에서 쌓인다 — 누적형으로 세고 이관",
       "TASK-2026-11-21-claude-workflow-hub-concept-012 — 로드맵 현재 마일스톤을 병행 선언 기준으로 — 상시 운영 M-007 이 늘 '현재' 로 보고되던 것",
-      "TASK-2026-11-21-claude-workflow-hub-concept-011 — 허브 콜사인별 기억 — handoff · 세션 끝 · compact 체크포인트 · state.json v1 · 보관",
-      "TASK-2026-11-21-claude-workflow-hub-concept-010 — 허브 로드맵 — 마일스톤 · WBS · WBS 게이트 · 진척 파생"
+      "TASK-2026-11-21-claude-workflow-hub-concept-011 — 허브 콜사인별 기억 — handoff · 세션 끝 · compact 체크포인트 · state.json v1 · 보관"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-11-21.md",
-    "task_count": 19,
+    "task_count": 20,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
@@ -81,7 +81,8 @@
       "TASK-2026-11-21-main-003 — 허브 위키 들여오기 · 내보내기 — 위키 디렉터리 무손실 운반 + OKF 출판 (WBS-36.3 A)",
       "TASK-2026-11-21-main-004 — 허브 선택 클라이언트 — 오프라인 보낼편지함 · 캐시 · 세션 시작 보고 (WBS-36.3 B)",
       "TASK-2026-11-21-main-005 — 허브 화면 첫 판 — 프로젝트 · task 목록 · 계획 · 결정 답 · 이력 (M-037 WBS-37.1)",
-      "TASK-2026-11-21-main-006 — 허브 화면 — 콜사인별 handoff · 지금 누가 무엇을 · 지침 판 현황 (M-037 WBS-37.2)"
+      "TASK-2026-11-21-main-006 — 허브 화면 — 콜사인별 handoff · 지금 누가 무엇을 · 지침 판 현황 (M-037 WBS-37.2)",
+      "TASK-2026-11-21-main-007 — 허브 화면 — 지침 편집 · 에이전트 제안 승인(D11) · 위키 읽기 (M-037 WBS-37.3)"
     ]
   },
   "next_documents": [

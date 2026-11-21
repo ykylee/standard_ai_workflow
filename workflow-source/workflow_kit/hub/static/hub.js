@@ -212,7 +212,7 @@
       el("section", { class: "card" },
         el("h1", {}, project.display_name),
         el("div", { class: "row muted" }, el("span", { class: "mono" }, project.id), `소유자 ${project.owner_callsign}`,
-          el("a", { href: `${base}/events` }, "이력")),
+          el("a", { href: `${base}/events` }, "이력"), el("a", { href: `${base}/guide` }, "지침"), el("a", { href: `${base}/w` }, "위키")),
         principal.kind === "callsign"
           ? el("div", { class: "row" }, forgetButton(pid, route))
           : el("div", {}, el("h2", {}, "이 브라우저의 콜사인"), registerForm(pid, route), tokenForm(() => route()))),
@@ -306,6 +306,149 @@
         el("h2", {}, "지금 하는 일"), nowDoing(c, base)),
       el("section", { class: "card" }, el("h2", {}, "handoff"),
         sections ? el("p", { class: "muted" }, `v${h.version} · `, when(h.updated_at)) : null, body));
+  }
+
+  // --- 지침 · 위키 (WBS-37.3) -------------------------------------------------------
+
+  async function projectHead(pid, label) {
+    const token = storedToken(pid);
+    const pr = await api(`projects/${encodeURIComponent(pid)}`, { token });
+    const base = `#/p/${encodeURIComponent(pid)}`;
+    setCrumbs([{ text: "프로젝트", href: "#/" }, { text: pr.status === 200 ? pr.data.project.display_name : pid, href: base }, { text: label }]);
+    setWho(pr.status === 200 ? pr.data.principal : null);
+    return { token, base, pr };
+  }
+
+  function proposalCard(pid, prop, canDecide) {
+    const decide = (approve) => async () => {
+      const r = await api(`projects/${encodeURIComponent(pid)}/guide/proposals/${encodeURIComponent(prop.id)}`, {
+        method: "POST", token: storedToken(pid), body: { approve } });
+      pendingFlash = r.status === 200
+        ? { kind: "ok", text: approve ? `${prop.id} 를 승인했다 — 지침 판 ${r.data.guide_version}` : `${prop.id} 를 거절했다.` }
+        : { kind: "bad", text: errorText(r) };
+      route();
+    };
+    const open = prop.status === "open";
+    return el("div", { class: "decision" },
+      el("div", { class: "row" }, el("strong", { class: "mono" }, prop.id),
+        chip(open ? "열림" : prop.status === "approved" ? "승인" : "거절", open ? "open" : prop.status === "approved" ? "answered" : "planned"),
+        `${prop.proposed_by} · `, when(prop.proposed_at), ` · 기준 v${prop.base_version}`,
+        prop.applied_version ? ` → v${prop.applied_version}` : null,
+        prop.decided_by && prop.decided_by !== prop.proposed_by ? ` · 결정 ${prop.decided_by}` : null),
+      prop.note ? el("div", {}, prop.note) : null,
+      prop.stale ? alertBox("warn", "기준 판이 지금 판이 아니다 — 승인할 수 없다. 새 판 위에서 다시 제안해야 한다.") : null,
+      el("details", { open: open || undefined }, el("summary", {}, "바뀐 줄"), el("pre", { class: "diff" }, prop.diff || "(차이 없음)")),
+      open && canDecide ? el("div", { class: "row" },
+        el("button", { type: "button", onclick: decide(true), disabled: prop.stale || undefined }, "승인"),
+        el("button", { type: "button", class: "ghost", onclick: decide(false) }, "거절")) : null);
+  }
+
+  async function viewGuide(pid) {
+    const { token } = await projectHead(pid, "지침");
+    const r = await api(`projects/${encodeURIComponent(pid)}/guide`, { token });
+    if (r.status !== 200) { render(el("section", { class: "card" }, alertBox("bad", errorText(r)))); return; }
+    const g = r.data;
+    const open = g.proposals.filter((x) => x.status === "open");
+    let editor = el("p", { class: "muted" }, "고치려면 이 프로젝트의 콜사인 토큰이 이 브라우저에 있어야 한다.");
+    if (g.can_propose) {
+      const text = el("textarea", { class: "guide-edit", "aria-label": "지침 본문" });
+      text.value = g.body;
+      const note = el("input", { type: "text", placeholder: "무엇을 왜 바꾸나 (한 줄)", "aria-label": "변경 메모" });
+      const msg = el("div");
+      editor = el("form", { onsubmit: async (ev) => {
+        ev.preventDefault();
+        const res = await api(`projects/${encodeURIComponent(pid)}/guide`, {
+          method: "POST", token: storedToken(pid), body: { base_version: g.version, body: text.value, note: note.value } });
+        if (res.status !== 200) { msg.replaceChildren(alertBox("bad", errorText(res))); return; }
+        pendingFlash = res.data.applied_version
+          ? { kind: "ok", text: `지침 판을 ${res.data.guide_version} 로 올렸다.` }
+          : { kind: "ok", text: `제안 ${res.data.proposal_id} 를 올렸다 — 승인된 사람 콜사인이 승인하면 판이 오른다.` };
+        route();
+      } }, text, el("div", { class: "row" }, note,
+        el("button", { type: "submit" }, g.can_decide ? "판 올리기" : "제안 올리기")), msg);
+    }
+    render(
+      el("section", { class: "card" }, el("h1", {}, "프로젝트 지침"),
+        el("div", { class: "row muted" }, "지금 판 ", el("span", { class: "mono" }, g.guide_version), `· 열린 제안 ${open.length}`),
+        el("p", { class: "muted" }, g.can_decide ? "승인된 사람 콜사인 — 고치면 바로 판이 오르고, 열린 제안을 승인 · 거절한다."
+          : "에이전트 · 승인 전 사람 콜사인의 변경은 제안으로 남는다 (D11)."),
+        el("details", {}, el("summary", {}, "지금 본문"), el("pre", {}, g.body || "(비었다 — 표준 규칙만 렌더된다)")),
+        el("h2", {}, "고치기"), editor),
+      el("section", { class: "card" }, el("h2", {}, "제안"),
+        g.proposals.length ? g.proposals.map((x) => proposalCard(pid, x, g.can_decide)) : el("p", { class: "muted" }, "제안이 없다.")),
+      el("section", { class: "card" }, el("h2", {}, "판 이력"),
+        g.history.length ? el("table", {}, el("thead", {}, el("tr", {}, ["판", "누가", "언제", "크기"].map((h) => el("th", {}, h)))),
+          el("tbody", {}, g.history.map((h) => el("tr", {}, el("td", { class: "mono" }, `v${h.version}`), el("td", {}, h.updated_by),
+            el("td", { class: "muted nowrap" }, when(h.updated_at)), el("td", { class: "muted" }, `${h.size}자`)))))
+          : el("p", { class: "muted" }, "아직 판이 없다 (v0 — 표준 규칙만).")));
+  }
+
+  const pageHref = (base, path) => `${base}/wp/${encodeURIComponent(path)}`;
+
+  async function viewWiki(pid, query) {
+    const { token, base } = await projectHead(pid, "위키");
+    const q = (query || "").trim();
+    const r = await api(`projects/${encodeURIComponent(pid)}/wiki${q ? `?q=${encodeURIComponent(q)}` : ""}`, { token });
+    const input = el("input", { type: "search", placeholder: "낱말 (모두 들어간 페이지)", "aria-label": "위키 검색" });
+    input.value = q;
+    const search = el("form", { class: "row", role: "search", onsubmit: (ev) => {
+      ev.preventDefault();
+      location.hash = input.value.trim() ? `${base}/w/q/${encodeURIComponent(input.value.trim())}` : `${base}/w`;
+    } }, input, el("button", { type: "submit" }, "검색"), q ? el("a", { href: `${base}/w` }, "전체 목록") : null);
+    let body;
+    if (r.status !== 200) body = alertBox("bad", errorText(r));
+    else if (q) body = r.data.hits.length ? el("ul", { class: "hits" }, r.data.hits.map((h) => el("li", {},
+      el("a", { href: pageHref(base, h.path) }, h.title), " ", el("span", { class: "mono muted" }, h.path),
+      h.snippet ? el("div", { class: "muted" }, h.snippet) : null))) : el("p", { class: "muted" }, "맞는 페이지가 없다.");
+    else body = el("div", {},
+      el("div", { class: "row" }, (r.data.generated || []).map((g) => el("a", { href: pageHref(base, g) }, g)), el("span", { class: "muted" }, "(생성물)")),
+      r.data.pages.length ? el("table", {}, el("thead", {}, el("tr", {}, ["페이지", "경로", "판", "고친 이", "고친 때"].map((h) => el("th", {}, h)))),
+        el("tbody", {}, r.data.pages.map((pg) => el("tr", {}, el("td", {}, el("a", { href: pageHref(base, pg.path) }, pg.title)),
+          el("td", { class: "mono muted" }, pg.path), el("td", { class: "mono" }, `v${pg.version}`), el("td", {}, pg.updated_by || "—"),
+          el("td", { class: "muted nowrap" }, when(pg.updated_at))))))
+        : el("p", { class: "muted" }, "위키 페이지가 없다."));
+    render(el("section", { class: "card" }, el("h1", {}, "위키"), search,
+      r.status === 200 && q ? el("p", { class: "muted" }, `${r.data.total}건`) : null, body));
+  }
+
+  // 페이지 안 마크다운 링크 중 위키 페이지(.md, 상대 경로)만 화면 길로 — 그 밖은 글자로 둔다.
+  function wikiLinks(path, text) {
+    const dir = path.includes("/") ? path.slice(0, path.lastIndexOf("/") + 1) : "";
+    const out = new Map();
+    for (const m of text.matchAll(/\[([^\]]*)\]\(([^)\s]+?\.md)(#[^)]*)?\)/g)) {
+      const href = m[2];
+      if (/^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith("/")) continue;
+      const parts = [];
+      for (const seg of (dir + href).split("/")) {
+        if (seg === "..") { if (!parts.length) { parts.length = 0; parts.push(null); break; } parts.pop(); }
+        else if (seg && seg !== ".") parts.push(seg);
+      }
+      if (parts.includes(null)) continue;
+      out.set(parts.join("/"), m[1] || parts.join("/"));
+    }
+    // [[경로]] 꼴 위키 링크 — 위키 뿌리 상대 (색인 생성물 · 1.x 위키가 쓴다).
+    for (const m of text.matchAll(/\[\[([^\]|#]+?)(?:[|#][^\]]*)?\]\]/g)) {
+      const target = m[1].trim().replace(/\.md$/, "") + ".md";
+      if (!target.startsWith("/") && !target.split("/").includes("..") && !out.has(target)) out.set(target, m[1].trim());
+    }
+    return [...out.entries()];
+  }
+
+  async function viewWikiPage(pid, path) {
+    const { token, base } = await projectHead(pid, path);
+    const r = await api(`projects/${encodeURIComponent(pid)}/wiki/page?path=${encodeURIComponent(path)}`, { token });
+    if (r.status !== 200) { render(el("section", { class: "card" }, alertBox("bad", errorText(r)), el("a", { href: `${base}/w` }, "위키 목록"))); return; }
+    const pg = r.data;
+    const links = wikiLinks(path, pg.body);
+    render(el("section", { class: "card" },
+      el("div", { class: "row" }, el("h1", { class: "mono" }, pg.path), pg.generated ? chip("생성물", "planned") : chip(`v${pg.version}`, "planned")),
+      pg.generated ? null : el("div", { class: "row muted" }, `${pg.updated_by || "—"} · `, when(pg.updated_at),
+        pg.source && pg.source.sha ? el("span", { class: "mono" }, ` · 출처 ${pg.source.repo_key || ""}@${pg.source.sha.slice(0, 12)}`) : null),
+      el("pre", { class: "wiki" }, pg.body),
+      links.length ? el("div", {}, el("h2", {}, "이 페이지가 가리키는 위키 페이지"),
+        el("ul", {}, links.map(([target, label]) => el("li", {}, el("a", { href: pageHref(base, target) }, label), " ",
+          el("span", { class: "mono muted" }, target))))) : null,
+      el("a", { href: `${base}/w` }, "← 위키 목록")));
   }
 
   // --- 화면: task 상세 · 결정 답 ------------------------------------------------------
@@ -430,6 +573,9 @@
         if (parts[2] === "t" && parts[3]) return await viewTask(parts[1], parts[3]);
         if (parts[2] === "events") return await viewEvents(parts[1]);
         if (parts[2] === "c" && parts[3]) return await viewCallsign(parts[1], parts[3]);
+        if (parts[2] === "guide") return await viewGuide(parts[1]);
+        if (parts[2] === "w") return await viewWiki(parts[1], parts[3] === "q" ? parts[4] : "");
+        if (parts[2] === "wp" && parts[3]) return await viewWikiPage(parts[1], parts[3]);
         return await viewProject(parts[1], parts[2] === "s" ? parts[3] : "");
       }
       return await viewProjects();

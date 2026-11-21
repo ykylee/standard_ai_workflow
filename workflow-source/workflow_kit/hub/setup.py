@@ -289,6 +289,10 @@ class Setup:
         with self.store.write() as conn:
             if not conn.execute("SELECT 1 FROM project WHERE id = ?", (project_id,)).fetchone():
                 raise HubError(404, "not_found", f"프로젝트가 없다: {project_id}")
+            from workflow_kit.hub.guide import check_renderable
+
+            display = conn.execute("SELECT display_name FROM project WHERE id = ?", (project_id,)).fetchone()["display_name"]
+            check_renderable(project_id, display, body)  # 예산을 넘는 판은 세우지 않는다 (R7.2)
             row = conn.execute("SELECT MAX(version) AS v FROM guide WHERE project_id = ?", (project_id,)).fetchone()
             ver = (row["v"] or 0) + 1
             conn.execute("INSERT INTO guide (project_id, version, body_md, updated_by, updated_at) VALUES (?, ?, ?, ?, ?)",

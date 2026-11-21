@@ -114,6 +114,12 @@ class Wiki:
         assert pid is not None
         return pid
 
+    def _read_pid(self, ctx: Ctx) -> str:
+        """읽기 전용 입구 (get · list · search) — 화면의 viewer 도 받는다 (hub_spec §4.7)."""
+        pid = self.store._need_reader(ctx).project_id
+        assert pid is not None
+        return pid
+
     # --- 쓰기 -------------------------------------------------------------------
 
     def ingest(self, ctx: Ctx, pages: list[Any], summary: str, request_id: str | None = None) -> dict[str, Any]:
@@ -223,7 +229,7 @@ class Wiki:
             "SELECT id, callsign, at, log_line, pages_json FROM wiki_ingest WHERE project_id = ? ORDER BY seq", (pid,))]
 
     def get(self, ctx: Ctx, path: str) -> dict[str, Any]:
-        pid = self._pid(ctx)
+        pid = self._read_pid(ctx)
         with self.store.read() as conn:
             if path == "index.md":
                 return {"path": path, "generated": True, "body": render_index([r["path"] for r in self._pages(conn, pid)])}
@@ -240,7 +246,7 @@ class Wiki:
                 "source": {"repo_key": row["source_repo_key"], "sha": row["source_sha"]}}
 
     def list_pages(self, ctx: Ctx, prefix: str = "") -> dict[str, Any]:
-        pid = self._pid(ctx)
+        pid = self._read_pid(ctx)
         with self.store.read() as conn:
             rows = [r for r in self._pages(conn, pid) if r["path"].startswith(prefix or "")]
         return {"pages": [{"path": r["path"], "title": page_title(r["path"], r["body_md"]), "version": r["version"],
@@ -248,7 +254,7 @@ class Wiki:
                 "generated": list(GENERATED)}
 
     def search(self, ctx: Ctx, query: str, limit: int = 20) -> dict[str, Any]:
-        pid = self._pid(ctx)
+        pid = self._read_pid(ctx)
         if not isinstance(query, str) or not query.strip():
             raise invalid_field("query", "비었다")
         words = [w.lower() for w in query.split()]

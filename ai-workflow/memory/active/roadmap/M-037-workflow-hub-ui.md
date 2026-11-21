@@ -2,7 +2,7 @@
 id: M-037
 title: 2.0 허브 — implementation 5: 허브 화면 (워크벤치 확장)
 sdlc_phase: implementation
-status: in_progress
+status: done
 order: 37
 parallel_allowed:
   - M-007

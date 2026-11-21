@@ -241,10 +241,28 @@ CREATE TABLE memory_entry (
 );
 """
 
+#: 판 7 (M-037 WBS-37.3) — 지침 제안 (hub_spec §3.3 · §6.5, 요구 R7.5 · R7.7 · D11).
+_V7 = """
+CREATE TABLE guide_proposal (
+    project_id TEXT NOT NULL REFERENCES project(id),
+    id TEXT NOT NULL,
+    base_version INTEGER NOT NULL,
+    body_md TEXT NOT NULL,
+    note TEXT NOT NULL DEFAULT '',
+    proposed_by TEXT NOT NULL,
+    proposed_at TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('open', 'approved', 'rejected')),
+    decided_by TEXT,
+    decided_at TEXT,
+    applied_version INTEGER,
+    PRIMARY KEY (project_id, id)
+);
+"""
+
 #: 판 순서 = 목록 순서. 판 n = ``MIGRATIONS[n-1]`` (SQL 스크립트).
 #: ``executescript`` 는 열린 트랜잭션을 먼저 커밋하므로, 판 하나의 원자성은
 #: 스크립트 **안의** ``BEGIN IMMEDIATE … COMMIT`` 으로 만든다 (:func:`_apply`).
-MIGRATIONS: list[str] = [_V1, _V2, _V3, _V4, _V5, _V6]
+MIGRATIONS: list[str] = [_V1, _V2, _V3, _V4, _V5, _V6, _V7]
 
 
 def latest_version() -> int:

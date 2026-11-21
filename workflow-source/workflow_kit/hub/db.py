@@ -4,7 +4,7 @@
 ``<db>.pre-v<n>-<시각>`` 으로 남긴다. DB 판이 허브가 아는 최신보다 크면 열기를
 거절한다 (``db_newer_than_hub``).
 
-M-033 은 판 1 — 등록 · 콜사인 · task · 이력 표만 만든다. handoff · 지침 · 위키 ·
+M-033 은 판 1 — 등록 · 콜사인 · task · 이력 표. M-034 는 판 2 — 지침 · 셋업 단계. handoff · 지침 · 위키 ·
 로드맵 표는 그 마일스톤이 새 판으로 더한다 (이관 경로가 실제로 쓰이게).
 """
 
@@ -119,10 +119,38 @@ CREATE TABLE applied_request (
 """
 
 
+#: 판 2 (M-034) — 프로젝트 지침 판 · 부트스트랩 셋업 단계 (hub_spec §3.3 · §6.1 · §6.5).
+_V2 = """
+CREATE TABLE guide (
+    project_id TEXT NOT NULL REFERENCES project(id),
+    version INTEGER NOT NULL,
+    body_md TEXT NOT NULL,
+    updated_by TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (project_id, version)
+);
+CREATE TABLE setup_step (
+    project_id TEXT NOT NULL,
+    callsign TEXT NOT NULL,
+    step_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    path TEXT NOT NULL DEFAULT '',
+    sha256 TEXT NOT NULL DEFAULT '',
+    guide_version TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL CHECK (status IN ('issued', 'confirmed', 'unconfirmed')),
+    detail TEXT NOT NULL DEFAULT '',
+    issued_at TEXT NOT NULL,
+    confirmed_at TEXT,
+    PRIMARY KEY (project_id, callsign, step_id),
+    FOREIGN KEY (project_id, callsign) REFERENCES callsign(project_id, id)
+);
+ALTER TABLE callsign ADD COLUMN setup_complete INTEGER NOT NULL DEFAULT 0;
+"""
+
 #: 판 순서 = 목록 순서. 판 n = ``MIGRATIONS[n-1]`` (SQL 스크립트).
 #: ``executescript`` 는 열린 트랜잭션을 먼저 커밋하므로, 판 하나의 원자성은
 #: 스크립트 **안의** ``BEGIN IMMEDIATE … COMMIT`` 으로 만든다 (:func:`_apply`).
-MIGRATIONS: list[str] = [_V1]
+MIGRATIONS: list[str] = [_V1, _V2]
 
 
 def latest_version() -> int:
@@ -181,7 +209,7 @@ def open_db(path: Path, *, now: datetime) -> list[Path]:
         )
     copies: list[Path] = []
     for n in range(current + 1, latest + 1):
-        if current > 0 or n > 1:
+        if current > 0:  # 새 DB 는 사본이 필요 없다 — 지킬 데이터가 없다
             stamp = now.strftime("%Y%m%dT%H%M%SZ")
             copy = path.with_name(f"{path.name}.pre-v{n}-{stamp}")
             backup(path, copy)

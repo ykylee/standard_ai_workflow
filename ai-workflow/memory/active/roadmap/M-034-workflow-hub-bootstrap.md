@@ -2,7 +2,7 @@
 id: M-034
 title: 2.0 허브 — implementation 2: 부트스트랩 · 공유 지침 · 세션 시작 확인
 sdlc_phase: implementation
-status: planned
+status: done
 order: 34
 parallel_allowed:
   - M-007

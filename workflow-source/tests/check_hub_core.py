@@ -342,7 +342,8 @@ def case_4_to_10(tmp: Path) -> None:
         mcp_list = res_auth[0][1]
         _, ev_mcp, _ = hub.call("hub_events", {"target_kind": "task", "target_id": id1}, tok_a)
         last = ev_mcp["events"][-1] if ev_mcp.get("events") else {}
-        ok9 = (names_anon == boot and len(boot) == 3 and res_anon[0][0] is True
+        ok9 = (names_anon == boot and 0 < len(boot) < len(full) and all(hubtools.TOOLS[n].bundle == "bootstrap" for n in names_anon)
+               and res_anon[0][0] is True
                and (res_anon[0][1] or {}).get("error_code") == "unauthorized"
                and names_auth == full
                and [t["id"] for t in mcp_list["tasks"]] == [t["id"] for t in http_list["tasks"]]

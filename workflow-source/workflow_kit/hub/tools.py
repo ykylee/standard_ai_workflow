@@ -15,6 +15,8 @@ from dataclasses import dataclass
 from typing import Any, Callable
 
 from workflow_kit.hub.errors import HubError, invalid_field, unauthorized, unknown_field
+from workflow_kit.hub.session import SessionStart
+from workflow_kit.hub.setup import Setup
 from workflow_kit.hub.store import Ctx, Store, scan_secrets
 
 Handler = Callable[[Store, Ctx, dict[str, Any]], dict[str, Any]]
@@ -22,6 +24,7 @@ Handler = Callable[[Store, Ctx, dict[str, Any]], dict[str, Any]]
 _STR = {"type": "string"}
 _INT = {"type": "integer"}
 _OBJ = {"type": "object"}
+_ARR = {"type": "array"}
 _REQ_ID = {"type": "string", "description": "멱등 키 — 같은 값으로 다시 보내면 처음 결과를 돌려준다"}
 
 
@@ -82,6 +85,26 @@ def _register_callsign(store: Store, ctx: Ctx, a: dict[str, Any]) -> dict[str, A
     return store.register_callsign(ctx, a["project_id"], a["callsign"], a["kind"], a.get("label", ""), a.get("host", ""))
 
 
+def _setup(ctx: Ctx, store: Store) -> Setup:
+    return Setup(store, ctx.public_url)
+
+
+def _setup_plan(store: Store, ctx: Ctx, a: dict[str, Any]) -> dict[str, Any]:
+    return _setup(ctx, store).plan(ctx, a["project_id"], a["token"], a["harnesses"], a.get("scan") or {})
+
+
+def _setup_confirm(store: Store, ctx: Ctx, a: dict[str, Any]) -> dict[str, Any]:
+    return _setup(ctx, store).confirm(ctx, a["project_id"], a["token"], a.get("files") or [], a.get("checks") or [])
+
+
+def _guide_render(store: Store, ctx: Ctx, a: dict[str, Any]) -> dict[str, Any]:
+    return _setup(ctx, store).guide_render(ctx, a["harness"], a.get("current"))
+
+
+def _session_start(store: Store, ctx: Ctx, a: dict[str, Any]) -> dict[str, Any]:
+    return SessionStart(_setup(ctx, store)).run(ctx, a.get("repo_results"))
+
+
 def _whoami(store: Store, ctx: Ctx, a: dict[str, Any]) -> dict[str, Any]:
     p = ctx.principal
     assert p is not None
@@ -118,6 +141,22 @@ TOOLS: dict[str, ToolSpec] = {
                  "등록된 프로젝트에 콜사인으로 합류한다 — 토큰을 이 응답에서 한 번만 받는다. human 은 소유자 승인 전 agent 권한.",
                  {"project_id": _STR, "callsign": _STR, "kind": _STR, "label": _STR, "host": _STR},
                  ("project_id", "callsign", "kind"), _register_callsign),
+        ToolSpec("hub_setup_plan", "bootstrap",
+                 "셋업 쓰기 지시 — .gitignore 확인 전에는 토큰 파일 지시가 나오지 않는다. token 은 등록 응답의 것 (DS4). "
+                 "harnesses: claude-code · codex · minimax-code · antigravity. scan.files: 경로 → 지금 내용(없으면 null) — "
+                 ".gitignore · 진입 파일 · .mcp.json.",
+                 {"project_id": _STR, "token": _STR, "harnesses": _ARR, "scan": _OBJ},
+                 ("project_id", "token", "harnesses"), _setup_plan),
+        ToolSpec("hub_setup_confirm", "bootstrap",
+                 "쓴 파일의 sha256 · 명령 결과를 대조해 셋업 단계를 확인한다. files: [{path, sha256}], checks: [{name, rc, output}].",
+                 {"project_id": _STR, "token": _STR, "files": _ARR, "checks": _ARR},
+                 ("project_id", "token"), _setup_confirm),
+        ToolSpec("hub_session_start", "token",
+                 "세션 시작 확인 — 인자 없이 부르면 허브 쪽 결과와 저장소에서 돌릴 명령, repo_results 를 실어 다시 부르면 판정.",
+                 {"repo_results": _OBJ}, (), _session_start),
+        ToolSpec("hub_guide_render", "token",
+                 "하네스 진입 파일의 새 내용 (렌더 영역 갱신). current = 지금 파일 내용 (없으면 생략). 로컬에서 고친 영역이면 blocked.",
+                 {"harness": _STR, "current": _STR}, ("harness",), _guide_render),
         ToolSpec("hub_whoami", "token", "이 토큰의 프로젝트 · 콜사인 · 권한.", {}, (), _whoami),
         ToolSpec("hub_task_list", "token", "task 목록 (status · assignee 로 거른다, assignee='' 는 맡은 이 없음).",
                  {"status": _STR, "assignee": _STR, "limit": _INT}, (),
@@ -164,5 +203,7 @@ def call(store: Store, name: str, args: dict[str, Any], ctx: Ctx) -> dict[str, A
         if ctx.principal.kind != "callsign":
             raise HubError(403, "forbidden", "이 도구는 콜사인 토큰이 필요하다 (web · admin 토큰은 쓸 수 없다)")
     clean = validate_args(spec, args)
-    scan_secrets(clean)  # 모든 도구 인자 — 기록에 토큰이 실리지 않게 (hub_spec §1-4)
+    # 모든 도구 인자 — 기록에 토큰이 실리지 않게 (hub_spec §1-4). 셋업 도구의 인자 ``token`` 은
+    # 인증 수단이라 검사에서 뺀다 (DS4) — 기록에는 쓰지 않는다.
+    scan_secrets({k: v for k, v in clean.items() if k != "token"})
     return spec.handler(store, ctx, clean)

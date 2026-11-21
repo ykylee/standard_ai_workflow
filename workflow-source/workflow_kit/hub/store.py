@@ -75,6 +75,8 @@ class Ctx:
     via: str
     principal: Principal | None = None
     client_version: str | None = None
+    #: 허브의 공개 주소 (hub_spec §2.1) — 셋업 지시 · 안내가 이 값에서 나온다.
+    public_url: str = ""
 
 
 def _iso(now: datetime) -> str:

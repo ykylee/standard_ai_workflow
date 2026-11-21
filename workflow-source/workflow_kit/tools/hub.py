@@ -5,6 +5,7 @@
     hub admin  --db PATH token issue --role {web,admin} --name NAME
     hub admin  --db PATH token revoke --name NAME
     hub admin  --db PATH callsign revoke --project ID --callsign NAME
+    hub admin  --db PATH guide set --project ID --file PATH [--actor NAME]
 
 ``admin`` 은 DB 파일에 직접 접근하는 로컬 명령이다 — 네트워크로 열지 않는다.
 허브 쪽 의존(``mcp`` · ASGI 서버)은 ``workflow_kit[hub]`` 로 깐다 (DS1).
@@ -54,6 +55,12 @@ def _parser() -> argparse.ArgumentParser:
     ti.add_argument("--name", required=True)
     tr = tsub.add_parser("revoke")
     tr.add_argument("--name", required=True)
+    gd = asub.add_parser("guide")
+    gsub = gd.add_subparsers(dest="action", required=True)
+    gs = gsub.add_parser("set", help="프로젝트 지침 새 판 (제안 · 승인 흐름은 M-037)")
+    gs.add_argument("--project", required=True)
+    gs.add_argument("--file", required=True, type=Path)
+    gs.add_argument("--actor", default="hub-admin")
     cs = asub.add_parser("callsign")
     csub = cs.add_subparsers(dest="action", required=True)
     cr = csub.add_parser("revoke")
@@ -89,6 +96,12 @@ def main(argv: list[str] | None = None) -> int:
             elif args.what == "token":
                 store.revoke_hub_token(args.name, now)
                 print(json.dumps({"status": "ok", "revoked": args.name}, ensure_ascii=False))
+            elif args.what == "guide":
+                from workflow_kit.hub.setup import Setup
+
+                out = Setup(store, "").set_guide(Ctx(now=now, via="admin"), args.project,
+                                                 args.file.read_text(encoding="utf-8"), args.actor)
+                print(json.dumps({"status": "ok", **out}, ensure_ascii=False))
             else:
                 out = store.revoke_callsign(Ctx(now=now, via="admin"), args.project, args.callsign)
                 print(json.dumps({"status": "ok", **out}, ensure_ascii=False))

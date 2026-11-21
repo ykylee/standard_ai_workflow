@@ -174,7 +174,7 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 | `hub_project_lookup` | `remote_url` | `{key, project_id \| null, display_name}` |
 | `hub_project_register` | `remote_url` · `display_name` · `callsign` · `kind` · `label` · `host` | `{project_id, callsign, token}` — 토큰은 **이 응답에서 한 번만**. 등록자 = `owner`, `human` 바로 승인 (Q3) |
 | `hub_callsign_register` | `project_id` · `callsign` · `kind` · `label` · `host` | `{callsign, token, human_pending}` — `human` 은 소유자 승인 전 `agent` 권한 (Q3) |
-| `hub_setup_plan` | `project_id` · `token` · `harnesses[]` · `scan` (§6.1 의 목록 결과) | `{steps: [쓰기 지시 …], migration: null \| 전환 계획}` (§6.1) |
+| `hub_setup_plan` | `project_id` · `token` · `harnesses[]` · `scan` (`{files: {경로: 지금 내용 \| null}}` — `.gitignore` · `.mcp.json` · 진입 파일) | `{stage, steps: [쓰기 지시 …], blocked: […]}` — `stage` 는 `gitignore` → `files` (§6.1). 1.x 전환 계획은 M-038 |
 | `hub_setup_confirm` | `project_id` · `token` · `files: [{path, sha256}]` · `checks: [{name, output}]` | `{confirmed[], unconfirmed[], next_steps[]}` (R2.4) |
 
 **등록 직후 토큰 (DS4)** — 하네스의 MCP 연결은 등록 전에 만들어져 헤더 토큰이 없다. 그래서 부트스트랩 묶음의 셋업 도구는 인자 `token` 을 받는다. 다른 묶음은 **헤더 토큰만** 받는다 — 셋업이 끝나 하네스가 환경 변수 참조로 다시 연결한 뒤에야 보인다.
@@ -242,7 +242,7 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 
 `hub_session_start` 는 두 번 부른다.
 
-1. 인자 없이 → `{hub: {…}, repo_check: {commands: [...], rules: [...]}, outbox_hint}`. 허브 쪽 결과: 지침 판(바뀌면 `[바뀜]` 과 렌더 지시) · 클라이언트 · 규칙 판 · 내 handoff · 내 task (진행 한 줄 포함) · 맡은 이 없는 열린 task · 대기 중 결정 응답. 저장소 쪽 명령: `git fetch`, `git status --porcelain=v2 --branch`, `git rev-parse HEAD @{u}`, 기본 브랜치 머리, `git check-ignore -v .workflow-hub/env`, 진입 파일 머리 줄.
+1. 인자 없이 → `{hub: {…}, repo_check: {commands: [...], rules: [...]}, outbox_hint}`. 허브 쪽 결과: 지침 판(바뀌면 `[바뀜]` 과 렌더 지시) · 클라이언트 · 규칙 판 · 내 handoff · 내 task (진행 한 줄 포함) · 맡은 이 없는 열린 task · 대기 중 결정 응답. 저장소 쪽 명령 (`hub/session.py` 가 정본): `git fetch --prune`, `git status --porcelain=v2 --branch` (앞섬 · 뒤처짐은 `# branch.ab` 줄에서), `git rev-parse --abbrev-ref origin/HEAD`, `git check-ignore -v .workflow-hub/env`, 셋업한 진입 파일마다 `git grep --no-index -h -e workflow-hub:begin -- <파일>`, 내 task 에 묶인 커밋마다 `git cat-file -e <sha>^{commit}`. 명령 결과는 `{이름: {rc, output}}` — 요청하지 않은 이름은 거절한다.
 2. `repo_results` 를 실어 다시 → 대조 보고: 뒤처짐 → 'fast-forward 후 시작' · 갈라짐 / 미커밋 변경 → **'멈추고 묻기'** · `.gitignore` 규칙 빠짐 → 경고 · 내 task 의 묶인 sha 가 저장소에 없음 → 보고 (R10.4).
 3. 보고는 `confirmed[]` 와 `unconfirmed[]` 를 나눈다. 두 번째 호출이 없으면 저장소 항목은 전부 `unconfirmed` 다 (R10.3).
 4. 허브에 닿지 않으면 도구 자체가 없다 — 표준 규칙 층의 지침이 "허브 미확인 · 캐시(있으면)로 연다" 를 말하고, 선택 클라이언트가 있으면 캐시 · 보낼편지함 건수로 보고한다 (R12.1 · R12.3).

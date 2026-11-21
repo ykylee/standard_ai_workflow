@@ -79,7 +79,7 @@
   - path: [`./M-032-workflow-hub-design.md`](./M-032-workflow-hub-design.md)
 - **M-033** [implementation] 2.0 허브 — implementation 1: 허브 코어 (서버 · SQLite · 프로젝트 · 콜사인 · task · 이력 · 원격 MCP 골격) — status: done
   - path: [`./M-033-workflow-hub-core.md`](./M-033-workflow-hub-core.md)
-- **M-034** [implementation] 2.0 허브 — implementation 2: 부트스트랩 · 공유 지침 · 세션 시작 확인 — status: planned
+- **M-034** [implementation] 2.0 허브 — implementation 2: 부트스트랩 · 공유 지침 · 세션 시작 확인 — status: done
   - path: [`./M-034-workflow-hub-bootstrap.md`](./M-034-workflow-hub-bootstrap.md)
 - **M-035** [implementation] 2.0 허브 — implementation 3: 콜사인별 기억 · 로드맵 · 판정 — status: planned
   - path: [`./M-035-workflow-hub-memory.md`](./M-035-workflow-hub-memory.md)

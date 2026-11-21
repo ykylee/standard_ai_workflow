@@ -20,7 +20,7 @@ from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
 from starlette.applications import Starlette
 from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
-from starlette.responses import JSONResponse, Response
+from starlette.responses import HTMLResponse, JSONResponse, Response
 from starlette.routing import Route
 from starlette.types import Receive, Scope, Send
 
@@ -78,7 +78,7 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
             spec = hubtools.TOOLS.get(name)
             if sent and principal is None and spec is not None and spec.bundle != "bootstrap":
                 raise HubError(401, "unauthorized", "토큰이 틀렸거나 거둔 토큰이다")
-            ctx = Ctx(now=clock(), via="mcp", principal=principal)
+            ctx = Ctx(now=clock(), via="mcp", principal=principal, public_url=public_url)
             return hubtools.call(store, name, arguments or {}, ctx)
 
         try:
@@ -102,6 +102,15 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
 
         async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
             await manager.handle_request(scope, receive, send)
+
+    async def guide_page(request: Request) -> Response:
+        from workflow_kit.hub.guide_page import render_page
+
+        return HTMLResponse(render_page(public_url), headers={
+            **_hub_headers(store),
+            "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'",
+            "Referrer-Policy": "same-origin",
+        })
 
     async def healthz(request: Request) -> Response:
         return JSONResponse(
@@ -133,7 +142,7 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
                 if token and principal is None and spec is not None and spec.bundle != "bootstrap":
                     raise HubError(401, "unauthorized", "토큰이 틀렸거나 거둔 토큰이다")
                 ctx = Ctx(now=now, via="http", principal=principal,
-                          client_version=request.headers.get("x-hub-client"))
+                          client_version=request.headers.get("x-hub-client"), public_url=public_url)
                 return hubtools.call(store, name, args, ctx)
 
             result = await run_in_threadpool(run)
@@ -148,6 +157,7 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
 
     return Starlette(
         routes=[
+            Route("/", guide_page, methods=["GET"]),
             Route("/healthz", healthz, methods=["GET"]),
             Route("/v1/tools/{name}", tool_http, methods=["POST"]),
             Route("/mcp", _McpEndpoint(), methods=["GET", "POST", "DELETE"]),

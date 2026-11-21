@@ -1292,38 +1292,44 @@
       "id": "M-034",
       "title": "2.0 허브 — implementation 2: 부트스트랩 · 공유 지침 · 세션 시작 확인",
       "sdlc_phase": "implementation",
-      "declared_status": "planned",
-      "derived_status": "planned",
-      "progress": 0.0,
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
       "total_leaves": 3,
-      "done_leaves": 0,
+      "done_leaves": 3,
       "deliverables_missing": [],
       "wbs": [
         {
           "id": "WBS-34.1",
           "title": "부트스트랩 흐름 — 등록 · 합류 · `.gitignore` 확인 (H9) · 쓸 파일 + 해시 반환 · 확인 도구 (I1)",
-          "derived_status": "planned",
-          "linked_task_ids": [],
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-21-claude-workflow-hub-concept-006"
+          ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         },
         {
           "id": "WBS-34.2",
           "title": "지침 — 표준 규칙(허브판) · 프로젝트 지침 · 하네스 어댑터 렌더링 · 판 · 로컬 수정 감지",
-          "derived_status": "planned",
-          "linked_task_ids": [],
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-21-claude-workflow-hub-concept-007"
+          ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         },
         {
           "id": "WBS-34.3",
           "title": "세션 시작 확인 — 허브 상태 + 저장소 대조 보고 (H11) · 하네스별 MCP 등록 안내 (I4)",
-          "derived_status": "planned",
-          "linked_task_ids": [],
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-21-claude-workflow-hub-concept-008"
+          ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         }
       ]

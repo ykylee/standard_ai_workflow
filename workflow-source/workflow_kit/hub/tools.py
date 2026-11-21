@@ -20,6 +20,7 @@ from workflow_kit.hub.memory import Memory
 from workflow_kit.hub.session import SessionStart
 from workflow_kit.hub.setup import Setup
 from workflow_kit.hub.store import Ctx, Store, scan_secrets
+from workflow_kit.hub.wiki import Wiki
 
 Handler = Callable[[Store, Ctx, dict[str, Any]], dict[str, Any]]
 
@@ -221,6 +222,20 @@ TOOLS: dict[str, ToolSpec] = {
                  lambda s, c, a: Judge(s).roadmap_put(c, a["path"], a.get("expected_version"), a["body"])),
         ToolSpec("hub_roadmap_state", "token", "로드맵 진척 (roadmap_state v1 형식) — 산출물 존재는 미측정.", {}, (),
                  lambda s, c, a: Judge(s).roadmap_state(c)),
+        ToolSpec("hub_wiki_ingest", "token",
+                 "위키 ingest — 페이지 묶음 [{path, body | delete:true, expected_version(새 페이지 0)}] 을 한 번에 쓴다. "
+                 "한 페이지라도 version 이 다르면 묶음 전체 409 (부분 반영 0). log 항목은 허브가 만든다. index.md · log.md 는 생성물이라 쓸 수 없다.",
+                 {"pages": _ARR, "summary": _STR, "request_id": _REQ_ID}, ("pages", "summary"),
+                 lambda s, c, a: Wiki(s).ingest(c, a["pages"], a["summary"], a.get("request_id"))),
+        ToolSpec("hub_wiki_get", "token", "위키 페이지 하나 (index.md · log.md 는 생성해서 돌려준다).",
+                 {"path": _STR}, ("path",), lambda s, c, a: Wiki(s).get(c, a["path"])),
+        ToolSpec("hub_wiki_list", "token", "위키 페이지 목록 (경로 · 제목 · version). prefix 로 좁힌다.",
+                 {"prefix": _STR}, (), lambda s, c, a: Wiki(s).list(c, a.get("prefix", ""))),
+        ToolSpec("hub_wiki_search", "token", "위키 검색 — 낱말이 모두 들어간 페이지 (경로 · 제목 · 본문).",
+                 {"query": _STR, "limit": _INT}, ("query",), lambda s, c, a: Wiki(s).search(c, a["query"], a.get("limit", 20))),
+        ToolSpec("hub_wiki_lint", "token",
+                 "위키 lint — 1.x 와 같은 함수로 정위치(V-1) · index 구조(V-4), 깨진 위키 링크. 저장소 참조 · freshness 는 미측정 (원격 읽기 전).",
+                 {}, (), lambda s, c, a: Wiki(s).lint(c)),
         ToolSpec("hub_task_claim", "token", "task 를 맡는다 — 다른 콜사인이 맡고 있으면 409.",
                  {"id": _STR, "request_id": _REQ_ID}, ("id",),
                  lambda s, c, a: s.task_claim(c, a["id"], a.get("request_id"))),

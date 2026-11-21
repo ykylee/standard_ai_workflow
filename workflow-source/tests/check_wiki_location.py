@@ -39,18 +39,11 @@ def _find_first_file(root: Path) -> Path | None:
 
 
 def _check_canonical_location() -> list[str]:
-    errors: list[str] = []
-    if not CANONICAL_WIKI_ROOT.exists():
-        errors.append(
-            f"Canonical wiki directory missing: {CANONICAL_WIKI_ROOT} "
-            "(R1 requires ai-workflow/wiki/)"
-        )
-    if not CANONICAL_INDEX.exists():
-        errors.append(
-            f"Canonical wiki index missing: {CANONICAL_INDEX} "
-            "(R1 requires ai-workflow/wiki/index.md)"
-        )
-    return errors
+    # 정위치 판정 본체는 패키지 하나 — 허브 lint 와 같은 함수 (요구 R8.3 · E2). 금지 위치는 저장소 규칙이라 여기에만.
+    if str(SOURCE_ROOT) not in sys.path:
+        sys.path.insert(0, str(SOURCE_ROOT))
+    from workflow_kit.common.wiki_rules import check_canonical_location
+    return check_canonical_location(CANONICAL_WIKI_ROOT)
 
 
 def _check_no_duplicates() -> list[str]:

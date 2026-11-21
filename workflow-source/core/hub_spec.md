@@ -47,6 +47,7 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 | `judge.py` | 1.x 판정 함수의 데이터 입구 (아래 표) |
 | `render.py` | 지침 렌더링 — 1.x 진입 파일 생성기(`bootstrap_lib/harnesses`) 재사용 |
 | `gitkey.py` | git 주소 정규화 (§3.2) |
+| `wiki.py` | 위키 페이지 · ingest 묶음 · index/log 생성 · 읽기 · lint (§6.7) — 판정은 `common/wiki_rules.py` (1.x 검사와 공유) |
 | `migrate1x.py` | 1.x 감지 · 들여오기 매핑 (§6.6) |
 | `export.py` | git 내보내기 (R15) |
 | `client/hub_client.py` | 선택 클라이언트 원문 (표준 라이브러리만, `/v1/bootstrap` 이 내려준다) |
@@ -108,8 +109,8 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 | `guide` | `project_id` · `version` · `body_md` · `updated_by` · `updated_at` | `(project_id, version)` — 판마다 한 줄 | R7.1 · R7.4 |
 | `guide_proposal` | `project_id` · `id` · `base_version` · `body_md` · `proposed_by` · `status` (`open`/`approved`/`rejected`) · `decided_by` · `decided_at` | — | R7.5 · R7.7 |
 | `roadmap_doc` | `project_id` · `path` (`index.md` · `M-NNN-*.md`) · `body_md` · `version` | `(project_id, path)` | R9.1 |
-| `wiki_page` | `project_id` · `path` · `body_md` · `source_repo_key` · `source_sha` · `version` · `updated_by` · `updated_at` | `(project_id, path)` | R8.1~R8.4 |
-| `wiki_ingest` | `project_id` · `id` · `callsign` · `at` · `log_line` · `pages_json` | — | R8.2 |
+| `wiki_page` | `project_id` · `path` · `body_md` · `source_repo_key` · `source_sha` · `version` · `updated_by` · `updated_at` · `last_ingest` | `(project_id, path)` · `index.md` · `log.md` 는 저장하지 않는다 (생성물) | R8.1~R8.4 |
+| `wiki_ingest` | `project_id` · `id` (`ING-<5자리>`) · `seq` · `callsign` · `at` · `log_line` · `pages_json` | `(project_id, seq)` 유일 — 거절된 묶음은 번호를 먹지 않는다 | R8.2 |
 | `memory_entry` | `project_id` · `id` · `body_json` · `version` | — | R8.1 (E5) |
 | `event` | `seq` (자동 증가) · `project_id` · `at` · `callsign` · `target_kind` · `target_id` · `op` · `before_json` · `after_json` · `via` (`mcp`/`http`/`client`) · `client_version` | 추가만 | R1.5 · R5.10 · R2.7 |
 | `applied_request` | `project_id` · `callsign` · `request_id` · `result_json` · `at` | 유일 | §3.1 |
@@ -189,7 +190,7 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 | 결정 응답 | `hub_plan_respond(task_id, body)` · `hub_plan_status(task_id)` | body = response/1 바이트 그대로 (R5.8) |
 | 지침 | `hub_guide_render(harness)` · `hub_guide_propose(base_version, body)` · `hub_guide_decide(proposal_id, approve)` | `decide` 는 승인된 `human` 만 (R7.7) |
 | 로드맵 | `hub_roadmap_get()` · `hub_roadmap_put(path, expected_version, body)` · `hub_roadmap_state()` | 스키마 오류는 필드 · 제약과 함께 (R9.2) |
-| 위키 | `hub_wiki_search(q)` · `hub_wiki_get(path)` · `hub_wiki_ingest(pages[{path, expected_version, body}], log_line)` · `hub_wiki_lint()` | 묶음 하나 = ingest 하나, 하나라도 409 면 전체 거절 (R8.2) |
+| 위키 | `hub_wiki_search(query, limit?)` · `hub_wiki_get(path)` · `hub_wiki_list(prefix?)` · `hub_wiki_ingest(pages[{path, body \| delete, expected_version}], summary)` · `hub_wiki_lint()` | 묶음 하나 = ingest 하나, 하나라도 409 면 전체 거절 (R8.2). 새 페이지는 `expected_version` 0. `log` 줄 `## [날짜] ingest \| <summary>` 은 허브가 만든다. 페이지 ≤ 192KB · 묶음 ≤ 200 페이지 — 요청 본문 상한(256KB)을 넘는 들여오기는 여러 ingest 로 (M-036 WBS-36.1) |
 | 전환 | `hub_migrate_plan(scan)` · `hub_migrate_import(batch, choices)` · `hub_migrate_report(id)` | §6.6 |
 | 내보내기 | `hub_export(kinds[])` | 쓰기 지시로 1.x 형식 파일 (R15) |
 
@@ -282,7 +283,12 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 
 ### 6.7 위키 lint (요구 R8.3 · 실측 §16.2)
 
-허브가 페이지를 임시 디렉터리에 `ai-workflow/wiki/…` 배치로 펼치고, 경로 인자를 받게 고친 V-4 · 정위치 확인(V-1 의 정위치 부분만) · 점수 함수(coverage · cross_ref · discoverability · lifecycle — 기준 시각 인자) · `bidir_link` 를 돈다. freshness 는 원격 읽기(R8.4)가 켜진 경우만 재고 아니면 '미측정' + 대상 수 0. operational · trend 는 돌지 않는다.
+허브가 페이지를 임시 디렉터리에 `ai-workflow/wiki/…` 배치로 펼치고(생성 `index.md` · `log.md` 포함), 1.x 검사와 **같은 함수** — `workflow_kit/common/wiki_rules.py` 의 `check_canonical_location`(V-1 정위치) · `validate_index`(V-4) — 와 새 lint `classify_wikilinks`(깨진 위키 링크)를 돈다. 1.x `check_wiki_location` · `check_wiki_index_structure` 는 같은 함수를 부르는 얇은 껍데기다 (금지 위치 규칙은 저장소 배치 규칙이라 1.x 검사에만 남는다).
+
+- **위키 링크** `[[대상]]` 은 `<wiki>/<대상>.md` 로 푼다 (코드 펜스 · 인라인 코드 안은 링크가 아니다). `.md` 로 끝나는 대상은 위키 페이지가 아니라 **저장소 참조**로 따로 센다 (이 저장소 위키 527 링크 중 3건 — 깨짐으로 세면 위양성).
+- **index · log 는 생성물** — index 는 첫 디렉터리(SCHEMA 종류)를 절로, anchor 는 파일 이름(겹치면 경로 전체 slug). log 는 ingest 기록에서 오래된 것부터.
+- **미측정** — 저장소 참조 · freshness 는 원격 읽기(R8.4, WBS-36.2) 전이라 `status: unmeasured` (freshness `targets: 0`). 빈 위키는 `ok: null` · `status: empty` — 잴 것이 없음은 통과가 아니다.
+- 점수 함수(coverage · cross_ref · discoverability · lifecycle)와 `bidir_link` 는 WBS-36.2 에서 더한다. operational · trend 는 돌지 않는다.
 
 ## 7. 선택 클라이언트 (요구 R2.7 · R11.3 · R12)
 

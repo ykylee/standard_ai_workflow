@@ -2,7 +2,7 @@
 id: M-036
 title: 2.0 허브 — implementation 4: 위키 · memory_index · 들여오기/내보내기 · 오프라인
 sdlc_phase: implementation
-status: planned
+status: in_progress
 order: 36
 parallel_allowed:
   - M-007

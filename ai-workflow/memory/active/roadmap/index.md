@@ -83,7 +83,7 @@
   - path: [`./M-034-workflow-hub-bootstrap.md`](./M-034-workflow-hub-bootstrap.md)
 - **M-035** [implementation] 2.0 허브 — implementation 3: 콜사인별 기억 · 로드맵 · 판정 — status: done
   - path: [`./M-035-workflow-hub-memory.md`](./M-035-workflow-hub-memory.md)
-- **M-036** [implementation] 2.0 허브 — implementation 4: 위키 · memory_index · 들여오기/내보내기 · 오프라인 — status: planned
+- **M-036** [implementation] 2.0 허브 — implementation 4: 위키 · memory_index · 들여오기/내보내기 · 오프라인 — status: in_progress
   - path: [`./M-036-workflow-hub-wiki.md`](./M-036-workflow-hub-wiki.md)
 - **M-037** [implementation] 2.0 허브 — implementation 5: 허브 화면 (워크벤치 확장) — status: planned
   - path: [`./M-037-workflow-hub-ui.md`](./M-037-workflow-hub-ui.md)

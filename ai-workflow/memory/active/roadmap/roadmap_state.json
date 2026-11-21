@@ -1386,20 +1386,22 @@
       "id": "M-036",
       "title": "2.0 허브 — implementation 4: 위키 · memory_index · 들여오기/내보내기 · 오프라인",
       "sdlc_phase": "implementation",
-      "declared_status": "planned",
-      "derived_status": "planned",
-      "progress": 0.0,
+      "declared_status": "in_progress",
+      "derived_status": "in_progress",
+      "progress": 0.3333333333333333,
       "total_leaves": 3,
-      "done_leaves": 0,
+      "done_leaves": 1,
       "deliverables_missing": [],
       "wbs": [
         {
           "id": "WBS-36.1",
           "title": "위키 페이지 · ingest 묶음 · index/log 생성 · lint (E2)",
-          "derived_status": "planned",
-          "linked_task_ids": [],
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-21-main-001"
+          ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         },
         {
@@ -1574,7 +1576,7 @@
       ]
     }
   ],
-  "current_milestone_id": "M-028",
+  "current_milestone_id": "M-036",
   "exempt_tasks": [
     {
       "task_id": "TASK-2026-08-25-main-010",

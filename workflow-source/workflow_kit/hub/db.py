@@ -199,10 +199,38 @@ CREATE TABLE checkpoint (
 );
 """
 
+#: 판 5 (M-036 WBS-36.1) — 위키 페이지 · ingest 묶음 (hub_spec §3.3, 요구 R8.1 · R8.2).
+#: ``index.md`` · ``log.md`` 는 저장하지 않는다 — 페이지와 ingest 에서 생성한다.
+_V5 = """
+CREATE TABLE wiki_page (
+    project_id TEXT NOT NULL REFERENCES project(id),
+    path TEXT NOT NULL,
+    body_md TEXT NOT NULL,
+    source_repo_key TEXT NOT NULL DEFAULT '',
+    source_sha TEXT NOT NULL DEFAULT '',
+    version INTEGER NOT NULL DEFAULT 1,
+    updated_by TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    last_ingest TEXT NOT NULL,
+    PRIMARY KEY (project_id, path)
+);
+CREATE TABLE wiki_ingest (
+    project_id TEXT NOT NULL REFERENCES project(id),
+    id TEXT NOT NULL,
+    seq INTEGER NOT NULL,
+    callsign TEXT NOT NULL,
+    at TEXT NOT NULL,
+    log_line TEXT NOT NULL,
+    pages_json TEXT NOT NULL,
+    PRIMARY KEY (project_id, id),
+    UNIQUE (project_id, seq)
+);
+"""
+
 #: 판 순서 = 목록 순서. 판 n = ``MIGRATIONS[n-1]`` (SQL 스크립트).
 #: ``executescript`` 는 열린 트랜잭션을 먼저 커밋하므로, 판 하나의 원자성은
 #: 스크립트 **안의** ``BEGIN IMMEDIATE … COMMIT`` 으로 만든다 (:func:`_apply`).
-MIGRATIONS: list[str] = [_V1, _V2, _V3, _V4]
+MIGRATIONS: list[str] = [_V1, _V2, _V3, _V4, _V5]
 
 
 def latest_version() -> int:

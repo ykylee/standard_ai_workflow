@@ -8,6 +8,8 @@ from __future__ import annotations
 WATCHES = (
     "ai-workflow/wiki/*",
     "workflow-source/tests/*",
+    "workflow-source/workflow_kit/*",
+    "workflow-source/pyproject.toml",
 )
 
 import sys

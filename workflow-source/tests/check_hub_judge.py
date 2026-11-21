@@ -227,9 +227,9 @@ def case_6_responses(hub: Hub) -> None:
     tid, ver = _hub_task(hub, tok, PLAN_OPEN)
     other, _ = _hub_task(hub, tok, PLAN_OPEN)
     plan = plan_claims.parse_plan((PLAN_OPEN.splitlines() + [f"- Completion criteria: {c}" for c in CRITERIA]))
-    body = plan_responses.render_response(task_id=tid, plan=plan, responder="owner", received_at="2026-11-21T09:00:00+09:00",
+    body = plan_responses.render_response(task_id=tid, plan=plan, responder="agent-a", received_at="2026-11-21T09:00:00+09:00",
                                           values={"D1": "pg"}, opened={"D1": True})
-    wrong_task = plan_responses.render_response(task_id=other + "-x", plan=plan, responder="owner",
+    wrong_task = plan_responses.render_response(task_id=other + "-x", plan=plan, responder="agent-a",
                                                 received_at="2026-11-21T09:00:00+09:00", values={"D1": "pg"})
     s1, wrong, _ = hub.call("hub_plan_respond", {"task_id": tid, "body": wrong_task}, tok)
     s2, ok_resp, _ = hub.call("hub_plan_respond", {"task_id": tid, "body": body}, tok)
@@ -241,7 +241,7 @@ def case_6_responses(hub: Hub) -> None:
     cur = hub.call("hub_task_get", {"id": other}, tok)[1]["task"]
     hub.call("hub_task_update", {"id": other, "expected_version": cur["version"],
                                   "values": {"plan_md": PLAN_OPEN.replace("1.x 와 같은 판정을 낸다", "같은 판정을 낸다 (고침)")}}, tok)
-    old = plan_responses.render_response(task_id=other, plan=plan, responder="owner", received_at="2026-11-21T09:00:00+09:00",
+    old = plan_responses.render_response(task_id=other, plan=plan, responder="agent-a", received_at="2026-11-21T09:00:00+09:00",
                                          values={"D1": "pg"})
     s4, stale, _ = hub.call("hub_plan_respond", {"task_id": other, "body": old}, tok)
     ok = (s1 == 422 and wrong["detail"]["stage"] == 3 and s2 == 200 and ok_resp.get("duplicate") is False

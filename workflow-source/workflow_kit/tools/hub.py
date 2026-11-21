@@ -1,6 +1,6 @@
 """``python -m workflow_kit hub`` — 워크플로우 허브 (2.0) 서버 명령 (hub_spec §2.1).
 
-    hub serve  --db PATH [--bind 127.0.0.1] [--port 8770] [--public-url URL]
+    hub serve  --db PATH [--bind 127.0.0.1] [--port 8770] [--public-url URL] [--web-token-name NAME]
     hub backup --db PATH --out PATH
     hub admin  --db PATH token issue --role {web,admin} --name NAME
     hub admin  --db PATH token revoke --name NAME
@@ -40,6 +40,8 @@ def _parser() -> argparse.ArgumentParser:
     s.add_argument("--bind", default="127.0.0.1")
     s.add_argument("--port", type=int, default=8770)
     s.add_argument("--public-url", default=None, help="허브의 공개 주소 — 기본은 http://<bind>:<port>")
+    s.add_argument("--web-token-name", default=None,
+                   help="화면 공용 web 토큰 이름 — 주면 토큰 없는 화면 요청이 읽기 · 콜사인 등록 권한으로 돈다 (기본 꺼짐)")
 
     b = sub.add_parser("backup", help="돌고 있는 허브의 DB 를 일관되게 복사한다")
     b.add_argument("--db", required=True, type=Path)
@@ -124,7 +126,12 @@ def main(argv: list[str] | None = None) -> int:
             )
         for c in copies:
             print(f"hub: 이관 전 사본 {c}", file=sys.stderr)
-        app = build_app(store, public_url=public_url, exposure="loopback" if loopback else "non-loopback")
+        if args.web_token_name and store.web_principal(args.web_token_name) is None:
+            print(f"hub: 화면 공용 토큰이 없다: {args.web_token_name} — `hub admin token issue --role web --name …` 로 먼저 발급한다",
+                  file=sys.stderr)
+            return 2
+        app = build_app(store, public_url=public_url, exposure="loopback" if loopback else "non-loopback",
+                        web_token_name=args.web_token_name)
         print(json.dumps({"status": "serving", "url": f"http://{args.bind}:{args.port}", "public_url": public_url,
                           "db_version": store.db_version()}, ensure_ascii=False), flush=True)
         uvicorn.run(app, host=args.bind, port=args.port, log_level="warning")

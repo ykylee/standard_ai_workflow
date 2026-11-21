@@ -79,11 +79,12 @@ def _now() -> datetime:
 
 
 class Hub:
-    def __init__(self, db: Path, bind: str = "127.0.0.1") -> None:
+    def __init__(self, db: Path, bind: str = "127.0.0.1", extra: tuple[str, ...] = ()) -> None:
         self.port = _free_port()
         self.base = f"http://127.0.0.1:{self.port}"
         self.proc = subprocess.Popen(
-            [sys.executable, "-m", "workflow_kit", "hub", "serve", "--db", str(db), "--bind", bind, "--port", str(self.port)],
+            [sys.executable, "-m", "workflow_kit", "hub", "serve", "--db", str(db), "--bind", bind, "--port", str(self.port),
+             *extra],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=_env(), encoding="utf-8", errors="replace",
         )
         deadline = time.time() + 30

@@ -263,6 +263,8 @@ py-modules = ["bootstrap_workflow_kit"]
 workflow_kit = ["README.md", "py.typed", "assets/hooks/*.sh", "assets/reverse-engineering/*.md", "assets/prompts/*.md"]
 # 워크벤치 내장 자원 — 서버가 런타임에 읽는다 (plan_workbench_spec §10).
 "workflow_kit.workbench" = ["static/*.css", "static/*.js"]
+# 허브 화면 정적 자원 — `hub/ui.py` 가 런타임에 읽는다 (hub_spec §4.7).
+"workflow_kit.hub" = ["static/*.html", "static/*.css", "static/*.js", "static/*.svg"]
 
 [tool.setuptools.exclude-package-data]
 "*" = ["__pycache__/*", "*.pyc", "*.pyo"]

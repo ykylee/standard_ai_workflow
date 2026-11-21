@@ -53,8 +53,12 @@ def _hub_headers(store: Store) -> dict[str, str]:
     return {"X-Hub-Kit": KIT_VERSION, "X-Hub-Contract": CONTRACT, "X-Hub-Db": str(store.db_version())}
 
 
-def build_app(store: Store, *, public_url: str, exposure: str = "loopback", clock: Clock = utc_now) -> Starlette:
-    """허브 앱. ``exposure`` 는 healthz 에 싣는 노출 상태 (요구 R13.3)."""
+def build_app(store: Store, *, public_url: str, exposure: str = "loopback", clock: Clock = utc_now,
+              web_token_name: str | None = None) -> Starlette:
+    """허브 앱. ``exposure`` 는 healthz 에 싣는 노출 상태 (요구 R13.3).
+
+    ``web_token_name`` 은 화면 공용 ``web`` 토큰의 이름 — 주면 토큰 없는 화면 요청이 그 권한으로 돈다 (R13.2a, 기본 꺼짐).
+    """
     server: Server[Any, Any] = Server("workflow-hub", version=KIT_VERSION)
 
     def principal_from_mcp() -> tuple[Principal | None, bool]:
@@ -121,7 +125,7 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
     async def healthz(request: Request) -> Response:
         return JSONResponse(
             {"ok": True, "kit_version": KIT_VERSION, "contract": CONTRACT, "db_version": store.db_version(),
-             "exposure": exposure, "public_url": public_url},
+             "exposure": exposure, "public_url": public_url, "web_token": bool(web_token_name)},
             headers=_hub_headers(store),
         )
 
@@ -161,8 +165,14 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
         async with manager.run():
             yield
 
+    from workflow_kit.hub.ui import build_routes
+
+    ui_routes = build_routes(store, clock=clock, web_token_name=web_token_name,
+                             hub_headers=lambda: _hub_headers(store), max_body=MAX_BODY)
+
     return Starlette(
         routes=[
+            *ui_routes,
             Route("/", guide_page, methods=["GET"]),
             Route("/healthz", healthz, methods=["GET"]),
             Route("/v1/bootstrap/hub_client.py", hub_client_source, methods=["GET"]),

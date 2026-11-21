@@ -23,7 +23,7 @@ from workflow_kit.common.planning import determine_conservative_task_status
 from workflow_kit.common.project_docs import task_label
 from workflow_kit.common.schemas.roadmap import Roadmap, RoadmapIssue, TaskWbsLink
 from workflow_kit.common.state import roadmap as rm
-from workflow_kit.hub.errors import HubError, invalid_field
+from workflow_kit.hub.errors import HubError, forbidden, invalid_field
 from workflow_kit.hub.store import Ctx, Store, _iso, _json, scan_secrets
 
 #: 작업 트리가 없다는 표식 — enforce_plan_contract 의 workspace_root 자리 (파일을 열지 않는다).
@@ -246,8 +246,15 @@ class Judge:
     def plan_respond(self, ctx: Ctx, task_id: str, body: str) -> dict[str, Any]:
         p = self.store._need_callsign(ctx)
         pid = p.project_id or ""
+        # 결정에 답하는 것은 승인된 사람 콜사인이고, 응답자는 그 콜사인이다 (소유자 2026-11-21 · 요구 R4.6) —
+        # 에이전트가 자기 계획의 결정을 닫거나 남의 이름으로 답하지 못하게.
+        if p.callsign_kind != "human" or not p.human_approved:
+            raise forbidden("결정 응답은 승인된 human 콜사인만 보낸다")
         data = body.encode("utf-8")
         parsed = plan_responses.parse_response(data)
+        if parsed.responder != p.callsign:
+            raise HubError(403, "forbidden", f"responder 가 이 콜사인({p.callsign})이 아니다: {parsed.responder!r}",
+                           {"field": "responder"})
         with self.store.write() as conn:
             task = self.store._get_task(conn, pid, task_id)
             plan = plan_claims.parse_plan(task_lines(task["plan_md"], task["fields"])[0])
@@ -277,7 +284,7 @@ class Judge:
         return {"task_id": task_id, "accepted": True, "duplicate": False, "task": after, "warnings": warnings}
 
     def plan_status(self, ctx: Ctx, task_id: str) -> dict[str, Any]:
-        p = self.store._need_callsign(ctx)
+        p = self.store._need_reader(ctx)
         pid = p.project_id or ""
         with self.store.read() as conn:
             task = self.store._get_task(conn, pid, task_id)

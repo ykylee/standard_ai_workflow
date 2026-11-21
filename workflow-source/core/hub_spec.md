@@ -27,7 +27,7 @@
 ### 2.1 명령
 
 ```
-python -m workflow_kit hub serve   --db PATH [--bind 127.0.0.1] [--port 8770] [--public-url URL]
+python -m workflow_kit hub serve   --db PATH [--bind 127.0.0.1] [--port 8770] [--public-url URL] [--web-token-name NAME]
 python -m workflow_kit hub backup  --db PATH --out PATH
 python -m workflow_kit hub admin   --db PATH token issue --role {web,admin} --name NAME | token revoke --name NAME
 python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --callsign NAME
@@ -51,6 +51,7 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 | `migrate1x.py` | 1.x 감지 · 들여오기 매핑 (§6.6) |
 | `export.py` | git 내보내기 (R15) |
 | `client/hub_client.py` | 선택 클라이언트 원문 (표준 라이브러리만, `/v1/bootstrap` 이 내려준다) |
+| `ui.py` · `static/` | 허브 화면 — `/ui/` 정적 화면 · `/api/…` JSON (§4.7) |
 
 `judge.py` 가 부르는 1.x 함수와 필요한 손질 (실측 §16.1 — M-033 이 손질한다):
 
@@ -167,6 +168,7 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 | `ignore_not_effective` | 409 | `.gitignore` 확인 실패 — 토큰 지시를 내지 않음 (R4.2) |
 | `unknown_contract` · `client_outdated` | 400 | §4.2 |
 | `payload_too_large` | 413 | 본문 상한 (기본 256KiB, 위키 묶음 2MiB — R13.5) |
+| `unsupported_media_type` | 415 | 화면 `/api` 쓰기의 본문이 `application/json` 이 아니다 (§4.7 — 다른 출처 폼 위조 차단) |
 
 ### 4.4 도구 — 부트스트랩 묶음 (토큰 없이, 요구 R2.3 · R3)
 
@@ -187,7 +189,8 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 | 세션 | `hub_session_start(repo_results?, client?)` · `hub_session_end(handoff, progress[])` · `hub_checkpoint_put(body)` · `hub_compact_resume(summary_ids[])` | §6.2 ~ §6.4 |
 | task | `hub_task_list(filter)` · `hub_task_get(id)` · `hub_task_create(…)` · `hub_task_update(id, expected_version, fields)` · `hub_task_claim(id)` · `hub_task_release(id)` · `hub_task_progress(id, note)` · `hub_task_close(id, expected_version, validation_result)` · `hub_task_link_commit(id, sha, branch)` | 게이트는 `create` · `update` · `close` 에서 (R5.5 · R5.6) |
 | handoff · 상태 | `hub_handoff_get(callsign?)` · `hub_handoff_put(expected_version, sections)` · `hub_state(scope)` | `scope` = `callsign` / `project`, 결과는 `state.json` v1 (R6.3) |
-| 결정 응답 | `hub_plan_respond(task_id, body)` · `hub_plan_status(task_id)` | body = response/1 바이트 그대로 (R5.8) |
+| 결정 응답 | `hub_plan_respond(task_id, body)` · `hub_plan_status(task_id)` | body = response/1 바이트 그대로 (R5.8). **보내는 쪽은 승인된 `human` 콜사인이고 body 의 `responder` 는 그 콜사인** — 아니면 `forbidden` (소유자 2026-11-21 · R4.6: 에이전트가 자기 계획의 결정을 닫거나 남의 이름으로 답하지 못한다) |
+| 콜사인 승인 | `hub_callsign_approve(callsign)` | 승인된 `human` 소유자만. 승인 전 `human` 은 `agent` 권한 (Q3) |
 | 지침 | `hub_guide_render(harness)` · `hub_guide_propose(base_version, body)` · `hub_guide_decide(proposal_id, approve)` | `decide` 는 승인된 `human` 만 (R7.7) |
 | 위키 운반 | `hub_wiki_import_dir(files[{path, content}], summary, overwrite?)` · `hub_wiki_export(format=dir\|okf, out_dir?, cursor?)` · `hub_wiki_import_okf(files, summary)` | 운반 = 1.x 위키 디렉터리 그대로 (R8.6 2026-11-21 결정). 내보내기는 쓰기 지시(§5.1 `op: write` · `sha256`)로 — 허브는 저장소에 쓰지 않는다 (R15.1). 응답 150KB 넘으면 `next_cursor`. `dir` 은 표식 `.hub-export.json` (R15.2) 을 함께 낸다. `okf` 는 출판(손실) — `excluded` (묶음에 없는 페이지 전부) · `excluded_by_error`. 남의 OKF 들여오기는 loose · 한 방향 · 묶음 하나가 요청 상한(256KB) 안 (M-036 WBS-36.3) |
 | memory_index | `hub_memory_entry_put(entry, expected_version)` · `hub_memory_entry_get(id)` · `hub_memory_entry_list()` | 1.x `MemoryEntry` 스키마 · 새 entry 는 0 · 다르면 409 (M-036 WBS-36.2) |
@@ -203,6 +206,28 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 - 화면은 로그인이 없다. 브라우저에서 콜사인을 등록(`hub_callsign_register` 와 같은 함수)해 받은 토큰을 브라우저 저장소 키 `hub:<public_url 호스트>:<project_id>:token` 에 두고 쓰기에 싣는다.
 - 토큰 없는 화면 요청은 허브 설정의 **화면 공용 `web` 토큰**이 켜져 있을 때만 `web` 권한(읽기 · 콜사인 등록)으로 돈다 — `hub serve --web-token-name NAME` 또는 앞단 프록시가 '토큰 없는 요청에만' 머리를 붙인다. **기본 꺼짐.**
 - 화면 응답은 `Content-Security-Policy: default-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'` · `Referrer-Policy: same-origin` (워크벤치 선례). 링크 · API 호출은 상대 경로 (R13.4).
+
+### 4.7 화면 (M-037 WBS-37.1)
+
+**경로** — 모두 §4.6 의 머리(CSP · Referrer-Policy)를 싣는다. 정적 자산은 데이터가 없어 인증 없이 내린다.
+
+| 경로 | 몫 |
+|---|---|
+| `GET /ui` | `307 → ui/` (상대 리다이렉트) |
+| `GET /ui/` · `/ui/hub.js` · `/ui/hub.css` · `/ui/favicon.svg` | 정적 화면 (`hub/static/`) — hash 길(`#/p/<id>` · `#/p/<id>/t/<task>` · `#/p/<id>/events`), DOM 은 textContent 로만 |
+| `GET /api/session` | 이 요청의 주체 (`kind` · 콜사인 · `can_answer`) · 공용 토큰 켜짐 여부 |
+| `GET /api/projects` | 프로젝트 목록 + status 별 task 수 — 콜사인 토큰은 자기 프로젝트 하나 |
+| `GET /api/projects/{id}` · `/tasks` · `/tasks/{task}` · `/events` | 프로젝트 · task 목록(`status` · `assignee`) · task 상세(계획 원문 · 주장 · 결정 상태 · 열린 결정 · 린트 · 그 task 의 이력 · 커밋) · 프로젝트 이력 |
+| `POST /api/projects/{id}/callsigns` | 콜사인 등록 (`hub_callsign_register` 와 같은 함수) — 토큰은 이 응답에서 한 번만 |
+| `POST /api/projects/{id}/tasks/{task}/responses` | 결정 답 `{plan_digest, values{D: v}, opened{D: bool}, comments{대상: 글}}` → 허브가 response/1 본문을 **응답자 = 이 콜사인 · `client: hub-ui`** 로 만들어 `hub_plan_respond` 와 같은 함수에 넘긴다. 지문이 다르면 `version_conflict` 409, 선택지 밖 값은 `invalid_field` 400, 받은 시각은 같은 응답자의 앞선 응답보다 늦게 (워크벤치 §6-6 과 같은 단조 규칙) |
+
+**주체** — 머리 토큰이 있으면 그 토큰(틀리면 401), 없으면 `--web-token-name` 이 켠 공용 `web` 토큰(매 요청 확인 — 거두면 즉시 401), 둘 다 없으면 401. 읽기는 권한 확인 뒤 한 프로젝트로 좁힌 `viewer` 주체로 store 의 읽기 함수를 부른다 — `viewer` 는 도구 입구가 받지 않는다. 콜사인 토큰은 자기 프로젝트만 읽는다(남의 프로젝트 403). 쓰기: 등록은 `web` · 콜사인 · `admin`, 결정 답은 그 프로젝트의 콜사인 토큰(§4.5 규칙 — 승인된 `human`)만, `web` 은 403.
+
+**위조 방지** — 쿠키가 없어 머리 없는 다른 출처 요청은 공용 토큰 권한뿐이다. 그 권한으로 쓸 수 있는 등록까지 막으려고 `/api` 쓰기는 `content-type: application/json` 만 받는다 (다른 출처 폼은 `text/plain` 으로 JSON 을 흉내 낼 수는 있어도 이 머리를 보낼 수 없다) — 아니면 415.
+
+**브라우저 저장소** — 키 `hub:<public_url 호스트>:<project_id>:token` (호스트는 `/healthz` 의 `public_url`). 401 이면 '이 브라우저에서 지운 뒤 다시 등록' 을 안내하고, '이 브라우저에서 콜사인 지우기' 는 토큰이 다시 나오지 않는다는 확인을 받는다. 등록 안내는 다음 화면 머리에 실어 다시 그려도 남는다.
+
+**검증** — `check_hub_ui` (게이트, HTTP): 공용 토큰 꺼짐 401 · 켜짐 읽기 200 / 답 403 / 등록 1회 / 409 / 거두면 401 · 화면 머리 · 상대 경로 · 읽기 범위 · 결정 답 권한(화면 · MCP) · 415 · 409 · 400. 실브라우저 왕복(등록 → 소유자 승인 → 결정 답 → 이력의 콜사인 이름 · 콘솔 오류 0)은 게이트가 아니라 task Proof 의 헤드리스 Chromium 실측이다 (워크벤치 선례).
 
 ## 5. 쓰기 지시 · 렌더 영역
 

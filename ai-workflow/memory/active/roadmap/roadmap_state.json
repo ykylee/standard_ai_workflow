@@ -1433,20 +1433,22 @@
       "id": "M-037",
       "title": "2.0 허브 — implementation 5: 허브 화면 (워크벤치 확장)",
       "sdlc_phase": "implementation",
-      "declared_status": "planned",
-      "derived_status": "planned",
-      "progress": 0.0,
+      "declared_status": "in_progress",
+      "derived_status": "in_progress",
+      "progress": 0.3333333333333333,
       "total_leaves": 3,
-      "done_leaves": 0,
+      "done_leaves": 1,
       "deliverables_missing": [],
       "wbs": [
         {
           "id": "WBS-37.1",
           "title": "목록 · task 계획 · 결정 답 · 이력",
-          "derived_status": "planned",
-          "linked_task_ids": [],
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-21-main-005"
+          ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         },
         {
@@ -1581,7 +1583,7 @@
       ]
     }
   ],
-  "current_milestone_id": "M-028",
+  "current_milestone_id": "M-037",
   "exempt_tasks": [
     {
       "task_id": "TASK-2026-08-25-main-010",

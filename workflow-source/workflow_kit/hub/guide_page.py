@@ -54,7 +54,7 @@ def render_page(public_url: str) -> str:
         "<style>body{font-family:system-ui,sans-serif;max-width:860px;margin:2rem auto;padding:0 16px;line-height:1.55}"
         "pre{background:#f4f4f5;padding:.6rem .8rem;overflow-x:auto;white-space:pre-wrap;word-break:break-all}"
         "@media (prefers-color-scheme:dark){body{background:#111;color:#eee}pre{background:#222}}</style></head><body>"
-        f"<h1>워크플로우 허브</h1><p>kit {html.escape(KIT_VERSION)} · 계약 hub/1 · 주소 <code>{html.escape(public_url)}</code></p>"
+        f"<h1>워크플로우 허브</h1><p>kit {html.escape(KIT_VERSION)} · 계약 hub/1 · 주소 <code>{html.escape(public_url)}</code> · <a href=\"ui/\">화면</a></p>"
         "<p>저장소 뿌리에서 하네스에 허브 MCP 를 등록한 뒤, 에이전트에게 \"워크플로우 허브에 이 저장소를 등록하고 셋업해\" 라고 한다. "
         "부트스트랩 도구가 프로젝트 등록(또는 합류) · <code>.gitignore</code> 확인 · 토큰 저장 · 진입 파일 · 하네스 설정을 차례로 지시한다.</p>"
         + "".join(rows)

@@ -56,7 +56,11 @@ def new_token() -> str:
 
 @dataclass(frozen=True)
 class Principal:
-    """요청한 쪽. ``kind`` = ``callsign`` (프로젝트 범위) · ``web`` · ``admin`` (허브 토큰)."""
+    """요청한 쪽. ``kind`` = ``callsign`` (프로젝트 범위) · ``web`` · ``admin`` (허브 토큰) · ``viewer``.
+
+    ``viewer`` 는 화면(``hub/ui.py``)이 읽기 권한을 확인한 뒤 한 프로젝트로 좁혀 만드는 읽기 전용 주체다 —
+    도구 입구(:func:`workflow_kit.hub.tools.call`)는 받지 않고, 읽기 함수(:meth:`Store._need_reader`)만 받는다.
+    """
 
     kind: str
     project_id: str | None = None
@@ -193,6 +197,30 @@ class Store:
                 return Principal(kind=hub["role"], name=hub["name"])
         return None
 
+    def web_principal(self, name: str) -> Principal | None:
+        """화면 공용 ``web`` 토큰 (요구 R13.2a) — ``hub serve --web-token-name`` 이 켠 이름. 거두면 즉시 꺼진다."""
+        with self.read() as conn:
+            row = conn.execute(
+                "SELECT name FROM hub_token WHERE name = ? AND role = 'web' AND revoked_at IS NULL", (name,)
+            ).fetchone()
+        return Principal(kind="web", name=row["name"]) if row else None
+
+    def projects(self, project_id: str | None = None) -> list[dict[str, Any]]:
+        """프로젝트 목록 (화면) — ``project_id`` 를 주면 그 하나로 좁힌다. status 별 task 수를 싣는다."""
+        sql = "SELECT id, display_name, owner_callsign, created_at FROM project"
+        args: list[Any] = []
+        if project_id is not None:
+            sql += " WHERE id = ?"
+            args.append(project_id)
+        out = []
+        with self.read() as conn:
+            for r in conn.execute(sql + " ORDER BY created_at, id", args):
+                d = dict(r)
+                d["task_counts"] = {row["status"]: row["n"] for row in conn.execute(
+                    "SELECT status, COUNT(*) AS n FROM task WHERE project_id = ? GROUP BY status", (d["id"],))}
+                out.append(d)
+        return out
+
     def issue_hub_token(self, role: str, name: str, now: datetime) -> str:
         if role not in ("web", "admin"):
             raise invalid_field("role", "web · admin 가운데 하나")
@@ -297,6 +325,30 @@ class Store:
         return {"project_id": project_id, "callsign": callsign, "role": "editor", "token": token,
                 "human_pending": kind == "human"}
 
+    def approve_callsign(self, ctx: Ctx, callsign: str) -> dict[str, Any]:
+        """사람 콜사인 승인 (요구 Q3 · R7.7) — 승인된 human 소유자만. 승인 전 human 은 agent 권한이다."""
+        p = self._need_callsign(ctx)
+        if p.role != "owner" or p.callsign_kind != "human" or not p.human_approved:
+            raise forbidden("콜사인 승인은 승인된 human 소유자만 한다")
+        with self.write() as conn:
+            row = conn.execute(
+                "SELECT kind, human_approved FROM callsign WHERE project_id = ? AND id = ? AND revoked_at IS NULL",
+                (p.project_id, callsign),
+            ).fetchone()
+            if row is None:
+                raise not_found(f"콜사인이 없다: {callsign}")
+            if row["kind"] != "human":
+                raise invalid_field("callsign", "agent 콜사인은 승인 대상이 아니다")
+            if row["human_approved"]:
+                return {"callsign": callsign, "human_approved": True, "changed": False}
+            conn.execute(
+                "UPDATE callsign SET human_approved = 1, version = version + 1 WHERE project_id = ? AND id = ?",
+                (p.project_id, callsign),
+            )
+            self._event(conn, ctx, p.project_id, "callsign", callsign, "approve", {"human_approved": False},
+                        {"human_approved": True})
+        return {"callsign": callsign, "human_approved": True, "changed": True}
+
     def revoke_callsign(self, ctx: Ctx, project_id: str, callsign: str) -> dict[str, Any]:
         """거두기 (요구 R4.7) — 토큰 무효 · 맡던 열린 task 의 맡은 이를 비운다."""
         with self.write() as conn:
@@ -367,6 +419,14 @@ class Store:
             raise forbidden("콜사인 토큰이 필요하다")
         return p
 
+    @staticmethod
+    def _need_reader(ctx: Ctx) -> Principal:
+        """읽기 — 콜사인 토큰 또는 화면의 viewer (프로젝트로 좁힌 web · admin · 콜사인)."""
+        p = ctx.principal
+        if p is None or p.kind not in ("callsign", "viewer") or not p.project_id:
+            raise forbidden("콜사인 토큰이 필요하다")
+        return p
+
     def task_create(self, ctx: Ctx, values: dict[str, Any], request_id: str | None = None,
                     prepare: Callable[[sqlite3.Connection, str, str, dict[str, Any]], dict[str, Any]] | None = None
                     ) -> dict[str, Any]:
@@ -406,7 +466,7 @@ class Store:
         return self.idempotent(ctx, request_id, do)
 
     def task_get(self, ctx: Ctx, task_id: str) -> dict[str, Any]:
-        p = self._need_callsign(ctx)
+        p = self._need_reader(ctx)
         assert p.project_id is not None
         with self.read() as conn:
             task = self._get_task(conn, p.project_id, task_id)
@@ -417,7 +477,7 @@ class Store:
         return {"task": task}
 
     def task_list(self, ctx: Ctx, status: str | None = None, assignee: str | None = None, limit: int = 100) -> dict[str, Any]:
-        p = self._need_callsign(ctx)
+        p = self._need_reader(ctx)
         if status is not None and status not in STATUSES:
             raise invalid_field("status", f"{' · '.join(STATUSES)} 가운데 하나")
         if not 1 <= limit <= 500:
@@ -550,7 +610,7 @@ class Store:
 
     def events(self, ctx: Ctx, target_kind: str | None = None, target_id: str | None = None,
                after_seq: int = 0, limit: int = 200) -> dict[str, Any]:
-        p = self._need_callsign(ctx)
+        p = self._need_reader(ctx)
         if not 1 <= limit <= 1000:
             raise invalid_field("limit", "1~1000")
         sql = "SELECT * FROM event WHERE project_id = ? AND seq > ?"

@@ -10,6 +10,12 @@
 
 ### §5 서두 회차 줄 (1블록)
 
+- (134차, 2026-11-19, Mac mini) **다음 일**: ①~~push 전 전량 게이트~~ ✅ 이 맥에서 통과 · push 완료(`7df480f9`) ②Claude · MiniMax 재시작 뒤 `doctor --json` 의 `runtime_load` 확인(설치보다 먼저 뜬 pid 2개) ③main-002 후속 미수리 둘 — 병합 중간 실패 뒤 재실행 시 §5 합류 줄 · 합류 기록 중복, 브랜치 메모리 안 심링크가 매 시작 errors 반복(둘 다 소실 0) ④이월된 `…-234c32-002` · `-004` 는 소유자 iPad 실측 대기 그대로.
+
+## 이관 2026-11-21
+
+### §5 서두 회차 줄 (1블록)
+
 - (합류 `claude/remote-sync-check-234c32@fc814642`, 2026-11-19) claude/remote-sync-check-234c32 워크스페이스 — `main@90124a3a` 에서 이어받음 (2026-11-17). **133차 세션 (2026-11-17, Linux 호스트) — v1.27.0 발행 완료 (minor: 코드 커밋 3, breaking 0).** 태그 `v1.27.0` = `aa34ed8d`(발행 준비 커밋, 전량 게이트 native · slash 332×2 증거) = origin/ma… — 완료 3건(TASK-2026-11-17-claude-remote-sync-check-234c32-003, TASK-2026-11-17-claude-remote-sync-check-234c32-005, TASK-2026-11-17-claude-remote-sync-check-234c32-006) · 이월 2건(TASK-2026-11-17-claude-remote-sync-check-234c32-002, TASK-2026-11-17-claude-remote-sync-check-234c32-004) · 되돌려 적음 0건. 기록: [`archived/claude/remote-sync-check-234c32/session_handoff.md`](../../../archived/claude/remote-sync-check-234c32/session_handoff.md) · [합류 기록](../sessions/merge_claude-remote-sync-check-234c32_2026-11-19.md)
 
 ## 이관 2026-11-21

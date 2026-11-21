@@ -16,6 +16,9 @@
 5. 진입 파일 — kit 생성 절은 버리고 손 문단만 지침 제안 초안(open), 판 불변
 6. 권한 · 입력 · 다시 보내기 — 소유자 아님 403, 계획 밖 경로 · 고르지 않은 종류 400, 다시 보내면 건너뜀,
    final 뒤 409
+7. '허브로 옮김' 표식 (WBS-38.2 · R14.6) — 끝나지 않은 전환 409 · 소유자 아님 403, 쓰기 지시대로 쓰고 커밋 → sha 확인,
+   다른 sha 미확인, 두 번 내도 같은 내용, 표식에 허브 · 프로젝트 · 전환 · 시각 · kit 판
+8. 되돌리기 (R14.7) — 삭제 지시 + 확인 명령, 아직 추적되면 미확인, 지우고 커밋하면 확인, 허브 데이터 불변 · 주의 보고
 """
 
 from __future__ import annotations
@@ -319,6 +322,60 @@ def main() -> int:
                    and len(listing2["tasks"]) == 4 and variants(ID1) == 2)
             _record("case 6 (권한 · 계획 밖 경로 · 고르지 않은 종류 · 다시 보내기 · final 뒤 409)", ok6,
                     f"{e0} {e1} {e2} {e3} {e4} {e5}/{again.get('summary')} {e6}")
+
+            # 7 표식
+            import hashlib
+            _, plan2, _ = hub.call("hub_migrate_plan", {"scan": run_commands(repo)}, tok)
+            m1, _, _ = hub.call("hub_migrate_marker", {"migration_id": plan2.get("migration_id"), "action": "issue"}, tok)
+            m2, _, _ = hub.call("hub_migrate_marker", {"migration_id": mig, "action": "issue"}, human)
+            m3, iss, _ = hub.call("hub_migrate_marker", {"migration_id": mig, "action": "issue"}, tok)
+            step = next((x for x in iss.get("steps", []) if x.get("op") == "write"), {})
+            commit = next((x for x in iss.get("steps", []) if x.get("id") == "commit"), {})
+            _write(repo, step.get("path", "x"), step.get("content", ""))
+            _git(repo, *commit.get("run", ["status"])[1:])
+            _git(repo, *commit.get("then", ["status"])[1:])
+            written = (repo / "ai-workflow/HUB_MIGRATED.json").read_bytes()
+            m4, again_iss, _ = hub.call("hub_migrate_marker", {"migration_id": mig, "action": "issue"}, tok)
+            m5, wrong, _ = hub.call("hub_migrate_marker", {"migration_id": mig, "action": "confirm", "sha256": "0" * 64}, tok)
+            m6, conf, _ = hub.call("hub_migrate_marker", {"migration_id": mig, "action": "confirm",
+                                                           "sha256": hashlib.sha256(written).hexdigest()}, tok)
+            body = json.loads(written)
+            tracked = _git(repo, "ls-files", "--", "ai-workflow/HUB_MIGRATED.json").strip()
+            ok7 = (m1 == 409 and m2 == 403 and m3 == 200 and step.get("path") == "ai-workflow/HUB_MIGRATED.json"
+                   and step.get("sha256_after") == hashlib.sha256(written).hexdigest() and tracked == "ai-workflow/HUB_MIGRATED.json"
+                   and m4 == 200 and next(x for x in again_iss["steps"] if x["op"] == "write")["content"] == step["content"]
+                   and m5 == 200 and wrong.get("confirmed") is False and "sha256" in wrong.get("reason", "")
+                   and m6 == 200 and conf.get("confirmed") is True and conf["marker"].get("confirmed_at")
+                   and body.get("format") == "workflow-hub-migrated/1" and body.get("project_id") == pid
+                   and body.get("migration_id") == mig and body.get("hub", "").startswith("http")
+                   and body.get("from_kit_versions") == ["1.29.0"] and body.get("migrated_at") and body.get("kit_version")
+                   and "지운다" in body.get("note", ""))
+            _record("case 7 (표식 — 끝난 전환만 · 소유자만 · 지시대로 쓰고 커밋 → sha 확인 · 멱등 · 내용)", ok7,
+                    f"{m1} {m2} {m3} {m4} {m5}/{wrong} {m6}/{conf} tracked={tracked!r} body={body}")
+
+            # 8 되돌리기
+            n_before = len(hub.call("hub_task_list", {"limit": 500}, tok)[1]["tasks"])
+            r1, rv, _ = hub.call("hub_migrate_marker", {"migration_id": mig, "action": "revert"}, tok)
+            check = next((x for x in rv.get("steps", []) if x.get("op") == "run_and_report"), {})
+            delete = next((x for x in rv.get("steps", []) if x.get("op") == "delete"), {})
+
+            def run_check() -> dict[str, Any]:
+                r = subprocess.run(check.get("run", ["false"]), cwd=repo, capture_output=True, text=True)
+                return {"rc": r.returncode, "output": r.stdout}
+
+            r2, still, _ = hub.call("hub_migrate_marker", {"migration_id": mig, "action": "confirm_revert", "check": run_check()}, tok)
+            _git(repo, "rm", "-q", "--", delete.get("path", "x"))
+            _git(repo, "commit", "-q", "-m", "되돌림")
+            r3, done_rv, _ = hub.call("hub_migrate_marker", {"migration_id": mig, "action": "confirm_revert", "check": run_check()}, tok)
+            n_after = len(hub.call("hub_task_list", {"limit": 500}, tok)[1]["tasks"])
+            rep8 = hub.call("hub_migrate_report", {"migration_id": mig}, tok)[1]["report"].get("marker", {})
+            ok8 = (r1 == 200 and delete.get("path") == "ai-workflow/HUB_MIGRATED.json" and check.get("expect") == "empty"
+                   and "데이터 이동은 없다" in rv.get("warning", "") and "건너뛴다" in rv.get("warning", "") and r2 == 200 and still.get("reverted") is False
+                   and r3 == 200 and done_rv.get("reverted") is True and n_before == n_after == 4
+                   and rep8.get("reverted_at") and rep8.get("confirmed_at") is None
+                   and not (repo / "ai-workflow/HUB_MIGRATED.json").exists())
+            _record("case 8 (되돌리기 — 삭제 지시 · 추적되면 미확인 · 지우면 확인 · 허브 데이터 불변)", ok8,
+                    f"{r1} {r2}/{still.get('reverted')} {r3}/{done_rv.get('reverted')} tasks {n_before}->{n_after} marker={rep8}")
         finally:
             hub.stop()
     print(f"PASS {len(_passes)} · FAIL {len(_failures)}")

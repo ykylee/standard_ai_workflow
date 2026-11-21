@@ -197,7 +197,7 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 | 위키 원격 읽기 | `hub_wiki_remote_set(fetch_url)` | **소유자만** — `project.settings_json.wiki_remote`. 빈 값이면 끈다. `https://` · `ssh://` · `git@host:path` · `file:///` 만 (git 원격 도우미 `ext::` 등 거절) (R3.7 · R8.4) |
 | 로드맵 | `hub_roadmap_get()` · `hub_roadmap_put(path, expected_version, body)` · `hub_roadmap_state()` | 스키마 오류는 필드 · 제약과 함께 (R9.2) |
 | 위키 | `hub_wiki_search(query, limit?)` · `hub_wiki_get(path)` · `hub_wiki_list(prefix?)` · `hub_wiki_ingest(pages[{path, body \| delete, expected_version, source?{repo_key, sha}}], summary)` · `hub_wiki_lint()` | 묶음 하나 = ingest 하나, 하나라도 409 면 전체 거절 (R8.2). 새 페이지는 `expected_version` 0. `log` 줄 `## [날짜] ingest \| <summary>` 은 허브가 만든다. 페이지 ≤ 192KB · 묶음 ≤ 200 페이지 — 요청 본문 상한(256KB)을 넘는 들여오기는 여러 ingest 로 (M-036 WBS-36.1) |
-| 전환 | `hub_migrate_plan(scan?)` · `hub_migrate_import(migration_id, kinds[], files[{path, content}], final?)` · `hub_migrate_report(migration_id)` | 소유자(승인된 `human` · `owner`)만. §6.6 |
+| 전환 | `hub_migrate_plan(scan?)` · `hub_migrate_import(migration_id, kinds[], files[{path, content}], final?)` · `hub_migrate_marker(migration_id, action, sha256?, check?)` · `hub_migrate_report(migration_id)` | 소유자(승인된 `human` · `owner`)만. §6.6 |
 | 내보내기 | `hub_export(kinds[])` | 쓰기 지시로 1.x 형식 파일 (R15) |
 
 ### 4.6 화면 인증 (요구 R13.2 · R13.2a)
@@ -245,7 +245,7 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
  "sha256_after": null, "verify": {"run": ["git", "check-ignore", "-v", ".workflow-hub/env"], "expect": "match"}}
 ```
 
-- `op` ∈ `write` (전체 내용 · `sha256` 지정) · `append_line` (없을 때만 더함) · `run_and_report` (명령을 돌려 출력을 `hub_setup_confirm` 의 `checks` 로) · `user_scope_write` (저장소 밖 하네스 설정 — 경고 문구 동반, R2.5a).
+- `op` ∈ `write` (전체 내용 · `sha256` 지정) · `append_line` (없을 때만 더함) · `run_and_report` (명령을 돌려 출력을 확인 호출의 `checks` · `check` 로) · `run` (명령을 돌린다 — 보고 없음, `then` 이 있으면 이어서. 예: 커밋) · `delete` (그 경로의 파일을 지운다 — '허브로 옮김' 표식 되돌리기만) · `user_scope_write` (저장소 밖 하네스 설정 — 경고 문구 동반, R2.5a).
 - `path` 는 저장소 뿌리 상대 경로이거나 `~/` 로 시작하는 사용자 범위 경로(`user_scope_write` 만). `..` · 절대 경로는 허브가 만들지 않는다.
 - **토큰을 담는 지시는 `.workflow-hub/env` · `user_scope_write` 둘뿐**이다. 저장소 안 다른 경로에 토큰이 들어가는 지시는 만들 수 없다 (R2.5a).
 - 지시는 순서가 있다 — 앞 지시의 확인이 끝나야 다음 지시가 나온다 (`hub_setup_confirm` 의 `next_steps`).
@@ -321,7 +321,8 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 - **task 칸** — 1.x 리더(`read_task_list_field` · `read_task_affected_documents`) 그대로, `## 🧭 Plan` 절은 원문 그대로 `plan_md`, 상태는 frontmatter 우선 (`done` 도 그대로 — 1.x 에서 이미 게이트를 거쳤다). 못 읽는 파일은 `failed` 로 보고한다 (조용히 버리지 않는다). handoff 의 진행 · 막힘 · 최근 완료는 `TASK-` 줄만 들이고 나머지 줄은 `dropped_lines` 로 보고.
 - 진입 파일의 kit 생성 절 판정은 1.x `entry_diet` 의 '알려진 생성물' 해시 + `generated-from` 표식 — 손 문단만 `guide_proposal(open)` 초안이 된다 (승인된 사람이 보내도 판은 오르지 않는다).
 - 들여오기는 묶음 전송(에이전트가 파일을 읽어 싣는다 · 요청 상한 §4.3). 원본 파일은 지우지 않고 허브는 쓰기 지시도 내지 않는다.
-- 끝나면 쓰기 지시로 **'허브로 옮김' 표식** `ai-workflow/HUB_MIGRATED.json` `{hub: public_url, project_id, migrated_at, kit_version}` 을 쓰고 커밋을 안내한다 (R14.6). 1.x 안내 판(R16.4)의 쓰기 도구는 이 파일을 보면 거절한다. 표식을 지우면 1.x 로 돌아간다 (R14.7).
+- **'허브로 옮김' 표식 (R14.6 · DS9, WBS-38.2)** — 끝난 전환(`final` 뒤)에만 `hub_migrate_marker(action=issue)` 가 `ai-workflow/HUB_MIGRATED.json` 쓰기 지시(`sha256_after`)와 커밋 명령(`op: run`)을 낸다. 본문은 `{format: "workflow-hub-migrated/1", hub, project_id, migration_id, migrated_at(전환이 끝난 시각), kit_version, from_kit_versions, note}` — 같은 전환이면 언제 내도 같은 바이트다. 쓴 뒤 `action=confirm(sha256)` 으로 대조한다 (다르면 미확인 + 이유). 1.x 안내 판(R16.4 · WBS-38.3)의 쓰기 도구는 이 파일을 보면 거절한다.
+- **되돌리기 (R14.7)** — `action=revert` 가 삭제 지시(`op: delete`)와 확인 명령(`git ls-files -- <표식>` → 빈 출력)을 내고, `action=confirm_revert(check)` 가 그 결과로 판정한다 (아직 추적되면 미확인). 허브 쪽 기록은 지우지도 옮기지도 않는다. 되돌린 뒤 1.x 에서 바뀐 것은 다시 전환해도 '이미 있음' 으로 건너뛰므로, 응답이 그 주의를 싣는다 (다시 전환하기 전의 정리 방법은 후속).
 
 ### 6.7 위키 lint (요구 R8.3 · 실측 §16.2)
 

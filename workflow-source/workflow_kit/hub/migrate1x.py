@@ -23,6 +23,7 @@ from workflow_kit.common.paths import HANDOFF_FILENAME
 from workflow_kit.common.project_docs import HandoffParser, task_label, task_label_aliases
 from workflow_kit.common.workflow_writes import read_task_affected_documents, read_task_list_field
 from workflow_kit.hub.errors import HubError, forbidden, invalid_field, not_found
+from workflow_kit.hub import render
 from workflow_kit.hub.guide import Guides
 from workflow_kit.hub.judge import Judge
 from workflow_kit.hub.memory import Memory
@@ -418,6 +419,8 @@ class Migrator:
             for key, items in groups.items():
                 report.setdefault(kind, {}).setdefault(key, []).extend(items)
         report["kinds"] = sorted(set(report.get("kinds", [])) | set(kinds))
+        if final:
+            report["done_at"] = _iso(ctx.now)
         status = "done" if final else "importing"
         with self.store.write() as conn:
             conn.execute("UPDATE migration_1x SET status = ?, report_json = ? WHERE project_id = ? AND id = ?",
@@ -428,8 +431,64 @@ class Migrator:
         summary = {k: {kk: len(vv) for kk, vv in v.items()} for k, v in batch.items()}
         total = {k: {kk: len(vv) for kk, vv in v.items()} for k, v in report.items() if isinstance(v, dict)}
         return {"migration_id": mig, "status": status, "summary": summary, "total": total,
-                "next": "끝났다 — 원본은 그대로다. '허브로 옮김' 표식은 WBS-38.2" if final
+                "next": "끝났다 — 원본은 그대로다. hub_migrate_marker(migration_id, action='issue') 로 '허브로 옮김' 표식을 남긴다" if final
                 else "남은 파일을 이어 보내고 마지막에 final=true"}
+
+    # --- '허브로 옮김' 표식 (R14.6 · R14.7 · DS9) ---------------------------------------------
+
+    def marker(self, ctx: Ctx, mig: str, action: str, sha256: str | None = None,
+               check: dict[str, Any] | None = None) -> dict[str, Any]:
+        """표식 쓰기 지시 · 확인 · 되돌리기. 허브는 저장소에 쓰지 않는다 — 지시를 내고 결과를 대조한다."""
+        p = self._owner(ctx)
+        pid = p.project_id or ""
+        if action not in MARKER_ACTIONS:
+            raise invalid_field("action", " · ".join(MARKER_ACTIONS))
+        with self.store.read() as conn:
+            row = self._load(conn, pid, mig)
+        if row["status"] != "done":
+            raise HubError(409, "migration_not_done", f"{mig} 가 아직 끝나지 않았다 — 마지막 묶음을 final=true 로 보낸 뒤에 표식을 남긴다")
+        plan, report = json.loads(row["plan_json"]), json.loads(row["report_json"])
+        state: dict[str, Any] = report.get("marker") or {}
+        content = marker_content(ctx.public_url, pid, mig, report.get("done_at") or row["at"],
+                                 plan["detected"].get("kit_versions", []))
+        expected = render.sha256(content)
+        out: dict[str, Any] = {"migration_id": mig, "action": action, "path": MARKER_PATH}
+        if action == "issue":
+            state = {**state, "issued_at": state.get("issued_at") or _iso(ctx.now), "sha256": expected}
+            out.update({"steps": [
+                {"id": "marker", "op": "write", "path": MARKER_PATH, "content": content, "sha256_after": expected},
+                {"id": "commit", "op": "run", "run": ["git", "add", "--", MARKER_PATH],
+                 "then": ["git", "commit", "-m", f"chore: 워크플로우 허브로 옮김 ({mig})", "--", MARKER_PATH]},
+            ], "next": "파일을 쓰고 커밋한 뒤 hub_migrate_marker(action='confirm', sha256=<쓴 파일의 sha256>)"})
+        elif action == "confirm":
+            if not isinstance(sha256, str) or not sha256:
+                raise invalid_field("sha256", "쓴 파일의 sha256")
+            ok = sha256 == expected
+            if ok:
+                state = {**state, "confirmed_at": _iso(ctx.now), "reverted_at": None}
+            out.update({"confirmed": ok, "reason": "" if ok else f"sha256 이 지시와 다르다 (지시 {expected[:12]}…, 받음 {sha256[:12]}…)"})
+        elif action == "revert":
+            state = {**state, "revert_issued_at": _iso(ctx.now)}
+            out.update({"steps": [
+                {"id": "marker", "op": "delete", "path": MARKER_PATH},
+                {"id": "check", "op": "run_and_report", "run": ["git", "ls-files", "--", MARKER_PATH], "expect": "empty"},
+            ], "warning": REVERT_WARNING,
+                "next": "파일을 지우고 커밋한 뒤 확인 명령의 결과를 hub_migrate_marker(action='confirm_revert', check={rc, output})"})
+        else:  # confirm_revert
+            if not isinstance(check, dict) or "rc" not in check:
+                raise invalid_field("check", "{rc, output} — git ls-files 결과")
+            ok = int(check["rc"]) == 0 and not str(check.get("output", "")).strip()
+            if ok:
+                state = {**state, "reverted_at": _iso(ctx.now), "confirmed_at": None}
+            out.update({"reverted": ok, "warning": REVERT_WARNING,
+                        "reason": "" if ok else "표식이 아직 추적된다 (지우고 커밋했는지 본다)"})
+        report["marker"] = state
+        with self.store.write() as conn:
+            conn.execute("UPDATE migration_1x SET report_json = ? WHERE project_id = ? AND id = ?", (_json(report), pid, mig))
+            self.store._event(conn, ctx, pid, "migration_1x", mig, f"marker_{action}", None,
+                              {k: v for k, v in out.items() if k in ("confirmed", "reverted", "reason")})
+        out["marker"] = state
+        return out
 
     # --- 종류별 ---------------------------------------------------------------------
 
@@ -567,6 +626,24 @@ class Migrator:
             self.store._event(conn, ctx, pid, "guide_proposal", prop, "propose", None,
                               {"base_version": current, "source": path, "draft_1x": True})
         add("guide_draft", "proposed", {"path": path, "proposal_id": prop, "dropped_sections": dropped})
+
+
+MARKER_PATH = "ai-workflow/HUB_MIGRATED.json"
+MARKER_FORMAT = "workflow-hub-migrated/1"
+MARKER_ACTIONS = ("issue", "confirm", "revert", "confirm_revert")
+REVERT_WARNING = ("허브 쪽 기록(task · handoff · 위키 …)은 지우지 않는다 — 되돌림에 데이터 이동은 없다 (R14.7). 되돌린 뒤 1.x 에서 "
+                  "바뀐 것은 다시 전환해도 '이미 있음' 으로 건너뛴다 — 다시 전환하기 전에 허브 쪽 기록을 어떻게 할지 정한다.")
+
+
+def marker_content(public_url: str, project_id: str, mig: str, migrated_at: str, from_kit: list[str]) -> str:
+    """표식 본문 — 같은 전환이면 언제 내도 같은 바이트 (멱등 · sha256 대조)."""
+    from workflow_kit import __version__ as kit
+
+    body = {"format": MARKER_FORMAT, "hub": public_url, "project_id": project_id, "migration_id": mig,
+            "migrated_at": migrated_at, "kit_version": kit, "from_kit_versions": from_kit,
+            "note": "이 저장소의 워크플로우 정본은 허브다 — 1.x kit 의 쓰기 도구는 이 파일을 보면 거절한다. "
+                    "1.x 로 되돌리려면 이 파일만 지운다 (허브 쪽 데이터는 옮기지 않는다)."}
+    return json.dumps(body, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
 
 
 def _archive_rows(plan: dict[str, Any]) -> list[dict[str, Any]]:

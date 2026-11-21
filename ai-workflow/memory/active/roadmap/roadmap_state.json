@@ -1481,9 +1481,9 @@
       "sdlc_phase": "implementation",
       "declared_status": "in_progress",
       "derived_status": "in_progress",
-      "progress": 0.3333333333333333,
+      "progress": 0.6666666666666666,
       "total_leaves": 3,
-      "done_leaves": 1,
+      "done_leaves": 2,
       "deliverables_missing": [],
       "wbs": [
         {
@@ -1500,10 +1500,12 @@
         {
           "id": "WBS-38.2",
           "title": "git 쪽 '허브로 옮김' 표식 · 되돌리기",
-          "derived_status": "planned",
-          "linked_task_ids": [],
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-21-main-009"
+          ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         },
         {

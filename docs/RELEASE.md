@@ -5,7 +5,7 @@
 - 대상 독자: 저장소 maintainer (`ykylee`), 릴리스 매니저
 - 상태: stable (v1.29.0 기준; 절차 자체는 v0.5.7+ 부터 정식 도입된 정책 유지)
 - 현재 package version: 1.29.0 (`workflow-source/pyproject.toml`)
-- 최종 수정일: 2026-11-20
+- 최종 수정일: 2026-11-21
 - 관련 문서: [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md), [./INSTALLATION_AND_USAGE.md](./INSTALLATION_AND_USAGE.md), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md), [workflow-source/releases/](https://github.com/ykylee/standard_ai_workflow/tree/main/workflow-source/releases/)
 
 > **최종 갱신**: 2026-07-18 (회귀 표를 v0.15.15 까지 확장하고 `release_pipeline.py` 자동화 경로 반영)
@@ -24,12 +24,28 @@
 
 | 채널 | 상태 | 비고 |
 |---|---|---|
-| GitHub Releases (wheel + sdist + native plugin ZIP) | ✅ **유일한 공식 채널** | Codex·Claude Code 플러그인 asset 을 함께 attach |
+| GitHub Releases (wheel + sdist, 1.x 줄은 + native plugin ZIP) | ✅ **유일한 공식 채널** | 1.x 줄만 Codex·Claude Code 플러그인 asset 을 함께 attach (§1.1) |
 | TestPyPI | ❌ 사용 안 함 | 2026-08-14 각주 1 **만료** — 리허설의 목적이던 PyPI 판단이 끝났다 |
 | PyPI | ❌ 사용 안 함 — **결정 완료, 재론하지 않는다** | 2026-08-14 소유자 최종 결정. 아래 **각주 0** 이 근거와 재검토 트리거를 고정한다 |
 | Docker / brew / system pkg | ❌ 해당 없음 | (Python wheel 만 다룸) |
 
-모든 release 는 GitHub Releases 페이지에 wheel + sdist 및 아래 native plugin ZIP이 attach 된 형태다.
+### 1.1 두 줄 — 2.x(`main`) 와 1.x(`release/1.x`) (2026-11-21, M-040)
+
+| 줄 | 브랜치 | asset | GitHub 'latest' | 판 번호 |
+|---|---|---|---|---|
+| **2.x 허브** | `main` | wheel + sdist **만** — kit 플러그인 ZIP 을 만들지도 요구하지도 않는다 (`plugin_payload.KIT_PLUGIN_CHANNEL` 거짓, 요구 R16.6) | 원격 태그 가운데 가장 높으면 latest — 베타(`2.0.0b1`)도 (소유자 2026-11-21) | PEP 440 — 사전 판은 `2.0.0b1` 처럼 pyproject · `__version__` · wheel · 태그(`v2.0.0b1`)가 같은 문자열 |
+| **1.x 유지보수** | `release/1.x` | wheel + sdist + 아래 플러그인 ZIP | 2.x 태그가 원격에 있으면 `--latest=false` (요구 R16.7) — 발행 도구가 `release_latest_decision` 으로 정한다 | patch 만 (`1.N.x`, R16.2). minor 는 안내 판 1.30.0 하나 |
+
+- 판정 정본은 코드다: 정렬 `release_pipeline.release_version_key` (PEP 440 — 사전 판 < 정식 판, 옛 `-beta` 태그는 `b0`),
+  latest `release_pipeline.release_latest_decision` (원격 최고일 때만). `gh release create` 는 `--target <현재 브랜치>`.
+- **같은 날 두 줄을 낼 때 (2.0.0b1 + 1.30.0)**: 1.x 를 먼저 낸다 — 그때는 원격에 2.x 가 없어 1.30.0 이 잠시 latest 가
+  된다. 이어 2.0.0b1 이 latest 를 가져간다. 순서를 바꾸면 1.30.0 은 처음부터 `--latest=false` 다. 어느 쪽이든 끝 상태는
+  같다 — 끝난 뒤 `gh release list` 로 latest 가 2.x 인지 본다.
+- 1.x 줄 발행은 1.x 워크트리(`../standard_ai_workflow-1x`)에서 main `.venv` + `PYTHONPATH=<worktree>/workflow-source` 로 한다.
+- §2.8 채널 재적용은 1.x 줄에만 해당한다 — 2.x 는 소비 채널이 허브 MCP 라 재적용할 플러그인이 없다 (허브 서버 판 올리기는
+  [`HUB_OPERATIONS.md`](./HUB_OPERATIONS.md) §8).
+
+모든 **1.x** release 는 GitHub Releases 페이지에 wheel + sdist 및 아래 native plugin ZIP이 attach 된 형태다.
 
 - `standard-ai-workflow-codex-plugin-<X>.<Y>.<Z>.zip`
 - `standard-ai-workflow-claude-code-plugin-<X>.<Y>.<Z>.zip`

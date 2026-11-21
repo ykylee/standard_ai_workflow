@@ -11,6 +11,8 @@
 4. 원격 묶기 — agent 403 · 소유자 묶기 · 같은 주소 already · 다른 프로젝트 주소 409 alias_taken, 묶은 뒤 주소 조회가 찾는다
 5. 같은 원격의 두 번째 환경 — 합류(같은 프로젝트), codex 단계는 명령 실행 결과로 확인
 6. 1.x kit 흔적 — 진입 파일을 쓰지 않고 pending · legacy_1x, 진입 파일 바이트 그대로
+7. Antigravity — 등록 전에는 pending(토큰 가린 명령), 다른 주소 · 꺼진 항목도 pending, 사람이 등록한 뒤(`agy mcp list` 에
+   이 주소 · enabled) 다시 부르면 complete. 클라이언트는 agy 에 등록 명령을 내지 않는다
 """
 
 from __future__ import annotations
@@ -210,6 +212,32 @@ def case_6_legacy(e: Env) -> None:
             f"rc={rc} status={out.get('status')} pending={pend} legacy={out.get('legacy_1x')}")
 
 
+def case_7_antigravity(e: Env, agy_list: Path, agy_log: Path) -> None:
+    e.git("init", "-q", "-b", "main")
+    problems = []
+    mcp = e.hub.base + "/mcp"
+    rows = {"none": "No MCP servers configured.\n",
+            "other": "NAME          TYPE  STATUS   COMMAND/URL\nworkflow-hub  http  enabled  http://127.0.0.1:1/mcp\n",
+            "disabled": f"NAME          TYPE  STATUS   COMMAND/URL\nworkflow-hub  http  disabled  {mcp}\n"}
+    for label, listing in rows.items():
+        agy_list.write_text(listing, encoding="utf-8")
+        rc, out, raw = e.bootstrap("--harness", "antigravity", "--callsign", "agy-one", "--kind", "human")
+        pend = {x["id"]: x for x in out.get("pending", [])}
+        masked = " ".join(pend.get("harness:antigravity", {}).get("run_masked", []))
+        tok = e.token() if (e.root / ".workflow-hub/env").is_file() else "?"
+        if rc != 3 or "harness:antigravity" not in pend or tok in raw or "<WORKFLOW_HUB_TOKEN>" not in masked:
+            problems.append(f"{label}: rc={rc} pending={sorted(pend)} 가림={'<WORKFLOW_HUB_TOKEN>' in masked}")
+    agy_list.write_text(f"NAME          TYPE  STATUS   COMMAND/URL\nworkflow-hub  http  enabled  {mcp}\n", encoding="utf-8")
+    rc, out, raw = e.bootstrap("--harness", "antigravity", "--callsign", "agy-one", "--kind", "human")
+    if rc != 0 or out.get("status") != "complete" or "harness:antigravity" not in out.get("confirmed", []):
+        problems.append(f"등록 뒤 rc={rc} status={out.get('status')} confirmed={out.get('confirmed')}")
+    calls = agy_log.read_text(encoding="utf-8").splitlines() if agy_log.is_file() else []
+    if any(c.startswith("mcp add") for c in calls):
+        problems.append(f"클라이언트가 agy 등록 명령을 냈다 {calls}")
+    _record("case 7 (Antigravity — 사람 몫 pending · 다른 주소/꺼짐 pending · 등록 뒤 list 로 complete · 등록 명령 0)",
+            not problems, "; ".join(problems))
+
+
 def main() -> int:
     print("=== 에이전트용 셋업 가이드 · bootstrap · 원격 없는 등록 (M-039 WBS-39.1) ===")
     with tempfile.TemporaryDirectory(prefix="hubguide-") as d:
@@ -221,6 +249,11 @@ def main() -> int:
         codex = fake_bin / "codex"
         codex.write_text(f"#!/bin/sh\necho \"$@\" >> {fake_log}\n", encoding="utf-8")
         codex.chmod(0o755)
+        agy_list, agy_log = tmp / "agy.list", tmp / "agy.log"
+        agy = fake_bin / "agy"
+        agy.write_text(f"#!/bin/sh\necho \"$@\" >> {agy_log}\n[ \"$1 $2\" = \"mcp list\" ] && cat {agy_list}\nexit 0\n",
+                       encoding="utf-8")
+        agy.chmod(0o755)
         env = _clean_env(fake_bin, home)
         hub = Hub(tmp / "hub.db")
         try:
@@ -235,6 +268,7 @@ def main() -> int:
             except Exception as exc:  # noqa: BLE001 — 못 돈 case 는 통과가 아니다
                 _record("case 3~5", False, f"예외: {exc!r}")
             case_6_legacy(Env(hub, tmp / "legacy", env, src))
+            case_7_antigravity(Env(hub, tmp / "agy", env, src), agy_list, agy_log)
         finally:
             err = hub.stop()
             if _failures:

@@ -96,6 +96,8 @@ def render_setup_md(public_url: str) -> str:
 - 커밋 · push 는 하지 않는다 — 셋업 결과를 사람에게 보고하고, 커밋할지는 사람이 정한다.
 - 하네스가 승인을 물으면 (예: Claude Code 의 `.mcp.json` 쓰기) 우회하지 않는다 — 사람이 답한다.
 - 멈출 자리에서는 멈추고 사람에게 묻는다. 추측으로 진행하지 않는다.
+- 하네스의 샌드박스가 막으면 (예: Codex 비대화의 `workspace-write` 는 `.git` 쓰기와 네트워크를 막는다) 풀거나 돌아가지
+  않는다 — 무엇이 막혔는지 사람에게 말한다. `git init` 은 사람이 해도 된다.
 
 ## 1. 위치와 하네스
 
@@ -119,7 +121,8 @@ python3 .workflow-hub/hub_client.py bootstrap {base} --harness <하네스> --cal
 - 출력(JSON)의 `status`:
   - `complete` — 끝. 5 로.
   - `partial` (종료 코드 3) — `for_agent` 의 파일을 **내용 그대로** 네 도구로 쓰고 (하네스가 승인을 물으면 사람이 답한다),
-    같은 명령을 다시 부른다. `pending` 은 사람에게 보인다.
+    같은 명령을 다시 부른다. `pending` 은 사람에게 보인다 — 사람이 끝냈다고 하면 같은 명령을 다시 불러 확인한다
+    (Antigravity 등록은 `agy mcp list` 로 확인한다).
   - `not_git_repo` · `not_repo_root` · `other_hub` · `moved` · `ignore_not_effective` · 그 밖의 실패 — 멈추고 출력을 보인다.
   - `register_failed` 의 `callsign_taken` — 다른 콜사인으로 다시.
 - `legacy_1x` 가 있으면 1.x kit 를 쓰던 저장소다. 진입 파일은 쓰지 않았다. 1.x 기록의 전환은 **사람이 정한다**

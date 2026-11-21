@@ -366,6 +366,17 @@ def _sha(path: Path) -> str:
 HANDOFF_STEPS = ("harness:mcp-json", "harness:antigravity")
 
 
+def _agy_registered(url: list[str]) -> bool:
+    """``agy mcp list`` 에 허브 항목(이름 ``workflow-hub`` · 이 주소 · enabled)이 있나. 목록은 헤더(토큰)를 보이지 않는다."""
+    if not url:
+        return False
+    out = _run(["agy", "mcp", "list"])
+    if out["rc"] != 0:
+        return False
+    return any(cols[:1] == ["workflow-hub"] and "enabled" in cols and url[0] in cols
+               for cols in (line.split() for line in out["output"].splitlines()))
+
+
 def _scan() -> dict[str, Any]:
     paths = (".gitignore", "CLAUDE.md", "AGENTS.md", "MiniMax.md", "ANTIGRAVITY.md", ".mcp.json")
     return {"files": {p: (Path(p).read_text(encoding="utf-8") if Path(p).is_file() else None) for p in paths}}
@@ -478,8 +489,12 @@ def cmd_bootstrap(argv: list[str]) -> int:
                                           "note": s.get("note", "")})
                 elif sid == "harness:codex":
                     checks.append({"name": sid, **_run(s["run"])})
+                elif sid == "harness:antigravity" and _agy_registered(s.get("run", [])[-1:]):
+                    # 사람이 등록을 마쳤다 — 이름 · 주소 · enabled 만 본다 (목록은 헤더를 보이지 않는다). 출력은 보내지 않는다.
+                    checks.append({"name": sid, "rc": 0, "output": ""})
                 else:  # antigravity — 사용자 범위에 토큰 평문: 사람이 정한다. 명령은 토큰을 가린다
-                    pending.append({"id": sid, "reason": "사람이 정한다", "warning": s.get("warning", ""),
+                    pending.append({"id": sid, "reason": "사람이 정한다 — 등록한 뒤 이 명령을 다시 부르면 `agy mcp list` 로 확인한다",
+                                    "warning": s.get("warning", ""),
                                     "run_masked": [("Authorization: Bearer <WORKFLOW_HUB_TOKEN>" if "Bearer" in x else x)
                                                    for x in s.get("run", [])]})
             for b in plan.get("blocked") or []:

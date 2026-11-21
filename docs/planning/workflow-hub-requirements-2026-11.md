@@ -389,7 +389,18 @@
 | 다시 시작 | env 를 올리고 `claude -p` → `.mcp.json` 의 허브 MCP 로 `hub_session_start` 성공 (저장소 명령 5 미확인 — 2단계 안내) |
 | 검사 | `check_hub_setup_guide` 6 case, 되주입 8건 모두 해당 case 가 잡음 |
 
-이번 실측에서 Claude Code 비대화는 `Write` 를 허용하자 `.mcp.json` 쓰기를 따로 묻지 않았다 (§16.6 의 승인 요구는 기존 저장소 · 다른 허용 조합 — 조건 차이는 재지 않았다). 다른 하네스 3종(Codex · MiniMax · Antigravity)의 페이지 실측은 아직 — Codex 단계(`codex mcp add`)는 검사의 가짜 명령으로만 쟀다 (실제 실행은 사용자 범위 설정을 바꾼다).
+**나머지 3 하네스 (TASK-2026-11-21-main-023, 같은 날)** — 빈 폴더 · 같은 프롬프트 · 요청 기록 앞단 허브, 판정은 허브 DB:
+
+| 하네스 (판) | 페이지만 읽고 셋업 | 사람 몫 | 다시 시작 뒤 `hub_session_start` (MCP) |
+|---|---|---|---|
+| Codex 0.167.1 (`exec -s workspace-write`, 네트워크 허용 `-c sandbox_workspace_write.network_access=true`, 격리 `CODEX_HOME`) | 첫 실행: 샌드박스가 `.git` 을 읽기 전용으로 막아 `git init` 실패 → **멈추고 물음** (페이지대로). 사람이 `git init` 뒤 다시: `complete` (gitignore · env · entry · `codex mcp add` 확인) | `git init` · 샌드박스 네트워크 허용 | 성공 (`-c …default_tools_approval_mode="approve"`, `codex-mcp-client` 인증 요청) |
+| MiniMax Code 0.7.7 (`--permission smart`) | `complete` — `.mcp.json` 도 `for_agent` 대로 에이전트가 씀 | 없음 | 성공 (`undici` 인증 요청) |
+| Antigravity `agy` 1.5.13 | `partial` — `harness:antigravity` 만 사람 몫(토큰 평문, 가린 명령) | `agy mcp add …` (실측은 임시 HOME) | — (§16.4 에서 잼) |
+
+**결함 (수리)**: Antigravity 사람 몫을 마친 뒤 다시 불러도 확인할 길이 없어 영영 `partial` → 클라이언트가 `agy mcp list` (헤더를 보이지 않는다) 에서 이름 · 이 주소 · `enabled` 를 보고 확인 (`check_hub_setup_guide` case 7 · 되주입 3). 실제 `agy` 로 다시 불러 `complete`. 페이지에 '샌드박스가 막으면 풀지 말고 사람에게' 를 더함.
+안전: 사용자 범위 설정(`~/.codex/config.toml` · `auth.json` · `~/.gemini/config/mcp_config.json`) 해시 전후 같음, 세 하네스 출력 · 로그에 토큰 0회. 관찰: 하네스는 페이지를 `curl` 로 읽었다 (5회), 비대화 Codex 는 stdin 을 닫지 않으면 입력을 기다린다(`< /dev/null`).
+
+이번 실측에서 Claude Code 비대화는 `Write` 를 허용하자 `.mcp.json` 쓰기를 따로 묻지 않았다 (§16.6 의 승인 요구는 기존 저장소 · 다른 허용 조합 — 조건 차이는 재지 않았다). 다른 하네스 3종은 위 표 (main-023).
 
 ## 17. PURPOSE 2.0판 · 1.x 유지보수 정책 (WBS-31.3, 2026-11-20)
 

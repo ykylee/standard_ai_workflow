@@ -29,6 +29,7 @@ WATCHES = (
 )
 
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -352,9 +353,17 @@ def run_36_3(hub: Hub, tmp: Path) -> None:
     with tempfile.TemporaryDirectory(prefix="okf-native-") as d:
         export_wiki_to_okf(wiki, Path(d), resolve=False, emit_manifest=True)
         native = {q.relative_to(d).as_posix(): q.read_text(encoding="utf-8") for q in Path(d).rglob("*") if q.is_file()}
-    hub_okf = {k[len("pub/"):]: v for k, v in okf.items()}
+    # index.md 는 생성 시각(초)을 frontmatter 와 본문 끝 줄에 싣는다 — 두 실행이 초 경계를 넘으면 그것만 다르다
+    # (흔들림, 2026-11-21 실측). index.md 의 그 시각만 걷어 비교한다. 다른 차이는 그대로 잡힌다.
+    stamp = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z")
+
+    def calm(path: str, text: str) -> str:
+        return stamp.sub("<t>", text) if path == "index.md" else text
+
+    native = {k: calm(k, v) for k, v in native.items()}
+    hub_okf = {k[len("pub/"):]: calm(k[len("pub/"):], v) for k, v in okf.items()}
     problems = []
-    vary = {"okf-bundle.yaml"}  # 생성 시각을 싣는다
+    vary = {"okf-bundle.yaml"}  # 생성 시각 · 무결성 해시를 싣는다
     if set(hub_okf) != set(native) or [k for k in native if k not in vary and hub_okf.get(k) != native[k]]:
         problems.append(f"허브 OKF ≠ 1.x 직접 실행: {sorted(set(hub_okf) ^ set(native))[:5]} "
                         f"{[k for k in native if k not in vary and hub_okf.get(k) != native[k]][:5]}")

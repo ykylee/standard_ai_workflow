@@ -19,6 +19,8 @@
 7. '허브로 옮김' 표식 (WBS-38.2 · R14.6) — 끝나지 않은 전환 409 · 소유자 아님 403, 쓰기 지시대로 쓰고 커밋 → sha 확인,
    다른 sha 미확인, 두 번 내도 같은 내용, 표식에 허브 · 프로젝트 · 전환 · 시각 · kit 판
 8. 되돌리기 (R14.7) — 삭제 지시 + 확인 명령, 아직 추적되면 미확인, 지우고 커밋하면 확인, 허브 데이터 불변 · 주의 보고
+9. 선택 클라이언트 운반 (소유자 2026-11-21, 리허설 §16.5) — 허브가 내려준 hub_client.py 를 kit 없는 격리
+   인터프리터로 migrate plan → import all: MCP 와 같은 결과, 계획은 캐시에. 전환 두 도구만 큰 요청 상한
 """
 
 from __future__ import annotations
@@ -39,6 +41,8 @@ import re
 import subprocess
 import sys
 import tempfile
+import urllib.error
+import urllib.request
 from pathlib import Path
 from typing import Any
 
@@ -388,6 +392,54 @@ def main() -> int:
                    and not (repo / "ai-workflow/HUB_MIGRATED.json").exists())
             _record("case 8 (되돌리기 — 삭제 지시 · 추적되면 미확인 · 지우면 확인 · 허브 데이터 불변)", ok8,
                     f"{r1} {r2}/{still.get('reverted')} {r3}/{done_rv.get('reverted')} tasks {n_before}->{n_after} marker={rep8}")
+
+            # 9 선택 클라이언트 운반 — 새 저장소 · 새 프로젝트
+            repo2 = build_repo(tmp / "c")
+            reg2 = hub.call("hub_project_register", {"remote_url": "git@github.com:acme/legacy-client.git",
+                                                      "display_name": "legacy-client", "callsign": "owner-c", "kind": "human"})[1]
+            (repo2 / ".workflow-hub").mkdir()
+            (repo2 / ".workflow-hub" / "env").write_text(
+                f"WORKFLOW_HUB_URL={hub.base}\nWORKFLOW_HUB_TOKEN={reg2['token']}\n", encoding="utf-8")
+            with urllib.request.urlopen(hub.base + "/v1/bootstrap/hub_client.py", timeout=20) as r:
+                (repo2 / ".workflow-hub" / "hub_client.py").write_bytes(r.read())
+            clean_env = {k: v for k, v in os.environ.items() if k not in ("PYTHONPATH", "WORKFLOW_HUB_TOKEN", "WORKFLOW_HUB_URL")}
+
+            def client(*args: str) -> tuple[int, dict[str, Any]]:
+                r = subprocess.run([sys.executable, "-I", ".workflow-hub/hub_client.py", *args], cwd=repo2,
+                                   capture_output=True, text=True, env=clean_env, timeout=300)
+                try:
+                    return r.returncode, json.loads(r.stdout)
+                except json.JSONDecodeError:
+                    return r.returncode, {"raw": r.stdout[-500:], "err": r.stderr[-500:]}
+
+            c1, cplan = client("migrate", "plan")
+            mig2 = cplan.get("migration_id", "")
+            c2, cimp = client("migrate", "import", mig2, "all")
+            tasks2 = hub.call("hub_task_list", {"limit": 500}, reg2["token"])[1].get("tasks", [])
+            c3, again2 = client("migrate", "import", mig2, "all")
+            cached = (repo2 / ".workflow-hub" / "cache" / f"migrate-{mig2}.json").is_file()
+            # 큰 상한은 전환 두 도구에만 — 같은 300KB 본문이 다른 도구에서는 413
+            big = {"scan": {"ls_tracked": {"rc": 0, "output": "\n".join(f"docs/x{i:06d}.md" for i in range(20000))},
+                            "branch": {"rc": 0, "output": "main"}}}
+            body = json.dumps(big).encode()
+            def raw_post(name: str, data: bytes) -> int:
+                req = urllib.request.Request(f"{hub.base}/v1/tools/{name}", data=data, method="POST",
+                                             headers={"content-type": "application/json", "authorization": f"Bearer {reg2['token']}"})
+                try:
+                    with urllib.request.urlopen(req, timeout=60) as r:
+                        return r.status
+                except urllib.error.HTTPError as e:
+                    return e.code
+            s_big, s_other = raw_post("hub_migrate_plan", body), raw_post("hub_task_list", body)
+            ok9 = (c1 == 0 and mig2.startswith("MIG-") and cplan.get("conflicts") == 3 and cached
+                   and c2 == 0 and cimp.get("errors") == [] and cimp.get("unreadable") == []
+                   and sorted(t["id"] for t in tasks2) == [ID1, ID2, ID3, ID4]
+                   and cimp.get("total", {}).get("archive", {}).get("imported") == 4
+                   and c3 == 1 and again2.get("errors", [{}])[0].get("error_code") == "already_done"
+                   and len(body) > 256 * 1024 and s_big == 200 and s_other == 413)
+            _record("case 9 (선택 클라이언트 운반 — kit 없는 클라이언트로 plan · import, 큰 상한은 전환 도구만)", ok9,
+                    f"plan={c1}/{mig2}/{cplan.get('conflicts')} cached={cached} import={c2}/{cimp.get('errors')}/{cimp.get('total')} "
+                    f"tasks={len(tasks2)} again={c3}/{again2.get('errors')} big={len(body)}:{s_big}/{s_other}")
         finally:
             hub.stop()
     print(f"PASS {len(_passes)} · FAIL {len(_failures)}")

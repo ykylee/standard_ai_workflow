@@ -167,7 +167,7 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 | `invalid_remote` | 400 | 원격 없음 · 로컬 경로 (F1) |
 | `ignore_not_effective` | 409 | `.gitignore` 확인 실패 — 토큰 지시를 내지 않음 (R4.2) |
 | `unknown_contract` · `client_outdated` | 400 | §4.2 |
-| `payload_too_large` | 413 | 본문 상한 (기본 256KiB, 위키 묶음 2MiB — R13.5) |
+| `payload_too_large` | 413 | 본문 상한 (기본 256KiB — R13.5. HTTP `hub_migrate_plan` · `hub_migrate_import` 만 8MiB: 선택 클라이언트의 전환 운반, `app.BIG_BODY_TOOLS`) |
 | `unsupported_media_type` | 415 | 화면 `/api` 쓰기의 본문이 `application/json` 이 아니다 (§4.7 — 다른 출처 폼 위조 차단) |
 
 ### 4.4 도구 — 부트스트랩 묶음 (토큰 없이, 요구 R2.3 · R3)
@@ -320,7 +320,7 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 - **들여오기 (R14.2)** — 종류 `tasks` · `archive` · `handoff` · `roadmap` · `wiki` · `memory_index` · `checkpoint` · `guide_draft` 가운데 소유자가 고른 것만. 계획에 없는 경로 · 고르지 않은 종류의 파일은 거절. 한 파일이 여러 종류에 속할 수 있다 (현재 네임스페이스 handoff = 보관 + 콜사인 handoff). 이미 있는 것은 건너뛴다 — 묶음을 다시 보내도 같다. 응답의 `summary` 는 이번 묶음, `total` 은 누적. `final=true` 뒤에는 409.
 - **task 칸** — 1.x 리더(`read_task_list_field` · `read_task_affected_documents`) 그대로, `## 🧭 Plan` 절은 원문 그대로 `plan_md`, 상태는 frontmatter 우선 (`done` 도 그대로 — 1.x 에서 이미 게이트를 거쳤다). 못 읽는 파일은 `failed` 로 보고한다 (조용히 버리지 않는다). handoff 의 진행 · 막힘 · 최근 완료는 `TASK-` 줄만 들이고 나머지 줄은 `dropped_lines` 로 보고.
 - 진입 파일의 kit 생성 절 판정은 1.x `entry_diet` 의 '알려진 생성물' 해시 + `generated-from` 표식 — 손 문단만 `guide_proposal(open)` 초안이 된다 (승인된 사람이 보내도 판은 오르지 않는다).
-- 들여오기는 묶음 전송(에이전트가 파일을 읽어 싣는다 · 요청 상한 §4.3). 원본 파일은 지우지 않고 허브는 쓰기 지시도 내지 않는다.
+- 들여오기는 묶음 전송. **실제 규모의 저장소는 선택 클라이언트가 운반한다** (`hub_client.py migrate`, §7 — 리허설에서 이 저장소의 감지만 ~430KB, task 600여 개의 내용은 MB 단위라 LLM 이 도구 인자로 실을 수 없다). 작은 저장소는 에이전트가 MCP 로 실어도 된다 (요청 상한 §4.3). 원본 파일은 지우지 않고 허브는 쓰기 지시도 내지 않는다.
 - **'허브로 옮김' 표식 (R14.6 · DS9, WBS-38.2)** — 끝난 전환(`final` 뒤)에만 `hub_migrate_marker(action=issue)` 가 `ai-workflow/HUB_MIGRATED.json` 쓰기 지시(`sha256_after`)와 커밋 명령(`op: run`)을 낸다. 본문은 `{format: "workflow-hub-migrated/1", hub, project_id, migration_id, migrated_at(전환이 끝난 시각), kit_version, from_kit_versions, note}` — 같은 전환이면 언제 내도 같은 바이트다. 쓴 뒤 `action=confirm(sha256)` 으로 대조한다 (다르면 미확인 + 이유). 1.x 쪽 판정은 `workflow_kit/common/hub_marker.py` 하나다 (경로 상수의 정본 — 허브도 이것을 쓴다): `python -m workflow_kit <명령>` 입구에서 워크플로우 상태를 쓰는 명령(`GUARDED_COMMANDS`)은 표식을 위로 찾아 있으면 `hub_migrated` 로 거절하고(종료 코드 3 · 허브 주소, MCP `plan_import` 도 같은 입구), `session-start` 는 기준선을 복원하지 않고 허브를 가리킨 뒤 정상 종료한다. 모든 명령은 막음 / 면제(사유)로 분류돼 있고 미분류는 `check_hub_marker_1x` 가 red 로 본다. 모듈 직접 실행(`python -m workflow_kit.tools.X`)은 이 입구를 지나지 않는다. 2.0 안내 한 줄 · README · EOL 은 1.x 안내 판(R16.4) 발행 때.
 - **되돌리기 (R14.7)** — `action=revert` 가 삭제 지시(`op: delete`)와 확인 명령(`git ls-files -- <표식>` → 빈 출력)을 내고, `action=confirm_revert(check)` 가 그 결과로 판정한다 (아직 추적되면 미확인). 허브 쪽 기록은 지우지도 옮기지도 않는다. 되돌린 뒤 1.x 에서 바뀐 것은 다시 전환해도 '이미 있음' 으로 건너뛰므로, 응답이 그 주의를 싣는다 (다시 전환하기 전의 정리 방법은 후속).
 
@@ -346,6 +346,7 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 | `call <tool> [json]` | 부른다. 허브에 닿지 않으면 **쓰기**(`QUEUEABLE` — `request_id` 를 받는 도구만)는 `.workflow-hub/outbox/<ns 시각>-<난수>.json` 에 `request_id` 를 붙여 쌓고 exit 3, 읽기 · 그 밖은 쌓지 않고 exit 2 (낡은 답을 지금 답처럼 내지 않게) |
 | `flush` | 보낼편지함을 **오래된 것부터** 보낸다. 성공은 지운다 · 같은 항목을 두 번 보내도 `request_id` 로 한 번만 반영 · **409 는 자동 병합하지 않고 남긴 채 보고** (D4 · R12.2) · 그 밖 오류도 남긴다 · 닿지 않으면 멈춘다 |
 | `status` | 남은 항목 수 · 목록 · 캐시 시각 |
+| `migrate plan` · `migrate import <MIG> <종류,…\|all>` | 1.x 전환의 대량 운반 (소유자 2026-11-21, 리허설 §16.5) — 허브가 낸 감지 명령을 저장소 뿌리에서 돌려 보내고 계획 요약을 낸다 (전체는 `.workflow-hub/cache/migrate-<MIG>.json`). import 는 계획의 파일을 읽어 2MiB 묶음으로 보내고 마지막 묶음에 `final`. 에이전트(LLM)는 요약을 사람에게 보이고 고른 종류만 넘긴다 — 큰 출력 · 파일 내용이 모델 컨텍스트를 지나지 않는다. 다시 돌려도 허브가 있는 것을 건너뛰고, 끝난 전환은 409 |
 | `session-start [json]` | `hub_session_start(client={version, outbox_pending})` — 허브 보고 `hub.local_client` 에 남은 수가 실린다 (R12.3). 응답을 `.workflow-hub/cache/session_start.json` 에 둔다. 허브가 꺼졌으면 캐시로 열고 `허브 미확인 · 캐시 (<시각>)`, 캐시도 없으면 `허브 미확인 · 캐시 없음` (R12.1) |
 
 - `client` 인자 없이 부른 세션 시작은 `local_client.status: none` — 클라이언트 없는 환경(원격 MCP 만)이다. 0건으로 치지 않는다.

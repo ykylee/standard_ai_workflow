@@ -33,6 +33,9 @@ from workflow_kit.hub.store import Ctx, Principal, Store
 
 #: 요청 본문 상한 (요구 R13.5).
 MAX_BODY = 256 * 1024
+#: 큰 상한을 받는 도구 — 1.x 전환의 대량 운반은 선택 클라이언트가 한다 (소유자 2026-11-21, 리허설 §16.5:
+#: 이 저장소의 감지 결과만 ~430KB). LLM 이 도구 인자로 싣는 경로(MCP)에는 해당하지 않는다.
+BIG_BODY_TOOLS: dict[str, int] = {"hub_migrate_plan": 8 * 1024 * 1024, "hub_migrate_import": 8 * 1024 * 1024}
 
 Clock = Callable[[], datetime]
 
@@ -138,8 +141,9 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
             if contract is not None and contract != CONTRACT:
                 raise HubError(400, "unknown_contract", f"모르는 계약 판: {contract!r} — 이 허브는 {CONTRACT}")
             body = await request.body()
-            if len(body) > MAX_BODY:
-                raise HubError(413, "payload_too_large", f"본문 상한 {MAX_BODY} 바이트")
+            limit = BIG_BODY_TOOLS.get(name, MAX_BODY)
+            if len(body) > limit:
+                raise HubError(413, "payload_too_large", f"본문 상한 {limit} 바이트", {"limit": limit})
             try:
                 args = json.loads(body.decode("utf-8")) if body.strip() else {}
             except (UnicodeDecodeError, json.JSONDecodeError) as exc:

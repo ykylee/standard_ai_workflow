@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "generated_by": "workflow_kit.common.state.roadmap.generate_roadmap_state",
-  "generated_at": "2026-11-20",
+  "generated_at": "2026-11-21",
   "milestones": [
     {
       "id": "M-001",
@@ -416,11 +416,6 @@
           "title": "릴리스·채널 운영 (발행 사이클, 소비 채널 재적용, 브랜치 메모리 정비)",
           "derived_status": "in_progress",
           "linked_task_ids": [
-            "TASK-2026-11-20-claude-consumer-readonly-session-start-002",
-            "TASK-2026-11-20-claude-consumer-readonly-session-start-003",
-            "TASK-2026-11-19-claude-remote-sync-check-234c32-002",
-            "TASK-2026-11-20-claude-remote-sync-check-234c32-001",
-            "TASK-2026-11-20-claude-remote-sync-check-234c32-002",
             "TASK-2026-08-30-main-004",
             "TASK-2026-08-31-main-001",
             "TASK-2026-08-31-main-005",
@@ -471,8 +466,13 @@
             "TASK-2026-11-17-claude-remote-sync-check-234c32-003",
             "TASK-2026-11-17-claude-remote-sync-check-234c32-005",
             "TASK-2026-11-17-claude-remote-sync-check-234c32-006",
+            "TASK-2026-11-19-claude-remote-sync-check-234c32-002",
             "TASK-2026-11-19-main-001",
-            "TASK-2026-11-19-main-002"
+            "TASK-2026-11-19-main-002",
+            "TASK-2026-11-20-claude-consumer-readonly-session-start-002",
+            "TASK-2026-11-20-claude-consumer-readonly-session-start-003",
+            "TASK-2026-11-20-claude-remote-sync-check-234c32-001",
+            "TASK-2026-11-20-claude-remote-sync-check-234c32-002"
           ],
           "total_leaves": 1,
           "done_leaves": 0,
@@ -1080,20 +1080,6 @@
   ],
   "current_milestone_id": "M-007",
   "exempt_tasks": [
-    {
-      "task_id": "TASK-2026-11-20-claude-consumer-readonly-session-start-001",
-      "task_status": "done",
-      "wbs_ref": "exempt",
-      "exempt_reason": "로드맵 밖 — worktree 브랜치 네임스페이스 자동 seed 사건 기록",
-      "source_path": "ai-workflow/memory/active/claude/consumer-readonly-session-start/backlog/tasks/TASK-2026-11-20-claude-consumer-readonly-session-start-001.md"
-    },
-    {
-      "task_id": "TASK-2026-11-19-claude-remote-sync-check-234c32-001",
-      "task_status": "done",
-      "wbs_ref": "exempt",
-      "exempt_reason": "로드맵 밖 — worktree 브랜치 네임스페이스 자동 seed 사건 기록",
-      "source_path": "ai-workflow/memory/active/claude/remote-sync-check-234c32/backlog/tasks/TASK-2026-11-19-claude-remote-sync-check-234c32-001.md"
-    },
     {
       "task_id": "TASK-2026-08-25-main-010",
       "task_status": "done",

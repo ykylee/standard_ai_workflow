@@ -1083,6 +1083,20 @@
   "current_milestone_id": "M-007",
   "exempt_tasks": [
     {
+      "task_id": "TASK-2026-11-21-fix-1x-long-lived-branch-memory-001",
+      "task_status": "done",
+      "wbs_ref": "exempt",
+      "exempt_reason": "로드맵 밖 — worktree 브랜치 네임스페이스 자동 seed 사건 기록",
+      "source_path": "ai-workflow/memory/active/fix/1x-long-lived-branch-memory/backlog/tasks/TASK-2026-11-21-fix-1x-long-lived-branch-memory-001.md"
+    },
+    {
+      "task_id": "TASK-2026-11-21-fix-1x-long-lived-branch-memory-002",
+      "task_status": "in_progress",
+      "wbs_ref": "exempt",
+      "exempt_reason": "1.x 결함 수리 줄 (R16.1) — 2.0 로드맵 밖",
+      "source_path": "ai-workflow/memory/active/fix/1x-long-lived-branch-memory/backlog/tasks/TASK-2026-11-21-fix-1x-long-lived-branch-memory-002.md"
+    },
+    {
       "task_id": "TASK-2026-08-25-main-010",
       "task_status": "done",
       "wbs_ref": "exempt",

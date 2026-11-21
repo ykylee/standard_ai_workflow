@@ -6,7 +6,7 @@
 이 검사가 하고 허브 몫은 실제 허브 프로세스에 HTTP 로 넣는다.
 
 1. 감지 — 명령 목록 → 결과 대조: 네임스페이스 · 현재 · 기본 브랜치 · kit 판 · 종류별 수 · checkpoint(무시 파일) ·
-   4종 밖 하네스 · 플러그인 안내
+   4종 밖 하네스 · 플러그인 안내 · 남기는 파일(사유별 수, R14.2) · 커밋 안 된 파일 경고
 2. 같은 ID 정본 (Q1) — 마지막 커밋이 늦은 브랜치 / 같은 시각이면 기본 브랜치 / 기본 브랜치가 없으면 이름순,
    들인 뒤 task 1 · 나머지는 이력(imported_variant), 근거가 보고에
 3. task 칸 — 1.x 칸이 그대로 (제목 · 상태 · 우선순위 · wbs · 완료 기준 · 결과 · 영향 문서 · plan_md 원문),
@@ -137,6 +137,10 @@ def build_repo(tmp: Path) -> Path:
     _write(repo, ".mcp.json", '{"mcpServers": {}}\n')
     _write(repo, ".claude-plugin/plugin.json", "{}\n")
     _write(repo, ".grok/config.toml", "x = 1\n")
+    # 계획이 들이지 않고 남기는 파일 (R14.2 — 숫자와 사유로 보여야 한다)
+    _write(repo, f"{A}/main/backlog/2026-11-01.md", "# backlog\n")
+    _write(repo, f"{A}/main/state.json", "{}\n")
+    _write(repo, "ai-workflow/memory/archived/old/backlog/tasks/TASK-2026-10-01-old-001.md", "x\n")
     _git(repo, "add", "-A")
     _git(repo, "commit", "-q", "-m", "t1000", when=1000)
     # t=2000: hotfix 의 ID1 · t=3000: feat/x 의 ID1 (가장 늦다)
@@ -210,7 +214,10 @@ def main() -> int:
 
             # 1 감지
             s0, p1, _ = hub.call("hub_migrate_plan", {}, tok)
+            untracked = repo / A / "main/backlog/tasks/TASK-2026-11-02-x-009.md"
+            _write(repo, str(untracked.relative_to(repo)), _task_text("TASK-2026-11-02-x-009", "커밋 안 됨"))
             scan = run_commands(repo)
+            untracked.unlink()
             s1, plan, _ = hub.call("hub_migrate_plan", {"scan": scan}, tok)
             det = plan.get("detected", {})
             c = det.get("counts", {})
@@ -221,7 +228,12 @@ def main() -> int:
                              "checkpoint": 1, "guide_draft": 1}
                    and det.get("unsupported_harnesses") == ["grok-build"] and det.get("unmeasured") == []
                    and any(".mcp.json" in g for g in plan.get("guidance", []))
-                   and any("grok-build" in g for g in plan.get("guidance", [])))
+                   and any("grok-build" in g for g in plan.get("guidance", []))
+                   and det.get("uncommitted") == [f"{A}/main/backlog/tasks/TASK-2026-11-02-x-009.md"]
+                   and any("커밋 안 된 파일 1개" in g for g in plan.get("guidance", []))
+                   and det.get("left_in_repo_total") == 3
+                   and {k.split(" — ")[0] for k in det.get("left_in_repo", {})}
+                   == {"생성물", "아카이브된 브랜치 기록", "날짜별 backlog"})
             _record("case 1 (감지 — 네임스페이스 · 브랜치 · kit 판 · 종류별 수 · checkpoint · 4종 밖 하네스)", ok1,
                     f"{s0} {s1} det={det} guidance={plan.get('guidance')}")
             mig = plan.get("migration_id", "")

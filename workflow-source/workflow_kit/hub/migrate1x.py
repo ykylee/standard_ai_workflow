@@ -53,7 +53,24 @@ COMMANDS: dict[str, list[str]] = {
     "ls_ignored": ["git", "ls-files", "--others", "--ignored", "--exclude-standard", "--", "ai-workflow/memory/active"],
     "times": ["git", "log", "--format=@%ct %H", "--name-only", "--", "ai-workflow/memory/active"],
     "kit_marker": ["git", "grep", "-n", "-e", "standard-ai-workflow-kit:", "--", *ENTRY_FILES],
+    # 커밋 안 된 · 추적 안 된 파일 — 감지는 추적 파일만 보므로 이것들은 계획에 없다 (경고로 알린다).
+    "dirty": ["git", "status", "--porcelain", "--untracked-files=all", "--", "ai-workflow", *ENTRY_FILES],
 }
+
+#: 계획이 들이지 않고 저장소에 남기는 파일의 사유 (R14.2 '무엇을 남기는지'). 위에서부터 첫 일치.
+LEFT_REASONS: tuple[tuple[str, str], ...] = (
+    (r"(^|/)state\.json(\.template)?$|/roadmap_state\.json$", "생성물 — 허브가 다시 만든다"),
+    (r"^ai-workflow/memory/archived/", "아카이브된 브랜치 기록 — 이 전환은 활성 네임스페이스만 들인다"),
+    (r"^ai-workflow/memory/active/.+/backlog/\d{4}-\d{2}-\d{2}\.md$", "날짜별 backlog — task 파일이 정본이고 이것은 파생 목록"),
+    (r"/baselines\.md$", "기준선 이관 기록 — 이 전환이 다루지 않는다"),
+    (r"/plan_responses/", "결정 응답 보관 — 이 전환이 다루지 않는다 (결정 상태는 task 계획 줄에 있다)"),
+    (r"(^|/)\.gitkeep$|(^|/)\.frozen$|\.bak$", "자리 표시 · 백업 파일"),
+    (r"^ai-workflow/memory/active/(PURPOSE|PROJECT_PROFILE)\.md$", "프로젝트 문서 — 허브에 자리가 없다 (저장소에 남는다)"),
+    (r"^ai-workflow/memory/(archive|release|plans)/|^ai-workflow/memory/log\.md$", "옛 스냅숏 · 발행 기록 — 저장소에 남는다"),
+    (r"^ai-workflow/wiki/", "위키의 페이지가 아닌 파일"),
+    (r"^ai-workflow/memory/active/memory_index/", "memory_index 의 entry 가 아닌 파일"),
+)
+
 _KIT_MARKER = re.compile(r"standard-ai-workflow-kit:\s*v?([0-9][0-9A-Za-z.+-]*)")
 #: task 파일 이름의 ID 는 정규식으로 거르지 않는다 — 옛 ID(``TASK-021``)도 감지에서 빠지면 안 된다. 판정은 파서가 한다.
 _TASK_FILE = re.compile(r"^(?P<ns>.+?)/backlog/tasks/(?P<id>[^/]+)\.md$")  # 이름이 TASK- 로 시작하는지는 아래에서
@@ -289,6 +306,17 @@ class Migrator:
                     if path == prefix or path.startswith(prefix):
                         traces.append({"path": path, "harness": harness})
                         break
+        covered_now = set(sorted(c["path"] for cands in tasks.values() for c in cands)) | {a["path"] for a in archive} \
+            | set(roadmap) | set(wiki) | set(memidx) | set(entries)
+        left: dict[str, list[str]] = {}
+        for path in tracked:
+            if path in covered_now or not path.startswith("ai-workflow/"):
+                continue
+            if path.endswith("/session_handoff.md") or path.endswith(".compact/checkpoint.json"):
+                continue
+            reason = next((why for pat, why in LEFT_REASONS if re.search(pat, path)), "이 전환이 다루지 않는다 — 저장소에 남는다")
+            left.setdefault(reason, []).append(path)
+        dirty = [ln[3:].strip() for ln in (_out(scan, "dirty") or (1, ""))[1].splitlines() if len(ln) > 3]
         current_ns = branch if branch in namespaces else (default if default in namespaces else "")
         checkpoint = f"{ACTIVE}{current_ns}/.compact/checkpoint.json" if current_ns else ""
         if checkpoint not in ignored and checkpoint not in tracked:
@@ -329,8 +357,12 @@ class Migrator:
             "entry_files": sorted(entries), "harness_traces": traces,
             "unsupported_harnesses": [h for h in harnesses if h not in SUPPORTED],
             "unmeasured": unmeasured,
+            "left_in_repo": {why: {"files": len(paths), "sample": paths[:3]} for why, paths in sorted(left.items())},
+            "left_in_repo_total": sum(len(v) for v in left.values()),
+            "uncommitted": dirty,
         }
-        guidance = [
+        guidance = ([f"커밋 안 된 파일 {len(dirty)}개는 계획에 없다 — 커밋한 뒤 계획을 다시 낸다: {', '.join(dirty[:5])}"]
+                    if dirty else []) + [
             f"{h}: 2.0 지원 대상 아님 — 1.x 줄에 남거나 원격 MCP 를 손으로 등록한다 (R14.9)"
             for h in detected["unsupported_harnesses"]
         ] + [

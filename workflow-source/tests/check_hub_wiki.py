@@ -12,11 +12,14 @@
 7. 양방향 링크 — lint 가 1.x audit 함수로 대칭 · 비대칭을 잰다 (E5)
 8. 출처 — 저장소 키 · sha 를 싣고, 프로젝트 밖 키 · 틀린 sha 는 거절, 출처 없이 다시 쓰면 지운다 (R8.4)
 9. 원격 읽기 — 소유자만 켠다, 켜면 저장소 참조 · 출처 sha · freshness 를 재고, 못 받거나 끄면 미측정 (R8.4 · E3)
+10. 위키 디렉터리 운반 — 이 저장소 위키를 들였다 내보내면 페이지가 바이트 그대로 · 1.x index/log 원문은 보관 · 표식 (R8.6 소유자 결정 · R15.2)
+11. OKF 출판 — 허브 내보내기 = 저장소에서 1.x export_wiki_to_okf 를 직접 돌린 결과, 빠진 페이지를 목록으로 (R8.6)
+12. 남의 OKF 묶음 들여오기 — loose 한 방향, 같은 경로는 409 (R8.6)
 """
 
 from __future__ import annotations
 
-CHECK_TIMEOUT_S = 300
+CHECK_TIMEOUT_S = 420
 
 WATCHES = (
     "workflow-source/workflow_kit/*",
@@ -285,8 +288,103 @@ def run_36_2(hub: Hub, tmp: Path) -> None:
     _record("case 9 원격 읽기 — 소유자만 · 켜면 측정 · 못 받거나 끄면 미측정", not problems, "; ".join(problems))
 
 
+def _export_all(hub: Hub, tok: str, fmt: str, out_dir: str | None = None) -> tuple[dict[str, str], dict]:
+    files: dict[str, str] = {}
+    cursor, last, calls = 0, {}, 0
+    while cursor is not None:
+        args = {"format": fmt, "cursor": cursor, **({"out_dir": out_dir} if out_dir is not None else {})}
+        st, last, _ = hub.call("hub_wiki_export", args, tok)
+        if st != 200:
+            raise RuntimeError(f"export {st} {last}")
+        files.update({s_["path"]: s_["content"] for s_ in last["steps"]})
+        cursor, calls = last["next_cursor"], calls + 1
+    last["calls"] = calls
+    return files, last
+
+
+def run_36_3(hub: Hub, tmp: Path) -> None:
+    wiki = REPO_ROOT / "ai-workflow" / "wiki"
+    reg = hub.call("hub_project_register", {"remote_url": "git@github.com:acme/move.git", "display_name": "Move",
+                                             "callsign": "mover", "kind": "agent"})[1]
+    tok = reg["token"]
+    all_files = [(q.relative_to(wiki).as_posix(), q.read_text(encoding="utf-8")) for q in sorted(wiki.rglob("*")) if q.is_file()]
+    # 저장소 위키는 모두 줄바꿈 하나로 끝나 정규화가 바이트를 안 바꾼다 — 재려는 조건을 fixture 가 만든다.
+    all_files.append(("concepts/zz-bytes.md", "# 바이트\r\n\n끝 공백   \n탭\t\n\n\n"))
+    batches: list[list[dict[str, str]]] = [[]]
+    for path, content in all_files:
+        if batches[-1] and sum(len(f["content"].encode("utf-8")) for f in batches[-1]) + len(content.encode("utf-8")) > 160_000:
+            batches.append([])
+        batches[-1].append({"path": path, "content": content})
+    results = [hub.call("hub_wiki_import_dir", {"files": b, "summary": f"1.x 위키 들여오기 {i + 1}/{len(batches)}"}, tok)
+               for i, b in enumerate(batches)]
+    one = [next({"path": path, "content": c} for path, c in all_files if path.startswith("concepts/"))]
+    st_again, _, _ = hub.call("hub_wiki_import_dir", {"files": one, "summary": "다시"}, tok)
+    st_over, _, _ = hub.call("hub_wiki_import_dir", {"files": one, "summary": "덮어쓰기", "overwrite": True}, tok)
+    files, last = _export_all(hub, tok, "dir")
+    pages = {path: c for path, c in all_files if path.endswith(".md") and path not in ("index.md", "log.md")}
+    problems = []
+    if any(r[0] != 200 for r in results):
+        problems.append(f"들여오기 {[r[0] for r in results]} {[r[1] for r in results if r[0] != 200][:1]}")
+    archived = sorted(a for r in results for a in r[1].get("archived_1x", []))
+    skipped = sorted(x for r in results for x in r[1].get("skipped_non_page", []))
+    if archived != ["index.md", "log.md"] or skipped != [".gitignore", "sources/.gitkeep"]:
+        problems.append(f"보관 {archived} · 건너뜀 {skipped}")
+    if st_again != 409 or st_over != 200:
+        problems.append(f"다시 들이기 {st_again} (409) · overwrite {st_over} (200)")
+    exported = {k[len("ai-workflow/wiki/"):]: v for k, v in files.items()}
+    diff = [path for path, c in pages.items() if exported.get(path) != c]
+    extra = sorted(set(exported) - set(pages) - {"index.md", "log.md", ".hub-export.json"})
+    if diff or extra or len(pages) < 90:
+        problems.append(f"바이트 불일치 {diff[:5]} · 남는 파일 {extra[:5]} (페이지 {len(pages)})")
+    out_root = tmp / "exported-wiki"
+    for path, c in exported.items():
+        (out_root / path).parent.mkdir(parents=True, exist_ok=True)
+        (out_root / path).write_text(c, encoding="utf-8")
+    errors, _n = validate_index(exported.get("index.md", "").splitlines(), out_root)
+    marker = exported.get(".hub-export.json", "")
+    if errors or '"canonical": "hub"' not in marker or last.get("calls", 0) < 2:
+        problems.append(f"생성 index {errors[:2]} · 표식 {marker[:60]!r} · 나눠 부르기 {last.get('calls')}")
+    _record(f"case 10 위키 디렉터리 운반 — {len(pages)} 페이지 바이트 그대로 · 원문 보관 · 표식", not problems, "; ".join(problems))
+
+    # --- 11. OKF 출판 -----------------------------------------------------------
+    from workflow_kit.okf_export import export_wiki_to_okf
+    okf, rep = _export_all(hub, tok, "okf", out_dir="pub")
+    with tempfile.TemporaryDirectory(prefix="okf-native-") as d:
+        export_wiki_to_okf(wiki, Path(d), resolve=False, emit_manifest=True)
+        native = {q.relative_to(d).as_posix(): q.read_text(encoding="utf-8") for q in Path(d).rglob("*") if q.is_file()}
+    hub_okf = {k[len("pub/"):]: v for k, v in okf.items()}
+    problems = []
+    vary = {"okf-bundle.yaml"}  # 생성 시각을 싣는다
+    if set(hub_okf) != set(native) or [k for k in native if k not in vary and hub_okf.get(k) != native[k]]:
+        problems.append(f"허브 OKF ≠ 1.x 직접 실행: {sorted(set(hub_okf) ^ set(native))[:5]} "
+                        f"{[k for k in native if k not in vary and hub_okf.get(k) != native[k]][:5]}")
+    if rep.get("lossy") is not True or len(rep.get("excluded", [])) != len(pages) - rep.get("pages_exported", -1) \
+            or "concepts/zz-bytes.md" not in rep.get("excluded", []) or rep.get("excluded_by_error") != 1:
+        problems.append(f"빠진 페이지 보고: exported {rep.get('pages_exported')} · excluded {len(rep.get('excluded', []))} · 페이지 {len(pages)}")
+    _record(f"case 11 OKF 출판 = 1.x 함수 그대로 · 빠진 {len(rep.get('excluded', []))} 페이지를 목록으로", not problems, "; ".join(problems))
+
+    # --- 12. 남의 OKF 묶음 들여오기 ---------------------------------------------
+    small = hub.call("hub_project_register", {"remote_url": "git@github.com:acme/small.git", "display_name": "Small",
+                                               "callsign": "pub", "kind": "agent"})[1]["token"]
+    picks = [path for path in sorted(pages) if path.startswith("concepts/")][:3]
+    hub.call("hub_wiki_ingest", {"summary": "작은 위키", "pages": [{"path": path, "body": pages[path]} for path in picks]}, small)
+    bundle, _ = _export_all(hub, small, "okf", out_dir="b")
+    dest = hub.call("hub_project_register", {"remote_url": "git@github.com:acme/dest.git", "display_name": "Dest",
+                                              "callsign": "dest", "kind": "agent"})[1]["token"]
+    bfiles = [{"path": k[len("b/"):], "content": v} for k, v in sorted(bundle.items())]
+    st12, r12, _ = hub.call("hub_wiki_import_okf", {"files": bfiles, "summary": "남의 OKF"}, dest)
+    st12b, _, _ = hub.call("hub_wiki_import_okf", {"files": bfiles, "summary": "또"}, dest)
+    listed = [p_["path"] for p_ in hub.call("hub_wiki_list", {}, dest)[1].get("pages", [])]
+    problems = []
+    if st12 != 200 or r12.get("mode") != "loose" or r12.get("pages_staged") != 3 or listed != picks:
+        problems.append(f"들여오기 {st12} {str(r12)[:200]} · 목록 {listed}")
+    if st12b != 409:
+        problems.append(f"같은 경로 다시 {st12b} (409)")
+    _record("case 12 남의 OKF 묶음 — loose 한 방향 · 같은 경로 409", not problems, "; ".join(problems))
+
+
 def main() -> int:
-    print("=== 허브 위키 (M-036 WBS-36.1 · 36.2) ===")
+    print("=== 허브 위키 (M-036 WBS-36.1 · 36.2 · 36.3) ===")
     with tempfile.TemporaryDirectory(prefix="hubwiki-") as d:
         tmp = Path(d)
         hub = Hub(tmp / "hub.db")
@@ -294,6 +392,7 @@ def main() -> int:
             try:
                 run(hub, tmp)
                 run_36_2(hub, tmp)
+                run_36_3(hub, tmp)
             except Exception as exc:  # noqa: BLE001 — 예외도 판정으로
                 _record("run (예외)", False, repr(exc))
         finally:

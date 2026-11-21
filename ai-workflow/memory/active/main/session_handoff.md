@@ -81,6 +81,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-11-21-main-003 허브 위키 들여오기 · 내보내기 — 위키 디렉터리 무손실 운반 + OKF 출판 (WBS-36.3 A)
 - TASK-2026-11-21-main-002 허브 memory_index · 양방향 링크 · 출처 sha · 원격 읽기(미측정) (WBS-36.2)
 - TASK-2026-11-21-main-001 허브 위키 — 페이지 · ingest 묶음 · index/log 생성 · 읽기 · lint (WBS-36.1)
 - TASK-2026-11-21-claude-workflow-hub-concept-013 handoff §5 서두의 회차 줄이 예산 밖에서 쌓인다 — 누적형으로 세고 이관
@@ -90,7 +91,6 @@
 - TASK-2026-11-21-claude-workflow-hub-concept-009 허브 판정 — 계획 린트 · done 게이트 · 결정 응답 (1.x 와 같은 함수)
 - TASK-2026-11-21-claude-workflow-hub-concept-008 허브 세션 시작 확인 · 하네스 등록 안내 페이지
 - TASK-2026-11-21-claude-workflow-hub-concept-007 허브 지침 렌더링 — 표준 규칙(2.0판) · 프로젝트 지침 · 하네스 4종 · 판 · 로컬 수정 감지
-- TASK-2026-11-21-claude-workflow-hub-concept-006 허브 부트스트랩 셋업 — 쓰기 지시 · .gitignore 먼저 · 확인 도구
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

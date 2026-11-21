@@ -49,7 +49,8 @@ class ToolSpec:
         }
 
 
-_PY_TYPES: dict[str, tuple[type, ...]] = {"string": (str,), "integer": (int,), "object": (dict,), "array": (list,)}
+_PY_TYPES: dict[str, tuple[type, ...]] = {"string": (str,), "integer": (int,), "object": (dict,), "array": (list,),
+                                         "boolean": (bool,)}
 
 
 def validate_args(spec: ToolSpec, args: dict[str, Any]) -> dict[str, Any]:
@@ -230,7 +231,7 @@ TOOLS: dict[str, ToolSpec] = {
         ToolSpec("hub_wiki_get", "token", "위키 페이지 하나 (index.md · log.md 는 생성해서 돌려준다).",
                  {"path": _STR}, ("path",), lambda s, c, a: Wiki(s).get(c, a["path"])),
         ToolSpec("hub_wiki_list", "token", "위키 페이지 목록 (경로 · 제목 · version). prefix 로 좁힌다.",
-                 {"prefix": _STR}, (), lambda s, c, a: Wiki(s).list(c, a.get("prefix", ""))),
+                 {"prefix": _STR}, (), lambda s, c, a: Wiki(s).list_pages(c, a.get("prefix", ""))),
         ToolSpec("hub_wiki_search", "token", "위키 검색 — 낱말이 모두 들어간 페이지 (경로 · 제목 · 본문).",
                  {"query": _STR, "limit": _INT}, ("query",), lambda s, c, a: Wiki(s).search(c, a["query"], a.get("limit", 20))),
         ToolSpec("hub_wiki_lint", "token",
@@ -248,6 +249,21 @@ TOOLS: dict[str, ToolSpec] = {
                  lambda s, c, a: Wiki(s).memory_get(c, a["id"])),
         ToolSpec("hub_memory_entry_list", "token", "memory_index entry 목록 (id · version · primary_abstraction).", {}, (),
                  lambda s, c, a: Wiki(s).memory_list(c)),
+        ToolSpec("hub_wiki_import_dir", "token",
+                 "1.x 위키 디렉터리를 무손실로 들인다 — files [{path(위키 뿌리 상대), content}]. 페이지는 바이트 그대로, "
+                 "index.md · log.md 원문은 보관 기록으로, .md 아닌 파일은 건너뛴다. overwrite 가 아니면 있는 페이지는 409. "
+                 "요청 상한(256KB)을 넘으면 여러 번 나눠 부른다.",
+                 {"files": _ARR, "summary": _STR, "overwrite": {"type": "boolean"}, "request_id": _REQ_ID}, ("files", "summary"),
+                 lambda s, c, a: Wiki(s).import_dir(c, a["files"], a["summary"], bool(a.get("overwrite")), a.get("request_id"))),
+        ToolSpec("hub_wiki_export", "token",
+                 "위키 내보내기를 쓰기 지시로 돌려준다 (허브는 저장소에 쓰지 않는다). format=dir: 1.x 위키 배치 그대로(무손실) + "
+                 "내보내기 표식. format=okf: OKF 출판(손실 — 빠진 페이지를 목록으로). 크면 next_cursor 로 이어 부른다.",
+                 {"format": _STR, "out_dir": _STR, "cursor": _INT}, ("format",),
+                 lambda s, c, a: Wiki(s).export(c, a["format"], a.get("out_dir"), a.get("cursor", 0))),
+        ToolSpec("hub_wiki_import_okf", "token",
+                 "남의 OKF 묶음을 들인다 — files [{path(묶음 뿌리 상대), content}], loose 한 방향 (OKF 형태 그대로 페이지가 된다).",
+                 {"files": _ARR, "summary": _STR, "request_id": _REQ_ID}, ("files", "summary"),
+                 lambda s, c, a: Wiki(s).import_okf(c, a["files"], a["summary"], a.get("request_id"))),
         ToolSpec("hub_task_claim", "token", "task 를 맡는다 — 다른 콜사인이 맡고 있으면 409.",
                  {"id": _STR, "request_id": _REQ_ID}, ("id",),
                  lambda s, c, a: s.task_claim(c, a["id"], a.get("request_id"))),

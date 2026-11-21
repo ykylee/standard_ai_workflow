@@ -189,6 +189,7 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 | handoff · 상태 | `hub_handoff_get(callsign?)` · `hub_handoff_put(expected_version, sections)` · `hub_state(scope)` | `scope` = `callsign` / `project`, 결과는 `state.json` v1 (R6.3) |
 | 결정 응답 | `hub_plan_respond(task_id, body)` · `hub_plan_status(task_id)` | body = response/1 바이트 그대로 (R5.8) |
 | 지침 | `hub_guide_render(harness)` · `hub_guide_propose(base_version, body)` · `hub_guide_decide(proposal_id, approve)` | `decide` 는 승인된 `human` 만 (R7.7) |
+| 위키 운반 | `hub_wiki_import_dir(files[{path, content}], summary, overwrite?)` · `hub_wiki_export(format=dir\|okf, out_dir?, cursor?)` · `hub_wiki_import_okf(files, summary)` | 운반 = 1.x 위키 디렉터리 그대로 (R8.6 2026-11-21 결정). 내보내기는 쓰기 지시(§5.1 `op: write` · `sha256`)로 — 허브는 저장소에 쓰지 않는다 (R15.1). 응답 150KB 넘으면 `next_cursor`. `dir` 은 표식 `.hub-export.json` (R15.2) 을 함께 낸다. `okf` 는 출판(손실) — `excluded` (묶음에 없는 페이지 전부) · `excluded_by_error`. 남의 OKF 들여오기는 loose · 한 방향 · 묶음 하나가 요청 상한(256KB) 안 (M-036 WBS-36.3) |
 | memory_index | `hub_memory_entry_put(entry, expected_version)` · `hub_memory_entry_get(id)` · `hub_memory_entry_list()` | 1.x `MemoryEntry` 스키마 · 새 entry 는 0 · 다르면 409 (M-036 WBS-36.2) |
 | 위키 원격 읽기 | `hub_wiki_remote_set(fetch_url)` | **소유자만** — `project.settings_json.wiki_remote`. 빈 값이면 끈다. `https://` · `ssh://` · `git@host:path` · `file:///` 만 (git 원격 도우미 `ext::` 등 거절) (R3.7 · R8.4) |
 | 로드맵 | `hub_roadmap_get()` · `hub_roadmap_put(path, expected_version, body)` · `hub_roadmap_state()` | 스키마 오류는 필드 · 제약과 함께 (R9.2) |
@@ -293,6 +294,7 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 - **출처 (R8.4)** — ingest 페이지의 `source{repo_key, sha}`. `repo_key` 는 이 프로젝트의 등록 키(주 키 · 별칭)여야 한다. 출처 없이 다시 쓰면 출처를 지운다 — 옛 sha 가 새 본문의 출처인 척하지 않게.
 - **원격 읽기 (R8.4 · E3, `hub/wiki_remote.py`)** — 소유자가 켜면 lint 때 `git clone --bare --filter=blob:none` 을 임시 디렉터리에 받아(트리 · 커밋만, 끝나면 지움, 시간 상한 120초) 잰다: 저장소 참조가 기본 브랜치 머리 트리에 있는가(`missing`) · 출처 sha 가 있는가(`unknown`) · freshness — 출처 sha 이후 frontmatter `last_ingested_from` 의 경로가 바뀌었는가(`stale`, 대상 = sha 와 경로가 둘 다 있는 페이지 수 `targets`). 셋은 `ok` 에 넣지 않고 따로 보인다.
 - **미측정** — 원격 읽기가 꺼졌거나 받기에 실패하면 셋 다 `status: unmeasured` + 이유 (freshness `targets: 0`) — 통과 0건. 빈 위키는 `ok: null` · `status: empty` — 잴 것이 없음은 통과가 아니다.
+- **운반 (R8.6, WBS-36.3)** — `hub_wiki_import_dir` 는 위키 뿌리 상대 파일을 받아 `.md` 페이지를 바이트 그대로 ingest 묶음 하나로, `index.md` · `log.md` 원문은 `memory_note` (`archive_1x`) 로 보관, `.md` 아닌 파일(`.gitkeep` 등)은 `skipped_non_page` 로 보인다. `overwrite` 가 아니면 있는 페이지는 409. 요청 상한 때문에 큰 위키는 여러 번 — 한 번이 ingest 하나.
 - 점수 함수(coverage · cross_ref · discoverability · lifecycle)는 M-036 WBS 에 없다 — 1.x 함수가 저장소 상수 · kit 선언에 묶여 있어(실측 §16.2) 인자화가 따로 필요하다. 후속 후보. operational · trend 는 돌지 않는다.
 
 ## 7. 선택 클라이언트 (요구 R2.7 · R11.3 · R12)

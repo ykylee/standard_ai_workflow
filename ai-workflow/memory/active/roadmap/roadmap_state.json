@@ -1387,10 +1387,10 @@
       "title": "2.0 허브 — implementation 4: 위키 · memory_index · 들여오기/내보내기 · 오프라인",
       "sdlc_phase": "implementation",
       "declared_status": "in_progress",
-      "derived_status": "in_progress",
-      "progress": 0.6666666666666666,
+      "derived_status": "done",
+      "progress": 1.0,
       "total_leaves": 3,
-      "done_leaves": 2,
+      "done_leaves": 3,
       "deliverables_missing": [],
       "wbs": [
         {
@@ -1418,10 +1418,12 @@
         {
           "id": "WBS-36.3",
           "title": "들여오기 · 내보내기 (OKF · git 스냅샷) · 오프라인 보낼편지함 (선택 클라이언트)",
-          "derived_status": "planned",
-          "linked_task_ids": [],
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-21-main-003"
+          ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         }
       ]
@@ -1756,5 +1758,11 @@
       "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-11-20-claude-workflow-hub-concept-007.md"
     }
   ],
-  "issues": []
+  "issues": [
+    {
+      "code": "declared_derived_mismatch",
+      "detail": "M-036: 선언 in_progress ≠ 파생 done (done 경계)",
+      "where": "M-036-workflow-hub-wiki.md"
+    }
+  ]
 }

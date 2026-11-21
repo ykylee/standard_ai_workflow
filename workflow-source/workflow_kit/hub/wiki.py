@@ -13,6 +13,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import sqlite3
@@ -238,7 +239,7 @@ class Wiki:
                 "updated_at": row["updated_at"], "last_ingest": row["last_ingest"],
                 "source": {"repo_key": row["source_repo_key"], "sha": row["source_sha"]}}
 
-    def list(self, ctx: Ctx, prefix: str = "") -> dict[str, Any]:
+    def list_pages(self, ctx: Ctx, prefix: str = "") -> dict[str, Any]:
         pid = self._pid(ctx)
         with self.store.read() as conn:
             rows = [r for r in self._pages(conn, pid) if r["path"].startswith(prefix or "")]
@@ -265,6 +266,146 @@ class Wiki:
                 hits.append({"path": r["path"], "title": title, "score": score, "snippet": snippet})
         hits.sort(key=lambda h: (-h["score"], h["path"]))
         return {"query": query, "hits": hits[: max(1, min(int(limit), 100))], "total": len(hits)}
+
+    # --- 들여오기 · 내보내기 (R8.6 — 소유자 결정 2026-11-21: 운반 = 1.x 위키 디렉터리 그대로) -----
+
+    def import_dir(self, ctx: Ctx, files: list[Any], summary: str, overwrite: bool = False,
+                   request_id: str | None = None) -> dict[str, Any]:
+        """1.x ``ai-workflow/wiki/`` 배치를 무손실로 들인다 — 경로는 위키 뿌리 상대.
+
+        페이지(``.md``)는 바이트 그대로 ingest 묶음 하나로 쓴다. ``index.md`` · ``log.md`` 는 허브가 생성하므로
+        페이지로 쓰지 않고 원문을 보관 기록(``memory_note`` ``archive_1x``)에 남긴다 — 1.x log 는 이력이다.
+        ``.md`` 가 아닌 파일(``.gitkeep`` 등)은 위키 페이지가 아니라 건너뛰고 목록으로 보인다.
+        ``overwrite`` 가 아니면 이미 있는 페이지는 409 (묶음 전체 거절).
+        """
+        p = self.store._need_callsign(ctx)
+        pid = p.project_id
+        assert pid is not None
+        if not isinstance(files, list) or not files:
+            raise invalid_field("files", "[{path, content}] 하나 이상")
+        pages, archived, skipped = [], [], []
+        for i, f in enumerate(files):
+            if not isinstance(f, dict) or set(f) != {"path", "content"} or not isinstance(f["content"], str):
+                raise invalid_field(f"files[{i}]", "{path, content(문자열)}")
+            path = f["path"]
+            if not isinstance(path, str) or path.startswith("/") or ".." in path.split("/"):
+                raise invalid_field(f"files[{i}].path", "위키 뿌리 상대 경로")
+            if path in GENERATED:
+                archived.append((path, f["content"]))
+            elif not path.endswith(".md"):
+                skipped.append(path)
+            else:
+                pages.append({"path": check_path(path, f"files[{i}].path"), "body": f["content"]})
+        if not pages and not archived:
+            raise invalid_field("files", "들일 위키 페이지가 없다")
+        if overwrite:
+            with self.store.read() as conn:
+                cur = {r["path"]: r["version"] for r in conn.execute(
+                    "SELECT path, version FROM wiki_page WHERE project_id = ?", (pid,))}
+            for page in pages:
+                page["expected_version"] = cur.get(page["path"], 0)
+        result: dict[str, Any] = {"pages": [], "archived_1x": [a for a, _ in archived], "skipped_non_page": skipped}
+        if pages:
+            result.update(self.ingest(ctx, pages, summary, request_id))
+        if archived:
+            with self.store.write() as conn:
+                for path, content in archived:
+                    scan_secrets(content, f"files.{path}")
+                    conn.execute(
+                        "INSERT INTO memory_note (project_id, callsign, kind, title, body_md, meta_json, created_at) "
+                        "VALUES (?, ?, 'archive_1x', ?, ?, ?, ?)",
+                        (pid, p.callsign, f"wiki/{path} (1.x 원문)", content,
+                         json.dumps({"source": "hub_wiki_import_dir", "path": path}, ensure_ascii=False), _iso(ctx.now)))
+        return result
+
+    def export(self, ctx: Ctx, fmt: str, out_dir: str | None = None, cursor: int = 0) -> dict[str, Any]:
+        """쓰기 지시(hub_spec §5.1)로 돌려준다 — 허브는 저장소에 쓰지 않는다 (R15.1 · D6).
+
+        ``dir``: 1.x 위키 배치 (페이지 바이트 그대로 + 생성 index · log + 내보내기 표식, R15.2).
+        ``okf``: 1.x ``export_wiki_to_okf`` 그대로 (출판 변환 — 5종 디렉터리만, 빠진 페이지를 목록으로).
+        응답이 크면 ``cursor`` 로 나눈다 (지시 순서는 경로 순으로 고정).
+        """
+        pid = self._pid(ctx)
+        if fmt not in ("dir", "okf"):
+            raise invalid_field("format", "dir · okf")
+        base = out_dir if out_dir is not None else ("ai-workflow/wiki" if fmt == "dir" else "okf-export")
+        if not isinstance(base, str) or base.startswith(("/", "~")) or ".." in base.split("/"):
+            raise invalid_field("out_dir", "저장소 뿌리 상대 경로")
+        base = base.rstrip("/")
+        with self.store.read() as conn:
+            rows = self._pages(conn, pid)
+            pages = [(r["path"], r["body_md"]) for r in rows]
+            ingests = self._ingests(conn, pid)
+        files: list[tuple[str, str]] = []
+        report: dict[str, Any] = {"format": fmt, "pages": len(pages)}
+        last_ing = ingests[-1]["id"] if ingests else None
+        if fmt == "dir":
+            files = list(pages)
+            if pages:
+                files += [("index.md", render_index([path for path, _ in pages])), ("log.md", render_log(ingests))]
+            files.append((".hub-export.json", json.dumps(
+                {"canonical": "hub", "project_id": pid, "exported_at": _iso(ctx.now), "last_ingest": last_ing,
+                 "note": "허브 위키의 사본이다 — 정본은 허브. 여기를 고쳐도 허브에 반영되지 않는다 (R15.2)."},
+                ensure_ascii=False, indent=2) + "\n"))
+        else:
+            from workflow_kit.okf_export import _is_wiki_page, export_wiki_to_okf
+            with tempfile.TemporaryDirectory(prefix="hubwiki-okf-") as d:
+                root = Path(d) / "wiki"
+                for path, body in pages:
+                    f = root / path
+                    f.parent.mkdir(parents=True, exist_ok=True)
+                    f.write_text(body, encoding="utf-8")
+                out = Path(d) / "bundle"
+                rep = export_wiki_to_okf(root, out, resolve=False, emit_manifest=True)
+                files = sorted((q.relative_to(out).as_posix(), q.read_text(encoding="utf-8"))
+                               for q in out.rglob("*") if q.is_file())
+                # 묶음에 없는 페이지는 이유와 상관없이 전부 — 디렉터리 밖(5종 외)이든 변환 오류든 (조용히 사라지지 않게).
+                excluded = [path for path, _ in pages if not (out / path).is_file()]
+                not_type_dir = sum(1 for path, _ in pages if not _is_wiki_page((root / path).resolve(), root.resolve()))
+            # 출판 변환은 손실이 있다 — 빠진 페이지를 숫자와 목록으로 보인다 (조용히 사라지지 않게).
+            report.update({"pages_exported": rep.pages_exported, "excluded": excluded, "excluded_not_type_dir": not_type_dir,
+                           "excluded_by_error": len(excluded) - not_type_dir, "errors": list(rep.errors),
+                           "lossy": True, "note": "OKF 는 출판 형식이다 — 5종 디렉터리만 · 본문 · frontmatter 변환. 운반은 format=dir"})
+        files.sort(key=lambda x: x[0])
+        budget, i = 150_000, max(0, int(cursor))
+        steps: list[dict[str, str]] = []
+        while i < len(files):
+            path, content = files[i]
+            size = len(content.encode("utf-8"))
+            if steps and sum(len(s_["content"].encode("utf-8")) for s_ in steps) + size > budget:
+                break
+            steps.append({"op": "write", "path": f"{base}/{path}", "content": content,
+                          "sha256": hashlib.sha256(content.encode("utf-8")).hexdigest()})
+            i += 1
+        report.update({"steps": steps, "total_files": len(files), "next_cursor": i if i < len(files) else None})
+        return report
+
+    def import_okf(self, ctx: Ctx, files: list[Any], summary: str, request_id: str | None = None) -> dict[str, Any]:
+        """남의 OKF 묶음을 들인다 — loose 한 방향 (1.x ``import_okf_bundle`` 그대로). 경로는 묶음 뿌리 상대.
+        OKF 형태 그대로 페이지가 된다 (역변환 없음). 같은 경로가 있으면 409."""
+        from workflow_kit.okf_import import import_okf_bundle
+        if not isinstance(files, list) or not files:
+            raise invalid_field("files", "[{path, content}] 하나 이상")
+        with tempfile.TemporaryDirectory(prefix="hubwiki-okfin-") as d:
+            bundle, staging = Path(d) / "bundle", Path(d) / "staging"
+            for i, f in enumerate(files):
+                if not isinstance(f, dict) or set(f) != {"path", "content"} or not isinstance(f["content"], str):
+                    raise invalid_field(f"files[{i}]", "{path, content(문자열)}")
+                rel = f["path"]
+                if not isinstance(rel, str) or rel.startswith("/") or ".." in rel.split("/") or not rel:
+                    raise invalid_field(f"files[{i}].path", "묶음 뿌리 상대 경로")
+                (bundle / rel).parent.mkdir(parents=True, exist_ok=True)
+                (bundle / rel).write_text(f["content"], encoding="utf-8")
+            rep = import_okf_bundle(bundle, staging=staging, mode="loose")
+            staged = sorted((q.relative_to(staging).as_posix(), q.read_text(encoding="utf-8")) for q in staging.rglob("*.md"))
+        if not staged:
+            raise HubError(400, "invalid_field", "들일 페이지가 없다 (loose 들여오기가 하나도 받지 않았다)",
+                           {"field": "files", "errors": list(rep.errors)})
+        result = self.ingest(ctx, [{"path": path, "body": body} for path, body in staged], summary, request_id)
+        result.update({"okf_version": rep.okf_version, "pages_total": rep.pages_total, "pages_staged": rep.pages_staged,
+                       "warnings": sum(1 for x in rep.issues if x.severity == "warn"),
+                       "errors": sum(1 for x in rep.issues if x.severity == "error"), "mode": "loose"})
+        return result
 
     # --- lint -------------------------------------------------------------------
 

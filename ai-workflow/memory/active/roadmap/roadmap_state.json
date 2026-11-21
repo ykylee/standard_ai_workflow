@@ -1388,9 +1388,9 @@
       "sdlc_phase": "implementation",
       "declared_status": "in_progress",
       "derived_status": "in_progress",
-      "progress": 0.3333333333333333,
+      "progress": 0.6666666666666666,
       "total_leaves": 3,
-      "done_leaves": 1,
+      "done_leaves": 2,
       "deliverables_missing": [],
       "wbs": [
         {
@@ -1407,12 +1407,12 @@
         {
           "id": "WBS-36.2",
           "title": "memory_index · 양방향 링크 (E5) · 저장소 참조 sha · 미측정 표시 (E3)",
-          "derived_status": "in_progress",
+          "derived_status": "done",
           "linked_task_ids": [
             "TASK-2026-11-21-main-002"
           ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         },
         {

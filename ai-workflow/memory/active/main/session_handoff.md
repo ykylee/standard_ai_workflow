@@ -69,7 +69,7 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
-- TASK-2026-11-21-main-002 허브 memory_index · 양방향 링크 · 출처 sha · 원격 읽기(미측정) (WBS-36.2)
+-
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:
@@ -81,6 +81,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-11-21-main-002 허브 memory_index · 양방향 링크 · 출처 sha · 원격 읽기(미측정) (WBS-36.2)
 - TASK-2026-11-21-main-001 허브 위키 — 페이지 · ingest 묶음 · index/log 생성 · 읽기 · lint (WBS-36.1)
 - TASK-2026-11-21-claude-workflow-hub-concept-013 handoff §5 서두의 회차 줄이 예산 밖에서 쌓인다 — 누적형으로 세고 이관
 - TASK-2026-11-21-claude-workflow-hub-concept-012 로드맵 현재 마일스톤을 병행 선언 기준으로 — 상시 운영 M-007 이 늘 '현재' 로 보고되던 것
@@ -90,11 +91,11 @@
 - TASK-2026-11-21-claude-workflow-hub-concept-008 허브 세션 시작 확인 · 하네스 등록 안내 페이지
 - TASK-2026-11-21-claude-workflow-hub-concept-007 허브 지침 렌더링 — 표준 규칙(2.0판) · 프로젝트 지침 · 하네스 4종 · 판 · 로컬 수정 감지
 - TASK-2026-11-21-claude-workflow-hub-concept-006 허브 부트스트랩 셋업 — 쓰기 지시 · .gitignore 먼저 · 확인 도구
-- TASK-2026-11-21-claude-workflow-hub-concept-005 허브 코어 — 원격 MCP 골격 · 부트스트랩 묶음 · 인증 경계
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
 
+- (137차 후속, 2026-11-21) **M-036 WBS-36.2 done** (TASK-2026-11-21-main-002 — memory_index · 양방향 링크 · 출처 sha · 위키 원격 읽기, `check_hub_wiki` 9/9). 1.x 결함 `bidir_link` 수리는 main(`41b39d51`) · `release/1.x`(`05678400`) 둘 다 — 다음 1.x patch 노트에 싣는다. **다음 WBS-36.3** — 들여오기 · 내보내기 (OKF · git 스냅샷) · 오프라인 보낼편지함. 들여오기는 요청 상한 256KB 로 묶음을 나눈다. 후속 후보: 위키 점수 함수 인자화 · 원격 clone 캐시.
 - (137차 후속, 2026-11-21) **M-036 WBS-36.1 done** (TASK-2026-11-21-main-001 — 허브 위키: DB 판 5 · `hub/wiki.py` · 도구 5종 · V-1/V-4 본체 `common/wiki_rules.py` 공유 · `check_hub_wiki` 5/5). **다음 WBS-36.2** — memory_index · 양방향 링크(E5) · 저장소 참조 sha · freshness 원격 읽기(R8.4, 지금은 미측정) · 점수 함수. 36.3 OKF 들여오기는 요청 상한 256KB 때문에 묶음을 나눠 보내야 한다. kit 결함 후보: 주장 린트 L7 이 인용된 주장을 '재지 않는' 으로 경고.
 - (137차, 2026-11-21) **다음 일: M-036 WBS-36.1** (위키 페이지 · ingest · index/log · lint, E2) — 2.0 작업은 이제 main 에서 (새 작업 브랜치는 session-start 가 seed). 시작할 때 M-036 을 `in_progress` 로 열면 현재 마일스톤이 M-036 이 된다. 1.x 결함 수리는 `release/1.x` 체크아웃에서. `claude/workflow-hub-concept` 원격 브랜치는 병합 끝 — 지울지 소유자 판단.
 - (합류 `claude/workflow-hub-concept@8ef1ee07`, 2026-11-21) claude/workflow-hub-concept 워크스페이스 — `main@fff952cd` 에서 이어받음 (2026-11-20). **137차 (2026-11-21, Linux 호스트) — 정리: kit 결함 2 수리(-012 현재 마일스톤 병행 선언 기준 · -013 §5 서두 회차 줄 누적형 → 이 브랜치 §5 29KB→6KB), 1.x 실측 대기 4건 blocked, 병합 브랜치 2개 삭제 + main 에서 메모리 아… — 완료 29건(TASK-2026-11-20-claude-workflow-hub-concept-002, TASK-2026-11-20-claude-workflow-hub-concept-003, TASK-2026-11-20-claude-workflow-hub-concept-004, TASK-2026-11-20-claude-workflow-hub-concept-005, TASK-2026-11-20-claude-workflow-hub-concept-006, TASK-2026-11-20-claude-workflow-hub-concept-007, TASK-2026-11-20-claude-workflow-hub-concept-008, TASK-2026-11-20-claude-workflow-hub-concept-009, TASK-2026-11-20-claude-workflow-hub-concept-010, TASK-2026-11-20-claude-workflow-hub-concept-011, TASK-2026-11-20-claude-workflow-hub-concept-012, TASK-2026-11-20-claude-workflow-hub-concept-013, TASK-2026-11-20-claude-workflow-hub-concept-014, TASK-2026-11-20-claude-workflow-hub-concept-015, TASK-2026-11-20-claude-workflow-hub-concept-016, TASK-2026-11-20-claude-workflow-hub-concept-017, TASK-2026-11-21-claude-workflow-hub-concept-001, TASK-2026-11-21-claude-workflow-hub-concept-002, TASK-2026-11-21-claude-workflow-hub-concept-003, TASK-2026-11-21-claude-workflow-hub-concept-004, TASK-2026-11-21-claude-workflow-hub-concept-005, TASK-2026-11-21-claude-workflow-hub-concept-006, TASK-2026-11-21-claude-workflow-hub-concept-007, TASK-2026-11-21-claude-workflow-hub-concept-008, TASK-2026-11-21-claude-workflow-hub-concept-009, TASK-2026-11-21-claude-workflow-hub-concept-010, TASK-2026-11-21-claude-workflow-hub-concept-011, TASK-2026-11-21-claude-workflow-hub-concept-012, TASK-2026-11-21-claude-workflow-hub-concept-013) · 이월 0건 · 되돌려 적음 4건(TASK-2026-10-02-main-006, TASK-2026-10-02-main-007, TASK-2026-11-17-claude-remote-sync-check-234c32-002, TASK-2026-11-17-claude-remote-sync-check-234c32-004). 기록: [`archived/claude/workflow-hub-concept/session_handoff.md`](../../archived/claude/workflow-hub-concept/session_handoff.md) · [합류 기록](./sessions/merge_claude-workflow-hub-concept_2026-11-21.md)

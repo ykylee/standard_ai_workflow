@@ -35,7 +35,7 @@ wbs_exempt_reason: 1.x 유지보수 줄 — 로드맵은 main 에 있다 (M-038 
 
 ## 🛠️ Implementation / Content
 
-- Progress: `2026-11-21 13:42` main 의 발행 도구 수리(PEP 440 정렬 · latest 판정 — 2.x 뒤 1.x 판은 --latest=false · --target 현재 브랜치) 이식, --changed 통과 — 남은 것: 1.30.0 발행
+- Progress: `2026-11-21 13:54` 발행 준비 커밋 — 1.30.0 (대상 줄만 고침) · 노트 Beta-v1.30.0.md · --changed 통과 — 다음: 전량 게이트 → 소유자 확인 → release --apply
 - Next session starting point:
 - Remaining risks:
 

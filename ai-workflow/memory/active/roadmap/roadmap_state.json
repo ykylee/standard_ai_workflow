@@ -251,9 +251,6 @@
           "title": "결함 수리 — 플랫폼·크로스호스트 (Windows 경로·해석기, federation 형식)",
           "derived_status": "blocked",
           "linked_task_ids": [
-            "TASK-2026-10-02-main-006",
-            "TASK-2026-10-02-main-007",
-            "TASK-2026-11-17-claude-remote-sync-check-234c32-004",
             "TASK-2026-08-25-main-017",
             "TASK-2026-08-29-main-003",
             "TASK-2026-09-01-main-001",
@@ -269,6 +266,8 @@
             "TASK-2026-09-29-main-017",
             "TASK-2026-09-29-main-018",
             "TASK-2026-09-30-main-002",
+            "TASK-2026-10-02-main-006",
+            "TASK-2026-10-02-main-007",
             "TASK-2026-10-31-main-002",
             "TASK-2026-10-31-main-003",
             "TASK-2026-11-15-claude-remote-sync-check-234c32-002",
@@ -291,6 +290,7 @@
             "TASK-2026-11-16-main-015",
             "TASK-2026-11-16-main-016",
             "TASK-2026-11-16-main-017",
+            "TASK-2026-11-17-claude-remote-sync-check-234c32-004",
             "TASK-2026-11-19-main-003"
           ],
           "total_leaves": 1,
@@ -302,8 +302,6 @@
           "title": "결함 수리 — 탐침·도구 ('잰 단위' 결함족, doctor/release 탐침, kit 자체 결함)",
           "derived_status": "done",
           "linked_task_ids": [
-            "TASK-2026-11-21-claude-workflow-hub-concept-012",
-            "TASK-2026-11-21-claude-workflow-hub-concept-013",
             "TASK-2026-08-25-main-022",
             "TASK-2026-08-25-main-023",
             "TASK-2026-08-28-main-002",
@@ -372,7 +370,9 @@
             "TASK-2026-10-19-main-007",
             "TASK-2026-11-04-main-002",
             "TASK-2026-11-15-claude-remote-sync-check-234c32-001",
-            "TASK-2026-11-15-claude-remote-sync-check-234c32-003"
+            "TASK-2026-11-15-claude-remote-sync-check-234c32-003",
+            "TASK-2026-11-21-claude-workflow-hub-concept-012",
+            "TASK-2026-11-21-claude-workflow-hub-concept-013"
           ],
           "total_leaves": 1,
           "done_leaves": 1,
@@ -418,7 +418,6 @@
           "title": "릴리스·채널 운영 (발행 사이클, 소비 채널 재적용, 브랜치 메모리 정비)",
           "derived_status": "blocked",
           "linked_task_ids": [
-            "TASK-2026-11-17-claude-remote-sync-check-234c32-002",
             "TASK-2026-08-30-main-004",
             "TASK-2026-08-31-main-001",
             "TASK-2026-08-31-main-005",
@@ -465,6 +464,7 @@
             "TASK-2026-10-31-main-004",
             "TASK-2026-11-04-main-001",
             "TASK-2026-11-16-main-018",
+            "TASK-2026-11-17-claude-remote-sync-check-234c32-002",
             "TASK-2026-11-17-claude-remote-sync-check-234c32-003",
             "TASK-2026-11-17-claude-remote-sync-check-234c32-005",
             "TASK-2026-11-17-claude-remote-sync-check-234c32-006",
@@ -1577,27 +1577,6 @@
   "current_milestone_id": "M-028",
   "exempt_tasks": [
     {
-      "task_id": "TASK-2026-11-20-claude-workflow-hub-concept-001",
-      "task_status": "done",
-      "wbs_ref": "exempt",
-      "exempt_reason": "로드맵 밖 — worktree 브랜치 네임스페이스 자동 seed 사건 기록",
-      "source_path": "ai-workflow/memory/active/claude/workflow-hub-concept/backlog/tasks/TASK-2026-11-20-claude-workflow-hub-concept-001.md"
-    },
-    {
-      "task_id": "TASK-2026-11-20-claude-workflow-hub-concept-005",
-      "task_status": "done",
-      "wbs_ref": "exempt",
-      "exempt_reason": "로드맵 자체를 세우는 작업 — 아직 연결할 WBS 가 없다",
-      "source_path": "ai-workflow/memory/active/claude/workflow-hub-concept/backlog/tasks/TASK-2026-11-20-claude-workflow-hub-concept-005.md"
-    },
-    {
-      "task_id": "TASK-2026-11-20-claude-workflow-hub-concept-007",
-      "task_status": "done",
-      "wbs_ref": "exempt",
-      "exempt_reason": "1.x 결함 수리 — 로드맵 밖",
-      "source_path": "ai-workflow/memory/active/claude/workflow-hub-concept/backlog/tasks/TASK-2026-11-20-claude-workflow-hub-concept-007.md"
-    },
-    {
       "task_id": "TASK-2026-08-25-main-010",
       "task_status": "done",
       "wbs_ref": "exempt",
@@ -1757,6 +1736,20 @@
       "wbs_ref": "exempt",
       "exempt_reason": "진입점 다이어트 — 소유자 결정 2026-10-06 (템플릿 + 기존 진입점 + 정본 규칙 블록 모두), 마일스톤 미배정",
       "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-10-06-main-004.md"
+    },
+    {
+      "task_id": "TASK-2026-11-20-claude-workflow-hub-concept-005",
+      "task_status": "done",
+      "wbs_ref": "exempt",
+      "exempt_reason": "로드맵 자체를 세우는 작업 — 아직 연결할 WBS 가 없다",
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-11-20-claude-workflow-hub-concept-005.md"
+    },
+    {
+      "task_id": "TASK-2026-11-20-claude-workflow-hub-concept-007",
+      "task_status": "done",
+      "wbs_ref": "exempt",
+      "exempt_reason": "1.x 결함 수리 — 로드맵 밖",
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-11-20-claude-workflow-hub-concept-007.md"
     }
   ],
   "issues": []

@@ -9,6 +9,10 @@
 > 이 파일은 **읽기 대상이 아니라 조회 대상**이다. 세션 시작에 읽지 않는다 —
 > handoff §1 이 최근 4개만 들고 있고, 그 이전이 필요할 때만 여기를 본다.
 
+## 롤오프 2026-11-21
+
+- **132차 세션 (2026-11-16, Linux 호스트) — v1.24.0 발행 완료 (minor: feat 3 · fix 2 · breaking 0).** 태그 `v1.24.0` = `5d3419fa`(발행 준비 커밋, 전량 게이트 native · slash 322×2 증거), GitHub Release Latest(draft=false · prerelease=false) · asset 5종. 내용: 워크벤치 개방 모드(`--open`) · 자동 기동(`--autostart` · `--stop` · SessionEnd hook) · 화면 개편(대시보드형) + 경고 분류기 `/var/tmp` · MCP 오류 신호 수리. §2.8: codex · grok-build · antigravity · minimax-code 1.24.0 재적용, claude-code 는 원래 checkout 브랜치를 origin/main 으로 ff 해 재적용 → doctor behind=[] · disabled=[]. claude-code 2 · codex 4 프로세스 재시작 필요.
+
 ## 롤오프 2026-11-19
 
 - **131차 세션 (2026-11-15, Linux 호스트) — v1.23.0 발행 완료 (minor: feat 5 · fix 18 · breaking 0).** 태그 `v1.23.0` = `d16eab89`(합류 반영 커밋, 전량 게이트 native · slash 319×2 증거), GitHub Release Latest(draft=false · prerelease=false) · asset 5종(whl · sdist · claude-code · codex · minimax-code ZIP). 발행 완료 커밋에 post-step 산출물(dashboard · drift_ledger · CHANGELOG · maturity_matrix · 노트 bidir audit). §2.8 재적용 codex · grok-build · antigravity · minimax-code → doctor `behind=[]` · `disabled=[]` (claude-code 는 directory 소스 = 원 저장소 `plugin/`). **재시작 필요**: codex 실행 중 호스트 4개(runtime_load stale). grok-build 의 설치 소스 경로는 이제 `/home/yklee/repos/standard_ai_workflow-main/plugin` 이다 — 이 워크트리를 지우면 재설치. task -002 verifier PASS 4/4 로 close.

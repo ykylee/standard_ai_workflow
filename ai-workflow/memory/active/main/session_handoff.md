@@ -42,13 +42,13 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **134차 세션 (2026-11-19, macOS 호스트 Mac mini — 종전 맥과 다른 두 번째 맥) — 발행 없음, 정본 v1.27.0 + 미발행 수리 3건.** 이 호스트를 1.22.0 → 1.27.0 으로 올림(전역 `wk` uv tool · `.venv` editable · claude-code · codex · grok-build · minimax-code; antigravity 는 `agy` 부재) → doctor behind=[] · disabled=[]. `core.hooksPath=.githooks` 켬. 133차(worktree `claude/remote-sync-check-234c32`, v1.27.0 발행)의 기록이 재합류 결함으로 main 메모리에 못 들어와 있던 것을 수리와 함께 반영(완료 3 · 이월 2). 수리: main-001(session-start 가 아카이브 실패를 '이동했다' 로 보고) · main-002(`archived/<branch>/` 가 있으면 반영까지 건너뜀 → 파일 단위 병합, `superseded-<옛 날짜>.<이름>`) · main-003(`check_memory_index_cross_v0_15_7` case 5 대조군이 telemetry 누적량에 의존). 셋 다 verifier PASS. `run_all_checks --changed` green · smoke 8/8. **전량 게이트(`--branch-context=all`) 이 호스트 첫 실행 통과 — `7df480f9` 664 PASS · 실패 0, push 완료(`fc814642..7df480f9`).**
-- 직전 기준선: **132차 세션 말 (2026-11-16, Linux 호스트) — v1.26.0 발행 완료 (minor: feat 2 · fix 4 · breaking 0).** 태그 `v1.26.0` = `632cb661`(발행 준비 커밋, 전량 게이트 native · slash 329×2 증거), GitHub Release Latest · asset 5종. 내용: 워크벤치 todo(브랜치 할 일 · task 체크리스트, `todo` 명령) · 응답 도착 신호 + hook 자동 반영 + 수리 넷(drift 패널 null 두 가지 · release 재검사 집계 · 글자 넘침). §2.8 5채널 재적용 → doctor behind=[] · disabled=[] (claude-code 는 원래 checkout ff). 재시작 필요: claude 34203 · 34204, codex 34205 · 34444 · 35601 · 3081284 (CLI 재시작 — /clear 로는 안 된다). 이 worktree 워크벤치 :8766 을 1.26.0 코드로 다시 띄움('할 일' 확인).
+- 현재 기준선: **137차 (2026-11-21, Linux 호스트) — R16.5 1.x 분기 + 2.0 허브 main 병합.** `release/1.x` 를 `main@bb943c81`(v1.29.0 + 메모리 커밋)에서 분기 · push — 1.x 결함 수리 · patch 발행은 그 브랜치 머리에서 (R16.1 · R16.2). 이어 `claude/workflow-hub-concept` 를 main 에 병합(`dd011029`, PR 없음 — 소유자 지시): 2.0 허브 M-030~M-035 done (요구 `docs/planning/workflow-hub-requirements-2026-11.md` · 설계 `workflow-source/core/hub_spec.md` · ADR-033 Accepted · PURPOSE 2.0판 · 코드 `workflow_kit/hub/`), kit 결함 수리 2(현재 마일스톤 병행 선언 기준 · handoff §5 서두 회차 줄 누적형). 브랜치 기록은 [`archived/claude/workflow-hub-concept/`](../../archived/claude/workflow-hub-concept/session_handoff.md). plugin/ 은 안 바뀌어 main 채널 소비자는 1.x 플러그인 그대로 — 2.0 이 plugin/ 을 바꾸기 전에 R16.4 안내 판 필요. **검증 간소화 기간 (소유자 2026-11-20)**: verifier · push 전 전량 게이트 생략, `--changed` + 스모크 뒤 `--no-verify` push, 발행 때만 전량. 다음 M-036.
+- 직전 기준선: **134차 세션 (2026-11-19, macOS 호스트 Mac mini — 종전 맥과 다른 두 번째 맥) — 발행 없음, 정본 v1.27.0 + 미발행 수리 3건.** 이 호스트를 1.22.0 → 1.27.0 으로 올림(전역 `wk` uv tool · `.venv` editable · claude-code · codex · grok-build · minimax-code; antigravity 는 `agy` 부재) → doctor behind=[] · disabled=[]. `core.hooksPath=.githooks` 켬. 133차(worktree `claude/remote-sync-check-234c32`, v1.27.0 발행)의 기록이 재합류 결함으로 main 메모리에 못 들어와 있던 것을 수리와 함께 반영(완료 3 · 이월 2). 수리: main-001(session-start 가 아카이브 실패를 '이동했다' 로 보고) · main-002(`archived/<branch>/` 가 있으면 반영까지 건너뜀 → 파일 단위 병합, `superseded-<옛 날짜>.<이름>`) · main-003(`check_memory_index_cross_v0_15_7` case 5 대조군이 telemetry 누적량에 의존). 셋 다 verifier PASS. `run_all_checks --changed` green · smoke 8/8. **전량 게이트(`--branch-context=all`) 이 호스트 첫 실행 통과 — `7df480f9` 664 PASS · 실패 0, push 완료(`fc814642..7df480f9`).**
+- 그 이전 기준선: **132차 세션 말 (2026-11-16, Linux 호스트) — v1.26.0 발행 완료 (minor: feat 2 · fix 4 · breaking 0).** 태그 `v1.26.0` = `632cb661`(발행 준비 커밋, 전량 게이트 native · slash 329×2 증거), GitHub Release Latest · asset 5종. 내용: 워크벤치 todo(브랜치 할 일 · task 체크리스트, `todo` 명령) · 응답 도착 신호 + hook 자동 반영 + 수리 넷(drift 패널 null 두 가지 · release 재검사 집계 · 글자 넘침). §2.8 5채널 재적용 → doctor behind=[] · disabled=[] (claude-code 는 원래 checkout ff). 재시작 필요: claude 34203 · 34204, codex 34205 · 34444 · 35601 · 3081284 (CLI 재시작 — /clear 로는 안 된다). 이 worktree 워크벤치 :8766 을 1.26.0 코드로 다시 띄움('할 일' 확인).
 - 그 이전 기준선: **132차 세션 후반 (2026-11-16, Linux 호스트) — v1.25.0 발행 완료 (minor: feat 3 · fix 2 · breaking 0).** 태그 `v1.25.0` = `d00fbfbd`(발행 준비 커밋, 전량 게이트 native · slash 325×2 증거), GitHub Release Latest · asset 5종. 내용: 워크벤치 지속 갱신 — 자동 새로고침(`--refresh`) · 진척 실시간 값(같은 생성기, 지문 캐시) · 작업 중 진행 기록('지금 하는 일', `--progress-note` 시각) + 실제 브라우저 폼 POST 403(Referrer-Policy) · `--stop` pid 대조(instance) 수리. §2.8 5채널 재적용 → doctor behind=[] · disabled=[] (claude-code 는 원래 checkout ff). claude-code 2 · codex 4 프로세스 재시작 필요. 이 worktree 워크벤치 :8766 을 1.25.0 코드로 다시 띄움.
-- 그 이전 기준선: **132차 세션 (2026-11-16, Linux 호스트) — v1.24.0 발행 완료 (minor: feat 3 · fix 2 · breaking 0).** 태그 `v1.24.0` = `5d3419fa`(발행 준비 커밋, 전량 게이트 native · slash 322×2 증거), GitHub Release Latest(draft=false · prerelease=false) · asset 5종. 내용: 워크벤치 개방 모드(`--open`) · 자동 기동(`--autostart` · `--stop` · SessionEnd hook) · 화면 개편(대시보드형) + 경고 분류기 `/var/tmp` · MCP 오류 신호 수리. §2.8: codex · grok-build · antigravity · minimax-code 1.24.0 재적용, claude-code 는 원래 checkout 브랜치를 origin/main 으로 ff 해 재적용 → doctor behind=[] · disabled=[]. claude-code 2 · codex 4 프로세스 재시작 필요.
-- 그 이전 기준선은 [`baselines.md`](./baselines.md) 에 있다 (이관 137건, 최신이 위).
+- 그 이전 기준선은 [`baselines.md`](./baselines.md) 에 있다 (이관 138건, 최신이 위).
 
-- 현재 주 작업 축: **로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · ~~[TASK-2026-08-13-main-004] mypy flake 관찰~~ ✅ (66차 close — 33/33 표본, mypy 실패 0).
+- 현재 주 작업 축: **2.0 허브 (M-031~M-040, 2026-11-20 소유자) — 다음 M-036 위키 · memory_index · 들여오기/내보내기 · 오프라인.** 1.x 는 `release/1.x` 에서 결함 수리만. 이전 축: **로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · ~~[TASK-2026-08-13-main-004] mypy flake 관찰~~ ✅ (66차 close — 33/33 표본, mypy 실패 0).
 - ~~소유자 결정 대기: state.json 생성물 여부~~ — ✅ **해소** (TASK-018, 2026-08-11): **생성물로 확정.** 정본 §11.2 에 선언, `wk refresh-state` 로 재생성, `check_state_json_generated` case 5 가 이 저장소의 정합을 상시 검사. 상세 요약·산문은 state.json 이 아니라 handoff §4 와 task 파일(SSOT)에 남긴다.
 - 다음 후보 축: ~~PyPI 발행~~ → ⛔ **닫힘 (2026-08-14 소유자 최종 결정 = 발행 안 함, `RELEASE.md` §1 각주 0)** / cross-host federation (두 번째 호스트 = **MacBook 확정, 시점 추후**) / memory_index 3-tuple 지표 추이 관찰. ~~federation self-host add~~ ✅ (14차) · ~~v1.1.9/v1.2.0 미발행 누적~~ ✅ **해소 (32차 — v1.2.0-beta 발행, 누적분 0)**. (v1.1.0·v1.1.1 노트 누적 표기는 TASK-014 에서 **미삽입 확정**, branch protection 은 소유자가 **보류 결정** (2026-08-11) — 둘 다 후보 축에서 제거.)
 - 발견한 cross-project 패턴 (agent memory 추가):
@@ -69,63 +69,41 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
+-
+## 3. 차단 작업
+
+- 현재 `blocked` 작업:
 - TASK-2026-11-17-claude-remote-sync-check-234c32-004 iPad Chrome(CriOS 156 · iPadOS 27)에서 워크벤치 폼 제출이 서버에 닿지 않는다 — 응답 보내기 · todo 추가 전부
 - TASK-2026-11-17-claude-remote-sync-check-234c32-002 워크벤치 응답 · todo 변경이 Claude Code 컨텍스트에 실제로 주입되는지 실측 (main-014 미측정분)
 - TASK-2026-10-02-main-007 Windows V3 백신이 wk.exe 를 평판 기반으로 차단한다 — pip 생성 console-script 런처 대체 진입 경로
 - TASK-2026-10-02-main-006 Windows 로캘(cp949)에서 wk 가 UnicodeEncodeError 로 죽는다 — stdout 과 기본 인코딩 I/O 를 UTF-8 로 고정
-## 3. 차단 작업
-
-- 현재 `blocked` 작업:
 - TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
-- TASK-2026-11-20-claude-remote-sync-check-234c32-002 v1.28.0 발행 — 호스트 역할(소비자 push 차단) · 재사용 브랜치 재합류 수리
-- TASK-2026-11-20-claude-remote-sync-check-234c32-001 호스트 역할 가이드 — 읽기 전용 소비자는 pull · 환경 맞추기 · 버전 업데이트만, push 는 hook 이 막는다
-- TASK-2026-11-20-claude-consumer-readonly-session-start-003 v1.29.0 발행 — 소비자 클론 읽기 전용 session-start
-- TASK-2026-11-20-claude-consumer-readonly-session-start-002 소비자 클론(workflow.role=consumer)에서 session-start 가 저장소에 쓰지 않는다
-- TASK-2026-11-19-main-003 check_memory_index_cross_v0_15_7 case 5 대조군이 telemetry 가 커지면 반올림에 묻혀 red 가 된다
-- TASK-2026-11-19-main-002 재사용된 브랜치의 두 번째 합류를 아카이브 도구가 처리하지 못한다 — archived/ 에 같은 이름이 있으면 반영까지 건너뛴다
-- TASK-2026-11-19-main-001 session-start 가 브랜치 메모리 아카이브 실패를 '이동했다' 로 보고한다
-- TASK-2026-11-17-claude-remote-sync-check-234c32-006 v1.27.0 발행 — iPad 폼 제출 수리 · 진행 기록 상기 · 한 호스트 여러 워크벤치
-- TASK-2026-11-17-claude-remote-sync-check-234c32-005 한 호스트에 워크벤치 여러 개 — 포트 분배 + 화면에 저장소 · 브랜치 표시
-- TASK-2026-11-17-claude-remote-sync-check-234c32-003 작업 중 워크벤치 진행 기록(--progress-note) 지침 강화 — 정본 · 모든 하네스 진입점으로
+- TASK-2026-11-21-claude-workflow-hub-concept-013 handoff §5 서두의 회차 줄이 예산 밖에서 쌓인다 — 누적형으로 세고 이관
+- TASK-2026-11-21-claude-workflow-hub-concept-012 로드맵 현재 마일스톤을 병행 선언 기준으로 — 상시 운영 M-007 이 늘 '현재' 로 보고되던 것
+- TASK-2026-11-21-claude-workflow-hub-concept-011 허브 콜사인별 기억 — handoff · 세션 끝 · compact 체크포인트 · state.json v1 · 보관
+- TASK-2026-11-21-claude-workflow-hub-concept-010 허브 로드맵 — 마일스톤 · WBS · WBS 게이트 · 진척 파생
+- TASK-2026-11-21-claude-workflow-hub-concept-009 허브 판정 — 계획 린트 · done 게이트 · 결정 응답 (1.x 와 같은 함수)
+- TASK-2026-11-21-claude-workflow-hub-concept-008 허브 세션 시작 확인 · 하네스 등록 안내 페이지
+- TASK-2026-11-21-claude-workflow-hub-concept-007 허브 지침 렌더링 — 표준 규칙(2.0판) · 프로젝트 지침 · 하네스 4종 · 판 · 로컬 수정 감지
+- TASK-2026-11-21-claude-workflow-hub-concept-006 허브 부트스트랩 셋업 — 쓰기 지시 · .gitignore 먼저 · 확인 도구
+- TASK-2026-11-21-claude-workflow-hub-concept-005 허브 코어 — 원격 MCP 골격 · 부트스트랩 묶음 · 인증 경계
+- TASK-2026-11-21-claude-workflow-hub-concept-004 허브 코어 — task CRUD · 이력 · version 409 · 맡기
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
 
+- (137차, 2026-11-21) **다음 일: M-036 WBS-36.1** (위키 페이지 · ingest · index/log · lint, E2) — 2.0 작업은 이제 main 에서 (새 작업 브랜치는 session-start 가 seed). 시작할 때 M-036 을 `in_progress` 로 열면 현재 마일스톤이 M-036 이 된다. 1.x 결함 수리는 `release/1.x` 체크아웃에서. `claude/workflow-hub-concept` 원격 브랜치는 병합 끝 — 지울지 소유자 판단.
+- (합류 `claude/workflow-hub-concept@8ef1ee07`, 2026-11-21) claude/workflow-hub-concept 워크스페이스 — `main@fff952cd` 에서 이어받음 (2026-11-20). **137차 (2026-11-21, Linux 호스트) — 정리: kit 결함 2 수리(-012 현재 마일스톤 병행 선언 기준 · -013 §5 서두 회차 줄 누적형 → 이 브랜치 §5 29KB→6KB), 1.x 실측 대기 4건 blocked, 병합 브랜치 2개 삭제 + main 에서 메모리 아… — 완료 29건(TASK-2026-11-20-claude-workflow-hub-concept-002, TASK-2026-11-20-claude-workflow-hub-concept-003, TASK-2026-11-20-claude-workflow-hub-concept-004, TASK-2026-11-20-claude-workflow-hub-concept-005, TASK-2026-11-20-claude-workflow-hub-concept-006, TASK-2026-11-20-claude-workflow-hub-concept-007, TASK-2026-11-20-claude-workflow-hub-concept-008, TASK-2026-11-20-claude-workflow-hub-concept-009, TASK-2026-11-20-claude-workflow-hub-concept-010, TASK-2026-11-20-claude-workflow-hub-concept-011, TASK-2026-11-20-claude-workflow-hub-concept-012, TASK-2026-11-20-claude-workflow-hub-concept-013, TASK-2026-11-20-claude-workflow-hub-concept-014, TASK-2026-11-20-claude-workflow-hub-concept-015, TASK-2026-11-20-claude-workflow-hub-concept-016, TASK-2026-11-20-claude-workflow-hub-concept-017, TASK-2026-11-21-claude-workflow-hub-concept-001, TASK-2026-11-21-claude-workflow-hub-concept-002, TASK-2026-11-21-claude-workflow-hub-concept-003, TASK-2026-11-21-claude-workflow-hub-concept-004, TASK-2026-11-21-claude-workflow-hub-concept-005, TASK-2026-11-21-claude-workflow-hub-concept-006, TASK-2026-11-21-claude-workflow-hub-concept-007, TASK-2026-11-21-claude-workflow-hub-concept-008, TASK-2026-11-21-claude-workflow-hub-concept-009, TASK-2026-11-21-claude-workflow-hub-concept-010, TASK-2026-11-21-claude-workflow-hub-concept-011, TASK-2026-11-21-claude-workflow-hub-concept-012, TASK-2026-11-21-claude-workflow-hub-concept-013) · 이월 0건 · 되돌려 적음 4건(TASK-2026-10-02-main-006, TASK-2026-10-02-main-007, TASK-2026-11-17-claude-remote-sync-check-234c32-002, TASK-2026-11-17-claude-remote-sync-check-234c32-004). 기록: [`archived/claude/workflow-hub-concept/session_handoff.md`](../../archived/claude/workflow-hub-concept/session_handoff.md) · [합류 기록](./sessions/merge_claude-workflow-hub-concept_2026-11-21.md)
 - (합류 `claude/remote-sync-check-234c32`, 2026-11-21) claude/remote-sync-check-234c32 워크스페이스 — `main@ca3f59ea` 에서 이어받음 (2026-11-19). **135차 세션 (2026-11-19, Linux 호스트) — 원격 동기화 · 재seed · push, 코드 변경 없음.** 134차가 이 브랜치를 main 으로 합류·아카이브한 뒤라 `origin/main@ca3f59ea` 로 fast-forward(충돌 0) → 네임스페이스 재see… — 완료 2건(TASK-2026-11-20-claude-remote-sync-check-234c32-001, TASK-2026-11-20-claude-remote-sync-check-234c32-002) · 이월 1건(TASK-2026-11-19-claude-remote-sync-check-234c32-002) · 되돌려 적음 0건. 기록: [`archived/claude/remote-sync-check-234c32/session_handoff.md`](../../archived/claude/remote-sync-check-234c32/session_handoff.md) · [합류 기록](./sessions/merge_claude-remote-sync-check-234c32_2026-11-21.md)
 - (합류 `claude/consumer-readonly-session-start`, 2026-11-21) claude/consumer-readonly-session-start 워크스페이스 — `main@2757394f` 에서 이어받음 (2026-11-20). **135차 후속 (2026-11-20, Linux 호스트) — v1.29.0 발행(태그 `e3af1355` = origin/main, Release asset 5종, §2.8 5채널 doctor behind · disabled []).** `-002` close(`cb31e… — 완료 2건(TASK-2026-11-20-claude-consumer-readonly-session-start-002, TASK-2026-11-20-claude-consumer-readonly-session-start-003) · 이월 0건 · 되돌려 적음 0건. 기록: [`archived/claude/consumer-readonly-session-start/session_handoff.md`](../../archived/claude/consumer-readonly-session-start/session_handoff.md) · [합류 기록](./sessions/merge_claude-consumer-readonly-session-start_2026-11-21.md)
 - (134차, 2026-11-19, Mac mini) **다음 일**: ①~~push 전 전량 게이트~~ ✅ 이 맥에서 통과 · push 완료(`7df480f9`) ②Claude · MiniMax 재시작 뒤 `doctor --json` 의 `runtime_load` 확인(설치보다 먼저 뜬 pid 2개) ③main-002 후속 미수리 둘 — 병합 중간 실패 뒤 재실행 시 §5 합류 줄 · 합류 기록 중복, 브랜치 메모리 안 심링크가 매 시작 errors 반복(둘 다 소실 0) ④이월된 `…-234c32-002` · `-004` 는 소유자 iPad 실측 대기 그대로.
 - (합류 `claude/remote-sync-check-234c32@fc814642`, 2026-11-19) claude/remote-sync-check-234c32 워크스페이스 — `main@90124a3a` 에서 이어받음 (2026-11-17). **133차 세션 (2026-11-17, Linux 호스트) — v1.27.0 발행 완료 (minor: 코드 커밋 3, breaking 0).** 태그 `v1.27.0` = `aa34ed8d`(발행 준비 커밋, 전량 게이트 native · slash 332×2 증거) = origin/ma… — 완료 3건(TASK-2026-11-17-claude-remote-sync-check-234c32-003, TASK-2026-11-17-claude-remote-sync-check-234c32-005, TASK-2026-11-17-claude-remote-sync-check-234c32-006) · 이월 2건(TASK-2026-11-17-claude-remote-sync-check-234c32-002, TASK-2026-11-17-claude-remote-sync-check-234c32-004) · 되돌려 적음 0건. 기록: [`archived/claude/remote-sync-check-234c32/session_handoff.md`](../../archived/claude/remote-sync-check-234c32/session_handoff.md) · [합류 기록](./sessions/merge_claude-remote-sync-check-234c32_2026-11-19.md)
-- (132차, 2026-11-16) **워크벤치 3분할 작업 — 소유자 지시: 세션 시작 때 자동 기동 · 토큰 없이 IP 접속 · 디자인 개편.** ①**main-001 close** — 개방 모드 `workbench --open <이름>`(토큰 · 로그인 없음, 비 loopback 평문 허용 + 경고 한 줄, 응답 머리 `client:` 요청자 주소, Host 는 IP 리터럴 · localhost · public_url 호스트만 — DNS rebinding 403, 세션 표 상한 1,024). spec §5.6 · ADR-032 V8. ②**main-002 close** — 자동 기동: `workbench --autostart on <시작 인자>` → `.workbench/autostart.json`, `session-start` 가 떨어진 자식으로 띄우고 `워크벤치 시작: <url>`, Claude Code SessionEnd hook 이 `--stop --autostarted-only`(healthz 확인 뒤), 검사 표식이 이 작업 공간이면 끔. spec §3.1 · ADR-032 V9. 후속 후보: `--stop` 의 pid ↔ 포트 주인 대조 · Windows 경로 실측. 소유자가 이 checkout 에서 켜려면 `--autostart on --open <이름> --bind 0.0.0.0` 한 번. ③**main-003 close** — 대시보드형 화면: 진척 = 요약 수치 5 · 계획 카드 · 작업 보드 4열 · 마일스톤 막대(완료분 접기), 계획 = 머리 칩 · 주장 카드 · 열린 결정 강조(닫힌 채) · 선택지 카드 · 고정 제출 막대, 다크 · 420px. 검사 check_workbench_design. ④이 main worktree 에 자동 기동 켬(`--open owner --bind 0.0.0.0`, :8766). ⑤**v1.24.0 발행 완료 · main-004 close** — §2.8 5채널 behind=[] (claude-code 는 원래 checkout 의 `claude/remote-sync-check-234c32` 를 origin/main 으로 ff — 소유자 승인, 로컬만 9커밋 앞섬, 되돌리기 `git reset --hard 7fdf0eb5`). 다음 일: claude-code 2 · codex 4 프로세스 재시작 뒤 doctor `runtime_load` 확인. ⑥**main-005 close** — `--stop` 이 실행 기록 `instance` = healthz 머리 `X-Workbench-Instance` 일 때만 pid 를 내린다(옛 기록 + 옛 서버는 옛 판정). ⑦**main-006 close** — 화면 자동 새로고침(`--refresh`, 기본 5초, main data-version 지문, 쓰는 중이면 알림만, CSP connect-src). ⑧**main-007 close** — Referrer-Policy same-origin: 실제 Chrome 의 응답 · 로그인 · 로그아웃 POST 가 Origin null 로 403 이던 결함(1.23.0 부터) 수리, CDP 실측. ⑨**main-008 close** — 진척 실시간 값(같은 생성기로 원천에서 계산 · 지문 캐시 · 브랜치 키 · 실패 사유 표시). ⑩**main-009 close** — 진행 기록: `--progress-note` 시각 접두, 워크벤치 '지금 하는 일'(계획 카드 · 보드), 스킬 · CLAUDE.md 규칙 — **작업 중 단계마다 Progress 를 남긴다**. ⑪**v1.25.0 발행 완료**(main-010). 다음 일: claude-code · codex 재시작 뒤 doctor `runtime_load` 확인. ⑫**main-011 close** — drift 가드 출력 해석을 `parse_drift_guard_output` 하나로(release 재검사 · 대시보드 · release_v0_13_0 preflight), case 수 리터럴 제거, 불일치는 결과 · 대시보드에 표시. ⑬**main-012 close** — 가드를 돌리지 않은 대시보드 패널은 센 값 null · guard_measured=false · 렌더 '미측정'. ⑭**main-013 close** — 워크벤치 글자 박스 넘침 수리(긴 글 · 좁은 폭 · 다른 글꼴 135회 넘침 0, 배지 자르지 않음, 정적 링크 ?v= 지문). ⑮**main-014 close** — 워크벤치 응답 도착 신호(.workbench/inbox.stamp 내용 표식) + Claude Code PostToolUse · UserPromptSubmit hook 이 plan-import --hook 으로 자동 반영 · 알림, 화면 '반영 대기 → 반영됨'. **미측정: Claude Code 가 hook JSON 을 실제로 컨텍스트에 넣는지 — 플러그인 갱신 · 재시작 뒤 응답 하나 보내 확인.** ⑯**main-015 close** — 가드가 돌지 못하면(파일 없음 · 시간 초과 · 실행 실패 · 빈 출력) 센 값 null · guard_error · 렌더 '측정 실패'. 후속 후보: release self-recover 재검사 오류 경로의 cases 0 · Windows 실측(WBS-28.3). 후속 후보: Windows 실측(WBS-28.3). ⑰**main-016 close** — todo 저장소 `<branch>/todo.md`(브랜치 할 일 + task 체크리스트, id · 락 · 원자 교체) + `python -m workflow_kit todo`(목록 · --add [--task] · --done · --undo · --edit --text · --remove). spec §13 · ADR-032 V11. ⑱**main-017 close** — 워크벤치 todo: 진척 화면 '할 일' · 카드 · 보드 `todo n/m` · 계획 화면 체크리스트, `POST todo`(§5.4 순서 · 503 락), 소유자 변경은 `.workbench/todo-events.jsonl` → 다음 hook 이 '[워크벤치] 소유자가 todo 를 바꿨다' 로 한 번 알림(작업 세션 CLI 변경은 안 알림). spec §13.1. ⑲**v1.26.0 발행 완료**(main-018) — :8766 워크벤치 재시작 완료. 다음 일: claude · codex 재시작 뒤 워크벤치에서 응답 · todo 하나씩 바꿔 hook 주입 실측.
-- (131차 후속) **main-001 · main-002 수리 완료** — ①경고 분류기: 저장소가 `/tmp` · `/var/tmp` 아래여도 출처 분류가 맞다(`CheckWarning.raw_location`) ②MCP: `invoke_tool` 이 status error 에 rc 1 · `summarize_git_history` 가 git 실패에 `git_log_failed`. 다음 발행 노트에 1.23.0 §4 '미수리' 두 건의 해소를 적는다. 후속 후보: `run_create_session_handoff_draft.py` 직접 실행 시 git 실패 traceback · `apply_robust_patch` 의 SEARCH 불일치 error_code 가 `malformed_patch_block`.
-- (131차) **v1.23.0 발행 완료** — 다음 일: ①codex 재시작 뒤 `doctor --json` 의 `runtime_load.stale_hosts=[]` 확인 ②후속 후보 — 경고 분류기 `/var/tmp` 결함(저장소가 `/tmp` · `/var/tmp` 아래면 서드파티 경고를 저장소 경고로) · MCP `summarize_git_history`(git 아닌 경로에 ok) · `apply_robust_patch`(실패에 rc 0) 신호 불일치 · Windows 실측(M-028/WBS-28.3). 소유자 질문 2건 대기: `check_entry_diet` 15% 기준 · 주장 없는 task 의 '미측정' 표식.
-- (합류 `claude/remote-sync-check-234c32@7fdf0eb5`, 2026-11-15) **130차 세션 (2026-11-15, Linux 호스트) — main 합류 · 1.23.0 발행 준비 완료(게이트 442b9808, main fast-forward) + 합류 반영 결함 수리(task 11-15-003 — 완료 task 도 모 브랜치로): `origin/main@39a50a11` 병합(6ffa3f69, `roadmap_state.json` 충돌은 재생성) + 발행 차단 결함 수리.** main 의 TASK-… — 완료 14건(TASK-2026-11-12-claude-remote-sync-check-234c32-002, TASK-2026-11-12-claude-remote-sync-check-234c32-003, TASK-2026-11-12-claude-remote-sync-check-234c32-004, TASK-2026-11-12-claude-remote-sync-check-234c32-005, TASK-2026-11-13-claude-remote-sync-check-234c32-001, TASK-2026-11-13-claude-remote-sync-check-234c32-002, TASK-2026-11-13-claude-remote-sync-check-234c32-003, TASK-2026-11-13-claude-remote-sync-check-234c32-004, TASK-2026-11-13-claude-remote-sync-check-234c32-006, TASK-2026-11-14-claude-remote-sync-check-234c32-001, TASK-2026-11-14-claude-remote-sync-check-234c32-002, TASK-2026-11-14-claude-remote-sync-check-234c32-003, TASK-2026-11-15-claude-remote-sync-check-234c32-001, TASK-2026-11-15-claude-remote-sync-check-234c32-003) · 이월 2건(TASK-2026-11-13-claude-remote-sync-check-234c32-005, TASK-2026-11-15-claude-remote-sync-check-234c32-002) · 되돌려 적음 0건. 기록: [`archived/claude/remote-sync-check-234c32/session_handoff.md`](../../archived/claude/remote-sync-check-234c32/session_handoff.md) · [합류 기록](./sessions/merge_claude-remote-sync-check-234c32_2026-11-15.md)
-- (2026-11-04, Linux 호스트) **minimax-code 채널 §2.8 재적용 완료** (TASK-2026-11-04-main-001 — mcode 0.7.4, 1.22.0 in-sync · 5 스킬 노출). 남은 것: ①doctor 가 codex · grok-build · antigravity 를 1.21.0 BEHIND 로 보고 — 이 호스트 나머지 채널 재적용 ②**TASK-2026-11-04-main-002 (planned)** — MCP 도구 4종(summarize_git_history · assess_milestone_progress · rotate_workflow_logs · apply_robust_patch)이 성공 경로에서 `invalid_tool_output_contract` 로 죽는다, `PYDANTIC_MODEL_REGISTRY` 에 family 미등록. 1.22.0 발행본에 들어 있다. (이 기록은 2026-11-12 에 커밋 — 그동안 이 호스트 작업 트리에만 있었다.)
-- (122차) **v1.22.0 발행 완료** (main-004) — 준비 커밋 `a44b7d31` → 전량 게이트 native·slash 309×2 rc 0 (증거 `a44b7d31…json`, 커밋 후 clean tree) → `dist --apply`(휠·sdist + plugin ZIP 3종 · twine PASS) → `release --dry-run` ready=true → push(main) → `release --apply`(태그 `v1.22.0` push + GitHub Release asset 5종). **이 호스트에서 처음 시도한 Windows 발행**이었다 — 발행 경로 격차 2건(`venv/bin/pip` 경로 · pip 자기수정)과 서브프로세스 encoding 누락 10건이 이때 드러나 추가로 고쳤다. **다음 일**: ①**§2.8 소비채널 재적용** — `python -m workflow_kit.minimax_plugin --apply` 후 `python -m workflow_kit doctor --json` 의 `content_drift.behind=[]` (minimax-code 1.22.0) 확인 · 데스크톱 앱 재시작 필요 ②**POSIX 회귀 게이트는 이 호스트에서 못 돌린다** — Linux/macOS 에서 309×2 확인 필요 ③해석기 매트릭스 3.11 셀은 해석기 미설치로 UNMEASURED — 설치 후 재실행 ④case 수 선언 대조 75건 미측정 ⑤PyPI 발행은 하지 않는다(§1 각주 0 — 2026-08-14 소유자 최종 결정 · 배포는 GitHub Releases 하나).
-- (121차) **한글 Windows 프로필 확립 + 격차 52건 → 0건 — push 완료.** 이 호스트에서 전량 게이트 `--branch-context=all` 가 green 이다: native · slash 각 309/309 rc 0, 증거 `712e9414…json` (커밋 후 clean tree) → `origin/main` push **완료**(게이트 우회 없음 · `--no-verify` 미사용). 다음 일: ①원하면 이 호스트에서 `release --apply` 로 v1.21.1 발행 시도 ②**POSIX(Linux/macOS) 회귀 게이트는 이 호스트에서 돌릴 수 없다** — 309×2 는 별도 호스트에서 확인해야 한다. 소유자 결정 대기 0. 재발 방지 규칙 8절은 §5 말미 "121차가 남긴 규칙" 참고.
-- (119차) **변경 없음 — 기준선 green 재확인.** 이 호스트 다음 일: codex CLI 재시작(5 프로세스 stale) 뒤 `python -m workflow_kit doctor --json` 의 `runtime_load.stale_hosts=[]` 확인. 새 작업 후보는 WBS-7.3 case 수 선언 미측정 158건 보급 — 소유자가 범위를 정하면 `backlog-update --done-criteria` 로 등록. Windows · macOS 항목은 아래 118차 줄 그대로.
-- (118차) **소유자 결정 3건 반영** — ①G4 · G5 선언(A안, main-006) ②매트릭스 기록 요구 안 함(현행 유지, 결정 기록만) ③main · 태그 삭제 push 차단(main-007). 남은 결정 대기 0. 열린 task 는 Windows 실측 3건뿐.
-- (118차) **v1.21.0 발행됨** (main-005) — 이 호스트 §2.8 완료(claude-code 1.21.0 · codex root 1.21.0 · grok · agy, behind=[] disabled=[]). **재시작 필요**: claude-code 2 · codex 5 프로세스가 재적용 전 기동(runtime_load). **macOS 호스트**: §2.8 →1.21.0 — minimax 는 `python -m workflow_kit.minimax_plugin --apply` 후 `wk doctor --json` 의 `content_drift.behind` 에 minimax-code 가 없는지(5채널). 진입점 템플릿은 안 바뀌어 harvest 재실행 불필요(case 6 · 7 green). 발행된 노트의 수치 정정은 Release 본문까지 같이 갱신했다 — 노트를 고치면 `gh release edit --notes-file` 도 같이.
-- (합류 `feat/auto-20261019-a0afcf36@cbe0b88b`, 2026-10-19) feat/auto-20261019-a0afcf36 워크스페이스 — `main@06abaaf0` 에서 이어받음 (2026-10-19). 이 브랜치의 작업은 아직 없다. 모 브랜치 기준선: **117차 세션 (2026-10-06, Linux 호스트) — task 3건 close, 발행 없음 (main 은 v1.20.1 + 3커밋).** ①**main-003**(A2) — 재시작 뒤 `subagent_type=verifier` 로… — 완료 0건 · 이월 0건 · 되돌려 적음 2건(TASK-2026-09-30-main-001, TASK-2026-10-02-main-003). 기록: [`archived/feat/auto-20261019-a0afcf36/session_handoff.md`](../../archived/feat/auto-20261019-a0afcf36/session_handoff.md) · [합류 기록](./sessions/merge_feat-auto-20261019-a0afcf36_2026-10-19.md)
-- (118차) ~~**소유자 결정 대기 — G4 · G5 선언**~~ ✅ **해소** (2026-10-19 소유자 결정 = A안, main-006: M-001~M-006 goals 에 G5 · M-006 에 G4 · WBS-7.4 → G3, G4, G5 → coverage 40→80, health 86 excellent, warnings []). 원래 제안: G5 → M-001~M-006 `goals:` 에 추가 + M-007 `wbs_goals` WBS-7.4 → G3, G5 / G4 → M-006 `goals:` [G3, G4] + WBS-7.4 → G3, G4 (또는 G4 를 운영 약속으로 두고 goal 번호에서 제외). 적용은 roadmap/M-*.md frontmatter 손편집 + `refresh-state`. minimax-code macOS §2.8 은 앱에서 진행 중(1.20.1 wheel 은 `--apply` 보고 오독 수리 전 — `--json` 의 `in_sync` 로 판정).
-- (118차) ~~**미발행 수리 누적**~~ ✅ v1.21.0 으로 발행(main-005). 발행이 진입점 템플릿을 바꾸면 **커밋 해시를 `DEFAULT_REFS` 에 더하고 `harvest --apply`** (RELEASE.md §2.1 · case 6 이 red 로 알린다). ~~`check_memory_lint` T1a · T1c · T1d 무력화 3건~~ ✅ main-003. 이 호스트 claude-code · codex 프로세스는 1.20.1 이전 기동 — 재시작 필요 그대로.
-- (117차) **verifier 실사용 개시** — task 를 done 으로 닫기 전에 `subagent_type=verifier` 를 부른다. 등록 때 `backlog-update --done-criteria` 를 반드시 같이 준다(기준 줄이 비면 verifier 가 막는다). 되주입 전수는 verifier 에게 '수리 부분을 빠짐없이 하나씩 되돌려라' 로 맡기면 작성자보다 넓게 찾는다. **minimax-code**: §2.8 절차 생김 — macOS 호스트 →1.20.1 적용 시 `python -m workflow_kit.minimax_plugin --apply` 후 `--json` 의 `in_sync` 로 확인, 앱 재시작 필요 여부와 `mcode plugin list` 인정은 그때 첫 실측. codex 3 · grok-build 1 프로세스가 1.20.1 이전 기동 — 재시작 필요.
-- (116차) **v1.20.0 발행됨** (main-005) — 진입점 다이어트 3단계(정본 규칙 블록 3.6→2.7KB · bootstrap 템플릿 + `check_entry_budget` 8KB · `ensure-entrypoints --diet` 절 단위, 옛 생성물 해시는 `scripts/harvest_entry_sections.py`) + AI-native SDLC A1~A3(task Plan 절 · verifier · 검사 약화 차단 hook) + MiniMax Code 채널. 이 호스트 §2.8 완료 — claude-code · codex 재시작 필요. ~~verifier 실측 대기(main-003)~~ ✅ 117차. macOS: §2.8(→1.20.0, MiniMax 포함 — RELEASE.md §2.8 에 MiniMax 절차 없음). 새 발행이 진입점 템플릿을 바꾸면 harvest 재실행. main-006 수리는 v1.20.1 로 발행됨 — macOS §2.8 은 →1.20.1.
-- (합류 `feat/auto-20261002-4a5d394c@e98bc3a6`, 2026-10-03) feat/auto-20261002-4a5d394c 워크스페이스 seed (2026-10-02). 아직 작업 전이다. — 완료 3건(TASK-2026-10-02-feat-auto-20261002-4a5d394c-001, TASK-2026-10-02-feat-auto-20261002-4a5d394c-002, TASK-2026-10-02-feat-auto-20261002-4a5d394c-003) · 이월 0건 · 되돌려 적음 0건. 기록: [`archived/feat/auto-20261002-4a5d394c/session_handoff.md`](../../archived/feat/auto-20261002-4a5d394c/session_handoff.md) · [합류 기록](./sessions/merge_feat-auto-20261002-4a5d394c_2026-10-03.md)
-- (합류 `claude/remote-sync-status-1ce0a3@f1a4b633`, 2026-10-03) claude/remote-sync-status-1ce0a3 워크스페이스 — `main@309c9ddf` 에서 이어받음 (2026-10-02, macOS 호스트). **이 브랜치 작업 2건 done (TASK-2026-10-02-claude-remote-sync-status-1ce0a3-002 M-007/WBS-7.4 · -003 M-007/WBS-7.2)** — 이 호스트 v1.19.0 §2.8 재적용(4채널 + MCP 해석기… — 완료 2건(TASK-2026-10-02-claude-remote-sync-status-1ce0a3-002, TASK-2026-10-02-claude-remote-sync-status-1ce0a3-003) · 이월 0건 · 되돌려 적음 0건. 기록: [`archived/claude/remote-sync-status-1ce0a3/session_handoff.md`](../../archived/claude/remote-sync-status-1ce0a3/session_handoff.md) · [합류 기록](./sessions/merge_claude-remote-sync-status-1ce0a3_2026-10-03.md)
-- (114차) **v1.19.0 발행됨 (main-008) — Windows 실측 대기, main-006 · 007 은 Linux 재현 조건으로만 검증해 in_progress.** 이 호스트는 §2.8 완료(behind=[] disabled=[]), claude-code · codex 재시작 필요(runtime_load), Codex hook 재신뢰 필요. Windows 호스트는 v1.19.0 wheel 로 갱신한 뒤 아래를 잰다. 소유자 보고 2건(같은 Windows · OpenCode 데스크톱): ①cp949 — 파이프 stdio 가 로캘 인코딩이라 `—` 출력에서 exit 2 → `common/stdio.force_utf8_stdio` + 텍스트 I/O 115곳 encoding 명시 + `check_text_io_encoding`. ②V3 가 `wk.exe`(pip 설치별 서명 없는 런처)를 평판 차단 → 하네스 호출을 `python -m workflow_kit <명령>` 으로 전환(소유자 결정, 셸 미상): 정본 §11.1 · 스킬 · 진입점 블록 · hook(python3→python import 탐침) · doctor(해석기별 import 실측) · 런타임 안내 30곳, `check_kit_invocation`. Windows 에서 확인할 것: `python -m workflow_kit session-start` rc 0 · OpenCode 에서 워크플로우 왕복 · `python -m workflow_kit doctor` 의 kit 해석기 줄 · OpenCode 실행 셸 종류(기록). 
-- (113차) **v1.18.0 발행됨** — claude-code 는 재시작해야 새 코드가 돈다(runtime_load stale), macOS 호스트는 §2.8 재적용(→1.18.0). **worktree 메모리 왕복은 다음 worktree 세션이 첫 실사용** — worktree 의 `session-start` 가 모 브랜치 기준선 · 열린 task 를 이어받는지(1.17.0), 그 브랜치가 main 에 병합된 뒤 main 의 `session-start` 가 합류 반영 warning 과 함께 완료 · 이월 · 되돌려 적기 · §5 합류 줄을 남기는지(1.18.0) 확인하고 그 변경을 main 커밋에 싣는다. 합류 뒤 같은 worktree 에서 이어 작업하지 말고 새 브랜치로. origin 없는 저장소 한계는 TASK-2026-10-02-main-003.
-- (110차 Claude Code worktree 합류) **worktree 브랜치는 이제 자기 네임스페이스로 자동 seed 된다** — `session-start` 가 `active/<branch>/` 부재 시 `main` 기준으로 seed, CI 밖 detached HEAD = 기본 브랜치, 비 git workspace = main (TASK-2026-09-30-claude-session-start-e6eb83-002, 6118db3d). 그 세션의 기준선·잔여 리스크는 [`archived/claude/session-start-e6eb83/session_handoff.md`](../../archived/claude/session-start-e6eb83/session_handoff.md) (브랜치 삭제 뒤 아카이브 완료). main-012 · main-013 은 같은 세션이 close.
-- (111차 Claude Code worktree 합류) **게이트 간헐 red 제거** — `check_v0_7_24_release_notes_template` 가 저장소 `releases/` 에 `Beta-v9.9.9-test*.md` 를 쓰던 것을 임시 디렉터리 주입(`_resolve_notes_file(..., releases_dir=)`)과 저장소 전후 스냅샷 단언으로 막았다 (TASK-2026-09-30-claude-exciting-ardinghelli-a0680d-001, 306adeaf, 게이트 native·slash 299/299). 기록은 [`archived/claude/exciting-ardinghelli-a0680d/session_handoff.md`](../../archived/claude/exciting-ardinghelli-a0680d/session_handoff.md) — worktree·브랜치는 아직 남아 있어 `--branch` 강제 아카이브했다.
-- (compact 중계 후속, M-007) 대화형 Claude Code 세션에서 **자동 압축(`trigger: auto`) 1회 실측** — 기계 층만 기록되고 재주입 머리말이 '판단 층 없음' 을 말하는지. **v1.16.0 발행됨** — macOS Codex 적용·사용자 hook 신뢰·재시작·실제 압축 왕복은 main-014에서 검증 완료. Claude Code 자동 압축 실측은 별도 환경에서 진행한다. 측정 방법(격리 CODEX_HOME + app-server 드라이버)은 저장소에 없다 — 다음에 필요하면 compact_relay_spec §7 기술로 재구성.
-- (macOS 호스트) TASK-2026-09-30-main-001 착수 전 105차 배포본 채취: `find ~/.minimax/plugins/standard-ai-workflow -maxdepth 3 | sort` + 매니페스트 원문 + 제품(Desktop / CLI `mcode`)·버전. 공식 mcode 0.4+ 명세와 105차 기록이 우선순위가 반대라, 채취본을 정본 fixture 로 삼아 렌더러 → §2.8 → `deploy_doctor` 순. claude-code 매니페스트(hooks 경로 문자열)를 그대로 재사용하지 말 것.
-- (Windows 호스트) main-002 실측: `check_python_floor_syntax` case 6 이 실제 `.cmd` shim 으로 PASS 하는지.
 - Codex 데스크톱을 완전히 재시작한 뒤 새 셸에서 `Get-Command wk`, `wk session-start`, `gh`, `unzip`, `python3 --version`, `wk doctor --json` 을 확인한다. 재시작 후에도 `wk` 가 빠져 있으면 사용자 PATH 가 데스크톱에 전달되는지 다시 진단한다. Codex CLI 실행 파일이 계속 PATH 에 없으면 `codex` 채널의 `installable=false` 는 별도 CLI 미설치 상태로 기록한다.
-- (Windows 호스트) 104차 main-018 실측: `wk doctor --json` 사본 대조에서 정본 파일이 extra 로 뜨던 잡음이 사라졌는지 확인. 같은 Windows 세션에서 blocked TASK-2026-08-25-main-017 완료 기준 2 를 한 명령으로 닫는다: `.venv\Scripts\python.exe workflow-source/tests/check_bootstrap_mcp_roundtrip.py --literal-command` (104차 신설 — emit 된 launcher 를 치환 없이 PATH 에서 해석해 spawn). 5/5 면 done.
 
-- 누적 기록은 [`lessons.md`](./lessons.md) (규칙 12절) · [`sessions/handoff-notes_*.md`](./sessions/) (기록 7절) 로 이관됐다 — 최신이 위, 세션 시작에 읽지 않는다.
+- 누적 기록은 [`lessons.md`](./lessons.md) (규칙 15절) · [`sessions/handoff-notes_*.md`](./sessions/) (기록 8절) 로 이관됐다 — 최신이 위, 세션 시작에 읽지 않는다.
 
 ### ▶ 지금 할 일 — M-007 운영 축 상시 운용 (63차 전환, 64·65차 검증)
 
@@ -390,81 +368,6 @@ in_progress** + **M-008~M-012 done** (64차 — 첫 병행 기능 축의 SDLC �
   해소됐다. 트리거는 동일하게 유지 — **같은 수치가 3회 이어지면 소유자에게
   다시 묻는다** (다음 선택지에는 잔여 후보 추가 승격과 threshold 재캘리브레이션이
   올라간다).
-
-### 121차가 남긴 규칙 (재발 방지)
-
-- **서브프로세스 텍스트 캡처에는 `encoding="utf-8", errors="replace"` 를 명시한다.**
-  `text=True` 는 **로캘(cp949)** 로 디코딩한다. kit CLI 는 `common/stdio.force_utf8_stdio()`
-  로 UTF-8 을 강제하고 git 도 UTF-8 을 내므로 — 부모가 cp949 로 읽으면
-  UnicodeDecodeError → **reader thread 가 죽고** → `proc.stdout=None` →
-  `AttributeError: 'NoneType' object has no attribute 'splitlines'`. 실제 증상은
-  '출력이 비었다' 가 아니라 **AttributeError** 라 원인을 한참 헤맨다. 인코딩을
-  안 쓰는 순간 증상이 무의미해진다 — 무의미한 증상은 인코딩 문제다.
-- **자식 프로세스에 최소 env 를 넘기면 `Path.home()` 이 죽는다.** `HOME`/`USERPROFILE`
-  이 빠지면 `Path.home()` 이 `RuntimeError("Could not determine home directory.")` →
-  `import workflow_kit` **자체가** 죽는다(도구가 아무것도 못 한다). 자식 env 정본은
-  `common/child_process.py` 의 `platform_child_env` 한 곳에 모은다.
-- **저장소 상대경로는 항상 POSIX 다.** `str(Path.relative_to(...))` 는 Windows 에서
-  `\` 를 낸다 — `.as_posix()` 로 접는다.
-- **Windows 바이트범위 락은 '락 영역' 과 '정보 영역' 을 분리한다.** `msvcrt.locking`
-  은 **현재 파일 위치부터 n바이트**를 잠근다. 앞쪽을 잠그면 contender 가 보유자
-  정보를 못 읽는다(OSError 13). 또 **빈 파일은 위험**하다 — 크기 0 파일의 뒤쪽을
-  잠그면 그 파일 전체가 읽히지 않는다 → 락 전 최소 1바이트 확보(`prepare_lock_file`).
-- **정리 재시도는 `PermissionError` 만 잡지 않는다.** Windows 에서 삭제 대기 중인
-  항목은 `os.unlink` 이 성공해도 핸들이 풀릴 때까지 **디렉터리 목록에 남고**, 그래서
-  `os.rmdir` 이 **WinError 145(ERROR_DIR_NOT_EMPTY)** 로 거절한다. 재시도 창인데
-  `PermissionError` 만 잡아서 그대로 새어 나왔다 → **`OSError` 전체**를 잡는다.
-- **Windows 에서 성립하지 않는 단언은 '해당 없음' 으로 명시한다.** skip/xfail 로
-  덮으면 '미측정' 을 '통과' 로 세게 되어 저장소 원칙(모름 ≠ 안전)에 어긋난다.
-- **`git checkout-index -f -a` 를 쓰지 않는다** — 미커밋 변경이 통째로 사라진다.
-- **저장소 LF 표준은 `.gitattributes` + 저장소-local `core.autocrlf=false` 로 고정하고,
-  정본 쓰기 헬퍼는 `newline='\n'` 을 명시한다.** 툴이 `write_text` 로 쓴 파일은
-  Windows 에서 CRLF 가 되어 산출물 바이트가 호스트마다 달라진다.
-
-### 82차가 남긴 규칙 (재발 방지)
-
-- **되주입 harness 자신도 되주입 대상이다.** 주입 두 건의 소스 **길이가 같으면**
-  `.pyc` 가 (mtime+size 로) 유효 판정돼 재사용되고, 복원한 원본 대신 **직전
-  주입본이 실행된다**. 실제로 case 2 가 case 1 의 증상을 냈다. harness 는
-  `PYTHONDONTWRITEBYTECODE=1` + `__pycache__` 삭제를 깔고, **각 주입이 자기
-  이유로 red 인지** 를 눈으로 확인한다 — '전부 red' 는 각 판정이 살아 있다는
-  증거가 아니다.
-- **'문자열이 파일 어딘가에 있다' 는 배선 검사가 아니다.** `case 4` 는 파일
-  전체에서 `matrix.python` 을 찾았는데 job 이름·artifact 이름에도 그것이 있어
-  **정작 `setup-python` 배선을 끊어도 green** 이었다. 배선은 *받는 자리* 를 보고,
-  그 자리의 값을 **전부** 나열해 하나라도 다르면 red 로 한다.
-- **커버리지가 '이미 있다' 고 말하기 전에 그것이 선언인지 묻는다.** 3.13 커버리지는
-  개발자 `.venv` 에 깔린 것이었고 아무 문서도 그것을 요구하지 않았다. 지우면
-  조용히 사라지고 아무 검사도 실패하지 않는 커버리지는 **없는 것과 같은 취급**을
-  받아야 한다 ('우연한 측정은 선언이 아니다' 재발, 2026-07-31 이후 두 번째).
-- **정본의 방향은 registry → yml 이다.** task 등록 때 '기대값을 `smoke.yml` 에서
-  파생' 이라고 적었는데 그러면 사본이 정본이 된다. `branch_matrix` · `sdk_matrix`
-  가 이미 반대 방향으로 서 있다 — 새 축도 같은 방향으로 세우고, yml 의 리터럴은
-  **복제로 검출**한다.
-
-### 80차가 남긴 규칙 (재발 방지)
-
-- **파생물이 둘이면 한쪽만 안다.** 한 도구가 생성물을 하나 갱신하고 있으면 "이미
-  하고 있다" 가 "다 하고 있다" 로 읽힌다. `backlog-update --apply` 가 `state.json`
-  은 재생성하면서 형제인 `roadmap_state.json` 은 두고 간 것이 그것이다 — 그 SSOT
-  가 *방금 자기가 쓴* task frontmatter 인데도. **형제 파생물을 전수로 셀 것.**
-- **정본 문서가 재생성 창구를 하나만 적으면, 그것이 다른 쓰기 경로를 규약 밖에
-  두는 근거가 된다.** 스펙 §7.1 의 "재생성은 `wk refresh-state`" 가 정확히 그렇게
-  쓰였다. 창구가 아니라 **누가 SSOT 를 쓰는가**로 적는다.
-- **두 사본이 byte 동일이면 파일 비교는 원리적으로 아무것도 못 가른다.** 어느
-  쪽이 읽히는지는 **한쪽만 오염시켜** 재야 한다. 캐시 사본에 마커를 넣고 새
-  프로세스에 물어서야 "캐시는 안 읽힌다" 가 나왔다 — 그 전까지 `content_drift` 는
-  아무도 안 읽는 사본을 재면서 in-sync 를 노출의 증거처럼 내놓고 있었다.
-- **경유지는 사본과 별개로 판정을 바꾼다.** codex 에서는 경유지가 *사라지면*
-  문제였는데(main-004), claude-code 에서는 경유지의 **유형**이 *무엇이 읽히는지*
-  를 바꾼다. 설치 경로를 선언에서 읽는 것만으로 부족하다 — 그 선언이 가리키는
-  것이 서빙되는 것인지까지 봐야 한다.
-- **보고 문자열의 채널 리터럴을 의심할 것.** marketplace 행이 무조건
-  `codex marketplace …` 로 찍히고 있었다. 목록이 단일 채널이던 동안은 맞았고,
-  채널이 하나 늘어나는 순간 조용히 틀렸다.
-- **착수 전에 자기가 적은 전제를 다시 잰다.** main-006 의 완료 기준 3번이 틀린
-  전제("서빙 경로 = 정본 생성기의 입력")로 적혀 있었다. 정본은 `core/` 에서
-  렌더되고 `plugin/` 은 입력이 아니라 산출물이다 — 어제의 나도 남이다.
 
 ## 6. 남은 리스크 / 확인하지 못한 것
 

@@ -117,10 +117,22 @@ _NOTES_HEADER = """# Handoff notes (rolled off from handoff §5)
 """
 
 
-def _prepend(path: Path, header: str, blocks: list[S5Block], today: str) -> None:
+_MD_LINK = re.compile(r"\]\((?!https?:|mailto:|#|/)([^)\s]+)\)")
+
+
+def rebase_links(text: str, prefix: str) -> str:
+    """상대 markdown 링크 대상 앞에 `prefix` 를 붙인다 — 블록을 다른 깊이의 파일로 옮기면
+    `./x` · `../x` 가 다른 곳을 가리킨다 (`sessions/` 는 handoff 보다 한 단계 아래다).
+    링크 대상만 바뀌고 나머지 바이트는 그대로다."""
+    if not prefix:
+        return text
+    return _MD_LINK.sub(lambda m: f"]({prefix}{m.group(1)[2:] if m.group(1).startswith('./') else m.group(1)})", text)
+
+
+def _prepend(path: Path, header: str, blocks: list[S5Block], today: str, *, link_prefix: str = "") -> None:
     section = [f"## 이관 {today}", ""]
     for b in blocks:
-        section.append(b.text.rstrip("\n"))
+        section.append(rebase_links(b.text, link_prefix).rstrip("\n"))
         section.append("")
     body = "\n".join(section).rstrip("\n")
     prev = _strip_header(path.read_text(encoding="utf-8")) if path.is_file() else ""
@@ -230,7 +242,7 @@ def run(handoff_path: Path, *, limit: int, apply: bool, today: str) -> dict:
     if to_lessons:
         _prepend(lessons_path, _LESSONS_HEADER, to_lessons, today)
     if to_notes:
-        _prepend(notes_path, _NOTES_HEADER.format(today=today), to_notes, today)
+        _prepend(notes_path, _NOTES_HEADER.format(today=today), to_notes, today, link_prefix="../")
     handoff_path.write_text(rewrite_s5(text, moved_idx, pointer), encoding="utf-8", newline="\n")
     result["applied"] = True
     return result

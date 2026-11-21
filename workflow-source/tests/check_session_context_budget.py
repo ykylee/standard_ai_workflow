@@ -463,8 +463,11 @@ def case_12_head_session_lines_are_accumulated() -> None:
         moved_file = nf.read_text(encoding="utf-8") if nf.exists() else ""
         if res.get("moved_count") != 2:
             problems.append(f"옮긴 블록 {res.get('moved_count')} (기대 2 — 아래의 ### 절과 이어받음 묶음)")
-        if notes and notes[1].text.rstrip("\n") not in moved_file:
-            problems.append("이어받음 묶음이 노트 파일에 바이트 그대로 없다")
+        from workflow_kit.tools.rollover_handoff_notes import rebase_links
+        if notes and rebase_links(notes[1].text, "../").rstrip("\n") not in moved_file:
+            problems.append("이어받음 묶음이 노트 파일에 (링크만 한 단계 보정하고) 그대로 없다")
+        if "](../../../main/lessons.md)" not in moved_file:
+            problems.append("sessions/ 로 옮긴 상대 링크를 한 단계 보정하지 않았다 — 깨진 링크가 된다")
         if "(2차)" in after or "(1차)" in after or "(3차, 2026-11-21)" not in after:
             problems.append("서두에서 옮긴 줄 / 남긴 줄이 틀렸다")
         for keep in ("서두 문장", "실제 작업은", "`TASK-X` 후보", "## 6. 남은 리스크"):

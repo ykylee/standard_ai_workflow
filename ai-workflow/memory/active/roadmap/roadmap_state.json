@@ -1273,7 +1273,7 @@
     },
     {
       "task_id": "TASK-2026-11-21-release-1.x-007",
-      "task_status": "in_progress",
+      "task_status": "done",
       "wbs_ref": "exempt",
       "exempt_reason": "1.x 유지보수 줄 — 로드맵은 main 에 있다 (M-038 WBS-38.3 의 1.x 몫)",
       "source_path": "ai-workflow/memory/active/release/1.x/backlog/tasks/TASK-2026-11-21-release-1.x-007.md"

@@ -1,6 +1,6 @@
 ---
 id: TASK-2026-11-21-release-1.x-007
-status: in_progress
+status: done
 created_at: 2026-11-21
 source_anchor: generic-task-2026-11-21-release-1.x-007
 source_path: backlog/2026-11-21.md
@@ -13,7 +13,7 @@ wbs_exempt_reason: 1.x 유지보수 줄 — 로드맵은 main 에 있다 (M-038 
 
 ## 📝 Description
 
-- Status: in_progress
+- Status: done
 - Priority: high
 - Request date: 2026-11-21
 - Owner:
@@ -41,5 +41,6 @@ wbs_exempt_reason: 1.x 유지보수 줄 — 로드맵은 main 에 있다 (M-038 
 
 ## ✅ Outcome
 
-- Result:
+- Result: v1.30.0 발행 — 태그 24ca6ae3 · GitHub Release (wheel · sdist · 플러그인 zip 3, 발행 시점 Latest — 이어 v2.0.0 이 가져감). 안내 한 줄(EOL 전 2.0 · 뒤 EOL) · README §0 · 표식 거절 · 발행 도구 latest 판정 이식. 2.0 대응: 안내 · README 는 해당 없음(1.x 전용), 나머지는 main 에도 있음.
+- Verification: 전량 게이트 --branch-context=all native 336/336 · slash 336/336 rc 0 (24ca6ae3 통과 기록) · check_transition_notice 3/3 · 되주입 4/4 · release dry-run ready
 - Follow-up:

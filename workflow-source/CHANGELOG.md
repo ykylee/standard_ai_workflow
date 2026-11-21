@@ -16,6 +16,23 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- feat(2.0)!: 2.0 줄은 kit 플러그인 채널을 내지 않는다 — marketplace.json · 발행 zip 을 KIT_PLUGIN_CHANNEL 하나로 (R16.6 · Q10, M-040 WBS-40.2, TASK-2026-11-21-main-025) (708042bb)
+- feat(1.x): 1.x 안내 판 — session-start 의 2.0 안내 · EOL 한 줄, README '2.0 으로 옮기기 · 1.x 에 머물기' (TASK-2026-11-21-release-1.x-007, R16.4 · R14.8 · R16.3 · R16.6) (12c5d96f)
+- feat(hub): /setup.md 실측 Codex · MiniMax · Antigravity — agy 등록을 mcp list 로 확인 (M-039 WBS-39.1, TASK-2026-11-21-main-023) (5602a2a8)
+- feat(hub): 에이전트용 셋업 가이드 /setup.md · hub_client.py bootstrap · 원격 없는 등록과 원격 묶기 (M-039 WBS-39.1, TASK-2026-11-21-main-022) (53076aac)
+- feat(hub): 이 호스트 테스트베드 실사용 — 발견 7건 수리 (M-039 WBS-39.2, TASK-2026-11-21-main-020) (dbe48ac1)
+- feat(hub): 허브 간 프로젝트 이전 HTTP 경로 — 대상 허브 일회용 초대 코드 · hub_client.py move (M-039 WBS-39.4, TASK-2026-11-21-main-018) (9eb3805b)
+- feat(hub): 허브 서버 간 프로젝트 이전 — 묶음 · 관리자 CLI export/import · 원본 봉인 (M-039 WBS-39.4, TASK-2026-11-21-main-017) (a6a442fa)
+- feat(hub): 1.x 전환 범위 확장 — 아카이브 브랜치 · 결정 응답 · baselines · PURPOSE/PROFILE · 날짜별 backlog (M-039 WBS-39.2, TASK-2026-11-21-main-016) (1b0707ca)
+- feat(hub): 1.x 전환 운반을 선택 클라이언트로 — hub_client.py migrate (M-039 WBS-39.2, TASK-2026-11-21-main-015) (580398d5)
+- feat(hub): 이 저장소 전환 리허설 — 계획이 남기는 파일 · 커밋 안 된 파일을 보고 (M-039 WBS-39.2, TASK-2026-11-21-main-014) (1163428c)
+- feat(hub): 하네스 4종 실측(Linux) — Codex 승인 안내 · repo_results 목록 꼴 (M-039 WBS-39.1, TASK-2026-11-21-main-012) (e62963f8)
+- feat(1.x): '허브로 옮김' 표식이 있으면 쓰기 거절 · session-start 는 허브를 가리킨다 (M-038 WBS-38.3 일부, TASK-2026-11-21-main-010) (e58c3221)
+- feat(hub): 1.x 전환 — '허브로 옮김' 표식 쓰기 지시 · 되돌리기 (M-038 WBS-38.2, TASK-2026-11-21-main-009) (9dfb42c5)
+- feat(hub): 1.x 전환 — 감지 · 전환 계획 · 들여오기 (M-038 WBS-38.1, TASK-2026-11-21-main-008) (0bbbfcd3)
+- feat(hub): 허브 화면 — 지침 편집 · 에이전트 제안 승인(D11) · 위키 읽기 (M-037 WBS-37.3, TASK-2026-11-21-main-007) · M-037 done (88523dc9)
+- feat(hub): 허브 화면 — 콜사인별 handoff · 지금 누가 무엇을 · 지침 판 현황 (M-037 WBS-37.2, TASK-2026-11-21-main-006) (c86b58ef)
+- feat(hub): 허브 화면 첫 판 — 프로젝트 · task 목록 · 계획 · 결정 답 · 이력 (M-037 WBS-37.1, TASK-2026-11-21-main-005) (69e65a37)
 - feat(hub): 선택 클라이언트 첫 판 — 오프라인 보낼편지함 · 캐시 · 세션 시작 보고 (M-036 WBS-36.3 B, TASK-2026-11-21-main-004) · M-036 done (25e8574a)
 - feat(hub): 위키 운반 — 디렉터리 무손실 들여오기 · 내보내기 + OKF 출판 · 남의 묶음 들여오기 (M-036 WBS-36.3 A, TASK-2026-11-21-main-003) (825cb49c)
 - feat(hub): memory_index · 양방향 링크 · 출처 sha · 위키 원격 읽기 (M-036 WBS-36.2, TASK-2026-11-21-main-002) (d6c64e28)
@@ -29,28 +46,20 @@ All notable changes to this project will be documented in this file.
 - feat(workflow): 호스트 역할 — 읽기 전용 소비자 클론은 pull · 환경 맞추기 · 버전 업데이트만, push 는 pre-push 가 막는다 (-001) (1fdcddc5)
 - feat(workbench): iPad 폼 제출 수리 · 진행 기록 상기 · 한 호스트 여러 워크벤치 (-003 · -004 · -005) (0c23165f)
 - feat(workbench): todo — 브랜치 할 일 · task 체크리스트를 워크벤치에서 보고 고친다 (main-016 · main-017) (78b66be9)
-- feat(workbench): 응답 도착 신호 + 작업 세션 hook 자동 반영 · 알림 (main-014) (4dba0962)
-- feat(workbench): 작업 중 진행 기록 — 단계마다 Progress 한 줄, 워크벤치가 '지금 하는 일'로 (main-009) (0c2f7fee)
-- feat(workbench): 진척 실시간 값 — 원천에서 refresh-state 와 같은 생성기로 계산 (main-008) (b2b025c8)
-- feat(workbench): 화면 자동 새로고침 — 바뀐 내용만 다시 그리고 답 쓰는 중이면 알림만 (main-006) (f2ed8112)
-- feat(workbench): 화면 개편 — 대시보드형 진척 · 카드형 계획 화면 (main-003) (d1f11bed)
-- feat(workbench): 자동 기동 — session-start 가 띄우고 SessionEnd hook 이 내린다 (main-002) (93133bb5)
-- feat(workbench): 개방 모드 --open — 토큰 · 로그인 없이 IP 로 보고 답한다 (main-001) (42d74896)
-- feat(mcp): plan_inbox(read-only) · plan_import(write) — 워크벤치 스펙 §8.3 (M-029/WBS-29.2) (f3223d6a)
-- feat(workbench): M-029 ② 워크벤치 서버 · 화면 · 검사 넷 · 스킬 (ADR-032, M-029/WBS-29.2) (a2e3b495)
-- feat(plan): M-029 ① 이월 정리 — inbox_census 단일 출처 · plan-import 건수 두 필드 · 받은편지함 우회 검출 · 배치 warnings · 정리 일곱 (ADR-032 결정 16 · 17 · 18 · 24 · 25, M-029/WBS-29.1) (bba68693)
-- feat(plan): 주장 트리 계획 2단계 — 응답 파일 · 받은편지함 · plan-import · 받은편지함 게이트 · 이어받기 (ADR-031, M-028/WBS-28.2) (c4c14c6b)
-- feat(plan): 주장 트리 계획 1단계 — task Plan 에 Claims · Decisions, 린트 · 전이 게이트 · plan-status (ADR-031, M-028/WBS-28.1) (f45c6da1)
-- feat(gate): pre-push 가 main · 태그의 삭제 push 를 막는다 — 기능 브랜치 삭제는 통과 (main-007, 소유자 결정 2026-10-19) (dd8beb36)
-- feat(minimax-code): doctor 가 이 채널을 잰다 — behind·disabled·재시작 3축 편입 (main-001) (4ab6938c)
-- feat(entrypoints): ensure-entrypoints --diet — 기존 진입점에서 과거 kit 생성 그대로인 절만 교체/제거 (진입점 다이어트 3) (14fd87be)
-- feat(bootstrap): 생성 진입점 템플릿 다이어트 + 하네스별 분량 예산 검사 (진입점 다이어트 2) (b575b670)
-- feat(sdlc): AI-native SDLC 플레이북 A1~A3 적용 — task Plan 절 · verifier subagent · 검사 약화 차단 hook (d8bbf1e4)
-- ... (189 more)
+- ... (206 more)
 
 ### Changed
 
+- docs(release): 두 줄 발행 정책 — 2.x(main) wheel+sdist · latest 규칙 · PEP 440 사전 판, 1.x(release/1.x) 플러그인 zip · --latest=false (R16.6 · R16.7, TASK-2026-11-21-main-026) (5ea567d6)
+- docs(2.0): README 2.0 허브 안내 · 설치 문서 플러그인 채널은 1.x 줄(release/1.x 고정) (M-040 WBS-40.1, TASK-2026-11-21-main-026) (4ac980e7)
+- docs(hub): 2.0.0-beta 발행 범위 확정 · 허브 운영 가이드 (M-040 WBS-40.1, TASK-2026-11-21-main-024) (dfec2494)
+- chore(memory): 138차 세션 정리 — handoff 기준선 · 주 작업 축 갱신, 기준선 1건 이관 (M-039) (f044897b)
+- chore(hub): 이 저장소 테스트베드 허브 실제 등록 close — 들여오기 1193 파일 실패 0, 표식 보류 (M-039 WBS-39.2, TASK-2026-11-21-main-021) (427e839e)
+- chore(hub): 이 저장소 허브 등록 셋업 — .workflow-hub/ git-ignore (M-039 WBS-39.2, TASK-2026-11-21-main-021) (1be9dfec)
+- chore(memory): WBS-38.3 일부 close (D1 = 1.x 안내 판은 2.0.0 발행 때) · 안내 판 발행 task 등록 (TASK-2026-11-21-main-010 · -011) (cc3beedb)
+- test(hub): check_hub_wiki case 11 의 초 경계 흔들림 — OKF index.md 생성 시각만 걷어 비교 (0a56fe41)
 - chore(memory): 합친 수정 브랜치 메모리 정리 — fix/1x-long-lived-branch-memory task 닫고 아카이브 · 명세 스탬프 (v1.29.1 게이트) (148e6cdc)
+- Merge remote-tracking branch 'origin/main' (c150de60)
 - Merge pull request #32 from ykylee/fix/long-lived-branch-memory (383d1fdf)
 - Merge pull request #31 from ykylee/fix/1x-long-lived-branch-memory (0a7e4c76)
 - chore(memory): 137차 세션 종료 — 기준선 M-036 done · 다음 M-037, 지난 compact 체크포인트 정리 (aa746c88)
@@ -71,19 +80,14 @@ All notable changes to this project will be documented in this file.
 - docs(planning): 허브 requirements Q7 — 참조 못 하는 하네스는 사용자 범위에만 토큰 (R2.5a) (86022db9)
 - docs(planning): 2.0 허브 지원 하네스 4종 — Claude Code · Codex · MiniMax Code · Antigravity (Q8) (74f5156c)
 - docs(planning): 허브 design 전 실측 S1~S3 — 판정 함수 입구 · 위키 검사 경로 · 하네스별 원격 MCP (M-031/WBS-31.2) (2a9a0776)
-- docs(planning): 허브 requirements 소유자 결정 Q1~Q5 — Q4 화면 인증은 arcturus 과제 대시보드 방식 (3abd41be)
-- docs(planning): 2.0 허브 requirements 초판 — R0~R15 · 추적표 · 열린 물음 Q1~Q6 (M-031/WBS-31.1) (78884807)
-- chore(memory): 135차 후속 세션 종료 — H14 · 가드 스위치 · 다음 일 (M-031 착수) (8a595874)
-- docs(planning): H14 — compact 직후에도 허브 확인 · 기록된 작업 이어 가기 (2.0 요구 입력) (3a5367b4)
-- docs(roadmap): 2.0.0 로드맵 — M-031 requirements ~ M-040 release (허브 단일 흐름) (5ddaf63d)
-- docs(planning): 워크플로우 허브 = 2.0.0 준비 — 열린 결정 전부 권고안 · 세션 시작 확인 · 1.x 전환 (M-030 done) (1d3f5a34)
-- docs(planning): 워크플로우 허브 concept (M-030) — kit 없는 부트스트랩 · 허브가 task · handoff · 이력 · 지침 관리, ADR-033 Proposed (baf71ae6)
-- chore(memory): 소비자 클론 읽기 전용 session-start task close (-002) — 게이트 333×2 · 브랜치 push, main 미병합 (d31259e4)
-- chore(memory): 135차 세션 종료 — v1.28.0 발행 · 호스트 역할, 브랜치 main 합류 · 다음 작업은 새 브랜치로 (2757394f)
-- ... (538 more)
+- ... (543 more)
 
 ### Fixed
 
+- fix(1.x): 발행 도구 — 2.x 가 나온 뒤 1.x 판은 GitHub latest 를 가져가지 않는다 · PEP 440 정렬 · --target 현재 브랜치 (R16.7, main TASK-2026-11-21-main-026 이식) (f1ed96ca)
+- fix(release): PEP 440 사전 판 정렬 · GitHub latest 판정(원격 최고일 때만) · --target 현재 브랜치 — 2.0.0b1 발행 준비 (R16.7, TASK-2026-11-21-main-026) (9e5fe6e8)
+- fix(1.x): run_all_checks 잠금 파일 보유자 정보가 깨지던 것 — a+b 에서 seek 가 쓰기 위치를 못 바꿈 → r+b (TASK-2026-11-21-release-1.x-006) (7530b195)
+- fix(1.x): '허브로 옮김' 표식이 있으면 쓰기 거절 · session-start 는 허브를 가리킨다 (TASK-2026-11-21-release-1.x-005) (072d62c3)
 - fix(archive_branch_memory): 오래 사는 브랜치 표시 (.long-lived) — 1.x 결함 수리를 2.0 에도 (R16.5) (82edf09e)
 - fix(archive_branch_memory): 오래 사는 브랜치 표시 (.long-lived) — 병합돼 있어도 합류 반영 · 아카이브하지 않는다 (R16.1 ②) (7178acd9)
 - fix(bidir_link): 위키 언급이 없는 entry 에서 UnboundLocalError · 앞 entry id 로 거짓 비대칭 (05678400)
@@ -110,16 +114,26 @@ All notable changes to this project will be documented in this file.
 - fix(plan): 브랜치 안 디렉터리가 심볼릭 링크여도 옮기는 파일 자신을 세지 않는다 (ADR-031 2단계, M-028/WBS-28.2) (d6d46484)
 - fix(plan): dry-run 이름 예고를 경로 단위로 · 다시 받은 응답은 거둠을 나르지 않는다 (ADR-031 2단계, M-028/WBS-28.2) (5385a728)
 - fix(plan): dry-run 의 예고를 실제와 같게 · 되돌려 적기가 거둠도 나른다 · received_at 을 스펙의 한 꼴로 (ADR-031 2단계, M-028/WBS-28.2) (2ee1fd62)
-- fix(plan): 사유 판정을 열거로 고정 — 빈칸 글자 여섯 (ADR-031 1단계, M-028/WBS-28.1) (81b74577)
-- fix(plan): 사유는 보이는 글자 · 숫자가 있어야 + 무력화된 표 행 · 빈 결정 줄 검사 (ADR-031 1단계, M-028/WBS-28.1) (6eeae33d)
-- fix(plan): 게이트를 지나는 길 둘 차단 + 지문 · 묶음을 스펙 문면대로 (ADR-031 1단계, M-028/WBS-28.1) (3223df79)
-- fix(plan): 공백뿐인 사유 거부 + 린트 검사를 전부 대조하는 표로 (ADR-031 1단계, M-028/WBS-28.1) (8dd7027c)
-- ... (244 more)
+- ... (246 more)
+
+## [2.0.0] - 2026-11-21
+
+### Changed
+
+- release(v2.0.0): 발행 준비 — 2.0 워크플로우 허브 (베타 표기 · 판은 정수, 소유자 2026-11-21) (20c61a09)
+
+## [1.30.0] - 2026-11-21
+
+### Changed
+
+- release(v1.30.0): 노트 — 같은 날 내는 2.0 판은 v2.0.0 (베타 표기, 소유자 2026-11-21) (24ca6ae3)
+- release(v1.30.0): 발행 준비 — 1.x 안내 판 (2.0 안내 · EOL · 표식 거절 · 채널 고정 안내, R16.4) (c6a9698e)
 
 ## [1.29.1] - 2026-11-21
 
 ### Changed
 
+- release(v1.29.1): 발행 완료 — tag v1.29.1 (148e6cdc) · GitHub Release (asset 5) · CHANGELOG · maturity · drift ledger · task close (62879048)
 - release(v1.29.1): 발행 준비 — 오래 사는 브랜치 표시 .long-lived (1.x 결함 수리 patch · R16.1 ②) (5e43f8f5)
 
 ## [1.29.0] - 2026-11-20

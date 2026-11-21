@@ -74,3 +74,20 @@
 - Codex 의 1.x 채널은 버전이 박힌 zip 이라 자동 갱신이 원래 없다 — 이 판의 zip 을 다시 깔아야 안내가 보인다.
 - **Windows 실측은 이번 판에도 없다** (M-028/WBS-28.3).
 - **PyPI 업로드는 하지 않는다**(§1 각주 0 — 2026-08-14 소유자 최종 결정). 배포는 GitHub Releases 하나다.
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-11-21T22:52:51Z)_
+
+- total wiki pages: **99**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

@@ -65,6 +65,15 @@
     }
     return node;
   }
+  // 허브 시각(UTC ISO) → 이 브라우저 시간대의 'YYYY-MM-DD HH:MM'. 원문은 title 로 남긴다.
+  function when(iso) {
+    if (!iso) return null;
+    const d = new Date(iso);
+    if (isNaN(d)) return el("span", {}, iso);
+    const z = (n) => String(n).padStart(2, "0");
+    return el("time", { datetime: iso, title: iso },
+      `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}`);
+  }
   const chip = (text, cls) => el("span", { class: "chip " + (cls || text) }, text);
   const alertBox = (kind, text) => el("div", { class: "alert " + kind, role: kind === "bad" ? "alert" : "status" }, text);
   function render(...nodes) {
@@ -73,8 +82,9 @@
     app.replaceChildren(...(flash ? [alertBox(flash.kind, flash.text)] : []), ...nodes);
   }
   function setCrumbs(items) {
+    // replaceChildren 은 null 을 글자 "null" 로 넣는다 — 빈 칸은 걸러 낸다.
     crumbs.replaceChildren(...items.flatMap((it, i) => [i ? el("span", {}, "›") : null,
-      it.href ? el("a", { href: it.href }, it.text) : el("span", {}, it.text)]));
+      it.href ? el("a", { href: it.href }, it.text) : el("span", {}, it.text)]).filter(Boolean));
   }
   function setWho(principal) {
     if (!principal) { whoEl.textContent = ""; return; }
@@ -185,7 +195,9 @@
     setWho(principal);
     setCrumbs([{ text: "프로젝트", href: "#/" }, { text: project.display_name }]);
     const q = status ? `?status=${encodeURIComponent(status)}` : "";
-    const tr = await api(`projects/${encodeURIComponent(pid)}/tasks${q}`, { token });
+    const [tr, cr] = await Promise.all([
+      api(`projects/${encodeURIComponent(pid)}/tasks${q}`, { token }),
+      api(`projects/${encodeURIComponent(pid)}/callsigns`, { token })]);
     const base = `#/p/${encodeURIComponent(pid)}`;
     const filters = el("nav", { class: "filters", "aria-label": "상태" }, STATUSES.map((s) =>
       el("a", { href: s ? `${base}/s/${s}` : base, class: s === (status || "") ? "on" : "" }, s || "전체")));
@@ -195,7 +207,7 @@
       el("td", {}, chip(t.status)),
       el("td", {}, t.assignee || "—"),
       el("td", { class: "muted" }, t.progress_note ? `${t.progress_note}` : ""),
-      el("td", { class: "muted mono" }, t.updated_at))) : [];
+      el("td", { class: "muted nowrap" }, when(t.updated_at)))) : [];
     render(
       el("section", { class: "card" },
         el("h1", {}, project.display_name),
@@ -204,10 +216,96 @@
         principal.kind === "callsign"
           ? el("div", { class: "row" }, forgetButton(pid, route))
           : el("div", {}, el("h2", {}, "이 브라우저의 콜사인"), registerForm(pid, route), tokenForm(() => route()))),
+      callsignSection(pid, principal, cr),
       el("section", { class: "card" }, el("h2", {}, "task"), filters,
         tr.status !== 200 ? alertBox("bad", errorText(tr))
           : rows.length ? el("table", {}, el("thead", {}, el("tr", {}, ["ID", "제목", "상태", "맡은 이", "지금 하는 일", "고친 때"].map((h) => el("th", {}, h)))), el("tbody", {}, rows))
           : el("p", { class: "muted" }, "task 가 없다.")));
+  }
+
+  // --- 콜사인 표 · 콜사인 화면 (WBS-37.2) ------------------------------------------------
+
+  const canApprove = (principal) => principal.kind === "callsign" && principal.role === "owner"
+    && principal.callsign_kind === "human" && principal.human_approved;
+
+  function guideChip(c, current) {
+    if (c.guide_state === "current") return chip("지침 최신", "done");
+    if (c.guide_state === "stale") return el("span", { class: "chip blocked", title: `받은 판 ${c.guide_version_seen} · 허브 ${current}` }, `옛 지침 ${c.guide_version_seen}`);
+    return chip("지침 받은 적 없음", "planned");
+  }
+
+  function kindText(c) {
+    if (c.kind !== "human") return "agent";
+    return c.human_approved ? "human" : "human · 승인 전";
+  }
+
+  function approveButton(pid, c) {
+    return el("button", { type: "button", class: "ghost", onclick: async () => {
+      const r = await api(`projects/${encodeURIComponent(pid)}/callsigns/${encodeURIComponent(c.id)}/approve`, {
+        method: "POST", token: storedToken(pid), body: {} });
+      pendingFlash = r.status === 200 ? { kind: "ok", text: `${c.id} 를 승인했다 — 이제 결정에 답할 수 있다.` }
+        : { kind: "bad", text: errorText(r) };
+      route();
+    } }, "승인");
+  }
+
+  function nowDoing(c, base) {
+    if (!c.open_tasks.length) return el("span", { class: "muted" }, "맡은 열린 task 없음");
+    return el("ul", { class: "doing" }, c.open_tasks.map((t) => el("li", {},
+      el("a", { class: "mono", href: `${base}/t/${encodeURIComponent(t.id)}` }, t.id), " ", chip(t.status), " ",
+      t.progress_note ? el("span", {}, t.progress_note) : el("span", { class: "muted" }, t.title))));
+  }
+
+  function callsignSection(pid, principal, cr) {
+    if (cr.status !== 200) return el("section", { class: "card" }, el("h2", {}, "콜사인"), alertBox("bad", errorText(cr)));
+    const base = `#/p/${encodeURIComponent(pid)}`;
+    const { callsigns, guide_current: current } = cr.data;
+    const rows = callsigns.map((c) => el("tr", { class: c.archived ? "archived" : "" },
+      el("td", {}, el("a", { href: `${base}/c/${encodeURIComponent(c.id)}` }, c.id), c.archived ? " " : null, c.archived ? chip("보관", "planned") : null),
+      el("td", {}, kindText(c), ` · ${c.role}`, c.kind === "human" && !c.human_approved && !c.archived && canApprove(principal) ? approveButton(pid, c) : null),
+      el("td", {}, nowDoing(c, base)),
+      el("td", { class: "muted nowrap" }, when(c.last_seen_at) || "활동 없음"),
+      el("td", {}, guideChip(c, current)),
+      el("td", { class: "muted mono" }, c.client_version_seen || "—")));
+    return el("section", { class: "card" }, el("h2", {}, "콜사인 — 지금 누가 무엇을"),
+      el("p", { class: "muted" }, "허브 지침 판 ", el("span", { class: "mono" }, current)),
+      el("table", {}, el("thead", {}, el("tr", {}, ["콜사인", "종류", "지금 하는 일", "마지막 활동", "지침", "클라이언트"].map((h) => el("th", {}, h)))),
+        el("tbody", {}, rows)));
+  }
+
+  const HANDOFF = [["baseline", "현재 기준선"], ["focus", "주 작업 축"], ["in_progress", "진행 중"], ["blocked", "막힘"],
+    ["recent_done", "최근 완료"], ["next", "다음 시작 포인트"], ["risks", "남은 위험"]];
+
+  async function viewCallsign(pid, cs) {
+    const token = storedToken(pid);
+    const [pr, r] = await Promise.all([
+      api(`projects/${encodeURIComponent(pid)}`, { token }),
+      api(`projects/${encodeURIComponent(pid)}/callsigns/${encodeURIComponent(cs)}`, { token })]);
+    const base = `#/p/${encodeURIComponent(pid)}`;
+    setCrumbs([{ text: "프로젝트", href: "#/" }, { text: pr.status === 200 ? pr.data.project.display_name : pid, href: base }, { text: cs }]);
+    if (r.status !== 200 || pr.status !== 200) { render(el("section", { class: "card" }, alertBox("bad", errorText(r.status !== 200 ? r : pr)))); return; }
+    const principal = pr.data.principal;
+    setWho(principal);
+    const { callsign: c, handoff: h, guide_current: current } = r.data;
+    const sections = h.handoff;
+    const body = sections ? HANDOFF.map(([key, title]) => {
+      const v = sections[key];
+      const empty = Array.isArray(v) ? !v.length : !v;
+      return el("div", { class: "handoff-part" }, el("h2", {}, title),
+        empty ? el("p", { class: "muted" }, "—")
+          : Array.isArray(v) ? el("ul", {}, v.map((x) => el("li", {}, x))) : el("p", {}, v));
+    }) : [el("p", { class: "muted" }, "아직 올린 handoff 가 없다.")];
+    render(
+      el("section", { class: "card" },
+        el("h1", {}, c.id),
+        el("div", { class: "row" }, kindText(c), `· ${c.role}`, c.label ? `· ${c.label}` : null, c.host ? `· ${c.host}` : null,
+          c.archived ? chip("보관 (읽기 전용)", "planned") : null,
+          c.kind === "human" && !c.human_approved && !c.archived && canApprove(principal) ? approveButton(pid, c) : null),
+        el("div", { class: "row muted" }, "마지막 활동 ", when(c.last_seen_at) || "없음", "·", guideChip(c, current), "·",
+          `클라이언트 ${c.client_version_seen || "—"}`, "·", c.setup_complete ? "셋업 끝" : "셋업 미완"),
+        el("h2", {}, "지금 하는 일"), nowDoing(c, base)),
+      el("section", { class: "card" }, el("h2", {}, "handoff"),
+        sections ? el("p", { class: "muted" }, `v${h.version} · `, when(h.updated_at)) : null, body));
   }
 
   // --- 화면: task 상세 · 결정 답 ------------------------------------------------------
@@ -248,7 +346,7 @@
   function eventRows(events, withTarget) {
     return events.slice().reverse().map((e) => el("tr", {},
       el("td", { class: "mono muted" }, String(e.seq)),
-      el("td", { class: "mono muted" }, e.at),
+      el("td", { class: "muted nowrap" }, when(e.at)),
       el("td", {}, e.callsign || "—"),
       withTarget ? el("td", { class: "mono" }, `${e.target_kind} ${e.target_id}`) : null,
       el("td", {}, e.op),
@@ -331,6 +429,7 @@
       if (parts[0] === "p" && parts[1]) {
         if (parts[2] === "t" && parts[3]) return await viewTask(parts[1], parts[3]);
         if (parts[2] === "events") return await viewEvents(parts[1]);
+        if (parts[2] === "c" && parts[3]) return await viewCallsign(parts[1], parts[3]);
         return await viewProject(parts[1], parts[2] === "s" ? parts[3] : "");
       }
       return await viewProjects();

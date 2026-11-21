@@ -27,6 +27,7 @@ from starlette.routing import BaseRoute, Route
 from workflow_kit.common import plan_claims, plan_responses
 from workflow_kit.hub.errors import HubError, forbidden, invalid_field, not_found, unauthorized
 from workflow_kit.hub.judge import Judge, task_lines
+from workflow_kit.hub.memory import Memory
 from workflow_kit.hub.store import Ctx, Principal, Store
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
@@ -73,6 +74,7 @@ def _decision(d: plan_claims.Decision, state: str | None) -> dict[str, Any]:
 def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name: str | None,
                  hub_headers: Callable[[], dict[str, str]], max_body: int) -> list[BaseRoute]:
     judge = Judge(store)
+    memory = Memory(store)
 
     def resolve(request: Request, now: datetime) -> Principal:
         token = _bearer(request)
@@ -182,7 +184,30 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
         return store.events(Ctx(now=now, via="ui", principal=v), q.get("target_kind") or None,
                             q.get("target_id") or None, int(q.get("after_seq") or 0), int(q.get("limit") or 200))
 
+    def get_callsigns(request: Request, p: Principal, now: datetime, _b: Any) -> dict[str, Any]:
+        """콜사인 표 — 지금 누가 무엇을 · 마지막 활동 · 받은 지침 판 (WBS-37.2)."""
+        scope(p, request.path_params["pid"])
+        return store.callsign_board(request.path_params["pid"])
+
+    def get_callsign(request: Request, p: Principal, now: datetime, _b: Any) -> dict[str, Any]:
+        """콜사인 하나 — 표의 줄 + handoff (읽기는 프로젝트 안 누구나, G3)."""
+        pid, cs = request.path_params["pid"], request.path_params["cs"]
+        v = scope(p, pid)
+        board = store.callsign_board(pid)
+        row = next((c for c in board["callsigns"] if c["id"] == cs), None)
+        if row is None:
+            raise not_found(f"콜사인이 없다: {cs}")
+        handoff = memory.handoff_get(Ctx(now=now, via="ui", principal=v), cs)
+        return {"guide_current": board["guide_current"], "callsign": row, "handoff": handoff}
+
     # --- 쓰기 ---------------------------------------------------------------------
+
+    def post_approve(request: Request, p: Principal, now: datetime, _b: Any) -> dict[str, Any]:
+        """사람 콜사인 승인 — ``hub_callsign_approve`` 와 같은 함수 (승인된 human 소유자만)."""
+        pid = request.path_params["pid"]
+        if p.kind != "callsign" or p.project_id != pid:
+            raise forbidden("승인은 이 프로젝트의 소유자 콜사인 토큰으로만 한다")
+        return store.approve_callsign(Ctx(now=now, via="ui", principal=p), request.path_params["cs"])
 
     def post_callsign(request: Request, p: Principal, now: datetime, b: dict[str, Any]) -> dict[str, Any]:
         """콜사인 등록 (R13.2a) — web · 콜사인 토큰 · admin 이 부를 수 있다. 토큰은 이 응답에서 한 번만."""
@@ -262,7 +287,10 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
         Route("/api/projects/{pid}/tasks", api(get_tasks), methods=["GET"]),
         Route("/api/projects/{pid}/tasks/{tid}", api(get_task), methods=["GET"]),
         Route("/api/projects/{pid}/events", api(get_events), methods=["GET"]),
+        Route("/api/projects/{pid}/callsigns", api(get_callsigns), methods=["GET"]),
         Route("/api/projects/{pid}/callsigns", api(post_callsign, body=True), methods=["POST"]),
+        Route("/api/projects/{pid}/callsigns/{cs}", api(get_callsign), methods=["GET"]),
+        Route("/api/projects/{pid}/callsigns/{cs}/approve", api(post_approve, body=True), methods=["POST"]),
         Route("/api/projects/{pid}/tasks/{tid}/responses", api(post_response, body=True), methods=["POST"]),
     ]
 

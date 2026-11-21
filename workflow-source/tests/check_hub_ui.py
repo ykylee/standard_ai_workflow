@@ -13,6 +13,11 @@ task Proof 의 CDP 실측이다 (워크벤치 선례 — 게이트는 브라우�
 5. 결정 답 권한 — agent · 승인 전 human 403 (화면 · MCP 둘 다), 남의 이름 responder 403, 승인은 소유자만,
    승인된 human 의 화면 답 → 반영 · 이력에 콜사인 이름 · 경로 ui
 6. 위조 방지 — application/json 아닌 POST 415 · 쓰기 0, 낡은 계획 지문 409, 선택지 밖 값 400
+7. 콜사인 표 (WBS-37.2) — 맡은 열린 task 와 진행 한 줄 · 마지막 활동 · 클라이언트 판(X-Hub-Client) · 거둔 콜사인은 보관,
+   콜사인 화면의 handoff 는 다른 콜사인도 읽고(G3) 남의 프로젝트는 403
+8. 받은 지침 판 (R7.8) — 진입 파일을 다시 렌더하고 세션 시작에서 그 판을 재면 '최신', 지침 새 판 뒤 '옛 지침',
+   진입 파일 판이 섞이면 기록을 바꾸지 않는다
+9. 화면 승인 — agent · 승인 전 human 403, 소유자 200 → 그 human 의 can_answer true
 """
 
 from __future__ import annotations
@@ -259,6 +264,98 @@ def case_4_5_6(tmp: Path) -> None:
         hub.stop()
 
 
+def _tool(base: str, name: str, args: dict[str, Any], token: str, client: str | None = None) -> tuple[int, Any]:
+    headers = {"content-type": "application/json", "authorization": f"Bearer {token}"}
+    if client:
+        headers["x-hub-client"] = client
+    req = urllib.request.Request(f"{base}/v1/tools/{name}", data=json.dumps(args).encode(), method="POST", headers=headers)
+    try:
+        with urllib.request.urlopen(req, timeout=20) as r:
+            return r.status, json.loads(r.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        return e.code, json.loads(e.read().decode("utf-8"))
+
+
+def case_7_8_9(tmp: Path) -> None:
+    db = tmp / "board.db"
+    hub = Hub(db)
+    try:
+        pid, owner = _project(hub, "board")
+        _, owner_b = _project(hub, "other", "owner-b")
+        regs = {cs: hub.call("hub_callsign_register", {"project_id": pid, "callsign": cs, "kind": kind})[1]["token"]
+                for cs, kind in (("bot-a", "agent"), ("yk-c", "human"), ("old-d", "agent"))}
+        bot = regs["bot-a"]
+        tid = _task(hub, owner)
+        hub.call("hub_task_claim", {"id": tid}, bot)
+        hub.call("hub_task_progress", {"id": tid, "note": "화면 표를 만든다"}, bot)
+        c1, _ = _tool(hub.base, "hub_handoff_put", {"handoff": {"baseline": "기준선 X", "in_progress": [tid],
+                                                                 "next": ["다음은 Y"]}}, bot, client="hub-client/9.9")
+        rv = _admin(db, "callsign", "revoke", "--project", pid, "--callsign", "old-d")
+        s1, board, _ = _req(hub.base, f"/api/projects/{pid}/callsigns", token=regs["yk-c"])
+        rows = {c["id"]: c for c in board.get("callsigns", [])} if isinstance(board, dict) else {}
+        b = rows.get("bot-a", {})
+        s2, one, _ = _req(hub.base, f"/api/projects/{pid}/callsigns/bot-a", token=regs["yk-c"])
+        s3, _, _ = _req(hub.base, f"/api/projects/{pid}/callsigns/bot-a", token=owner_b)
+        s4, _, _ = _req(hub.base, f"/api/projects/{pid}/callsigns", token=owner_b)
+        s5, nobody, _ = _req(hub.base, f"/api/projects/{pid}/callsigns/nobody", token=owner)
+        ok7 = (c1 == 200 and rv.returncode == 0 and s1 == 200 and set(rows) == {"owner-a", "bot-a", "yk-c", "old-d"}
+               and [t["id"] for t in b.get("open_tasks", [])] == [tid] and b["open_tasks"][0]["progress_note"].endswith("화면 표를 만든다")
+               and b.get("last_seen_at") and b.get("client_version_seen") == "hub-client/9.9"
+               and rows["old-d"]["archived"] is True and rows["yk-c"]["human_approved"] is False
+               and all(r["guide_state"] == "never" for r in rows.values())
+               and s2 == 200 and one["handoff"]["handoff"]["baseline"] == "기준선 X" and one["handoff"]["version"] == 1
+               and one["callsign"]["handoff_updated_at"] and s3 == 403 and s4 == 403 and s5 == 404)
+        _record("case 7 (콜사인 표 — 지금 하는 일 · 마지막 활동 · 클라이언트 판 · 보관 · handoff 읽기)", ok7,
+                f"{c1} rv={rv.returncode} {s1} bot={b} {s2} {s3} {s4} {s5}")
+
+        # 8 받은 지침 판 — 렌더 → 세션 시작 2단계에서 판을 잰다.
+        def entry_head(content: str) -> str:
+            return "".join(line + "\n" for line in content.splitlines()[:40])
+
+        def start_with(heads: dict[str, str]) -> tuple[int, Any]:
+            return _tool(hub.base, "hub_session_start", {"repo_results": {f"entry_head:{p}": {"rc": 0, "output": o}
+                                                                          for p, o in heads.items()}}, bot)
+
+        g1, cl = _tool(hub.base, "hub_guide_render", {"harness": "claude-code"}, bot)
+        g2, cx = _tool(hub.base, "hub_guide_render", {"harness": "codex"}, bot)
+        st1, out1 = start_with({cl["path"]: entry_head(cl["step"]["content"]), cx["path"]: entry_head(cx["step"]["content"])})
+        _, after1, _ = _req(hub.base, f"/api/projects/{pid}/callsigns", token=owner)
+        r1 = {c["id"]: c for c in after1["callsigns"]}["bot-a"]
+        guide = tmp / "guide.md"
+        guide.write_text("# 새 지침\n", encoding="utf-8")
+        gs = _admin(db, "guide", "set", "--project", pid, "--file", str(guide))
+        _, after2, _ = _req(hub.base, f"/api/projects/{pid}/callsigns", token=owner)
+        r2 = {c["id"]: c for c in after2["callsigns"]}["bot-a"]
+        # 섞인 판: 두 진입 파일 중 하나만 새 판 — 어느 쪽이 먼저 읽혀도 기록이 바뀌면 안 되므로 양쪽 순서를 다 잰다.
+        g3, cx2 = _tool(hub.base, "hub_guide_render", {"harness": "codex"}, bot)
+        st2, _ = start_with({cl["path"]: entry_head(cl["step"]["content"]), cx["path"]: entry_head(cx2["step"]["content"])})
+        _, mid, _ = _req(hub.base, f"/api/projects/{pid}/callsigns", token=owner)
+        r_mid = {c["id"]: c for c in mid["callsigns"]}["bot-a"]
+        g4, cl2 = _tool(hub.base, "hub_guide_render", {"harness": "claude-code"}, bot)
+        st3, _ = start_with({cl["path"]: entry_head(cl2["step"]["content"]), cx["path"]: entry_head(cx["step"]["content"])})
+        _, after3, _ = _req(hub.base, f"/api/projects/{pid}/callsigns", token=owner)
+        r3 = {c["id"]: c for c in after3["callsigns"]}["bot-a"]
+        ok8 = (g1 == g2 == g3 == g4 == 200 and st1 == 200 and st3 == 200 and r_mid["guide_version_seen"] == r1["guide_version_seen"] and out1["hub"]["guide"]["changed"] is False
+               and r1["guide_state"] == "current" and r1["guide_version_seen"] == after1["guide_current"]
+               and gs.returncode == 0 and r2["guide_state"] == "stale" and after2["guide_current"] != after1["guide_current"]
+               and st2 == 200 and r3["guide_state"] == "stale" and r3["guide_version_seen"] == r1["guide_version_seen"])
+        _record("case 8 (받은 지침 판 — 렌더 · 세션 시작 뒤 최신, 새 판 뒤 옛 지침, 섞이면 기록 불변)", ok8,
+                f"{g1} {g2} {g3} {st1} r1={r1.get('guide_state')}/{r1.get('guide_version_seen')} cur={after1.get('guide_current')} "
+                f"gs={gs.returncode} r2={r2.get('guide_state')} {st2} r3={r3.get('guide_state')}/{r3.get('guide_version_seen')}")
+
+        # 9 화면 승인
+        path = f"/api/projects/{pid}/callsigns/yk-c/approve"
+        a1, _, _ = _req(hub.base, path, token=bot, method="POST", body={})
+        a2, _, _ = _req(hub.base, path, token=regs["yk-c"], method="POST", body={})
+        a3, _, _ = _req(hub.base, path, token=owner_b, method="POST", body={})
+        a4, ok_appr, _ = _req(hub.base, path, token=owner, method="POST", body={})
+        _, me, _ = _req(hub.base, f"/api/projects/{pid}", token=regs["yk-c"])
+        ok9 = (a1 == a2 == a3 == 403 and a4 == 200 and ok_appr.get("changed") is True and me["principal"]["can_answer"] is True)
+        _record("case 9 (화면 승인 — 소유자만, 승인 뒤 결정에 답할 수 있다)", ok9, f"{a1} {a2} {a3} {a4} {me.get('principal')}")
+    finally:
+        hub.stop()
+
+
 def main() -> int:
     print("check_hub_ui")
     with tempfile.TemporaryDirectory(prefix="hub-ui-") as d:
@@ -266,6 +363,7 @@ def main() -> int:
         case_1_2_off(tmp)
         case_3_web_on(tmp)
         case_4_5_6(tmp)
+        case_7_8_9(tmp)
     print(f"PASS {len(_passes)} · FAIL {len(_failures)}")
     for f in _failures:
         print(f"  FAIL {f}")

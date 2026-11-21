@@ -181,6 +181,7 @@ class SessionStart:
         else:
             ok, why = check_ignore_ok(*ci)
             (confirmed if ok else findings).append("repo: .gitignore 규칙" if ok else f".gitignore 규칙이 듣지 않는다 — {why}")
+        seen_in_repo: list[str | None] = []
         for path in entries:
             r = result(f"entry_head:{path}")
             if r is None:
@@ -188,9 +189,22 @@ class SessionStart:
                 continue
             m = render.BEGIN_RE.search(r[1] + "\n")
             got = m.group("guide") if m else None
+            seen_in_repo.append(got)
             confirmed.append(f"repo: {path} 지침 판")
             if got != hub["guide"]["current"]:
                 findings.append(f"[바뀜] {path} 의 지침 판 {got} ≠ 허브 {hub['guide']['current']} — hub_guide_render")
+        # 받은 판 기록 (요구 R7.8) — 진입 파일을 모두 쟀고 판이 하나로 같을 때만 그 판을 적는다.
+        # 셋업 확인 때만 적으면 다시 렌더한 콜사인이 화면에 '옛 지침' 으로 남는다.
+        measured = set(seen_in_repo)
+        if entries and len(seen_in_repo) == len(entries) and len(measured) == 1 and None not in measured:
+            value = seen_in_repo[0]
+            if value != hub["guide"]["seen"]:
+                with self.store.write() as conn:
+                    conn.execute("UPDATE callsign SET guide_version_seen = ? WHERE project_id = ? AND id = ?",
+                                 (value, p.project_id, p.callsign))
+            hub["guide"] = {**hub["guide"], "seen": value, "changed": value != hub["guide"]["current"]}
+            if not hub["guide"]["changed"]:
+                hub["guide"].pop("notice", None)
         for sha, tasks in commits.items():
             r = result(f"commit:{sha}")
             if r is None:

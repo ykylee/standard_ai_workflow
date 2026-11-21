@@ -61,8 +61,10 @@ class Memory:
     # --- handoff ----------------------------------------------------------------------
 
     def handoff_get(self, ctx: Ctx, callsign: str | None) -> dict[str, Any]:
-        p = self.store._need_callsign(ctx)
+        p = self.store._need_reader(ctx)
         who = callsign or p.callsign
+        if not who:
+            raise invalid_field("callsign", "필수 (화면에서 읽을 때)")
         with self.store.read() as conn:
             row = conn.execute("SELECT sections_json, version, updated_at FROM handoff WHERE project_id = ? AND callsign = ?",
                                (p.project_id, who)).fetchone()

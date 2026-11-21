@@ -171,7 +171,10 @@ class Store:
 
     # --- 인증 ---------------------------------------------------------------------
 
-    def authenticate(self, token: str | None, now: datetime | None = None) -> Principal | None:
+    def authenticate(self, token: str | None, now: datetime | None = None,
+                     client_version: str | None = None) -> Principal | None:
+        """토큰 → 주체. ``now`` 가 있으면 콜사인의 마지막 활동을, ``client_version`` (``X-Hub-Client`` 머리)이 있으면
+        받은 클라이언트 판을 적는다 (요구 R4.7 · R7.8 — 화면의 '마지막 활동' · 환경 판)."""
         if not token:
             return None
         h = hash_token(token)
@@ -185,6 +188,11 @@ class Store:
                     conn.execute(
                         "UPDATE callsign SET last_seen_at = ? WHERE project_id = ? AND id = ?",
                         (_iso(now), row["project_id"], row["id"]),
+                    )
+                if client_version:
+                    conn.execute(
+                        "UPDATE callsign SET client_version_seen = ? WHERE project_id = ? AND id = ?",
+                        (client_version[:80], row["project_id"], row["id"]),
                     )
                 return Principal(
                     kind="callsign", project_id=row["project_id"], callsign=row["id"],
@@ -324,6 +332,45 @@ class Store:
                         {"kind": kind, "role": "editor"}, callsign)
         return {"project_id": project_id, "callsign": callsign, "role": "editor", "token": token,
                 "human_pending": kind == "human"}
+
+    def callsign_board(self, project_id: str) -> dict[str, Any]:
+        """콜사인 표 (화면, 요구 R4.7 · R7.8 · R5.7) — 마지막 활동 · 받은 지침 판 · 클라이언트 판 · 맡은 열린 task.
+
+        지침 판 비교는 세션 시작이 쓰는 :func:`render.guide_version` 과 같은 값이다. 아직 한 번도 받지 않은
+        콜사인(``guide_version_seen`` 비어 있음)은 '옛 지침' 이 아니라 '받은 적 없음' 이다.
+        """
+        from workflow_kit.hub import render
+
+        with self.read() as conn:
+            row = conn.execute("SELECT MAX(version) AS v FROM guide WHERE project_id = ?", (project_id,)).fetchone()
+            current = render.guide_version(row["v"] or 0)
+            open_tasks: dict[str, list[dict[str, Any]]] = {}
+            for t in conn.execute(
+                "SELECT assignee, id, title, status, progress_note, progress_at, updated_at FROM task "
+                "WHERE project_id = ? AND assignee IS NOT NULL AND status != 'done' ORDER BY updated_at DESC, id",
+                (project_id,),
+            ):
+                task = dict(t)
+                open_tasks.setdefault(task.pop("assignee"), []).append(task)
+            handoffs = {r["callsign"]: r["updated_at"] for r in conn.execute(
+                "SELECT callsign, updated_at FROM handoff WHERE project_id = ?", (project_id,))}
+            out = []
+            for r in conn.execute(
+                "SELECT id, kind, human_approved, role, label, host, created_at, last_seen_at, revoked_at, "
+                "guide_version_seen, client_version_seen, setup_complete FROM callsign WHERE project_id = ? "
+                "ORDER BY revoked_at IS NOT NULL, COALESCE(last_seen_at, created_at) DESC, id",
+                (project_id,),
+            ):
+                d = dict(r)
+                d["human_approved"] = bool(d["human_approved"])
+                d["setup_complete"] = bool(d["setup_complete"])
+                seen = d["guide_version_seen"]
+                d["guide_state"] = "never" if not seen else ("current" if seen == current else "stale")
+                d["archived"] = d["revoked_at"] is not None
+                d["handoff_updated_at"] = handoffs.get(d["id"])
+                d["open_tasks"] = open_tasks.get(d["id"], [])
+                out.append(d)
+        return {"guide_current": current, "callsigns": out}
 
     def approve_callsign(self, ctx: Ctx, callsign: str) -> dict[str, Any]:
         """사람 콜사인 승인 (요구 Q3 · R7.7) — 승인된 human 소유자만. 승인 전 human 은 agent 권한이다."""

@@ -207,7 +207,7 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 - 토큰 없는 화면 요청은 허브 설정의 **화면 공용 `web` 토큰**이 켜져 있을 때만 `web` 권한(읽기 · 콜사인 등록)으로 돈다 — `hub serve --web-token-name NAME` 또는 앞단 프록시가 '토큰 없는 요청에만' 머리를 붙인다. **기본 꺼짐.**
 - 화면 응답은 `Content-Security-Policy: default-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'` · `Referrer-Policy: same-origin` (워크벤치 선례). 링크 · API 호출은 상대 경로 (R13.4).
 
-### 4.7 화면 (M-037 WBS-37.1)
+### 4.7 화면 (M-037 WBS-37.1 · 37.2)
 
 **경로** — 모두 §4.6 의 머리(CSP · Referrer-Policy)를 싣는다. 정적 자산은 데이터가 없어 인증 없이 내린다.
 
@@ -217,6 +217,9 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 | `GET /ui/` · `/ui/hub.js` · `/ui/hub.css` · `/ui/favicon.svg` | 정적 화면 (`hub/static/`) — hash 길(`#/p/<id>` · `#/p/<id>/t/<task>` · `#/p/<id>/events`), DOM 은 textContent 로만 |
 | `GET /api/session` | 이 요청의 주체 (`kind` · 콜사인 · `can_answer`) · 공용 토큰 켜짐 여부 |
 | `GET /api/projects` | 프로젝트 목록 + status 별 task 수 — 콜사인 토큰은 자기 프로젝트 하나 |
+| `GET /api/projects/{id}/callsigns` | 콜사인 표 (WBS-37.2) — 콜사인마다 종류 · 승인 · 역할 · 마지막 활동(`last_seen_at`) · 받은 지침 판과 `guide_state` (`current` / `stale` / `never` — 허브 판은 세션 시작과 같은 `render.guide_version`) · 클라이언트 판(`client_version_seen`) · 셋업 끝 여부 · 보관(거둔 콜사인) · handoff 시각 · **맡은 열린 task 와 진행 한 줄** ('지금 누가 무엇을', R5.7) |
+| `GET /api/projects/{id}/callsigns/{cs}` | 표의 줄 + 그 콜사인의 handoff 칸 · version (읽기는 프로젝트 안 누구나 — G3) |
+| `POST /api/projects/{id}/callsigns/{cs}/approve` | 사람 콜사인 승인 (`hub_callsign_approve` 와 같은 함수 — 승인된 `human` 소유자만, 그 밖 403) |
 | `GET /api/projects/{id}` · `/tasks` · `/tasks/{task}` · `/events` | 프로젝트 · task 목록(`status` · `assignee`) · task 상세(계획 원문 · 주장 · 결정 상태 · 열린 결정 · 린트 · 그 task 의 이력 · 커밋) · 프로젝트 이력 |
 | `POST /api/projects/{id}/callsigns` | 콜사인 등록 (`hub_callsign_register` 와 같은 함수) — 토큰은 이 응답에서 한 번만 |
 | `POST /api/projects/{id}/tasks/{task}/responses` | 결정 답 `{plan_digest, values{D: v}, opened{D: bool}, comments{대상: 글}}` → 허브가 response/1 본문을 **응답자 = 이 콜사인 · `client: hub-ui`** 로 만들어 `hub_plan_respond` 와 같은 함수에 넘긴다. 지문이 다르면 `version_conflict` 409, 선택지 밖 값은 `invalid_field` 400, 받은 시각은 같은 응답자의 앞선 응답보다 늦게 (워크벤치 §6-6 과 같은 단조 규칙) |
@@ -227,7 +230,9 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 
 **브라우저 저장소** — 키 `hub:<public_url 호스트>:<project_id>:token` (호스트는 `/healthz` 의 `public_url`). 401 이면 '이 브라우저에서 지운 뒤 다시 등록' 을 안내하고, '이 브라우저에서 콜사인 지우기' 는 토큰이 다시 나오지 않는다는 확인을 받는다. 등록 안내는 다음 화면 머리에 실어 다시 그려도 남는다.
 
-**검증** — `check_hub_ui` (게이트, HTTP): 공용 토큰 꺼짐 401 · 켜짐 읽기 200 / 답 403 / 등록 1회 / 409 / 거두면 401 · 화면 머리 · 상대 경로 · 읽기 범위 · 결정 답 권한(화면 · MCP) · 415 · 409 · 400. 실브라우저 왕복(등록 → 소유자 승인 → 결정 답 → 이력의 콜사인 이름 · 콘솔 오류 0)은 게이트가 아니라 task Proof 의 헤드리스 Chromium 실측이다 (워크벤치 선례).
+**받은 판 기록 (R7.8 · R4.7)** — 표가 보이는 값은 실제로 받은 것이어야 한다. `last_seen_at` 은 콜사인 토큰 인증마다, `client_version_seen` 은 그 요청에 `X-Hub-Client` 머리가 있을 때 적는다. `guide_version_seen` 은 셋업 확인(§6.1)과 **세션 시작 2단계(§6.2)** 에서 적는다 — 진입 파일을 모두 쟀고 판이 하나로 같을 때만 그 판, 섞이면 그대로 둔다 (한쪽만 다시 렌더한 환경을 '최신' 으로 보이지 않게).
+
+**검증** — `check_hub_ui` (게이트, HTTP): 공용 토큰 꺼짐 401 · 켜짐 읽기 200 / 답 403 / 등록 1회 / 409 / 거두면 401 · 화면 머리 · 상대 경로 · 읽기 범위 · 결정 답 권한(화면 · MCP) · 415 · 409 · 400 · 콜사인 표(지금 하는 일 · 마지막 활동 · 클라이언트 판 · 보관 · handoff 읽기 범위) · 받은 지침 판(렌더 → 세션 시작 뒤 최신 · 새 판 뒤 옛 지침 · 섞이면 불변, 양쪽 순서) · 화면 승인. 실브라우저 왕복(등록 → 소유자 승인 → 결정 답 → 이력의 콜사인 이름 · 콘솔 오류 0)은 게이트가 아니라 task Proof 의 헤드리스 Chromium 실측이다 (워크벤치 선례).
 
 ## 5. 쓰기 지시 · 렌더 영역
 
@@ -272,7 +277,7 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 `hub_session_start` 는 두 번 부른다.
 
 1. 인자 없이 → `{hub: {…}, repo_check: {commands: [...], rules: [...]}, outbox_hint}`. 허브 쪽 결과: 지침 판(바뀌면 `[바뀜]` 과 렌더 지시) · 클라이언트 · 규칙 판 · 내 handoff · 내 task (진행 한 줄 포함) · 맡은 이 없는 열린 task · 대기 중 결정 응답. 저장소 쪽 명령 (`hub/session.py` 가 정본): `git fetch --prune`, `git status --porcelain=v2 --branch` (앞섬 · 뒤처짐은 `# branch.ab` 줄에서), `git rev-parse --abbrev-ref origin/HEAD`, `git check-ignore -v .workflow-hub/env`, 셋업한 진입 파일마다 `git grep --no-index -h -e workflow-hub:begin -- <파일>`, 내 task 에 묶인 커밋마다 `git cat-file -e <sha>^{commit}`. 명령 결과는 `{이름: {rc, output}}` — 요청하지 않은 이름은 거절한다.
-2. `repo_results` 를 실어 다시 → 대조 보고: 뒤처짐 → 'fast-forward 후 시작' · 갈라짐 / 미커밋 변경 → **'멈추고 묻기'** · `.gitignore` 규칙 빠짐 → 경고 · 내 task 의 묶인 sha 가 저장소에 없음 → 보고 (R10.4).
+2. `repo_results` 를 실어 다시 → 대조 보고: 뒤처짐 → 'fast-forward 후 시작' · 갈라짐 / 미커밋 변경 → **'멈추고 묻기'** · `.gitignore` 규칙 빠짐 → 경고 · 내 task 의 묶인 sha 가 저장소에 없음 → 보고 (R10.4). 진입 파일 판을 모두 쟀고 하나로 같으면 그 판을 `guide_version_seen` 에 적는다 (R7.8 — §4.7 받은 판 기록).
 3. 보고는 `confirmed[]` 와 `unconfirmed[]` 를 나눈다. 두 번째 호출이 없으면 저장소 항목은 전부 `unconfirmed` 다 (R10.3).
 4. 허브에 닿지 않으면 도구 자체가 없다 — 표준 규칙 층의 지침이 "허브 미확인 · 캐시(있으면)로 연다" 를 말하고, 선택 클라이언트가 있으면 캐시 · 보낼편지함 건수로 보고한다 (R12.1 · R12.3).
 

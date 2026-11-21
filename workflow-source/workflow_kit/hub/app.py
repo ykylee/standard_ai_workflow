@@ -64,7 +64,8 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
     def principal_from_mcp() -> tuple[Principal | None, bool]:
         req = server.request_context.request
         token = _bearer(req.headers) if req is not None else None
-        principal = store.authenticate(token, clock()) if token else None
+        client = req.headers.get("x-hub-client") if req is not None else None
+        principal = store.authenticate(token, clock(), client) if token else None
         return principal, token is not None
 
     @server.list_tools()  # type: ignore[no-untyped-call, untyped-decorator]
@@ -147,7 +148,7 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
             now = clock()
 
             def run() -> dict[str, Any]:
-                principal = store.authenticate(token, now) if token else None
+                principal = store.authenticate(token, now, request.headers.get("x-hub-client")) if token else None
                 spec = hubtools.TOOLS.get(name)
                 if token and principal is None and spec is not None and spec.bundle != "bootstrap":
                     raise HubError(401, "unauthorized", "토큰이 틀렸거나 거둔 토큰이다")

@@ -38,7 +38,8 @@ main { max-width: 76rem; margin: 0 auto; padding: 1.25rem; display: grid; gap: 1
 table { width: 100%; border-collapse: collapse; }
 th, td { text-align: left; padding: .45rem .5rem; border-bottom: 1px solid var(--line); vertical-align: top; }
 th { color: var(--muted); font-weight: 600; font-size: .85rem; }
-.chip { display: inline-block; padding: .05rem .55rem; border-radius: 999px; font-size: .8rem; background: var(--neutral-soft); }
+.nowrap { white-space: nowrap; }
+.chip { white-space: nowrap; display: inline-block; padding: .05rem .55rem; border-radius: 999px; font-size: .8rem; background: var(--neutral-soft); }
 .chip.planned { background: var(--neutral-soft); }
 .chip.in_progress { background: var(--info-soft); color: var(--info); }
 .chip.blocked { background: var(--warn-soft); color: var(--warn); }
@@ -63,4 +64,9 @@ button:disabled { opacity: .5; cursor: default; }
 .filters { display: flex; gap: .5rem; flex-wrap: wrap; }
 .filters a { padding: .15rem .6rem; border-radius: 999px; background: var(--neutral-soft); color: var(--fg); }
 .filters a.on { background: var(--accent-soft); color: var(--accent); }
+tr.archived td { opacity: .6; }
+ul.doing { margin: 0; padding-left: 1rem; }
+.handoff-part { margin-bottom: .75rem; }
+.handoff-part h2 { font-size: .95rem; color: var(--muted); margin-bottom: .25rem; }
+.handoff-part ul { margin: 0; padding-left: 1.1rem; }
 @media (max-width: 40rem) { main { padding: .75rem; } th:nth-child(n+4), td:nth-child(n+4) { display: none; } }

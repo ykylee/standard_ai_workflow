@@ -568,6 +568,12 @@ def run_workflow_kit_cli(argv: list[str]) -> int:
         print(f"ERROR: unknown command: {cmd_name}", file=sys.stderr)
         _print_usage()
         return 2
+    # '허브로 옮김' 표식이 있는 저장소에서는 워크플로우 상태를 쓰는 명령을 거절한다 (R14.6, M-038 WBS-38.3).
+    from workflow_kit.common.hub_marker import guard_command  # noqa: PLC0415
+
+    refused = guard_command(cmd_name, rest)
+    if refused is not None:
+        return refused
     return COMMANDS[cmd_name](rest)
 
 

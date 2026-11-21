@@ -18,6 +18,7 @@ from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.child_process import child_env, module_command
 from workflow_kit.common.errors import build_error_result
 from workflow_kit.common.host_role import is_consumer
+from workflow_kit.common.hub_marker import describe, find_marker
 from workflow_kit.common.contracts.stage_gate_runtime import build_stage_completion, merge_into_result
 from workflow_kit.common.normalize import (
     dedupe_normalized_backticked,
@@ -440,8 +441,23 @@ def main() -> int:
     # 읽기 전용 소비자 클론(`git config --local workflow.role consumer`, docs/HOST_ROLES.md)은 저장소에 쓰지 않는다 —
     # seed · 합류 반영 · 진입점 생성 · 워크벤치 자동 기동 · telemetry 를 건너뛰고 보고만 한다
     # (TASK-2026-11-20-claude-consumer-readonly-session-start-002). 프로필을 찾기 전에는 cwd 로 판정한다.
-    read_only = is_consumer(Path(args.project_profile_path).resolve().parent
-                            if args.project_profile_path else Path.cwd())
+    start_dir = Path(args.project_profile_path).resolve().parent if args.project_profile_path else Path.cwd()
+    read_only = is_consumer(start_dir)
+    # '허브로 옮김' 표식 (R14.6 · R14.7) — 있으면 아무것도 쓰지 않고 허브를 가리킨 뒤 끝난다. 지우면 평소대로.
+    hub_marker = find_marker(start_dir)
+    if hub_marker is not None:
+        # 옮긴 저장소의 1.x 기준선은 정본이 아니다 — 복원하지 않고(쓰지도 않고) 허브를 가리킨 뒤 끝난다.
+        marker_path, marker_data = hub_marker
+        note = describe(marker_path, marker_data)
+        print(json.dumps({
+            "status": "ok", "tool_version": TOOL_VERSION, "hub_migrated": {
+                "marker": str(marker_path), "hub": marker_data.get("hub"), "project_id": marker_data.get("project_id"),
+                "migration_id": marker_data.get("migration_id")},
+            "summary": [note], "warnings": [note + " 이 세션은 저장소에 쓰지 않았다."],
+            "in_progress_items": [], "blocked_items": [],
+            "recommended_next_action": "허브 MCP 의 hub_session_start 로 세션을 연다.",
+        }, ensure_ascii=False, indent=2))
+        return 0
     try:
         profile_raw = args.project_profile_path
         if not profile_raw:

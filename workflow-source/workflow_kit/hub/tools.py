@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from typing import Any, Callable
 
 from workflow_kit.hub.errors import HubError, invalid_field, unauthorized, unknown_field
+from workflow_kit.common.hub_marker import MARKER_REL
 from workflow_kit.hub.guide import Guides
 from workflow_kit.hub.judge import Judge
 from workflow_kit.hub.memory import Memory
@@ -201,7 +202,7 @@ TOOLS: dict[str, ToolSpec] = {
                  lambda s, c, a: Migrator(s).import_batch(c, a["migration_id"], a["kinds"], a.get("files") or [],
                                                           bool(a.get("final")))),
         ToolSpec("hub_migrate_marker", "token",
-                 "'허브로 옮김' 표식 (소유자만, 끝난 전환만) — action=issue: ai-workflow/HUB_MIGRATED.json 쓰기 지시 · 커밋 명령, "
+                 "'허브로 옮김' 표식 (소유자만, 끝난 전환만) — action=issue: " + MARKER_REL + " 쓰기 지시 · 커밋 명령, "
                  "confirm(sha256): 쓴 파일 대조, revert: 삭제 지시 · 확인 명령, confirm_revert(check={rc, output}). "
                  "되돌려도 허브 데이터는 옮기지 않는다.",
                  {"migration_id": _STR, "action": _STR, "sha256": _STR, "check": _OBJ}, ("migration_id", "action"),

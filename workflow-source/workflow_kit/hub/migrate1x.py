@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from workflow_kit.common.entry_diet import is_known_generated, split_sections
+from workflow_kit.common.hub_marker import MARKER_REL
 from workflow_kit.common.paths import HANDOFF_FILENAME
 from workflow_kit.common.project_docs import HandoffParser, task_label, task_label_aliases
 from workflow_kit.common.workflow_writes import read_task_affected_documents, read_task_list_field
@@ -628,7 +629,7 @@ class Migrator:
         add("guide_draft", "proposed", {"path": path, "proposal_id": prop, "dropped_sections": dropped})
 
 
-MARKER_PATH = "ai-workflow/HUB_MIGRATED.json"
+MARKER_PATH = MARKER_REL  # 정본은 1.x 쪽 판정 모듈 — 두 쪽이 같은 경로를 본다
 MARKER_FORMAT = "workflow-hub-migrated/1"
 MARKER_ACTIONS = ("issue", "confirm", "revert", "confirm_revert")
 REVERT_WARNING = ("허브 쪽 기록(task · handoff · 위키 …)은 지우지 않는다 — 되돌림에 데이터 이동은 없다 (R14.7). 되돌린 뒤 1.x 에서 "

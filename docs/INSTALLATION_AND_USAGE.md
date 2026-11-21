@@ -271,6 +271,11 @@ print('all critical imports OK')
 
 ### 7.0. 플러그인 설치 (권장 경로 — Codex / Claude Code / MiniMax Code / Antigravity / Grok Build / pi.dev)
 
+> **2.0 (이 브랜치 `main`) 은 kit 플러그인 채널을 내지 않는다** (요구 R16.6 · TASK-2026-11-21-main-025). 2.0 은
+> 하네스가 워크플로우 허브의 원격 MCP 로 붙는다 — [`HUB_OPERATIONS.md`](./HUB_OPERATIONS.md) §5 (`<허브>/setup.md`).
+> 아래 절차는 **1.x 줄의 플러그인 채널**이다. 소스는 `release/1.x` 브랜치 · 1.x 릴리스(`v1.*`) 의 asset 이다 —
+> `main` 을 가리키면 marketplace 가 없어 등록 · 갱신이 실패한다.
+
 소비 프로젝트가 워크플로우를 얻는 **권장 경로**다 (소유자 판정 2026-08-13,
 근거: [`planning/plugin-transition-plan-2026-08.md`](./planning/plugin-transition-plan-2026-08.md)
 §3-P5). 스킬 6종 (session-start / backlog-update / doc-sync / session-end / compact-relay / plan-import) +
@@ -283,13 +288,13 @@ compact 중계(압축 전 작업 상태 기록 → 압축 뒤 재주입)는 hook
 신뢰한다. kit 업그레이드로 hook 명령이 바뀌면 다시 묻는다.
 
 ```bash
-# Codex — GitHub Release의 Codex ZIP을 푼 뒤 marketplace로 등록하고 설치
+# Codex — 1.x GitHub Release(`v1.*`)의 Codex ZIP을 푼 뒤 marketplace로 등록하고 설치
 unzip standard-ai-workflow-codex-plugin-<VERSION>.zip
 codex plugin marketplace add ./standard-ai-workflow-codex-plugin-<VERSION>
 codex plugin add standard-ai-workflow@standard-ai-workflow
 
-# Claude Code — marketplace 등록 + 설치
-claude plugin marketplace add ykylee/standard_ai_workflow
+# Claude Code — marketplace 등록 + 설치 (1.x 브랜치에 고정 — `#release/1.x`, 2026-11-21 실측)
+claude plugin marketplace add "ykylee/standard_ai_workflow#release/1.x"
 claude plugin install standard-ai-workflow@standard-ai-workflow
 
 # 업데이트 (plugin update 는 풀 id `<name>@<marketplace>` 가 필요하다 — 실측)
@@ -302,13 +307,14 @@ claude plugin update standard-ai-workflow@standard-ai-workflow   # 재시작 후
 # 인식되는 것: skills/ 4종 + 루트 mcp_config.json (mcpServers 키).
 # MCP 서버 별칭은 이 사본만 `ro` — 도구 이름이 mcp_standard-ai-workflow_ro_<도구> 로 64자 안에 든다 (main-020).
 # 루트 hooks.json 은 파일 인식까지만 실측 — 이벤트 어휘 호환 미실측이라 payload 에 안 싣는다.
-git clone https://github.com/ykylee/standard_ai_workflow.git
+git clone -b release/1.x https://github.com/ykylee/standard_ai_workflow.git
 agy plugin validate ./standard_ai_workflow/plugin   # 설치 전 검증 (skills 4 · mcpServers 1)
 agy plugin install ./standard_ai_workflow/plugin
 ```
 
 ```bash
-# Grok Build — 저장소 루트가 marketplace (.claude-plugin/marketplace.json 동등물)
+# Grok Build — 저장소 루트가 marketplace (.claude-plugin/marketplace.json 동등물) — 그 파일은 release/1.x 에만 있다.
+#   원격 등록이 브랜치를 고르지 못하면 `git clone -b release/1.x` 한 로컬 체크아웃으로 설치한다.
 # 훅은 hooks/hooks.json 관례 경로. 설치는 --trust 가 있어야 MCP/훅이 활성화된다
 # (실측 2026-08-14: 스킬 4 + read-only MCP + hooks).
 grok plugin marketplace add ykylee/standard_ai_workflow

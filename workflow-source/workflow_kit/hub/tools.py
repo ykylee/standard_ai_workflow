@@ -106,7 +106,7 @@ def _guide_render(store: Store, ctx: Ctx, a: dict[str, Any]) -> dict[str, Any]:
 
 
 def _session_start(store: Store, ctx: Ctx, a: dict[str, Any]) -> dict[str, Any]:
-    return SessionStart(_setup(ctx, store)).run(ctx, a.get("repo_results"))
+    return SessionStart(_setup(ctx, store)).run(ctx, a.get("repo_results"), a.get("client"))
 
 
 def _whoami(store: Store, ctx: Ctx, a: dict[str, Any]) -> dict[str, Any]:
@@ -169,7 +169,7 @@ TOOLS: dict[str, ToolSpec] = {
                  ("project_id", "token"), _setup_confirm),
         ToolSpec("hub_session_start", "token",
                  "세션 시작 확인 — 인자 없이 부르면 허브 쪽 결과와 저장소에서 돌릴 명령, repo_results 를 실어 다시 부르면 판정.",
-                 {"repo_results": _OBJ}, (), _session_start),
+                 {"repo_results": _OBJ, "client": _OBJ}, (), _session_start),
         ToolSpec("hub_guide_render", "token",
                  "하네스 진입 파일의 새 내용 (렌더 영역 갱신). current = 지금 파일 내용 (없으면 생략). 로컬에서 고친 영역이면 blocked.",
                  {"harness": _STR, "current": _STR}, ("harness",), _guide_render),

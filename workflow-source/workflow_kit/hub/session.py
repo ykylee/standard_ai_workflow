@@ -49,6 +49,21 @@ def _handoff(conn: sqlite3.Connection, p: Principal) -> dict[str, Any] | None:
     return {"sections": json.loads(row["sections_json"]), "version": row["version"], "updated_at": row["updated_at"]}
 
 
+def _local_client(client: Any) -> dict[str, Any]:
+    """선택 클라이언트가 실은 보낼편지함 상태 (요구 R12.3). 없으면 없다고 말한다 — 0건으로 치지 않는다 (R12.1)."""
+    if client is None:
+        return {"status": "none", "note": "선택 클라이언트 없음 — 보낼편지함 · 캐시를 쓰지 않는 환경이다 (R12.1)"}
+    if not isinstance(client, dict) or set(client) - {"version", "outbox_pending"} \
+            or not isinstance(client.get("outbox_pending"), int) or isinstance(client.get("outbox_pending"), bool) \
+            or client["outbox_pending"] < 0:
+        raise invalid_field("client", "{version, outbox_pending(0 이상 정수)}")
+    out: dict[str, Any] = {"status": "present", "version": str(client.get("version", "")),
+                           "outbox_pending": client["outbox_pending"]}
+    if client["outbox_pending"]:
+        out["notice"] = f"보낼편지함에 {client['outbox_pending']}건 — hub_client.py flush 로 보낸다 (409 는 남는다, D4)"
+    return out
+
+
 class SessionStart:
     def __init__(self, setup: Setup) -> None:
         self.setup = setup
@@ -84,11 +99,13 @@ class SessionStart:
             "_commits": commits,
         }
 
-    def run(self, ctx: Ctx, repo_results: dict[str, Any] | None) -> dict[str, Any]:
+    def run(self, ctx: Ctx, repo_results: dict[str, Any] | None,
+            client: dict[str, Any] | None = None) -> dict[str, Any]:
         p = ctx.principal
         assert p is not None and p.project_id is not None
         with self.store.read() as conn:
             hub = self._hub_part(conn, p)
+        hub["local_client"] = _local_client(client)
         entries: list[str] = hub.pop("_entries")
         commits: dict[str, list[str]] = hub.pop("_commits")
         commands = _commands(entries, sorted(commits))

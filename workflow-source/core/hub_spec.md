@@ -184,7 +184,7 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 
 | 묶음 | 도구 | 비고 |
 |---|---|---|
-| 세션 | `hub_session_start(repo_results?)` · `hub_session_end(handoff, progress[])` · `hub_checkpoint_put(body)` · `hub_compact_resume(summary_ids[])` | §6.2 ~ §6.4 |
+| 세션 | `hub_session_start(repo_results?, client?)` · `hub_session_end(handoff, progress[])` · `hub_checkpoint_put(body)` · `hub_compact_resume(summary_ids[])` | §6.2 ~ §6.4 |
 | task | `hub_task_list(filter)` · `hub_task_get(id)` · `hub_task_create(…)` · `hub_task_update(id, expected_version, fields)` · `hub_task_claim(id)` · `hub_task_release(id)` · `hub_task_progress(id, note)` · `hub_task_close(id, expected_version, validation_result)` · `hub_task_link_commit(id, sha, branch)` | 게이트는 `create` · `update` · `close` 에서 (R5.5 · R5.6) |
 | handoff · 상태 | `hub_handoff_get(callsign?)` · `hub_handoff_put(expected_version, sections)` · `hub_state(scope)` | `scope` = `callsign` / `project`, 결과는 `state.json` v1 (R6.3) |
 | 결정 응답 | `hub_plan_respond(task_id, body)` · `hub_plan_status(task_id)` | body = response/1 바이트 그대로 (R5.8) |
@@ -299,7 +299,17 @@ python -m workflow_kit hub admin   --db PATH callsign revoke --project ID --call
 
 ## 7. 선택 클라이언트 (요구 R2.7 · R11.3 · R12)
 
-`/v1/bootstrap` 이 내려주는 `hub_client.py` 한 파일. 하는 일은 셋뿐이다 — ① hook 에서 체크포인트 올리기 · compact 직후 재주입 ② 오프라인 보낼편지함 `.workflow-hub/outbox/<ULID>.json` (`request_id` 포함, 재전송 멱등) ③ 마지막 브리핑 · handoff · 내 task 캐시. 모든 호출은 `POST /v1/tools/<name>` — MCP 도구와 같은 함수다. 명령 세부는 M-034.
+`GET /v1/bootstrap/hub_client.py` (토큰 없이 — 비밀이 없다)가 내려주는 `workflow_kit/hub/client/hub_client.py` 한 파일, 표준 라이브러리만. 저장소 뿌리의 `.workflow-hub/hub_client.py` 로 두고 `.workflow-hub/env` 의 `WORKFLOW_HUB_URL` · `WORKFLOW_HUB_TOKEN` 을 읽는다. 모든 호출은 `POST /v1/tools/<name>` — MCP 도구와 같은 함수다. 하는 일은 셋 — ① hook 에서 체크포인트 올리기 · compact 직후 재주입 (아직 — 후속) ② 오프라인 보낼편지함 ③ 마지막 브리핑 캐시. 첫 판은 M-036 WBS-36.3 (②③).
+
+| 명령 | 하는 일 |
+|---|---|
+| `call <tool> [json]` | 부른다. 허브에 닿지 않으면 **쓰기**(`QUEUEABLE` — `request_id` 를 받는 도구만)는 `.workflow-hub/outbox/<ns 시각>-<난수>.json` 에 `request_id` 를 붙여 쌓고 exit 3, 읽기 · 그 밖은 쌓지 않고 exit 2 (낡은 답을 지금 답처럼 내지 않게) |
+| `flush` | 보낼편지함을 **오래된 것부터** 보낸다. 성공은 지운다 · 같은 항목을 두 번 보내도 `request_id` 로 한 번만 반영 · **409 는 자동 병합하지 않고 남긴 채 보고** (D4 · R12.2) · 그 밖 오류도 남긴다 · 닿지 않으면 멈춘다 |
+| `status` | 남은 항목 수 · 목록 · 캐시 시각 |
+| `session-start [json]` | `hub_session_start(client={version, outbox_pending})` — 허브 보고 `hub.local_client` 에 남은 수가 실린다 (R12.3). 응답을 `.workflow-hub/cache/session_start.json` 에 둔다. 허브가 꺼졌으면 캐시로 열고 `허브 미확인 · 캐시 (<시각>)`, 캐시도 없으면 `허브 미확인 · 캐시 없음` (R12.1) |
+
+- `client` 인자 없이 부른 세션 시작은 `local_client.status: none` — 클라이언트 없는 환경(원격 MCP 만)이다. 0건으로 치지 않는다.
+- `QUEUEABLE` 은 허브 도구 표에서 `request_id` 를 받는 도구의 부분집합이어야 한다 — `check_hub_client` case 1 이 내려받은 원문과 도구 표를 대조한다.
 
 ## 8. 검증 (요구 §21)
 

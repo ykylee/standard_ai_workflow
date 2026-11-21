@@ -233,6 +233,8 @@ packages = [
     "workflow_kit.workbench",
     # M-033: 2.0 워크플로우 허브 (core/hub_spec.md §2.2).
     "workflow_kit.hub",
+    # M-036/WBS-36.3: 허브 선택 클라이언트 원문 — `/v1/bootstrap/hub_client.py` 가 런타임에 읽어 내려준다 (hub_spec §7).
+    "workflow_kit.hub.client",
 ]
 
 # Single-file modules that don't live inside a package directory.

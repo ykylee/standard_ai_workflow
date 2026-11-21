@@ -12,6 +12,7 @@ from __future__ import annotations
 import contextlib
 import json
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, AsyncIterator, Callable
 
 import mcp.types as mtypes
@@ -112,6 +113,11 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
             "Referrer-Policy": "same-origin",
         })
 
+    async def hub_client_source(request: Request) -> Response:
+        # 선택 클라이언트 원문 (hub_spec §7) — 토큰 없이 받는다: 비밀이 없고, 토큰은 .workflow-hub/env 에서 읽는다.
+        src = (Path(__file__).resolve().parent / "client" / "hub_client.py").read_text(encoding="utf-8")
+        return Response(src, media_type="text/x-python; charset=utf-8")
+
     async def healthz(request: Request) -> Response:
         return JSONResponse(
             {"ok": True, "kit_version": KIT_VERSION, "contract": CONTRACT, "db_version": store.db_version(),
@@ -159,6 +165,7 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
         routes=[
             Route("/", guide_page, methods=["GET"]),
             Route("/healthz", healthz, methods=["GET"]),
+            Route("/v1/bootstrap/hub_client.py", hub_client_source, methods=["GET"]),
             Route("/v1/tools/{name}", tool_http, methods=["POST"]),
             Route("/mcp", _McpEndpoint(), methods=["GET", "POST", "DELETE"]),
         ],

@@ -65,6 +65,12 @@ SHARED_NAMES = {
 #: 이관된 task 임을 밝히는 frontmatter key. 값은 이월 대상 task ID.
 CARRIED_OVER_KEY = "carried_over_to"
 
+#: 오래 사는 브랜치 표시 — `active/<branch>/` 에 이 파일이 있으면 git 에 브랜치가 있는 동안 합류 반영 ·
+#: 아카이브하지 않는다 (브랜치 tip 이 HEAD 에 병합돼 있어도). 브랜치를 계속 쓰면서 기본 브랜치에 자주 합치는
+#: 경우를 위한 것이다 — 합류 반영이 그 네임스페이스를 `archived/` 로 옮기면 다음 병합이 그 경로와 충돌한다.
+#: 브랜치가 git 에서 사라지면 표시와 관계없이 평소대로 종료로 본다. 내용은 자유 글 (첫 줄 = 사유).
+LONG_LIVED_MARKER = ".long-lived"
+
 # 참조 재작성 시 훑지 않을 디렉터리 (비용만 크고 링크가 없다).
 SKIP_SCAN_DIRS = {
     ".git", ".venv", ".venv-sdk-matrix", "node_modules", "dist", "build",
@@ -633,6 +639,11 @@ def main() -> int:
             continue
         ref = branch_ref(name, repo_root=workspace_root)
         joined = False
+        if name not in forced and ref is not None and (path / LONG_LIVED_MARKER).is_file():
+            candidates.append({"branch": name, "action": "skip",
+                               "reason": f"오래 사는 브랜치 표시 ({LONG_LIVED_MARKER}) — git 에 브랜치가 있는 동안 "
+                                         "합류 반영 · 아카이브하지 않는다"})
+            continue
         if name not in forced and ref is not None:
             if not (reflect and merged_into_head(ref, repo_root=workspace_root)):
                 candidates.append({"branch": name, "action": "skip",

@@ -182,6 +182,9 @@ def audit_bidirectional_links(workspace_root: Path) -> BidirLinkAudit:
     # 각 (entry, wiki_page) pair 의 symmetric / asymmetric 분류.
     for entry in entries:
         entry_path = memory_entry_path_to_in_repo_relative(entry.id, workspace_root)
+        # entry 마다 여기서 정한다 — 내부 루프에서만 정하면 위키 언급이 없는 entry 에서
+        # UnboundLocalError 가 나거나 앞 entry 의 id 가 남는다 (requirements 실측 §16.2).
+        entry_id_stem = entry.id
         # entry 의 mentioned_in 의 wiki page 경로들을 정규화.
         wiki_relpaths: set[str] = set()
         for m in entry.mentioned_in:
@@ -196,7 +199,6 @@ def audit_bidirectional_links(workspace_root: Path) -> BidirLinkAudit:
             mem_in_wiki = wiki_to_memory.get(wiki_rel, set())
             # 양쪽 모두 link 가 있어야 symmetric.
             # wiki side 의 related_pages 에 entry_path 또는 entry.id (stem) 가 있어야 함.
-            entry_id_stem = entry.id
             is_symmetric = entry_path in mem_in_wiki or entry_id_stem in mem_in_wiki
             if is_symmetric:
                 audit.symmetric_links += 1

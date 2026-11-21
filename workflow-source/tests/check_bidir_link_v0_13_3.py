@@ -10,6 +10,7 @@ Test list (6 case):
 4. test_sync_apply_updates_wiki_frontmatter
 5. test_audit_is_symmetric_after_sync
 6. test_format_bidir_link_audit_returns_markdown
+7. test_audit_entry_without_wiki_mention (실측 §16.2 결함 — 언급 없는 entry 가 앞 entry id 를 물려받거나 UnboundLocalError)
 
 Cross-ref: ai-workflow/wiki/topics/phase-13-definition-north-star.md §AC4+
 """
@@ -241,6 +242,33 @@ def test_format_bidir_link_audit_returns_markdown() -> None:
     assert "MEM-002" in md2
 
 
+def test_audit_entry_without_wiki_mention() -> None:
+    """위키 언급이 없는 entry 가 정렬상 앞이거나 사이에 있어도 판정이 맞다 (requirements 실측 §16.2).
+
+    결함: wiki-only 루프가 내부 루프에서만 만들어지는 ``entry_id_stem`` 을 읽어, 첫 entry 에 언급이
+    없으면 UnboundLocalError, 사이에 있으면 앞 entry 의 id 로 거짓 wiki_only 를 냈다.
+    """
+    from workflow_kit.common.state.bidir_link import audit_bidirectional_links
+
+    with tempfile.TemporaryDirectory(prefix="bidir-gap-") as d:
+        root = Path(d)
+        page = root / "ai-workflow" / "wiki" / "topics" / "p.md"
+        page.parent.mkdir(parents=True)
+        page.write_text("---\ntype: topic\ntitle: p\nrelated_pages: [MEM-2026-01-01-001]\n---\n\n# p\n", encoding="utf-8")
+        ed = root / "ai-workflow" / "memory" / "active" / "memory_index" / "entries"
+        ed.mkdir(parents=True)
+        for n, mentioned in (("000", []), ("001", ["ai-workflow/wiki/topics/p.md"]), ("002", [])):
+            eid = f"MEM-2026-01-01-{n}"
+            (ed / f"{eid}.json").write_text(json.dumps({
+                "id": eid, "schema_version": 1, "source_paths": ["ai-workflow/x.md"],
+                "primary_abstraction": f"entry {n}", "cue_anchors": ["x"], "value_digest": "x",
+                "owners": ["o"], "scope": ["s"], "merge_state": "active", "mentioned_in": mentioned,
+                "related_ids": [], "created_at": "2026-01-01", "updated_at": "2026-01-01"}), encoding="utf-8")
+        audit = audit_bidirectional_links(root)
+        assert audit.total_memory_entries == 3, audit.total_memory_entries
+        assert audit.symmetric_links == 1 and not audit.asymmetric, (audit.symmetric_links, audit.asymmetric)
+
+
 # --- 메인 실행 ---
 
 
@@ -277,6 +305,7 @@ def _run_cases() -> int:
         test_sync_apply_updates_wiki_frontmatter,
         test_audit_is_symmetric_after_sync,
         test_format_bidir_link_audit_returns_markdown,
+        test_audit_entry_without_wiki_mention,
     ]
     failures: list[tuple[str, str]] = []
     global _SNAPSHOT

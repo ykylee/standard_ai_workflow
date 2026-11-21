@@ -43,6 +43,8 @@
       "TASK-2026-11-13-claude-remote-sync-check-234c32-005"
     ],
     "recent_done_items": [
+      "TASK-2026-11-21-claude-workflow-hub-concept-010 — 허브 로드맵 — 마일스톤 · WBS · WBS 게이트 · 진척 파생",
+      "TASK-2026-11-21-claude-workflow-hub-concept-009 — 허브 판정 — 계획 린트 · done 게이트 · 결정 응답 (1.x 와 같은 함수)",
       "TASK-2026-11-21-claude-workflow-hub-concept-008 — 허브 세션 시작 확인 · 하네스 등록 안내 페이지",
       "TASK-2026-11-21-claude-workflow-hub-concept-007 — 허브 지침 렌더링 — 표준 규칙(2.0판) · 프로젝트 지침 · 하네스 4종 · 판 · 로컬 수정 감지",
       "TASK-2026-11-21-claude-workflow-hub-concept-006 — 허브 부트스트랩 셋업 — 쓰기 지시 · .gitignore 먼저 · 확인 도구",
@@ -50,16 +52,14 @@
       "TASK-2026-11-21-claude-workflow-hub-concept-004 — 허브 코어 — task CRUD · 이력 · version 409 · 맡기",
       "TASK-2026-11-21-claude-workflow-hub-concept-003 — 허브 코어 — 프로젝트 등록 (git 주소 정규화 · 별칭) · 콜사인 등록 · 토큰",
       "TASK-2026-11-21-claude-workflow-hub-concept-002 — 허브 코어 — 서버 · SQLite · 이관 · 백업",
-      "TASK-2026-11-21-claude-workflow-hub-concept-001 — ADR-033 Accepted · DS1~DS9 확정 · PURPOSE 2.0판 적용 · M-032 close",
-      "TASK-2026-11-20-claude-workflow-hub-concept-017 — 허브 흐름 — 부트스트랩 · 세션 시작 확인 · 세션 끝 · compact · 지침 렌더링 · 1.x 전환 매핑",
-      "TASK-2026-11-20-claude-workflow-hub-concept-016 — 허브 MCP 도구 · HTTP API 형식 — 부트스트랩 묶음 · 토큰 묶음 · 판 협상 · 오류 코드"
+      "TASK-2026-11-21-claude-workflow-hub-concept-001 — ADR-033 Accepted · DS1~DS9 확정 · PURPOSE 2.0판 적용 · M-032 close"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/claude/workflow-hub-concept/backlog/2026-11-21.md",
-    "task_count": 8,
+    "task_count": 10,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
@@ -70,7 +70,9 @@
       "TASK-2026-11-21-claude-workflow-hub-concept-005 — 허브 코어 — 원격 MCP 골격 · 부트스트랩 묶음 · 인증 경계",
       "TASK-2026-11-21-claude-workflow-hub-concept-006 — 허브 부트스트랩 셋업 — 쓰기 지시 · .gitignore 먼저 · 확인 도구",
       "TASK-2026-11-21-claude-workflow-hub-concept-007 — 허브 지침 렌더링 — 표준 규칙(2.0판) · 프로젝트 지침 · 하네스 4종 · 판 · 로컬 수정 감지",
-      "TASK-2026-11-21-claude-workflow-hub-concept-008 — 허브 세션 시작 확인 · 하네스 등록 안내 페이지"
+      "TASK-2026-11-21-claude-workflow-hub-concept-008 — 허브 세션 시작 확인 · 하네스 등록 안내 페이지",
+      "TASK-2026-11-21-claude-workflow-hub-concept-009 — 허브 판정 — 계획 린트 · done 게이트 · 결정 응답 (1.x 와 같은 함수)",
+      "TASK-2026-11-21-claude-workflow-hub-concept-010 — 허브 로드맵 — 마일스톤 · WBS · WBS 게이트 · 진척 파생"
     ]
   },
   "next_documents": [

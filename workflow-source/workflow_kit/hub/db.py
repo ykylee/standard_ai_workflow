@@ -147,10 +147,33 @@ CREATE TABLE setup_step (
 ALTER TABLE callsign ADD COLUMN setup_complete INTEGER NOT NULL DEFAULT 0;
 """
 
+#: 판 3 (M-035) — 결정 응답 · 로드맵 원문 (hub_spec §3.3).
+_V3 = """
+CREATE TABLE plan_response (
+    project_id TEXT NOT NULL,
+    task_id TEXT NOT NULL,
+    body TEXT NOT NULL,
+    body_sha256 TEXT NOT NULL,
+    received_at TEXT NOT NULL,
+    responder TEXT NOT NULL DEFAULT '',
+    UNIQUE (project_id, body_sha256),
+    FOREIGN KEY (project_id, task_id) REFERENCES task(project_id, id)
+);
+CREATE TABLE roadmap_doc (
+    project_id TEXT NOT NULL REFERENCES project(id),
+    path TEXT NOT NULL,
+    body_md TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    updated_by TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (project_id, path)
+);
+"""
+
 #: 판 순서 = 목록 순서. 판 n = ``MIGRATIONS[n-1]`` (SQL 스크립트).
 #: ``executescript`` 는 열린 트랜잭션을 먼저 커밋하므로, 판 하나의 원자성은
 #: 스크립트 **안의** ``BEGIN IMMEDIATE … COMMIT`` 으로 만든다 (:func:`_apply`).
-MIGRATIONS: list[str] = [_V1, _V2]
+MIGRATIONS: list[str] = [_V1, _V2, _V3]
 
 
 def latest_version() -> int:

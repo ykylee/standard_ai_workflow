@@ -344,7 +344,7 @@ class Store:
         if "status" in values and values["status"] not in STATUSES:
             raise invalid_field("status", f"{' · '.join(STATUSES)} 가운데 하나")
         if values.get("status") == "done":
-            raise HubError(422, "gate_denied", "done 은 done 게이트를 거치는 hub_task_close 로만 닫는다 (M-035)",
+            raise HubError(422, "gate_denied", "done 은 done 게이트를 거치는 hub_task_close 로만 닫는다",
                            {"kit_error_code": "done_requires_gate"})
         if "priority" in values and values["priority"] not in PRIORITIES:
             raise invalid_field("priority", f"{' · '.join(PRIORITIES)} 가운데 하나")
@@ -367,7 +367,9 @@ class Store:
             raise forbidden("콜사인 토큰이 필요하다")
         return p
 
-    def task_create(self, ctx: Ctx, values: dict[str, Any], request_id: str | None = None) -> dict[str, Any]:
+    def task_create(self, ctx: Ctx, values: dict[str, Any], request_id: str | None = None,
+                    prepare: Callable[[sqlite3.Connection, str, str, dict[str, Any]], dict[str, Any]] | None = None
+                    ) -> dict[str, Any]:
         p = self._need_callsign(ctx)
         scan_secrets(values)
         if "title" not in values:
@@ -388,12 +390,13 @@ class Store:
                 (pid, date, cs, n + 1),
             )
             task_id = f"TASK-{date}-{cs}-{n:03d}"
+            vals = prepare(conn, pid, task_id, values) if prepare else values
             conn.execute(
                 "INSERT INTO task (project_id, id, title, status, priority, branch, wbs, wbs_exempt_reason, description, "
                 "plan_md, fields_json, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (pid, task_id, values["title"].strip(), values.get("status", "planned"), values.get("priority", "high"),
-                 values.get("branch", ""), values.get("wbs", ""), values.get("wbs_exempt_reason", ""),
-                 values.get("description", ""), values.get("plan_md", ""), _json(values.get("fields") or {}),
+                (pid, task_id, vals["title"].strip(), vals.get("status", "planned"), vals.get("priority", "high"),
+                 vals.get("branch", ""), vals.get("wbs", ""), vals.get("wbs_exempt_reason", ""),
+                 vals.get("description", ""), vals.get("plan_md", ""), _json(vals.get("fields") or {}),
                  cs, _iso(ctx.now), _iso(ctx.now)),
             )
             task = self._get_task(conn, pid, task_id)
@@ -436,7 +439,7 @@ class Store:
             return {"tasks": [self._task_row(r) for r in conn.execute(sql, args)]}
 
     def _versioned_update(self, ctx: Ctx, task_id: str, expected_version: int | None, op: str,
-                          mutate: Callable[[dict[str, Any], Principal], dict[str, Any]],
+                          mutate: Callable[[dict[str, Any], Principal, sqlite3.Connection], dict[str, Any]],
                           request_id: str | None) -> dict[str, Any]:
         p = self._need_callsign(ctx)
         pid = p.project_id
@@ -446,7 +449,7 @@ class Store:
             before = self._get_task(conn, pid, task_id)
             if expected_version is not None and before["version"] != expected_version:
                 raise version_conflict(before["version"], before)
-            changes = mutate(before, p)
+            changes = mutate(before, p, conn)
             if not changes:
                 return {"task": before, "changed": False}
             sets = ", ".join(f"{k} = ?" for k in changes)
@@ -466,7 +469,9 @@ class Store:
         return self.idempotent(ctx, request_id, do)
 
     def task_update(self, ctx: Ctx, task_id: str, expected_version: int, values: dict[str, Any],
-                    request_id: str | None = None) -> dict[str, Any]:
+                    request_id: str | None = None,
+                    prepare: Callable[[sqlite3.Connection, dict[str, Any], dict[str, Any]], dict[str, Any]] | None = None
+                    ) -> dict[str, Any]:
         scan_secrets(values)
         allowed = {"title", "status", "priority", "branch", "wbs", "wbs_exempt_reason", "description", "plan_md", "fields"}
         extra = set(values) - allowed
@@ -474,9 +479,10 @@ class Store:
             raise HubError(400, "unknown_field", f"고칠 수 없는 칸: {', '.join(sorted(extra))}", {"fields": sorted(extra)})
         self._validate_task_fields(values)
 
-        def mutate(before: dict[str, Any], _p: Principal) -> dict[str, Any]:
+        def mutate(before: dict[str, Any], _p: Principal, conn: sqlite3.Connection) -> dict[str, Any]:
+            vals = prepare(conn, before, values) if prepare else values
             out: dict[str, Any] = {}
-            for k, v in values.items():
+            for k, v in vals.items():
                 if k == "fields":
                     merged = {**before["fields"], **v}
                     if merged != before["fields"]:
@@ -488,7 +494,7 @@ class Store:
         return self._versioned_update(ctx, task_id, expected_version, "update", mutate, request_id)
 
     def task_claim(self, ctx: Ctx, task_id: str, request_id: str | None = None) -> dict[str, Any]:
-        def mutate(before: dict[str, Any], p: Principal) -> dict[str, Any]:
+        def mutate(before: dict[str, Any], p: Principal, _c: sqlite3.Connection) -> dict[str, Any]:
             if before["assignee"] == p.callsign:
                 return {}
             if before["assignee"]:
@@ -501,7 +507,7 @@ class Store:
         return self._versioned_update(ctx, task_id, None, "claim", mutate, request_id)
 
     def task_release(self, ctx: Ctx, task_id: str, request_id: str | None = None) -> dict[str, Any]:
-        def mutate(before: dict[str, Any], p: Principal) -> dict[str, Any]:
+        def mutate(before: dict[str, Any], p: Principal, _c: sqlite3.Connection) -> dict[str, Any]:
             if before["assignee"] is None:
                 return {}
             if before["assignee"] != p.callsign and p.role != "owner":
@@ -516,7 +522,7 @@ class Store:
             raise invalid_field("note", "비었다")
         stamp = ctx.now.strftime("%Y-%m-%d %H:%M")
 
-        def mutate(_before: dict[str, Any], _p: Principal) -> dict[str, Any]:
+        def mutate(_before: dict[str, Any], _p: Principal, _c: sqlite3.Connection) -> dict[str, Any]:
             return {"progress_note": f"[{stamp}] {note.strip()}", "progress_at": _iso(ctx.now)}
 
         return self._versioned_update(ctx, task_id, None, "progress", mutate, request_id)

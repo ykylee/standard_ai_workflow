@@ -1339,10 +1339,10 @@
       "title": "2.0 허브 — implementation 3: 콜사인별 기억 · 로드맵 · 판정",
       "sdlc_phase": "implementation",
       "declared_status": "planned",
-      "derived_status": "planned",
-      "progress": 0.0,
+      "derived_status": "in_progress",
+      "progress": 0.6666666666666666,
       "total_leaves": 3,
-      "done_leaves": 0,
+      "done_leaves": 2,
       "deliverables_missing": [],
       "wbs": [
         {
@@ -1357,19 +1357,23 @@
         {
           "id": "WBS-35.2",
           "title": "로드맵 · 마일스톤 · WBS · 진척 파생 (D8)",
-          "derived_status": "planned",
-          "linked_task_ids": [],
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-21-claude-workflow-hub-concept-010"
+          ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         },
         {
           "id": "WBS-35.3",
           "title": "계획 린트 · done 게이트 · 결정 응답 (plan-response/1)",
-          "derived_status": "planned",
-          "linked_task_ids": [],
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-21-claude-workflow-hub-concept-009"
+          ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         }
       ]

@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from typing import Any, Callable
 
 from workflow_kit.hub.errors import HubError, invalid_field, unauthorized, unknown_field
+from workflow_kit.hub.judge import Judge
 from workflow_kit.hub.session import SessionStart
 from workflow_kit.hub.setup import Setup
 from workflow_kit.hub.store import Ctx, Store, scan_secrets
@@ -116,11 +117,23 @@ _TASK_VALUES = ("title", "status", "priority", "branch", "wbs", "wbs_exempt_reas
 
 
 def _task_create(store: Store, ctx: Ctx, a: dict[str, Any]) -> dict[str, Any]:
-    return store.task_create(ctx, {k: a[k] for k in _TASK_VALUES if k in a}, a.get("request_id"))
+    return store.task_create(ctx, {k: a[k] for k in _TASK_VALUES if k in a}, a.get("request_id"),
+                             prepare=Judge(store).prepare_create)
 
 
 def _task_update(store: Store, ctx: Ctx, a: dict[str, Any]) -> dict[str, Any]:
-    return store.task_update(ctx, a["id"], a["expected_version"], a["values"], a.get("request_id"))
+    judge = Judge(store)
+    states = a.get("decision_states") or {}
+    if not all(isinstance(k, str) and isinstance(v, str) for k, v in states.items()):
+        raise invalid_field("decision_states", "{D<n>: answered:<value> | proposed}")
+    p = ctx.principal
+    pid = p.project_id if p and p.project_id else ""
+    values = a.get("values") or {}
+
+    def prepare(conn: Any, before: dict[str, Any], vals: dict[str, Any]) -> dict[str, Any]:
+        return judge.prepare_update(conn, pid, before, vals, states, a.get("note"))
+
+    return store.task_update(ctx, a["id"], a["expected_version"], values, a.get("request_id"), prepare=prepare)
 
 
 _TASK_PROPS: dict[str, dict[str, Any]] = {
@@ -165,9 +178,31 @@ TOOLS: dict[str, ToolSpec] = {
                  lambda s, c, a: s.task_get(c, a["id"])),
         ToolSpec("hub_task_create", "token", "task 를 만든다 — ID 는 TASK-<날짜>-<콜사인>-<NNN> (DS3). done 으로 만들 수 없다.",
                  {**_TASK_PROPS, "request_id": _REQ_ID}, ("title",), _task_create),
-        ToolSpec("hub_task_update", "token", "task 칸을 고친다 — expected_version 이 다르면 409. done 은 hub_task_close (M-035).",
-                 {"id": _STR, "expected_version": _INT, "values": _OBJ, "request_id": _REQ_ID},
-                 ("id", "expected_version", "values"), _task_update),
+        ToolSpec("hub_task_update", "token",
+                 "task 칸을 고친다 — expected_version 이 다르면 409. 계획(plan_md)은 1.x 계약으로 린트 · 결정 상태 재계산. "
+                 "decision_states: {D<n>: answered:<value>|proposed}. 열린 결정을 걷으면 note 필수. done 은 hub_task_close.",
+                 {"id": _STR, "expected_version": _INT, "values": _OBJ, "decision_states": _OBJ, "note": _STR,
+                  "request_id": _REQ_ID},
+                 ("id", "expected_version"), _task_update),
+        ToolSpec("hub_task_close", "token",
+                 "task 를 done 으로 닫는다 — done 게이트(검증 결과 필수 · 열린 결정 · 계획 오류 규칙)를 1.x 와 같은 함수로 판정.",
+                 {"id": _STR, "expected_version": _INT, "validation_result": _STR, "request_id": _REQ_ID},
+                 ("id", "expected_version", "validation_result"),
+                 lambda s, c, a: Judge(s).task_close(c, a["id"], a["expected_version"], a["validation_result"], a.get("request_id"))),
+        ToolSpec("hub_plan_respond", "token",
+                 "결정 응답(workflow-kit-plan-response/1 본문 그대로)을 받는다 — 자격 판정 뒤에만 결정 상태에 반영한다.",
+                 {"task_id": _STR, "body": _STR}, ("task_id", "body"),
+                 lambda s, c, a: Judge(s).plan_respond(c, a["task_id"], a["body"])),
+        ToolSpec("hub_plan_status", "token", "task 계획의 결정 상태 · 열린 결정 · 반영된 응답 수.",
+                 {"task_id": _STR}, ("task_id",), lambda s, c, a: Judge(s).plan_status(c, a["task_id"])),
+        ToolSpec("hub_roadmap_get", "token", "로드맵 원문 (index.md · M-NNN-*.md).", {}, (),
+                 lambda s, c, a: Judge(s).roadmap_get(c)),
+        ToolSpec("hub_roadmap_put", "token",
+                 "로드맵 문서 하나를 쓴다 — 스키마 오류는 필드 · 제약과 함께 거절, expected_version 이 다르면 409 (새 문서는 0).",
+                 {"path": _STR, "expected_version": _INT, "body": _STR}, ("path", "body"),
+                 lambda s, c, a: Judge(s).roadmap_put(c, a["path"], a.get("expected_version"), a["body"])),
+        ToolSpec("hub_roadmap_state", "token", "로드맵 진척 (roadmap_state v1 형식) — 산출물 존재는 미측정.", {}, (),
+                 lambda s, c, a: Judge(s).roadmap_state(c)),
         ToolSpec("hub_task_claim", "token", "task 를 맡는다 — 다른 콜사인이 맡고 있으면 409.",
                  {"id": _STR, "request_id": _REQ_ID}, ("id",),
                  lambda s, c, a: s.task_claim(c, a["id"], a.get("request_id"))),

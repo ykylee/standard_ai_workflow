@@ -1,6 +1,6 @@
 ---
 id: TASK-2026-11-21-fix-1x-long-lived-branch-memory-002
-status: in_progress
+status: done
 created_at: 2026-11-21
 source_anchor: generic-task-2026-11-21-fix-1x-long-lived-branch-memory-002
 source_path: backlog/2026-11-21.md
@@ -13,7 +13,7 @@ wbs_exempt_reason: 1.x 결함 수리 줄 (R16.1) — 2.0 로드맵 밖
 
 ## 📝 Description
 
-- Status: in_progress
+- Status: done
 - Priority: high
 - Request date: 2026-11-21
 - Owner:
@@ -44,5 +44,6 @@ wbs_exempt_reason: 1.x 결함 수리 줄 (R16.1) — 2.0 로드맵 밖
 
 ## ✅ Outcome
 
-- Result:
+- Result: PR #31 (release/1.x 0a7e4c76) · PR #32 (main 383d1fdf) 머지 · v1.29.1 로 발행
+- Verification: check_branch_join_reflect 12/12 (새 9 · 9b) · 표시 판정을 빼면 case 9 FAIL · --changed · 스모크 8/8 · release/1.x 전량 게이트 (v1.29.1 발행 준비)
 - Follow-up:

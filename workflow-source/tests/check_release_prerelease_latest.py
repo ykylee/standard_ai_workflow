@@ -9,6 +9,8 @@
 3. latest 판정 — 2.0.0b1(원격 최고 1.29.1) latest · 그 뒤 1.30.0 · 1.30.1 은 아님 · 2.0.0 은 latest
 4. 발행 명령 — ``gh release create`` 인자에 latest 판정이 들어가고 ``--target`` 이 main 고정이 아니다
 5. 산출물 이름 — ``2.0.0b1`` 의 wheel · sdist 파일명이 판 문자열 그대로 (PEP 440 정규화가 바꾸지 않는다)
+7. 산출물 고르기 — ``find_dist_files("2.0.0")`` 이 ``2.0.0`` 의 wheel · sdist 만 (``2.0.0b1`` · ``2.0.01`` · ``2.0.0.post1`` ·
+   플러그인 zip 은 안 잡음), 옛 ``-beta`` 판은 ``b0`` 파일명으로 (TASK-2026-11-21-main-027)
 """
 
 from __future__ import annotations
@@ -87,6 +89,37 @@ def main() -> int:
 
     _record("case 5 (산출물 이름 — 2.0.0b1 은 그대로)", _expected_dist_pattern("2.0.0b1") == "2.0.0b1",
             _expected_dist_pattern("2.0.0b1"))
+
+    import tempfile  # noqa: PLC0415
+
+    results7 = {}
+    g = rp.find_dist_files.__globals__  # release_pipeline 이 재-export 한 바로 그 모듈의 REPO_ROOT
+    original_root = g["REPO_ROOT"]
+    names = [
+        "standard_ai_workflow-2.0.0-py3-none-any.whl", "standard_ai_workflow-2.0.0.tar.gz",
+        "standard_ai_workflow-2.0.0b1-py3-none-any.whl", "standard_ai_workflow-2.0.0b1.tar.gz",
+        "standard_ai_workflow-2.0.01-py3-none-any.whl", "standard_ai_workflow-2.0.0.post1.tar.gz",
+        "standard_ai_workflow-2.0.0-plugin.zip", "standard_ai_workflow-0.7.10b0-py3-none-any.whl",
+    ]
+    try:
+        with tempfile.TemporaryDirectory(prefix="dist-") as d:
+            (Path(d) / "dist").mkdir()
+            for n in names:
+                (Path(d) / "dist" / n).write_bytes(b"")
+            g["REPO_ROOT"] = Path(d)
+            for v in ("2.0.0", "v2.0.0", "2.0.0b1", "0.7.10-beta", "9.9.9"):
+                results7[v] = sorted(f.name for f in rp.find_dist_files(v))
+    finally:
+        g["REPO_ROOT"] = original_root
+    want7 = {
+        "2.0.0": sorted(names[:2]),
+        "v2.0.0": sorted(names[:2]),
+        "2.0.0b1": sorted(names[2:4]),
+        "0.7.10-beta": [names[7]],
+        "9.9.9": [],
+    }
+    bad7 = {k: v for k, v in results7.items() if v != want7[k]}
+    _record("case 7 (산출물 고르기 — 이 판의 wheel · sdist 만, 접두사가 같은 다른 판 제외)", not bad7, str(bad7))
 
     print(f"PASS {len(_passes)} · FAIL {len(_failures)}")
     for f in _failures:

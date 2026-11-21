@@ -1277,6 +1277,13 @@
       "wbs_ref": "exempt",
       "exempt_reason": "1.x 유지보수 줄 — 로드맵은 main 에 있다 (M-038 WBS-38.3 의 1.x 몫)",
       "source_path": "ai-workflow/memory/active/release/1.x/backlog/tasks/TASK-2026-11-21-release-1.x-007.md"
+    },
+    {
+      "task_id": "TASK-2026-11-21-release-1.x-008",
+      "task_status": "done",
+      "wbs_ref": "exempt",
+      "exempt_reason": "발행 도구 결함 수리 — 마일스톤 밖",
+      "source_path": "ai-workflow/memory/active/release/1.x/backlog/tasks/TASK-2026-11-21-release-1.x-008.md"
     }
   ],
   "issues": []

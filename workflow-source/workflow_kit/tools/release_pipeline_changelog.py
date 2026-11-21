@@ -32,6 +32,7 @@ __all__ = [
     "_changelog_version_sort_key",
     "draft_changelog",
     "_resolve_notes_file",
+    "dist_version",
     "find_dist_files",
 ]
 
@@ -327,12 +328,47 @@ def _resolve_notes_file(version: str, template: str, *, dry_run: bool = False,
         }
 
 
+#: 판 문자열 → PEP 440 꼴. ``v`` 접두사 · 옛 ``-beta`` 접미사도 받는다 (``0.7.10-beta`` → ``0.7.10b0``).
+_DIST_VERSION_RE = re.compile(
+    r"^v?(?P<nums>\d+(?:\.\d+)*)(?:[-_.]?(?P<pre>a|alpha|b|beta|c|rc|pre|preview)[-_.]?(?P<pren>\d*))?$",
+    re.IGNORECASE,
+)
+_DIST_PRE_CANON = {"a": "a", "alpha": "a", "b": "b", "beta": "b", "c": "rc", "rc": "rc", "pre": "rc", "preview": "rc"}
+DIST_NAME = "standard_ai_workflow"
+
+
+def dist_version(version: str) -> str:
+    """판 → wheel · sdist 파일명에 실리는 PEP 440 꼴. 읽을 수 없으면 앞뒤 공백만 걷어 그대로."""
+    m = _DIST_VERSION_RE.match(version.strip())
+    if not m:
+        return version.strip()
+    pre = (m.group("pre") or "").lower()
+    if not pre:
+        return m.group("nums")
+    return f"{m.group('nums')}{_DIST_PRE_CANON[pre]}{int(m.group('pren') or 0)}"
+
+
+def _dist_file_version(name: str) -> str | None:
+    """dist 파일명 → 판. wheel ``{name}-{판}-{태그}.whl`` · sdist ``{name}-{판}.tar.gz`` 만 읽는다."""
+    prefix = f"{DIST_NAME}-"
+    if not name.startswith(prefix):
+        return None
+    rest = name[len(prefix):]
+    if name.endswith(".whl"):
+        return rest.split("-", 1)[0] if "-" in rest else None
+    if name.endswith(".tar.gz"):
+        return rest[: -len(".tar.gz")]
+    return None
+
+
 def find_dist_files(version: str) -> list[Path]:
-    """dist/ 의 wheel + sdist glob. PEP 440 normalize: 0.7.10 → 0.7.10b0."""
+    """dist/ 에서 **이 판의** wheel + sdist 만 (TASK-2026-11-21-main-027).
+
+    예전에는 ``{name}-{판}*`` 접두사 glob 이라 ``2.0.0`` 이 ``2.0.0b1`` · ``2.0.01`` 산출물까지
+    잡았다. 파일명에서 판 칸을 떼어 :func:`dist_version` 과 정확히 같을 때만 고른다.
+    """
     dist = REPO_ROOT / "dist"
     if not dist.exists():
         return []
-    # PEP 440: 0.7.10-beta → 0.7.10b0
-    base = version.split("-")[0]
-    pep_version = base  # wheel 파일명은 X.Y.Z 형태
-    return sorted(dist.glob(f"standard_ai_workflow-{pep_version}*"))
+    want = dist_version(version)
+    return sorted(p for p in dist.iterdir() if p.is_file() and _dist_file_version(p.name) == want)

@@ -27,6 +27,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-11-21-release-1.x-008 발행 산출물 선택이 접두사 glob — find_dist_files 정확한 파일명 대조 (main TASK-2026-11-21-main-027 이식)
 - TASK-2026-11-21-release-1.x-007 1.x 안내 판 1.30.0 — session-start 2.0 안내 한 줄 · EOL 한 줄 · README · 채널 재등록 (R16.4 · R14.8 · R16.3 · R16.6)
 - TASK-2026-11-21-release-1.x-006 run_all_checks 잠금 파일 보유자 정보가 깨진다 — a+b 모드 (main 의 같은 수리를 1.x 로)
 - TASK-2026-11-21-release-1.x-005 '허브로 옮김' 표식이 있으면 1.x 쓰기 거절 · session-start 는 허브를 가리킨다 (main 의 M-038 WBS-38.3 1.x 쪽)

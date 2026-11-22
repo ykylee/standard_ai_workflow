@@ -64,6 +64,7 @@
 ### [[decisions/adr-031-claim-plan]] {#adr-031-claim-plan}
 ### [[decisions/adr-032-plan-workbench]] {#adr-032-plan-workbench}
 ### [[decisions/adr-033-workflow-hub]] {#adr-033-workflow-hub}
+### [[decisions/adr-034-hub-orchestration]] {#adr-034-hub-orchestration}
 ### [[patterns/r4-anchor-index]] {#r4-anchor-index}
 ### [[patterns/frozen-archive-immutability]] {#frozen-archive-immutability}
 ### [[patterns/wiki-stub-emit]] {#wiki-stub-emit}

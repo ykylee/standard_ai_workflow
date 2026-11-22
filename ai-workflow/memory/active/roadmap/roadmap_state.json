@@ -1649,11 +1649,11 @@
       "id": "M-042",
       "title": "허브 오케스트레이션 — requirements (실측 S · 요구 · ADR 초안)",
       "sdlc_phase": "requirements",
-      "declared_status": "in_progress",
-      "derived_status": "blocked",
-      "progress": 0.3333333333333333,
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
       "total_leaves": 3,
-      "done_leaves": 1,
+      "done_leaves": 3,
       "deliverables_missing": [],
       "wbs": [
         {
@@ -1671,27 +1671,29 @@
         {
           "id": "WBS-42.2",
           "title": "요구 R · 검증 방법 · 추적표 (concept → 요구)",
-          "derived_status": "blocked",
+          "derived_status": "done",
           "linked_task_ids": [
             "TASK-2026-11-22-main-005"
           ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         },
         {
           "id": "WBS-42.3",
           "title": "ADR 초안 (Proposed — design 뒤 Accepted)",
-          "derived_status": "planned",
-          "linked_task_ids": [],
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-22-main-006"
+          ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         }
       ]
     }
   ],
-  "current_milestone_id": "M-042",
+  "current_milestone_id": "M-039",
   "exempt_tasks": [
     {
       "task_id": "TASK-2026-08-25-main-010",

@@ -44,6 +44,7 @@
       "TASK-2026-11-22-main-002"
     ],
     "recent_done_items": [
+      "TASK-2026-11-22-main-004 — 허브 오케스트레이션 실측 S 2차 — hook · 신뢰 없는 간접 전달 수단 (도구 응답 편승 · 대기 도구 · 진입 지침) (M-042 WBS-42.1)",
       "TASK-2026-11-22-main-003 — 허브 오케스트레이션 실측 S — Claude Code · Codex 의 턴 경계 hook 주입 · 비대화형 · 이어 가기 · 상태 읽기 (M-042 WBS-42.1)",
       "TASK-2026-11-22-main-001 — 허브 오케스트레이션 concept 검토 — 중앙 허브 · PC 중계 허브 · 하네스 · 세션, 메인 오케스트레이터 (M-041 WBS-41.1)",
       "TASK-2026-11-21-main-027 — 발행 산출물 선택이 접두사 glob — 2.0.0 이 2.0.0b1 산출물까지 첨부 후보로 잡는다 (find_dist_files)",
@@ -52,21 +53,21 @@
       "TASK-2026-11-21-main-024 — 2.0.0-beta 발행 범위 확정 · 허브 운영 가이드 (M-040 WBS-40.1)",
       "TASK-2026-11-21-main-023 — /setup.md 가이드 실측 — Codex · MiniMax Code · Antigravity (Linux, 빈 폴더) (M-039 WBS-39.1)",
       "TASK-2026-11-21-main-022 — 허브 에이전트용 셋업 가이드 /setup.md — 페이지만 읽고 스스로 부트스트랩 + 원격 없는 저장소 등록 (M-039 WBS-39.1)",
-      "TASK-2026-11-21-main-021 — 이 저장소를 테스트베드 허브에 실제 등록 — 등록 · 셋업 · 들여오기, 표식 보류 (M-039 WBS-39.2)",
-      "TASK-2026-11-21-main-020 — 이 호스트 테스트베드 허브 — 이 저장소 clone 을 2.0 으로 전환해 실사용 시험 (M-039 WBS-39.2)"
+      "TASK-2026-11-21-main-021 — 이 저장소를 테스트베드 허브에 실제 등록 — 등록 · 셋업 · 들여오기, 표식 보류 (M-039 WBS-39.2)"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-11-22.md",
-    "task_count": 4,
+    "task_count": 5,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
       "TASK-2026-11-19-claude-remote-sync-check-234c32-002 — 브랜치 네임스페이스 자동 seed 가 roadmap_state.json 을 재생성하지 않는다 — 생성물 대조 검사 2건 red",
       "TASK-2026-11-22-main-001 — 허브 오케스트레이션 concept 검토 — 중앙 허브 · PC 중계 허브 · 하네스 · 세션, 메인 오케스트레이터 (M-041 WBS-41.1)",
-      "TASK-2026-11-22-main-003 — 허브 오케스트레이션 실측 S — Claude Code · Codex 의 턴 경계 hook 주입 · 비대화형 · 이어 가기 · 상태 읽기 (M-042 WBS-42.1)"
+      "TASK-2026-11-22-main-003 — 허브 오케스트레이션 실측 S — Claude Code · Codex 의 턴 경계 hook 주입 · 비대화형 · 이어 가기 · 상태 읽기 (M-042 WBS-42.1)",
+      "TASK-2026-11-22-main-004 — 허브 오케스트레이션 실측 S 2차 — hook · 신뢰 없는 간접 전달 수단 (도구 응답 편승 · 대기 도구 · 진입 지침) (M-042 WBS-42.1)"
     ]
   },
   "next_documents": [

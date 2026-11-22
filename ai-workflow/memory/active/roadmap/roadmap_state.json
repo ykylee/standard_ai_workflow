@@ -1661,7 +1661,8 @@
           "title": "실측 S — Claude Code · Codex (Linux): T1 턴 경계 hook 주입 · T2 비대화형 · 이어 가기 · 상태 읽기",
           "derived_status": "done",
           "linked_task_ids": [
-            "TASK-2026-11-22-main-003"
+            "TASK-2026-11-22-main-003",
+            "TASK-2026-11-22-main-004"
           ],
           "total_leaves": 1,
           "done_leaves": 1,

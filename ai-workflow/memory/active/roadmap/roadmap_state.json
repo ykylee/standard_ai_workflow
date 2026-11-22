@@ -1921,20 +1921,20 @@
       "id": "M-050",
       "title": "2.x 전면 Go 전환 — requirements",
       "sdlc_phase": "requirements",
-      "declared_status": "planned",
-      "derived_status": "planned",
-      "progress": 0.0,
+      "declared_status": "in_progress",
+      "derived_status": "in_progress",
+      "progress": 0.3333333333333333,
       "total_leaves": 3,
-      "done_leaves": 0,
-      "deliverables_missing": [
-        "docs/planning/go-port-requirements-2026-11.md"
-      ],
+      "done_leaves": 1,
+      "deliverables_missing": [],
       "wbs": [
         {
           "id": "WBS-50.1",
           "title": "요구 — 계약 불변(MCP 도구 · HTTP 경로 · DB 판 · 1.x 생성물 형식 — 기존 DB 를 Go 허브가 그대로 연다) · 판정 '같은 답' 기준과 차분 검사 · 적합성 검사(허브 검사 재사용)",
-          "derived_status": "planned",
-          "linked_task_ids": [],
+          "derived_status": "in_progress",
+          "linked_task_ids": [
+            "TASK-2026-11-22-main-024"
+          ],
           "total_leaves": 1,
           "done_leaves": 0,
           "children": []
@@ -1942,8 +1942,10 @@
         {
           "id": "WBS-50.2",
           "title": "이행 단계 · 배포(OS별 바이너리 · Windows 서명 실측 R4) · 게이트에 Go 검사 넣기 · Python 판 deprecation",
-          "derived_status": "planned",
-          "linked_task_ids": [],
+          "derived_status": "in_progress",
+          "linked_task_ids": [
+            "TASK-2026-11-22-main-025"
+          ],
           "total_leaves": 1,
           "done_leaves": 0,
           "children": []
@@ -1951,16 +1953,18 @@
         {
           "id": "WBS-50.3",
           "title": "ADR-035 초안 — PURPOSE 제외 영역 예외를 2.x 런타임(Go)으로 (R3) · hub_spec R0.3 개정",
-          "derived_status": "planned",
-          "linked_task_ids": [],
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-22-main-026"
+          ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         }
       ]
     }
   ],
-  "current_milestone_id": "M-039",
+  "current_milestone_id": "M-050",
   "exempt_tasks": [
     {
       "task_id": "TASK-2026-08-25-main-010",

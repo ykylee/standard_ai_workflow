@@ -2,7 +2,7 @@
 id: M-050
 title: 2.x 전면 Go 전환 — requirements
 sdlc_phase: requirements
-status: planned
+status: in_progress
 order: 50
 parallel_allowed:
   - M-007

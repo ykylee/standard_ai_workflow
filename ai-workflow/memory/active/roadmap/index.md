@@ -111,5 +111,5 @@
   - path: [`./M-048-hub-orchestration-release.md`](./M-048-hub-orchestration-release.md)
 - **M-049** [concept] 허브 · PC 중계 런타임 전환 검토 (Go / Rust) — status: done
   - path: [`./M-049-runtime-port-concept.md`](./M-049-runtime-port-concept.md)
-- **M-050** [requirements] 2.x 전면 Go 전환 — requirements — status: planned
+- **M-050** [requirements] 2.x 전면 Go 전환 — requirements — status: in_progress
   - path: [`./M-050-go-port-requirements.md`](./M-050-go-port-requirements.md)

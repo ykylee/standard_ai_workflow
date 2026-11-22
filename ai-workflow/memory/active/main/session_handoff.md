@@ -83,6 +83,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-11-22-main-014 Codex 일하는 세션이 workspace-write 샌드박스에서 .git 이 읽기 전용이라 커밋 · push 를 못 한다 — 중계 세션의 커밋 경로
 - TASK-2026-11-22-main-002 backlog-update done 이 채워진 Result 옆에 검증 결과를 Result 로 한 줄 더 쓴다
 - TASK-2026-11-22-main-012 로드맵 형식 위반(WBS 제목 200자 초과 등)이 session-start · refresh-state 를 런타임 오류로 죽인다
 - TASK-2026-11-22-main-015 VS Code 확장 껍데기 — 중계 화면 webview · 상태 표시줄 · 프레임 정책 · 게이트 검사 (M-047 WBS-47.1)
@@ -92,7 +93,6 @@
 - TASK-2026-11-22-main-009 허브 오케스트레이션 구현 1 — DB 판 11 · 세션 · 받은편지함 편승 · 대기 도구 · 수신 확인 (M-044 WBS-44.1)
 - TASK-2026-11-22-main-008 ADR-034 Accepted — design 결정 DO1~DO13 확정 (M-043 WBS-43.3)
 - TASK-2026-11-22-main-007 허브 오케스트레이션 스펙 — DB 판 11 · 도구 표 · 세션 식별 · 전달 흐름 · 대기 도구 HTTP 실측 (M-043 WBS-43.1 · 43.2)
-- TASK-2026-11-22-main-006 허브 오케스트레이션 ADR-034 초안 (M-042 WBS-42.3)
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

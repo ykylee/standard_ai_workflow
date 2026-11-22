@@ -101,6 +101,7 @@ MCP 등록과 도구 허용(Claude `--allowedTools` · Codex 도구별 `approval
 
 - **Codex `workspace-write` 샌드박스는 `.git` 을 읽기 전용으로 둔다** — 보고의 검증 칸: "`.git` 이 읽기 전용이고 … 커밋과 push 는 하지 못했습니다".
   진입 규칙의 세션 끝 순서(허브 기록 → 커밋 → push)를 Codex 일하는 세션은 지킬 수 없다. bypass 계열은 허용 목록이 받지 않으므로(R21.4) 풀 길이 정해지지 않았다 → 후속 task.
+  → **해소 (TASK-2026-11-22-main-014)**: 어댑터가 `turn/start` 의 `sandboxPolicy.writableRoots` 에 git dir · common dir 을 더해 커밋은 세션이 한다 (실제 Codex 재실측 성공 · 대조군 실패). push 는 sandbox 네트워크가 꺼져 있어 보고만 — 오케스트레이터 · 사람이 push (스펙 §9.4).
 - 세션은 진입 규칙대로 `hub_wait` 로 기다리다 배정을 받았고, 중계가 넣은 메시지와 대기 · 편승이 같은 메시지를 다투지 않았다 — 실린 메시지는 한 번 `acked` (실림 ≠ 소비 · ack 멱등).
 - 원격 없는(로컬 키) 프로젝트라 세션 시작의 저장소 확인은 "원격 미확인" 으로 보고됐다 — 판정이 멈추지 않고 진행.
 

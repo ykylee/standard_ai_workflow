@@ -2042,7 +2042,7 @@
     },
     {
       "task_id": "TASK-2026-11-22-main-014",
-      "task_status": "planned",
+      "task_status": "done",
       "wbs_ref": "exempt",
       "exempt_reason": "2.1 오케스트레이션 후속 — 결정 대기",
       "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-11-22-main-014.md"

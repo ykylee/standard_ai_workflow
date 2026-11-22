@@ -15,6 +15,8 @@
 8. 상한 · 긴 폴링 — 하루 세션 요청 10 → 429 · 일 없는 긴 폴링은 상한까지 기다리고, 그 사이 승인되면 바로 돌아옴
 9. 거두기 — owner 가 거두면 중계 폴링 401
 10. 로컬 화면 — 세션 표 · 토큰 없음 · 머리 없는 POST · 남의 출처 403 · 일시정지가 폴링을 실제로 멈춤
+11. Codex 쓰기 루트 — workspace-write 면 작업 디렉터리 + git dir (worktree 는 common dir 도) · plan 은 정책 없음 ·
+    git 밖은 작업 디렉터리만 · ``turn/start`` 에 ``sandboxPolicy`` 로 실림 (TASK-2026-11-22-main-014 — 실제 Codex 커밋은 게이트 밖 실측)
 """
 
 from __future__ import annotations
@@ -272,6 +274,39 @@ def run(hub: Hub, tmp: Path) -> None:
         relay.stop_all()
 
 
+def run_codex_roots(tmp: Path) -> None:
+    from workflow_kit.relay.adapters import codex as cx
+    from workflow_kit.relay.adapters.base import Handle
+
+    repo = tmp / "cx-repo"
+    repo.mkdir()
+    git = ["git", "-c", "user.name=t", "-c", "user.email=t@example.invalid"]
+    subprocess.run([*git, "-C", str(repo), "init", "-q"], check=True)
+    subprocess.run([*git, "-C", str(repo), "commit", "-q", "--allow-empty", "-m", "init"], check=True)
+    wt = tmp / "cx-wt"
+    subprocess.run([*git, "-C", str(repo), "worktree", "add", "-q", "-b", "wt", str(wt)], check=True)
+    plain = tmp / "cx-plain"
+    plain.mkdir()
+    real = lambda p: str(Path(p).resolve())  # noqa: E731
+    pol = cx.sandbox_policy("workspace-write", repo) or {}
+    roots = [real(r) for r in pol.get("writableRoots", [])]
+    wt_roots = [real(r) for r in (cx.sandbox_policy("workspace-write", wt) or {}).get("writableRoots", [])]
+    plain_roots = (cx.sandbox_policy("workspace-write", plain) or {}).get("writableRoots")
+    plan = cx.sandbox_policy("read-only", repo)
+    sent: dict[str, Any] = {}
+    ad = cx.CodexAdapter()
+    ad._request = lambda h, m, params, timeout=60.0: sent.setdefault(m, params) and None  # type: ignore[method-assign]
+    h = Handle("codex", None, repo, extra={"turn": None, "sandbox_policy": pol})  # type: ignore[arg-type]
+    h.harness_session_id = "t1"
+    ad.deliver(h, "hi")
+    ok = (pol.get("type") == "workspaceWrite" and roots == [real(repo), real(repo / ".git")]
+          and real(wt) in wt_roots and real(repo / ".git") in wt_roots and real(repo / ".git" / "worktrees" / "cx-wt") in wt_roots
+          and plain_roots == [str(plain)] and plan is None
+          and (sent.get("turn/start") or {}).get("sandboxPolicy") == pol)
+    _record("case 11 (Codex 쓰기 루트 — git dir · worktree common dir · plan 없음 · turn/start 에 실림)", ok,
+            f"roots={roots} wt={wt_roots} plain={plain_roots} plan={plan} sent={sent.get('turn/start')}")
+
+
 hub_db = Path()
 
 
@@ -289,6 +324,12 @@ def main() -> int:
                 import traceback
                 traceback.print_exc()
                 _record("run (예외)", False, repr(exc))
+            try:
+                run_codex_roots(tmp)
+            except Exception as exc:  # noqa: BLE001
+                import traceback
+                traceback.print_exc()
+                _record("run_codex_roots (예외)", False, repr(exc))
         finally:
             err = hub.stop()
             if _failures:

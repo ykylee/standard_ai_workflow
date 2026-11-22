@@ -238,6 +238,7 @@ class Adapter(Protocol):
 | `stop` | stdin 닫기 → 종료 | `turn/interrupt` → 프로세스 종료 |
 | 쓰지 않음 | `--bg` (신뢰 필요, S10) · hook 신뢰 | hook 신뢰 · `remote-control` (미측정) |
 
+- **Codex 쓰기 루트 (TASK-2026-11-22-main-014, 소유자 결정 'A 실측 → 안 되면 B')** — `workspace-write` 는 쓰기 루트 안의 `.git` 을 읽기 전용으로 둔다(실측: `index.lock` Read-only). 어댑터는 `turn/start` 에 `sandboxPolicy = {workspaceWrite, writableRoots: [작업 디렉터리, git dir, git common dir]}` 를 싣는다 (worktree 는 두 경로가 다르다) → **커밋은 일하는 세션이 한다** (실제 Codex 0.167.1 실측: 정책 있음 커밋 성공 · 없음 실패). sandbox 네트워크는 끈 채다(실측: `Could not resolve host`) — 네트워크를 여는 것은 권한 확대라 하지 않는다. 그래서 **push 는 B**: Codex 일하는 세션은 커밋까지 하고 `hub_report` 의 검증 칸에 '커밋 sha · push 안 함' 을 적고, push 는 오케스트레이터 · 사람이 한다. `plan`(read-only) 은 정책을 싣지 않는다.
 - 어댑터가 띄운 세션은 첫 프롬프트 앞에 `hub_session_start` 를 부르라는 지시와 `kind=worker` 를 싣는다 — 세션 등록은 그 세션의 몫이다 (중계가 대신 등록하지 않는다 — 진입 지침 판 확인이 거기서 일어나므로).
 - 판이 바뀌면 `probe()` 가 실측 칸을 다시 재고, 못 재면 그 동작은 '미지원' 이다 (요구 R21.5 · ADR-034 Consequences).
 

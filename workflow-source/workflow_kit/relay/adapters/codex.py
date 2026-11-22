@@ -20,6 +20,38 @@ from workflow_kit.relay.adapters.base import Handle, terminate
 _SANDBOX = {"default": "workspace-write", "acceptEdits": "workspace-write", "plan": "read-only"}
 
 
+def git_writable_roots(cwd: Path) -> list[str]:
+    """작업 디렉터리 저장소의 git dir · common dir (절대 경로). git 저장소가 아니면 [].
+
+    Codex ``workspace-write`` 는 쓰기 루트 안의 ``.git`` 을 읽기 전용으로 둔다 — 진입 규칙의 세션 끝 커밋을 하려면
+    git 디렉터리를 쓰기 루트로 따로 더해야 한다 (TASK-2026-11-22-main-014 실측). worktree 는 git dir 과 common dir 이
+    다르므로 둘 다 싣는다.
+    """
+    exe = shutil.which("git")
+    if exe is None:
+        return []
+    try:
+        out = subprocess.run([exe, "-C", str(cwd), "rev-parse", "--path-format=absolute", "--git-dir", "--git-common-dir"],
+                             capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace")
+    except (OSError, subprocess.SubprocessError):
+        return []
+    if out.returncode != 0:
+        return []
+    roots: list[str] = []
+    for line in out.stdout.splitlines():
+        line = line.strip()
+        if line and line not in roots:
+            roots.append(line)
+    return roots
+
+
+def sandbox_policy(sandbox: str, cwd: Path) -> dict[str, Any] | None:
+    """``turn/start`` 의 ``sandboxPolicy`` — workspace-write 면 작업 디렉터리 + git 디렉터리를 쓰기 루트로. 네트워크는 끈 채다."""
+    if sandbox != "workspace-write":
+        return None
+    return {"type": "workspaceWrite", "writableRoots": [str(cwd), *git_writable_roots(cwd)]}
+
+
 class CodexAdapter:
     harness = "codex"
 
@@ -39,6 +71,7 @@ class CodexAdapter:
             text=True, encoding="utf-8")
         h = Handle(self.harness, proc, cwd, status="busy",
                    extra={"next_id": 0, "waiting": {}, "turn": None, "sandbox": _SANDBOX.get(permission_mode, "read-only")})
+        h.extra["sandbox_policy"] = sandbox_policy(h.extra["sandbox"], cwd)
         threading.Thread(target=self._read, args=(h,), daemon=True).start()
         self._request(h, "initialize", {"clientInfo": {"name": "workflow-hub-relay", "version": "1"}})
         self._send(h, {"method": "initialized"})
@@ -98,7 +131,10 @@ class CodexAdapter:
             if r is not None and "result" in r:
                 return "steer"
         handle.status = "busy"
-        r = self._request(handle, "turn/start", {"threadId": handle.harness_session_id, "input": items})
+        params: dict[str, Any] = {"threadId": handle.harness_session_id, "input": items}
+        if handle.extra.get("sandbox_policy"):
+            params["sandboxPolicy"] = handle.extra["sandbox_policy"]
+        r = self._request(handle, "turn/start", params)
         if r is not None:
             handle.extra["turn"] = ((r.get("result") or {}).get("turn") or {}).get("id") or handle.extra.get("turn")
         return "turn"

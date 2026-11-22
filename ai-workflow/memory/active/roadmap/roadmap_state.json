@@ -2024,11 +2024,11 @@
       "id": "M-052",
       "title": "2.x 전면 Go 전환 — implementation S1 (PC 중계 Go 판)",
       "sdlc_phase": "implementation",
-      "declared_status": "in_progress",
-      "derived_status": "in_progress",
-      "progress": 0.6666666666666666,
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
       "total_leaves": 3,
-      "done_leaves": 2,
+      "done_leaves": 3,
       "deliverables_missing": [],
       "wbs": [
         {
@@ -2056,16 +2056,18 @@
         {
           "id": "WBS-52.3",
           "title": "`check_hub_relay` 구현 스위치(`WORKFLOW_RELAY_IMPL`) · 실제 어댑터 실측(Claude Code · Codex)",
-          "derived_status": "planned",
-          "linked_task_ids": [],
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-22-main-033"
+          ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         }
       ]
     }
   ],
-  "current_milestone_id": "M-052",
+  "current_milestone_id": "M-039",
   "exempt_tasks": [
     {
       "task_id": "TASK-2026-08-25-main-010",

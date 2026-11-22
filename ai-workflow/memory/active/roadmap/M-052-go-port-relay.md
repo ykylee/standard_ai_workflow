@@ -2,7 +2,7 @@
 id: M-052
 title: 2.x 전면 Go 전환 — implementation S1 (PC 중계 Go 판)
 sdlc_phase: implementation
-status: in_progress
+status: done
 order: 52
 parallel_allowed:
   - M-007

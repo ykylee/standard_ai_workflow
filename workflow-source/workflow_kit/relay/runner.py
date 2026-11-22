@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+import signal
 import time
 from collections import deque
 from datetime import datetime
@@ -130,12 +132,24 @@ class Relay:
 
     def serve(self, *, once: bool = False, wait_s: int = 25, ui_port: int | None = None) -> int:
         backoff = 1.0
+        if not once:
+            def _on_term(_signum: int, _frame: Any) -> None:
+                raise SystemExit(0)
+
+            try:
+                signal.signal(signal.SIGTERM, _on_term)
+                signal.signal(signal.SIGINT, _on_term)
+            except ValueError:
+                pass
         if ui_port:
             from workflow_kit.relay.ui import serve as serve_ui
 
             serve_ui(self, ui_port)
             self.log(f"로컬 화면 http://127.0.0.1:{ui_port}/")
         try:
+            if os.environ.get("WORKFLOW_HUB_RELAY_MANUAL") == "1":
+                while True:
+                    time.sleep(0.5)
             while True:
                 try:
                     self.once(wait_s)

@@ -6,6 +6,7 @@ import argparse
 import json
 import socket
 import sys
+from pathlib import Path
 from typing import Any
 
 from workflow_kit.relay import adapters, config
@@ -47,6 +48,16 @@ def _out(obj: Any) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
+    raw = list(sys.argv[1:] if argv is None else argv)
+    if raw and raw[0] == "__sandbox-policy":
+        sp = argparse.ArgumentParser(prog="python -m workflow_kit hub relay __sandbox-policy")
+        sp.add_argument("--sandbox", required=True)
+        sp.add_argument("--cwd", required=True)
+        sargs = sp.parse_args(raw[1:])
+        from workflow_kit.relay.adapters import codex as cx
+
+        _out({"policy": cx.sandbox_policy(sargs.sandbox, Path(sargs.cwd))})
+        return 0
     args = _parser().parse_args(argv)
     if args.cmd == "init":
         harnesses = args.harness or ["claude-code", "codex"]

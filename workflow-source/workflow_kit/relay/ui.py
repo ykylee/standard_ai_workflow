@@ -105,6 +105,34 @@ def serve(relay: Relay, port: int) -> ThreadingHTTPServer:
             if self.headers.get("x-relay-ui") != "1" or not same:
                 self._send(403, json.dumps({"error_code": "forbidden", "message": "중계 화면에서만"}), "application/json")
                 return
+            length = int(self.headers.get("content-length") or 0)
+            raw = self.rfile.read(length) if length > 0 else b""
+            if self.path == "/api/poll":
+                from workflow_kit.relay.conn import HubError
+
+                try:
+                    req_body = json.loads(raw.decode("utf-8")) if raw.strip() else {}
+                except ValueError:
+                    req_body = {}
+                wait_s = int(req_body.get("wait_s", 0)) if isinstance(req_body, dict) else 0
+                try:
+                    got = relay.once(wait_s=wait_s)
+                    self._send(200, json.dumps(got, ensure_ascii=False), "application/json")
+                except HubError as e:
+                    self._send(e.status, json.dumps(e.payload, ensure_ascii=False), "application/json")
+                return
+            if self.path == "/api/deliver":
+                try:
+                    req_body = json.loads(raw.decode("utf-8")) if raw.strip() else None
+                except ValueError:
+                    req_body = None
+                if not isinstance(req_body, dict):
+                    self._send(400, json.dumps({"error_code": "invalid_json", "message": "JSON 객체가 필요하다"}),
+                               "application/json")
+                    return
+                relay._deliver(req_body)
+                self._send(200, json.dumps({"status": "ok"}), "application/json")
+                return
             if self.path not in ("/api/pause", "/api/resume"):
                 self._send(404, "{}", "application/json")
                 return

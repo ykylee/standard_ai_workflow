@@ -121,6 +121,8 @@ func Main(args []string, stdout, stderr io.Writer) int {
 		return runStatus(rest, stdout, stderr)
 	case "serve":
 		return runServe(rest, stdout, stderr)
+	case "__sandbox-policy":
+		return runSandboxPolicy(rest, stdout, stderr)
 	default:
 		fmt.Fprintf(stderr, "relay: unknown subcommand %q\n", cmd)
 		return 2
@@ -459,4 +461,26 @@ func runServe(args []string, stdout, stderr io.Writer) int {
 		return 2
 	}
 	return r.Serve(pf.bools["--once"], waitS, uiPort)
+}
+
+func runSandboxPolicy(args []string, stdout, stderr io.Writer) int {
+	pf, err := parseArgs(
+		args,
+		map[string]bool{"--sandbox": true, "--cwd": true},
+		map[string]bool{"--help": true},
+	)
+	if err != nil {
+		fmt.Fprintf(stderr, "relay: %v\n", err)
+		return 2
+	}
+	sb := pf.get("--sandbox", "")
+	cwd := pf.get("--cwd", "")
+	if sb == "" || cwd == "" {
+		fmt.Fprintln(stderr, "relay: --sandbox 와 --cwd 는 필수다")
+		return 2
+	}
+	printPrettyJSON(stdout, map[string]any{
+		"policy": SandboxPolicy(sb, cwd),
+	})
+	return 0
 }

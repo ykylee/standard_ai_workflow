@@ -3,8 +3,11 @@ package relay
 import (
 	"errors"
 	"fmt"
+	"os"
+	"os/signal"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -382,7 +385,23 @@ func (r *Relay) Serve(once bool, waitS int, uiPort int) int {
 		}
 	}()
 
+	sigCh := make(chan os.Signal, 2)
+	if !once {
+		signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+		defer signal.Stop(sigCh)
+	}
+
+	if !once && os.Getenv("WORKFLOW_HUB_RELAY_MANUAL") == "1" {
+		<-sigCh
+		return 0
+	}
+
 	for {
+		select {
+		case <-sigCh:
+			return 0
+		default:
+		}
 		_, err := r.Once(waitS)
 		if err == nil {
 			backoff = 1 * time.Second

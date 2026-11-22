@@ -112,7 +112,7 @@ workflow-hub judge <op>                  # Go 판
 
 - 범위: Python `workflow_kit/relay/` 전체 — CLI(init · allow · serve · pause · resume · status), 설정 자리 · 토큰 600 파일, 긴 폴링, 어댑터(claude-code · codex · fake), 로컬 화면(`127.0.0.1`, CSP · 출처 규칙 포함 — main-016 실측값).
 - 설정 파일 형식(`relay.json` · 허용 목록 · `relay-state.json`)이 같다 — Python 중계 설정 디렉터리를 Go 중계가 그대로 읽는다.
-- 검증: `check_hub_relay` 를 중계 구현 스위치(`WORKFLOW_RELAY_IMPL`)로 두 구현에 돌린다. 지금 검사는 프로세스 안 `Relay` 객체를 쓰는 부분이 있어, 그 부분을 실제 바이너리 + 로컬 화면 HTTP 로 바꾼다. 실제 어댑터 실측(2.1 요구 §1.5 — Claude Code · Codex 띄우기 → 등록 → 배정 → 수락 → 보고 → 멈춤)을 Go 중계로 다시 한다.
+- 검증: `check_hub_relay` 를 중계 구현 스위치(`WORKFLOW_RELAY_IMPL=python|go|both`)로 실제 자식 프로세스 + 로컬 화면 HTTP 로 두 구현에 돌린다 (python 11/11 · go 11/11 · both 22/22, 되주입 `config.go` 변조 → `[go] case 4` FAIL 확인). 실제 어댑터 실측(2.1 요구 §1.5 — Linux 호스트 Go 중계 `workflow-hub relay` 기준): **Claude Code 2.1.330**(L1 `5.1s` · L2 `14.8s` `next_turn` · `done-cc.txt=OK` · L3 `1.0s` `ended`) · **Codex 0.171.0**(L1 `12.3s` · L2 `24.5s` `steer` · `done-cx.txt=OK` · `workspaceWrite` sandbox + `writableRoots` `git commit` · L3 `1.0s` `ended`).
 - Codex 어댑터의 쓰기 루트(main-014 — git dir · common dir)와 VS Code 화면 정책(main-016)을 그대로 옮긴다.
 
 ## 7. 빌드 · 배포 (요구 R31)
@@ -125,7 +125,7 @@ workflow-hub judge <op>                  # Go 판
 
 | 단계 | 완료 기준 |
 |---|---|
-| S1 중계 | `check_hub_relay` 두 구현 green · 실제 어댑터 실측 · 6 대상 빌드 |
+| S1 중계 | `check_hub_relay` 두 구현 green · 실제 어댑터 실측 · 6 대상 빌드 — **완료 (M-052 · TASK-2026-11-22-main-031~033)** |
 | S2 허브 그림자 | 적합성 검사 전부 두 구현 green · 차분 검사 불일치 0 (fixture + 실데이터 + 경계) · 테스트베드에서 같은 요청을 두 허브에 보낸 결과 대조 차이 0 · 하네스 4종 실측 |
 | S3 전환 | 상시 허브를 Go 판으로, 되돌리기 리허설(같은 DB 로 Python 판 기동) 성공 |
 | S4 은퇴 | deprecation 정책대로 Python 허브 · 중계 제거, 자산 정본 이동(§2.1) — 3.x 의 다음 판 |

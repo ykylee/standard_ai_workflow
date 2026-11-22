@@ -76,7 +76,7 @@ HTTP 경로, DB 판 12 의 표 32개, 1.x 생성물 형식, 판정 결과가 Pyt
 
 ### R30 — 단계 이행
 
-- **R30.1 S1 중계** — PC 중계를 먼저 Go 로 (판정 없음 · 909줄 · 닫힘, concept §3). 중계 HTTP 계약(`/v1/relay/*`)과 어댑터 실측(2.1 요구 §1.5)을 Go 판으로 다시 한다.
+- **R30.1 S1 중계** — PC 중계를 먼저 Go 로 (판정 없음 · 909줄 · 닫힘, concept §3). 중계 HTTP 계약(`/v1/relay/*`)과 어댑터 실측(2.1 요구 §1.5)을 Go 판으로 다시 한다. (**S1 완료 — M-052 · `TASK-2026-11-22-main-031~033`**: `check_hub_relay` `WORKFLOW_RELAY_IMPL=python|go|both` 22/22 + Linux Go 중계 실제 어댑터 실측 Claude Code 2.1.330 · Codex 0.171.0 L1~L3 · sandbox 커밋 통과, 6 대상 크로스 빌드 통과.)
 - **R30.2 S2 허브 그림자 운영** — Go 허브를 Python 허브 옆에 띄우고, 같은 요청을 둘에 보내 응답 · DB 결과를 대조하는 기간을 둔다 (테스트베드 허브 · 이 저장소 데이터 사본). 불일치 0 과 R28 통과가 다음 단계 조건이다.
 - **R30.3 S3 전환** — 상시 허브를 Go 판으로. 되돌리기는 R26.3 의 묶음 · 같은 DB 로 Python 판을 다시 띄우는 것.
 - **R30.4 S4 은퇴** — Python 허브 · 중계를 deprecation 정책([`v0_9_0_deprecation_policy_spec.md`](../../workflow-source/core/v0_9_0_deprecation_policy_spec.md))으로 내린다. 은퇴 전까지 두 판에 결함 수리가 들어간다.

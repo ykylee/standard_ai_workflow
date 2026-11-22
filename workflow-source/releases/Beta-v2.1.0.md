@@ -76,3 +76,20 @@
   (xvfb · CDP) 화면 · 버튼 · `.vsix` 설치. 결함은 되주입으로 검사가 잡는지 쟀다.
 - 미측정: macOS · Windows 의 중계 · VS Code, VS Code 웹 · 원격.
 - 발행 호스트: Linux.
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-11-22T08:24:37Z)_
+
+- total wiki pages: **101**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

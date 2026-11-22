@@ -1838,11 +1838,11 @@
       "id": "M-048",
       "title": "허브 오케스트레이션 — 안정화 · 2.1.0 발행",
       "sdlc_phase": "stabilization",
-      "declared_status": "in_progress",
-      "derived_status": "in_progress",
-      "progress": 0.6666666666666666,
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
       "total_leaves": 3,
-      "done_leaves": 2,
+      "done_leaves": 3,
       "deliverables_missing": [],
       "wbs": [
         {
@@ -1870,11 +1870,44 @@
         {
           "id": "WBS-48.3",
           "title": "전량 게이트 · 2.1.0 릴리스 노트 · 발행",
-          "derived_status": "in_progress",
+          "derived_status": "done",
           "linked_task_ids": [
             "TASK-2026-11-22-main-019",
             "TASK-2026-11-22-main-020"
           ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "M-049",
+      "title": "허브 · PC 중계 런타임 전환 검토 (Go / Rust) — concept",
+      "sdlc_phase": "concept",
+      "declared_status": "planned",
+      "derived_status": "planned",
+      "progress": 0.0,
+      "total_leaves": 2,
+      "done_leaves": 0,
+      "deliverables_missing": [
+        "docs/planning/runtime-port-review-2026-11.md"
+      ],
+      "wbs": [
+        {
+          "id": "WBS-49.1",
+          "title": "Go · Rust 실측 비교 — 공식 MCP SDK 성숙도 · 단일 바이너리 크기 · Windows 백신 평판 · 빌드 · 서명 비용 · 하네스 어댑터 이식량",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        },
+        {
+          "id": "WBS-49.2",
+          "title": "범위 선택지 · 권고안 · 소유자 결정 · ADR 초안",
+          "derived_status": "planned",
+          "linked_task_ids": [],
           "total_leaves": 1,
           "done_leaves": 0,
           "children": []
@@ -1882,7 +1915,7 @@
       ]
     }
   ],
-  "current_milestone_id": "M-048",
+  "current_milestone_id": "M-039",
   "exempt_tasks": [
     {
       "task_id": "TASK-2026-08-25-main-010",

@@ -71,7 +71,7 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
-- TASK-2026-11-22-main-019 2.1.0 발행 — 전량 게이트 · 릴리스 노트 · 판 올리기 · GitHub Release (M-048 WBS-48.3)
+-
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:
@@ -83,6 +83,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-11-22-main-019 2.1.0 발행 — 전량 게이트 · 릴리스 노트 · 판 올리기 · GitHub Release (M-048 WBS-48.3)
 - TASK-2026-11-22-main-020 SDK · 해석기 매트릭스의 기본 임시 폴더가 저장소 안이라 git 밖 fixture 가 이 저장소 하위가 된다 — 매트릭스 위양성
 - TASK-2026-11-22-main-018 저장소 README 재작성 — 2.0 허브 · 2.1 오케스트레이션 구성 · 아키텍처 · 시스템 구성도
 - TASK-2026-11-22-main-017 2.1 진입 지침 세션 끝 — 샌드박스로 push 못 하는 일하는 세션은 우회 없이 보고 (M-048 WBS-48.2)
@@ -92,7 +93,6 @@
 - TASK-2026-11-22-main-012 로드맵 형식 위반(WBS 제목 200자 초과 등)이 session-start · refresh-state 를 런타임 오류로 죽인다
 - TASK-2026-11-22-main-015 VS Code 확장 껍데기 — 중계 화면 webview · 상태 표시줄 · 프레임 정책 · 게이트 검사 (M-047 WBS-47.1)
 - TASK-2026-11-22-main-013 PC 중계 실제 어댑터 실측 — Claude Code · Codex 세션 띄우기 · 배정 전달 · 수락/보고 · 멈춤 (M-046 WBS-46.3)
-- TASK-2026-11-22-main-011 PC 중계 — 허브 쪽 API · 중계 패키지 · 어댑터 · 게이트 검사 (M-046 WBS-46.1 · 46.2)
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

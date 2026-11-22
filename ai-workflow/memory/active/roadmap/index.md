@@ -107,5 +107,7 @@
   - path: [`./M-046-hub-orchestration-relay.md`](./M-046-hub-orchestration-relay.md)
 - **M-047** [implementation] 허브 오케스트레이션 — implementation 4 (VS Code 확장 껍데기) — status: done
   - path: [`./M-047-hub-orchestration-vscode.md`](./M-047-hub-orchestration-vscode.md)
-- **M-048** [stabilization] 허브 오케스트레이션 — 안정화 · 2.1.0 발행 — status: in_progress
+- **M-048** [stabilization] 허브 오케스트레이션 — 안정화 · 2.1.0 발행 — status: done
   - path: [`./M-048-hub-orchestration-release.md`](./M-048-hub-orchestration-release.md)
+- **M-049** [concept] 허브 · PC 중계 런타임 전환 검토 (Go / Rust) — status: planned
+  - path: [`./M-049-runtime-port-concept.md`](./M-049-runtime-port-concept.md)

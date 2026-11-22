@@ -2024,23 +2024,24 @@
       "id": "M-052",
       "title": "2.x 전면 Go 전환 — implementation S1 (PC 중계 Go 판)",
       "sdlc_phase": "implementation",
-      "declared_status": "planned",
-      "derived_status": "planned",
-      "progress": 0.0,
+      "declared_status": "in_progress",
+      "derived_status": "in_progress",
+      "progress": 0.3333333333333333,
       "total_leaves": 3,
-      "done_leaves": 0,
+      "done_leaves": 1,
       "deliverables_missing": [
-        "hub-go/go.mod",
         "hub-go/internal/relay/"
       ],
       "wbs": [
         {
           "id": "WBS-52.1",
           "title": "`hub-go/` 모듈 뼈대 · `cmd/workflow-hub` · `check_go_build` (vet · test · 6 대상 빌드, Go 없으면 미측정)",
-          "derived_status": "planned",
-          "linked_task_ids": [],
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-22-main-031"
+          ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         },
         {
@@ -2064,7 +2065,7 @@
       ]
     }
   ],
-  "current_milestone_id": "M-039",
+  "current_milestone_id": "M-052",
   "exempt_tasks": [
     {
       "task_id": "TASK-2026-08-25-main-010",

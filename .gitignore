@@ -108,3 +108,6 @@ workflow-source/.venv-build/
 
 # VS Code 확장 묶음 (editors/vscode — vsce package 산출물, TASK-2026-11-22-main-016)
 *.vsix
+
+# Go 로컬 빌드 산출물 (hub_go_spec.md §5.3 기본 WORKFLOW_HUB_BIN 경로)
+/hub-go/bin/

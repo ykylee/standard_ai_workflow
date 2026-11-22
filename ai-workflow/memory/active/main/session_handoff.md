@@ -84,6 +84,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-11-22-main-031 hub-go 모듈 뼈대 · cmd/workflow-hub · check_go_build (M-052 WBS-52.1)
 - TASK-2026-11-22-main-030 Go 전환 design 결정 DG1~DG5 · ADR-035 Accepted (M-051 WBS-51.4)
 - TASK-2026-11-22-main-029 Go 전환 S1 중계 · 빌드 · 배포 설계 (M-051 WBS-51.3)
 - TASK-2026-11-22-main-028 Go 전환 검증 설계 — 판정 CLI 프로토콜 · 차분 검사 · corpus · 적합성 스위치 · 게이트 (M-051 WBS-51.2)
@@ -93,7 +94,6 @@
 - TASK-2026-11-22-main-026 ADR-035 Go 런타임 초안 — PURPOSE 예외 · hub_spec R0.3 개정 (M-050 WBS-50.3)
 - TASK-2026-11-22-main-022 허브 mcp 상한 해제 — >=1.27,<2 를 2.x 로, 최신 MCP 규격 2026-07-28 (M-049 R5)
 - TASK-2026-11-22-main-023 Go/Rust 전환 범위 선택지 · 권고 · 소유자 결정 기록 (M-049 WBS-49.2)
-- TASK-2026-11-22-main-021 허브 · PC 중계 Go/Rust 전환 concept — 실측 비교 · 범위 선택지 · 권고안 (M-049 WBS-49.1 · 49.2)
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

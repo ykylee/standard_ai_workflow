@@ -1,0 +1,76 @@
+package main
+
+import (
+	"bytes"
+	"strings"
+	"testing"
+)
+
+func TestVersion(t *testing.T) {
+	for _, flag := range []string{"--version", "-v", "version"} {
+		var out, errBuf bytes.Buffer
+		rc := run([]string{flag}, &out, &errBuf)
+		if rc != 0 {
+			t.Fatalf("%s: got rc=%d, want 0 (stderr=%q)", flag, rc, errBuf.String())
+		}
+		want := "workflow-hub " + version
+		if got := strings.TrimSpace(out.String()); got != want {
+			t.Fatalf("%s: got %q, want %q", flag, got, want)
+		}
+		if errBuf.Len() != 0 {
+			t.Fatalf("%s: unexpected stderr %q", flag, errBuf.String())
+		}
+	}
+}
+
+func TestHelpAndCommands(t *testing.T) {
+	t.Run("help", func(t *testing.T) {
+		for _, flag := range []string{"--help", "-h", "help"} {
+			var out, errBuf bytes.Buffer
+			rc := run([]string{flag}, &out, &errBuf)
+			if rc != 0 {
+				t.Fatalf("%s: got rc=%d, want 0", flag, rc)
+			}
+			for _, sub := range []string{"serve", "backup", "admin", "relay", "judge"} {
+				if !strings.Contains(out.String(), sub) {
+					t.Fatalf("%s: help output missing %q: %q", flag, sub, out.String())
+				}
+			}
+		}
+	})
+
+	t.Run("no_args", func(t *testing.T) {
+		var out, errBuf bytes.Buffer
+		rc := run(nil, &out, &errBuf)
+		if rc != 2 {
+			t.Fatalf("no args: got rc=%d, want 2", rc)
+		}
+		if !strings.Contains(errBuf.String(), "usage: workflow-hub") {
+			t.Fatalf("no args: unexpected stderr %q", errBuf.String())
+		}
+	})
+
+	t.Run("unimplemented_subcommands", func(t *testing.T) {
+		for _, sub := range []string{"serve", "backup", "admin", "relay", "judge"} {
+			var out, errBuf bytes.Buffer
+			rc := run([]string{sub}, &out, &errBuf)
+			if rc != 2 {
+				t.Fatalf("%s: got rc=%d, want 2", sub, rc)
+			}
+			if !strings.Contains(errBuf.String(), "not implemented yet") {
+				t.Fatalf("%s: unexpected stderr %q", sub, errBuf.String())
+			}
+		}
+	})
+
+	t.Run("unknown_command", func(t *testing.T) {
+		var out, errBuf bytes.Buffer
+		rc := run([]string{"bogus"}, &out, &errBuf)
+		if rc != 2 {
+			t.Fatalf("bogus: got rc=%d, want 2", rc)
+		}
+		if !strings.Contains(errBuf.String(), "unknown command") {
+			t.Fatalf("bogus: unexpected stderr %q", errBuf.String())
+		}
+	})
+}

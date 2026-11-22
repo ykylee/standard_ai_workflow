@@ -43,6 +43,7 @@
       "TASK-2026-11-21-main-013"
     ],
     "recent_done_items": [
+      "TASK-2026-11-22-main-031 — hub-go 모듈 뼈대 · cmd/workflow-hub · check_go_build (M-052 WBS-52.1)",
       "TASK-2026-11-22-main-030 — Go 전환 design 결정 DG1~DG5 · ADR-035 Accepted (M-051 WBS-51.4)",
       "TASK-2026-11-22-main-029 — Go 전환 S1 중계 · 빌드 · 배포 설계 (M-051 WBS-51.3)",
       "TASK-2026-11-22-main-028 — Go 전환 검증 설계 — 판정 CLI 프로토콜 · 차분 검사 · corpus · 적합성 스위치 · 게이트 (M-051 WBS-51.2)",
@@ -51,15 +52,14 @@
       "TASK-2026-11-22-main-025 — Go 전환 이행 단계 · 배포 · 게이트 · Python 판 은퇴 요구 (M-050 WBS-50.2)",
       "TASK-2026-11-22-main-024 — 2.x 전면 Go 전환 requirements — 계약 불변 · 판정 동일성 · 적합성 검사 · 이행 단계 · 배포 · ADR-035 (M-050)",
       "TASK-2026-11-22-main-023 — Go/Rust 전환 범위 선택지 · 권고 · 소유자 결정 기록 (M-049 WBS-49.2)",
-      "TASK-2026-11-22-main-022 — 허브 mcp 상한 해제 — >=1.27,<2 를 2.x 로, 최신 MCP 규격 2026-07-28 (M-049 R5)",
-      "TASK-2026-11-22-main-021 — 허브 · PC 중계 Go/Rust 전환 concept — 실측 비교 · 범위 선택지 · 권고안 (M-049 WBS-49.1 · 49.2)"
+      "TASK-2026-11-22-main-022 — 허브 mcp 상한 해제 — >=1.27,<2 를 2.x 로, 최신 MCP 규격 2026-07-28 (M-049 R5)"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-11-22.md",
-    "task_count": 31,
+    "task_count": 32,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
@@ -93,7 +93,8 @@
       "TASK-2026-11-22-main-027 — Go 전환 구조 설계 — hub-go 배치 · 모듈 대응 · 순수 판정 입구 · 자산 단일 출처 (M-051 WBS-51.1)",
       "TASK-2026-11-22-main-028 — Go 전환 검증 설계 — 판정 CLI 프로토콜 · 차분 검사 · corpus · 적합성 스위치 · 게이트 (M-051 WBS-51.2)",
       "TASK-2026-11-22-main-029 — Go 전환 S1 중계 · 빌드 · 배포 설계 (M-051 WBS-51.3)",
-      "TASK-2026-11-22-main-030 — Go 전환 design 결정 DG1~DG5 · ADR-035 Accepted (M-051 WBS-51.4)"
+      "TASK-2026-11-22-main-030 — Go 전환 design 결정 DG1~DG5 · ADR-035 Accepted (M-051 WBS-51.4)",
+      "TASK-2026-11-22-main-031 — hub-go 모듈 뼈대 · cmd/workflow-hub · check_go_build (M-052 WBS-52.1)"
     ]
   },
   "next_documents": [

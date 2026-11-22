@@ -29,7 +29,7 @@ from workflow_kit.hub.store import Ctx, Store, _iso, _json
 
 BUNDLE_FORMAT = "workflow-hub-project-bundle/1"
 #: 허브 전역 표 — 프로젝트와 함께 옮기지 않는다. 그 밖의 표는 전부 '프로젝트 표' 여야 한다 (검사가 대조한다).
-HUB_SCOPED_TABLES = frozenset({"meta", "hub_token", "sqlite_sequence", "project", "hub_invite"})
+HUB_SCOPED_TABLES = frozenset({"meta", "hub_token", "sqlite_sequence", "project", "hub_invite", "relay_host"})
 #: 봉인된 프로젝트에서도 받는 도구 — 조회(새 주소를 알림) · 소유자의 다시 뜨기 · 봉인 풀기 (이전 실패 복구).
 SEALED_ALLOWED = frozenset({"hub_project_lookup", "hub_project_export", "hub_project_unseal"})
 INVITE_HOURS = 24

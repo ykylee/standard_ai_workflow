@@ -300,10 +300,122 @@ CREATE TABLE hub_invite (
 );
 """
 
+#: 판 11 (M-044, 2.1 오케스트레이션 — ``core/hub_orchestration_spec.md`` §3). 2.0 표는 건드리지 않는다 —
+#: 배정은 ``task`` 칼럼이 아니라 ``assignment`` 표 (DO4). 허브 전역 표 ``relay_host`` 는 ``project_id`` 칼럼이 없다.
+_V11 = """
+CREATE TABLE session (
+    project_id TEXT NOT NULL REFERENCES project(id),
+    id TEXT NOT NULL,
+    callsign TEXT NOT NULL,
+    harness TEXT NOT NULL DEFAULT '',
+    harness_session_id TEXT NOT NULL DEFAULT '',
+    kind TEXT NOT NULL DEFAULT 'interactive' CHECK (kind IN ('interactive', 'worker')),
+    allow_wait INTEGER NOT NULL DEFAULT 0,
+    delivery_json TEXT NOT NULL DEFAULT '[]',
+    guide_version TEXT NOT NULL DEFAULT '',
+    host_id TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'ended')),
+    last_signal_at TEXT NOT NULL,
+    waiting_since TEXT,
+    idle_waits INTEGER NOT NULL DEFAULT 0,
+    started_at TEXT NOT NULL,
+    ended_at TEXT,
+    version INTEGER NOT NULL DEFAULT 1,
+    PRIMARY KEY (project_id, id)
+);
+CREATE UNIQUE INDEX session_harness_key ON session (project_id, callsign, harness, harness_session_id)
+    WHERE harness_session_id != '';
+CREATE TABLE inbox_message (
+    project_id TEXT NOT NULL REFERENCES project(id),
+    id TEXT NOT NULL,
+    to_kind TEXT NOT NULL CHECK (to_kind IN ('session', 'callsign')),
+    to_id TEXT NOT NULL,
+    from_callsign TEXT NOT NULL,
+    from_session TEXT NOT NULL DEFAULT '',
+    from_orchestrator INTEGER NOT NULL DEFAULT 0,
+    kind TEXT NOT NULL CHECK (kind IN ('assignment', 'note', 'release', 'report', 'approval')),
+    body_json TEXT NOT NULL,
+    ref_task TEXT NOT NULL DEFAULT '',
+    ref_request TEXT NOT NULL DEFAULT '',
+    state TEXT NOT NULL DEFAULT 'queued'
+        CHECK (state IN ('queued', 'delivered', 'acked', 'declined', 'unacknowledged', 'expired')),
+    delivered_via TEXT NOT NULL DEFAULT '',
+    delivered_at TEXT,
+    last_delivered_at TEXT,
+    delivery_count INTEGER NOT NULL DEFAULT 0,
+    acked_at TEXT,
+    ack_by_session TEXT NOT NULL DEFAULT '',
+    ack_reason TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    PRIMARY KEY (project_id, id)
+);
+CREATE INDEX inbox_to ON inbox_message (project_id, to_kind, to_id, state);
+CREATE TABLE assignment (
+    project_id TEXT NOT NULL REFERENCES project(id),
+    task_id TEXT NOT NULL,
+    session_id TEXT NOT NULL,
+    callsign TEXT NOT NULL,
+    message_id TEXT NOT NULL,
+    state TEXT NOT NULL CHECK (state IN ('offered', 'accepted', 'declined', 'returned', 'reported')),
+    return_reason TEXT NOT NULL DEFAULT '',
+    offered_at TEXT NOT NULL,
+    accepted_at TEXT,
+    reported_at TEXT,
+    report_json TEXT NOT NULL DEFAULT '{}',
+    version INTEGER NOT NULL DEFAULT 1
+);
+CREATE UNIQUE INDEX assignment_open ON assignment (project_id, task_id) WHERE state IN ('offered', 'accepted');
+CREATE TABLE orchestrator_lease (
+    project_id TEXT PRIMARY KEY REFERENCES project(id),
+    session_id TEXT NOT NULL,
+    callsign TEXT NOT NULL,
+    declared_by TEXT NOT NULL,
+    declared_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    halted INTEGER NOT NULL DEFAULT 0,
+    version INTEGER NOT NULL DEFAULT 1
+);
+CREATE TABLE session_request (
+    project_id TEXT NOT NULL REFERENCES project(id),
+    id TEXT NOT NULL,
+    kind TEXT NOT NULL CHECK (kind IN ('spawn', 'stop')),
+    host_id TEXT NOT NULL,
+    target_json TEXT NOT NULL,
+    requested_by TEXT NOT NULL,
+    state TEXT NOT NULL CHECK (state IN ('pending_approval', 'approved', 'rejected', 'dispatched', 'done',
+                                         'refused_by_host', 'failed')),
+    decided_by TEXT NOT NULL DEFAULT '',
+    decided_at TEXT,
+    result_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    PRIMARY KEY (project_id, id)
+);
+CREATE TABLE relay_host (
+    host_id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    token_hash TEXT NOT NULL UNIQUE,
+    owner_callsign TEXT NOT NULL,
+    projects_json TEXT NOT NULL DEFAULT '[]',
+    allow_digest TEXT NOT NULL DEFAULT '',
+    harnesses_json TEXT NOT NULL DEFAULT '[]',
+    last_seen_at TEXT,
+    revoked_at TEXT
+);
+CREATE TABLE orch_counter (
+    project_id TEXT NOT NULL REFERENCES project(id),
+    day TEXT NOT NULL,
+    name TEXT NOT NULL,
+    n INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (project_id, day, name)
+);
+"""
+
 #: 판 순서 = 목록 순서. 판 n = ``MIGRATIONS[n-1]`` (SQL 스크립트).
 #: ``executescript`` 는 열린 트랜잭션을 먼저 커밋하므로, 판 하나의 원자성은
 #: 스크립트 **안의** ``BEGIN IMMEDIATE … COMMIT`` 으로 만든다 (:func:`_apply`).
-MIGRATIONS: list[str] = [_V1, _V2, _V3, _V4, _V5, _V6, _V7, _V8, _V9, _V10]
+MIGRATIONS: list[str] = [_V1, _V2, _V3, _V4, _V5, _V6, _V7, _V8, _V9, _V10, _V11]
 
 
 def latest_version() -> int:

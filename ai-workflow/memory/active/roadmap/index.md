@@ -99,3 +99,5 @@
   - path: [`./M-042-hub-orchestration-requirements.md`](./M-042-hub-orchestration-requirements.md)
 - **M-043** [design] 허브 오케스트레이션 — design (스펙 · DB · 도구 · 전달 규칙 · 어댑터 계약) — status: done
   - path: [`./M-043-hub-orchestration-design.md`](./M-043-hub-orchestration-design.md)
+- **M-044** [implementation] 허브 오케스트레이션 — implementation 1 (세션 · 받은편지함 · 편승 · 대기 · 수신 확인) — status: done
+  - path: [`./M-044-hub-orchestration-inbox.md`](./M-044-hub-orchestration-inbox.md)

@@ -9,8 +9,10 @@ lowlevel 서버를 stateless streamable HTTP 로 연다 — 도구 목록 · 호
 
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import json
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, AsyncIterator, Callable
@@ -29,10 +31,14 @@ from workflow_kit import __version__ as KIT_VERSION
 from workflow_kit.hub import CONTRACT
 from workflow_kit.hub import tools as hubtools
 from workflow_kit.hub.errors import HubError
+from workflow_kit.hub.orchestration import WAIT_CAP_S, Orchestration
 from workflow_kit.hub.store import Ctx, Principal, Store
 
 #: 요청 본문 상한 (요구 R13.5).
 MAX_BODY = 256 * 1024
+#: 허브 전역 동시 대기 상한 · 대기 중 들여다보기 간격 (2.1 스펙 §6.2).
+WAIT_CAPACITY = 64
+WAIT_POLL_S = 0.5
 #: 큰 상한을 받는 도구 — 1.x 전환의 대량 운반은 선택 클라이언트가 한다 (소유자 2026-11-21, 리허설 §16.5:
 #: 이 저장소의 감지 결과만 ~430KB). LLM 이 도구 인자로 싣는 경로(MCP)에는 해당하지 않는다.
 BIG_BODY_TOOLS: dict[str, int] = {"hub_migrate_plan": 8 * 1024 * 1024, "hub_migrate_import": 8 * 1024 * 1024,
@@ -72,6 +78,45 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
         principal = store.authenticate(token, clock(), client) if token else None
         return principal, token is not None
 
+    waiting = {"n": 0}
+
+    async def wait_async(principal: Principal | None, args: dict[str, Any], via: str,
+                         client_version: str | None) -> dict[str, Any]:
+        """``hub_wait`` — 스레드 풀 밖에서 기다린다 (스펙 §6.2 · DO3). 들여다보기만 스레드 풀에서 짧게 돈다.
+
+        도구를 스레드 풀에서 막아 두면 기다리는 세션 수만큼 스레드를 쥐어(anyio 기본 40) 다른 도구가 멈춘다.
+        """
+        def ctx() -> Ctx:
+            return Ctx(now=clock(), via=via, principal=principal, client_version=client_version, public_url=public_url)
+
+        _spec, clean = await run_in_threadpool(hubtools.prepare, store, "hub_wait", args, ctx())
+        timeout = clean.get("timeout_s") or WAIT_CAP_S
+        if not 1 <= timeout:
+            raise HubError(400, "invalid_field", "timeout_s: 1 이상", {"field": "timeout_s"})
+        timeout = min(timeout, WAIT_CAP_S)
+        if waiting["n"] >= WAIT_CAPACITY:
+            raise HubError(429, "wait_capacity", f"허브의 동시 대기 상한 {WAIT_CAPACITY} — 잠시 뒤 다시 부른다",
+                           {"limit": WAIT_CAPACITY})
+        orch = Orchestration(store)
+        sid = clean["session"]
+        waiting["n"] += 1
+        start = time.monotonic()
+        try:
+            got = await run_in_threadpool(lambda: orch.wait_poll(ctx(), sid, first=True))
+            while got is None and time.monotonic() - start < timeout:
+                await asyncio.sleep(WAIT_POLL_S)
+                got = await run_in_threadpool(lambda: orch.wait_poll(ctx(), sid, first=False))
+            waited = int(time.monotonic() - start)
+            if got is None:
+                return await run_in_threadpool(lambda: orch.wait_timeout(ctx(), sid, waited))
+            return {**got, "waited_s": waited}
+        except asyncio.CancelledError:
+            # 클라이언트가 끊었다 — '대기 중' 표시를 남기지 않는다. 실린 메시지는 ack 전까지 다시 실린다 (DO13).
+            orch.wait_clear(ctx(), sid)
+            raise
+        finally:
+            waiting["n"] -= 1
+
     @server.list_tools()  # type: ignore[no-untyped-call, untyped-decorator]
     async def _list_tools() -> list[mtypes.Tool]:
         principal, _ = await run_in_threadpool(principal_from_mcp)
@@ -92,7 +137,13 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
             return hubtools.call(store, name, arguments or {}, ctx)
 
         try:
-            result = await run_in_threadpool(run)
+            if name == "hub_wait":
+                principal, sent = await run_in_threadpool(principal_from_mcp)
+                if sent and principal is None:
+                    raise HubError(401, "unauthorized", "토큰이 틀렸거나 거둔 토큰이다")
+                result = await wait_async(principal, arguments or {}, "mcp", None)
+            else:
+                result = await run_in_threadpool(run)
             return mtypes.CallToolResult(
                 content=[mtypes.TextContent(type="text", text=json.dumps(result, ensure_ascii=False))],
                 structuredContent=result,
@@ -167,7 +218,14 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
                           client_version=request.headers.get("x-hub-client"), public_url=public_url)
                 return hubtools.call(store, name, args, ctx)
 
-            result = await run_in_threadpool(run)
+            if name == "hub_wait":
+                principal = await run_in_threadpool(
+                    lambda: store.authenticate(token, now, request.headers.get("x-hub-client")) if token else None)
+                if token and principal is None:
+                    raise HubError(401, "unauthorized", "토큰이 틀렸거나 거둔 토큰이다")
+                result = await wait_async(principal, args, "http", request.headers.get("x-hub-client"))
+            else:
+                result = await run_in_threadpool(run)
             return JSONResponse(result, headers=headers)
         except HubError as e:
             return JSONResponse(e.payload(), status_code=e.status, headers=headers)

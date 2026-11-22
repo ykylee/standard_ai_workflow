@@ -20,6 +20,7 @@ from workflow_kit.hub.guide import Guides
 from workflow_kit.hub.judge import Judge
 from workflow_kit.hub.memory import Memory
 from workflow_kit.hub.migrate1x import Migrator
+from workflow_kit.hub.orchestration import WAIT_CAP_S, Orchestration
 from workflow_kit.hub.session import SessionStart
 from workflow_kit.hub.setup import Setup
 from workflow_kit.hub.store import Ctx, Store, scan_secrets
@@ -32,6 +33,7 @@ _INT = {"type": "integer"}
 _OBJ = {"type": "object"}
 _ARR = {"type": "array"}
 _REQ_ID = {"type": "string", "description": "멱등 키 — 같은 값으로 다시 보내면 처음 결과를 돌려준다"}
+_SESSION_ARG = {"type": "string", "description": "세션 시작이 준 세션 ID (S-…) — 실으면 이 세션의 받은편지함이 응답의 hub_inbox 칸에 실린다"}
 
 
 @dataclass(frozen=True)
@@ -43,10 +45,17 @@ class ToolSpec:
     required: tuple[str, ...]
     handler: Handler
 
+    @property
+    def all_properties(self) -> dict[str, dict[str, Any]]:
+        """선언 칸 + token 묶음 공통 선택 인자 ``session`` (2.1 오케스트레이션 스펙 §4-2 — 2.0 칸은 그대로)."""
+        if self.bundle == "token" and "session" not in self.properties:
+            return {**self.properties, "session": _SESSION_ARG}
+        return self.properties
+
     def schema(self) -> dict[str, Any]:
         return {
             "type": "object",
-            "properties": {"contract": {"type": "string"}, **self.properties},
+            "properties": {"contract": {"type": "string"}, **self.all_properties},
             "required": list(self.required),
             "additionalProperties": False,
         }
@@ -59,7 +68,8 @@ _PY_TYPES: dict[str, tuple[type, ...]] = {"string": (str,), "integer": (int,), "
 def validate_args(spec: ToolSpec, args: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(args, dict):
         raise invalid_field("arguments", "객체여야 한다")
-    allowed = set(spec.properties) | {"contract"}
+    props = spec.all_properties
+    allowed = set(props) | {"contract"}
     extra = set(args) - allowed
     if extra:
         raise unknown_field(sorted(extra))
@@ -69,7 +79,7 @@ def validate_args(spec: ToolSpec, args: dict[str, Any]) -> dict[str, Any]:
     for name, value in args.items():
         if value is None or name == "contract":
             continue
-        want = spec.properties[name].get("type")
+        want = props[name].get("type")
         types = _PY_TYPES.get(str(want))
         if types and (not isinstance(value, types) or (want == "integer" and isinstance(value, bool))):
             raise invalid_field(name, f"{want} 이어야 한다")
@@ -113,7 +123,19 @@ def _guide_render(store: Store, ctx: Ctx, a: dict[str, Any]) -> dict[str, Any]:
 
 
 def _session_start(store: Store, ctx: Ctx, a: dict[str, Any]) -> dict[str, Any]:
-    return SessionStart(_setup(ctx, store)).run(ctx, a.get("repo_results"), a.get("client"))
+    result = SessionStart(_setup(ctx, store)).run(ctx, a.get("repo_results"), a.get("client"))
+    # 2.1 — ``session`` 객체면 세션 등록 · 이어 붙임 (스펙 §4-1). 문자열(받은 ID)은 call() 의 공통 경로가 다룬다.
+    if isinstance(a.get("session"), dict):
+        result["session"] = Orchestration(store).register(ctx, a["session"])
+    return result
+
+
+def _wait_sync(store: Store, ctx: Ctx, a: dict[str, Any]) -> dict[str, Any]:
+    """``hub_wait`` 의 막지 않는 경로 — 앱(MCP · HTTP)은 스레드 풀 밖 async 루프로 이것을 되풀이한다 (스펙 §6.2, DO3).
+    여기(직접 부르기)서는 한 번 들여다보고 일이 없으면 바로 빈 응답이다."""
+    orch = Orchestration(store)
+    got = orch.wait_poll(ctx, a["session"], first=True)
+    return got if got is not None else orch.wait_timeout(ctx, a["session"], 0)
 
 
 def _whoami(store: Store, ctx: Ctx, a: dict[str, Any]) -> dict[str, Any]:
@@ -178,7 +200,10 @@ TOOLS: dict[str, ToolSpec] = {
         ToolSpec("hub_session_start", "token",
                  "세션 시작 확인 — 인자 없이 부르면 허브 쪽 결과와 저장소에서 돌릴 명령, repo_results 를 실어 다시 부르면 판정. "
                  "repo_results 는 {name: {rc, output}} 객체 또는 [{name, rc, output}] 목록 (이름에 : · . 가 든 키를 못 싣는 하네스는 목록으로).",
-                 {"repo_results": {"type": ["object", "array"]}, "client": _OBJ}, (), _session_start),
+                 {"repo_results": {"type": ["object", "array"]}, "client": _OBJ,
+                  "session": {"type": ["object", "string"],
+                              "description": "2.1 — 첫 호출은 {harness, harness_session_id?, kind?, delivery?, resume?} 로 세션 등록, "
+                                             "이후(두 번째 호출 포함)는 받은 세션 ID 문자열"}}, (), _session_start),
         ToolSpec("hub_guide_render", "token",
                  "하네스 진입 파일의 새 내용 (렌더 영역 갱신). current = 지금 파일 내용 (없으면 생략). 로컬에서 고친 영역이면 blocked.",
                  {"harness": _STR, "current": _STR}, ("harness",), _guide_render),
@@ -338,6 +363,26 @@ TOOLS: dict[str, ToolSpec] = {
         ToolSpec("hub_task_link_commit", "token", "task 에 커밋 sha 를 묶는다 — 허브는 그 커밋을 읽지 않는다.",
                  {"id": _STR, "sha": _STR, "branch": _STR, "request_id": _REQ_ID}, ("id", "sha"),
                  lambda s, c, a: s.task_link_commit(c, a["id"], a["sha"], a.get("branch", ""), a.get("request_id"))),
+        # --- 2.1 오케스트레이션 (core/hub_orchestration_spec.md §5, M-044) ---
+        ToolSpec("hub_session_update", "token",
+                 "세션 칸 고침 — kind(interactive/worker) · allow_wait(켜기는 승인된 human 만) · delivery · harness_session_id.",
+                 {"session": _STR, "kind": _STR, "allow_wait": {"type": "boolean"}, "delivery": _ARR,
+                  "harness_session_id": _STR}, ("session",),
+                 lambda s, c, a: Orchestration(s).session_update(c, a)),
+        ToolSpec("hub_session_list", "token",
+                 "프로젝트의 세션 · 상태(idle/working/waiting/ended/unknown — unknown 수는 따로) · 마지막 신호 · 열린 배정.",
+                 {"status": _STR, "callsign": _STR}, (),
+                 lambda s, c, a: Orchestration(s).session_list(c, a)),
+        ToolSpec("hub_wait", "token",
+                 f"일 없는 세션이 기다린다 — 이 세션 앞 메시지가 오면 바로 돌려주고, 없으면 최대 {WAIT_CAP_S}초 뒤 빈 응답 "
+                 "(call_again=true 면 다시 부른다). kind=worker 세션만 (사람이 보는 세션은 꺼짐).",
+                 {"session": _STR, "timeout_s": _INT}, ("session",), _wait_sync),
+        ToolSpec("hub_inbox_ack", "token",
+                 "받은편지함 메시지 확인 — accept(배정 수락) · decline(거절 + reason) · seen(읽음). 같은 메시지에 다시 보내도 한 번.",
+                 {"session": _STR, "message_id": _STR, "decision": _STR, "reason": _STR, "request_id": _REQ_ID},
+                 ("session", "message_id", "decision"), lambda s, c, a: Orchestration(s).ack(c, a)),
+        ToolSpec("hub_inbox_list", "token", "받은편지함 읽기 (상태를 바꾸지 않는다) — session 을 주면 그 세션 앞까지.",
+                 {"session": _STR, "state": _STR}, (), lambda s, c, a: Orchestration(s).inbox_list(c, a)),
         ToolSpec("hub_events", "token", "이력 (누가 · 언제 · 무엇 · 이전 값 · 새 값).",
                  {"target_kind": _STR, "target_id": _STR, "after_seq": _INT, "limit": _INT}, (),
                  lambda s, c, a: s.events(c, a.get("target_kind"), a.get("target_id"), a.get("after_seq", 0), a.get("limit", 200))),
@@ -351,13 +396,19 @@ def _transfer() -> Any:
     return transfer
 
 
+#: 자기 ``session`` 인자를 직접 다루는 도구 — call() 이 떼지 않는다 (신호는 도구가 남긴다).
+OWN_SESSION_TOOLS = frozenset({"hub_session_start", "hub_session_update", "hub_wait", "hub_inbox_ack", "hub_inbox_list"})
+#: 편승 칸을 붙이지 않는 도구 — 자기 칸이 있거나(대기 ``work``) 받은편지함 자체를 다룬다 (스펙 §6.1).
+NO_PIGGYBACK_TOOLS = frozenset({"hub_wait", "hub_inbox_ack", "hub_inbox_list"})
+
+
 def visible_tools(authenticated: bool) -> list[ToolSpec]:
     """토큰 없는 연결에는 부트스트랩 묶음만 (요구 R2.3)."""
     return [t for t in TOOLS.values() if authenticated or t.bundle == "bootstrap"]
 
 
-def call(store: Store, name: str, args: dict[str, Any], ctx: Ctx) -> dict[str, Any]:
-    """MCP · HTTP 가 부르는 단 하나의 입구."""
+def prepare(store: Store, name: str, args: dict[str, Any], ctx: Ctx) -> tuple[ToolSpec, dict[str, Any]]:
+    """입구 검사 — 인증 · 인자 · 봉인 · 비밀. :func:`call` 과 앱의 ``hub_wait`` async 경로가 같이 쓴다 (한 벌)."""
     spec = TOOLS.get(name)
     if spec is None:
         raise HubError(404, "unknown_tool", f"모르는 도구: {name}", {"tool": name})
@@ -380,4 +431,24 @@ def call(store: Store, name: str, args: dict[str, Any], ctx: Ctx) -> dict[str, A
     # 모든 도구 인자 — 기록에 토큰이 실리지 않게 (hub_spec §1-4). 셋업 도구의 인자 ``token`` 은
     # 인증 수단이라 검사에서 뺀다 (DS4) — 기록에는 쓰지 않는다.
     scan_secrets({k: v for k, v in clean.items() if k != "token"})
-    return spec.handler(store, ctx, clean)
+    return spec, clean
+
+
+def call(store: Store, name: str, args: dict[str, Any], ctx: Ctx) -> dict[str, Any]:
+    """MCP · HTTP 가 부르는 단 하나의 입구."""
+    spec, clean = prepare(store, name, args, ctx)
+    if spec.bundle != "token":
+        return spec.handler(store, ctx, clean)
+    # 2.1 공통 ``session`` (스펙 §4-2 · §6.1) — 신호를 남기고, 응답에 받은편지함을 싣는다 (실을 것이 없으면 칸 없음).
+    session = clean.get("session") if isinstance(clean.get("session"), str) else None
+    orch = Orchestration(store)
+    if session is not None and (name not in OWN_SESSION_TOOLS or name == "hub_session_start"):
+        orch.signal(ctx, session)  # 세션 시작 두 번째 호출(받은 ID 문자열)도 신호다
+        if name not in OWN_SESSION_TOOLS:
+            clean.pop("session")
+    result = spec.handler(store, ctx, clean)
+    if name in NO_PIGGYBACK_TOOLS:
+        return result
+    if name == "hub_session_start" and isinstance(result.get("session"), dict):
+        session = result["session"]["id"]  # 방금 등록한 세션 — 쌓여 있던 메시지가 첫 응답에 실린다
+    return orch.attach(ctx, session, result)

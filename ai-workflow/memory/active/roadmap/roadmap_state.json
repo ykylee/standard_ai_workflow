@@ -1726,6 +1726,30 @@
           "children": []
         }
       ]
+    },
+    {
+      "id": "M-044",
+      "title": "허브 오케스트레이션 — implementation 1 (세션 · 받은편지함 · 편승 · 대기 · 수신 확인)",
+      "sdlc_phase": "implementation",
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
+      "total_leaves": 1,
+      "done_leaves": 1,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-44.1",
+          "title": "DB 판 11 · 세션 (등록 · 이어 붙임 · `session` 인자 · 상태 5값 · 수정 · 목록) · 받은편지함 (편승 · 실림≠소비 재전달 · 10분 미확인 · 수신 확인 · 목록) · 대기 도구 비동기 경로",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-22-main-009"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        }
+      ]
     }
   ],
   "current_milestone_id": "M-039",

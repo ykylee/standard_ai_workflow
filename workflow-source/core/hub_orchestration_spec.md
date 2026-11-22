@@ -35,8 +35,8 @@
 
 | 표 | 칼럼 (핵심) | 키 · 제약 | 요구 |
 |---|---|---|---|
-| `session` | `project_id` · `id` (`S-<ULID>`) · `callsign` · `harness` · `harness_session_id` · `kind` (`interactive`/`worker`) · `allow_wait` · `delivery_json` (쓸 수 있는 경로 목록) · `guide_version` · `host_id` · `status` (`active`/`ended`) · `last_signal_at` · `waiting_since` · `started_at` · `ended_at` · `version` | `(project_id, id)` · `(project_id, callsign, harness, harness_session_id)` 유일 (빈 값 제외) | R17.1~R17.4 |
-| `inbox_message` | `project_id` · `id` (`MSG-<ULID>`) · `to_kind` (`session`/`callsign`) · `to_id` · `from_callsign` · `from_session` · `from_orchestrator` · `kind` (`assignment`/`note`/`release`/`report`/`approval`) · `body_json` · `ref_task` · `ref_request` · `state` (`queued`/`delivered`/`acked`/`declined`/`unacknowledged`/`expired`) · `delivered_via` · `delivered_at` · `acked_at` · `ack_reason` · `created_at` · `version` | `(project_id, id)` · 색인 `(project_id, to_kind, to_id, state)` | R18.1 · R18.8 · R18.9 |
+| `session` | `project_id` · `id` (`S-<ULID>`) · `callsign` · `harness` · `harness_session_id` · `kind` (`interactive`/`worker`) · `allow_wait` · `delivery_json` (쓸 수 있는 경로 목록) · `guide_version` · `host_id` · `status` (`active`/`ended`) · `last_signal_at` · `waiting_since` · `idle_waits` (일 없이 연속 대기 수) · `started_at` · `ended_at` · `version` | `(project_id, id)` · `(project_id, callsign, harness, harness_session_id)` 유일 (빈 값 제외) | R17.1~R17.4 |
+| `inbox_message` | `project_id` · `id` (`MSG-<ULID>`) · `to_kind` (`session`/`callsign`) · `to_id` · `from_callsign` · `from_session` · `from_orchestrator` · `kind` (`assignment`/`note`/`release`/`report`/`approval`) · `body_json` · `ref_task` · `ref_request` · `state` (`queued`/`delivered`/`acked`/`declined`/`unacknowledged`/`expired`) · `delivered_via` · `delivered_at` (처음 실림 — 10분 판정 기준) · `last_delivered_at` (마지막 실림 — 60초 재전달 기준) · `delivery_count` · `acked_at` · `ack_by_session` · `ack_reason` · `created_at` · `version` | `(project_id, id)` · 색인 `(project_id, to_kind, to_id, state)` · **꺼내는 순서 = 들어온 순서** (`created_at, rowid` — 같은 초의 메시지가 ID 난수로 뒤섞이지 않게, M-044 검사에서 잡음) | R18.1 · R18.8 · R18.9 |
 | `assignment` | `project_id` · `task_id` · `session_id` · `callsign` · `message_id` · `state` (`offered`/`accepted`/`declined`/`returned`/`reported`) · `return_reason` · `offered_at` · `accepted_at` · `reported_at` · `report_json` · `version` | `(project_id, task_id)` 에 **열린**(`offered`/`accepted`) 줄은 하나 — 부분 유일 색인 | R20.1~R20.4 |
 | `orchestrator_lease` | `project_id` · `session_id` · `callsign` · `declared_by` · `declared_at` · `expires_at` · `halted` (0/1) · `version` | `project_id` 유일 (줄 하나 = 지금 오케스트레이터) | R19.1~R19.3 · R23.2 |
 | `session_request` | `project_id` · `id` (`SR-<4자리>`) · `kind` (`spawn`/`stop`) · `host_id` · `target_json` (디렉터리 별칭 · 하네스 · 권한 모드 · 첫 프롬프트 · 대상 세션) · `requested_by` (세션) · `state` (`pending_approval`/`approved`/`rejected`/`dispatched`/`done`/`refused_by_host`/`failed`) · `decided_by` · `decided_at` · `result_json` · `created_at` · `version` | `(project_id, id)` | R19.4 · R21.4 |
@@ -106,7 +106,7 @@
 
 ### 6.2 대기 도구 (M2, 기본 — 요구 R18.3 · Q1)
 
-- **스레드 풀 밖**에서 돈다: 2.0 `app.py` 는 도구를 `run_in_threadpool` 로 부르므로, `hub_wait` 는 MCP · HTTP 입구에서 따로 갈라 `async` 로 처리한다. 대기 중에는 DB 연결을 쥐지 않는다 — 프로세스 안 `asyncio.Event`(같은 프로세스의 메시지 쓰기가 깨움) + 2초 DB 폴링(다른 프로세스 · `admin` 쓰기 대비).
+- **스레드 풀 밖**에서 돈다: 2.0 `app.py` 는 도구를 `run_in_threadpool` 로 부르므로, `hub_wait` 는 MCP · HTTP 입구에서 따로 갈라 `async` 로 처리한다. 대기 중에는 DB 연결을 쥐지 않는다 — **0.5초마다 짧게 들여다본다**(들여다보기만 스레드 풀에서 돈다). 같은 프로세스 알림(`asyncio.Event`)은 두지 않았다 — 메시지 쓰기는 다른 프로세스(`admin` · 중계)에서도 오므로 폴링 하나로 덮는다 (M-044 구현, 검사 case 9: 투입 뒤 2초 안 응답 · 대기 45개 중 다른 도구 즉시). 입구 검사(인증 · 인자 · 봉인 · 비밀)는 `tools.prepare()` 한 벌을 같이 쓴다.
 - 시작 · 끝에 세션 `waiting_since` 를 쓰고 지운다 → 상태 `waiting` (§7.1). 같은 세션의 대기가 겹치면 앞 대기를 빈 응답으로 끝낸다.
 - 상한: 한 번 **50초** — Claude Code 의 HTTP MCP 클라이언트가 약 60초에 끊는다 (§6.6). 허브 전역 동시 대기 64 (초과 429 `wait_capacity`), 일 없이 연속 **70회**(≈ 1시간)면 `release` 를 내고 409 `wait_budget` (R23.1 — 요구 Q4 의 '30회 ≈ 1시간' 을 시간 기준으로 맞춤).
 - 대기가 메시지를 돌려줄 때도 §6.1 의 '실림은 소비가 아니다' 가 같다 — ack 전까지 다시 실린다.
@@ -282,11 +282,15 @@ class Adapter(Protocol):
 | 423 | `halted` | 정지 스위치 |
 | 429 | `limit_reached` · `wait_capacity` | 상한 (Q4 · R23.1) |
 | 410 | `session_ended` | 끝난 세션으로 호출 |
+| 403 | `message_not_yours` | 이 세션 · 콜사인 앞이 아닌 메시지를 ack |
+| 409 | `already_acked` | 이미 다른 결정 · 다른 세션이 확인한 메시지 (같은 결정 · 같은 세션은 멱등 — `unchanged`) |
+| 409 | `ack_too_late` | 10분 미확인으로 `unacknowledged` 가 된 메시지를 ack |
 
 ## 13. 검증 (구현이 더할 검사)
 
 | 검사 | 무엇을 |
 |---|---|
+| `check_hub_orch` (M-044 — 아래 schema · session · inbox · wait 넷을 한 파일로) | case 1~10 |
 | `check_hub_orch_schema` | 판 10 → 11 이관 · 2.0 표 바이트 불변 · 부분 유일 색인 (열린 배정 하나) |
 | `check_hub_orch_session` | 세션 등록 · 이어 붙임 · `session_not_yours` · 상태 5값 · `unknown` 15분 (시계 인자) |
 | `check_hub_orch_inbox` | 편승 3건 · 8KB · `remaining` · 재전달 없음 · 실을 것 없으면 칸 없음(2.0 응답과 바이트 같음) · bootstrap · 오류 응답에 칸 없음 |

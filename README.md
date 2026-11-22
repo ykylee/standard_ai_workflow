@@ -5,7 +5,7 @@
 - 대상 독자: 허브 관리자, 허브를 쓰는 저장소 주인, AI 에이전트 설계자, 이 저장소 기여자
 - 상태: beta (2.0 허브 2.0.0 — 계약 보장 전)
 - 최종 수정일: 2026-11-22
-- 버전: v2.0.0 (2.0 워크플로우 허브 첫 판, 베타 표기 · main 에는 미발행 2.1 오케스트레이션 포함; package: standard-ai-workflow 2.0.0, runtime `__version__` = 2.0.0, latest tag **v2.0.0**)
+- 버전: v2.1.0 (2.0 워크플로우 허브 첫 판, 베타 표기 · main 에는 미발행 2.1 오케스트레이션 포함; package: standard-ai-workflow 2.1.0, runtime `__version__` = 2.1.0, latest tag **v2.1.0**)
 - 관련 문서: [`docs/HUB_OPERATIONS.md`](./docs/HUB_OPERATIONS.md), [`workflow-source/core/hub_spec.md`](./workflow-source/core/hub_spec.md), [`workflow-source/core/hub_orchestration_spec.md`](./workflow-source/core/hub_orchestration_spec.md), [`docs/INSTALLATION_AND_USAGE.md`](./docs/INSTALLATION_AND_USAGE.md), [`docs/LOCAL_GATE.md`](./docs/LOCAL_GATE.md)
 
 ## 1. 한눈에

@@ -38,6 +38,6 @@
     "plan_inbox",
     "plan_import"
   ],
-  "tool_version": "2.0.0",
+  "tool_version": "2.1.0",
   "transport_phase": "jsonrpc_draft"
 }

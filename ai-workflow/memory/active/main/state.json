@@ -45,6 +45,7 @@
       "TASK-2026-11-21-main-013"
     ],
     "recent_done_items": [
+      "TASK-2026-11-22-main-020 — SDK · 해석기 매트릭스의 기본 임시 폴더가 저장소 안이라 git 밖 fixture 가 이 저장소 하위가 된다 — 매트릭스 위양성",
       "TASK-2026-11-22-main-018 — 저장소 README 재작성 — 2.0 허브 · 2.1 오케스트레이션 구성 · 아키텍처 · 시스템 구성도",
       "TASK-2026-11-22-main-017 — 2.1 진입 지침 세션 끝 — 샌드박스로 push 못 하는 일하는 세션은 우회 없이 보고 (M-048 WBS-48.2)",
       "TASK-2026-11-22-main-016 — VS Code 확장 실제 로드 실측 — 활성화 · 명령 · webview 안 중계 화면 · 상태 표시줄 · .vsix 패키징 (M-048 WBS-48.1)",
@@ -53,15 +54,14 @@
       "TASK-2026-11-22-main-013 — PC 중계 실제 어댑터 실측 — Claude Code · Codex 세션 띄우기 · 배정 전달 · 수락/보고 · 멈춤 (M-046 WBS-46.3)",
       "TASK-2026-11-22-main-012 — 로드맵 형식 위반(WBS 제목 200자 초과 등)이 session-start · refresh-state 를 런타임 오류로 죽인다",
       "TASK-2026-11-22-main-011 — PC 중계 — 허브 쪽 API · 중계 패키지 · 어댑터 · 게이트 검사 (M-046 WBS-46.1 · 46.2)",
-      "TASK-2026-11-22-main-010 — 허브 오케스트레이션 구현 2 — 오케스트레이터 lease · 배정 상태 기계 · 보고 · 정지 · 진입 규칙 (M-045 WBS-45.1)",
-      "TASK-2026-11-22-main-009 — 허브 오케스트레이션 구현 1 — DB 판 11 · 세션 · 받은편지함 편승 · 대기 도구 · 수신 확인 (M-044 WBS-44.1)"
+      "TASK-2026-11-22-main-010 — 허브 오케스트레이션 구현 2 — 오케스트레이터 lease · 배정 상태 기계 · 보고 · 정지 · 진입 규칙 (M-045 WBS-45.1)"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-11-22.md",
-    "task_count": 20,
+    "task_count": 21,
     "in_progress_items": [
       "TASK-2026-11-22-main-019 — 2.1.0 발행 — 전량 게이트 · 릴리스 노트 · 판 올리기 · GitHub Release (M-048 WBS-48.3)"
     ],
@@ -85,7 +85,8 @@
       "TASK-2026-11-22-main-015 — VS Code 확장 껍데기 — 중계 화면 webview · 상태 표시줄 · 프레임 정책 · 게이트 검사 (M-047 WBS-47.1)",
       "TASK-2026-11-22-main-016 — VS Code 확장 실제 로드 실측 — 활성화 · 명령 · webview 안 중계 화면 · 상태 표시줄 · .vsix 패키징 (M-048 WBS-48.1)",
       "TASK-2026-11-22-main-017 — 2.1 진입 지침 세션 끝 — 샌드박스로 push 못 하는 일하는 세션은 우회 없이 보고 (M-048 WBS-48.2)",
-      "TASK-2026-11-22-main-018 — 저장소 README 재작성 — 2.0 허브 · 2.1 오케스트레이션 구성 · 아키텍처 · 시스템 구성도"
+      "TASK-2026-11-22-main-018 — 저장소 README 재작성 — 2.0 허브 · 2.1 오케스트레이션 구성 · 아키텍처 · 시스템 구성도",
+      "TASK-2026-11-22-main-020 — SDK · 해석기 매트릭스의 기본 임시 폴더가 저장소 안이라 git 밖 fixture 가 이 저장소 하위가 된다 — 매트릭스 위양성"
     ]
   },
   "next_documents": [

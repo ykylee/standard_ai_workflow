@@ -2090,6 +2090,13 @@
       "wbs_ref": "exempt",
       "exempt_reason": "2.1 오케스트레이션 후속 — 결정 대기",
       "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-11-22-main-014.md"
+    },
+    {
+      "task_id": "TASK-2026-11-22-main-018",
+      "task_status": "done",
+      "wbs_ref": "exempt",
+      "exempt_reason": "저장소 소개 문서 재작성 — 소유자 지시 (2026-11-22)",
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-11-22-main-018.md"
     }
   ],
   "issues": []

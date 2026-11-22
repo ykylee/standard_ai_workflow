@@ -83,6 +83,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-11-22-main-018 저장소 README 재작성 — 2.0 허브 · 2.1 오케스트레이션 구성 · 아키텍처 · 시스템 구성도
 - TASK-2026-11-22-main-017 2.1 진입 지침 세션 끝 — 샌드박스로 push 못 하는 일하는 세션은 우회 없이 보고 (M-048 WBS-48.2)
 - TASK-2026-11-22-main-016 VS Code 확장 실제 로드 실측 — 활성화 · 명령 · webview 안 중계 화면 · 상태 표시줄 · .vsix 패키징 (M-048 WBS-48.1)
 - TASK-2026-11-22-main-014 Codex 일하는 세션이 workspace-write 샌드박스에서 .git 이 읽기 전용이라 커밋 · push 를 못 한다 — 중계 세션의 커밋 경로
@@ -92,7 +93,6 @@
 - TASK-2026-11-22-main-013 PC 중계 실제 어댑터 실측 — Claude Code · Codex 세션 띄우기 · 배정 전달 · 수락/보고 · 멈춤 (M-046 WBS-46.3)
 - TASK-2026-11-22-main-011 PC 중계 — 허브 쪽 API · 중계 패키지 · 어댑터 · 게이트 검사 (M-046 WBS-46.1 · 46.2)
 - TASK-2026-11-22-main-010 허브 오케스트레이션 구현 2 — 오케스트레이터 lease · 배정 상태 기계 · 보고 · 정지 · 진입 규칙 (M-045 WBS-45.1)
-- TASK-2026-11-22-main-009 허브 오케스트레이션 구현 1 — DB 판 11 · 세션 · 받은편지함 편승 · 대기 도구 · 수신 확인 (M-044 WBS-44.1)
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

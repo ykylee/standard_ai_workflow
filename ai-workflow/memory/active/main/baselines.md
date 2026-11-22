@@ -11,6 +11,10 @@
 
 ## 롤오프 2026-11-22
 
+- **137차 (2026-11-21, Linux 호스트) — R16.5 1.x 분기 + 2.0 허브 main 병합 + M-036 done** (위키 · memory_index · 운반 · 선택 클라이언트 — TASK-2026-11-21-main-001~004, `check_hub_wiki` 12 · `check_hub_client` 5, 마지막 push `25e8574a`). 1.x 수리 `bidir_link` 는 `release/1.x` 에도(`05678400`), 1.x OKF 결함 2건은 `release/1.x` backlog. `release/1.x` 를 `main@bb943c81`(v1.29.0 + 메모리 커밋)에서 분기 · push — 1.x 결함 수리 · patch 발행은 그 브랜치 머리에서 (R16.1 · R16.2). 이어 `claude/workflow-hub-concept` 를 main 에 병합(`dd011029`, PR 없음 — 소유자 지시): 2.0 허브 M-030~M-035 done (요구 `docs/planning/workflow-hub-requirements-2026-11.md` · 설계 `workflow-source/core/hub_spec.md` · ADR-033 Accepted · PURPOSE 2.0판 · 코드 `workflow_kit/hub/`), kit 결함 수리 2(현재 마일스톤 병행 선언 기준 · handoff §5 서두 회차 줄 누적형). 브랜치 기록은 [`archived/claude/workflow-hub-concept/`](../../archived/claude/workflow-hub-concept/session_handoff.md). plugin/ 은 안 바뀌어 main 채널 소비자는 1.x 플러그인 그대로 — 2.0 이 plugin/ 을 바꾸기 전에 R16.4 안내 판 필요. **검증 간소화 기간 (소유자 2026-11-20)**: verifier · push 전 전량 게이트 생략, `--changed` + 스모크 뒤 `--no-verify` push, 발행 때만 전량. 다음 M-036.
+
+## 롤오프 2026-11-22
+
 - **134차 세션 (2026-11-19, macOS 호스트 Mac mini — 종전 맥과 다른 두 번째 맥) — 발행 없음, 정본 v1.27.0 + 미발행 수리 3건.** 이 호스트를 1.22.0 → 1.27.0 으로 올림(전역 `wk` uv tool · `.venv` editable · claude-code · codex · grok-build · minimax-code; antigravity 는 `agy` 부재) → doctor behind=[] · disabled=[]. `core.hooksPath=.githooks` 켬. 133차(worktree `claude/remote-sync-check-234c32`, v1.27.0 발행)의 기록이 재합류 결함으로 main 메모리에 못 들어와 있던 것을 수리와 함께 반영(완료 3 · 이월 2). 수리: main-001(session-start 가 아카이브 실패를 '이동했다' 로 보고) · main-002(`archived/<branch>/` 가 있으면 반영까지 건너뜀 → 파일 단위 병합, `superseded-<옛 날짜>.<이름>`) · main-003(`check_memory_index_cross_v0_15_7` case 5 대조군이 telemetry 누적량에 의존). 셋 다 verifier PASS. `run_all_checks --changed` green · smoke 8/8. **전량 게이트(`--branch-context=all`) 이 호스트 첫 실행 통과 — `7df480f9` 664 PASS · 실패 0, push 완료(`fc814642..7df480f9`).**
 
 ## 롤오프 2026-11-21

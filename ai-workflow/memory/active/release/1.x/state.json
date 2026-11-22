@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-11-21",
+  "generated_at": "2026-11-22",
   "purpose_digest": "여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공",
   "purpose_digest_rev": "2026-09-28",
   "source_of_truth": {
@@ -10,7 +10,7 @@
     "daily_backlog_dir": "ai-workflow/memory/active/release/1.x/backlog",
     "tasks_dir": "ai-workflow/memory/active/release/1.x/backlog/tasks",
     "sessions_dir": "ai-workflow/memory/active/release/1.x/sessions",
-    "latest_backlog_path": "ai-workflow/memory/active/release/1.x/backlog/2026-11-21.md",
+    "latest_backlog_path": "ai-workflow/memory/active/release/1.x/backlog/2026-11-22.md",
     "repository_assessment_path": null
   },
   "project": {
@@ -46,6 +46,7 @@
       "TASK-2026-11-21-release-1.x-003"
     ],
     "recent_done_items": [
+      "TASK-2026-11-22-release-1.x-001 — 로드맵 WBS 한 줄 위반이 session-start 를 죽임 · backlog-update done 의 Result 중복 (main 의 같은 수리를 1.x 로)",
       "TASK-2026-11-21-release-1.x-009 — 브랜치 자동 seed 가 roadmap_state.json 을 재생성하지 않는다 (main 의 같은 수리를 1.x 로)",
       "TASK-2026-11-21-release-1.x-008 — 발행 산출물 선택이 접두사 glob — find_dist_files 정확한 파일명 대조 (main 의 같은 수리를 1.x 로)",
       "TASK-2026-11-21-release-1.x-007 — 1.x 안내 판 1.30.0 — session-start 2.0 안내 한 줄 · EOL 한 줄 · README · 채널 재등록 (R16.4 · R14.8 · R16.3 · R16.6)",
@@ -58,24 +59,18 @@
     "environment_constraints": []
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/active/release/1.x/backlog/2026-11-21.md",
-    "task_count": 9,
+    "latest_backlog_path": "ai-workflow/memory/active/release/1.x/backlog/2026-11-22.md",
+    "task_count": 1,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
-      "TASK-2026-11-21-release-1.x-001 — 브랜치 네임스페이스 자동 seed — `main` 에서 이어받음",
-      "TASK-2026-11-21-release-1.x-004 — v1.29.1 발행 — 1.x 결함 수리 patch (.long-lived 표시)",
-      "TASK-2026-11-21-release-1.x-005 — '허브로 옮김' 표식이 있으면 1.x 쓰기 거절 · session-start 는 허브를 가리킨다 (main 의 M-038 WBS-38.3 1.x 쪽)",
-      "TASK-2026-11-21-release-1.x-006 — run_all_checks 잠금 파일 보유자 정보가 깨진다 — a+b 모드 (main 의 같은 수리를 1.x 로)",
-      "TASK-2026-11-21-release-1.x-007 — 1.x 안내 판 1.30.0 — session-start 2.0 안내 한 줄 · EOL 한 줄 · README · 채널 재등록 (R16.4 · R14.8 · R16.3 · R16.6)",
-      "TASK-2026-11-21-release-1.x-008 — 발행 산출물 선택이 접두사 glob — find_dist_files 정확한 파일명 대조 (main 의 같은 수리를 1.x 로)",
-      "TASK-2026-11-21-release-1.x-009 — 브랜치 자동 seed 가 roadmap_state.json 을 재생성하지 않는다 (main 의 같은 수리를 1.x 로)"
+      "TASK-2026-11-22-release-1.x-001 — 로드맵 WBS 한 줄 위반이 session-start 를 죽임 · backlog-update done 의 Result 중복 (main 의 같은 수리를 1.x 로)"
     ]
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",
     "ai-workflow/memory/active/release/1.x/session_handoff.md",
-    "ai-workflow/memory/active/release/1.x/backlog/2026-11-21.md",
+    "ai-workflow/memory/active/release/1.x/backlog/2026-11-22.md",
     "ai-workflow/memory/active/release/1.x/backlog",
     "ai-workflow/memory/active/release/1.x/sessions",
     "workflow-source/core/roadmap_milestone_wbs_spec.md",

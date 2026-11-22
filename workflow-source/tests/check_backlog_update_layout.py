@@ -388,6 +388,38 @@ def test_update_derived_records_keep_preserved_title() -> None:
         assert "보존할 제목" in carried and f"{task_id}** [release] x" not in carried, f"이월 색인 제목:\n{carried}"
 
 
+def test_done_validation_does_not_duplicate_result() -> None:
+    """done 의 검증 결과가 채운 결과 옆에 Result 로 한 줄 더 붙지 않는다 (TASK-2026-11-22-main-002).
+
+    되주입 근거: 갱신 경로가 --result-note 없으면 검증 결과를 결과로 대신 썼고, 결과 칸은 누적 병합이라 이미 채운
+    결과 옆에 붙었다. 같은 내용이 Verification 에도 들어갔다 (문자열과 목록을 비교해 늘 참). 2026-11-22 세 번 재현.
+    결과가 **비어 있으면** 검증 결과로 채우는 종전 동작은 그대로다.
+    """
+    result, verify = task_label("result"), task_label("validation")
+    with tempfile.TemporaryDirectory() as td:
+        ws = _make_workspace(td)
+        filled = _run_apply(ws, "--task-name", "채운 결과", "--task-brief", "b", "--mode", "create",
+                            "--kind", "session", "--done-criteria", "기준", "--status", "in_progress")["task_id"]
+        _run_apply(ws, "--task-name", "채운 결과", "--task-id", filled, "--mode", "update", "--result-note", "직접 쓴 결과")
+        _run_apply(ws, "--task-name", "채운 결과", "--task-id", filled, "--mode", "update", "--status", "done",
+                   "--validation-result", "검증 3/3")
+        text = (_branch_dir(ws) / "backlog" / "tasks" / f"{filled}.md").read_text(encoding="utf-8")
+        results = [ln for ln in text.splitlines() if ln.startswith(f"- {result}:")]
+        verifies = [ln for ln in text.splitlines() if ln.startswith(f"- {verify}:")]
+        assert results == [f"- {result}: 직접 쓴 결과"], f"결과 줄: {results}"
+        assert verifies == [f"- {verify}: 검증 3/3"], f"검증 줄: {verifies}"
+
+        empty = _run_apply(ws, "--task-name", "빈 결과", "--task-brief", "b", "--mode", "create",
+                           "--kind", "session", "--done-criteria", "기준", "--status", "in_progress")["task_id"]
+        _run_apply(ws, "--task-name", "빈 결과", "--task-id", empty, "--mode", "update", "--status", "done",
+                   "--validation-result", "검증 1/1")
+        text2 = (_branch_dir(ws) / "backlog" / "tasks" / f"{empty}.md").read_text(encoding="utf-8")
+        results2 = [ln for ln in text2.splitlines() if ln.startswith(f"- {result}:")]
+        verifies2 = [ln for ln in text2.splitlines() if ln.startswith(f"- {verify}:")]
+        assert results2 == [f"- {result}: 검증 1/1"], f"빈 결과를 검증으로 채우는 종전 동작: {results2}"
+        assert verifies2 == [f"- {verify}: 검증 1/1"], f"검증 줄은 늘 쓴다 (워크벤치가 읽는다): {verifies2}"
+
+
 def main() -> int:
     test_funcs = [
         test_daily_index_is_link_only,
@@ -402,6 +434,7 @@ def main() -> int:
         test_update_task_brief_is_optional,
         test_update_explicit_kind_moves_index_marker,
         test_update_derived_records_keep_preserved_title,
+        test_done_validation_does_not_duplicate_result,
     ]
     failures: list[tuple[str, str]] = []
     for func in test_funcs:

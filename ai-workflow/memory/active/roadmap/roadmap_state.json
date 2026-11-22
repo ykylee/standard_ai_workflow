@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "generated_by": "workflow_kit.common.state.roadmap.generate_roadmap_state",
-  "generated_at": "2026-11-21",
+  "generated_at": "2026-11-22",
   "milestones": [
     {
       "id": "M-001",
@@ -1291,6 +1291,13 @@
       "wbs_ref": "exempt",
       "exempt_reason": "1.x 결함 수리 — 마일스톤 밖",
       "source_path": "ai-workflow/memory/active/release/1.x/backlog/tasks/TASK-2026-11-21-release-1.x-009.md"
+    },
+    {
+      "task_id": "TASK-2026-11-22-release-1.x-001",
+      "task_status": "done",
+      "wbs_ref": "exempt",
+      "exempt_reason": "1.x 결함 수리 — 마일스톤 밖",
+      "source_path": "ai-workflow/memory/active/release/1.x/backlog/tasks/TASK-2026-11-22-release-1.x-001.md"
     }
   ],
   "issues": []

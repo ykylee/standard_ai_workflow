@@ -1137,9 +1137,15 @@ def main() -> int:
             list_updates: dict[str, list[str]] = {}
             if args.done_criteria:
                 list_updates[task_label("done_criteria")] = _as_list(args.done_criteria)
-            if result_note:
-                list_updates[task_label("result")] = _as_list(result_note)
-            if args.validation_result and args.validation_result != result_note:
+            # 결과 칸은 누적 병합이다 — 검증 결과로 결과 칸을 **대신** 채우는 것은 결과가 비어 있을 때만 (TASK-2026-11-22-main-002:
+            # 이미 채운 결과 옆에 검증 결과가 Result 로 한 줄 더 붙고, 같은 내용이 Verification 에도 들어갔다 — 세 번 재현).
+            explicit_result = _as_list(args.result_note)
+            result_empty = any(is_empty_label_line(line, "result") for line in existing_lines)
+            merge_result = explicit_result or (result_note if result_empty else [])
+            if merge_result:
+                list_updates[task_label("result")] = _as_list(merge_result)
+            # 검증 줄은 늘 쓴다 — 워크벤치 · 상태 생성이 이 줄을 읽는다 (check_workbench_views). 같은 문장을 결과로 직접 줬을 때만 뺀다.
+            if args.validation_result and args.validation_result not in explicit_result:
                 scalar_updates[task_label("validation")] = args.validation_result
             if next_step:
                 scalar_updates[task_label("next_step")] = next_step

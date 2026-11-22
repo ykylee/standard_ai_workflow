@@ -27,6 +27,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-11-22-release-1.x-001 로드맵 WBS 한 줄 위반이 session-start 를 죽임 · backlog-update done 의 Result 중복 (main 의 같은 수리를 1.x 로)
 - TASK-2026-11-21-release-1.x-009 브랜치 자동 seed 가 roadmap_state.json 을 재생성하지 않는다 (main 의 같은 수리를 1.x 로)
 - TASK-2026-11-21-release-1.x-008 발행 산출물 선택이 접두사 glob — find_dist_files 정확한 파일명 대조 (main 의 같은 수리를 1.x 로)
 - TASK-2026-11-21-release-1.x-007 1.x 안내 판 1.30.0 — session-start 2.0 안내 한 줄 · EOL 한 줄 · README · 채널 재등록 (R16.4 · R14.8 · R16.3 · R16.6)

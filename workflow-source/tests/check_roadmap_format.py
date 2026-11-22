@@ -7,7 +7,8 @@
 2. **어휘는 전수 버킷이다** — sdlc_phase 6개 / status 4개(task 어휘와 동일).
    어휘 밖 값은 조용히 기본값으로 뭉개지지 않고 issue 가 된다.
 3. **형식 위반(순서 불일치 · WBS id 중복 · 마일스톤 번호 불일치 · index 참조
-   깨짐)은 되주입하면 red 다** — 도달 불가능한 분기는 검사되지 않은 분기다.
+   깨짐 · WBS 한 줄의 스키마 위반)은 되주입하면 red 다** — 도달 불가능한 분기는 검사되지 않은 분기다.
+   한 줄의 위반이 예외로 올라 로드맵 전체 · session-start 를 죽이지 않는다 (main-012).
 """
 from __future__ import annotations
 
@@ -172,6 +173,31 @@ def test_wbs_milestone_number_mismatch_detected() -> None:
     _record("test_wbs_milestone_number_mismatch_detected", ok, f"issues={[i.code for i in issues]}")
 
 
+def test_overlong_wbs_title_is_issue_not_crash() -> None:
+    """되주입: WBS 제목 200자 초과 한 줄이 예외로 올라 session-start · refresh-state 를 통째로 죽였다
+    (2026-11-22, TASK-2026-11-22-main-012). issue 하나가 되고, 같은 마일스톤의 다른 WBS · 로드맵 전체는 그대로 읽혀야 한다."""
+    from workflow_kit.common.state.roadmap import build_session_roadmap_context, generate_roadmap_state
+
+    long_m2 = M2_TEXT.replace("**WBS-2.2** ", "**WBS-2.2** " + "가" * 210 + " ", 1)
+    milestone, issues = parse_milestone_text(long_m2, "M-002-design.md")
+    ids = [n.id for n in milestone.wbs] if milestone else []
+    with tempfile.TemporaryDirectory() as tmp:
+        root = _write_fixture(Path(tmp), m2=long_m2)
+        try:
+            roadmap, all_issues = load_roadmap(root)
+            ctx = build_session_roadmap_context(root)
+            state = generate_roadmap_state(root)
+            crashed = ""
+        except Exception as exc:  # noqa: BLE001 — 예외가 곧 결함
+            roadmap, all_issues, ctx, state, crashed = None, [], None, None, repr(exc)
+    ok = (not crashed and milestone is not None and "WBS-2.2" not in ids and "WBS-2.1" in ids
+          and any(i.code == "wbs_node_invalid" and "WBS-2.2" in i.detail for i in issues)
+          and roadmap is not None and any(i.code == "wbs_node_invalid" for i in all_issues)
+          and ctx is not None and getattr(ctx, "present", False) and state is not None)
+    _record("test_overlong_wbs_title_is_issue_not_crash", ok,
+            f"crashed={crashed} ids={ids} issues={[i.code for i in issues]} ctx={getattr(ctx, 'present', None)}")
+
+
 def test_index_reference_breakage_detected() -> None:
     """되주입 양방향: index 가 없는 파일을 가리키거나, 파일이 index 에 없으면 red."""
     problems: list[str] = []
@@ -215,6 +241,7 @@ def main() -> int:
         test_duplicate_wbs_id_detected,
         test_wbs_milestone_number_mismatch_detected,
         test_index_reference_breakage_detected,
+        test_overlong_wbs_title_is_issue_not_crash,
         test_wbs_nesting_parses,
     ]
     for case in cases:

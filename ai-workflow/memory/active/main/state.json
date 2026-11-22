@@ -29,10 +29,9 @@
   "session": {
     "current_baseline": "**138차 말 (2026-11-21, Linux 호스트) — v2.0.0 (2.0 허브, 베타 표기) · v1.30.0 (1.x 안내 판) 발행.** GitHub latest = v2.0.0. main 은 kit 플러그인 채널을 내지 않는다 (`KIT_PLUGIN_CHANNEL`, R16.6) — 이 호스트 Claude Code 채널은 `../standard_ai_workflow-1x` (Folder) 로 옮김. 판 번호는 정수 (2.0.0b1 은 키트 16곳이 깨져 소유자가 정수로 정함). 운영 가이드 `docs/HUB_OPERATIONS.md`, 두 줄 발행 정책 RELEASE.md §1.1. 게이트: main 346×2 (20c61a09) · 1.x 336×2 (24ca6ae3).",
     "current_axis": "**2.0 허브 (M-031~M-040, 2026-11-20 소유자) — M-031~M-037 done, M-038 · M-039 진행 — 남은 것: 실제 전환(상시 허브 위치 결정) · 39.1 다른 호스트/하네스 · M-040 2.0.0 발행.** 1.x 는 `release/1.x` 에서 결함 수리만. 이전 축: **로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · ~~[TASK-2026-08-13-main-004] mypy flake 관찰~~ ✅ (66차 close — 33/33 표본, mypy 실패 0).",
-    "current_focus": "TASK-2026-11-22-main-007 허브 오케스트레이션 스펙 — DB 판 11 · 도구 표 · 세션 식별 · 전달 흐름 · 대기 도구 HTTP 실측 (M-043 WBS-43.1 · 43.2)",
+    "current_focus": "TASK-2026-11-17-claude-remote-sync-check-234c32-004 iPad Chrome(CriOS 156 · iPadOS 27)에서 워크벤치 폼 제출이 서버에 닿지 않는다 — 응답 보내기 · todo 추가 전부",
     "in_progress_items": [],
     "blocked_items": [
-      "TASK-2026-11-22-main-007 허브 오케스트레이션 스펙 — DB 판 11 · 도구 표 · 세션 식별 · 전달 흐름 · 대기 도구 HTTP 실측 (M-043 WBS-43.1 · 43.2)",
       "TASK-2026-11-17-claude-remote-sync-check-234c32-004 iPad Chrome(CriOS 156 · iPadOS 27)에서 워크벤치 폼 제출이 서버에 닿지 않는다 — 응답 보내기 · todo 추가 전부",
       "TASK-2026-11-17-claude-remote-sync-check-234c32-002 워크벤치 응답 · todo 변경이 Claude Code 컨텍스트에 실제로 주입되는지 실측 (main-014 미측정분)",
       "TASK-2026-10-02-main-007 Windows V3 백신이 wk.exe 를 평판 기반으로 차단한다 — pip 생성 console-script 런처 대체 진입 경로",
@@ -45,6 +44,8 @@
       "TASK-2026-11-22-main-002"
     ],
     "recent_done_items": [
+      "TASK-2026-11-22-main-008 — ADR-034 Accepted — design 결정 DO1~DO13 확정 (M-043 WBS-43.3)",
+      "TASK-2026-11-22-main-007 — 허브 오케스트레이션 스펙 — DB 판 11 · 도구 표 · 세션 식별 · 전달 흐름 · 대기 도구 HTTP 실측 (M-043 WBS-43.1 · 43.2)",
       "TASK-2026-11-22-main-006 — 허브 오케스트레이션 ADR-034 초안 (M-042 WBS-42.3)",
       "TASK-2026-11-22-main-005 — 허브 오케스트레이션 요구 R · 추적표 (M-042 WBS-42.2)",
       "TASK-2026-11-22-main-004 — 허브 오케스트레이션 실측 S 2차 — hook · 신뢰 없는 간접 전달 수단 (도구 응답 편승 · 대기 도구 · 진입 지침) (M-042 WBS-42.1)",
@@ -52,27 +53,25 @@
       "TASK-2026-11-22-main-001 — 허브 오케스트레이션 concept 검토 — 중앙 허브 · PC 중계 허브 · 하네스 · 세션, 메인 오케스트레이터 (M-041 WBS-41.1)",
       "TASK-2026-11-21-main-027 — 발행 산출물 선택이 접두사 glob — 2.0.0 이 2.0.0b1 산출물까지 첨부 후보로 잡는다 (find_dist_files)",
       "TASK-2026-11-21-main-026 — 2.0.0-beta 발행 준비 — README · 설치 문서 · 발행 노트 · RELEASE.md 2.0 절차(R16.7) · 판 번호 · 전량 게이트 (M-040 WBS-40.1)",
-      "TASK-2026-11-21-main-025 — 2.0 줄에서 kit 플러그인 채널 내리기 — marketplace.json · 발행 zip (R16.6 · Q10, M-040 WBS-40.2)",
-      "TASK-2026-11-21-main-024 — 2.0.0-beta 발행 범위 확정 · 허브 운영 가이드 (M-040 WBS-40.1)",
-      "TASK-2026-11-21-main-023 — /setup.md 가이드 실측 — Codex · MiniMax Code · Antigravity (Linux, 빈 폴더) (M-039 WBS-39.1)"
+      "TASK-2026-11-21-main-025 — 2.0 줄에서 kit 플러그인 채널 내리기 — marketplace.json · 발행 zip (R16.6 · Q10, M-040 WBS-40.2)"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-11-22.md",
-    "task_count": 8,
+    "task_count": 9,
     "in_progress_items": [],
-    "blocked_items": [
-      "TASK-2026-11-22-main-007 — 허브 오케스트레이션 스펙 — DB 판 11 · 도구 표 · 세션 식별 · 전달 흐름 · 대기 도구 HTTP 실측 (M-043 WBS-43.1 · 43.2)"
-    ],
+    "blocked_items": [],
     "done_items": [
       "TASK-2026-11-19-claude-remote-sync-check-234c32-002 — 브랜치 네임스페이스 자동 seed 가 roadmap_state.json 을 재생성하지 않는다 — 생성물 대조 검사 2건 red",
       "TASK-2026-11-22-main-001 — 허브 오케스트레이션 concept 검토 — 중앙 허브 · PC 중계 허브 · 하네스 · 세션, 메인 오케스트레이터 (M-041 WBS-41.1)",
       "TASK-2026-11-22-main-003 — 허브 오케스트레이션 실측 S — Claude Code · Codex 의 턴 경계 hook 주입 · 비대화형 · 이어 가기 · 상태 읽기 (M-042 WBS-42.1)",
       "TASK-2026-11-22-main-004 — 허브 오케스트레이션 실측 S 2차 — hook · 신뢰 없는 간접 전달 수단 (도구 응답 편승 · 대기 도구 · 진입 지침) (M-042 WBS-42.1)",
       "TASK-2026-11-22-main-005 — 허브 오케스트레이션 요구 R · 추적표 (M-042 WBS-42.2)",
-      "TASK-2026-11-22-main-006 — 허브 오케스트레이션 ADR-034 초안 (M-042 WBS-42.3)"
+      "TASK-2026-11-22-main-006 — 허브 오케스트레이션 ADR-034 초안 (M-042 WBS-42.3)",
+      "TASK-2026-11-22-main-007 — 허브 오케스트레이션 스펙 — DB 판 11 · 도구 표 · 세션 식별 · 전달 흐름 · 대기 도구 HTTP 실측 (M-043 WBS-43.1 · 43.2)",
+      "TASK-2026-11-22-main-008 — ADR-034 Accepted — design 결정 DO1~DO13 확정 (M-043 WBS-43.3)"
     ]
   },
   "next_documents": [

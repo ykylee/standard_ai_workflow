@@ -3,7 +3,7 @@
 - 문서 목적: 2.1 허브 오케스트레이션의 kit 계약 — 세션 식별 · DB 판 11 · 도구 · 전달(편승 · 대기 · 받은편지함 파일 · 비대화 실행 · hook) · 오케스트레이터 lease · 배정 상태 기계 · PC 중계와 하네스 어댑터 · 화면 · 진입 영역 전달 규칙 · 오류 · 검증 — 을 정의한다.
 - 범위: 2.0 허브(`hub_spec.md`)에 **더하는** 것만. 2.0 의 표 · 도구 · 인자 · 응답 칸은 바꾸지 않는다 (요구 R24.1).
 - 대상 독자: 구현자 (M-044~), workflow 설계자, 소유자 (DO 결정)
-- 상태: draft (M-043 WBS-43.1 · 43.2, 2026-11-22) — design 결정 DO1~DO13 (§15) 소유자 확정 대기
+- 상태: draft (M-043 WBS-43.1 · 43.2, 2026-11-22 — ADR-034 accepted, design 결정 DO1~DO13 소유자 확정. 구현은 M-044~)
 - 최종 수정일: 2026-11-22
 - 관련 문서: `../../docs/planning/hub-orchestration-requirements-2026-11.md` (요구 R17~R24 · 실측 §1 — 아래 "요구 R…" · "실측 §1.n"), `../../docs/planning/hub-orchestration-review-2026-11.md` (concept), `../../ai-workflow/wiki/decisions/adr-034-hub-orchestration.md`, `./hub_spec.md` (2.0 계약 — 아래 "2.0 §n"), `./hub_workflow_standard.md`
 
@@ -323,7 +323,7 @@ class Adapter(Protocol):
 | R24.1 더하기만 | §1-1 · §6.1 (칸 없으면 바이트 같음) · 2.0 응답에 `outputSchema` 없음(확인 — `hub/app.py` 의 `Tool(…, inputSchema=…)` 만) · 2.0 선택 클라이언트는 응답 칸을 검사하지 않음 (`hub_client.py` — JSON 을 그대로 넘긴다) |
 | R24.2 2.0 R15.3 | (요구 문서에 표시 완료) |
 
-## 15. design 결정 (DO) — 소유자 확정 대기
+## 15. design 결정 (DO) — 소유자 확정 (2026-11-22, 권고안 전부)
 
 | # | 결정할 것 | 권고안 | 버린 안 |
 |---|---|---|---|

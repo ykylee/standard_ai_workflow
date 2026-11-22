@@ -74,7 +74,6 @@
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:
-- TASK-2026-11-22-main-007 허브 오케스트레이션 스펙 — DB 판 11 · 도구 표 · 세션 식별 · 전달 흐름 · 대기 도구 HTTP 실측 (M-043 WBS-43.1 · 43.2)
 - TASK-2026-11-17-claude-remote-sync-check-234c32-004 iPad Chrome(CriOS 156 · iPadOS 27)에서 워크벤치 폼 제출이 서버에 닿지 않는다 — 응답 보내기 · todo 추가 전부
 - TASK-2026-11-17-claude-remote-sync-check-234c32-002 워크벤치 응답 · todo 변경이 Claude Code 컨텍스트에 실제로 주입되는지 실측 (main-014 미측정분)
 - TASK-2026-10-02-main-007 Windows V3 백신이 wk.exe 를 평판 기반으로 차단한다 — pip 생성 console-script 런처 대체 진입 경로
@@ -83,6 +82,8 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-11-22-main-008 ADR-034 Accepted — design 결정 DO1~DO13 확정 (M-043 WBS-43.3)
+- TASK-2026-11-22-main-007 허브 오케스트레이션 스펙 — DB 판 11 · 도구 표 · 세션 식별 · 전달 흐름 · 대기 도구 HTTP 실측 (M-043 WBS-43.1 · 43.2)
 - TASK-2026-11-22-main-006 허브 오케스트레이션 ADR-034 초안 (M-042 WBS-42.3)
 - TASK-2026-11-22-main-005 허브 오케스트레이션 요구 R · 추적표 (M-042 WBS-42.2)
 - TASK-2026-11-22-main-004 허브 오케스트레이션 실측 S 2차 — hook · 신뢰 없는 간접 전달 수단 (도구 응답 편승 · 대기 도구 · 진입 지침) (M-042 WBS-42.1)
@@ -91,8 +92,6 @@
 - TASK-2026-11-19-claude-remote-sync-check-234c32-002 브랜치 네임스페이스 자동 seed 가 roadmap_state.json 을 재생성하지 않는다 — 생성물 대조 검사 2건 red
 - TASK-2026-11-21-main-027 발행 산출물 선택이 접두사 glob — 2.0.0 이 2.0.0b1 산출물까지 첨부 후보로 잡는다 (find_dist_files)
 - TASK-2026-11-21-main-011 1.x 안내 판 발행 — 2.0 안내 한 줄 · README · 발행 노트 · 1.x EOL (2.0.0 발행 때, R16.4 · R14.8)
-- TASK-2026-11-21-main-026 2.0.0-beta 발행 준비 — README · 설치 문서 · 발행 노트 · RELEASE.md 2.0 절차(R16.7) · 판 번호 · 전량 게이트 (M-040 WBS-40.1)
-- TASK-2026-11-21-main-025 2.0 줄에서 kit 플러그인 채널 내리기 — marketplace.json · 발행 zip (R16.6 · Q10, M-040 WBS-40.2)
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

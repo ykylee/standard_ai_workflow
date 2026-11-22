@@ -1,6 +1,6 @@
 ---
 type: decision
-status: proposed
+status: accepted
 adr_id: ADR-034
 decided_at: 2026-11-22
 alternatives_considered: [no-delivery-sessions-pull-only, hook-required-delivery, relay-required-for-participation, pty-screen-driving, harness-own-queue-as-ssot, vscode-extension-full-ui]
@@ -14,7 +14,8 @@ r9_skip: true
 
 ## Status
 
-**Proposed** (2026-11-22, TASK-2026-11-22-main-006, M-042/WBS-42.3) — design(M-043) 뒤 Accepted.
+**Accepted** (2026-11-22, TASK-2026-11-22-main-008, M-043/WBS-43.3) — requirements(M-042) · design(M-043) 완료, design 결정 DO1~DO13 소유자 확정. Proposed 2026-11-22 (TASK-2026-11-22-main-006, M-042/WBS-42.3).
+계약 정본: [`hub_orchestration_spec.md`](../../../workflow-source/core/hub_orchestration_spec.md).
 concept 결정 O1~O10 (`docs/planning/hub-orchestration-review-2026-11.md` §12) · 요구 결정 Q1~Q4 (`docs/planning/hub-orchestration-requirements-2026-11.md` §6) 는 소유자가 정했다 (2026-11-22, 권고안 전부).
 요구와 실측: [`hub-orchestration-requirements-2026-11.md`](../../../docs/planning/hub-orchestration-requirements-2026-11.md) (R17~R24, 실측 §1).
 
@@ -53,7 +54,16 @@ concept 결정 O1~O10 (`docs/planning/hub-orchestration-review-2026-11.md` §12)
 ### 요구 결정 (Q1~Q4, 요구 §6)
 
 - Q1 사람이 보는 대화형 세션의 대기 도구는 기본 꺼짐 (M1 만) · Q2 전달 규칙 없는 세션(2.0 판)에는 배정 409
-- Q3 오케스트레이터도 직접 작업한다 · Q4 숫자 기본값 그대로 (design 이 실측으로 바꿀 수 있다)
+- Q3 오케스트레이터도 직접 작업한다 · Q4 숫자 기본값 그대로 (design 이 실측으로 바꿀 수 있다 — 대기 120초 → 50초 · 연속 30회 → 70회로 바꿈)
+
+### design 결정 (DO1~DO13, 스펙 §15 — 소유자 2026-11-22 권고안 전부)
+
+- DO1 세션 식별 = 세션 시작이 ID 를 주고 이후 모든 도구에 선택 인자 `session` · DO2 메시지 주소 = 세션 또는 콜사인 (배정은 세션만)
+- DO3 대기 도구 = 스레드 풀 밖 async · 전역 동시 대기 64 · DO4 배정은 새 표 `assignment` (`task` 칼럼 불변)
+- DO5 편승 칸은 실을 것이 있을 때만 (2.0 응답과 바이트 같음) · DO6 수락이 2.0 `hub_task_claim` 을 함께 부름
+- DO7 시간 판정은 호출 때 게으르게 · DO8 중계 전용 토큰 + 일회용 초대 · DO9 허용 목록은 PC 파일, 중앙엔 해시 · 디렉터리 별칭
+- DO10 어댑터 = Claude 상주 stream-json · Codex app-server (신뢰 필요 수단 안 씀) · DO11 세션 등록은 세션 자신 · DO12 VS Code 확장은 `editors/vscode/` (wheel 밖)
+- DO13 **실림 ≠ 소비** — ack 전까지 60초마다 재전달 · 대기 상한 50초 (design 실측: Claude Code HTTP MCP 가 도구 호출을 약 60초에 끊고, 응답 즉시 소비하면 메시지가 사라졌다 — 스펙 §6.6)
 
 ## Consequences
 

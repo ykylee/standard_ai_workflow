@@ -4,7 +4,7 @@
 - 범위: `python -m workflow_kit hub …` 명령, 허브가 여는 경로(`/mcp` · `/v1/…` · 화면 · `/healthz` · `/v1/bootstrap`), SQLite 스키마, 허브 MCP 도구, 쓰기 지시 형식, 진입 파일 렌더 영역, 1.x 들여오기 매핑. 화면의 구체 디자인은 M-037, 선택 클라이언트의 명령 세부는 M-034 가 정한다.
 - 대상 독자: 구현자(M-033~M-039), workflow 설계자, 소유자 (DS 결정)
 - 상태: draft (ADR-033 accepted 2026-11-21 — M-032 design 완료, DS1~DS9 소유자 확정. 구현은 M-033~M-039)
-- 최종 수정일: 2026-11-21
+- 최종 수정일: 2026-11-22
 - 관련 문서: `../../docs/planning/workflow-hub-requirements-2026-11.md` (요구 R0~R16 · 실측 §16 — 아래에서 "요구 R…" · "실측 §16.n"), `../../docs/planning/workflow-hub-review-2026-11.md` (concept), `../../ai-workflow/wiki/decisions/adr-033-workflow-hub.md`, `./claim_plan_spec.md`, `./plan_workbench_spec.md`, `./compact_relay_spec.md`, `./roadmap_milestone_wbs_spec.md`, `./stable_guarantee.md`
 
 > **결정 근거는 concept · ADR-033 에, 요구와 실측은 requirements 에 있다.** 이 문서는 *계약* 만 적는다.
@@ -69,7 +69,7 @@ python -m workflow_kit hub admin   --db PATH project import --file FILE | seal -
 
 ### 2.3 의존 (DS1)
 
-허브 쪽 설치는 `workflow_kit[hub]` — MCP 공식 SDK (`mcp`, streamable HTTP 서버 · 실측 §16.3 의 탐침이 1.27.0 으로 섰다) 와 그것이 끌어오는 ASGI 서버를 쓴다. **판 범위를 상한까지 고정**하고 판이 바뀌면 하네스 4종 실측(§8)을 다시 돈다. 작업 환경은 이 의존을 갖지 않는다 (R0.4).
+허브 쪽 설치는 `workflow_kit[hub]` — MCP 공식 SDK (`mcp`, streamable HTTP 서버 · 실측 §16.3 의 탐침이 1.27.0 으로 섰다) 와 그것이 끌어오는 ASGI 서버를 쓴다. **판 범위를 상한까지 고정**하고 판이 바뀌면 하네스 4종 실측(§8)을 다시 돈다. 범위는 `mcp>=1.27,<3` — 1.x 는 lowlevel decorator, 2.x 는 처리기 등록(`add_request_handler`, HTTP 요청은 `ctx.request`)으로 `app.py` 가 둘 다 조립한다 (TASK-2026-11-22-main-022: 2.3.0 에서 허브 · 중계 검사 16/16 · Claude Code · Codex 실측, SDK 매트릭스 1.27.0 · 1.29.0 · 2.3.0 셀이 허브 MCP 경로를 밟는다). 작업 환경은 이 의존을 갖지 않는다 (R0.4).
 
 ## 3. 스키마 · 이관 (WBS-32.1)
 

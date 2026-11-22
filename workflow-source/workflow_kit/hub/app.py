@@ -70,10 +70,11 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
 
     ``web_token_name`` 은 화면 공용 ``web`` 토큰의 이름 — 주면 토큰 없는 화면 요청이 그 권한으로 돈다 (R13.2a, 기본 꺼짐).
     """
-    server: Server[Any, Any] = Server("workflow-hub", version=KIT_VERSION)
+    # 제네릭 인자 수 · 모델 키워드 이름이 mcp 1.x 와 2.x 에서 다르다 (2.x: `Server[L]`, `structured_content`) — 서버는 Any 로
+    # 받고, 결과 모델은 **wire 이름**(camelCase)으로 `model_validate` 해 두 판에서 같은 코드가 타입 검사를 지난다 (main-022).
+    server: Any = Server("workflow-hub", version=KIT_VERSION)
 
-    def principal_from_mcp() -> tuple[Principal | None, bool]:
-        req = server.request_context.request
+    def principal_from_request(req: Any) -> tuple[Principal | None, bool]:
         token = _bearer(req.headers) if req is not None else None
         client = req.headers.get("x-hub-client") if req is not None else None
         principal = store.authenticate(token, clock(), client) if token else None
@@ -118,19 +119,17 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
         finally:
             waiting["n"] -= 1
 
-    @server.list_tools()  # type: ignore[no-untyped-call, untyped-decorator]
-    async def _list_tools() -> list[mtypes.Tool]:
-        principal, _ = await run_in_threadpool(principal_from_mcp)
+    async def list_tools_for(req: Any) -> list[mtypes.Tool]:
+        principal, _ = await run_in_threadpool(principal_from_request, req)
         authed = principal is not None and principal.kind == "callsign"
         return [
-            mtypes.Tool(name=t.name, description=t.description, inputSchema=t.schema())
+            mtypes.Tool.model_validate({"name": t.name, "description": t.description, "inputSchema": t.schema()})
             for t in hubtools.visible_tools(authed)
         ]
 
-    @server.call_tool(validate_input=False)  # type: ignore[untyped-decorator]
-    async def _call_tool(name: str, arguments: dict[str, Any]) -> mtypes.CallToolResult:
+    async def call_tool_for(req: Any, name: str, arguments: dict[str, Any] | None) -> mtypes.CallToolResult:
         def run() -> dict[str, Any]:
-            principal, sent = principal_from_mcp()
+            principal, sent = principal_from_request(req)
             spec = hubtools.TOOLS.get(name)
             if sent and principal is None and spec is not None and spec.bundle != "bootstrap":
                 raise HubError(401, "unauthorized", "토큰이 틀렸거나 거둔 토큰이다")
@@ -139,23 +138,45 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
 
         try:
             if name == "hub_wait":
-                principal, sent = await run_in_threadpool(principal_from_mcp)
+                principal, sent = await run_in_threadpool(principal_from_request, req)
                 if sent and principal is None:
                     raise HubError(401, "unauthorized", "토큰이 틀렸거나 거둔 토큰이다")
                 result = await wait_async(principal, arguments or {}, "mcp", None)
             else:
                 result = await run_in_threadpool(run)
-            return mtypes.CallToolResult(
-                content=[mtypes.TextContent(type="text", text=json.dumps(result, ensure_ascii=False))],
-                structuredContent=result,
-            )
+            return mtypes.CallToolResult.model_validate({
+                "content": [{"type": "text", "text": json.dumps(result, ensure_ascii=False)}],
+                "structuredContent": result,
+            })
         except HubError as e:
             payload = e.payload()
-            return mtypes.CallToolResult(
-                content=[mtypes.TextContent(type="text", text=json.dumps(payload, ensure_ascii=False))],
-                structuredContent=payload,
-                isError=True,
-            )
+            return mtypes.CallToolResult.model_validate({
+                "content": [{"type": "text", "text": json.dumps(payload, ensure_ascii=False)}],
+                "structuredContent": payload,
+                "isError": True,
+            })
+
+    # mcp 1.x 는 decorator 형, 2.x 는 처리기 등록형 (2.0 이 `list_tools` · `call_tool` decorator 를 없앴다) — 판 문자열이 아니라
+    # **계약의 존재**로 가른다 (1.x kit `server/read_only_mcp_sdk.uses_handler_registration` 과 같은 기준, TASK-2026-11-22-main-022).
+    # HTTP 요청은 1.x 에서 `server.request_context`, 2.x 에서 처리기 인자 `ctx.request` 로 온다.
+    srv = server
+    if hasattr(srv, "add_request_handler"):  # mcp >= 2.0
+        async def on_list_tools(ctx: Any, params: Any) -> Any:
+            return mtypes.ListToolsResult(tools=await list_tools_for(ctx.request))
+
+        async def on_call_tool(ctx: Any, params: Any) -> Any:
+            return await call_tool_for(ctx.request, params.name, getattr(params, "arguments", None))
+
+        srv.add_request_handler("tools/list", getattr(mtypes, "PaginatedRequestParams"), on_list_tools)
+        srv.add_request_handler("tools/call", mtypes.CallToolRequestParams, on_call_tool)
+    else:  # mcp 1.x
+        @srv.list_tools()  # type: ignore[untyped-decorator]
+        async def _list_tools() -> list[mtypes.Tool]:
+            return await list_tools_for(server.request_context.request)
+
+        @srv.call_tool(validate_input=False)  # type: ignore[untyped-decorator]
+        async def _call_tool(name: str, arguments: dict[str, Any]) -> mtypes.CallToolResult:
+            return await call_tool_for(server.request_context.request, name, arguments)
 
     manager = StreamableHTTPSessionManager(app=server, stateless=True, json_response=True)
 

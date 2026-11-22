@@ -76,10 +76,11 @@ PINNED_VERSIONS: tuple[PinnedVersion, ...] = (
         ),
     ),
     PinnedVersion(
-        version="2.1.1",
+        version="2.3.0",
         role=ROLE_LATEST_2X,
         reason=(
-            "2.0.0 은 `mcp.server.fastmcp` 를 없앴고 (lowlevel decorator 는 "
+            "2.x 최신 (2026-10-02). 허브(`[hub]`)가 2.x 로 올라간 판 — 허브 MCP 경로(`check_hub_core` case 9)를 "
+            "여기서 밟는다 (TASK-2026-11-22-main-022). 이 자리는 2.1.1 이었다: 2.0.0 은 `mcp.server.fastmcp` 를 없앴고 (lowlevel decorator 는 "
             "`add_request_handler` 로 — §2.41, §2.43), 2.1.1 은 그 모듈을 되살리되 "
             "`FastMCP` 심볼만 없다 — CI mypy-strict(부동 최신)만 red 가 되고 "
             "로컬(1.27)은 green 이던 2026-08-28 사건의 재현 자리다."
@@ -144,6 +145,11 @@ SDK_EXERCISING_CHECKS: tuple[SdkExercisingCheck, ...] = (
         path="tests/check_mcp_v1_server.py",
         evidence="MCP v1.0 smoke test passed.",
         why="설치된 SDK 로 v1 서버를 실제로 만들고 tool 을 등록한다.",
+    ),
+    SdkExercisingCheck(
+        path="tests/check_hub_core.py",
+        evidence="case 9 (MCP 인증 경계 · HTTP 와 같은 결과)",
+        why="실제 허브 프로세스를 그 SDK 로 띄우고 MCP 클라이언트로 도구 목록 · 호출을 밟는다 (main-022 — 허브가 2.x 로).",
     ),
 )
 """matrix 셀이 **아무것도 재지 않은 채 green** 이 되는 것을 막는 정본.
@@ -218,7 +224,7 @@ def observe_exercised(python: str | None = None) -> dict[str, tuple[int, str]]:
 LOCAL_MATRIX_VENV_DIR = ".venv-sdk-matrix"
 
 #: 로컬 매트릭스가 도는 검사 filter (폐지된 CI `mcp-sdk-matrix` 셀과 같은 값).
-LOCAL_MATRIX_FILTER = "mcp,optional_dep"
+LOCAL_MATRIX_FILTER = "mcp,optional_dep,hub_core,hub_orch"
 
 
 def run_local_matrix(
@@ -278,10 +284,10 @@ def run_local_matrix(
             capture_output=True, text=True, encoding="utf-8", errors="replace",
         ).stdout.strip()
         if installed != version:
-            print(f"  설치: -e workflow-source[dev,release] + mcp=={version} (현재 {installed or '없음'})")
+            print(f"  설치: -e workflow-source[dev,release,hub] + mcp=={version} (현재 {installed or '없음'})")
             subprocess.run(  # noqa: S603
                 [str(python), "-m", "pip", "-q", "install",
-                 "-e", f"{repo_root / 'workflow-source'}[dev,release]", f"mcp=={version}"],
+                 "-e", f"{repo_root / 'workflow-source'}[dev,release,hub]", f"mcp=={version}"],
                 check=True,
             )
         # 설치가 조용히 딴 버전을 집었을 수 있다 — 선언이 아니라 실측으로 확인한다.

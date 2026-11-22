@@ -83,6 +83,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-11-22-main-022 허브 mcp 상한 해제 — >=1.27,<2 를 2.x 로, 최신 MCP 규격 2026-07-28 (M-049 R5)
 - TASK-2026-11-22-main-023 Go/Rust 전환 범위 선택지 · 권고 · 소유자 결정 기록 (M-049 WBS-49.2)
 - TASK-2026-11-22-main-021 허브 · PC 중계 Go/Rust 전환 concept — 실측 비교 · 범위 선택지 · 권고안 (M-049 WBS-49.1 · 49.2)
 - TASK-2026-11-22-main-019 2.1.0 발행 — 전량 게이트 · 릴리스 노트 · 판 올리기 · GitHub Release (M-048 WBS-48.3)
@@ -92,7 +93,6 @@
 - TASK-2026-11-22-main-016 VS Code 확장 실제 로드 실측 — 활성화 · 명령 · webview 안 중계 화면 · 상태 표시줄 · .vsix 패키징 (M-048 WBS-48.1)
 - TASK-2026-11-22-main-014 Codex 일하는 세션이 workspace-write 샌드박스에서 .git 이 읽기 전용이라 커밋 · push 를 못 한다 — 중계 세션의 커밋 경로
 - TASK-2026-11-22-main-002 backlog-update done 이 채워진 Result 옆에 검증 결과를 Result 로 한 줄 더 쓴다
-- TASK-2026-11-22-main-012 로드맵 형식 위반(WBS 제목 200자 초과 등)이 session-start · refresh-state 를 런타임 오류로 죽인다
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

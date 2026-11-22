@@ -217,11 +217,21 @@ def case_3_backup(tmp: Path) -> None:
 
 def _mcp_session(base: str, token: str | None, calls: list[tuple[str, dict[str, Any]]]) -> tuple[list[str], list[Any]]:
     from mcp import ClientSession
-    from mcp.client.streamable_http import streamablehttp_client
+    from mcp.client.streamable_http import streamable_http_client
+
+    # SDK 1.x/2.x 클라이언트 차이 (TASK-2026-11-22-main-022): 2.x 는 `streamablehttp_client(headers=)` 를 없애고
+    # `streamable_http_client(http_client=)` 만 남겼다 — HTTP 클라이언트는 2.x 가 `httpx2`, 1.x 가 `httpx`.
+    # 스트림도 1.x 는 (read, write, session_id), 2.x 는 (read, write) 라 앞의 둘만 쓴다.
+    try:
+        import httpx2 as _httpx  # type: ignore[import-not-found, unused-ignore]
+    except ImportError:
+        import httpx as _httpx
 
     async def go() -> tuple[list[str], list[Any]]:
-        headers = {"Authorization": f"Bearer {token}"} if token else None
-        async with streamablehttp_client(base + "/mcp", headers=headers) as (r, w, _):
+        headers = {"Authorization": f"Bearer {token}"} if token else {}
+        async with _httpx.AsyncClient(headers=headers) as http, \
+                streamable_http_client(base + "/mcp", http_client=http) as streams:
+            r, w = streams[0], streams[1]
             async with ClientSession(r, w) as s:
                 await s.initialize()
                 names = sorted(t.name for t in (await s.list_tools()).tools)

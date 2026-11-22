@@ -2,7 +2,7 @@
 id: M-049
 title: 허브 · PC 중계 런타임 전환 검토 (Go / Rust) — concept
 sdlc_phase: concept
-status: in_progress
+status: done
 order: 49
 parallel_allowed:
   - M-007
@@ -23,6 +23,8 @@ goals: [G1, G5]
 - 이식량: 허브 약 7.5k 줄 + 공유 판정 · 스키마 · 진입 파일 생성 6.6k 줄 이상, 게이트 검사 350 이 Python.
 - PURPOSE 제외 영역(Python 외 런타임) · hub_spec R0.3 을 바꾸는 결정 → ADR.
 - 선택지: 전면 이식 / 입출력 앞단만 이식하고 판정은 Python / **PC 중계만** 단일 바이너리 (판정 로직 없음, 약 900 줄).
+
+**종결 (2026-11-22)**: 소유자 결정 R1 = **D 전면 Go 전환** (허브 · 공유 판정 · PC 중계), R2 Go · R3 PURPOSE 예외 ADR · R4 서명은 실측 뒤 · R5 `mcp` 2.x 이행 task — `docs/planning/runtime-port-review-2026-11.md` §11. 다음 M-050.
 
 ## WBS
 

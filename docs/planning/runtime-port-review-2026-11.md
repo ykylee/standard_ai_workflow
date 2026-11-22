@@ -3,7 +3,7 @@
 - 문서 목적: 2.x 허브와 PC 중계를 Python 에서 Go 또는 Rust 로 옮길지, 옮긴다면 어디까지인지를 실측 근거로 정하고, 소유자가 정할 것을 기본값과 함께 모은다 (TASK-2026-11-22-main-021, M-049/WBS-49.1 · 49.2).
 - 범위: 공식 MCP SDK 현황, 두 언어 탐침 서버 실측(빌드 · 크기 · 메모리 · 크로스 빌드 · 실제 하네스 연결), 현재 Python 허브 기준선, 이식량 인벤토리, 범위 선택지, 위험, 권고, 열린 결정. 코드 · 스펙 변경은 없다 (탐침은 저장소 밖 `/var/tmp`).
 - 대상 독자: 소유자 (전환 결정), maintainer
-- 상태: draft — 열린 결정 R1~R5 소유자 대기 (§9)
+- 상태: **종결 (2026-11-22)** — 소유자 결정: R1 = **D 전면 Go 전환**, R2~R5 = 권고안 (§11). 다음은 requirements (M-050)
 - 최종 수정일: 2026-11-22
 - 관련 문서: [`M-049`](../../ai-workflow/memory/active/roadmap/M-049-runtime-port-concept.md), [`hub_spec.md`](../../workflow-source/core/hub_spec.md) (§1 불변 조건 · R0.3 · R0.7), [`hub_orchestration_spec.md`](../../workflow-source/core/hub_orchestration_spec.md) (§9 중계), [`PURPOSE.md`](../../ai-workflow/memory/active/PURPOSE.md) (제외 영역 — Python 외 런타임)
 
@@ -139,5 +139,24 @@
 
 ## 10. 다음
 
-결정이 나면: R1=B 면 M-050 requirements (중계 Go 판 — 계약 동일성 · 어댑터 실측 · 배포 · 서명 · Python 중계 deprecation) → design → 구현.
-R5=예 면 1.x 와 무관한 2.x task 로 `mcp` 2.x 이행 (SDK 매트릭스 2.1.1 통과 근거).
+§11 결정에 따라 M-050 requirements (2.x 전체 Go 전환) → design → 구현 단계로 간다.
+
+## 11. 결정 (2026-11-22 소유자)
+
+| ID | 결정 | 비고 |
+|---|---|---|
+| R1 | **D — 전면 Go 전환** (허브 · 공유 판정 · PC 중계) | 권고(B)와 다름 — 소유자 선택 |
+| R2 | **Go** | 권고안 |
+| R3 | **예** — PURPOSE 제외 영역의 예외를 **2.x 런타임 전체(Go)** 로 넓히는 ADR | 권고안. R1 이 D 라 예외 범위가 중계에서 허브까지로 커진다 |
+| R4 | **실측 뒤 결정** — 그동안 Windows 는 Python 판 병행 | 권고안 |
+| R5 | **예** — 허브 `mcp` 상한 해제(2.x)를 별도 task 로 | 권고안. Go 판이 나올 때까지 Python 허브가 최신 규격을 쓰게 |
+
+D 가 가져오는 것 — requirements 가 풀어야 할 문제로 넘긴다:
+
+1. **판정 두 벌** — 1.x(`release/1.x`, 2028-07-20 까지)는 Python 판정을 유지한다. Go 판정이 같은 답을 내는지
+   **차분 검사**(같은 fixture · 실제 저장소 데이터를 두 구현에 넣어 결과 대조)로 상시 잰다. 1.x 결함 수리는 두 쪽에 다 들어가야 한다.
+2. **적합성 검사** — 허브 검사(실제 프로세스 + HTTP)를 '띄우는 명령'만 바꿔 Go 허브에도 돌게 한다. kit 내부 import 부분은 HTTP · DB 확인으로 바꾼다.
+3. **이행 순서** — 판정 코드(19k 줄)가 가장 크다. 중계(909줄, 닫힘) → 허브 앞단 → 판정 순서 등 단계와 각 단계의 '같은 답' 기준을 정한다.
+4. **생성물 형식 불변** — hub_spec §1-1 (1.x 생성물 형식을 그대로 낸다) · DB 판 · MCP 도구 계약 · HTTP 경로가 Go 판에서도 같아야 한다 — 기존 DB 를 Go 허브가 그대로 연다.
+5. **검사 하네스 언어** — 게이트 러너 · 검사는 Python 이다. Go 코드의 단위 검사(`go test`)를 게이트에 어떻게 넣을지.
+6. **배포** — 2.x 판은 wheel 대신 OS별 바이너리 (GitHub Releases). Windows 서명은 R4 실측 뒤.

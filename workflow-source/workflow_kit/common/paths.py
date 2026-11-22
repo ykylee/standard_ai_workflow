@@ -63,6 +63,25 @@ def venv_executable(venv: Path, name: str) -> Path:
     return venv / "bin" / name
 
 
+def matrix_tmp_root(repo_root: Path, kind: str, override: str | None = None) -> Path:
+    """로컬 매트릭스(해석기 · SDK)가 러너에 넘길 ``--tmp-dir`` — **저장소 밖**이어야 한다.
+
+    매트릭스는 오래 기본값을 ``<repo>/.venv-*-matrix/_tmp`` 로 두었다. 그러면 검사가
+    ``tempfile`` 로 만드는 "git 저장소가 아닌 경로" fixture 가 실제로는 이 저장소의 하위라
+    git 이 성공한다 — ``check_mcp_tool_output_contracts`` case 5 가 SDK 매트릭스 세 판에서만
+    red 였고 단독 · 러너 실행은 green 이었다 (TASK-2026-11-22-main-020, ``TMPDIR`` 재현).
+
+    기본은 ``~/.cache/workflow-kit/<kind>-tmp`` (실디스크 — tmpfs 인 ``/tmp`` 를 피한다).
+    ``override`` 가 저장소 안이면 ``ValueError`` — 같은 위양성을 손으로 다시 만들지 않게.
+    """
+    root = Path(override).expanduser() if override else user_home() / ".cache" / "workflow-kit" / f"{kind}-tmp"
+    resolved_root = root.resolve()
+    repo = repo_root.resolve()
+    if resolved_root == repo or repo in resolved_root.parents:
+        raise ValueError(f"--tmp-dir {root} 가 저장소({repo}) 안이다 — git 밖 fixture 가 이 저장소의 하위가 된다")
+    return root
+
+
 def discover_project_profile_path(start: Path | None = None) -> Path | None:
     """cwd(또는 ``start``)에서 위로 거슬러 `PROJECT_PROFILE.md` 를 찾는다.
 

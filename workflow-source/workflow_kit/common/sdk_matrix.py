@@ -41,7 +41,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-from workflow_kit.common.paths import venv_executable
+from workflow_kit.common.paths import matrix_tmp_root, venv_executable
 
 ROLE_FLOOR = "floor"
 ROLE_LATEST_1X = "latest-1x"
@@ -225,6 +225,7 @@ def run_local_matrix(
     repo_root: Path,
     only_version: str | None = None,
     keep_venvs: bool = True,
+    tmp_dir: str | None = None,
 ) -> int:
     """`PINNED_VERSIONS` 전부를 **로컬에서** 밟는다.
 
@@ -256,7 +257,11 @@ def run_local_matrix(
         versions = [only_version]
 
     venv_root = repo_root / LOCAL_MATRIX_VENV_DIR
-    tmp_root = venv_root / "_tmp"
+    try:
+        tmp_root = matrix_tmp_root(repo_root, "sdk-matrix", tmp_dir)
+    except ValueError as exc:
+        print(f"::error::{exc}")
+        return 2
     tmp_root.mkdir(parents=True, exist_ok=True)
     failures: list[str] = []
 
@@ -339,12 +344,19 @@ def main(argv: list[str] | None = None) -> int:
         metavar="VERSION",
         help="--run-local 에서 한 버전만 (기본: 선언된 전부)",
     )
+    parser.add_argument(
+        "--tmp-dir",
+        metavar="DIR",
+        default=None,
+        help="--run-local 이 runner 에 넘길 --tmp-dir — 저장소 밖 실디스크 (기본 ~/.cache/workflow-kit/sdk-matrix-tmp)",
+    )
     args = parser.parse_args(argv)
 
     if args.run_local:
         return run_local_matrix(
             Path(__file__).resolve().parents[3],
             only_version=args.only,
+            tmp_dir=args.tmp_dir,
         )
 
     print(render_summary())

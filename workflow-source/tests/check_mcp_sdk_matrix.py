@@ -194,6 +194,32 @@ def test_run_local_verifies_both_layers() -> None:
         )
 
 
+def test_matrix_tmp_root_is_outside_repo() -> None:
+    """두 매트릭스(SDK · 해석기)의 러너 임시 폴더는 저장소 밖이다 (TASK-2026-11-22-main-020).
+
+    저장소 안(`.venv-*-matrix/_tmp`)이면 검사의 "git 저장소가 아닌 경로" fixture 가 이 저장소의 하위가 되어
+    git 이 성공한다 — `check_mcp_tool_output_contracts` case 5 가 매트릭스에서만 red 였다.
+    """
+    from workflow_kit.common import interpreter_matrix
+    from workflow_kit.common.paths import matrix_tmp_root
+
+    repo = REPO_ROOT.resolve()
+    for kind in ("sdk-matrix", "interpreter-matrix"):
+        root = matrix_tmp_root(REPO_ROOT, kind).resolve()
+        assert repo not in root.parents and root != repo, f"{kind} 기본 임시 폴더 {root} 가 저장소 안이다"
+    inside = str(REPO_ROOT / ".venv-sdk-matrix" / "_tmp")
+    try:
+        matrix_tmp_root(REPO_ROOT, "sdk-matrix", inside)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("저장소 안 --tmp-dir 를 거절하지 않는다")
+    # 실제 진입점이 그 함수를 거친다 — 저장소 안 --tmp-dir 면 venv 를 만들기 전에 2 로 멈춘다.
+    rc_sdk = sdk_matrix.run_local_matrix(REPO_ROOT, tmp_dir=inside)
+    rc_int = interpreter_matrix.run_local_matrix(REPO_ROOT, None, None, inside)
+    assert (rc_sdk, rc_int) == (2, 2), f"저장소 안 --tmp-dir 의 종료 코드 sdk={rc_sdk} interpreter={rc_int} — 2 여야 한다"
+
+
 def test_verdicts_actually_fire() -> None:
     """되주입: 어긋남이 각각 다른 신호로 실패하는가."""
     mismatch = _assert_installed("1.27.0", "2.0.0")
@@ -240,6 +266,7 @@ def main() -> int:
         test_declared_evidence_matches_reality,
         test_run_local_verifies_both_layers,
         test_verdicts_actually_fire,
+        test_matrix_tmp_root_is_outside_repo,
     ]
     failures: list[tuple[str, str]] = []
     for func in test_funcs:

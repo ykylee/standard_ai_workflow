@@ -51,7 +51,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-from workflow_kit.common.paths import venv_executable
+from workflow_kit.common.paths import matrix_tmp_root, venv_executable
 
 ROLE_CI_RUNNER = "ci-runner"
 """CI 가 검사를 돌던 해석기 (CI 폐지 후에도 role 이름은 유지 — 선언의 연속성)."""
@@ -215,7 +215,11 @@ def run_local_matrix(
         targets = [only_version]
 
     runner = repo_root / "workflow-source" / "tests" / "run_all_checks.py"
-    tmp_root = Path(tmp_dir) if tmp_dir else repo_root / LOCAL_MATRIX_VENV_DIR / "_tmp"
+    try:
+        tmp_root = matrix_tmp_root(repo_root, "interpreter-matrix", tmp_dir)
+    except ValueError as exc:
+        print(f"::error::{exc}")
+        return 2
     tmp_root.mkdir(parents=True, exist_ok=True)
 
     verdicts: list[tuple[str, str, str]] = []   # (version, mark, detail)
@@ -287,7 +291,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--filter", metavar="NAME", default=None, dest="check_filter",
                         help="--run-local 이 runner 에 넘길 --filter (기본: 전량)")
     parser.add_argument("--tmp-dir", metavar="DIR", default=None,
-                        help="--run-local 이 runner 에 넘길 --tmp-dir (실디스크 경로 권장)")
+                        help="--run-local 이 runner 에 넘길 --tmp-dir — 저장소 밖 실디스크 (기본 ~/.cache/workflow-kit/interpreter-matrix-tmp)")
     args = parser.parse_args(argv)
 
     if args.versions:

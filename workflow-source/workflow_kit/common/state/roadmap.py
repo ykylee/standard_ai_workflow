@@ -254,11 +254,21 @@ def _parse_wbs_section(body: str, source_path: str) -> tuple[list[WbsNode], list
             issues.append(RoadmapIssue(code="wbs_id_format", detail=f"WBS id 형식 위반: {node_id}", where=source_path))
             continue
         seen_ids.add(node_id)
-        node = WbsNode(
-            id=node_id,
-            title=match.group("title").strip(),
-            deliverable_note=(match.group("note") or "").strip(),
-        )
+        try:
+            node = WbsNode(
+                id=node_id,
+                title=match.group("title").strip(),
+                deliverable_note=(match.group("note") or "").strip(),
+            )
+        except ValidationError as exc:
+            # 한 줄의 형식 위반(제목 200자 초과 등)은 issue 다 — 예외로 올리면 session-start · refresh-state ·
+            # 로드맵 검사가 통째로 죽는다 (2026-11-22 실측, TASK-2026-11-22-main-012). 그 줄만 빼고 나머지는 돈다.
+            issues.append(RoadmapIssue(
+                code="wbs_node_invalid",
+                detail=f"{node_id}: " + "; ".join(f"{'.'.join(str(x) for x in e['loc'])} {e['msg']}" for e in exc.errors()),
+                where=source_path,
+            ))
+            continue
         indent = len(match.group("indent"))
         while stack and stack[-1][0] >= indent:
             stack.pop()

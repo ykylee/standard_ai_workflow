@@ -9,6 +9,10 @@
 > 이 파일은 **읽기 대상이 아니라 조회 대상**이다. 세션 시작에 읽지 않는다 —
 > handoff §1 이 최근 4개만 들고 있고, 그 이전이 필요할 때만 여기를 본다.
 
+## 롤오프 2026-11-22
+
+- **134차 세션 (2026-11-19, macOS 호스트 Mac mini — 종전 맥과 다른 두 번째 맥) — 발행 없음, 정본 v1.27.0 + 미발행 수리 3건.** 이 호스트를 1.22.0 → 1.27.0 으로 올림(전역 `wk` uv tool · `.venv` editable · claude-code · codex · grok-build · minimax-code; antigravity 는 `agy` 부재) → doctor behind=[] · disabled=[]. `core.hooksPath=.githooks` 켬. 133차(worktree `claude/remote-sync-check-234c32`, v1.27.0 발행)의 기록이 재합류 결함으로 main 메모리에 못 들어와 있던 것을 수리와 함께 반영(완료 3 · 이월 2). 수리: main-001(session-start 가 아카이브 실패를 '이동했다' 로 보고) · main-002(`archived/<branch>/` 가 있으면 반영까지 건너뜀 → 파일 단위 병합, `superseded-<옛 날짜>.<이름>`) · main-003(`check_memory_index_cross_v0_15_7` case 5 대조군이 telemetry 누적량에 의존). 셋 다 verifier PASS. `run_all_checks --changed` green · smoke 8/8. **전량 게이트(`--branch-context=all`) 이 호스트 첫 실행 통과 — `7df480f9` 664 PASS · 실패 0, push 완료(`fc814642..7df480f9`).**
+
 ## 롤오프 2026-11-21
 
 - **132차 세션 말 (2026-11-16, Linux 호스트) — v1.26.0 발행 완료 (minor: feat 2 · fix 4 · breaking 0).** 태그 `v1.26.0` = `632cb661`(발행 준비 커밋, 전량 게이트 native · slash 329×2 증거), GitHub Release Latest · asset 5종. 내용: 워크벤치 todo(브랜치 할 일 · task 체크리스트, `todo` 명령) · 응답 도착 신호 + hook 자동 반영 + 수리 넷(drift 패널 null 두 가지 · release 재검사 집계 · 글자 넘침). §2.8 5채널 재적용 → doctor behind=[] · disabled=[] (claude-code 는 원래 checkout ff). 재시작 필요: claude 34203 · 34204, codex 34205 · 34444 · 35601 · 3081284 (CLI 재시작 — /clear 로는 안 된다). 이 worktree 워크벤치 :8766 을 1.26.0 코드로 다시 띄움('할 일' 확인).

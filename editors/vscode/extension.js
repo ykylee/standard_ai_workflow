@@ -70,7 +70,10 @@ function activate(context) {
     vscode.commands.registerCommand("workflowHub.openRelay", () => {
       const port = relayPort();
       const panel = vscode.window.createWebviewPanel("workflowHubRelay", "PC 중계", vscode.ViewColumn.Active, {
-        enableScripts: false,
+        // 껍데기 문서 자신은 CSP(default-src 'none', script-src 없음)로 스크립트를 못 돌린다. enableScripts 는 webview 의
+        // sandbox 에 allow-scripts 를 주는 것이라, 꺼 두면 그 안에 담긴 중계 화면(다른 출처 iframe)의 일시정지 버튼 JS 까지
+        // 죽는다 — 실제 VS Code 1.147 실측 (TASK-2026-11-22-main-016).
+        enableScripts: true,
         portMapping: [{ webviewPort: port, extensionHostPort: port }],
       });
       panel.webview.html = webviewHtml(port);

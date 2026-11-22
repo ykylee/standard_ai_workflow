@@ -2,14 +2,16 @@
 """VS Code 확장 껍데기 (M-047) — 이 호스트에 VS Code 가 없어 **stub ``vscode`` 모듈 위에서 Node 로** 활성화를 잰다.
 
 계약 정본: ``core/hub_orchestration_spec.md`` §10 · 요구 R22.3 · O8 · DO12 (PURPOSE 예외 — 껍데기만).
-실제 VS Code 로드(``portMapping`` 이 ``localhost`` 를 127.0.0.1 로 잇는지 포함)는 미측정이다 — 다른 호스트 실측.
+실제 VS Code 로드는 게이트 밖 실측이다 (TASK-2026-11-22-main-016 — 내려받은 VS Code 1.147 · xvfb: 이 stub 판정이 놓친
+결함 2건을 잡았다 — frame-ancestors 에 작업대 출처 누락 · 스크립트 꺼짐이 중계 화면 버튼을 죽임. 아래 3 · 6 이 그 실측값을 고정한다).
 
 1. 매니페스트 — main 파일 · 명령 ``workflowHub.openRelay`` · 설정 ``relayPort``(8771) · ``engines.vscode``
 2. 활성화 (stub, 중계 켜짐) — 상태 표시줄에 세션 수/상한 · 일시정지 · 클릭 명령
-3. 명령 — webview 가 iframe 하나로 설정 포트의 중계 화면을 담고, ``portMapping`` 이 그 포트, 스크립트 꺼짐
+3. 명령 — webview 가 iframe 하나로 설정 포트의 중계 화면을 담고, ``portMapping`` 이 그 포트, ``enableScripts`` 켜짐(중계 화면 버튼) ·
+   껍데기 문서 CSP 는 ``default-src 'none'`` 에 ``script-src`` 없음(껍데기 자신은 스크립트 0)
 4. 중계 꺼짐 — 상태 표시줄 '꺼짐' (예외 없이)
 5. 껍데기 — 확장에 화면 로직(표 · 목록 그리기) 없음 · wheel 패키지 목록에 ``editors`` 없음
-6. 중계 화면 프레임 정책 — ``frame-ancestors 'self' vscode-webview:`` · ``X-Frame-Options`` 없음 · 와일드카드 없음
+6. 중계 화면 프레임 정책 — ``frame-ancestors`` 가 정확히 ``'self' vscode-webview: vscode-file://vscode-app`` · ``X-Frame-Options`` 없음 · 와일드카드 없음
 """
 
 from __future__ import annotations
@@ -150,10 +152,12 @@ def main() -> int:
         panel = on.get("panel") or {}
         html = str(panel.get("html", ""))
         opts = panel.get("opts") or {}
-        _record("case 3 (명령 — iframe 하나 · 설정 포트 · portMapping · 스크립트 꺼짐)",
+        shell_csp = (re.findall(r'http-equiv="Content-Security-Policy" content="([^"]+)"', html) or [""])[0]
+        _record("case 3 (명령 — iframe 하나 · 설정 포트 · portMapping · enableScripts 켜짐 · 껍데기 CSP 스크립트 0)",
                 html.count("<iframe") == 1 and re.findall(r'<iframe[^>]*\ssrc="([^"]+)"', html) == [f"http://localhost:{port}/"]
                 and opts.get("portMapping") == [{"webviewPort": port, "extensionHostPort": port}]
-                and opts.get("enableScripts") is False, f"opts={opts} html={html[:200]!r}")
+                and opts.get("enableScripts") is True and "default-src 'none'" in shell_csp and "script-src" not in shell_csp,
+                f"opts={opts} csp={shell_csp!r} html={html[:200]!r}")
         with tempfile.TemporaryDirectory(prefix="vscshell-") as d:
             off = _run_node(Path(d), _free_port())
         _record("case 4 (중계 꺼짐 — '꺼짐' · 예외 없음)", "error" not in off and "꺼짐" in str((off.get("status") or {}).get("text")),
@@ -189,8 +193,10 @@ def main() -> int:
                 xfo = r.headers.get("x-frame-options")
         finally:
             srv2.shutdown()
-    _record("case 6 (중계 화면 프레임 — vscode-webview 만 · XFO 없음 · 와일드카드 없음)",
-            "frame-ancestors 'self' vscode-webview:" in csp and xfo is None and "*" not in csp, f"csp={csp!r} xfo={xfo!r}")
+    fa = next((d.split()[1:] for d in csp.split(";") if d.split()[:1] == ["frame-ancestors"]), None)
+    _record("case 6 (중계 화면 프레임 — 자신 · VS Code webview · 데스크톱 작업대만 · XFO 없음 · 와일드카드 없음)",
+            fa is not None and sorted(fa) == sorted(["'self'", "vscode-webview:", "vscode-file://vscode-app"])
+            and xfo is None and "*" not in csp, f"csp={csp!r} xfo={xfo!r}")
 
     total = len(_passes) + len(_failures)
     print(f"\n{len(_passes)}/{total} passed" + (f" · 미측정 {len(_skips)}" if _skips else ""))

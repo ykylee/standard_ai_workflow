@@ -1833,9 +1833,51 @@
           "children": []
         }
       ]
+    },
+    {
+      "id": "M-048",
+      "title": "허브 오케스트레이션 — 안정화 · 2.1.0 발행",
+      "sdlc_phase": "stabilization",
+      "declared_status": "in_progress",
+      "derived_status": "in_progress",
+      "progress": 0.3333333333333333,
+      "total_leaves": 3,
+      "done_leaves": 1,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-48.1",
+          "title": "VS Code 확장 실제 로드 실측 (내려받은 VS Code · xvfb — 활성화 · 명령 · webview · 상태 표시줄) · `.vsix` 패키징",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-22-main-016"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        },
+        {
+          "id": "WBS-48.2",
+          "title": "2.1 진입 지침 판 점검 — main-014 후속(sandbox 로 push 못 하는 일하는 세션의 세션 끝 문구)",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        },
+        {
+          "id": "WBS-48.3",
+          "title": "전량 게이트 · 2.1.0 릴리스 노트 · 발행",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        }
+      ]
     }
   ],
-  "current_milestone_id": "M-039",
+  "current_milestone_id": "M-048",
   "exempt_tasks": [
     {
       "task_id": "TASK-2026-08-25-main-010",

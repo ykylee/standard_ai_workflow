@@ -3,7 +3,9 @@
 보여 주는 것: 등록 정보 · 일시정지 · 띄운 세션(요청 · 하네스 · pid · 상태 · 세션 ID) · 허용 목록 별칭 · 최근 로그.
 하는 것: 일시정지 · 재개뿐 — 승인은 owner 권한이라 중앙 허브 화면에서 한다 (중계는 owner 토큰을 갖지 않는다).
 토큰은 어떤 응답에도 싣지 않는다. 쓰기(POST)는 출처 대조 + ``X-Relay-UI`` 머리 — 다른 사이트의 폼이 누르지 못하게.
-프레임은 ``frame-ancestors 'self' vscode-webview:`` — VS Code 확장 껍데기(``editors/vscode/``)만 띄울 수 있다.
+프레임은 ``frame-ancestors 'self' vscode-webview: vscode-file://vscode-app`` — VS Code 확장 껍데기(``editors/vscode/``)만 띄울 수 있다.
+frame-ancestors 는 조상 **전부**를 대조한다 — webview(``vscode-webview:``) 위의 VS Code 데스크톱 작업대(``vscode-file://vscode-app``)가
+빠지면 실제 VS Code 에서 ``ERR_BLOCKED_BY_RESPONSE`` 로 빈 화면이 된다 (TASK-2026-11-22-main-016 실측).
 """
 
 from __future__ import annotations
@@ -82,9 +84,9 @@ def serve(relay: Relay, port: int) -> ThreadingHTTPServer:
             self.send_response(code)
             self.send_header("content-type", ctype)
             self.send_header("content-length", str(len(raw)))
-            # 프레임은 이 화면 자신과 VS Code webview 만 (M-047 — 확장 껍데기가 iframe 으로 띄운다). 다른 사이트가 이 화면을
+            # 프레임은 이 화면 자신과 VS Code 데스크톱 webview 만 (M-047 — 확장 껍데기가 iframe 으로 띄운다). 다른 사이트가 이 화면을
             # 프레임에 넣어 일시정지 버튼을 누르게 하는 클릭재킹은 계속 막는다 (POST 는 X-Relay-UI + 같은 출처도 요구).
-            self.send_header("content-security-policy", "frame-ancestors 'self' vscode-webview:")
+            self.send_header("content-security-policy", "frame-ancestors 'self' vscode-webview: vscode-file://vscode-app")
             self.send_header("cache-control", "no-store")
             self.end_headers()
             self.wfile.write(raw)

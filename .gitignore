@@ -105,3 +105,6 @@ workflow-source/.venv-build/
 # 내장 git worktree (에이전트 별도 checkout) — 이 트리의 인덱스에 넣지 않는다
 .worktrees/
 /.workflow-hub/
+
+# VS Code 확장 묶음 (editors/vscode — vsce package 산출물, TASK-2026-11-22-main-016)
+*.vsix

@@ -35,6 +35,7 @@ def _parser() -> argparse.ArgumentParser:
     s = sub.add_parser("serve", help="상주 — 중앙 폴링 · 세션 실행 · 메시지 넣기")
     s.add_argument("--once", action="store_true", help="폴링 한 번만 (검사 · 진단)")
     s.add_argument("--wait", type=int, default=25, help="긴 폴링 한 번 대기 초 (상한 25)")
+    s.add_argument("--ui-port", type=int, default=None, help="로컬 화면 포트 (127.0.0.1 만) — 예: 8771. 주지 않으면 화면 없음")
     sub.add_parser("pause", help="이 PC 정지 — 폴링 · 실행을 멈춘다 (허브의 승인된 요청은 남는다)")
     sub.add_parser("resume")
     sub.add_parser("status")
@@ -104,7 +105,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     from workflow_kit.relay.runner import Relay
 
-    return Relay(log=lambda m: print(f"relay: {m}", file=sys.stderr, flush=True)).serve(once=args.once, wait_s=args.wait)
+    return Relay(log=lambda m: print(f"relay: {m}", file=sys.stderr, flush=True)).serve(once=args.once, wait_s=args.wait,
+                                                                                                    ui_port=args.ui_port)
 
 
 if __name__ == "__main__":

@@ -3,7 +3,7 @@
 - 문서 목적: M-041 concept (소유자 2026-11-22 O1~O10 권고안)을 요구 R 과 검증 방법으로 옮긴다. 그 전제인 **하네스가 실제로 허락하는 제어 수단**을 먼저 실측한다 (M-042).
 - 범위: 실측 S (§1 — WBS-42.1), concept 에 주는 영향 (§2), 요구 R17~R24 (§3 — WBS-42.2), 추적표 (§4), 정할 것 Q1~Q4 (§5)
 - 대상 독자: 소유자, 구현자 (M-043~)
-- 상태: draft — §1 · §2 작성 (2026-11-22 — 2차 §1.4: hook · 신뢰 없는 간접 수단 포함), §3 요구 R17~R24 · §4 추적표 · §5 정할 것 Q1~Q4 — **소유자 2026-11-22 권고안 전부** (§6)
+- 상태: draft — §1 · §2 작성 (2026-11-22 — 2차 §1.4: hook · 신뢰 없는 간접 수단 · §1.5 중계 실제 어댑터 포함), §3 요구 R17~R24 · §4 추적표 · §5 정할 것 Q1~Q4 — **소유자 2026-11-22 권고안 전부** (§6)
 - 최종 수정일: 2026-11-22
 - 관련 문서: [`hub-orchestration-review-2026-11.md`](./hub-orchestration-review-2026-11.md) (concept — "concept §n"), [`M-042`](../../ai-workflow/memory/active/roadmap/M-042-hub-orchestration-requirements.md), [`workflow-hub-requirements-2026-11.md`](./workflow-hub-requirements-2026-11.md) §16.3 (원격 MCP 실측), [`compact_relay_spec.md`](../../workflow-source/core/compact_relay_spec.md) §7 (Codex hook 실측 기록)
 
@@ -82,6 +82,27 @@ MCP 등록과 도구 허용(Claude `--allowedTools` · Codex 도구별 `approval
 **진입 파일 로드에는 신뢰가 필요 없다** (`-p` 기준).
 
 뒷정리: `~/repos/.wk-orch-probe2-tmp` 삭제 · 격리 `CODEX_HOME` 삭제 · `~/.claude.json` · `~/.codex/config.toml` 에 탐침 흔적 0 · 저장소 변경 0.
+
+### 1.5 구현 뒤 실측 — PC 중계 실제 어댑터 (M-046 WBS-46.3, 2026-11-22, Linux — Claude Code 2.1.330 · Codex 0.167.1)
+
+방법: 실제 허브 프로세스 · 중계(`workflow_kit.relay.runner.Relay`, 프로세스 안) · 실제 하네스. 허용 디렉터리는 2.0 셋업을 흉내 냈다 —
+허브가 렌더한 진입 파일(`hub_guide_render`) · 허브 MCP 등록(Claude 프로젝트 `.mcp.json` + `enableAllProjectMcpServers`, Codex 격리
+`CODEX_HOME` 의 `mcp_servers.hub` + 도구별 `approval_mode="approve"`) · 깨끗한 git 저장소. 토큰은 환경 변수만. 탐침에서만 Claude 에
+`--setting-sources project,local --model haiku` 를 붙였다(사용자 알림 hook 격리 · 비용) — 제품 어댑터는 그대로. `/tmp` 밖 임시 디렉터리 · 끝나고 삭제.
+
+| 단계 | Claude Code (상주 stream-json) | Codex (app-server) |
+|---|---|---|
+| L1 띄우기 → 세션이 `spawn_request` 로 등록 | ✅ 승인 뒤 3초 안에 세션이 중계에 묶임 | ✅ 12초 |
+| L2 배정 → 수락(= 2.0 맡기) → 수행 → 보고 | ✅ 배정 메시지 `delivered_via=adapter` → `acked` · task 맡은 이 `agent-w` · `done-cc.txt` = `OK` · `hub_report` (6초) | ✅ 실행 중 턴에 **`turn/steer`** 로 끼움 → `acked` · `done-cx.txt` = `OK` · `hub_report` (28초) |
+| L3 멈춤 요청 → owner 승인 → 종료 | ✅ 4초 뒤 허브 세션 `ended` | ✅ 4초 |
+| 허용 목록 밖 권한 모드 | ✅ 첫 시도에서 탐침이 `default` 로 요청 → 중계가 `refused_by_host` ("cc 에 허용되지 않은 권한 모드") | — |
+
+드러난 것:
+
+- **Codex `workspace-write` 샌드박스는 `.git` 을 읽기 전용으로 둔다** — 보고의 검증 칸: "`.git` 이 읽기 전용이고 … 커밋과 push 는 하지 못했습니다".
+  진입 규칙의 세션 끝 순서(허브 기록 → 커밋 → push)를 Codex 일하는 세션은 지킬 수 없다. bypass 계열은 허용 목록이 받지 않으므로(R21.4) 풀 길이 정해지지 않았다 → 후속 task.
+- 세션은 진입 규칙대로 `hub_wait` 로 기다리다 배정을 받았고, 중계가 넣은 메시지와 대기 · 편승이 같은 메시지를 다투지 않았다 — 실린 메시지는 한 번 `acked` (실림 ≠ 소비 · ack 멱등).
+- 원격 없는(로컬 키) 프로젝트라 세션 시작의 저장소 확인은 "원격 미확인" 으로 보고됐다 — 판정이 멈추지 않고 진행.
 
 ## 2. concept 에 주는 영향
 

@@ -103,5 +103,5 @@
   - path: [`./M-044-hub-orchestration-inbox.md`](./M-044-hub-orchestration-inbox.md)
 - **M-045** [implementation] 허브 오케스트레이션 — implementation 2 (오케스트레이터 lease · 배정 · 보고 · 정지 · 진입 규칙) — status: done
   - path: [`./M-045-hub-orchestration-assign.md`](./M-045-hub-orchestration-assign.md)
-- **M-046** [implementation] 허브 오케스트레이션 — implementation 3 (PC 중계) — status: in_progress
+- **M-046** [implementation] 허브 오케스트레이션 — implementation 3 (PC 중계) — status: done
   - path: [`./M-046-hub-orchestration-relay.md`](./M-046-hub-orchestration-relay.md)

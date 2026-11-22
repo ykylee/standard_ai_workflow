@@ -14,6 +14,7 @@
 7. 정지 — 정지 중 요청 423 · 승인된 요청도 내주지 않음 · 풀면 내줌
 8. 상한 · 긴 폴링 — 하루 세션 요청 10 → 429 · 일 없는 긴 폴링은 상한까지 기다리고, 그 사이 승인되면 바로 돌아옴
 9. 거두기 — owner 가 거두면 중계 폴링 401
+10. 로컬 화면 — 세션 표 · 토큰 없음 · 머리 없는 POST · 남의 출처 403 · 일시정지가 폴링을 실제로 멈춤
 """
 
 from __future__ import annotations
@@ -221,6 +222,41 @@ def run(hub: Hub, tmp: Path) -> None:
                 s_lim == 429 and lim.get("error_code") == "limit_reached" and 2.5 < dt_idle < 6 and not idle.get("dispatch")
                 and len(woke.get("dispatch", [])) == 1 and dt_woke < 5,
                 f"s_lim={s_lim} dt_idle={dt_idle:.1f} dt_woke={dt_woke:.1f} woke={woke.get('dispatch')}")
+
+        # 10 로컬 화면 (거두기 전에 — 폴링이 살아 있을 때)
+        import socket
+        from workflow_kit.relay.ui import serve as serve_ui
+
+        with socket.socket() as sk:
+            sk.bind(("127.0.0.1", 0))
+            uport = sk.getsockname()[1]
+        srv = serve_ui(relay, uport)
+        try:
+            ubase = f"http://127.0.0.1:{uport}"
+            page = urllib.request.urlopen(ubase + "/", timeout=5).read().decode("utf-8")
+            api = urllib.request.urlopen(ubase + "/api/state", timeout=5).read().decode("utf-8")
+
+            def ui_post(path: str, headers: dict[str, str]) -> int:
+                req = urllib.request.Request(ubase + path, data=b"", method="POST", headers=headers)
+                try:
+                    with urllib.request.urlopen(req, timeout=5) as r:
+                        return r.status
+                except urllib.error.HTTPError as e:
+                    return e.code
+
+            no_hdr = ui_post("/api/pause", {})
+            foreign = ui_post("/api/pause", {"X-Relay-UI": "1", "Origin": "https://evil.example"})
+            ok_pause = ui_post("/api/pause", {"X-Relay-UI": "1", "Origin": ubase})
+            paused_poll = relay.once(wait_s=0)
+            ok_resume = ui_post("/api/resume", {"X-Relay-UI": "1"})
+            resumed_poll = relay.once(wait_s=0)
+        finally:
+            srv.shutdown()
+        _record("case 10 (로컬 화면 — 세션 표 · 토큰 없음 · 머리 없음/남의 출처 403 · 일시정지가 폴링을 멈춤)",
+                "pc-1" in page and "<table>" in page and token not in page and token not in api
+                and no_hdr == 403 and foreign == 403 and ok_pause == 200 and paused_poll == {"paused": True}
+                and ok_resume == 200 and "dispatch" in resumed_poll,
+                f"no_hdr={no_hdr} foreign={foreign} pause={ok_pause} paused={paused_poll} resume={ok_resume}")
 
         # 9 거두기
         _post(base, "hub_relay_revoke", {"host_id": host}, own)

@@ -244,7 +244,7 @@ class Adapter(Protocol):
 ## 10. 화면 (요구 R22)
 
 - **중앙** `/ui/` 에 `오케스트레이션` 판: 세션 표(상태 · `unknown` 수 따로 · 마지막 신호 · 전달 경로 · 열린 배정) · 배정 표(상태 기계 §8) · 미전달(`unacknowledged`) · 승인 대기(세션 · 멈춤 요청 — owner 는 여기서 승인) · 정지 스위치. 읽기는 2.0 화면 인증 그대로(2.0 R13.2a).
-- **중계** `127.0.0.1:8771`: 그 PC 의 중계 세션 · 어댑터 상태 · 허용 목록(읽기 — 고치기는 CLI) · 승인 대기 사본 · `pause`. 중앙 `static/` 자산을 재사용한다.
+- **중계** `hub relay serve --ui-port 8771` → `127.0.0.1` 만 (`relay/ui.py`, 표준 라이브러리 `http.server` — 중계가 허브 서버 의존 없이 돌도록 중앙 `static/` 을 쓰지 않는다): 등록 정보 · 일시정지 · 띄운 세션(요청 · 별칭 · 하네스 · pid · 상태 · 허브 세션) · 허용 목록(읽기 — 고치기는 CLI) · 마지막 폴링 · 최근 로그. 하는 일은 일시정지 · 재개뿐이고 POST 는 `X-Relay-UI` 머리 + 같은 출처만. **승인 대기는 보이지 않는다** — 승인은 owner 권한이라 중앙 화면에서 하고, 중계는 owner 토큰을 갖지 않는다. 토큰은 어떤 응답에도 없다 (`check_hub_relay` case 10).
 - **VS Code 확장** `editors/vscode/`: webview 로 중계 화면 · 상태 표시줄 `⏳ 승인 N` · 명령 하나(`Workflow Hub: Open`). 화면 로직 0 — 판정 · HTML 생성은 중계(Python) 쪽.
 
 ## 11. 진입 영역 전달 규칙 (요구 R18.7 — `hub_workflow_standard.md` 에 더할 절)
@@ -298,7 +298,7 @@ class Adapter(Protocol):
 | `check_hub_orch_assign` | 상태 기계 전 경로 · 경합 배정 하나만 성공 · `no_delivery_path` · ack→claim 409 연동 · 10분 무확인 되돌림 |
 | `check_hub_orch_lease` | owner 만 · 동시 지정 하나 · 만료 · 인계 · 정지 스위치 |
 | `check_hub_orch_forbidden` | 오케스트레이터 토큰으로 2.0 금지 경로(결정 응답 · 게이트 · 지침 판 · 남의 handoff) 403 · 상태 변화 0 |
-| `check_hub_relay` | 초대 → 토큰 · 폴링 · 허용 목록 밖 `refused_by_host` · bypass 권한 모드 거부 · 들어오는 포트 0 |
+| `check_hub_relay` (M-046) | case 1~10 — 초대 · 토큰 600 · 허용 목록(bypass 거부) · 요청/승인/실행 · 목록 밖 거절 · 세션 잇기 · 메시지 넣기(재전달 한 번) · 멈춤 · 정지 · 상한 · 긴 폴링 · 거두기 · 로컬 화면 (가짜 어댑터) |
 | `check_hub_relay_adapters` (실측 · 계정 필요 — 게이트 밖) | 어댑터 2종 × 4동작 · `/tmp` 밖 디렉터리 |
 | `check_hub_orch_entry_rule` (실측 · 계정 필요 — 게이트 밖) | §11 문안 × 하네스 2종 × 규칙 있음/없음 · 위험 배정 거절 (요구 R23.3) |
 | `check_hub_client` (기존) | `QUEUEABLE` ⊂ `request_id` 도구 — 새 도구 반영 |

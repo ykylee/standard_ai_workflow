@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import time
+from collections import deque
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable
 
@@ -28,8 +30,13 @@ class Relay:
         self.alias_of: dict[str, str] = {}         # 세션 요청 ID → 허용 목록 별칭
         self.session_of: dict[str, str] = {}       # 세션 ID → 세션 요청 ID
         self.seen: dict[str, set[str]] = {}        # 세션 ID → 넣은 메시지 ID (재전달 중복 거름)
-        self.log = log
+        self.recent: deque[str] = deque(maxlen=200)  # 로컬 화면의 '최근 로그' (토큰은 싣지 않는다)
+        self._out = log
         self.last: dict[str, Any] = {}
+
+    def log(self, msg: str) -> None:
+        self.recent.append(f"{datetime.now().strftime('%H:%M:%S')} {msg}")
+        self._out(msg)
 
     def _post(self, path: str, body: dict[str, Any], timeout: float = 40.0) -> dict[str, Any]:
         return post(str(self.cfg["hub"]), path, body, self.token, timeout)
@@ -121,8 +128,13 @@ class Relay:
             if h.alive():
                 adapters.get(h.harness).stop(h)
 
-    def serve(self, *, once: bool = False, wait_s: int = 25) -> int:
+    def serve(self, *, once: bool = False, wait_s: int = 25, ui_port: int | None = None) -> int:
         backoff = 1.0
+        if ui_port:
+            from workflow_kit.relay.ui import serve as serve_ui
+
+            serve_ui(self, ui_port)
+            self.log(f"로컬 화면 http://127.0.0.1:{ui_port}/")
         try:
             while True:
                 try:

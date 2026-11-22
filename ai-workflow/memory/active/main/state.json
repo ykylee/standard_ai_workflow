@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-11-21",
+  "generated_at": "2026-11-22",
   "purpose_digest": "여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 **허브**로 제공한다 — 작업 환경은 kit 을 깔지 않고 허브 주소 하나로 참여하고, kit 은 허브 서버 안에서 돈다 (H2 · H4). 독립 패키지 형태는 1.x 줄로 유지보수한다",
   "purpose_digest_rev": "2026-11-21",
   "source_of_truth": {
@@ -10,7 +10,7 @@
     "daily_backlog_dir": "ai-workflow/memory/active/main/backlog",
     "tasks_dir": "ai-workflow/memory/active/main/backlog/tasks",
     "sessions_dir": "ai-workflow/memory/active/main/sessions",
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-11-21.md",
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-11-22.md",
     "repository_assessment_path": null
   },
   "project": {
@@ -40,7 +40,6 @@
     ],
     "planned_items": [
       "TASK-2026-11-13-claude-remote-sync-check-234c32-005",
-      "TASK-2026-11-19-claude-remote-sync-check-234c32-002",
       "TASK-2026-11-21-main-013"
     ],
     "recent_done_items": [
@@ -59,56 +58,18 @@
     "environment_constraints": []
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-11-21.md",
-    "task_count": 40,
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-11-22.md",
+    "task_count": 1,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
-      "TASK-2026-11-21-claude-workflow-hub-concept-001 — ADR-033 Accepted · DS1~DS9 확정 · PURPOSE 2.0판 적용 · M-032 close",
-      "TASK-2026-11-21-claude-workflow-hub-concept-002 — 허브 코어 — 서버 · SQLite · 이관 · 백업",
-      "TASK-2026-11-21-claude-workflow-hub-concept-003 — 허브 코어 — 프로젝트 등록 (git 주소 정규화 · 별칭) · 콜사인 등록 · 토큰",
-      "TASK-2026-11-21-claude-workflow-hub-concept-004 — 허브 코어 — task CRUD · 이력 · version 409 · 맡기",
-      "TASK-2026-11-21-claude-workflow-hub-concept-005 — 허브 코어 — 원격 MCP 골격 · 부트스트랩 묶음 · 인증 경계",
-      "TASK-2026-11-21-claude-workflow-hub-concept-006 — 허브 부트스트랩 셋업 — 쓰기 지시 · .gitignore 먼저 · 확인 도구",
-      "TASK-2026-11-21-claude-workflow-hub-concept-007 — 허브 지침 렌더링 — 표준 규칙(2.0판) · 프로젝트 지침 · 하네스 4종 · 판 · 로컬 수정 감지",
-      "TASK-2026-11-21-claude-workflow-hub-concept-008 — 허브 세션 시작 확인 · 하네스 등록 안내 페이지",
-      "TASK-2026-11-21-claude-workflow-hub-concept-009 — 허브 판정 — 계획 린트 · done 게이트 · 결정 응답 (1.x 와 같은 함수)",
-      "TASK-2026-11-21-claude-workflow-hub-concept-010 — 허브 로드맵 — 마일스톤 · WBS · WBS 게이트 · 진척 파생",
-      "TASK-2026-11-21-claude-workflow-hub-concept-011 — 허브 콜사인별 기억 — handoff · 세션 끝 · compact 체크포인트 · state.json v1 · 보관",
-      "TASK-2026-11-21-claude-workflow-hub-concept-012 — 로드맵 현재 마일스톤을 병행 선언 기준으로 — 상시 운영 M-007 이 늘 '현재' 로 보고되던 것",
-      "TASK-2026-11-21-claude-workflow-hub-concept-013 — handoff §5 서두의 회차 줄이 예산 밖에서 쌓인다 — 누적형으로 세고 이관",
-      "TASK-2026-11-21-main-001 — 허브 위키 — 페이지 · ingest 묶음 · index/log 생성 · 읽기 · lint (WBS-36.1)",
-      "TASK-2026-11-21-main-002 — 허브 memory_index · 양방향 링크 · 출처 sha · 원격 읽기(미측정) (WBS-36.2)",
-      "TASK-2026-11-21-main-003 — 허브 위키 들여오기 · 내보내기 — 위키 디렉터리 무손실 운반 + OKF 출판 (WBS-36.3 A)",
-      "TASK-2026-11-21-main-004 — 허브 선택 클라이언트 — 오프라인 보낼편지함 · 캐시 · 세션 시작 보고 (WBS-36.3 B)",
-      "TASK-2026-11-21-main-005 — 허브 화면 첫 판 — 프로젝트 · task 목록 · 계획 · 결정 답 · 이력 (M-037 WBS-37.1)",
-      "TASK-2026-11-21-main-006 — 허브 화면 — 콜사인별 handoff · 지금 누가 무엇을 · 지침 판 현황 (M-037 WBS-37.2)",
-      "TASK-2026-11-21-main-007 — 허브 화면 — 지침 편집 · 에이전트 제안 승인(D11) · 위키 읽기 (M-037 WBS-37.3)",
-      "TASK-2026-11-21-main-008 — 허브 1.x 전환 — 감지 · 전환 계획 · 들여오기 (M-038 WBS-38.1)",
-      "TASK-2026-11-21-main-009 — 허브 1.x 전환 — '허브로 옮김' 표식 쓰기 지시 · 되돌리기 (M-038 WBS-38.2)",
-      "TASK-2026-11-21-main-010 — 1.x 쪽 '허브로 옮김' 표식 거절 · session-start 표식 인지 (M-038 WBS-38.3 일부 — 안내 문구 · 발행은 2.0 때)",
-      "TASK-2026-11-21-main-011 — 1.x 안내 판 발행 — 2.0 안내 한 줄 · README · 발행 노트 · 1.x EOL (2.0.0 발행 때, R16.4 · R14.8)",
-      "TASK-2026-11-21-main-012 — 허브 하네스 실측 (Linux) — 원격 MCP 부트스트랩 · 세션 시작, 4 하네스 (M-039 WBS-39.1 일부)",
-      "TASK-2026-11-21-main-014 — 이 저장소 2.0 전환 리허설 — 로컬 임시 허브로 들여오기 · 대조 (표식 없음, M-039 WBS-39.2 일부)",
-      "TASK-2026-11-21-main-015 — 1.x 전환 운반을 선택 클라이언트로 — hub_client.py migrate · 감지 도구 큰 상한 (소유자 2026-11-21)",
-      "TASK-2026-11-21-main-016 — 1.x 전환 범위 확장 — 아카이브 브랜치 · 결정 응답 · baselines · PURPOSE/PROFILE · 날짜별 backlog (소유자 2026-11-21)",
-      "TASK-2026-11-21-main-017 — 허브 서버 간 프로젝트 이전 — 묶음 · 관리자 CLI export/import · 원본 봉인 (M-039 WBS-39.4)",
-      "TASK-2026-11-21-main-018 — 허브 서버 간 프로젝트 이전 — HTTP 경로 (같은 묶음, 소유자 2026-11-21 '둘 다')",
-      "TASK-2026-11-21-main-019 — run_all_checks 잠금 파일 보유자 정보가 깨진다 — a+b 모드에서 seek 가 쓰기 위치를 못 바꿈",
-      "TASK-2026-11-21-main-020 — 이 호스트 테스트베드 허브 — 이 저장소 clone 을 2.0 으로 전환해 실사용 시험 (M-039 WBS-39.2)",
-      "TASK-2026-11-21-main-021 — 이 저장소를 테스트베드 허브에 실제 등록 — 등록 · 셋업 · 들여오기, 표식 보류 (M-039 WBS-39.2)",
-      "TASK-2026-11-21-main-022 — 허브 에이전트용 셋업 가이드 /setup.md — 페이지만 읽고 스스로 부트스트랩 + 원격 없는 저장소 등록 (M-039 WBS-39.1)",
-      "TASK-2026-11-21-main-023 — /setup.md 가이드 실측 — Codex · MiniMax Code · Antigravity (Linux, 빈 폴더) (M-039 WBS-39.1)",
-      "TASK-2026-11-21-main-024 — 2.0.0-beta 발행 범위 확정 · 허브 운영 가이드 (M-040 WBS-40.1)",
-      "TASK-2026-11-21-main-025 — 2.0 줄에서 kit 플러그인 채널 내리기 — marketplace.json · 발행 zip (R16.6 · Q10, M-040 WBS-40.2)",
-      "TASK-2026-11-21-main-026 — 2.0.0-beta 발행 준비 — README · 설치 문서 · 발행 노트 · RELEASE.md 2.0 절차(R16.7) · 판 번호 · 전량 게이트 (M-040 WBS-40.1)",
-      "TASK-2026-11-21-main-027 — 발행 산출물 선택이 접두사 glob — 2.0.0 이 2.0.0b1 산출물까지 첨부 후보로 잡는다 (find_dist_files)"
+      "TASK-2026-11-19-claude-remote-sync-check-234c32-002 — 브랜치 네임스페이스 자동 seed 가 roadmap_state.json 을 재생성하지 않는다 — 생성물 대조 검사 2건 red"
     ]
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",
     "ai-workflow/memory/active/main/session_handoff.md",
-    "ai-workflow/memory/active/main/backlog/2026-11-21.md",
+    "ai-workflow/memory/active/main/backlog/2026-11-22.md",
     "ai-workflow/memory/active/main/state.json",
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",

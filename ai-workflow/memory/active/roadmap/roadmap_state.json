@@ -1967,11 +1967,11 @@
       "id": "M-051",
       "title": "2.x 전면 Go 전환 — design",
       "sdlc_phase": "design",
-      "declared_status": "in_progress",
-      "derived_status": "in_progress",
-      "progress": 0.75,
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
       "total_leaves": 4,
-      "done_leaves": 3,
+      "done_leaves": 4,
       "deliverables_missing": [],
       "wbs": [
         {
@@ -2010,10 +2010,53 @@
         {
           "id": "WBS-51.4",
           "title": "design 결정 DG 권고안 · ADR-035 Accepted",
-          "derived_status": "in_progress",
+          "derived_status": "done",
           "linked_task_ids": [
             "TASK-2026-11-22-main-030"
           ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "M-052",
+      "title": "2.x 전면 Go 전환 — implementation S1 (PC 중계 Go 판)",
+      "sdlc_phase": "implementation",
+      "declared_status": "planned",
+      "derived_status": "planned",
+      "progress": 0.0,
+      "total_leaves": 3,
+      "done_leaves": 0,
+      "deliverables_missing": [
+        "hub-go/go.mod",
+        "hub-go/internal/relay/"
+      ],
+      "wbs": [
+        {
+          "id": "WBS-52.1",
+          "title": "`hub-go/` 모듈 뼈대 · `cmd/workflow-hub` · `check_go_build` (vet · test · 6 대상 빌드, Go 없으면 미측정)",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        },
+        {
+          "id": "WBS-52.2",
+          "title": "중계 Go 판 — CLI · 설정 형식 동일 · 긴 폴링 · 어댑터 claude-code · codex · fake · 로컬 화면",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        },
+        {
+          "id": "WBS-52.3",
+          "title": "`check_hub_relay` 구현 스위치(`WORKFLOW_RELAY_IMPL`) · 실제 어댑터 실측(Claude Code · Codex)",
+          "derived_status": "planned",
+          "linked_task_ids": [],
           "total_leaves": 1,
           "done_leaves": 0,
           "children": []
@@ -2021,7 +2064,7 @@
       ]
     }
   ],
-  "current_milestone_id": "M-051",
+  "current_milestone_id": "M-039",
   "exempt_tasks": [
     {
       "task_id": "TASK-2026-08-25-main-010",

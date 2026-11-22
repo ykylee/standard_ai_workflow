@@ -9,7 +9,7 @@ last_purpose_review: 2026-11-21
 - 범위: 4-element (Goals / Key Questions / Research Scope / Evolving Thesis)
 - 대상 독자: AI agent (session-start / backlog-update / doc-sync), 저장소 maintainer
 - 상태: draft — **2.0판** (`purpose_version: 2`, 2026-11-21 ADR-033 Accepted 때 적용 — 소유자 Q9). 개정 근거 `docs/planning/workflow-hub-requirements-2026-11.md` §17.1. 1.x 분기 브랜치는 v1 그대로 (v0.9.2 chapter 6 — purpose.md concept 흡수, 1차 출처 = llm_wiki Karpathy 패턴)
-- 최종 수정일: 2026-11-21
+- 최종 수정일: 2026-11-22
 - 관련 문서: [PROJECT_PROFILE.md](./PROJECT_PROFILE.md) (프로젝트 메타), [PURPOSE 운영 spec](../../workflow-source/core/llm_wiki_concept_purpose_spec.md)
 - 1차 출처: Karpathy `llm-wiki.md` + llm_wiki (nashsu) README §"Purpose.md — The Wiki's Soul"
 
@@ -52,7 +52,7 @@ last_purpose_review: 2026-11-21
 - 특정 도메인 (e.g. 결제 / 의료 / 금융) 의 도메인 로직
 - LLM model fine-tuning / training pipeline
 - 인프라 IaC (Terraform / CDK) 자동화 — 운영은 별도 가이드
-- non-Python 기반 runtime (TypeScript / Rust tool) — Python 외 runtime 의 정공법은 별도 spec. **예외 (2026-11-22 소유자, M-041 O8)**: 허브 오케스트레이션의 VS Code 확장 *껍데기*(로컬 웹을 띄우는 webview) 만 TypeScript — 화면 로직은 Python 쪽 한 벌
+- non-Python 기반 runtime (TypeScript / Rust tool) — Python 외 runtime 의 정공법은 별도 spec. **예외 (2026-11-22 소유자, M-041 O8)**: 허브 오케스트레이션의 VS Code 확장 *껍데기*(로컬 웹을 띄우는 webview) 만 TypeScript — 화면 로직은 Python 쪽 한 벌. **예외 (2026-11-22 소유자, ADR-035)**: 2.x 런타임(허브 · 공유 판정 · PC 중계)은 **Go** 로 옮긴다 (3.0.0, `hub-go/`) — 이행 기간 · 1.x(`release/1.x`)는 Python, 같은 판정은 차분 검사로 묶는다 (`workflow-source/core/hub_go_spec.md`)
 - 외부 reference 의 *코드 직접 차용* — GPLv3 / 라이센스 영향 회피, concept 만 흡수
 
 ## 4. Evolving Thesis

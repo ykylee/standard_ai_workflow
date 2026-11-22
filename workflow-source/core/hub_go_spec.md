@@ -3,7 +3,7 @@
 - 문서 목적: 2.x 허브 · 공유 판정 · PC 중계를 Go 로 옮기는 **구조 · 검증 · 이행** 설계 — `hub-go/` 배치, Python 모듈 대응, DB 와 분리한 순수 판정 입구, 언어 중립 판정 CLI 프로토콜, 차분 검사 · 적합성 검사, 게이트 감싸기, S1 중계 · 빌드 · 배포 — 를 정한다.
 - 범위: **언어만 바꾼다.** 도구 · HTTP 경로 · DB · 생성물 · 판정 결과는 `hub_spec.md` · `hub_orchestration_spec.md` 그대로 (요구 R25 · R26 · R29). 여기에는 그 계약을 Go 로 지키는 방법만 적는다.
 - 대상 독자: 구현자 (M-052~), 소유자 (DG 결정)
-- 상태: draft (M-051 WBS-51.1~51.3, 2026-11-22) — design 결정 DG1~DG5 소유자 대기 (§9)
+- 상태: draft (M-051, 2026-11-22) — design 결정 DG1~DG5 **소유자 확정 (권고안 전부)** · ADR-035 Accepted. 구현은 M-052~ (S1 중계부터)
 - 최종 수정일: 2026-11-22
 - 관련 문서: `../../docs/planning/go-port-requirements-2026-11.md` (요구 R25~R35 · 결정 Q1~Q6 — 아래 "요구 R…" · "Q…"), `../../docs/planning/runtime-port-review-2026-11.md` (concept), `./hub_spec.md` (2.0 계약), `./hub_orchestration_spec.md` (2.1 계약), `../../ai-workflow/wiki/decisions/adr-035-go-runtime.md`
 
@@ -130,9 +130,9 @@ workflow-hub judge <op>                  # Go 판
 | S3 전환 | 상시 허브를 Go 판으로, 되돌리기 리허설(같은 DB 로 Python 판 기동) 성공 |
 | S4 은퇴 | deprecation 정책대로 Python 허브 · 중계 제거, 자산 정본 이동(§2.1) — 3.x 의 다음 판 |
 
-## 9. design 결정 (DG — 소유자)
+## 9. design 결정 (DG — 소유자 2026-11-22 확정: 권고안 전부)
 
-| ID | 질문 | 기본값 (권고) | 선택지 |
+| ID | 질문 | 결정 (= 권고) | 선택지 |
 |---|---|---|---|
 | DG1 | 판정 입구 | **순수 판정 op + JSON CLI (§3 · §4)** — 차분 검사의 전제 | op CLI · Go 테스트에서 Python 을 직접 부름(cgo · 임베드) |
 | DG2 | HTTP 라우터 | **표준 라이브러리 `net/http` ServeMux** (Go 1.22+ 경로 패턴) — 의존 0 | 표준 라이브러리 · chi 등 |

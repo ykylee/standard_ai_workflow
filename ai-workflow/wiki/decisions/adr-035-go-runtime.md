@@ -1,6 +1,6 @@
 ---
 type: decision
-status: proposed
+status: accepted
 adr_id: ADR-035
 decided_at: 2026-11-22
 alternatives_considered: [keep-python, relay-only-go, hub-frontend-go-python-sidecar, rust-runtime]
@@ -14,9 +14,9 @@ r9_skip: true
 
 ## Status
 
-**Proposed** (2026-11-22, M-050/WBS-50.3). 범위 결정은 소유자가 concept 에서 내렸다 (2026-11-22 — R1 = D 전면 Go, R2 Go, R3 이 ADR, R4 서명은 실측 뒤, R5 `mcp` 2.x).
+**Accepted** (2026-11-22, TASK-2026-11-22-main-030, M-051/WBS-51.4) — requirements(M-050) Q1~Q6 · design(M-051) DG1~DG5 소유자 확정 (권고안 전부). 설계 정본: [`hub_go_spec.md`](../../../workflow-source/core/hub_go_spec.md). Proposed 2026-11-22 (M-050/WBS-50.3). 범위 결정은 소유자가 concept 에서 내렸다 (2026-11-22 — R1 = D 전면 Go, R2 Go, R3 이 ADR, R4 서명은 실측 뒤, R5 `mcp` 2.x).
 concept: [`runtime-port-review-2026-11.md`](../../../docs/planning/runtime-port-review-2026-11.md) §11. 요구: [`go-port-requirements-2026-11.md`](../../../docs/planning/go-port-requirements-2026-11.md) (R25~R35, 정할 것 Q1~Q6).
-Accepted 는 requirements 의 Q1~Q6 이 정해지고 design 이 끝난 뒤.
+결정: 판 3.0.0 · S4 까지 wheel 병행 · `hub_client.py` Python 유지 · `modernc.org/sqlite` · `hub-go/` · 실데이터 corpus (Q1~Q6), 순수 판정 op + `judge/1` CLI · 표준 `net/http` · `WORKFLOW_HUB_IMPL` 스위치 · `release_pipeline` 직접 빌드 · 이관 SQL 복사 + 대조 (DG1~DG5).
 
 ## Context
 

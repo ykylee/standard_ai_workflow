@@ -113,5 +113,7 @@
   - path: [`./M-049-runtime-port-concept.md`](./M-049-runtime-port-concept.md)
 - **M-050** [requirements] 2.x 전면 Go 전환 — requirements — status: done
   - path: [`./M-050-go-port-requirements.md`](./M-050-go-port-requirements.md)
-- **M-051** [design] 2.x 전면 Go 전환 — design — status: in_progress
+- **M-051** [design] 2.x 전면 Go 전환 — design — status: done
   - path: [`./M-051-go-port-design.md`](./M-051-go-port-design.md)
+- **M-052** [implementation] 2.x 전면 Go 전환 — implementation S1 (PC 중계 Go 판) — status: planned
+  - path: [`./M-052-go-port-relay.md`](./M-052-go-port-relay.md)

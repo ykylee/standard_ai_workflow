@@ -2,7 +2,7 @@
 id: M-051
 title: 2.x 전면 Go 전환 — design
 sdlc_phase: design
-status: in_progress
+status: done
 order: 51
 parallel_allowed:
   - M-007
@@ -16,6 +16,8 @@ goals: [G1, G3, G5]
 # M-051 — 2.x 전면 Go 전환 design
 
 요구 정본: [`go-port-requirements-2026-11.md`](../../../../docs/planning/go-port-requirements-2026-11.md) (R25~R35, Q1~Q6 결정). ADR-035 Proposed.
+
+**종결 (2026-11-22)**: `hub_go_spec.md` — DG1~DG5 소유자 확정(권고안 전부), ADR-035 Accepted, PURPOSE 예외. main-027~030. 다음 M-052 (S1 중계).
 
 ## WBS
 

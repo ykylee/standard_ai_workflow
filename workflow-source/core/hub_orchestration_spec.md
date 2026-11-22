@@ -245,7 +245,7 @@ class Adapter(Protocol):
 
 - **중앙** `/ui/` 에 `오케스트레이션` 판: 세션 표(상태 · `unknown` 수 따로 · 마지막 신호 · 전달 경로 · 열린 배정) · 배정 표(상태 기계 §8) · 미전달(`unacknowledged`) · 승인 대기(세션 · 멈춤 요청 — owner 는 여기서 승인) · 정지 스위치. 읽기는 2.0 화면 인증 그대로(2.0 R13.2a).
 - **중계** `hub relay serve --ui-port 8771` → `127.0.0.1` 만 (`relay/ui.py`, 표준 라이브러리 `http.server` — 중계가 허브 서버 의존 없이 돌도록 중앙 `static/` 을 쓰지 않는다): 등록 정보 · 일시정지 · 띄운 세션(요청 · 별칭 · 하네스 · pid · 상태 · 허브 세션) · 허용 목록(읽기 — 고치기는 CLI) · 마지막 폴링 · 최근 로그. 하는 일은 일시정지 · 재개뿐이고 POST 는 `X-Relay-UI` 머리 + 같은 출처만. **승인 대기는 보이지 않는다** — 승인은 owner 권한이라 중앙 화면에서 하고, 중계는 owner 토큰을 갖지 않는다. 토큰은 어떤 응답에도 없다 (`check_hub_relay` case 10).
-- **VS Code 확장** `editors/vscode/`: webview 로 중계 화면 · 상태 표시줄 `⏳ 승인 N` · 명령 하나(`Workflow Hub: Open`). 화면 로직 0 — 판정 · HTML 생성은 중계(Python) 쪽.
+- **VS Code 확장** `editors/vscode/` (M-047 — **빌드 없는 JavaScript**, wheel 밖): 명령 하나(`workflowHub.openRelay`)가 webview 에 중계 화면 iframe 하나를 띄운다 (`portMapping` · 스크립트 꺼짐 · 설정 `workflowHub.relayPort`). 상태 표시줄은 중계 상태(세션 수/상한 · 일시정지 · 꺼짐) — **승인 대기 수는 싣지 않는다** (중계는 owner 토큰이 없어 승인 대기를 볼 수 없다). 화면 로직 0 — 판정 · HTML 생성은 중계(Python) 쪽. 중계 화면은 `frame-ancestors 'self' vscode-webview:` 로 이 webview 만 프레임을 허락한다. 실제 VS Code 로드는 미측정(이 저장소 호스트에 VS Code 없음 — 게이트 `check_vscode_shell` 은 stub `vscode` 위 Node 활성화).
 
 ## 11. 진입 영역 전달 규칙 (요구 R18.7 — `hub_workflow_standard.md` 에 더할 절)
 

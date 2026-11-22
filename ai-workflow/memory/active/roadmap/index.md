@@ -105,3 +105,5 @@
   - path: [`./M-045-hub-orchestration-assign.md`](./M-045-hub-orchestration-assign.md)
 - **M-046** [implementation] 허브 오케스트레이션 — implementation 3 (PC 중계) — status: done
   - path: [`./M-046-hub-orchestration-relay.md`](./M-046-hub-orchestration-relay.md)
+- **M-047** [implementation] 허브 오케스트레이션 — implementation 4 (VS Code 확장 껍데기) — status: done
+  - path: [`./M-047-hub-orchestration-vscode.md`](./M-047-hub-orchestration-vscode.md)

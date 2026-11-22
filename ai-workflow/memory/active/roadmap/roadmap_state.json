@@ -1809,6 +1809,30 @@
           "children": []
         }
       ]
+    },
+    {
+      "id": "M-047",
+      "title": "허브 오케스트레이션 — implementation 4 (VS Code 확장 껍데기)",
+      "sdlc_phase": "implementation",
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
+      "total_leaves": 1,
+      "done_leaves": 1,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-47.1",
+          "title": "`editors/vscode/` 확장 (빌드 없는 JavaScript) · 중계 화면 프레임 정책(VS Code webview 만) · 게이트 검사(stub `vscode` 로 활성화 · 명령 · webview · 상태 표시줄 · wheel 밖)",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-22-main-015"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        }
+      ]
     }
   ],
   "current_milestone_id": "M-039",

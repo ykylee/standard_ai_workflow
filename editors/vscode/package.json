@@ -1,0 +1,34 @@
+{
+  "name": "workflow-hub-relay",
+  "displayName": "Workflow Hub — PC 중계",
+  "description": "이 PC 의 워크플로우 허브 중계 화면을 VS Code 안에 띄운다 (껍데기 — 화면은 중계가 그린다).",
+  "version": "0.1.0",
+  "publisher": "standard-ai-workflow",
+  "license": "MIT",
+  "private": true,
+  "engines": { "vscode": "^1.80.0" },
+  "categories": ["Other"],
+  "main": "./extension.js",
+  "activationEvents": ["onStartupFinished"],
+  "contributes": {
+    "commands": [
+      { "command": "workflowHub.openRelay", "title": "Workflow Hub: 중계 화면 열기" }
+    ],
+    "configuration": {
+      "title": "Workflow Hub",
+      "properties": {
+        "workflowHub.relayPort": {
+          "type": "number",
+          "default": 8771,
+          "description": "`python -m workflow_kit hub relay serve --ui-port <포트>` 로 띄운 중계 화면의 포트 (127.0.0.1)."
+        },
+        "workflowHub.statusIntervalSeconds": {
+          "type": "number",
+          "default": 15,
+          "minimum": 5,
+          "description": "상태 표시줄이 중계 상태를 읽는 간격(초)."
+        }
+      }
+    }
+  }
+}

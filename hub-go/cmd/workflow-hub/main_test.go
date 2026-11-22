@@ -50,8 +50,20 @@ func TestHelpAndCommands(t *testing.T) {
 		}
 	})
 
+	t.Run("relay_wired", func(t *testing.T) {
+		t.Setenv("WORKFLOW_HUB_RELAY_HOME", t.TempDir())
+		var out, errBuf bytes.Buffer
+		rc := run([]string{"relay", "status"}, &out, &errBuf)
+		if rc != 0 {
+			t.Fatalf("relay status: got rc=%d, want 0 (stderr=%q)", rc, errBuf.String())
+		}
+		if !strings.Contains(out.String(), `"registered": false`) {
+			t.Fatalf("relay status: unexpected stdout %q", out.String())
+		}
+	})
+
 	t.Run("unimplemented_subcommands", func(t *testing.T) {
-		for _, sub := range []string{"serve", "backup", "admin", "relay", "judge"} {
+		for _, sub := range []string{"serve", "backup", "admin", "judge"} {
 			var out, errBuf bytes.Buffer
 			rc := run([]string{sub}, &out, &errBuf)
 			if rc != 2 {

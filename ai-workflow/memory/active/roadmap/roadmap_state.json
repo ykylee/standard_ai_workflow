@@ -2026,12 +2026,10 @@
       "sdlc_phase": "implementation",
       "declared_status": "in_progress",
       "derived_status": "in_progress",
-      "progress": 0.3333333333333333,
+      "progress": 0.6666666666666666,
       "total_leaves": 3,
-      "done_leaves": 1,
-      "deliverables_missing": [
-        "hub-go/internal/relay/"
-      ],
+      "done_leaves": 2,
+      "deliverables_missing": [],
       "wbs": [
         {
           "id": "WBS-52.1",
@@ -2047,10 +2045,12 @@
         {
           "id": "WBS-52.2",
           "title": "중계 Go 판 — CLI · 설정 형식 동일 · 긴 폴링 · 어댑터 claude-code · codex · fake · 로컬 화면",
-          "derived_status": "planned",
-          "linked_task_ids": [],
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-22-main-032"
+          ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         },
         {

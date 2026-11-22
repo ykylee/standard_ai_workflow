@@ -5,6 +5,8 @@ import (
 	"io"
 	"os"
 	"strings"
+
+	"github.com/ykylee/standard_ai_workflow/hub-go/internal/relay"
 )
 
 // version 은 -ldflags "-X main.version=<판>" 로 덮어쓴다 (hub_go_spec.md §7).
@@ -35,12 +37,16 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return 2
 	}
 	switch args[0] {
+	case "__fake-worker":
+		return relay.RunFakeWorker()
 	case "--version", "-v", "version":
 		fmt.Fprintf(stdout, "workflow-hub %s\n", version)
 		return 0
 	case "--help", "-h", "help":
 		printUsage(stdout)
 		return 0
+	case "relay":
+		return relay.Main(args[1:], stdout, stderr)
 	}
 	cmd := args[0]
 	if isKnownSubcommand(cmd) {

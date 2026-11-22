@@ -26,7 +26,7 @@
 | `hub/orchestration.py` | 세션 · 받은편지함 · lease · 배정 · 세션 요청의 저장과 판정 (Store 확장 — 같은 연결 · 같은 `version` 대조 · 같은 `event` 이력) |
 | `hub/inbox.py` | 편승 칸 조립(§6.1) · 대기 도구의 비동기 경로(§6.2) — 프로세스 안 알림(`asyncio.Event`)과 DB 폴링 |
 | `hub/tools.py` | 도구 표에 §5 의 도구를 더하고, `call()` 이 `session` 인자를 떼어 신호를 기록 · 편승 칸을 붙인다 |
-| `relay/` (새 패키지, `workflow_kit[relay]`) | `__main__.py` (`python -m workflow_kit relay …`) · `conn.py` (중앙 긴 폴링) · `allow.py` (허용 목록) · `adapters/claude_code.py` · `adapters/codex.py` · `ui.py` (로컬 웹 — 허브 `static/` 재사용) |
+| `relay/` (새 패키지 — **표준 라이브러리만**, 추가 설치 없음) | `cli.py` (`python -m workflow_kit hub relay …` — `tools/hub.py` 가 `relay` 를 맨 앞에서 갈라 허브 서버 의존 없이 돈다) · `conn.py` (중앙 긴 폴링 · urllib) · `config.py` (설정 자리 · 허용 목록) · `runner.py` (한 바퀴) · `adapters/{claude_code,codex,fake}.py` · `ui.py` (로컬 웹, M-046 WBS-46.3) |
 | `editors/vscode/` (wheel 밖, 저장소 최상위) | VS Code 확장 껍데기 — webview 로 로컬 웹 · 상태 표시줄 승인 대기 수 (요구 R22.3) |
 
 ## 3. DB 판 11
@@ -40,6 +40,7 @@
 | `assignment` | `project_id` · `task_id` · `session_id` · `callsign` · `message_id` · `state` (`offered`/`accepted`/`declined`/`returned`/`reported`) · `return_reason` · `offered_at` · `accepted_at` · `reported_at` · `report_json` · `version` | `(project_id, task_id)` 에 **열린**(`offered`/`accepted`) 줄은 하나 — 부분 유일 색인 | R20.1~R20.4 |
 | `orchestrator_lease` | `project_id` · `session_id` · `callsign` · `declared_by` · `declared_at` · `expires_at` · `halted` (0/1) · `version` | `project_id` 유일 (줄 하나 = 지금 오케스트레이터) | R19.1~R19.3 · R23.2 |
 | `session_request` | `project_id` · `id` (`SR-<4자리>`) · `kind` (`spawn`/`stop`) · `host_id` · `target_json` (디렉터리 별칭 · 하네스 · 권한 모드 · 첫 프롬프트 · 대상 세션) · `requested_by` (세션) · `state` (`pending_approval`/`approved`/`rejected`/`dispatched`/`done`/`refused_by_host`/`failed`) · `decided_by` · `decided_at` · `result_json` · `created_at` · `version` | `(project_id, id)` | R19.4 · R21.4 |
+| `relay_invite` (판 12) | `code_hash` · `for_project` · `owner_callsign` · `created_at` · `expires_at` · `used_at` · `host_id` | 허브 전역 — 이전 초대 `hub_invite` 와 **따로** (그 표의 조회가 종류를 가리지 않아, 같이 쓰면 중계 초대로 프로젝트 들여오기가 열린다) | R21.1 |
 | `relay_host` | `host_id` (`H-<ULID>`) · `name` · `token_hash` · `owner_callsign` · `projects_json` (이 중계가 맡는 프로젝트) · `allow_digest` (허용 목록 해시 — 내용은 PC 에만) · `harnesses_json` (어댑터 · 판) · `last_seen_at` · `revoked_at` | 허브 전역 표 (2.0 `hub_invite` 처럼 `project_id` 칼럼 없음) | R21.1~R21.3 |
 | `orch_counter` | `project_id` · `day` (UTC) · `name` (`session_requests` 등) · `n` | `(project_id, day, name)` | R23.1 |
 
@@ -50,7 +51,7 @@
 
 허브 MCP 는 상태가 없고(stateless HTTP) 인증 단위는 콜사인 토큰이다 — 같은 콜사인의 세션 여럿을 연결로 구분할 수 없다. 그래서:
 
-1. `hub_session_start` 가 선택 인자 `session` (객체)를 받는다: `{harness, harness_session_id?, kind?, delivery?: [..], resume?: "S-…"}`. 허브는 세션을 만들거나(`resume` 또는 `(callsign, harness, harness_session_id)` 가 같으면 이어 붙임) 응답에 `session: {id, kind, allow_wait, delivery, lease: {orchestrator: bool}}` 를 싣는다.
+1. `hub_session_start` 가 선택 인자 `session` (객체)를 받는다: `{harness, harness_session_id?, kind?, delivery?: [..], resume?: "S-…", spawn_request?: "SR-…"}` — `spawn_request` 는 중계가 띄운 세션이 첫 프롬프트에서 받아 싣는다 (그 세션이 그 중계에 묶이고 `kind=worker`, 한 요청에 세션 하나). 허브는 세션을 만들거나(`resume` 또는 `(callsign, harness, harness_session_id)` 가 같으면 이어 붙임) 응답에 `session: {id, kind, allow_wait, delivery, lease: {orchestrator: bool}}` 를 싣는다.
 2. 이후 **모든 token 묶음 도구**가 선택 인자 `session` (문자열 `S-…`)을 받는다. `call()` 이 떼어 내 ① 그 세션의 `last_signal_at` 을 갱신하고 ② 편승 칸(§6.1)의 수신자를 정한다. 그 콜사인의 세션이 아니면 403 `session_not_yours`.
 3. `session` 없는 호출은 **콜사인 수준** 신호다 — 세션 신호는 갱신하지 않고, 편승은 콜사인 주소 메시지(`to_kind=callsign`)만 싣는다.
 4. 2.0 진입 지침 판(전달 규칙 없음)의 세션은 `session` 인자를 모르므로 1 · 2 가 일어나지 않는다 → 그 콜사인은 '전달 경로 없음' 이고 배정은 409 `no_delivery_path` (요구 R18.7, Q2).
@@ -186,36 +187,34 @@ hook 이 신뢰된 환경에서만: Claude `Stop` (block + reason) · `UserPromp
 ### 9.1 명령
 
 ```
-python -m workflow_kit relay init   --hub URL --invite CODE         # host_id · relay 토큰 받기 (토큰은 ~/.config/workflow-hub/relay.env, 600)
-python -m workflow_kit relay allow  add|remove|list ...             # 허용 목록 (§9.3)
-python -m workflow_kit relay serve  [--ui-port 8771]                # 상주 — 중앙 폴링 · 어댑터 · 로컬 웹 (127.0.0.1)
-python -m workflow_kit relay pause | resume                         # 이 PC 정지 스위치
-python -m workflow_kit relay status [--json]
+python -m workflow_kit hub relay init   --hub URL --invite CODE --name NAME [--harness …]   # host_id · relay 토큰 (~/.config/workflow-hub/relay.token, 600)
+python -m workflow_kit hub relay allow  add|remove|list ...                                  # 허용 목록 (§9.3)
+python -m workflow_kit hub relay serve  [--once] [--wait N] [--ui-port 8771]                 # 상주 — 중앙 폴링 · 어댑터 · 로컬 웹 (127.0.0.1)
+python -m workflow_kit hub relay pause | resume                                              # 이 PC 정지 — 폴링을 멈춘다 (허브의 승인된 요청은 남는다)
+python -m workflow_kit hub relay status
 ```
+설정 자리는 `WORKFLOW_HUB_RELAY_HOME` 으로 바꾼다 (검사). 최상위 `relay` 명령으로 두지 않은 까닭: 명령 목록 · 스크립트 진입점 · 문서 명령 표가 함께 늘고, 중계는 허브의 한 부분이다.
 
-relay 토큰은 2.0 `hub_token` 이 아니라 `relay_host.token_hash` — 권한은 그 중계가 맡은 프로젝트의 `/v1/relay/…` 뿐이다. 초대 코드는 owner 가 `hub_admin … relay invite` 또는 화면에서 만든다 (2.0 `hub_invite` 와 같은 일회용 규칙).
+relay 토큰은 2.0 `hub_token` 이 아니라 `relay_host.token_hash` — 권한은 그 중계가 맡은 프로젝트의 `/v1/relay/…` 뿐이다. 초대 코드는 owner 가 도구 `hub_relay_invite` 로 만든다 (한 번 · 24시간, 표 `relay_invite`). 거두기는 `hub_relay_revoke` (초대한 owner).
 
 ### 9.2 중앙 ↔ 중계 (나가는 연결만 — 요구 R21.2)
 
 | HTTP | 하는 일 |
 |---|---|
-| `POST /v1/relay/poll` `{host_id, cursor, sessions: [{session, harness_status}]}` | 긴 폴링 (상한 60초). 응답: 이 PC 앞 `dispatch`(승인된 세션 요청 · 멈춤) · 중계 세션 앞 메시지(§6.3 · §6.4 전달용) · 정지 상태 · 다음 `cursor` |
+| `POST /v1/relay/register` `{invite, name, harnesses}` | 초대 코드 → `{host_id, token, project_id}` (토큰은 이 응답에만) |
+| `POST /v1/relay/poll` `{wait_s, sessions: [{session, status}], allow_digest}` | 긴 폴링 (상한 **25초** — 프록시 · 기본 상한 아래). 응답: `dispatch`(승인된 세션 · 멈춤 요청 → `dispatched`) · `deliver`(중계 세션 앞 메시지 — `delivered_via=adapter`, ack 전까지 다시 온다) · `halted`(정지된 프로젝트 — 그 프로젝트는 내주지 않는다) · `sessions`(요청 ↔ 세션 대응). 보고된 `ended` 는 세션 끝 처리(§8 되돌림) |
 | `POST /v1/relay/result` `{request_id, state, result}` | 요청 실행 결과 (`dispatched` · `done` · `refused_by_host` · `failed`) |
-| `POST /v1/relay/delivered` `{message_ids, via}` | 중계가 넣은 메시지 → `delivered` |
 
 ### 9.3 허용 목록 (요구 R21.4)
 
-PC 의 `~/.config/workflow-hub/relay-allow.toml`. 중앙에는 해시(`allow_digest`)만 보낸다.
+PC 의 `~/.config/workflow-hub/relay-allow.json` (**JSON** — 하한 Python 3.10 에 `tomllib` 이 없다). 고치기는 `hub relay allow add|remove`. 중앙에는 해시(`allow_digest`)만 보낸다.
 
-```toml
-[[dir]]
-alias = "std-ai-workflow"          # 세션 요청이 부르는 이름 — 경로는 중앙에 가지 않는다
-path = "/home/<user>/repos/standard_ai_workflow"
-project = "P-…"
-harnesses = ["claude-code", "codex"]
-permission_modes = ["default", "acceptEdits"]   # bypass 계열은 적을 수 없다 — 중계가 거부
-max_sessions = 2
+```json
+{"dir": [{"alias": "std-ai-workflow", "path": "/home/<user>/repos/standard_ai_workflow", "project": "P-…",
+          "harnesses": ["claude-code", "codex"], "permission_modes": ["default", "acceptEdits"], "max_sessions": 2}]}
 ```
+
+`alias` 는 세션 요청이 부르는 이름이다 — 경로는 중앙에 가지 않는다. `permission_modes` 에 bypass 계열은 적을 수 없다 (중계 · 허브 둘 다 거부). 허용된 디렉터리는 2.0 셋업(허브 MCP 등록 · 진입 파일)이 끝난 저장소여야 한다 — 띄운 세션이 거기서 허브에 등록한다.
 
 승인된 세션 요청도 목록에 없으면 `refused_by_host` + 이유. PC 동시 세션 상한 3 (Q4 · R21.6) 은 `relay serve` 가 센다.
 

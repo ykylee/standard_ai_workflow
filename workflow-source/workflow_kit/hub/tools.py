@@ -21,6 +21,7 @@ from workflow_kit.hub.judge import Judge
 from workflow_kit.hub.memory import Memory
 from workflow_kit.hub.migrate1x import Migrator
 from workflow_kit.hub.orchestration import WAIT_CAP_S, Orchestration
+from workflow_kit.hub.relay import Relays
 from workflow_kit.hub.session import SessionStart
 from workflow_kit.hub.setup import Setup
 from workflow_kit.hub.store import Ctx, Store, scan_secrets
@@ -406,6 +407,23 @@ TOOLS: dict[str, ToolSpec] = {
                  "메시지 — 오케스트레이터 세션만. to = 세션 ID(S-…) 또는 콜사인, kind = note · release.",
                  {"session": _STR, "to": _STR, "body": {"type": ["string", "object"]}, "kind": _STR, "request_id": _REQ_ID},
                  ("session", "to", "body"), lambda s, c, a: Orchestration(s).message(c, a)),
+        ToolSpec("hub_relay_invite", "token", "PC 중계 초대 코드 — 승인된 human 소유자만. 코드는 응답에만 있고 한 번 · 24시간.",
+                 {}, (), lambda s, c, a: Relays(s).invite(c, a)),
+        ToolSpec("hub_relay_list", "token", "이 프로젝트의 PC 중계 — host_id · 이름 · 어댑터 · 마지막 연결.",
+                 {}, (), lambda s, c, a: Relays(s).list_hosts(c, a)),
+        ToolSpec("hub_relay_revoke", "token", "PC 중계 거두기 — 그 중계를 초대한 owner 만.",
+                 {"host_id": _STR}, ("host_id",), lambda s, c, a: Relays(s).revoke(c, a["host_id"])),
+        ToolSpec("hub_orch_request_session", "token",
+                 "PC 중계에 새 세션 요청 — 오케스트레이터 세션만, owner 승인 뒤 실행. dir_alias 는 그 PC 허용 목록의 별칭.",
+                 {"session": _STR, "host_id": _STR, "dir_alias": _STR, "harness": _STR, "permission_mode": _STR,
+                  "prompt": _STR, "request_id": _REQ_ID}, ("session", "host_id", "dir_alias", "harness"),
+                 lambda s, c, a: Relays(s).request_session(c, a)),
+        ToolSpec("hub_orch_request_stop", "token", "중계가 띄운 세션의 멈춤 요청 — 오케스트레이터 세션만, owner 승인 뒤 실행.",
+                 {"session": _STR, "target_session": _STR, "reason": _STR}, ("session", "target_session"),
+                 lambda s, c, a: Relays(s).request_stop(c, a)),
+        ToolSpec("hub_approval_decide", "token", "세션 · 멈춤 요청 승인 — 승인된 human 소유자만. decision = approve · reject.",
+                 {"request_id": _STR, "decision": _STR, "note": _STR}, ("request_id", "decision"),
+                 lambda s, c, a: Relays(s).decide(c, a)),
         ToolSpec("hub_events", "token", "이력 (누가 · 언제 · 무엇 · 이전 값 · 새 값).",
                  {"target_kind": _STR, "target_id": _STR, "after_seq": _INT, "limit": _INT}, (),
                  lambda s, c, a: s.events(c, a.get("target_kind"), a.get("target_id"), a.get("after_seq", 0), a.get("limit", 200))),
@@ -422,7 +440,8 @@ def _transfer() -> Any:
 #: 자기 ``session`` 인자를 직접 다루는 도구 — call() 이 떼지 않는다 (신호는 도구가 남긴다).
 OWN_SESSION_TOOLS = frozenset({"hub_session_start", "hub_session_update", "hub_wait", "hub_inbox_ack", "hub_inbox_list",
                                "hub_report", "hub_orch_declare", "hub_orch_transfer", "hub_orch_release",
-                               "hub_orch_assign", "hub_orch_recall", "hub_orch_message"})
+                               "hub_orch_assign", "hub_orch_recall", "hub_orch_message",
+                               "hub_orch_request_session", "hub_orch_request_stop"})
 #: ``session`` 이 호출자가 아니라 '대상' 인 도구 — 신호를 남기지 않는다.
 TARGET_SESSION_TOOLS = frozenset({"hub_orch_declare", "hub_orch_transfer"})
 #: 스스로 신호를 남기는 도구 (세션 칸을 직접 쓴다).

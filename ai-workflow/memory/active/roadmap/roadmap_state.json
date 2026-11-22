@@ -1774,9 +1774,42 @@
           "children": []
         }
       ]
+    },
+    {
+      "id": "M-046",
+      "title": "허브 오케스트레이션 — implementation 3 (PC 중계 — 등록 · 허용 목록 · 세션 요청/승인 · 어댑터 · 로컬 웹)",
+      "sdlc_phase": "implementation",
+      "declared_status": "in_progress",
+      "derived_status": "in_progress",
+      "progress": 0.5,
+      "total_leaves": 2,
+      "done_leaves": 1,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-46.2",
+          "title": "허브 쪽 중계 API(판 12 · 등록 · 긴 폴링 · 결과 · 세션 요청/승인 · 세션 잇기) + 중계 패키지(`hub relay` · 허용 목록 · 어댑터 · 게이트 검사) — 옛 46.1 을 합침",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-22-main-011"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        },
+        {
+          "id": "WBS-46.3",
+          "title": "로컬 웹 화면 · 실제 하네스 어댑터 실측 (게이트 밖)",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        }
+      ]
     }
   ],
-  "current_milestone_id": "M-039",
+  "current_milestone_id": "M-046",
   "exempt_tasks": [
     {
       "task_id": "TASK-2026-08-25-main-010",
@@ -1973,6 +2006,13 @@
       "wbs_ref": "exempt",
       "exempt_reason": "kit 도구 결함 수리 — 마일스톤 밖",
       "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-11-22-main-002.md"
+    },
+    {
+      "task_id": "TASK-2026-11-22-main-012",
+      "task_status": "planned",
+      "wbs_ref": "exempt",
+      "exempt_reason": "kit 결함 수리 — 마일스톤 밖",
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-11-22-main-012.md"
     }
   ],
   "issues": []

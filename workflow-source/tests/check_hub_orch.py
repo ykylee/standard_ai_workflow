@@ -126,8 +126,9 @@ def case_1(tmp: Path) -> None:
             dup_blocked = False
         except sqlite3.IntegrityError:
             dup_blocked = True
-    ok = v == 11 and want <= tables and v_old == 11 and before == after and len(copies) == 1 \
-        and copies[0].name.startswith("v10.db.pre-v11-") and dup_blocked
+    latest = hubdb.latest_version()
+    ok = v == latest >= 11 and want <= tables and v_old == latest and before == after \
+        and len(copies) == latest - 10 and copies[0].name.startswith("v10.db.pre-v11-") and dup_blocked
     _record("case 1 (판 11 · 이관 · 열린 배정 하나)", ok,
             f"v={v} missing={want - tables} v_old={v_old} same={before == after} copies={copies} dup_blocked={dup_blocked}")
 

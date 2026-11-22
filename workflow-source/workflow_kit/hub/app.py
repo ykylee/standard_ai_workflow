@@ -32,6 +32,7 @@ from workflow_kit.hub import CONTRACT
 from workflow_kit.hub import tools as hubtools
 from workflow_kit.hub.errors import HubError
 from workflow_kit.hub.orchestration import WAIT_CAP_S, Orchestration
+from workflow_kit.hub.relay import POLL_CAP_S, Relays
 from workflow_kit.hub.store import Ctx, Principal, Store
 
 #: 요청 본문 상한 (요구 R13.5).
@@ -230,6 +231,65 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
         except HubError as e:
             return JSONResponse(e.payload(), status_code=e.status, headers=headers)
 
+    relays = Relays(store)
+
+    async def _relay_body(request: Request) -> Any:
+        body = await request.body()
+        if len(body) > MAX_BODY:
+            raise HubError(413, "payload_too_large", f"본문 상한 {MAX_BODY} 바이트", {"limit": MAX_BODY})
+        try:
+            return json.loads(body.decode("utf-8")) if body.strip() else {}
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise HubError(400, "invalid_json", f"본문이 JSON 이 아니다: {exc}") from exc
+
+    async def _relay_host(request: Request) -> Any:
+        host = await run_in_threadpool(relays.authenticate, _bearer(request.headers))
+        if host is None:
+            raise HubError(401, "unauthorized", "중계 토큰이 없거나 틀렸거나 거둔 토큰이다")
+        return host
+
+    async def relay_register(request: Request) -> Response:
+        """``relay init`` — 초대 코드 → host_id · 중계 토큰 (스펙 §9.1, DO8)."""
+        headers = _hub_headers(store)
+        try:
+            args = await _relay_body(request)
+            result = await run_in_threadpool(relays.register, clock(), args)
+            return JSONResponse(result, headers=headers)
+        except HubError as e:
+            return JSONResponse(e.payload(), status_code=e.status, headers=headers)
+
+    async def relay_poll(request: Request) -> Response:
+        """긴 폴링 — 중계가 나가는 연결로 가져간다 (스펙 §9.2, 요구 R21.2). 일이 생기면 바로, 없으면 상한에서 빈 응답."""
+        headers = _hub_headers(store)
+        try:
+            host = await _relay_host(request)
+            args = await _relay_body(request)
+            if not isinstance(args, dict) or set(args) - {"wait_s", "sessions", "allow_digest"}:
+                raise HubError(400, "unknown_field", "wait_s · sessions · allow_digest 만 받는다")
+            wait_s = args.get("wait_s", POLL_CAP_S)
+            if not isinstance(wait_s, int) or isinstance(wait_s, bool) or wait_s < 0:
+                raise HubError(400, "invalid_field", "wait_s: 0 이상 정수", {"field": "wait_s"})
+            wait_s = min(wait_s, POLL_CAP_S)
+            start = time.monotonic()
+            got = await run_in_threadpool(relays.poll_once, clock(), host, args)
+            light = {k: v for k, v in args.items() if k == "allow_digest"}  # 상태 보고는 첫 번에만 반영
+            while not (got["dispatch"] or got["deliver"]) and time.monotonic() - start < wait_s:
+                await asyncio.sleep(WAIT_POLL_S)
+                got = await run_in_threadpool(relays.poll_once, clock(), host, light)
+            return JSONResponse({**got, "waited_s": int(time.monotonic() - start)}, headers=headers)
+        except HubError as e:
+            return JSONResponse(e.payload(), status_code=e.status, headers=headers)
+
+    async def relay_result(request: Request) -> Response:
+        headers = _hub_headers(store)
+        try:
+            host = await _relay_host(request)
+            args = await _relay_body(request)
+            result = await run_in_threadpool(relays.result, clock(), host, args)
+            return JSONResponse(result, headers=headers)
+        except HubError as e:
+            return JSONResponse(e.payload(), status_code=e.status, headers=headers)
+
     @contextlib.asynccontextmanager
     async def lifespan(_app: Starlette) -> AsyncIterator[None]:
         async with manager.run():
@@ -248,6 +308,9 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
             Route("/setup.md", setup_md, methods=["GET"]),
             Route("/v1/bootstrap/hub_client.py", hub_client_source, methods=["GET"]),
             Route("/v1/tools/{name}", tool_http, methods=["POST"]),
+            Route("/v1/relay/register", relay_register, methods=["POST"]),
+            Route("/v1/relay/poll", relay_poll, methods=["POST"]),
+            Route("/v1/relay/result", relay_result, methods=["POST"]),
             Route("/mcp", _McpEndpoint(), methods=["GET", "POST", "DELETE"]),
         ],
         lifespan=lifespan,

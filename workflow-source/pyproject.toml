@@ -235,6 +235,9 @@ packages = [
     "workflow_kit.hub",
     # M-036/WBS-36.3: 허브 선택 클라이언트 원문 — `/v1/bootstrap/hub_client.py` 가 런타임에 읽어 내려준다 (hub_spec §7).
     "workflow_kit.hub.client",
+    # M-046: 2.1 PC 중계 (core/hub_orchestration_spec.md §9) — 표준 라이브러리만, `python -m workflow_kit hub relay`.
+    "workflow_kit.relay",
+    "workflow_kit.relay.adapters",
 ]
 
 # Single-file modules that don't live inside a package directory.

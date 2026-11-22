@@ -97,7 +97,7 @@ class Orchestration:
         p = self._callsign(ctx)
         if not isinstance(spec, dict):
             raise invalid_field("session", "객체여야 한다")
-        extra = set(spec) - {"harness", "harness_session_id", "kind", "delivery", "resume", "guide_version"}
+        extra = set(spec) - {"harness", "harness_session_id", "kind", "delivery", "resume", "guide_version", "spawn_request"}
         if extra:
             raise HubError(400, "unknown_field", f"모르는 필드: session.{', session.'.join(sorted(extra))}",
                            {"fields": sorted(f"session.{k}" for k in extra)})
@@ -140,6 +140,10 @@ class Orchestration:
                      str(spec.get("guide_version") or ""), now, now))
             self.store._event(conn, ctx, p.project_id, "session", sid, "resume" if resumed else "start", None,
                               {"harness": harness, "kind": kind, "delivery": delivery})
+            if spec.get("spawn_request") and not resumed:
+                from workflow_kit.hub.relay import Relays  # noqa: PLC0415 — relay 가 이 모듈을 쓴다 (순환 피함)
+
+                Relays(self.store).link_spawned(conn, ctx, p, sid, spec["spawn_request"])
             out = self._session_view(conn, ctx, conn.execute(
                 "SELECT * FROM session WHERE project_id = ? AND id = ?", (p.project_id, sid)).fetchone())
         out["resumed"] = resumed

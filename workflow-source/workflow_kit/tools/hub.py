@@ -44,6 +44,7 @@ def _parser() -> argparse.ArgumentParser:
     s.add_argument("--web-token-name", default=None,
                    help="화면 공용 web 토큰 이름 — 주면 토큰 없는 화면 요청이 읽기 · 콜사인 등록 권한으로 돈다 (기본 꺼짐)")
 
+    sub.add_parser("relay", help="PC 중계 (2.1) — init · allow · serve · pause · resume · status (`hub relay -h`)")
     b = sub.add_parser("backup", help="돌고 있는 허브의 DB 를 일관되게 복사한다")
     b.add_argument("--db", required=True, type=Path)
     b.add_argument("--out", required=True, type=Path)
@@ -93,6 +94,12 @@ def _parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     force_utf8_stdio()
+    raw = list(sys.argv[1:] if argv is None else argv)
+    if raw and raw[0] == "relay":
+        # PC 중계 (2.1, hub_orchestration_spec §9.1) — 허브 서버 의존(mcp 등) 없이 표준 라이브러리만으로 돈다.
+        from workflow_kit.relay.cli import main as relay_main
+
+        return relay_main(raw[1:])
     args = _parser().parse_args(argv)
     try:
         from workflow_kit.hub import db as hubdb

@@ -41,9 +41,11 @@
     "planned_items": [
       "TASK-2026-11-13-claude-remote-sync-check-234c32-005",
       "TASK-2026-11-21-main-013",
-      "TASK-2026-11-22-main-002"
+      "TASK-2026-11-22-main-002",
+      "TASK-2026-11-22-main-012"
     ],
     "recent_done_items": [
+      "TASK-2026-11-22-main-011 — PC 중계 — 허브 쪽 API · 중계 패키지 · 어댑터 · 게이트 검사 (M-046 WBS-46.1 · 46.2)",
       "TASK-2026-11-22-main-010 — 허브 오케스트레이션 구현 2 — 오케스트레이터 lease · 배정 상태 기계 · 보고 · 정지 · 진입 규칙 (M-045 WBS-45.1)",
       "TASK-2026-11-22-main-009 — 허브 오케스트레이션 구현 1 — DB 판 11 · 세션 · 받은편지함 편승 · 대기 도구 · 수신 확인 (M-044 WBS-44.1)",
       "TASK-2026-11-22-main-008 — ADR-034 Accepted — design 결정 DO1~DO13 확정 (M-043 WBS-43.3)",
@@ -52,15 +54,14 @@
       "TASK-2026-11-22-main-005 — 허브 오케스트레이션 요구 R · 추적표 (M-042 WBS-42.2)",
       "TASK-2026-11-22-main-004 — 허브 오케스트레이션 실측 S 2차 — hook · 신뢰 없는 간접 전달 수단 (도구 응답 편승 · 대기 도구 · 진입 지침) (M-042 WBS-42.1)",
       "TASK-2026-11-22-main-003 — 허브 오케스트레이션 실측 S — Claude Code · Codex 의 턴 경계 hook 주입 · 비대화형 · 이어 가기 · 상태 읽기 (M-042 WBS-42.1)",
-      "TASK-2026-11-22-main-001 — 허브 오케스트레이션 concept 검토 — 중앙 허브 · PC 중계 허브 · 하네스 · 세션, 메인 오케스트레이터 (M-041 WBS-41.1)",
-      "TASK-2026-11-21-main-027 — 발행 산출물 선택이 접두사 glob — 2.0.0 이 2.0.0b1 산출물까지 첨부 후보로 잡는다 (find_dist_files)"
+      "TASK-2026-11-22-main-001 — 허브 오케스트레이션 concept 검토 — 중앙 허브 · PC 중계 허브 · 하네스 · 세션, 메인 오케스트레이터 (M-041 WBS-41.1)"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-11-22.md",
-    "task_count": 11,
+    "task_count": 13,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
@@ -73,7 +74,8 @@
       "TASK-2026-11-22-main-007 — 허브 오케스트레이션 스펙 — DB 판 11 · 도구 표 · 세션 식별 · 전달 흐름 · 대기 도구 HTTP 실측 (M-043 WBS-43.1 · 43.2)",
       "TASK-2026-11-22-main-008 — ADR-034 Accepted — design 결정 DO1~DO13 확정 (M-043 WBS-43.3)",
       "TASK-2026-11-22-main-009 — 허브 오케스트레이션 구현 1 — DB 판 11 · 세션 · 받은편지함 편승 · 대기 도구 · 수신 확인 (M-044 WBS-44.1)",
-      "TASK-2026-11-22-main-010 — 허브 오케스트레이션 구현 2 — 오케스트레이터 lease · 배정 상태 기계 · 보고 · 정지 · 진입 규칙 (M-045 WBS-45.1)"
+      "TASK-2026-11-22-main-010 — 허브 오케스트레이션 구현 2 — 오케스트레이터 lease · 배정 상태 기계 · 보고 · 정지 · 진입 규칙 (M-045 WBS-45.1)",
+      "TASK-2026-11-22-main-011 — PC 중계 — 허브 쪽 API · 중계 패키지 · 어댑터 · 게이트 검사 (M-046 WBS-46.1 · 46.2)"
     ]
   },
   "next_documents": [

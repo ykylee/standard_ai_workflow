@@ -412,10 +412,24 @@ CREATE TABLE orch_counter (
 );
 """
 
+#: 판 12 (M-046) — 중계 초대 코드. 허브 간 이전 초대(``hub_invite``)와 **따로** 둔다 — 그 표의 조회는 종류를 가리지 않아,
+#: 같은 표를 쓰면 중계 초대 코드로 프로젝트 들여오기가 열린다. 허브 전역 표라 열 이름을 ``for_project`` 로 둔다.
+_V12 = """
+CREATE TABLE relay_invite (
+    code_hash TEXT PRIMARY KEY,
+    for_project TEXT NOT NULL,
+    owner_callsign TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    used_at TEXT,
+    host_id TEXT NOT NULL DEFAULT ''
+);
+"""
+
 #: 판 순서 = 목록 순서. 판 n = ``MIGRATIONS[n-1]`` (SQL 스크립트).
 #: ``executescript`` 는 열린 트랜잭션을 먼저 커밋하므로, 판 하나의 원자성은
 #: 스크립트 **안의** ``BEGIN IMMEDIATE … COMMIT`` 으로 만든다 (:func:`_apply`).
-MIGRATIONS: list[str] = [_V1, _V2, _V3, _V4, _V5, _V6, _V7, _V8, _V9, _V10, _V11]
+MIGRATIONS: list[str] = [_V1, _V2, _V3, _V4, _V5, _V6, _V7, _V8, _V9, _V10, _V11, _V12]
 
 
 def latest_version() -> int:

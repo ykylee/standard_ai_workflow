@@ -1,0 +1,3 @@
+{"protocol": "judge/1", "input": {"text": "# Session Handoff\n- 관련 문서: [state.json](./state.json), [backlog](./backlog/)\n## 1. 현재 작업 요약\n- 현재 기준선: v2.1.0\n- 현재 주 작업 축: Go 전환\n- 주요 제약: `Python 3.10+`\n- 최근 핵심 기준 문서:\n  - [hub_go_spec.md](../../../../workflow-source/core/hub_go_spec.md)\n## 2. 진행 중 작업\n- 현재 `in_progress` 작업:\n- TASK-2026-11-22-main-001 작업 1\n## 3. 차단 작업\n- 현재 `blocked` 작업:\n-\n## 4. 최근 완료 작업\n- 최근 완료 작업 목록:\n- TASK-2026-11-22-main-000 완료 작업\n"}}
+{"protocol": "judge/1", "input": {"text": "# Session Handoff\n## Current Focus\n- `focus item`\n## Work Status\n- TASK-2026-11-22-main-001 진행: in_progress\n- TASK-2026-11-22-main-002 막힘: blocked\n- TASK-2026-11-22-main-003 끝: done\n"}}
+{"protocol": "judge/1", "input": {"text": "# Empty\n"}}

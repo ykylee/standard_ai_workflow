@@ -169,3 +169,156 @@ func TestPlanStatesAndQualify(t *testing.T) {
 		t.Fatalf("expected r3.md rejected at stage 3, got %+v", res.Verdicts[2])
 	}
 }
+
+func TestWbsGateAllCodes(t *testing.T) {
+	indexActive := `# Roadmap
+## Milestones
+- **M-001** [concept] 컨셉 — status: done
+  - path: [` + "`./M-001-concept.md`" + `](./M-001-concept.md)
+- **M-002** [design] 설계 — status: in_progress
+  - path: [` + "`./M-002-design.md`" + `](./M-002-design.md)
+- **M-003** [implementation] 구현 — status: planned
+  - path: [` + "`./M-003-impl.md`" + `](./M-003-impl.md)
+`
+	m1 := "---\nid: M-001\ntitle: 컨셉\nsdlc_phase: concept\nstatus: done\norder: 1\nparallel_allowed: []\ndeliverables: []\n---\n\n## WBS\n\n- **WBS-1.1** 노트\n"
+	m2 := "---\nid: M-002\ntitle: 설계\nsdlc_phase: design\nstatus: in_progress\norder: 2\nparallel_allowed: []\ndeliverables: []\n---\n\n## WBS\n\n- **WBS-2.1** 설계\n  - **WBS-2.1.1** ADR\n- **WBS-2.2** 리뷰\n"
+	m3 := "---\nid: M-003\ntitle: 구현\nsdlc_phase: implementation\nstatus: planned\norder: 3\nparallel_allowed: [M-002]\ndeliverables: []\n---\n\n## WBS\n\n- **WBS-3.1** 코드\n"
+
+	docs := map[string]any{"index.md": indexActive, "M-001-concept.md": m1, "M-002-design.md": m2, "M-003-impl.md": m3}
+	evalGate := func(in map[string]any) WbsGateVerdict {
+		raw, _ := json.Marshal(map[string]any{"protocol": Protocol, "input": in})
+		env, err := Evaluate("wbs.gate", raw)
+		if err != nil {
+			t.Fatalf("Evaluate wbs.gate error: %v", err)
+		}
+		return env.Result.(WbsGateVerdict)
+	}
+
+	if v := evalGate(map[string]any{"roadmap_docs": nil}); !v.Allowed || v.Code != "not_applicable" {
+		t.Fatalf("got %+v", v)
+	}
+	draftDocs := map[string]any{"index.md": "- 상태: draft\n" + indexActive, "M-001-concept.md": m1}
+	if v := evalGate(map[string]any{"roadmap_docs": draftDocs}); !v.Allowed || v.Code != "draft_roadmap" {
+		t.Fatalf("got %+v", v)
+	}
+	if v := evalGate(map[string]any{"roadmap_docs": docs}); v.Allowed || v.Code != "wbs_required" {
+		t.Fatalf("got %+v", v)
+	}
+	if v := evalGate(map[string]any{"roadmap_docs": docs, "wbs": "exempt", "exempt_reason": " "}); v.Allowed || v.Code != "exempt_reason_required" {
+		t.Fatalf("got %+v", v)
+	}
+	if v := evalGate(map[string]any{"roadmap_docs": docs, "wbs": "exempt", "exempt_reason": "긴급"}); !v.Allowed || v.Code != "exempt_declared" {
+		t.Fatalf("got %+v", v)
+	}
+	if v := evalGate(map[string]any{"roadmap_docs": docs, "wbs": "bad"}); v.Allowed || v.Code != "wbs_ref_format" {
+		t.Fatalf("got %+v", v)
+	}
+	if v := evalGate(map[string]any{"roadmap_docs": docs, "wbs": "M-002/WBS-2.1"}); v.Allowed || v.Code != "wbs_not_leaf" {
+		t.Fatalf("got %+v", v)
+	}
+	if v := evalGate(map[string]any{"roadmap_docs": docs, "wbs": "M-002/WBS-2.9"}); v.Allowed || v.Code != "wbs_dangling" {
+		t.Fatalf("got %+v", v)
+	}
+	if v := evalGate(map[string]any{"roadmap_docs": docs, "wbs": "M-001/WBS-1.1"}); v.Allowed || v.Code != "milestone_done" {
+		t.Fatalf("got %+v", v)
+	}
+	if v := evalGate(map[string]any{"roadmap_docs": docs, "wbs": "M-002/WBS-2.1.1"}); !v.Allowed || v.Code != "linked" {
+		t.Fatalf("got %+v", v)
+	}
+	if v := evalGate(map[string]any{"roadmap_docs": docs, "wbs": "M-003/WBS-3.1"}); !v.Allowed || v.Code != "linked" {
+		t.Fatalf("expected parallel_allowed M-003 -> linked, got %+v", v)
+	}
+	m3NoParallel := strings.ReplaceAll(m3, "parallel_allowed: [M-002]", "parallel_allowed: []")
+	docsBlock := map[string]any{"index.md": indexActive, "M-001-concept.md": m1, "M-002-design.md": m2, "M-003-impl.md": m3NoParallel}
+	if v := evalGate(map[string]any{"roadmap_docs": docsBlock, "wbs": "M-003/WBS-3.1"}); v.Allowed || v.Code != "sdlc_order" {
+		t.Fatalf("got %+v", v)
+	}
+}
+
+func TestRoadmapDeriveAndPyFloat(t *testing.T) {
+	indexMD := `# Roadmap
+## Milestones
+- **M-001** [concept] 컨셉 — status: done
+  - path: [` + "`./M-001-concept.md`" + `](./M-001-concept.md)
+- **M-002** [design] 설계 — status: in_progress
+  - path: [` + "`./M-002-design.md`" + `](./M-002-design.md)
+`
+	m1 := "---\nid: M-001\ntitle: 컨셉\nsdlc_phase: concept\nstatus: done\norder: 1\nparallel_allowed: []\ndeliverables: [docs/a.md]\n---\n\n## WBS\n\n- **WBS-1.1** 노트\n"
+	m2 := "---\nid: M-002\ntitle: 설계\nsdlc_phase: design\nstatus: in_progress\norder: 2\nparallel_allowed: []\ndeliverables: []\n---\n\n## WBS\n\n- **WBS-2.1** 설계\n- **WBS-2.2** 리뷰\n"
+	links := []any{
+		map[string]any{"task_id": "T1", "task_status": "done", "wbs_ref": "M-001/WBS-1.1", "source_path": "T1.md"},
+		map[string]any{"task_id": "T2", "task_status": "done", "wbs_ref": "M-002/WBS-2.1", "source_path": "T2.md"},
+		map[string]any{"task_id": "T3", "task_status": "exempt", "wbs_ref": "exempt", "exempt_reason": "", "source_path": "T3.md"},
+	}
+	payload := map[string]any{
+		"protocol": Protocol,
+		"input": map[string]any{
+			"roadmap_docs": map[string]any{"index.md": indexMD, "M-001-concept.md": m1, "M-002-design.md": m2},
+			"links":        links,
+			"deliverables": map[string]any{"docs/a.md": true},
+			"generated_at": "2026-11-22",
+		},
+	}
+	raw, _ := json.Marshal(payload)
+	env, err := Evaluate("roadmap.derive", raw)
+	if err != nil {
+		t.Fatalf("Evaluate roadmap.derive error: %v", err)
+	}
+	outBytes, err := canonicalJSON(env)
+	if err != nil {
+		t.Fatalf("canonicalJSON error: %v", err)
+	}
+	outStr := string(outBytes)
+	if !strings.Contains(outStr, `"progress":1.0`) || !strings.Contains(outStr, `"progress":0.5`) {
+		t.Fatalf("expected Python float format 1.0 and 0.5 in %s", outStr)
+	}
+	if !strings.Contains(outStr, `"current_milestone_id":"M-002"`) {
+		t.Fatalf("expected current_milestone_id=M-002 in %s", outStr)
+	}
+	if !strings.Contains(outStr, `"code":"exempt_without_reason"`) {
+		t.Fatalf("expected exempt_without_reason in %s", outStr)
+	}
+}
+
+func TestHandoffParseAndStateBuild(t *testing.T) {
+	handoffText := `# Session Handoff
+- 관련 문서: [state.json](./state.json), [profile](../../../../docs/PROJECT_PROFILE.md)
+## 1. 현재 작업 요약
+- 현재 기준선: 기준선 텍스트
+- 현재 주 작업 축: 축 텍스트
+- 주요 제약: ` + "`제약1`" + `
+## 2. 진행 중 작업
+- 현재 ` + "`in_progress`" + ` 작업:
+- TASK-2026-11-22-main-001 진행 작업
+## 4. 최근 완료 작업
+- 최근 완료 작업 목록:
+-
+`
+	res := ParseHandoffText(handoffText, "session_handoff.md")
+	if res.CurrentBaseline == nil || *res.CurrentBaseline != "기준선 텍스트" {
+		t.Fatalf("unexpected baseline: %v", res.CurrentBaseline)
+	}
+	if len(res.NextDocuments) != 2 || res.NextDocuments[0] != "state.json" {
+		t.Fatalf("unexpected next_documents: %+v", res.NextDocuments)
+	}
+
+	task1 := "---\nid: TASK-2026-11-22-main-001\nstatus: in_progress\ncreated_at: 2026-11-22\n---\n\n# TASK-2026-11-22-main-001 — 진행 작업\n\n## 🧭 Plan\n\n- Claims: C1 주장\n- Decisions: D1 [C1] 질문? | default: a | options: a = 가; b = 나 | state: proposed\n"
+	task2 := "---\nid: TASK-2026-11-22-main-002\nstatus: done\ncreated_at: 2026-11-22\n---\n\n# TASK-2026-11-22-main-002 — 완료 작업\n"
+	daily := "# Backlog Index\n\n- **TASK-2026-11-22-main-001** [generic] 진행 작업\n  - path: [`./tasks/TASK-2026-11-22-main-001.md`](./tasks/TASK-2026-11-22-main-001.md)\n  - status: in_progress\n- **TASK-2026-11-22-main-002** [generic] 완료 작업\n  - path: [`./tasks/TASK-2026-11-22-main-002.md`](./tasks/TASK-2026-11-22-main-002.md)\n  - status: done\n"
+	files := map[string]string{
+		"docs/PROJECT_PROFILE.md": "# Profile\n- 프로젝트명: TestProj\n- 문서 위키 홈: docs/index.md\n",
+		"ai-workflow/memory/active/PURPOSE.md": "---\nlast_purpose_review: 2026-11-21\n---\n## 1. Goals\n- **G1**: 목표 1\n",
+		"ai-workflow/memory/active/main/session_handoff.md":                        handoffText,
+		"ai-workflow/memory/active/main/backlog/2026-11-22.md":                     daily,
+		"ai-workflow/memory/active/main/backlog/tasks/TASK-2026-11-22-main-001.md": task1,
+		"ai-workflow/memory/active/main/backlog/tasks/TASK-2026-11-22-main-002.md": task2,
+	}
+	st, err := BuildWorkflowStatePayload(files, "2026-11-22")
+	if err != nil {
+		t.Fatalf("BuildWorkflowStatePayload error: %v", err)
+	}
+	od, ok := st["open_decisions"].(map[string]int)
+	if !ok || od["TASK-2026-11-22-main-001"] != 1 {
+		t.Fatalf("unexpected open_decisions: %+v", st["open_decisions"])
+	}
+}

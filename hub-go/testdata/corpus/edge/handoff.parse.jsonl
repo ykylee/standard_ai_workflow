@@ -1,0 +1,2 @@
+{"protocol": "judge/1", "input": {"text": "# CRLF & Multiline\r\n- 현재 기준선:\r\n  - `다음 줄 기준선`\r\n- 현재 주 작업 축:\r\n  다음 줄 축\r\n- 관련 문서: [skip](https://example.com), [anchor](#sec), [angle](<./a//b.md#frag>), [up](../../x/../y.md)\r\n"}}
+{"protocol": "judge/1", "input": {"text": "# Empty Backtick Fallback\n- 현재 기준선: ``\n- 현재 주 작업 축: ` `\n## Current Focus\n- `fallback focus`\n"}}

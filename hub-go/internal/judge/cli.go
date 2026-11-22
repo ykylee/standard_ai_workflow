@@ -105,6 +105,38 @@ func optStr(m map[string]any, key string) (*string, error) {
 	return &s, nil
 }
 
+func optBool(m map[string]any, key string) (*bool, error) {
+	raw, exists := m[key]
+	if !exists || raw == nil {
+		return nil, nil
+	}
+	b, ok := raw.(bool)
+	if !ok {
+		return nil, &cliError{Code: "invalid_input", Message: fmt.Sprintf("%s 는 불리언 또는 null 이어야 한다", key)}
+	}
+	return &b, nil
+}
+
+func reqStrMap(m map[string]any, key string) (map[string]string, error) {
+	raw, exists := m[key]
+	if !exists || raw == nil {
+		return nil, &cliError{Code: "invalid_input", Message: fmt.Sprintf("%s 는 문자열 맵이어야 한다", key)}
+	}
+	obj, ok := raw.(map[string]any)
+	if !ok {
+		return nil, &cliError{Code: "invalid_input", Message: fmt.Sprintf("%s 는 문자열 맵이어야 한다", key)}
+	}
+	out := make(map[string]string, len(obj))
+	for k, v := range obj {
+		s, ok := v.(string)
+		if !ok {
+			return nil, &cliError{Code: "invalid_input", Message: fmt.Sprintf("%s 의 키와 값은 모두 문자열이어야 한다", key)}
+		}
+		out[k] = s
+	}
+	return out, nil
+}
+
 func runPlanLint(inp map[string]any) (any, error) {
 	if err := checkAllowedKeys(inp, []string{"plan_md", "criteria", "line_counts"}, "input"); err != nil {
 		return nil, err
@@ -308,10 +340,211 @@ func runTaskStatus(inp map[string]any) (any, error) {
 	}, nil
 }
 
+func runWbsGate(inp map[string]any) (any, error) {
+	if err := checkAllowedKeys(inp, []string{"roadmap_docs", "is_draft", "wbs", "exempt_reason"}, "input"); err != nil {
+		return nil, err
+	}
+	var roadmapDocs map[string]string
+	if rawDocs, exists := inp["roadmap_docs"]; exists && rawDocs != nil {
+		var err error
+		roadmapDocs, err = reqStrMap(inp, "roadmap_docs")
+		if err != nil {
+			return nil, err
+		}
+	}
+	isDraft, err := optBool(inp, "is_draft")
+	if err != nil {
+		return nil, err
+	}
+	wbs, err := optStr(inp, "wbs")
+	if err != nil {
+		return nil, err
+	}
+	exemptReason, err := optStr(inp, "exempt_reason")
+	if err != nil {
+		return nil, err
+	}
+
+	var roadmap *Roadmap
+	indexDraft := false
+	if roadmapDocs != nil {
+		if idxText, hasIdx := roadmapDocs[RoadmapIndexFile]; hasIdx {
+			texts := make(map[string]string, len(roadmapDocs))
+			for k, v := range roadmapDocs {
+				if k != RoadmapIndexFile {
+					texts[k] = v
+				}
+			}
+			roadmap, _ = AssembleRoadmap(idxText, texts)
+			indexDraft = IndexTextIsDraft(idxText)
+		}
+	}
+	effectiveDraft := indexDraft || (isDraft != nil && *isDraft)
+	var wbsArg *string
+	if wbs != nil && *wbs != "" {
+		wbsArg = wbs
+	}
+	return JudgeWbs(roadmap, effectiveDraft, wbsArg, exemptReason), nil
+}
+
+func runRoadmapDerive(inp map[string]any) (any, error) {
+	if err := checkAllowedKeys(inp, []string{"roadmap_docs", "links", "deliverables", "generated_at"}, "input"); err != nil {
+		return nil, err
+	}
+	roadmapDocs, err := reqStrMap(inp, "roadmap_docs")
+	if err != nil {
+		return nil, err
+	}
+	idxText, hasIdx := roadmapDocs[RoadmapIndexFile]
+	if !hasIdx {
+		return nil, &cliError{Code: "invalid_input", Message: "roadmap_docs 에 index.md 가 필요하다"}
+	}
+
+	var rawLinks []any
+	if raw, exists := inp["links"]; exists && raw != nil {
+		arr, ok := raw.([]any)
+		if !ok {
+			return nil, &cliError{Code: "invalid_input", Message: "links 는 목록이어야 한다"}
+		}
+		rawLinks = arr
+	}
+	links := make([]TaskWbsLink, 0, len(rawLinks))
+	for idx, itemRaw := range rawLinks {
+		item, ok := itemRaw.(map[string]any)
+		if !ok || item == nil {
+			return nil, &cliError{Code: "invalid_input", Message: fmt.Sprintf("links[%d] 는 객체여야 한다", idx)}
+		}
+		if err := checkAllowedKeys(item, []string{"task_id", "task_status", "wbs_ref", "exempt_reason", "source_path"}, fmt.Sprintf("links[%d]", idx)); err != nil {
+			return nil, err
+		}
+		taskID, err := reqStr(item, "task_id")
+		if err != nil {
+			return nil, err
+		}
+		taskStatus, err := reqStr(item, "task_status")
+		if err != nil {
+			return nil, err
+		}
+		wbsRef, err := reqStr(item, "wbs_ref")
+		if err != nil {
+			return nil, err
+		}
+		er, err := optStr(item, "exempt_reason")
+		if err != nil {
+			return nil, err
+		}
+		sp, err := optStr(item, "source_path")
+		if err != nil {
+			return nil, err
+		}
+		exemptVal := ""
+		if er != nil {
+			exemptVal = *er
+		}
+		sourceVal := ""
+		if sp != nil {
+			sourceVal = *sp
+		}
+		links = append(links, TaskWbsLink{
+			ExemptReason: exemptVal,
+			SourcePath:   sourceVal,
+			TaskID:       taskID,
+			TaskStatus:   taskStatus,
+			WbsRef:       wbsRef,
+		})
+	}
+
+	var deliverables map[string]bool
+	hasDeliverablesMap := false
+	if rawDeliv, exists := inp["deliverables"]; exists && rawDeliv != nil {
+		m, ok := rawDeliv.(map[string]any)
+		if !ok {
+			return nil, &cliError{Code: "invalid_input", Message: "deliverables 는 객체 또는 null 이어야 한다"}
+		}
+		hasDeliverablesMap = true
+		deliverables = make(map[string]bool, len(m))
+		for k, v := range m {
+			b, ok := v.(bool)
+			if !ok {
+				return nil, &cliError{Code: "invalid_input", Message: fmt.Sprintf("deliverables[%q] 는 불리언이어야 한다", k)}
+			}
+			deliverables[k] = b
+		}
+	}
+
+	generatedAt, err := reqStr(inp, "generated_at")
+	if err != nil {
+		return nil, err
+	}
+	if pyStrip(generatedAt) == "" {
+		return nil, &cliError{Code: "invalid_input", Message: "generated_at 는 비어 있지 않은 문자열이어야 한다"}
+	}
+
+	texts := make(map[string]string, len(roadmapDocs))
+	for k, v := range roadmapDocs {
+		if k != RoadmapIndexFile {
+			texts[k] = v
+		}
+	}
+	roadmap, issues := AssembleRoadmap(idxText, texts)
+
+	var existsFn func(string) bool
+	if !hasDeliverablesMap {
+		declSet := make(map[string]bool)
+		for _, m := range roadmap.Milestones {
+			for _, d := range m.Deliverables {
+				declSet[d] = true
+			}
+		}
+		if len(declSet) > 0 {
+			issues = append(issues, RoadmapIssue{
+				Code:   DeliverableUnmeas,
+				Detail: fmt.Sprintf("허브는 저장소를 보지 않아 산출물 %d개의 존재를 재지 않았다 — 미측정", len(declSet)),
+				Where:  RoadmapIndexFile,
+			})
+		}
+		existsFn = func(string) bool { return true }
+	} else {
+		existsFn = func(d string) bool { return deliverables[d] }
+	}
+
+	return DeriveRoadmapState(roadmap, links, issues, existsFn, generatedAt), nil
+}
+
+func runHandoffParse(inp map[string]any) (any, error) {
+	if err := checkAllowedKeys(inp, []string{"text"}, "input"); err != nil {
+		return nil, err
+	}
+	text, err := reqStr(inp, "text")
+	if err != nil {
+		return nil, err
+	}
+	return ParseHandoffText(text, "session_handoff.md"), nil
+}
+
+func runStateBuild(inp map[string]any) (any, error) {
+	if err := checkAllowedKeys(inp, []string{"files", "generated_at"}, "input"); err != nil {
+		return nil, err
+	}
+	files, err := reqStrMap(inp, "files")
+	if err != nil {
+		return nil, err
+	}
+	generatedAt, err := reqStr(inp, "generated_at")
+	if err != nil {
+		return nil, err
+	}
+	return BuildWorkflowStatePayload(files, generatedAt)
+}
+
 var ops = map[string]func(map[string]any) (any, error){
-	"plan.lint":   runPlanLint,
-	"plan.states": runPlanStates,
-	"task.status": runTaskStatus,
+	"plan.lint":      runPlanLint,
+	"plan.states":    runPlanStates,
+	"task.status":    runTaskStatus,
+	"wbs.gate":       runWbsGate,
+	"roadmap.derive": runRoadmapDerive,
+	"handoff.parse":  runHandoffParse,
+	"state.build":    runStateBuild,
 }
 
 func Evaluate(op string, raw []byte) (okEnvelope, error) {

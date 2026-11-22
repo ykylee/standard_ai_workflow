@@ -1,0 +1,6 @@
+{"protocol": "judge/1", "input": {"operation_type": "update_entry", "requested_status": "done", "validation_result": null, "current_status": "done", "recorded_validation": "전량 2축 278/278 PASS"}}
+{"protocol": "judge/1", "input": {"operation_type": "update_entry", "requested_status": "done", "validation_result": null, "current_status": "done", "recorded_validation": null}}
+{"protocol": "judge/1", "input": {"operation_type": "update_entry", "requested_status": "done", "validation_result": null, "current_status": "in_progress", "recorded_validation": null}}
+{"protocol": "judge/1", "input": {"operation_type": "update_entry", "requested_status": "done", "validation_result": "전량 PASS", "current_status": "in_progress", "recorded_validation": null}}
+{"protocol": "judge/1", "input": {"operation_type": "update_entry", "requested_status": null, "validation_result": null, "current_status": "done", "recorded_validation": null}}
+{"protocol": "judge/1", "input": {"operation_type": "create_entry", "requested_status": "done", "validation_result": null, "current_status": null, "recorded_validation": null}}

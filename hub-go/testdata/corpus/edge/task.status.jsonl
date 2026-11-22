@@ -1,0 +1,4 @@
+{"protocol": "judge/1", "input": {"operation_type": "create_entry", "requested_status": null, "validation_result": "", "current_status": null, "recorded_validation": null}}
+{"protocol": "judge/1", "input": {"operation_type": "update_entry", "requested_status": "done", "validation_result": "   ", "current_status": "done", "recorded_validation": ""}}
+{"protocol": "judge/1", "input": {"operation_type": "update_entry", "requested_status": "blocked", "validation_result": null, "current_status": "in_progress", "recorded_validation": null}}
+{"protocol": "judge/1", "input": {"operation_type": "create_entry", "requested_status": "done", "validation_result": "pytest 10/10", "current_status": null, "recorded_validation": null}}

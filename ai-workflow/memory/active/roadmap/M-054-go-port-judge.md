@@ -2,7 +2,7 @@
 id: M-054
 title: 2.x 전면 Go 전환 — implementation S2-a (순수 판정 judge/1 · 차분 검사)
 sdlc_phase: implementation
-status: in_progress
+status: done
 order: 54
 parallel_allowed:
   - M-007

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-r"""브랜치 네임스페이스가 없는 worktree 에서 session-start 가 스스로 seed 한다 (17 cases).
+r"""브랜치 네임스페이스가 없는 worktree 에서 session-start 가 스스로 seed 한다 (19 cases).
 
 ## 왜 이 검사가 필요한가 (TASK-2026-09-30-claude-session-start-e6eb83-002)
 
@@ -19,7 +19,7 @@ r"""브랜치 네임스페이스가 없는 worktree 에서 session-start 가 스
 판정이 호스트 저장소 상태에 달리지 않게, 매 case 가 임시 git 저장소(origin + clone)를
 만들고 브랜치·CI env 를 비운 좁은 환경에서 모듈을 띄운다.
 
-18 cases:
+19 cases:
   1) 새 브랜치 → session-start status=ok + seed warning + 한 벌(handoff·backlog·task·
      sessions·state.json) — 되주입: seed 를 끄면 missing_required_document
   2) 재실행은 다시 seed 하지 않는다 (task 가 늘지 않고 seed warning 이 없다)
@@ -52,6 +52,8 @@ origin 없는 저장소 (TASK-2026-10-02-main-003 — remote 가 없으면 base 
      후보(init.defaultBranch → main → master)" 로 찾는다. "main" 만 하드코딩하지 않았는지
      보려고 기본 브랜치가 master 인 저장소도 같이 본다. 기준 후보가 하나도 실재하지 않으면
      seed 하지 않는다 — 엉뚱한 모 브랜치에서 받는 것이 더 나쁘다
+ 19) 로드맵이 있는 저장소에서 seed 하면 roadmap_state.json 도 재생성된다 — 추가 명령 없이 생성물 대조가
+     맞고 seed task 가 exempt_tasks 에 있다 (TASK-2026-11-19-claude-remote-sync-check-234c32-002)
 """
 
 from __future__ import annotations
@@ -549,11 +551,53 @@ def main() -> int:
                 not _seeded(result) and not extra,
                 f"seeded={_seeded(result)} extra={extra}")
 
+        # --- case 19: seed 가 roadmap_state.json 도 재생성한다 (TASK-2026-11-19-claude-remote-sync-check-234c32-002) ---
+        # 로드맵이 있는 저장소에서 seed task(`wbs: exempt`)가 생기면 roadmap_state.json 의 exempt_tasks 가
+        # 바뀐다. 예전 seed 는 state.json 만 만들어, 추가 명령 없이 커밋하면 생성물 대조 검사가 red 였다.
+        clone = _make_repo(tmp / "c19")
+        roadmap = _active(clone) / "roadmap"
+        roadmap.mkdir()
+        (roadmap / "index.md").write_text(
+            "# Roadmap — fixture\n\n## Milestones\n\n- **M-001** [concept] 컨셉 — status: in_progress\n"
+            "  - path: [`./M-001-concept.md`](./M-001-concept.md)\n", encoding="utf-8")
+        (roadmap / "M-001-concept.md").write_text(
+            "---\nid: M-001\ntitle: 컨셉\nsdlc_phase: concept\nstatus: in_progress\norder: 1\n"
+            "parallel_allowed: []\ndeliverables: []\n---\n\n# M-001\n\n## WBS\n\n- **WBS-1.1** 컨셉 노트\n",
+            encoding="utf-8")
+        probe = ("import json,sys; from pathlib import Path; "
+                 "from workflow_kit.common.state.roadmap import generate_roadmap_state, state_matches_regeneration, state_path; "
+                 "root=Path(sys.argv[2]); "
+                 "generate_roadmap_state(root) if sys.argv[1]=='gen' else None; "
+                 "ok, why = state_matches_regeneration(root); "
+                 "saved = json.loads(state_path(root).read_text(encoding='utf-8')); "
+                 "print(json.dumps({'ok': ok, 'why': why, 'exempt': saved.get('exempt_tasks')}, ensure_ascii=False, default=str))")
+
+        def _roadmap_probe(mode: str) -> dict:
+            proc = subprocess.run([sys.executable, "-c", probe, mode, str(clone)], cwd=clone, capture_output=True,
+                                  text=True, env=_env(), timeout=60, encoding="utf-8", errors="replace")
+            try:
+                return json.loads(proc.stdout)
+            except json.JSONDecodeError:
+                return {"ok": False, "why": f"unparsable: {proc.stderr[-300:]}"}
+
+        base_probe = _roadmap_probe("gen")  # main 에서 생성물을 맞춰 커밋한 상태에서 출발
+        _git(clone, "add", "-A")
+        _git(clone, "commit", "-qm", "roadmap")
+        _git(clone, "checkout", "-q", "-b", "claude/roadmap")
+        result = _session_start(clone)
+        seed_ids = sorted(p.stem for p in (_active(clone) / "claude" / "roadmap" / "backlog" / "tasks").glob("TASK-*.md"))
+        after = _roadmap_probe("check")
+        exempt_text = json.dumps(after.get("exempt"), ensure_ascii=False)
+        _record("test_seed_regenerates_roadmap_state",
+                base_probe.get("ok") is True and _seeded(result) and after.get("ok") is True
+                and bool(seed_ids) and all(i in exempt_text for i in seed_ids),
+                f"base={base_probe.get('ok')} seeded={_seeded(result)} after={after} seed_ids={seed_ids}")
+
     print()
     if FAILURES:
         print(f"=== FAIL: {len(FAILURES)} case(s) — {FAILURES} ===")
         return 1
-    print("=== PASS: branch memory auto-seed (18 cases) ===")
+    print("=== PASS: branch memory auto-seed (19 cases) ===")
     return 0
 
 

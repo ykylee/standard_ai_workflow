@@ -9,7 +9,7 @@ wbs: exempt
 wbs_exempt_reason: 발행 도구 결함 수리 — 마일스톤 밖
 ---
 
-# TASK-2026-11-21-release-1.x-008 — 발행 산출물 선택이 접두사 glob — find_dist_files 정확한 파일명 대조 (main TASK-2026-11-21-main-027 이식)
+# TASK-2026-11-21-release-1.x-008 — 발행 산출물 선택이 접두사 glob — find_dist_files 정확한 파일명 대조 (main 의 같은 수리를 1.x 로)
 
 ## 📝 Description
 

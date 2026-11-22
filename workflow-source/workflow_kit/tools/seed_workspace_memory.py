@@ -504,7 +504,25 @@ def seed(*, memory_root: Path, branch: str, axis: str, task_title: str,
         result["errors"].append(f"state.json 생성 실패: {err}")
     else:
         result["planned"].append({"path": str(state_path), "kind": "state_json"})
+    # roadmap_state.json 도 생성물이고 seed task(`wbs: exempt`)가 그 입력이다 — state.json 만 만들고
+    # 끝내면 seed 커밋 뒤 check_roadmap_state_generated · check_state_json_generated 가 red 였다
+    # (2026-11-19 실측, TASK-2026-11-19-claude-remote-sync-check-234c32-002). backlog-update ·
+    # refresh-state 와 같은 호출이다. roadmap 부재는 해당 없음(None)이다.
+    err = _generate_roadmap_state(workspace_root=memory_root.parent.parent)
+    if err:
+        result["errors"].append(f"roadmap_state.json 생성 실패: {err}")
     return result
+
+
+def _generate_roadmap_state(*, workspace_root: Path) -> str | None:
+    """roadmap 이 있으면 `roadmap_state.json` 을 재생성한다. 오류 메시지 반환 (부재는 None)."""
+    from workflow_kit.common.state.roadmap import generate_roadmap_state  # noqa: PLC0415
+
+    try:
+        generate_roadmap_state(workspace_root)
+    except Exception as exc:  # noqa: BLE001
+        return f"{type(exc).__name__}: {exc}"[-500:]
+    return None
 
 
 def _generate_state(*, state_path: Path, branch_dir: Path,

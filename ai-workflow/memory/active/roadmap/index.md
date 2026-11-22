@@ -95,3 +95,5 @@
   - path: [`./M-040-workflow-hub-release.md`](./M-040-workflow-hub-release.md)
 - **M-041** [concept] 허브 오케스트레이션 — 중앙 허브 · PC 중계 허브 · 하네스 · 세션, 메인 오케스트레이터 — status: done
   - path: [`./M-041-hub-orchestration.md`](./M-041-hub-orchestration.md)
+- **M-042** [requirements] 허브 오케스트레이션 — requirements (실측 S · 요구 · ADR 초안) — status: in_progress
+  - path: [`./M-042-hub-orchestration-requirements.md`](./M-042-hub-orchestration-requirements.md)

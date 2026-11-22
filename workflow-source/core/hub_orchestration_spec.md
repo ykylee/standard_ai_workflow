@@ -291,6 +291,7 @@ class Adapter(Protocol):
 | 검사 | 무엇을 |
 |---|---|
 | `check_hub_orch` (M-044 — 아래 schema · session · inbox · wait 넷을 한 파일로) | case 1~10 |
+| `check_hub_orch_assign` (M-045 — 아래 assign · lease · forbidden · entry_rule 의 렌더 부분을 한 파일로) | case 1~9 — 문안의 실효(하네스 탐침)는 게이트 밖 실측으로 남는다 |
 | `check_hub_orch_schema` | 판 10 → 11 이관 · 2.0 표 바이트 불변 · 부분 유일 색인 (열린 배정 하나) |
 | `check_hub_orch_session` | 세션 등록 · 이어 붙임 · `session_not_yours` · 상태 5값 · `unknown` 15분 (시계 인자) |
 | `check_hub_orch_inbox` | 편승 3건 · 8KB · `remaining` · 재전달 없음 · 실을 것 없으면 칸 없음(2.0 응답과 바이트 같음) · bootstrap · 오류 응답에 칸 없음 |

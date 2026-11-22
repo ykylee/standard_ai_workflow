@@ -383,6 +383,29 @@ TOOLS: dict[str, ToolSpec] = {
                  ("session", "message_id", "decision"), lambda s, c, a: Orchestration(s).ack(c, a)),
         ToolSpec("hub_inbox_list", "token", "받은편지함 읽기 (상태를 바꾸지 않는다) — session 을 주면 그 세션 앞까지.",
                  {"session": _STR, "state": _STR}, (), lambda s, c, a: Orchestration(s).inbox_list(c, a)),
+        ToolSpec("hub_report", "token",
+                 "배정받은 일의 보고 — 결과 요약 · 검증. 오케스트레이터 받은편지함에 간다. done 은 바꾸지 않는다 (hub_task_close 가 판정).",
+                 {"session": _STR, "task_id": _STR, "summary": _STR, "verification": _STR, "request_id": _REQ_ID},
+                 ("session", "task_id", "summary"), lambda s, c, a: Orchestration(s).report(c, a)),
+        ToolSpec("hub_orch_declare", "token", "오케스트레이터 지정 — 승인된 human 소유자만. session = 대상 세션 ID.",
+                 {"session": _STR}, ("session",), lambda s, c, a: Orchestration(s).declare(c, a)),
+        ToolSpec("hub_orch_transfer", "token", "오케스트레이터 인계 — 승인된 human 소유자만. session = 새 대상.",
+                 {"session": _STR}, ("session",), lambda s, c, a: Orchestration(s).transfer(c, a)),
+        ToolSpec("hub_orch_release", "token", "오케스트레이터 lease 해제 — 소유자 또는 오케스트레이터 세션 자신(session).",
+                 {"session": _STR}, (), lambda s, c, a: Orchestration(s).release_lease(c, a)),
+        ToolSpec("hub_orch_halt", "token", "정지 스위치 — 승인된 human 소유자만. on=true 면 새 배정 · 메시지 멈춤, 대기 중 세션에 release.",
+                 {"on": {"type": "boolean"}}, ("on",), lambda s, c, a: Orchestration(s).halt(c, a)),
+        ToolSpec("hub_orch_assign", "token",
+                 "task 를 세션에 배정 — 오케스트레이터 세션만 (session = 자기 세션 ID). 받은 세션이 hub_inbox_ack(accept) 하면 맡는다.",
+                 {"session": _STR, "task_id": _STR, "to_session": _STR, "note": _STR, "request_id": _REQ_ID},
+                 ("session", "task_id", "to_session"), lambda s, c, a: Orchestration(s).assign(c, a)),
+        ToolSpec("hub_orch_recall", "token", "열린 배정 회수 — 오케스트레이터 세션만. 받은 세션에 release.",
+                 {"session": _STR, "task_id": _STR, "reason": _STR}, ("session", "task_id"),
+                 lambda s, c, a: Orchestration(s).recall(c, a)),
+        ToolSpec("hub_orch_message", "token",
+                 "메시지 — 오케스트레이터 세션만. to = 세션 ID(S-…) 또는 콜사인, kind = note · release.",
+                 {"session": _STR, "to": _STR, "body": {"type": ["string", "object"]}, "kind": _STR, "request_id": _REQ_ID},
+                 ("session", "to", "body"), lambda s, c, a: Orchestration(s).message(c, a)),
         ToolSpec("hub_events", "token", "이력 (누가 · 언제 · 무엇 · 이전 값 · 새 값).",
                  {"target_kind": _STR, "target_id": _STR, "after_seq": _INT, "limit": _INT}, (),
                  lambda s, c, a: s.events(c, a.get("target_kind"), a.get("target_id"), a.get("after_seq", 0), a.get("limit", 200))),
@@ -397,7 +420,13 @@ def _transfer() -> Any:
 
 
 #: 자기 ``session`` 인자를 직접 다루는 도구 — call() 이 떼지 않는다 (신호는 도구가 남긴다).
-OWN_SESSION_TOOLS = frozenset({"hub_session_start", "hub_session_update", "hub_wait", "hub_inbox_ack", "hub_inbox_list"})
+OWN_SESSION_TOOLS = frozenset({"hub_session_start", "hub_session_update", "hub_wait", "hub_inbox_ack", "hub_inbox_list",
+                               "hub_report", "hub_orch_declare", "hub_orch_transfer", "hub_orch_release",
+                               "hub_orch_assign", "hub_orch_recall", "hub_orch_message"})
+#: ``session`` 이 호출자가 아니라 '대상' 인 도구 — 신호를 남기지 않는다.
+TARGET_SESSION_TOOLS = frozenset({"hub_orch_declare", "hub_orch_transfer"})
+#: 스스로 신호를 남기는 도구 (세션 칸을 직접 쓴다).
+SELF_SIGNAL_TOOLS = frozenset({"hub_session_update", "hub_wait", "hub_inbox_ack"})
 #: 편승 칸을 붙이지 않는 도구 — 자기 칸이 있거나(대기 ``work``) 받은편지함 자체를 다룬다 (스펙 §6.1).
 NO_PIGGYBACK_TOOLS = frozenset({"hub_wait", "hub_inbox_ack", "hub_inbox_list"})
 
@@ -442,11 +471,14 @@ def call(store: Store, name: str, args: dict[str, Any], ctx: Ctx) -> dict[str, A
     # 2.1 공통 ``session`` (스펙 §4-2 · §6.1) — 신호를 남기고, 응답에 받은편지함을 싣는다 (실을 것이 없으면 칸 없음).
     session = clean.get("session") if isinstance(clean.get("session"), str) else None
     orch = Orchestration(store)
-    if session is not None and (name not in OWN_SESSION_TOOLS or name == "hub_session_start"):
-        orch.signal(ctx, session)  # 세션 시작 두 번째 호출(받은 ID 문자열)도 신호다
-        if name not in OWN_SESSION_TOOLS:
-            clean.pop("session")
+    if session is not None and name not in TARGET_SESSION_TOOLS and name not in SELF_SIGNAL_TOOLS:
+        orch.signal(ctx, session)  # 세션 시작 두 번째 호출(받은 ID 문자열) · 오케스트레이터 도구도 신호다 (lease 갱신)
+    if session is not None and name not in OWN_SESSION_TOOLS:
+        clean.pop("session")
     result = spec.handler(store, ctx, clean)
+    if name == "hub_session_end" and session is not None:
+        orch.end_session(ctx, session)  # 열린 배정은 되돌린다 (요구 R17.4)
+        return result
     if name in NO_PIGGYBACK_TOOLS:
         return result
     if name == "hub_session_start" and isinstance(result.get("session"), dict):

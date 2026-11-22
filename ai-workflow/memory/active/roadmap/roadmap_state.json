@@ -1750,6 +1750,30 @@
           "children": []
         }
       ]
+    },
+    {
+      "id": "M-045",
+      "title": "허브 오케스트레이션 — implementation 2 (오케스트레이터 lease · 배정 · 보고 · 정지 · 진입 규칙)",
+      "sdlc_phase": "implementation",
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
+      "total_leaves": 1,
+      "done_leaves": 1,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-45.1",
+          "title": "lease (지정 · 인계 · 해제 · 만료) · 배정 상태 기계 (배정 · 수락=맡기 · 거절 · 미확인 · 회수 · 세션 끝 · 24시간 · 보고) · 정지 스위치 · 진입 규칙 절",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-22-main-010"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        }
+      ]
     }
   ],
   "current_milestone_id": "M-039",

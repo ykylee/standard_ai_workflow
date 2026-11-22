@@ -596,31 +596,35 @@ class Store:
                           mutate: Callable[[dict[str, Any], Principal, sqlite3.Connection], dict[str, Any]],
                           request_id: str | None) -> dict[str, Any]:
         p = self._need_callsign(ctx)
+        return self.idempotent(ctx, request_id,
+                               lambda conn: self.versioned_update_in(conn, ctx, p, task_id, expected_version, op, mutate))
+
+    def versioned_update_in(self, conn: sqlite3.Connection, ctx: Ctx, p: Principal, task_id: str,
+                            expected_version: int | None, op: str,
+                            mutate: Callable[[dict[str, Any], Principal, sqlite3.Connection], dict[str, Any]]
+                            ) -> dict[str, Any]:
+        """열린 트랜잭션 안의 task 갱신 — 다른 쓰기와 한 트랜잭션으로 묶을 때 (2.1 배정 수락 = 맡기, DO6)."""
         pid = p.project_id
         assert pid is not None
-
-        def do(conn: sqlite3.Connection) -> dict[str, Any]:
-            before = self._get_task(conn, pid, task_id)
-            if expected_version is not None and before["version"] != expected_version:
-                raise version_conflict(before["version"], before)
-            changes = mutate(before, p, conn)
-            if not changes:
-                return {"task": before, "changed": False}
-            sets = ", ".join(f"{k} = ?" for k in changes)
-            vals = [(_json(v) if k == "fields_json" else v) for k, v in changes.items()]
-            cur = conn.execute(
-                f"UPDATE task SET {sets}, version = version + 1, updated_at = ? WHERE project_id = ? AND id = ? AND version = ?",
-                (*vals, _iso(ctx.now), pid, task_id, before["version"]),
-            )
-            if cur.rowcount != 1:  # BEGIN IMMEDIATE 아래라 나지 않지만, 조용히 넘어가지 않는다
-                raise version_conflict(before["version"], before)
-            after = self._get_task(conn, pid, task_id)
-            delta_before = {k.removesuffix("_json"): before.get(k.removesuffix("_json"), None) for k in changes}
-            delta_after = {k.removesuffix("_json"): after.get(k.removesuffix("_json"), None) for k in changes}
-            self._event(conn, ctx, pid, "task", task_id, op, delta_before, delta_after)
-            return {"task": after, "changed": True}
-
-        return self.idempotent(ctx, request_id, do)
+        before = self._get_task(conn, pid, task_id)
+        if expected_version is not None and before["version"] != expected_version:
+            raise version_conflict(before["version"], before)
+        changes = mutate(before, p, conn)
+        if not changes:
+            return {"task": before, "changed": False}
+        sets = ", ".join(f"{k} = ?" for k in changes)
+        vals = [(_json(v) if k == "fields_json" else v) for k, v in changes.items()]
+        cur = conn.execute(
+            f"UPDATE task SET {sets}, version = version + 1, updated_at = ? WHERE project_id = ? AND id = ? AND version = ?",
+            (*vals, _iso(ctx.now), pid, task_id, before["version"]),
+        )
+        if cur.rowcount != 1:  # BEGIN IMMEDIATE 아래라 나지 않지만, 조용히 넘어가지 않는다
+            raise version_conflict(before["version"], before)
+        after = self._get_task(conn, pid, task_id)
+        delta_before = {k.removesuffix("_json"): before.get(k.removesuffix("_json"), None) for k in changes}
+        delta_after = {k.removesuffix("_json"): after.get(k.removesuffix("_json"), None) for k in changes}
+        self._event(conn, ctx, pid, "task", task_id, op, delta_before, delta_after)
+        return {"task": after, "changed": True}
 
     def task_update(self, ctx: Ctx, task_id: str, expected_version: int, values: dict[str, Any],
                     request_id: str | None = None,
@@ -647,19 +651,21 @@ class Store:
 
         return self._versioned_update(ctx, task_id, expected_version, "update", mutate, request_id)
 
-    def task_claim(self, ctx: Ctx, task_id: str, request_id: str | None = None) -> dict[str, Any]:
-        def mutate(before: dict[str, Any], p: Principal, _c: sqlite3.Connection) -> dict[str, Any]:
-            if before["assignee"] == p.callsign:
-                return {}
-            if before["assignee"]:
-                raise HubError(409, "already_claimed", f"{before['assignee']} 가 맡고 있다",
-                               {"assignee": before["assignee"], "current_version": before["version"]})
-            if before["status"] == "done":
-                raise HubError(409, "task_done", "닫힌 task 는 맡을 수 없다")
-            # 맡는 순간 시작이다 — planned 면 in_progress 로 (소유자 2026-11-21, 테스트베드 실측). blocked 는 그대로.
-            return {"assignee": p.callsign, **({"status": "in_progress"} if before["status"] == "planned" else {})}
+    @staticmethod
+    def claim_mutate(before: dict[str, Any], p: Principal, _c: sqlite3.Connection) -> dict[str, Any]:
+        """맡기 판정 — ``hub_task_claim`` 과 2.1 배정 수락이 같은 함수를 쓴다 (정본 하나)."""
+        if before["assignee"] == p.callsign:
+            return {}
+        if before["assignee"]:
+            raise HubError(409, "already_claimed", f"{before['assignee']} 가 맡고 있다",
+                           {"assignee": before["assignee"], "current_version": before["version"]})
+        if before["status"] == "done":
+            raise HubError(409, "task_done", "닫힌 task 는 맡을 수 없다")
+        # 맡는 순간 시작이다 — planned 면 in_progress 로 (소유자 2026-11-21, 테스트베드 실측). blocked 는 그대로.
+        return {"assignee": p.callsign, **({"status": "in_progress"} if before["status"] == "planned" else {})}
 
-        return self._versioned_update(ctx, task_id, None, "claim", mutate, request_id)
+    def task_claim(self, ctx: Ctx, task_id: str, request_id: str | None = None) -> dict[str, Any]:
+        return self._versioned_update(ctx, task_id, None, "claim", self.claim_mutate, request_id)
 
     def task_release(self, ctx: Ctx, task_id: str, request_id: str | None = None) -> dict[str, Any]:
         def mutate(before: dict[str, Any], p: Principal, _c: sqlite3.Connection) -> dict[str, Any]:

@@ -109,5 +109,5 @@
   - path: [`./M-047-hub-orchestration-vscode.md`](./M-047-hub-orchestration-vscode.md)
 - **M-048** [stabilization] 허브 오케스트레이션 — 안정화 · 2.1.0 발행 — status: done
   - path: [`./M-048-hub-orchestration-release.md`](./M-048-hub-orchestration-release.md)
-- **M-049** [concept] 허브 · PC 중계 런타임 전환 검토 (Go / Rust) — status: planned
+- **M-049** [concept] 허브 · PC 중계 런타임 전환 검토 (Go / Rust) — status: in_progress
   - path: [`./M-049-runtime-port-concept.md`](./M-049-runtime-port-concept.md)

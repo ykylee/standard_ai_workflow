@@ -2,7 +2,7 @@
 id: M-049
 title: 허브 · PC 중계 런타임 전환 검토 (Go / Rust) — concept
 sdlc_phase: concept
-status: planned
+status: in_progress
 order: 49
 parallel_allowed:
   - M-007

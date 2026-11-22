@@ -1885,20 +1885,20 @@
       "id": "M-049",
       "title": "허브 · PC 중계 런타임 전환 검토 (Go / Rust) — concept",
       "sdlc_phase": "concept",
-      "declared_status": "planned",
-      "derived_status": "planned",
+      "declared_status": "in_progress",
+      "derived_status": "in_progress",
       "progress": 0.0,
       "total_leaves": 2,
       "done_leaves": 0,
-      "deliverables_missing": [
-        "docs/planning/runtime-port-review-2026-11.md"
-      ],
+      "deliverables_missing": [],
       "wbs": [
         {
           "id": "WBS-49.1",
           "title": "Go · Rust 실측 비교 — 공식 MCP SDK 성숙도 · 단일 바이너리 크기 · Windows 백신 평판 · 빌드 · 서명 비용 · 하네스 어댑터 이식량",
-          "derived_status": "planned",
-          "linked_task_ids": [],
+          "derived_status": "in_progress",
+          "linked_task_ids": [
+            "TASK-2026-11-22-main-021"
+          ],
           "total_leaves": 1,
           "done_leaves": 0,
           "children": []
@@ -1915,7 +1915,7 @@
       ]
     }
   ],
-  "current_milestone_id": "M-039",
+  "current_milestone_id": "M-049",
   "exempt_tasks": [
     {
       "task_id": "TASK-2026-08-25-main-010",

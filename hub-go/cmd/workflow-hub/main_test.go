@@ -62,8 +62,19 @@ func TestHelpAndCommands(t *testing.T) {
 		}
 	})
 
+	t.Run("judge_wired", func(t *testing.T) {
+		var out, errBuf bytes.Buffer
+		rc := run([]string{"judge"}, &out, &errBuf)
+		if rc != 2 {
+			t.Fatalf("judge no op: got rc=%d, want 2", rc)
+		}
+		if !strings.Contains(out.String(), `"error_code":"invalid_args"`) {
+			t.Fatalf("judge no op: unexpected stdout %q", out.String())
+		}
+	})
+
 	t.Run("unimplemented_subcommands", func(t *testing.T) {
-		for _, sub := range []string{"serve", "backup", "admin", "judge"} {
+		for _, sub := range []string{"serve", "backup", "admin"} {
 			var out, errBuf bytes.Buffer
 			rc := run([]string{sub}, &out, &errBuf)
 			if rc != 2 {

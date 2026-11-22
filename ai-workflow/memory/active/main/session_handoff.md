@@ -84,6 +84,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-11-22-main-036 judge/1 CLI 프로토콜 + plan.lint · plan.states · task.status 순수 판정 구현 (M-054 WBS-54.1)
 - TASK-2026-11-22-main-035 PC 중계 로컬 화면(Python·Go) 무깜빡임 갱신 · 로컬 상세 · 허브 딥링크 · 개별 세션 종료 (M-053 WBS-53.2)
 - TASK-2026-11-22-main-034 중앙 허브 /ui/ 2.1 오케스트레이션 판 · 로드맵 화면 · 1.x 워크벤치 UX 복원 (M-053 WBS-53.1)
 - TASK-2026-11-22-main-033 check_hub_relay 구현 스위치(WORKFLOW_RELAY_IMPL) · Go 중계 실제 어댑터 실측 (M-052 WBS-52.3)
@@ -93,7 +94,6 @@
 - TASK-2026-11-22-main-029 Go 전환 S1 중계 · 빌드 · 배포 설계 (M-051 WBS-51.3)
 - TASK-2026-11-22-main-028 Go 전환 검증 설계 — 판정 CLI 프로토콜 · 차분 검사 · corpus · 적합성 스위치 · 게이트 (M-051 WBS-51.2)
 - TASK-2026-11-22-main-027 Go 전환 구조 설계 — hub-go 배치 · 모듈 대응 · 순수 판정 입구 · 자산 단일 출처 (M-051 WBS-51.1)
-- TASK-2026-11-22-main-025 Go 전환 이행 단계 · 배포 · 게이트 · Python 판 은퇴 요구 (M-050 WBS-50.2)
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/ykylee/standard_ai_workflow/hub-go/internal/judge"
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/relay"
 )
 
@@ -47,6 +48,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return 0
 	case "relay":
 		return relay.Main(args[1:], stdout, stderr)
+	case "judge":
+		return judge.Main(args[1:], os.Stdin, stdout, stderr)
 	}
 	cmd := args[0]
 	if isKnownSubcommand(cmd) {

@@ -2100,9 +2100,53 @@
           "children": []
         }
       ]
+    },
+    {
+      "id": "M-054",
+      "title": "2.x 전면 Go 전환 — implementation S2-a (순수 판정 judge/1 · 차분 검사)",
+      "sdlc_phase": "implementation",
+      "declared_status": "in_progress",
+      "derived_status": "in_progress",
+      "progress": 0.3333333333333333,
+      "total_leaves": 3,
+      "done_leaves": 1,
+      "deliverables_missing": [
+        "workflow-source/tests/check_judge_parity.py"
+      ],
+      "wbs": [
+        {
+          "id": "WBS-54.1",
+          "title": "`judge/1` CLI 프로토콜(단건 · `--batch` JSON Lines · 오류 코드 2) + `plan.lint` · `plan.states` · `task.status` 두 언어 구현",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-22-main-036"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        },
+        {
+          "id": "WBS-54.2",
+          "title": "`wbs.gate` · `roadmap.derive` · `handoff.parse` · `state.build` 두 언어 구현",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        },
+        {
+          "id": "WBS-54.3",
+          "title": "corpus(`hub-go/testdata/corpus/{fixture,edge}/` + 실데이터) · 차분 검사 `check_judge_parity` (양방향 되주입 red)",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        }
+      ]
     }
   ],
-  "current_milestone_id": "M-039",
+  "current_milestone_id": "M-054",
   "exempt_tasks": [
     {
       "task_id": "TASK-2026-08-25-main-010",

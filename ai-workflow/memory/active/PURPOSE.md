@@ -52,7 +52,7 @@ last_purpose_review: 2026-11-21
 - 특정 도메인 (e.g. 결제 / 의료 / 금융) 의 도메인 로직
 - LLM model fine-tuning / training pipeline
 - 인프라 IaC (Terraform / CDK) 자동화 — 운영은 별도 가이드
-- non-Python 기반 runtime (TypeScript / Rust tool) — Python 외 runtime 의 정공법은 별도 spec
+- non-Python 기반 runtime (TypeScript / Rust tool) — Python 외 runtime 의 정공법은 별도 spec. **예외 (2026-11-22 소유자, M-041 O8)**: 허브 오케스트레이션의 VS Code 확장 *껍데기*(로컬 웹을 띄우는 webview) 만 TypeScript — 화면 로직은 Python 쪽 한 벌
 - 외부 reference 의 *코드 직접 차용* — GPLv3 / 라이센스 영향 회피, concept 만 흡수
 
 ## 4. Evolving Thesis

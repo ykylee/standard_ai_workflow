@@ -93,5 +93,5 @@
   - path: [`./M-039-workflow-hub-stabilization.md`](./M-039-workflow-hub-stabilization.md)
 - **M-040** [release] 2.0.0-beta 발행 · 1.x 유지보수 줄 분기 — status: done
   - path: [`./M-040-workflow-hub-release.md`](./M-040-workflow-hub-release.md)
-- **M-041** [concept] 허브 오케스트레이션 — 중앙 허브 · PC 중계 허브 · 하네스 · 세션, 메인 오케스트레이터 — status: in_progress
+- **M-041** [concept] 허브 오케스트레이션 — 중앙 허브 · PC 중계 허브 · 하네스 · 세션, 메인 오케스트레이터 — status: done
   - path: [`./M-041-hub-orchestration.md`](./M-041-hub-orchestration.md)

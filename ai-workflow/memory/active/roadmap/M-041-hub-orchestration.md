@@ -2,7 +2,7 @@
 id: M-041
 title: 허브 오케스트레이션 — 중앙 허브 · PC 중계 허브 · 하네스 · 세션 4계층, 메인 오케스트레이터 세션의 작업 분배 (concept)
 sdlc_phase: concept
-status: in_progress
+status: done
 order: 41
 parallel_allowed:
   - M-007
@@ -25,6 +25,8 @@ goals: [G1, G5]
 - `multi_workspace_orchestration.md` §0.6: 중앙이 하네스에 메시지를 보내지 않는다 — 지시는 워크스페이스에 놓인다
 - 2.0 H4 · R0.4: 작업 환경은 kit 을 깔지 않는다 (중계 허브가 PC 에 무엇을 까는가)
 - PURPOSE 제외 영역: non-Python runtime (VS Code 확장 · 스탠드얼론 앱)
+
+**종결 (2026-11-22)**: 소유자 결정 = concept §9 권고안 O1~O10 전부 (§12) — D5 · R15.3 을 열고, 중계는 선택 계층, VS Code 확장은 TS 껍데기만 PURPOSE 예외. requirements 는 M-042 (미개설).
 
 ## WBS
 

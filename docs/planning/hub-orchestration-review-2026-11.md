@@ -3,7 +3,7 @@
 - 문서 목적: 2.0 허브를 **중앙 허브 → PC 중계 허브 → 하네스 → 세션** 4계층 오케스트레이션으로 넓히는 개념을 정하고, 소유자가 정할 것을 기본값과 함께 모은다 (TASK-2026-11-22-main-001, M-041/WBS-41.1).
 - 범위: 4계층 모델, 세션에 일을 전하는 방식, 메인 오케스트레이터의 선언 · 권한 · 분배 흐름, PC 중계 허브, 화면 3안(로컬 웹 · VS Code 확장 · 스탠드얼론), 안전 · 위험, 부딪치는 기존 결정, 단계. 코드 · 스펙 변경은 없다.
 - 대상 독자: 소유자 (M-041 다음 단계 결정), maintainer
-- 상태: draft — 열린 결정 O1~O10 (§9) 소유자 답 대기
+- 상태: **종결 (2026-11-22)** — 열린 결정 O1~O10 소유자 결정 = **권고안 전부** (§12). 다음은 requirements (M-042)
 - 최종 수정일: 2026-11-22
 - 관련 문서: [`M-041`](../../ai-workflow/memory/active/roadmap/M-041-hub-orchestration.md), [`hub_spec.md`](../../workflow-source/core/hub_spec.md), [`workflow-hub-review-2026-11.md`](./workflow-hub-review-2026-11.md) (2.0 concept — D5), [`workflow-hub-requirements-2026-11.md`](./workflow-hub-requirements-2026-11.md) (R15.3), [`multi_workspace_orchestration.md`](../../workflow-source/core/multi_workspace_orchestration.md) (§0.6 · §5), [`PURPOSE.md`](../../ai-workflow/memory/active/PURPOSE.md)
 
@@ -186,5 +186,21 @@
 
 ## 11. 다음
 
-- 소유자가 O1~O10 에 답한다 (기본값 그대로면 "권고안" 한 마디).
-- 답을 받으면 이 문서를 종결하고 ADR 초안 · M-042 를 연다. 실측 S 는 이 호스트(Linux)의 Claude Code · Codex 로 먼저.
+- ADR 초안 · M-042 (requirements) 를 연다. 실측 S 는 이 호스트(Linux)의 Claude Code · Codex 로 먼저.
+
+## 12. 결정 (2026-11-22 소유자)
+
+**O1~O10 권고안 전부.**
+
+| # | 결정 |
+|---|---|
+| O1 | D5 · R15.3 을 연다 — 끌어오기(T1) 기본, 밀어 넣기는 중계가 띄운 세션(T2)만 |
+| O2 | 세션 = 배정 · 전달 · 상태 단위, 작업 기억은 콜사인 단위 그대로 |
+| O3 | 중계 = `workflow_kit[relay]` 선택 계층 — 참여에는 kit 불필요(H4 유지) |
+| O4 | 세션 요청 · 멈춤 요청은 요청마다 사람 승인 (프로젝트 설정으로 완화 가능) |
+| O5 | 오케스트레이터 = 승인된 human(owner)만 지정 · 프로젝트당 하나 · lease |
+| O6 | 첫 하네스 = Claude Code + Codex, 나머지는 T1 만 |
+| O7 | 중앙 ↔ 중계는 나가는 연결만 · 첫 판은 LAN/같은 머신 |
+| O8 | 화면 = 로컬 웹 → VS Code 확장(TS 는 webview 껍데기만 — PURPOSE 예외를 이 범위로 좁게 연다) → 스탠드얼론 보류 |
+| O9 | 상한 기본값 = PC 동시 세션 3 · 프로젝트 하루 세션 요청 10 · 도달 시 사람에게 (숫자는 requirements 에서 확정) |
+| O10 | 2.1.0 (additive) |

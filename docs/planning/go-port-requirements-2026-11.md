@@ -3,7 +3,7 @@
 - 문서 목적: M-049 결정(소유자 2026-11-22 — R1 = D 전면 Go)을 요구 R 과 검증 방법으로 옮긴다. Go 판이 **바꾸면 안 되는 계약**과 **같은 답 기준**을 먼저 고정해, design 이 언어만 바꾸고 동작은 바꾸지 않게 한다 (M-050).
 - 범위: 계약 표면 실측 인벤토리 (§1 — WBS-50.1), 요구 R25~R35 (§2 — WBS-50.1 · 50.2), 추적표 (§3), 정할 것 Q1~Q6 (§4), 미측정 (§5). ADR 초안은 [`adr-035-go-runtime`](../../ai-workflow/wiki/decisions/adr-035-go-runtime.md) (WBS-50.3)
 - 대상 독자: 소유자, 구현자 (M-051~)
-- 상태: draft — §1~§5 작성, 정할 것 Q1~Q6 소유자 대기
+- 상태: **종결 (2026-11-22)** — 정할 것 Q1~Q6 소유자 결정 = **권고안 전부** (§6). 다음은 design (M-051)
 - 최종 수정일: 2026-11-22
 - 관련 문서: [`runtime-port-review-2026-11.md`](./runtime-port-review-2026-11.md) (concept — "concept §n"), [`M-050`](../../ai-workflow/memory/active/roadmap/M-050-go-port-requirements.md), [`hub_spec.md`](../../workflow-source/core/hub_spec.md) (2.0 계약 — "2.0 §n"), [`hub_orchestration_spec.md`](../../workflow-source/core/hub_orchestration_spec.md) (2.1 계약 — "2.1 §n"), [`RELEASE.md`](../RELEASE.md) §1.5 (판 등급)
 
@@ -139,3 +139,14 @@ HTTP 경로, DB 판 12 의 표 32개, 1.x 생성물 형식, 판정 결과가 Pyt
 - Go 판정 구현의 실제 이식량 · 기간 (줄 수는 Python 기준)
 - Windows · macOS 바이너리 실행 · 백신 · Gatekeeper (R31.2)
 - MiniMax Code · Antigravity 의 Go 허브 연결 (R28.3)
+
+## 6. 결정 (2026-11-22 소유자 — 권고안 전부)
+
+| ID | 결정 |
+|---|---|
+| Q1 | Go 판은 **3.0.0** (설치 · 실행 진입점이 바뀌는 major) |
+| Q2 | `main` 은 S4 까지 Python wheel 을 함께 내고, S4 에서 Python 허브 · 중계를 은퇴. 1.x 공개 API 는 `release/1.x` 에만 |
+| Q3 | `hub_client.py` 는 Python 한 파일 유지 — Go 허브가 원문을 내장해 `/v1/bootstrap` 으로 내려준다 |
+| Q4 | SQLite 드라이버 `modernc.org/sqlite` (순수 Go) |
+| Q5 | 이 저장소의 `hub-go/` (모듈 `github.com/ykylee/standard_ai_workflow/hub-go`) |
+| Q6 | 차분 검사 corpus 에 이 저장소 실데이터를 쓴다 (저장소 이력에서 매번 만든다) |

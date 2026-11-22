@@ -1921,33 +1921,33 @@
       "id": "M-050",
       "title": "2.x 전면 Go 전환 — requirements",
       "sdlc_phase": "requirements",
-      "declared_status": "in_progress",
-      "derived_status": "in_progress",
-      "progress": 0.3333333333333333,
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
       "total_leaves": 3,
-      "done_leaves": 1,
+      "done_leaves": 3,
       "deliverables_missing": [],
       "wbs": [
         {
           "id": "WBS-50.1",
           "title": "요구 — 계약 불변(MCP 도구 · HTTP 경로 · DB 판 · 1.x 생성물 형식 — 기존 DB 를 Go 허브가 그대로 연다) · 판정 '같은 답' 기준과 차분 검사 · 적합성 검사(허브 검사 재사용)",
-          "derived_status": "in_progress",
+          "derived_status": "done",
           "linked_task_ids": [
             "TASK-2026-11-22-main-024"
           ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         },
         {
           "id": "WBS-50.2",
           "title": "이행 단계 · 배포(OS별 바이너리 · Windows 서명 실측 R4) · 게이트에 Go 검사 넣기 · Python 판 deprecation",
-          "derived_status": "in_progress",
+          "derived_status": "done",
           "linked_task_ids": [
             "TASK-2026-11-22-main-025"
           ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         },
         {
@@ -1962,9 +1962,66 @@
           "children": []
         }
       ]
+    },
+    {
+      "id": "M-051",
+      "title": "2.x 전면 Go 전환 — design",
+      "sdlc_phase": "design",
+      "declared_status": "in_progress",
+      "derived_status": "in_progress",
+      "progress": 0.75,
+      "total_leaves": 4,
+      "done_leaves": 3,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-51.1",
+          "title": "구조 — `hub-go/` 패키지 배치 · Python 모듈 대응 · 순수 판정 입구(DB 와 분리) · 자산 내장의 단일 출처",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-22-main-027"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        },
+        {
+          "id": "WBS-51.2",
+          "title": "검증 — 판정 CLI 프로토콜 · 차분 검사 · corpus 생성 · 적합성 검사 전환 스위치 · 게이트 감싸기",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-22-main-028"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        },
+        {
+          "id": "WBS-51.3",
+          "title": "S1 중계 · 빌드 · 배포 — 중계 Go 판 범위 · OS별 빌드 · 체크섬 · 판 머리",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-22-main-029"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        },
+        {
+          "id": "WBS-51.4",
+          "title": "design 결정 DG 권고안 · ADR-035 Accepted",
+          "derived_status": "in_progress",
+          "linked_task_ids": [
+            "TASK-2026-11-22-main-030"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        }
+      ]
     }
   ],
-  "current_milestone_id": "M-050",
+  "current_milestone_id": "M-051",
   "exempt_tasks": [
     {
       "task_id": "TASK-2026-08-25-main-010",

@@ -2,7 +2,7 @@
 id: M-050
 title: 2.x 전면 Go 전환 — requirements
 sdlc_phase: requirements
-status: in_progress
+status: done
 order: 50
 parallel_allowed:
   - M-007
@@ -17,6 +17,8 @@ goals: [G1, G3, G5]
 
 concept 정본: [`runtime-port-review-2026-11.md`](../../../../docs/planning/runtime-port-review-2026-11.md) §11 (소유자 2026-11-22 — R1 = D 전면 Go).
 허브 · 공유 판정(약 19k 줄) · PC 중계를 Go 로. 1.x 는 `release/1.x` 에서 Python 그대로 (2028-07-20 까지).
+
+**종결 (2026-11-22)**: `go-port-requirements-2026-11.md` — 요구 R25~R35, Q1~Q6 소유자 결정 권고안 전부 (3.0.0 · S4 까지 wheel 병행 · hub_client Python 유지 · modernc · `hub-go/` · 실데이터 corpus). ADR-035 Proposed. main-024 · 025 · 026.
 
 ## WBS
 

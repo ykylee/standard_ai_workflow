@@ -1620,9 +1620,33 @@
           "children": []
         }
       ]
+    },
+    {
+      "id": "M-041",
+      "title": "허브 오케스트레이션 — 중앙 허브 · PC 중계 허브 · 하네스 · 세션 4계층, 메인 오케스트레이터 세션의 작업 분배 (concept)",
+      "sdlc_phase": "concept",
+      "declared_status": "in_progress",
+      "derived_status": "in_progress",
+      "progress": 0.0,
+      "total_leaves": 1,
+      "done_leaves": 0,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-41.1",
+          "title": "concept 검토 — 4계층 모델 · 오케스트레이터 권한 · 세션 전달 방식 · 중계 허브 · 화면 3안 · 부딪치는 결정 · 열린 결정 · 단계",
+          "derived_status": "in_progress",
+          "linked_task_ids": [
+            "TASK-2026-11-22-main-001"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        }
+      ]
     }
   ],
-  "current_milestone_id": "M-039",
+  "current_milestone_id": "M-041",
   "exempt_tasks": [
     {
       "task_id": "TASK-2026-08-25-main-010",

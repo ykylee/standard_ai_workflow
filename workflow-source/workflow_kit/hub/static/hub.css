@@ -20,7 +20,7 @@
 * { box-sizing: border-box; }
 body { margin: 0; font: 15px/1.55 system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic",
   "Noto Sans KR", sans-serif; color: var(--fg); background: var(--bg); overflow-wrap: anywhere; }
-main, .card, .row > *, .grid > * { min-width: 0; }
+main, .card, .row > *, .grid > *, .kpis > *, .kpi, details, summary, .option { min-width: 0; }
 textarea, input, select, button { max-width: 100%; font: inherit; }
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
@@ -35,23 +35,38 @@ main { max-width: 76rem; margin: 0 auto; padding: 1.25rem; display: grid; gap: 1
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 1rem 1.1rem; box-shadow: var(--shadow); }
 .muted { color: var(--muted); }
 .grid { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); }
+
+/* 요약 KPI */
+.kpis { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: .85rem .95rem; display: flex; flex-direction: column; gap: .2rem; border-top: 4px solid var(--line); }
+.kpi.info { border-top-color: var(--info); }
+.kpi.bad { border-top-color: var(--bad); }
+.kpi.warn { border-top-color: var(--warn); }
+.kpi.ok { border-top-color: var(--ok); }
+.kpi-label { color: var(--muted); font-size: .82rem; font-weight: 600; }
+.kpi-value { font-size: 1.45rem; font-weight: 750; letter-spacing: -.01em; line-height: 1.2; }
+.kpi-sub { color: var(--muted); font-size: .8rem; }
+
+/* 표 */
 table { width: 100%; border-collapse: collapse; }
 th, td { text-align: left; padding: .45rem .5rem; border-bottom: 1px solid var(--line); vertical-align: top; }
 th { color: var(--muted); font-weight: 600; font-size: .85rem; white-space: nowrap; }
 .nowrap { white-space: nowrap; }
-/* task 표 — 자동 폭 배분은 긴 ID 에 폭을 몰아준다 (테스트베드 실측). 칸 폭을 정하고 넘치면 표만 가로로 민다. */
 .table-wrap { overflow-x: auto; }
 table.tasks { table-layout: fixed; min-width: 56rem; }
 col.c-id { width: 15.5rem; } col.c-status { width: 6.5rem; } col.c-who { width: 7.5rem; } col.c-when { width: 9.5rem; }
 col.c-title { width: 34%; } col.c-doing { width: 30%; }
 table.tasks td.mono.nowrap { font-size: .78rem; overflow: hidden; text-overflow: ellipsis; }
+
+/* 칩 */
 .chip { white-space: nowrap; display: inline-block; padding: .05rem .55rem; border-radius: 999px; font-size: .8rem; background: var(--neutral-soft); }
-.chip.planned { background: var(--neutral-soft); }
-.chip.in_progress { background: var(--info-soft); color: var(--info); }
-.chip.blocked { background: var(--warn-soft); color: var(--warn); }
-.chip.done { background: var(--ok-soft); color: var(--ok); }
-.chip.open { background: var(--warn-soft); color: var(--warn); }
-.chip.answered { background: var(--ok-soft); color: var(--ok); }
+.chip.planned, .chip.ended, .chip.idle, .chip.rejected { background: var(--neutral-soft); color: var(--fg); }
+.chip.in_progress, .chip.working, .chip.offered, .chip.accepted, .chip.dispatched { background: var(--info-soft); color: var(--info); }
+.chip.blocked, .chip.open, .chip.waiting, .chip.pending_approval, .chip.returned, .chip.unack { background: var(--warn-soft); color: var(--warn); }
+.chip.done, .chip.answered, .chip.reported, .chip.approved { background: var(--ok-soft); color: var(--ok); }
+.chip.unknown, .chip.declined, .chip.refused_by_host, .chip.failed, .chip.halted { background: var(--bad-soft); color: var(--bad); }
+
 pre { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: .75rem;
   font: .85rem/1.5 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; }
 .mono { font-family: var(--mono); font-size: .85rem; }
@@ -59,17 +74,47 @@ pre { background: var(--surface-2); border: 1px solid var(--line); border-radius
 .alert.bad { background: var(--bad-soft); color: var(--bad); }
 .alert.ok { background: var(--ok-soft); color: var(--ok); }
 .alert.warn { background: var(--warn-soft); color: var(--warn); }
-.decision { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: .7rem .8rem; margin: .5rem 0; display: grid; gap: .4rem; }
+.refresh-notice { max-width: 76rem; margin: .75rem auto 0; display: flex; gap: .75rem; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+
+/* 주장 트리 · 결정 라디오 카드 (1.x 워크벤치 계승) */
+.tree { display: grid; gap: .65rem; margin: .5rem 0; }
+details.claim { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius); padding: .75rem .9rem; }
+details > summary { cursor: pointer; font-weight: 600; }
+.claim-body { padding: .35rem 0 0 .85rem; border-left: 2px solid var(--line); margin: .45rem 0 0 .35rem; display: grid; gap: .5rem; }
+.decision { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: .7rem .8rem; margin: .35rem 0; display: grid; gap: .45rem; background: var(--surface); }
+details.decision.open { border-color: var(--warn); border-left: 4px solid var(--warn); background: var(--warn-soft); }
+.options { display: grid; gap: .45rem; }
+label.option { display: flex; align-items: baseline; gap: .45rem; flex-wrap: wrap; padding: .55rem .7rem; border: 1px solid var(--line);
+  border-radius: var(--radius-sm); background: var(--surface); cursor: pointer; }
+label.option:hover { border-color: var(--accent); }
+label.option:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.opt-value { font: 650 .85rem var(--mono); }
+.submitbar { position: sticky; bottom: .65rem; margin-top: .75rem; display: flex; gap: .75rem; align-items: center; justify-content: flex-end;
+  flex-wrap: wrap; padding: .7rem .9rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+
+/* 로드맵 WBS */
+.wbs-list { list-style: none; margin: .35rem 0 0; padding-left: 1rem; border-left: 2px solid var(--line); display: grid; gap: .35rem; }
+.wbs-node { display: grid; gap: .25rem; }
+.meter { display: flex; flex-direction: column; gap: .25rem; margin: .4rem 0; }
+progress { appearance: none; -webkit-appearance: none; width: 100%; height: .55rem; border: 0; border-radius: 999px; background: var(--neutral-soft); overflow: hidden; }
+progress::-webkit-progress-bar { background: var(--neutral-soft); border-radius: 999px; }
+progress::-webkit-progress-value { background: var(--accent); border-radius: 999px; }
+progress::-moz-progress-bar { background: var(--accent); border-radius: 999px; }
+
 .row { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; }
 label { display: inline-flex; gap: .35rem; align-items: center; }
 input[type=text], select, textarea { border: 1px solid var(--line); border-radius: 8px; padding: .35rem .5rem; background: var(--surface); color: var(--fg); }
 textarea { width: 100%; min-height: 4rem; }
 button { border: 0; border-radius: 8px; padding: .45rem .9rem; background: var(--accent); color: var(--accent-fg); cursor: pointer; }
 button.ghost { background: var(--neutral-soft); color: var(--fg); }
+button.danger { background: var(--bad-soft); color: var(--bad); }
 button:disabled { opacity: .5; cursor: default; }
 .filters { display: flex; gap: .5rem; flex-wrap: wrap; }
 .filters a { padding: .15rem .6rem; border-radius: 999px; background: var(--neutral-soft); color: var(--fg); }
 .filters a.on { background: var(--accent-soft); color: var(--accent); }
+.nav-links { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
+.nav-links a { padding: .2rem .65rem; border-radius: 999px; background: var(--neutral-soft); color: var(--fg); font-size: .9rem; }
+.nav-links a.on { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
 tr.archived td { opacity: .6; }
 ul.doing { margin: 0; padding-left: 1rem; }
 .handoff-part { margin-bottom: .75rem; }
@@ -79,4 +124,10 @@ textarea.guide-edit { min-height: 16rem; font: .85rem/1.5 var(--mono); }
 pre.diff { max-height: 24rem; overflow: auto; }
 ul.hits { padding-left: 1.1rem; display: grid; gap: .5rem; }
 input[type=search] { border: 1px solid var(--line); border-radius: 8px; padding: .35rem .5rem; background: var(--surface); color: var(--fg); min-width: 16rem; }
-@media (max-width: 40rem) { main { padding: .75rem; } th:nth-child(n+4), td:nth-child(n+4) { display: none; } }
+.clamp-3, .clamp-2 { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
+.clamp-3 { -webkit-line-clamp: 3; line-clamp: 3; }
+.clamp-2 { -webkit-line-clamp: 2; line-clamp: 2; }
+@media (max-width: 40rem) {
+  main { padding: .75rem; }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

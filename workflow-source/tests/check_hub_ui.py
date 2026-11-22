@@ -444,6 +444,125 @@ def case_10_11_12(tmp: Path) -> None:
         hub.stop()
 
 
+def case_13_14_15(tmp: Path) -> None:
+    db = tmp / "orch_ui.db"
+    Hub(db).stop()
+    _admin(db, "token", "issue", "--role", "web", "--name", "screen")
+    hub = Hub(db, extra=("--web-token-name", "screen"))
+    try:
+        pid, owner = _project(hub, "orch-ui")
+        _, owner_b = _project(hub, "orch-ui-b", "owner-b")
+        bot = hub.call("hub_callsign_register", {"project_id": pid, "callsign": "bot-a", "kind": "agent"})[1]["token"]
+        hum_p = hub.call("hub_callsign_register", {"project_id": pid, "callsign": "yk-p", "kind": "human"})[1]["token"]
+
+        tid = _task(hub, owner)
+        s_o = hub.call("hub_session_start", {"session": {"harness": "claude-code"}}, owner)[1]["session"]["id"]
+        s_w = hub.call("hub_session_start", {"session": {"harness": "codex", "kind": "worker"}}, bot)[1]["session"]["id"]
+
+        # 13 오케스트레이션 화면 API (조회 · 비소유자 제어 403 · 소유자 lease/halt/중계 초대/승인/거두기 · unacknowledged)
+        st_unauth_orch, _, _ = _req(hub.base, f"/api/projects/{pid}/orchestration", token=owner_b)
+        st_l_deny, _, _ = _req(hub.base, f"/api/projects/{pid}/orchestration/lease", token=bot,
+                               method="POST", body={"action": "declare", "session": s_o})
+        st_l_pen, _, _ = _req(hub.base, f"/api/projects/{pid}/orchestration/lease", token=hum_p,
+                              method="POST", body={"action": "declare", "session": s_o})
+        st_l_ok, _, _ = _req(hub.base, f"/api/projects/{pid}/orchestration/lease", token=owner,
+                             method="POST", body={"action": "declare", "session": s_o})
+
+        st_inv_deny, _, _ = _req(hub.base, f"/api/projects/{pid}/orchestration/relays/invite",
+                                 token=bot, method="POST", body={})
+        st_inv_ok, inv_doc, _ = _req(hub.base, f"/api/projects/{pid}/orchestration/relays/invite",
+                                     token=owner, method="POST", body={})
+        invite_code = inv_doc.get("invite", "") if isinstance(inv_doc, dict) else ""
+        # 중계 등록 (초대 코드 소비)
+        req_reg = urllib.request.Request(
+            f"{hub.base}/v1/relay/register",
+            data=json.dumps({"invite": invite_code, "name": "pc-ui", "harnesses": ["fake"]}).encode("utf-8"),
+            method="POST",
+            headers={"content-type": "application/json"},
+        )
+        with urllib.request.urlopen(req_reg, timeout=20) as rr:
+            host_id = json.loads(rr.read().decode("utf-8"))["host_id"]
+
+        _, sr_doc = _tool(hub.base, "hub_orch_request_session",
+                          {"session": s_o, "host_id": host_id, "dir_alias": "w", "harness": "fake"}, owner)
+        rid = sr_doc["request"]["id"]
+        _, _as = _tool(hub.base, "hub_orch_assign", {"session": s_o, "task_id": tid, "to_session": s_w}, owner)
+        # unacknowledged 1건 표시를 위해 inbox_message 한 건을 강제로 unacknowledged 로 둔다
+        with sqlite3.connect(str(db)) as c:
+            c.execute(
+                "INSERT INTO inbox_message (project_id, id, to_kind, to_id, from_callsign, from_session, "
+                "from_orchestrator, kind, body_json, ref_task, state, delivered_via, delivered_at, created_at) "
+                "VALUES (?, 'MSG-20261122-aaaaaaaaaaaa', 'session', ?, 'owner-a', ?, 1, 'note', '\"지연\"', ?, "
+                "'unacknowledged', 'piggyback', '2026-11-22T00:00:00+00:00', '2026-11-22T00:00:00+00:00')",
+                (pid, s_w, s_o, tid),
+            )
+
+        st_proj, proj_doc, _ = _req(hub.base, f"/api/projects/{pid}", token=owner)
+        st_orch, orch_doc, _ = _req(hub.base, f"/api/projects/{pid}/orchestration")  # web 공용 토큰 읽기
+        st_apr_deny, _, _ = _req(hub.base, f"/api/projects/{pid}/orchestration/approvals/{rid}",
+                                 token=bot, method="POST", body={"decision": "approve"})
+        st_apr_ok, apr_doc, _ = _req(hub.base, f"/api/projects/{pid}/orchestration/approvals/{rid}",
+                                     token=owner, method="POST", body={"decision": "approve", "note": "웹 승인"})
+        st_halt_deny, _, _ = _req(hub.base, f"/api/projects/{pid}/orchestration/halt",
+                                  token=hum_p, method="POST", body={"on": True})
+        st_halt_ok, halt_doc, _ = _req(hub.base, f"/api/projects/{pid}/orchestration/halt",
+                                       token=owner, method="POST", body={"on": True})
+        st_halt_off, halt_off, _ = _req(hub.base, f"/api/projects/{pid}/orchestration/halt",
+                                        token=owner, method="POST", body={"on": False})
+        st_rel_ok, rel_doc, _ = _req(hub.base, f"/api/projects/{pid}/orchestration/lease",
+                                     token=owner, method="POST", body={"action": "release"})
+        st_rev_ok, rev_doc, _ = _req(hub.base, f"/api/projects/{pid}/orchestration/relays/{host_id}/revoke",
+                                     token=owner, method="POST", body={})
+
+        ok13 = (st_unauth_orch == 403 and st_l_deny == 403 and st_l_pen == 403 and st_l_ok == 200
+                and st_inv_deny == 403 and st_inv_ok == 200 and invite_code.startswith("wri_")
+                and st_orch == 200 and len(orch_doc.get("sessions", [])) == 2
+                and len(orch_doc.get("assignments", [])) == 1 and len(orch_doc.get("unacknowledged", [])) == 1
+                and orch_doc.get("requests", [{}])[0].get("state") == "pending_approval"
+                and len(orch_doc.get("hosts", [])) == 1 and orch_doc.get("orchestrator", {}).get("session") == s_o
+                and st_apr_deny == 403 and st_apr_ok == 200 and apr_doc.get("request", {}).get("state") == "approved"
+                and st_halt_deny == 403 and st_halt_ok == 200 and halt_doc.get("halted") is True
+                and st_halt_off == 200 and halt_off.get("halted") is False
+                and st_rel_ok == 200 and rel_doc.get("released") is True
+                and st_rev_ok == 200 and rev_doc.get("revoked") is True)
+        _record("case 13 (오케스트레이션 화면 — 조회 · 승인 대기 · halt · lease · unacknowledged · 중계 초대/거두기 · 비소유자 403)", ok13,
+                f"unauth={st_unauth_orch} lease={st_l_deny}/{st_l_pen}/{st_l_ok} inv={st_inv_deny}/{st_inv_ok} "
+                f"orch={st_orch} apr={st_apr_deny}/{st_apr_ok} halt={st_halt_deny}/{st_halt_ok} rev={st_rev_ok}")
+
+        # 14 로드맵 화면 API
+        st_rm_empty, rm_empty, _ = _req(hub.base, f"/api/projects/{pid}/roadmap")
+        r1, _ = _tool(hub.base, "hub_roadmap_put", {"path": "index.md", "expected_version": 0, "body": (
+            "# Roadmap — orch-ui\n\n## Milestones\n\n"
+            "- **M-001** [implementation] 첫 마일스톤 — status: in_progress\n"
+            "  - path: [`./M-001-first.md`](./M-001-first.md)\n")}, owner)
+        r2, _ = _tool(hub.base, "hub_roadmap_put", {"path": "M-001-first.md", "expected_version": 0, "body": (
+            "---\nid: M-001\ntitle: 첫 마일스톤\nsdlc_phase: implementation\nstatus: in_progress\n"
+            "order: 1\nparallel_allowed: []\ndeliverables: []\n---\n\n# M-001\n\n## WBS\n\n- **WBS-1.1** 첫 작업\n")}, owner)
+        st_rm_ok, rm_doc, _ = _req(hub.base, f"/api/projects/{pid}/roadmap")
+        st_rm_403, _, _ = _req(hub.base, f"/api/projects/{pid}/roadmap", token=owner_b)
+        rm_state = rm_doc.get("roadmap_state") if isinstance(rm_doc, dict) else None
+        ok14 = (st_rm_empty == 200 and rm_empty.get("roadmap_state") is None
+                and r1 == 200 and r2 == 200 and st_rm_ok == 200 and st_rm_403 == 403
+                and isinstance(rm_state, dict) and rm_state.get("current_milestone_id") == "M-001"
+                and rm_state.get("milestones", [{}])[0].get("wbs", [{}])[0].get("id") == "WBS-1.1")
+        _record("case 14 (로드맵 화면 — 미등록 None · 등록 뒤 마일스톤/WBS 파생 · 남의 프로젝트 403)", ok14,
+                f"empty={st_rm_empty}/{rm_empty} put={r1}/{r2} rm={st_rm_ok}/{st_rm_403}")
+
+        # 15 프로젝트 요약 KPI + 1.x UX 규약(모바일 열 숨김 없음 · 결정 라디오 카드/클레임 트리)
+        sum_doc = proj_doc.get("summary") if isinstance(proj_doc, dict) else {}
+        css_src = (STATIC / "hub.css").read_text(encoding="utf-8")
+        js_src = (STATIC / "hub.js").read_text(encoding="utf-8")
+        ok15 = (st_proj == 200 and sum_doc.get("open_decision_tasks") == 1 and sum_doc.get("pending_approvals") == 1
+                and sum_doc.get("unacknowledged") == 1 and sum_doc.get("open_assignments") == 1
+                and sum_doc.get("unknown_sessions") == 0 and sum_doc.get("sessions_total") == 2
+                and "nth-child(n+4)" not in css_src
+                and 'details", { class: "claim"' in js_src and 'type: "radio"' in js_src and "showRefreshNotice" in js_src)
+        _record("case 15 (요약 KPI · 모바일 열 보존 · 주장 트리/라디오 결정 · dirty 보호 자동 갱신)", ok15,
+                f"summary={sum_doc}")
+    finally:
+        hub.stop()
+
+
 def main() -> int:
     print("check_hub_ui")
     with tempfile.TemporaryDirectory(prefix="hub-ui-") as d:
@@ -453,6 +572,7 @@ def main() -> int:
         case_4_5_6(tmp)
         case_7_8_9(tmp)
         case_10_11_12(tmp)
+        case_13_14_15(tmp)
     print(f"PASS {len(_passes)} · FAIL {len(_failures)}")
     for f in _failures:
         print(f"  FAIL {f}")

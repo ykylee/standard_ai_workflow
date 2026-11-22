@@ -25,10 +25,14 @@ from starlette.responses import FileResponse, JSONResponse, RedirectResponse, Re
 from starlette.routing import BaseRoute, Route
 
 from workflow_kit.common import plan_claims, plan_responses
+from workflow_kit.common.schemas.roadmap import RoadmapIssue, TaskWbsLink
+from workflow_kit.common.state import roadmap as rm
 from workflow_kit.hub.errors import HubError, forbidden, invalid_field, not_found, unauthorized
 from workflow_kit.hub.guide import Guides
-from workflow_kit.hub.judge import Judge, task_lines
+from workflow_kit.hub.judge import INDEX, _NO_TREE, Judge, task_lines
 from workflow_kit.hub.memory import Memory
+from workflow_kit.hub.orchestration import Orchestration
+from workflow_kit.hub.relay import Relays
 from workflow_kit.hub.wiki import Wiki
 from workflow_kit.hub.store import Ctx, Principal, Store
 
@@ -63,9 +67,11 @@ def _bearer(request: Request) -> str | None:
 
 
 def _principal_summary(p: Principal) -> dict[str, Any]:
+    is_owner = p.kind == "callsign" and p.callsign_kind == "human" and p.human_approved and p.role == "owner"
     return {"kind": p.kind, "project_id": p.project_id, "callsign": p.callsign, "callsign_kind": p.callsign_kind,
             "human_approved": p.human_approved, "role": p.role, "name": p.name,
-            "can_answer": p.kind == "callsign" and p.callsign_kind == "human" and p.human_approved}
+            "can_answer": p.kind == "callsign" and p.callsign_kind == "human" and p.human_approved,
+            "can_manage": is_owner}
 
 
 def _decision(d: plan_claims.Decision, state: str | None) -> dict[str, Any]:
@@ -79,6 +85,8 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
     memory = Memory(store)
     guides = Guides(store)
     wiki = Wiki(store)
+    orch = Orchestration(store)
+    relays = Relays(store)
 
     def resolve(request: Request, now: datetime) -> Principal:
         token = _bearer(request)
@@ -150,13 +158,51 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
         rows = store.projects(p.project_id if p.kind == "callsign" else None)
         return {"projects": rows, "principal": _principal_summary(p)}
 
+    def _project_summary(pid: str, v: Principal, now: datetime) -> dict[str, Any]:
+        ctx = Ctx(now=now, via="ui", principal=v)
+        with store.write() as conn:
+            orch._expire(conn, ctx, pid)
+        s_out = orch.session_list(ctx, {})
+        with store.read() as conn:
+            pending_approvals = int(conn.execute(
+                "SELECT COUNT(*) FROM session_request WHERE project_id = ? AND state = 'pending_approval'",
+                (pid,),
+            ).fetchone()[0])
+            unacknowledged = int(conn.execute(
+                "SELECT COUNT(*) FROM inbox_message WHERE project_id = ? AND state = 'unacknowledged'",
+                (pid,),
+            ).fetchone()[0])
+            open_assignments = int(conn.execute(
+                "SELECT COUNT(*) FROM assignment WHERE project_id = ? AND state IN ('offered', 'accepted')",
+                (pid,),
+            ).fetchone()[0])
+            plan_task_ids = [
+                r["id"]
+                for r in conn.execute(
+                    "SELECT id FROM task WHERE project_id = ? AND status != 'done' AND plan_md != ''",
+                    (pid,),
+                ).fetchall()
+            ]
+        open_decision_tasks = sum(1 for tid in plan_task_ids if judge.plan_status(ctx, tid)["open_decisions"])
+        return {
+            "open_decision_tasks": open_decision_tasks,
+            "pending_approvals": pending_approvals,
+            "unacknowledged": unacknowledged,
+            "open_assignments": open_assignments,
+            "session_counts": s_out["counts"],
+            "unknown_sessions": s_out["unknown"],
+            "sessions_total": len(s_out["sessions"]),
+            "orchestrator": s_out["orchestrator"],
+        }
+
     def get_project(request: Request, p: Principal, now: datetime, _b: Any) -> dict[str, Any]:
         pid = request.path_params["pid"]
-        scope(p, pid)
+        v = scope(p, pid)
         project = store.projects(pid)[0]
         me = _principal_summary(p)
         me["can_answer"] = me["can_answer"] and p.project_id == pid
-        return {"project": project, "principal": me}
+        me["can_manage"] = me["can_manage"] and p.project_id == pid
+        return {"project": project, "principal": me, "summary": _project_summary(pid, v, now)}
 
     def get_tasks(request: Request, p: Principal, now: datetime, _b: Any) -> dict[str, Any]:
         v = scope(p, request.path_params["pid"])
@@ -238,6 +284,142 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
             raise invalid_field("path", "필수")
         return wiki.get(Ctx(now=now, via="ui", principal=scope(p, request.path_params["pid"])), path)
 
+    def get_roadmap(request: Request, p: Principal, now: datetime, _b: Any) -> dict[str, Any]:
+        """로드맵 파생 상태 — 마일스톤 · WBS · 연결 task (viewer 도 읽기 가능)."""
+        pid = request.path_params["pid"]
+        scope(p, pid)
+        with store.read() as conn:
+            roadmap, _, issues = judge.roadmap(conn, pid)
+            if roadmap is None:
+                return {"roadmap_state": None, "reason": "로드맵이 없다 (index.md 없음)"}
+            links = [
+                TaskWbsLink(
+                    task_id=r["id"], task_status=r["status"], wbs_ref=r["wbs"],
+                    exempt_reason=r["wbs_exempt_reason"], source_path=r["id"],
+                )
+                for r in conn.execute(
+                    "SELECT id, status, wbs, wbs_exempt_reason FROM task WHERE project_id = ? AND wbs != ''",
+                    (pid,),
+                )
+            ]
+        declared = sorted({d for m in roadmap.milestones for d in m.deliverables})
+        if declared:
+            issues.append(RoadmapIssue(
+                code="deliverables_unmeasured",
+                detail=f"허브는 저장소를 보지 않아 산출물 {len(declared)}개의 존재를 재지 않았다 — 미측정",
+                where=INDEX,
+            ))
+        state = rm.derive_state(
+            roadmap, links, _NO_TREE, issues, deliverable_exists=lambda _d: True,
+            generated_at=now.strftime("%Y-%m-%d"),
+        )
+        return {"roadmap_state": state.model_dump(mode="json")}
+
+    def get_orchestration(request: Request, p: Principal, now: datetime, _b: Any) -> dict[str, Any]:
+        """2.1 오케스트레이션 현황 — 세션 5상태 · unknown · 배정 · 미전달 · 세션 요청 · 중계 호스트."""
+        pid = request.path_params["pid"]
+        v = scope(p, pid)
+        ctx = Ctx(now=now, via="ui", principal=v)
+        with store.write() as conn:
+            orch._expire(conn, ctx, pid)
+        s_out = orch.session_list(ctx, {"status": request.query_params.get("status") or None})
+        with store.read() as conn:
+            meta_by_sid = {
+                r["id"]: (r["host_id"] or None, r["guide_version"] or None)
+                for r in conn.execute("SELECT id, host_id, guide_version FROM session WHERE project_id = ?", (pid,))
+            }
+            assign_rows = conn.execute(
+                "SELECT a.*, t.title AS task_title, t.status AS task_status, t.progress_note, "
+                "m.state AS message_state, m.delivered_via, m.delivered_at, m.last_delivered_at, m.delivery_count "
+                "FROM assignment a "
+                "LEFT JOIN task t ON t.project_id = a.project_id AND t.id = a.task_id "
+                "LEFT JOIN inbox_message m ON m.project_id = a.project_id AND m.id = a.message_id "
+                "WHERE a.project_id = ? ORDER BY a.offered_at DESC, a.rowid DESC LIMIT 200",
+                (pid,),
+            ).fetchall()
+            unack_rows = conn.execute(
+                "SELECT id, to_kind, to_id, kind, ref_task, delivered_via, delivered_at, created_at, body_json "
+                "FROM inbox_message WHERE project_id = ? AND state = 'unacknowledged' "
+                "ORDER BY created_at DESC, rowid DESC LIMIT 100",
+                (pid,),
+            ).fetchall()
+            req_rows = conn.execute(
+                "SELECT * FROM session_request WHERE project_id = ? "
+                "ORDER BY created_at DESC, rowid DESC LIMIT 100",
+                (pid,),
+            ).fetchall()
+        sessions = []
+        for s in s_out["sessions"]:
+            host_id, guide_ver = meta_by_sid.get(s["id"], (None, None))
+            sessions.append({**s, "host_id": host_id, "guide_version": guide_ver})
+        assignments = [
+            {
+                "task_id": r["task_id"],
+                "task_title": r["task_title"] or "",
+                "task_status": r["task_status"] or "",
+                "progress_note": r["progress_note"] or "",
+                "session_id": r["session_id"],
+                "callsign": r["callsign"],
+                "message_id": r["message_id"],
+                "state": r["state"],
+                "return_reason": r["return_reason"],
+                "offered_at": r["offered_at"],
+                "accepted_at": r["accepted_at"],
+                "reported_at": r["reported_at"],
+                "report": json.loads(r["report_json"] or "{}"),
+                "message_state": r["message_state"] or None,
+                "delivered_via": r["delivered_via"] or None,
+                "delivered_at": r["delivered_at"],
+                "last_delivered_at": r["last_delivered_at"],
+                "delivery_count": int(r["delivery_count"] or 0),
+            }
+            for r in assign_rows
+        ]
+        unacknowledged = [
+            {
+                "id": r["id"],
+                "to_kind": r["to_kind"],
+                "to_id": r["to_id"],
+                "kind": r["kind"],
+                "ref_task": r["ref_task"] or None,
+                "delivered_via": r["delivered_via"] or None,
+                "delivered_at": r["delivered_at"],
+                "created_at": r["created_at"],
+                "body": json.loads(r["body_json"]),
+            }
+            for r in unack_rows
+        ]
+        requests = [
+            {
+                "id": r["id"],
+                "kind": r["kind"],
+                "host_id": r["host_id"],
+                "target": json.loads(r["target_json"]),
+                "requested_by": r["requested_by"],
+                "state": r["state"],
+                "decided_by": r["decided_by"] or None,
+                "decided_at": r["decided_at"],
+                "result": json.loads(r["result_json"] or "{}"),
+                "created_at": r["created_at"],
+            }
+            for r in req_rows
+        ]
+        hosts = relays.list_hosts(ctx, {})["hosts"]
+        me = _principal_summary(p)
+        me["can_answer"] = me["can_answer"] and p.project_id == pid
+        me["can_manage"] = me["can_manage"] and p.project_id == pid
+        return {
+            "principal": me,
+            "orchestrator": s_out["orchestrator"],
+            "sessions": sessions,
+            "session_counts": s_out["counts"],
+            "unknown_sessions": s_out["unknown"],
+            "assignments": assignments,
+            "unacknowledged": unacknowledged,
+            "requests": requests,
+            "hosts": hosts,
+        }
+
     # --- 쓰기 ---------------------------------------------------------------------
 
     def _own(p: Principal, pid: str) -> Principal:
@@ -275,6 +457,43 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
                 raise invalid_field(key, "문자열이어야 한다")
         return store.register_callsign(Ctx(now=now, via="ui", principal=p), pid, b.get("callsign", ""),
                                        b.get("kind", ""), b.get("label", ""), "browser")
+
+    def post_orch_halt(request: Request, p: Principal, now: datetime, b: dict[str, Any]) -> dict[str, Any]:
+        pid = request.path_params["pid"]
+        if not isinstance(b.get("on"), bool):
+            raise invalid_field("on", "true · false")
+        return orch.halt(Ctx(now=now, via="ui", principal=_own(p, pid)), {"on": b["on"]})
+
+    def post_orch_lease(request: Request, p: Principal, now: datetime, b: dict[str, Any]) -> dict[str, Any]:
+        pid = request.path_params["pid"]
+        ctx = Ctx(now=now, via="ui", principal=_own(p, pid))
+        action = b.get("action")
+        if action == "declare":
+            return orch.declare(ctx, {"session": b.get("session")})
+        if action == "transfer":
+            return orch.transfer(ctx, {"session": b.get("session")})
+        if action == "release":
+            orch._need_owner(ctx)
+            return orch.release_lease(ctx, {})
+        raise invalid_field("action", "declare · transfer · release 중 하나")
+
+    def post_orch_decide(request: Request, p: Principal, now: datetime, b: dict[str, Any]) -> dict[str, Any]:
+        pid = request.path_params["pid"]
+        rid = request.path_params["rid"]
+        note = b.get("note") or ""
+        if not isinstance(note, str):
+            raise invalid_field("note", "문자열")
+        return relays.decide(Ctx(now=now, via="ui", principal=_own(p, pid)),
+                             {"request_id": rid, "decision": b.get("decision"), "note": note})
+
+    def post_orch_relay_invite(request: Request, p: Principal, now: datetime, _b: Any) -> dict[str, Any]:
+        pid = request.path_params["pid"]
+        public = str(request.base_url).rstrip("/")
+        return relays.invite(Ctx(now=now, via="ui", principal=_own(p, pid), public_url=public), {})
+
+    def post_orch_relay_revoke(request: Request, p: Principal, now: datetime, _b: Any) -> dict[str, Any]:
+        pid = request.path_params["pid"]
+        return relays.revoke(Ctx(now=now, via="ui", principal=_own(p, pid)), request.path_params["hid"])
 
     def post_response(request: Request, p: Principal, now: datetime, b: dict[str, Any]) -> dict[str, Any]:
         """결정 답 — 폼 값으로 response/1 본문을 만들어 :meth:`Judge.plan_respond` 에 넘긴다."""
@@ -354,6 +573,13 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
         Route("/api/projects/{pid}/callsigns/{cs}", api(get_callsign), methods=["GET"]),
         Route("/api/projects/{pid}/callsigns/{cs}/approve", api(post_approve, body=True), methods=["POST"]),
         Route("/api/projects/{pid}/tasks/{tid}/responses", api(post_response, body=True), methods=["POST"]),
+        Route("/api/projects/{pid}/roadmap", api(get_roadmap), methods=["GET"]),
+        Route("/api/projects/{pid}/orchestration", api(get_orchestration), methods=["GET"]),
+        Route("/api/projects/{pid}/orchestration/halt", api(post_orch_halt, body=True), methods=["POST"]),
+        Route("/api/projects/{pid}/orchestration/lease", api(post_orch_lease, body=True), methods=["POST"]),
+        Route("/api/projects/{pid}/orchestration/approvals/{rid}", api(post_orch_decide, body=True), methods=["POST"]),
+        Route("/api/projects/{pid}/orchestration/relays/invite", api(post_orch_relay_invite, body=True), methods=["POST"]),
+        Route("/api/projects/{pid}/orchestration/relays/{hid}/revoke", api(post_orch_relay_revoke, body=True), methods=["POST"]),
     ]
 
 

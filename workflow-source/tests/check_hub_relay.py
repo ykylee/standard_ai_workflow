@@ -354,17 +354,35 @@ def run(impl: str, cmd_prefix: list[str], hub: Hub, hub_db: Path, tmp: Path) -> 
         ubase = f"http://127.0.0.1:{uport}"
         _, page = _ui_get(uport, "/")
         _, api = _ui_get(uport, "/api/state")
+        api_state = json.loads(api)
+        allow0 = (api_state.get("allow") or [{}])[0]
+        before_active = int(allow0.get("active_sessions", -1))
         no_hdr = _ui_post(uport, "/api/pause", headers={})[0]
         foreign = _ui_post(uport, "/api/pause", headers={"X-Relay-UI": "1", "Origin": "https://evil.example"})[0]
         ok_pause = _ui_post(uport, "/api/pause", headers={"X-Relay-UI": "1", "Origin": ubase})[0]
         _, paused_poll = _ui_post(uport, "/api/poll", {"wait_s": 0})
         ok_resume = _ui_post(uport, "/api/resume", headers={"X-Relay-UI": "1"})[0]
         _, resumed_poll = _ui_post(uport, "/api/poll", {"wait_s": 0})
-        _record(f"{tag}case 10 (로컬 화면 — 세션 표 · 토큰 없음 · 머리 없음/남의 출처 403 · 일시정지가 폴링을 멈춤)",
-                "pc-1" in page and "<table>" in page and token not in page and token not in api
+        r7_req = r7["request"]["id"]
+        stop_miss = _ui_post(uport, "/api/sessions/SR-9999/stop", headers={"X-Relay-UI": "1", "Origin": ubase})[0]
+        stop_nohdr = _ui_post(uport, f"/api/sessions/{r7_req}/stop", headers={})[0]
+        stop_ok, stop_doc = _ui_post(uport, f"/api/sessions/{r7_req}/stop", headers={"X-Relay-UI": "1", "Origin": ubase})
+        _, api_after_raw = _ui_get(uport, "/api/state")
+        api_after = json.loads(api_after_raw)
+        r7_entry = next((x for x in api_after.get("sessions", []) if x.get("request") == r7_req), {})
+        allow0_after = (api_after.get("allow") or [{}])[0]
+        hub_orch_link = f"{base}/ui/#/p/{pid}/orch"
+        _record(f"{tag}case 10 (로컬 화면 — 무깜빡임 fetch · 로컬 path/사용률 · 허브 딥링크 · 개별 종료 · 출처 403)",
+                "pc-1" in page and "<table>" in page and 'http-equiv="refresh"' not in page
+                and 'fetch("/api/state"' in page and hub_orch_link in page
+                and Path(str(allow0.get("path", ""))).resolve() == work.resolve() and before_active >= 1
+                and token not in page and token not in api
                 and no_hdr == 403 and foreign == 403 and ok_pause == 200 and paused_poll == {"paused": True}
-                and ok_resume == 200 and "dispatch" in resumed_poll,
-                f"no_hdr={no_hdr} foreign={foreign} pause={ok_pause} paused={paused_poll} resume={ok_resume}")
+                and ok_resume == 200 and "dispatch" in resumed_poll
+                and stop_miss == 404 and stop_nohdr == 403 and stop_ok == 200 and stop_doc.get("stopped") == r7_req
+                and r7_entry.get("status") == "ended" and allow0_after.get("active_sessions") == before_active - 1,
+                f"no_hdr={no_hdr} foreign={foreign} pause={ok_pause} stop={stop_miss}/{stop_nohdr}/{stop_ok} "
+                f"allow0={allow0} allow0_after={allow0_after} r7={r7_entry}")
 
         # 9 거두기
         _post(base, "hub_relay_revoke", {"host_id": host}, own)

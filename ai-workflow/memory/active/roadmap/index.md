@@ -117,3 +117,5 @@
   - path: [`./M-051-go-port-design.md`](./M-051-go-port-design.md)
 - **M-052** [implementation] 2.x 전면 Go 전환 — implementation S1 (PC 중계 Go 판) — status: done
   - path: [`./M-052-go-port-relay.md`](./M-052-go-port-relay.md)
+- **M-053** [implementation] 허브(/ui/) · PC 중계 화면 UI/UX 완성 — 오케스트레이션 판 · 워크벤치식 결정 UX · 중계 무깜빡임 화면 — status: done
+  - path: [`./M-053-hub-relay-ui-ux.md`](./M-053-hub-relay-ui-ux.md)

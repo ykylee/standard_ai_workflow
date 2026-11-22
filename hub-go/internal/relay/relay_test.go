@@ -369,9 +369,33 @@ func TestRunnerAndUI(t *testing.T) {
 	if csp != relayCSP || resp.Header.Get("X-Frame-Options") != "" {
 		t.Fatalf("unexpected security headers: csp=%q xfo=%q", csp, resp.Header.Get("X-Frame-Options"))
 	}
-	if !strings.Contains(string(pageBytes), "pc-1") || !strings.Contains(string(pageBytes), "<table>") || strings.Contains(string(pageBytes), "tok-runner") {
+	pageStr := string(pageBytes)
+	if !strings.Contains(pageStr, "pc-1") || !strings.Contains(pageStr, "<table>") || strings.Contains(pageStr, "tok-runner") {
 		t.Fatalf("unexpected UI HTML")
 	}
+	if strings.Contains(pageStr, `http-equiv="refresh"`) || !strings.Contains(pageStr, `fetch("/api/state"`) {
+		t.Fatalf("expected non-flicker fetch UI without meta refresh")
+	}
+	stResp, err := http.Get(ubase + "/api/state")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var stDoc map[string]any
+	_ = json.NewDecoder(stResp.Body).Decode(&stDoc)
+	stResp.Body.Close()
+	if allowSlice, ok := stDoc["allow"].([]any); !ok || len(allowSlice) == 0 {
+		t.Fatalf("expected allow slice in /api/state: %+v", stDoc)
+	} else if first, ok := allowSlice[0].(map[string]any); !ok || first["path"] != work || first["active_sessions"] != float64(1) {
+		t.Fatalf("expected allow[0] path=%s active_sessions=1, got %+v", work, allowSlice[0])
+	}
+	reqStopMiss, _ := http.NewRequest(http.MethodPost, ubase+"/api/sessions/SR-9999/stop", nil)
+	reqStopMiss.Header.Set("X-Relay-UI", "1")
+	reqStopMiss.Header.Set("Origin", ubase)
+	rStopMiss, err := http.DefaultClient.Do(reqStopMiss)
+	if err != nil || rStopMiss.StatusCode != 404 {
+		t.Fatalf("expected 404 on missing session stop, got err=%v code=%v", err, rStopMiss)
+	}
+	rStopMiss.Body.Close()
 
 	reqBad, _ := http.NewRequest(http.MethodPost, ubase+"/api/pause", nil)
 	rBad, err := http.DefaultClient.Do(reqBad)

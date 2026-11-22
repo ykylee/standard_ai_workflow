@@ -242,10 +242,16 @@ class Adapter(Protocol):
 - 어댑터가 띄운 세션은 첫 프롬프트 앞에 `hub_session_start` 를 부르라는 지시와 `kind=worker` 를 싣는다 — 세션 등록은 그 세션의 몫이다 (중계가 대신 등록하지 않는다 — 진입 지침 판 확인이 거기서 일어나므로).
 - 판이 바뀌면 `probe()` 가 실측 칸을 다시 재고, 못 재면 그 동작은 '미지원' 이다 (요구 R21.5 · ADR-034 Consequences).
 
-## 10. 화면 (요구 R22)
+## 10. 화면 (요구 R22 · M-053 보완)
 
-- **중앙** `/ui/` 에 `오케스트레이션` 판: 세션 표(상태 · `unknown` 수 따로 · 마지막 신호 · 전달 경로 · 열린 배정) · 배정 표(상태 기계 §8) · 미전달(`unacknowledged`) · 승인 대기(세션 · 멈춤 요청 — owner 는 여기서 승인) · 정지 스위치. 읽기는 2.0 화면 인증 그대로(2.0 R13.2a).
-- **중계** `hub relay serve --ui-port 8771` → `127.0.0.1` 만 (`relay/ui.py`, 표준 라이브러리 `http.server` — 중계가 허브 서버 의존 없이 돌도록 중앙 `static/` 을 쓰지 않는다): 등록 정보 · 일시정지 · 띄운 세션(요청 · 별칭 · 하네스 · pid · 상태 · 허브 세션) · 허용 목록(읽기 — 고치기는 CLI) · 마지막 폴링 · 최근 로그. 하는 일은 일시정지 · 재개뿐이고 POST 는 `X-Relay-UI` 머리 + 같은 출처만. **승인 대기는 보이지 않는다** — 승인은 owner 권한이라 중앙 화면에서 하고, 중계는 owner 토큰을 갖지 않는다. 토큰은 어떤 응답에도 없다 (`check_hub_relay` case 10).
+- **중앙** `/ui/` 에 `오케스트레이션` 판(`#/p/{pid}/orch`) · `로드맵` 판(`#/p/{pid}/roadmap`) · 프로젝트 요약 KPI:
+  - 프로젝트 홈 요약(`GET /api/projects/{pid}` 의 `summary`): 열린 결정 task 수 · 승인 대기(`pending_approval`) 수 · `unacknowledged` 수 · 활성/전체 세션 및 **`unknown` 수 별도 집계** · 오케스트레이터 lease 및 `halted` 상태.
+  - HTTP API (`/api/projects/{pid}/orchestration` · `/halt` · `/lease` · `/approvals/{rid}` · `/relays/invite` · `/relays/{hid}/revoke`, `/api/projects/{pid}/roadmap`): 읽기는 2.0 화면 인증(2.0 R13.2a `scope`), 제어 쓰기는 이 프로젝트의 승인된 owner 콜사인 토큰(`application/json`, `hub/orchestration.py` · `hub/relay.py` 와 같은 함수).
+  - UX 규약(1.x 워크벤치 계승): 10초 자동 갱신(입력 중 `dirty` 면 덮지 않고 `.refresh-notice` 배너만) · `<details class="claim">` 주장 트리 + `.decision.open` 라디오 카드(`toggle`/`change` 시 `opened` 자동 설정) · 좁은 폭에서 열 숨김 없이 `.table-wrap` 가로 스크롤 유지.
+- **중계** `hub relay serve --ui-port 8771` → `127.0.0.1` 만 (`relay/ui.py` · Go `internal/relay/ui.go`):
+  - `<meta http-equiv="refresh">` 전체 새로고침을 쓰지 않고 `fetch('/api/state')` 주기 폴링으로 변경된 DOM 만 부분 갱신한다(로그 스크롤 · 선택 유지).
+  - `/api/state` 와 화면은 등록 정보(`hub` · `host_id` · `project_id` · `name`) · 일시정지 · `harnesses` · 띄운 세션(요청 · 별칭 · 하네스 · pid · 상태 · 허브 세션 · **로컬 개별 종료 버튼**) · 허용 목록(이 PC 로컬 화면 전용 `path` · `active_sessions/max_sessions`) · **중앙 허브 딥링크(`{hub}/ui/#/p/{project_id}/orch`)** · 마지막 폴링 · 최근 로그를 보인다(DO9 대로 중앙 허브에는 `path` 를 보내지 않는다).
+  - 제어 POST(`/api/pause`, `/api/resume`, `/api/sessions/{req}/stop`)는 `X-Relay-UI: 1` 머리 + 같은 출처(`127.0.0.1`/`localhost`)만 받는다. **승인 대기는 보이지 않는다** — 승인은 owner 권한이라 중앙 화면에서 하고, 중계는 owner 토큰을 갖지 않는다. 토큰은 어떤 응답에도 없다 (`check_hub_relay` case 10).
 - **VS Code 확장** `editors/vscode/` (M-047 — **빌드 없는 JavaScript**, wheel 밖): 명령 하나(`workflowHub.openRelay`)가 webview 에 중계 화면 iframe 하나를 띄운다 (`portMapping` · `enableScripts` 켜짐 — 껍데기 문서 CSP 에 `script-src` 없음, 중계 화면의 버튼만 돈다 · 설정 `workflowHub.relayPort`). 상태 표시줄은 중계 상태(세션 수/상한 · 일시정지 · 꺼짐) — **승인 대기 수는 싣지 않는다** (중계는 owner 토큰이 없어 승인 대기를 볼 수 없다). 화면 로직 0 — 판정 · HTML 생성은 중계(Python) 쪽. 중계 화면은 `frame-ancestors 'self' vscode-webview: vscode-file://vscode-app` 로 VS Code 데스크톱 webview 만 프레임을 허락한다 (조상 전부를 대조하므로 작업대 출처가 있어야 한다). **실제 VS Code 실측 (TASK-2026-11-22-main-016, VS Code 1.147.0 · xvfb)**: 활성화 · 명령 · 상태 표시줄 `중계 0/3` · webview 안 중계 화면 · 일시정지 버튼 POST 까지 동작 — 그 전에 stub 게이트가 놓친 결함 2건(작업대 출처 누락 → `ERR_BLOCKED_BY_RESPONSE` 빈 화면 · `enableScripts:false` 가 중첩 iframe 의 버튼 JS 를 죽임)을 고쳤다. VS Code 웹 · 원격(작업대가 https) 은 범위 밖.
 
 ## 11. 진입 영역 전달 규칙 (요구 R18.7 — `hub_workflow_standard.md` 에 더할 절)

@@ -4,7 +4,7 @@
 - 범위: 허브 서버 · 허브 MCP 도구 · 부트스트랩과 등록 · 콜사인과 작업 기억 · task와 판정 · handoff와 상태 요약 · 공유 지침 · 위키 · 로드맵 · 세션 시작 확인 · compact 직후 확인 · 오프라인 · 노출 · git 내보내기 · 1.x 전환. 방향과 결정은 [concept](./workflow-hub-review-2026-11.md)이 정본이라 **여기서 다시 정하지 않는다**. design 전 실측(WBS-31.2)과 PURPOSE 2.0판 · 1.x 유지보수 정책(WBS-31.3)은 이 문서에 자리만 둔다 (§16 · §17).
 - 대상 독자: 소유자 (sign-off), design 단계 작성자
 - 상태: **종결 (2026-11-20)** — WBS-31.1 · 31.2 · 31.3 완료, 소유자 결정 Q1~Q10 전부 확정 (§20 · §24), design 진입 조건 충족 (§21). 다음은 design (M-032 — ADR-033 Accepted + `core/hub_spec.md`)
-- 최종 수정일: 2026-11-21
+- 최종 수정일: 2026-11-22
 - 관련 문서: [`workflow-hub-review-2026-11.md`](./workflow-hub-review-2026-11.md) (concept — 아래에서 "concept §n" 으로 부른다), [`M-031`](../../ai-workflow/memory/active/roadmap/M-031-workflow-hub-requirements.md), [`ADR-033`](../../ai-workflow/wiki/decisions/adr-033-workflow-hub.md) (Proposed), [`plan-workbench-requirements-2026-11.md`](./plan-workbench-requirements-2026-11.md) (받은편지함 · 노출의 선례), arcturus-port `portal/` (`8d24fcd7` — 화면 인증 Q4 의 선례: `backend/internal/api/api.go` · `backend/internal/store/callsign.go` · `site/src/pages/tasks/index.astro` · `deploy/homelab/Caddyfile`), [`claim_plan_spec.md`](../../workflow-source/core/claim_plan_spec.md), [`compact_relay_spec.md`](../../workflow-source/core/compact_relay_spec.md), [`multi_workspace_orchestration.md`](../../workflow-source/core/multi_workspace_orchestration.md)
 
 ## 0. 요약
@@ -476,6 +476,7 @@
   [검증] 내보낸 저장소에서 1.x 쓰기 → 거절.
 - **R15.3 첫 판에서 뺀다** — A2A(환경끼리 메시지) · 유휴 점검은 2.0.0 에 넣지 않는다 (D5). 허브는 하네스에 메시지를 보내지 않는다 (`multi_workspace_orchestration.md` §0.6).
   [검증] 2.0 도구 표에 해당 도구 0.
+  **2.1 에서 연다 (소유자 2026-11-22, M-041 O1)** — 이 검증은 2.0.x 에만 걸린다. 2.1 의 세션 간 전달은 `hub-orchestration-requirements-2026-11.md` R18 · R24.2 가 정한다.
 - **R15.4 arcturus 이전은 2.0 뒤** — arcturus 포털의 task · handoff 를 kit 허브로 옮기는 일(D7)은 2.0.0 발행 조건이 아니다. **(소유자 2026-11-21 재확인 — 첫 2.0 판 `2.0.0-beta` 의 발행 조건에서 WBS-39.3 을 뺐고, macOS · Windows · 대화형 실측(39.1)과 이 저장소 표식 전환(39.2)도 발행 뒤로 — 로드맵 M-040 `parallel_allowed`)** 들여오기 형식(R14 · OKF)이 그 입구다.
   [검증] — (로드맵 범위 선언)
 

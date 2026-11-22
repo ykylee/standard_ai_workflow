@@ -1650,7 +1650,7 @@
       "title": "허브 오케스트레이션 — requirements (실측 S · 요구 · ADR 초안)",
       "sdlc_phase": "requirements",
       "declared_status": "in_progress",
-      "derived_status": "in_progress",
+      "derived_status": "blocked",
       "progress": 0.3333333333333333,
       "total_leaves": 3,
       "done_leaves": 1,
@@ -1671,8 +1671,10 @@
         {
           "id": "WBS-42.2",
           "title": "요구 R · 검증 방법 · 추적표 (concept → 요구)",
-          "derived_status": "planned",
-          "linked_task_ids": [],
+          "derived_status": "blocked",
+          "linked_task_ids": [
+            "TASK-2026-11-22-main-005"
+          ],
           "total_leaves": 1,
           "done_leaves": 0,
           "children": []

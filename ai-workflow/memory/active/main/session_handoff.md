@@ -4,7 +4,7 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-11-23 (145차 세션 진행 — Linux 호스트. v3.0.0 pre-release 발행 후 Windows SQLite DSN 결함 발견. Go 수정판 v3.0.1 준비: C:/ 경로를 file:///C:/ URI로 고정, 회귀 테스트·go test ./...·Windows amd64/arm64 cross-build PASS. Go 바이너리와 Python 3.0.1 wheel을 각각 일관된 격리 DB 복제본에서 기동, healthz HTTP 200 확인. Python wheel도 주요 화면/API 200 확인. 운영 DB 미접촉. 다음: 메모리 포함 commit → clean-tree --branch-context=all 게이트 → 3.0.1 pre-release 발행/자산 확인. native Windows 실행, Go/Python parity와 쓰기·relay 검증은 미완료; stable latest는 v2.1.0 유지.
+- 최종 수정일: 2026-11-23 (146차 세션 종료 — Linux. MCP Python SDK >=2.0.0 요구로 상향하고 Go·Python 허브 모두 PostgreSQL URL 연결, 버전형 schema migration, 기존 SQLite snapshot 복사/정합성 검사 구현. 격리 PostgreSQL 17에서 양 런타임 startup·healthz·쓰기·이관·rollback·identity 연속성 검증, Python PostgreSQL bundle export/import 검증. SQLite 회귀·Go 전체 테스트/vet·Ruff·mypy·문서 smoke·metadata·MCP matrix 통과. Native Windows PostgreSQL은 미검증. 신규 릴리스는 발행하지 않음. 다음: M-057/WBS-57.1·57.2 shadow/parity 작업. 운영 DB 미접촉.
 - 이전 수정일: 2026-11-22 (140차 세션 **종료** — Linux 호스트. main-014 Codex 커밋 경로 · **M-048 done → v2.1.0 발행** (VS Code 실측 결함 2 수리 · 진입 지침 push 막힘 문구 · 매트릭스 tmp 위양성 수리) · README 재작성 · main-022 허브 mcp 2.x · **Go 전환 결정**: M-049 concept (소유자 R1=D 전면 Go) · M-050 requirements · M-051 design done, ADR-035 Accepted · PURPOSE Go 예외. 다음 M-052 S1 중계 Go 판)
 - 이전 수정일: 2026-11-22 (139차 세션 **종료** — Linux 호스트. 결함 수리 4 (main-027 · 234c32-002 · main-012 · main-002, 전부 release/1.x 이식) · **새 축 2.1 허브 오케스트레이션 M-041~M-047 done** (concept · requirements · design · ADR-034 Accepted · 구현 1~4: 세션 · 받은편지함 · lease · 배정 · PC 중계 · VS Code 껍데기, 실제 Claude · Codex 실측). 발행 없음)
 - 이전 수정일: 2026-11-21 (138차 세션 **종료** — Linux 호스트. 2.0 허브 M-037 · M-038 · M-040 done, M-039 진행(남은 것: macOS · Windows · 대화형 실측 · 이 저장소 표식 전환 · arcturus). 이 저장소 테스트베드 실제 등록 · `/setup.md` 4 하네스 실측 · 운영 가이드 · **v2.0.0 (베타 표기) · v1.30.0 발행**, latest = v2.0.0)
@@ -73,8 +73,6 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
-- TASK-2026-11-23-main-008 Go 허브 Windows SQLite DSN 절대 경로 수정
-- TASK-2026-11-23-main-007 Go 허브 3.0.0 pre-release 발행 및 Linux 격리 pilot
 - TASK-2026-11-23-main-006 Go 허브 화면 API 및 PC 중계 HTTP parity
 - TASK-2026-11-23-main-005 Go 허브 Linux 테스트베드 실전 shadow 검증
 ## 3. 차단 작업
@@ -88,21 +86,21 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-11-23-main-013 PostgreSQL 운영 안내와 격리 양 런타임 pilot 검증
+- TASK-2026-11-23-main-012 Go·Python SQLite→PostgreSQL 데이터 복사 및 정합성 검증 구현
+- TASK-2026-11-23-main-011 Go·Python 허브 PostgreSQL backend 및 versioned schema migration 구현
+- TASK-2026-11-23-main-009 MCP Python SDK 최소 버전을 2.x로 상향
+- TASK-2026-11-23-main-010 허브 PostgreSQL 백엔드와 SQLite 데이터 이관 설계
+- TASK-2026-11-23-main-008 Go 허브 Windows SQLite DSN 절대 경로 수정
+- TASK-2026-11-23-main-007 Go 허브 3.0.0 pre-release 발행 및 Linux 격리 pilot
 - TASK-2026-11-23-main-004 3.0.0 Go 런타임 릴리즈 준비 점검
 - TASK-2026-11-23-main-003 세션·오케스트레이션 Python/Go 실사용 차분 검사
 - TASK-2026-11-23-main-002 Go 허브 오케스트레이터 lease · 배정 · 승인 포팅
-- TASK-2026-11-23-main-001 Go 허브 세션 · 받은편지함 · 오케스트레이션 포팅 1 — 세션/인박스 저장 계층
-- TASK-2026-11-22-main-041 hub-go tools · mcpserver · httpapi · workflow-hub CLI 및 Go/Python 적합성 테스트 (M-055 WBS-55.3)
-- TASK-2026-11-22-main-040 hub-go/internal/store 저장 계층 구현 (M-055 WBS-55.2)
-- TASK-2026-11-22-main-039 hub-go/internal/db · assets · check_go_assets_sync 구현 (M-055 WBS-55.1)
-- TASK-2026-11-22-main-038 judge/1 corpus 및 check_judge_parity 차분 검사 구현 (M-054 WBS-54.3)
-- TASK-2026-11-22-main-037 wbs.gate · roadmap.derive · handoff.parse · state.build 순수 판정 구현 (M-054 WBS-54.2)
-- TASK-2026-11-22-main-036 judge/1 CLI 프로토콜 + plan.lint · plan.states · task.status 순수 판정 구현 (M-054 WBS-54.1)
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
 
-- (144차, 2026-11-23, Linux) 세션 커밋 `b0214862` · `1f8f215d`가 `origin/main`에 push됐고 push gate 통과 기록이 HEAD `1f8f215d`로 남았다. 다음 세션은 `git status`와 M-057 task를 확인하고 WBS-57.2를 계속한다. `hub-go/internal/httpapi/ui.go`의 guide POST/decide, orchestration 화면, relay register/poll/result를 구현하고 API별 인증·응답·DB 효과를 Python과 Go 격리 복제 DB에서 비교해 WBS-57.1 결과를 갱신한다. Go 전체 shadow가 끝나기 전에는 release/tag를 만들지 않는다. 이후 WBS-57.3~57.6 (4 harness, macOS/Windows, same-DB rollback, release)을 진행한다.
+- (145차, 2026-11-23, Linux) 수정 커밋 `b8c0af8c`를 push하고 v3.0.1 pre-release를 발행했다. Go Windows DSN 단위 회귀와 Python 3.0.1 wheel fallback을 준비했다. 다음은 M-057/WBS-57.1·57.2에서 Python/Go API parity를 업데이트하고 화면 write 및 relay DB 효과를 격리 복제 DB로 비교한다. native Windows 실행, 4 harness, same-DB rollback은 미검증이다. stable latest는 v2.1.0이다.
 
 - (141차, 2026-11-23, Linux) **Go 전환 S1 · UI/UX · S2-a · S2-b 완주 (main-031~041, 전부 done)**: **M-052 S1 PC 중계 Go 판 done** (main-031 `hub-go/` 뼈대 · 6타깃 크로스 빌드 `check_go_build` 5/5, main-032 중계 CLI/설정/긴 폴링/어댑터 3종/로컬 화면, main-033 `check_hub_relay` `WORKFLOW_RELAY_IMPL=both` 22/22 · Claude Code 2.1.330 & Codex 0.171.0 실제 어댑터 실측). **M-053 허브·중계 UI/UX done** (main-034 허브 `/ui/` 2.1 오케스트레이션 판 · 로드맵 화면 · 1.x 워크벤치 결정 UX 복원, main-035 Python·Go 중계 로컬 화면 무깜빡임 fetch · 로컬 상세 · 허브 딥링크 · 개별 세션 종료). **M-054 S2-a 순수 판정 `judge/1` done** (main-036 `plan.lint` · `plan.states` · `task.status`, main-037 `wbs.gate` · `roadmap.derive` · `handoff.parse` · `state.build`, main-038 corpus 89케이스 · `check_judge_parity` 불일치 0). **M-055 S2-b 중앙 허브 코어 Go 판 done** (main-039 `internal/db` `modernc.org/sqlite` 판 1~12 SQL · 온라인 백업 · `internal/assets` · `check_go_assets_sync` 3/3, main-040 `internal/store` 인증/멱등/비밀스캔/콜사인/task CRUD/맡기/커밋/이력, main-041 `internal/{tools,mcpserver,httpapi}` 74도구 스키마·코어 핸들러·JudgeBridge·stateless JSON MCP·`serve`/`backup`/`admin` CLI · `check_hub_core` `WORKFLOW_HUB_IMPL=both` 18/18). **다음: S2-c/d** — 나머지 허브 도구(셋업 · 지침 · 1.x 전환 · 이전 · 메모리/위키/체크포인트 · 오케스트레이션 · 중계 서버 API) 및 웹 화면(`/ui/`, `/api/*`) Go 전환 (`workflow-source/core/hub_go_spec.md` §5).
 - (140차, 2026-11-22, Linux) main-014 (Codex 일하는 세션 커밋 — `turn/start` sandboxPolicy.writableRoots 에 git dir · common dir, push 는 보고 B) · M-048: main-016 실제 VS Code 1.147 실측(test-electron · xvfb · CDP) 결함 2 수리 (`frame-ancestors` 에 `vscode-file://vscode-app` · `enableScripts` true) + `.vsix` · main-017 진입 지침 push 막힘 문구 · main-020 SDK/해석기 매트릭스 tmp 저장소 밖 · main-019 **v2.1.0 발행** (게이트 1~3회차 flake 원인 = 같은 호스트 arbiter.service 전역 OOM 재기동 루프 — 소유자 승인으로 mes-total-solution dev 환경 `dev-down.sh`, 그 개발 DB 비워짐) · main-018 README 재작성 · main-022 허브 mcp 2.x. Go 전환: M-049 (main-021 실측 — go-sdk v1.8.0 · rmcp 3.11 탐침이 Claude Code · Codex 에 붙음, `/var/tmp/claude-rtprobe/`) · M-050 (main-024~026) · M-051 (main-027~030) done. **다음: M-052 S1 — WBS-52.1 `hub-go/` 뼈대 · `check_go_build` → 52.2 중계 Go 판 → 52.3 `check_hub_relay` 스위치 · 실제 어댑터 실측** (hub_go_spec §6 · §8). 남은 후속: 해석기 매트릭스 전량 재실행(main-019 후속) · arbiter 메모리 상한 없음(그 저장소 몫).

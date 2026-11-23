@@ -6,7 +6,7 @@ TASK-2026-09-21-main-005.
 
 로컬 개발 인터프리터가 CI 보다 새로우면, 새 문법을 쓴 코드가 **로컬에서만 통과**한다.
 이 저장소는 같은 모양을 이미 두 번 겪고 로컬 재현 수단을 만들어 뒀다 —
-`sdk_matrix`(mcp 1.x/2.x)와 `branch_matrix`(native/slash). 이것이 세 번째 축이다.
+`sdk_matrix`(MCP SDK v2+)와 `branch_matrix`(native/slash). 이것이 세 번째 축이다.
 
 ## 왜 `ast.parse(feature_version=...)` 로는 안 되는가 (실측이 전제를 뒤집었다)
 

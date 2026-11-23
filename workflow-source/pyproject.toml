@@ -58,26 +58,25 @@ mcp-jsonrpc = []
 mcp-sdk = [
     # 상한 해제. mcp 를 쓰는 표면은 **둘**이고 (전수 조사: `from mcp` /
     # `import mcp` / `import_module("mcp…")` / `__import__` 네 문법으로 sweep)
-    # 둘 다 1.x/2.x 를 해석한다:
+    # MCP Python SDK 지원 하한은 v2.0.0:
     #   - `mcp_v1_server.py`     — fastmcp.FastMCP ↔ mcpserver.MCPServer
     #   - `read_only_mcp_sdk.py` — lowlevel decorator ↔ add_request_handler
-    # 1.27.0 / 1.28.1 / 1.29.0 / 2.0.0 에서 mypy strict + 프로토콜 왕복
-    # (initialize → tools/list → tools/call) 실측. 1.x 와 2.x 의 wire 산출물이
-    # tools/list·tools/call 모두 **동일**함을 확인했다.
+    # v2.0.0 과 최신 선언 버전에서 mypy strict + 프로토콜 왕복
+    # (initialize → tools/list → tools/call) 실측한다.
     # 다음 major 가 또 이름을 옮기면 `check_mcp_server_sdk_compat.py` 와
     # `check_mcp_lowlevel_sdk_compat.py` 가 먼저 실패한다.
-    "mcp[cli]>=1.0",
+    "mcp[cli]>=2.0.0",
 ]
 # M-033 (hub_spec §2.3, DS1): 2.0 워크플로우 허브 서버 — 허브 쪽만 깐다. 작업 환경은 이 의존이 없다.
-# 판 범위를 상한까지 고정한다: 허브는 lowlevel Server · StreamableHTTPSessionManager 를 쓰고
-# 1.27 에서 4 하네스 원격 MCP 를 실측했다 (requirements §16.3). 판을 올리면 그 실측을 다시 돈다.
-# 2.x (TASK-2026-11-22-main-022): 2.0 이 lowlevel decorator 를 처리기 등록형으로 바꿨다 — 허브는 둘 다 조립한다.
-# 2.3.0 에서 허브 · 중계 검사 16/16 + Claude Code · Codex 실측. SDK 매트릭스가 각 판에서 허브 MCP 경로를 밟는다.
+# MCP Python SDK v2 이상을 사용한다. v2.3.0에서 허브 · 중계 검사와 Claude Code · Codex 실측.
+# SDK 매트릭스가 하한 및 현재 검증 판에서 허브 MCP 경로를 밟는다.
 hub = [
-    "mcp>=1.27,<3",
+    "mcp>=2.0.0",
     "uvicorn>=0.30",
     "starlette>=0.40",
 ]
+# Optional server database backend. Install alongside the hub extra.
+hub-postgres = ["psycopg[binary]>=3.2"]
 # v0.7.4+ Property-Based Testing (PBT) — hypothesis framework (optional)
 pbt = [
     "hypothesis>=6.0",

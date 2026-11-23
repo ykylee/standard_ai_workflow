@@ -10,9 +10,16 @@ M-033 은 판 1 — 등록 · 콜사인 · task · 이력 표. M-034 는 판 2 �
 
 from __future__ import annotations
 
+import hashlib
+import json
+import re
 import sqlite3
+import tempfile
+from collections.abc import Iterator, Sequence
 from datetime import datetime
 from pathlib import Path
+from typing import Any, SupportsIndex, overload
+
 from workflow_kit.hub.errors import HubError
 
 _V1 = """
@@ -436,8 +443,159 @@ def latest_version() -> int:
     return len(MIGRATIONS)
 
 
-def connect(path: Path) -> sqlite3.Connection:
+class _PGRow(tuple[Any, ...]):
+    """Tuple-compatible row with SQLite Row-style name lookup."""
+
+    _names: tuple[str, ...]
+
+    def __new__(cls, values: tuple[Any, ...], names: tuple[str, ...]) -> _PGRow:
+        row = super().__new__(cls, values)
+        row._names = names
+        return row
+
+    @overload
+    def __getitem__(self, key: str) -> Any: ...
+
+    @overload
+    def __getitem__(self, key: SupportsIndex) -> Any: ...
+
+    @overload
+    def __getitem__(self, key: slice) -> tuple[Any, ...]: ...
+
+    def __getitem__(self, key: Any) -> Any:
+        if isinstance(key, str):
+            key = self._names.index(key)
+        return super().__getitem__(key)
+
+    def keys(self) -> tuple[str, ...]:
+        return self._names
+
+
+class _PGCursor:
+    def __init__(self, cursor: Any) -> None:
+        self._cursor = cursor
+        self.rowcount = cursor.rowcount
+
+    def _row(self, row: Any) -> _PGRow | None:
+        if row is None:
+            return None
+        values = tuple(
+            value.decode("utf-8") if isinstance(value, bytes) else value for value in row
+        )
+        return _PGRow(values, tuple(d.name for d in self._cursor.description or ()))
+
+    def fetchone(self) -> _PGRow | None:
+        return self._row(self._cursor.fetchone())
+
+    def fetchall(self) -> list[_PGRow]:
+        return [
+            converted
+            for row in self._cursor.fetchall()
+            if (converted := self._row(row)) is not None
+        ]
+
+    def __iter__(self) -> Iterator[_PGRow]:
+        for row in self._cursor:
+            converted = self._row(row)
+            if converted is not None:
+                yield converted
+
+
+class _PGConnection:
+    dialect = "postgresql"
+
+    def __init__(self, conn: Any) -> None:
+        self._conn = conn
+
+    @staticmethod
+    def _sql(sql: str) -> str:
+        sql = sql.replace("BEGIN IMMEDIATE", "BEGIN")
+        sql = re.sub(r"\browid\b", "ctid", sql, flags=re.I)
+        ignored_insert = bool(re.search(r"INSERT\s+OR\s+IGNORE\s+INTO", sql, re.I))
+        sql = re.sub(r"INSERT\s+OR\s+IGNORE\s+INTO", "INSERT INTO", sql, flags=re.I)
+        if ignored_insert:
+            sql += " ON CONFLICT DO NOTHING"
+        out, quote, i = [], None, 0
+        while i < len(sql):
+            ch = sql[i]
+            if quote:
+                out.append(ch)
+                if ch == quote:
+                    if i + 1 < len(sql) and sql[i + 1] == quote:
+                        out.append(sql[i + 1])
+                        i += 1
+                    else:
+                        quote = None
+            elif ch in ("'", '"'):
+                quote = ch
+                out.append(ch)
+            elif ch == "?":
+                out.append("%s")
+            else:
+                out.append(ch)
+            i += 1
+        rendered = "".join(out)
+        return re.sub(r"\bIS\s+NOT\s+%s", "IS DISTINCT FROM %s", rendered, flags=re.I)
+
+    def execute(self, sql: str, params: Sequence[Any] = ()) -> _PGCursor:
+        try:
+            cur = self._conn.execute(self._sql(sql), params or ())
+        except Exception as exc:
+            if str(getattr(exc, "sqlstate", "")).startswith("23"):
+                raise sqlite3.IntegrityError(str(exc)) from exc
+            raise
+        return _PGCursor(cur)
+
+    def executescript(self, script: str) -> None:
+        for statement in script.split(";"):
+            if statement.strip():
+                self.execute(statement)
+
+    def commit(self) -> None:
+        self._conn.commit()
+
+    def rollback(self) -> None:
+        self._conn.rollback()
+
+    def close(self) -> None:
+        self._conn.close()
+
+    @property
+    def in_transaction(self) -> bool:
+        return not self._conn.autocommit
+
+
+def normalize_target(path: Path | str) -> str:
+    raw = str(path)
+    # pathlib collapses the `//` in URL-like strings; restore it for API callers
+    # that already constructed a Path before handing the value to the hub.
+    for scheme in ("postgresql", "postgres"):
+        if raw.startswith(f"{scheme}:/") and not raw.startswith(f"{scheme}://"):
+            return raw.replace(f"{scheme}:/", f"{scheme}://", 1)
+    return raw
+
+
+def is_postgres(path: Path | str) -> bool:
+    return normalize_target(path).startswith(("postgres://", "postgresql://"))
+
+
+def connect(path: Path | str) -> Any:
     """자동 커밋 연결 — 트랜잭션은 호출자가 ``BEGIN IMMEDIATE`` 로 연다."""
+    if is_postgres(path):
+        try:
+            import psycopg
+        except ImportError as exc:  # pragma: no cover - optional extra
+            raise RuntimeError(
+                "PostgreSQL 허브에는 psycopg[binary]가 필요하다 — pip install 'workflow_kit[hub-postgres]'"
+            ) from exc
+        try:
+            return _PGConnection(psycopg.connect(normalize_target(path), autocommit=True))
+        except Exception as exc:
+            raise HubError(
+                503,
+                "postgres_connection_failed",
+                "PostgreSQL 연결에 실패했다 — URL 자격 증명은 숨겼다",
+            ) from exc
     conn = sqlite3.connect(str(path), isolation_level=None, timeout=10.0)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
@@ -445,7 +603,13 @@ def connect(path: Path) -> sqlite3.Connection:
     return conn
 
 
-def schema_version(conn: sqlite3.Connection) -> int:
+def schema_version(conn: Any) -> int:
+    if isinstance(conn, _PGConnection):
+        has_meta = conn.execute("SELECT to_regclass('public.meta') AS name").fetchone()
+        if not has_meta or has_meta["name"] is None:
+            return 0
+        row = conn.execute("SELECT value FROM meta WHERE key = 'schema_version'").fetchone()
+        return int(row["value"]) if row else 0
     has_meta = conn.execute(
         "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'meta'"
     ).fetchone()
@@ -457,6 +621,12 @@ def schema_version(conn: sqlite3.Connection) -> int:
 
 def backup(src: Path, out: Path) -> None:
     """돌고 있는 허브의 DB 도 일관되게 복사한다 (SQLite 온라인 백업, 요구 R1.4)."""
+    if is_postgres(src):
+        raise HubError(
+            400,
+            "postgres_backup_external",
+            "PostgreSQL 백업은 서버 운영 도구(pg_dump 또는 managed snapshot)를 사용한다",
+        )
     if out.exists():
         raise HubError(409, "backup_target_exists", f"백업 대상이 이미 있다: {out}")
     source = sqlite3.connect(str(src), timeout=10.0)
@@ -470,8 +640,26 @@ def backup(src: Path, out: Path) -> None:
         source.close()
 
 
-def open_db(path: Path, *, now: datetime) -> list[Path]:
+def open_db(path: Path | str, *, now: datetime) -> list[Path]:
     """DB 를 최신 판으로 맞춘다. 만든 이관 전 사본 경로를 돌려준다."""
+    if is_postgres(path):
+        conn = connect(path)
+        try:
+            current = schema_version(conn)
+        finally:
+            conn.close()
+        latest = latest_version()
+        if current > latest:
+            raise HubError(
+                500,
+                "db_newer_than_hub",
+                f"DB 판 {current} 이 이 허브가 아는 최신 판 {latest} 보다 새롭다 — 허브를 올린다",
+                {"db_version": current, "hub_version": latest},
+            )
+        for n in range(current + 1, latest + 1):
+            _apply_postgres(normalize_target(path), n, now)
+        return []
+    path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     conn = connect(path)
     try:
@@ -482,7 +670,8 @@ def open_db(path: Path, *, now: datetime) -> list[Path]:
     latest = latest_version()
     if current > latest:
         raise HubError(
-            500, "db_newer_than_hub",
+            500,
+            "db_newer_than_hub",
             f"DB 판 {current} 이 이 허브가 아는 최신 판 {latest} 보다 새롭다 — 허브를 올린다",
             {"db_version": current, "hub_version": latest},
         )
@@ -495,6 +684,160 @@ def open_db(path: Path, *, now: datetime) -> list[Path]:
             copies.append(copy)
         _apply(path, n, now)
     return copies
+
+
+def copy_sqlite_to_postgres(
+    source_path: Path, target_url: str, *, now: datetime
+) -> dict[str, object]:
+    """Copy a consistent, upgraded SQLite snapshot into an empty PostgreSQL hub."""
+    if not is_postgres(target_url):
+        raise ValueError("대상은 postgresql:// 또는 postgres:// URL이어야 한다")
+    with tempfile.TemporaryDirectory(prefix="workflow-hub-import-") as tmp:
+        snapshot_path = Path(tmp) / "snapshot.db"
+        source = sqlite3.connect(
+            f"file:{source_path.resolve().as_posix()}?mode=ro", uri=True, timeout=10
+        )
+        try:
+            snapshot = sqlite3.connect(snapshot_path)
+            try:
+                source.backup(snapshot)
+            finally:
+                snapshot.close()
+        finally:
+            source.close()
+        # Upgrade only the temporary snapshot; the operator's source file stays read-only.
+        open_db(snapshot_path, now=now)
+        src = sqlite3.connect(f"file:{snapshot_path.as_posix()}?mode=ro", uri=True)
+        src.row_factory = sqlite3.Row
+        dst = connect(target_url)
+        tables = [
+            r[0]
+            for r in src.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY rowid"
+            )
+        ]
+        try:
+            target_tables = [
+                r["table_name"]
+                for r in dst.execute(
+                    "SELECT table_name FROM information_schema.tables WHERE table_schema='public' "
+                    "AND table_type='BASE TABLE' AND table_name <> 'meta'"
+                )
+            ]
+            for table in target_tables:
+                count = dst.execute(f'SELECT count(*) AS n FROM "{table}"').fetchone()["n"]
+                if count:
+                    raise HubError(
+                        409,
+                        "postgres_target_not_empty",
+                        "PostgreSQL 대상에 이미 데이터가 있다 — 빈 대상으로 다시 시도한다",
+                        {"table": table},
+                    )
+            dst.execute("BEGIN")
+            summary: dict[str, dict[str, object]] = {}
+            for table in tables:
+                cols = [r[1] for r in src.execute(f'PRAGMA table_info("{table}")')]
+                pk = [
+                    r[1]
+                    for r in sorted(
+                        (r for r in src.execute(f'PRAGMA table_info("{table}")') if r[5]),
+                        key=lambda r: r[5],
+                    )
+                ]
+                order = pk or cols
+                quoted_cols = ",".join('"' + c.replace('"', '""') + '"' for c in cols)
+                sort = ",".join('"' + c.replace('"', '""') + '"' for c in order)
+                insert = (
+                    f'INSERT INTO "{table}" ({quoted_cols}) VALUES ({",".join("?" for _ in cols)})'
+                )
+                if table == "meta":
+                    insert += " ON CONFLICT(key) DO UPDATE SET value=excluded.value"
+                source_rows = src.execute(f'SELECT {quoted_cols} FROM "{table}" ORDER BY {sort}')
+                source_hash, source_count = hashlib.sha256(), 0
+                for row in source_rows:
+                    values = tuple(row)
+                    dst.execute(insert, values)
+                    source_hash.update(
+                        json.dumps(
+                            values, ensure_ascii=False, separators=(",", ":"), default=str
+                        ).encode()
+                    )
+                    source_hash.update(b"\n")
+                    source_count += 1
+                target_hash, target_count = hashlib.sha256(), 0
+                target_rows = dst.execute(f'SELECT {quoted_cols} FROM "{table}" ORDER BY {sort}')
+                for row in target_rows:
+                    target_hash.update(
+                        json.dumps(
+                            tuple(row), ensure_ascii=False, separators=(",", ":"), default=str
+                        ).encode()
+                    )
+                    target_hash.update(b"\n")
+                    target_count += 1
+                if source_count != target_count or source_hash.digest() != target_hash.digest():
+                    raise HubError(
+                        500,
+                        "postgres_import_mismatch",
+                        "SQLite와 PostgreSQL 데이터 검증이 맞지 않는다 — 이관을 롤백한다",
+                        {"table": table, "source_rows": source_count, "target_rows": target_count},
+                    )
+                summary[table] = {"rows": source_count, "sha256": source_hash.hexdigest()}
+            dst.execute(
+                "SELECT setval(pg_get_serial_sequence('public.event','seq'), COALESCE(MAX(seq),1), MAX(seq) IS NOT NULL) FROM event"
+            )
+            dst.execute("COMMIT")
+            return {"status": "ok", "tables": summary, "source_retained": True}
+        except Exception:
+            try:
+                dst.execute("ROLLBACK")
+            except Exception:
+                pass
+            raise
+        finally:
+            src.close()
+            dst.close()
+
+
+def _apply_postgres(url: str, n: int, now: datetime) -> None:
+    conn = connect(url)
+    try:
+        conn.execute("BEGIN")
+        conn.execute("SELECT pg_advisory_xact_lock(78192341)")
+        locked_version = schema_version(conn)
+        if locked_version >= n:
+            conn.execute("COMMIT")
+            return
+        ddl = MIGRATIONS[n - 1]
+        ddl = re.sub(
+            r"INTEGER\s+PRIMARY KEY\s+AUTOINCREMENT",
+            "BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY",
+            ddl,
+            flags=re.I,
+        )
+        for statement in ddl.split(";"):
+            if statement.strip():
+                conn.execute(statement)
+        meta = conn.execute("SELECT to_regclass('public.meta') AS name").fetchone()
+        if not meta or meta["name"] is None:
+            conn.execute("CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
+        conn.execute(
+            "INSERT INTO meta(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+            ("schema_version", str(n)),
+        )
+        if n == 1:
+            conn.execute(
+                "INSERT INTO meta(key,value) VALUES(?,?) ON CONFLICT(key) DO NOTHING",
+                ("created_at", now.isoformat()),
+            )
+        conn.execute("COMMIT")
+    except Exception:
+        try:
+            conn.execute("ROLLBACK")
+        except Exception:
+            pass
+        raise
+    finally:
+        conn.close()
 
 
 def _quote(value: str) -> str:

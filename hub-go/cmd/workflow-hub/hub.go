@@ -182,6 +182,28 @@ func cmdBackup(args []string, stdout, stderr io.Writer) int {
 	return 0
 }
 
+func cmdMigrate(args []string, stdout, stderr io.Writer) int {
+	fs := newFlagSet("workflow-hub migrate", stderr)
+	source := fs.String("from-sqlite", "", "원본 SQLite DB 경로")
+	target := fs.String("to-postgres", "", "대상 PostgreSQL URL")
+	if err := fs.Parse(args); err != nil {
+		if err == flag.ErrHelp {
+			return 0
+		}
+		return 2
+	}
+	if strings.TrimSpace(*source) == "" || strings.TrimSpace(*target) == "" {
+		fmt.Fprintln(stderr, "hub migrate: --from-sqlite 와 --to-postgres 가 필요하다")
+		return 2
+	}
+	summary, err := db.CopySQLiteToPostgres(*source, *target, utcNow())
+	if err != nil {
+		return writeHubErrOut(stdout, stderr, err)
+	}
+	writeJSONOut(stdout, summary)
+	return 0
+}
+
 func cmdAdmin(args []string, stdout, stderr io.Writer) int {
 	fs := newFlagSet("workflow-hub admin", stderr)
 	dbPath := fs.String("db", "", "허브 SQLite DB 경로")

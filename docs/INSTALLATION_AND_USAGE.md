@@ -82,7 +82,7 @@ python3 -m pip install -e ".[mcp-sdk,dev]"
 `.[mcp-sdk,dev]` 가 설치하는 것:
 
 - 본 패키지 (`workflow_kit`) — editable link
-- `mcp[cli]>=1.0` (extras `mcp-sdk`) — MCP SDK stdio server 사용 시 필요
+- `mcp[cli]>=2.0.0` (extras `mcp-sdk`) — MCP SDK stdio server 사용 시 필요
 - `pytest`, `ruff`, `mypy` (extras `dev`) — 테스트/린트/타입체크
 
 설치 검증:
@@ -147,7 +147,7 @@ for pkg in ['pydantic', 'anyio', 'mcp', 'workflow_kit']:
 python: 3.13.7
   pydantic==2.13.3
   anyio==4.13.0
-  mcp==1.27.0
+  mcp==2.3.0
   workflow_kit==0.6.0-beta
 ```
 

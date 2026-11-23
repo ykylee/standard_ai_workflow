@@ -40,7 +40,7 @@ last_purpose_review: 2026-11-21
 - **허브 상태** (task · handoff · 이력 · 로드맵 · 공유 지침 · 위키 · memory_index) + 그 git 내보내기 (D6)
 - skill / MCP / agent 설계 카탈로그 + 프로토타입
 - **허브 원격 MCP + 진입 지침** — 지원 하네스 4종 Claude Code · Codex · MiniMax Code · Antigravity (R2.8). 플러그인 채널은 1.x 줄
-- 허브 서버 (Python · SQLite) 와 그 운영 가이드 — 배치 자동화는 여전히 제외 (IaC)
+- 허브 서버 (Go · Python; SQLite 기본 · PostgreSQL 선택) 와 그 운영 가이드 — 배치 자동화는 여전히 제외 (IaC)
 - 1.x 유지보수 줄 (R16)
 - 로드맵 · 마일스톤 · WBS 진척 관리 + SDLC 온보딩 (ADR-027)
 - deprecation policy 운영 spec

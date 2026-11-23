@@ -394,7 +394,7 @@ def parse_args() -> argparse.Namespace:
             "Which MCP transport to wire into the per-harness config. "
             "'jsonrpc-bridge' is the draft fixture (always available). "
             "'stdio-sdk' uses the official mcp Python SDK stdio server "
-            "(requires `mcp[cli]>=1.0` and known-good SDK API compatibility)."
+            "(requires `mcp[cli]>=2.0.0`)."
         ),
     )
     parser.add_argument(

@@ -115,13 +115,13 @@ __all__: list[str] = [
 ### 3.1 MCP contract
 
 - **JSON-RPC over stdio**: `python3 -m workflow_kit.server.read_only_jsonrpc --stdio-lines` (default, stable v0.5.0~).
-- **stdio-sdk variant**: `python3 -m workflow_kit.server.read_only_mcp_sdk --stdio-sdk` (stable v0.11.25, `mcp>=1.27.0` 정합).
+- **stdio-sdk variant**: `python3 -m workflow_kit.server.read_only_mcp_sdk --stdio-sdk` (stable, 현재 MCP SDK 요구 `mcp>=2.0.0`).
 - **Tool naming**: `<server>__<tool>` 형식 (Grok Build 자동 import 시 자동 prefixing).
 - **Backward compat**: tool name + input schema + output schema 정합 유지. 새 tool 추가는 additive.
 
 ### 3.2 MCP transport 의 한계 (external dependency)
 
-- `mcp>=1.27.0` 외부 의존성. minor patch 의 `_meta` / `structuredContent` kwarg 변경 시 `check_read_only_mcp_sdk_stdio.py` PASS 보장 (v0.11.25 종결).
+- `mcp>=2.0.0` 외부 의존성. MCP SDK v2 이상에서 `_meta` / `structuredContent` 결과와 stdio round-trip 은 `check_read_only_mcp_sdk_stdio.py` 로 검증한다.
 - HTTP/SSE/Streamable transport 는 native client 가 자동 처리 (oauth, etc).
 
 ## 4. Harness Stable API (stable 10 + 은퇴 1)
@@ -180,12 +180,12 @@ v1.0.0 stable 진입 시점 (2026-07-20) 에 다음 5개 영역은 **stable guar
 - **Mitigation**: `cmd_release` 자동 wiring + drift_prevention case 검증. cycle 누락 시 self-recovery (`cmd_self_recover`).
 - **Verdict**: transient, 안정 운영 가능.
 
-### 5.3 외부 library 의존성 (`mcp>=1.27.0`, `pydantic`, `anyio`)
+### 5.3 외부 library 의존성 (`mcp>=2.0.0`, `pydantic`, `anyio`)
 
-- 본 프로젝트의 `mcp>=1.27.0` 외부 의존성. minor patch 의 `CallToolResult` API 변경 가능성.
+- 본 프로젝트의 `mcp>=2.0.0` 외부 의존성. SDK API 변경은 MCP v2+ 매트릭스에서 확인한다.
 - v0.11.25 patch 후 `CallToolResult(_meta=..., structuredContent=...)` API 정합. mcp 0.x ~ 1.0.x 의 구 SDK 사용 시 회귀 재발 가능.
 - **Mitigation**: `check_read_only_mcp_sdk_stdio.py` 가 release-time 자동 verify. SDK minor 변경 시 v1.x patch release 에서 정합.
-- **Verdict**: 외부 library 의 한계. consumer 는 `mcp>=1.27.0` 권장.
+- **Verdict**: 외부 library 의 한계. consumer 는 `mcp>=2.0.0` 필요.
 
 ### 5.4 외부 하네스 진입점 변경
 

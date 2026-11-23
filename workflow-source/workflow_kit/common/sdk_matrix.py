@@ -2,16 +2,8 @@
 
 ## 왜 이 파일이 있는가
 
-mcp 를 쓰는 표면 둘은 1.x/2.x 를 모두 해석한다 (§2.41, §2.43). 그런데 **CI 가 그 두
-major 를 실제로 밟고 있던 이유는 선언이 아니라 설치 순서였다**:
-
-- `smoke` 는 `requirements.txt`(상한 없음) → `requirements-dev.txt`(`mcp[cli]==1.27.0`)
-  → editable install 순으로 깔아서, **뒤에 깔린 핀이 되돌려** 1.x 로 돈다.
-- `mypy-strict` / `mcp-inspector` 는 그 파일을 안 깔아서 extra 의 상한 없는
-  `mcp[cli]>=1.0` 이 그대로 최신(2.x)을 집는다.
-
-즉 `requirements-dev.txt` 의 한 줄을 지우면 **1.x 커버리지가 조용히 사라지는데 아무
-검사도 실패하지 않는다.** 커버리지가 넓은 것과 넓다고 말할 수 있는 것은 다른 일이다.
+mcp 를 쓰는 표면 둘은 v2 API 를 사용한다. 개발·배포 하한을 v2.0.0 으로 올렸고,
+로컬 매트릭스는 하한과 현재 확인된 v2 최신판을 별도 venv 에서 직접 밟는다.
 
 그래서 이 파일이 두 가지를 한 곳에 적는다:
 
@@ -44,7 +36,6 @@ from pathlib import Path
 from workflow_kit.common.paths import matrix_tmp_root, venv_executable
 
 ROLE_FLOOR = "floor"
-ROLE_LATEST_1X = "latest-1x"
 ROLE_LATEST_2X = "latest-2x"
 
 
@@ -59,31 +50,23 @@ class PinnedVersion:
 
 PINNED_VERSIONS: tuple[PinnedVersion, ...] = (
     PinnedVersion(
-        version="1.27.0",
+        version="2.0.0",
         role=ROLE_FLOOR,
         reason=(
-            "지원 하한. `maturity_matrix.json` 의 stdio-sdk `sdk_requirement` "
-            "(`mcp>=1.27.0`) 와 같은 값이고, `requirements-dev.txt` 가 이 버전을 깔아 "
-            "개발 `.venv` 의 전량 검사가 실제로 도는 버전이다."
-        ),
-    ),
-    PinnedVersion(
-        version="1.29.0",
-        role=ROLE_LATEST_1X,
-        reason=(
-            "2.x 직전 마지막 1.x. 하한만 밟으면 1.x 안에서 생긴 변화를 놓친다 — "
-            "1.x 에 머무는 소비자가 실제로 만나는 버전이다."
+            "소유자 기준: MCP Python SDK 최소 요구 버전을 v2.0.0 으로 올린다. "
+            "1.x 의존성은 지원하지 않는다."
         ),
     ),
     PinnedVersion(
         version="2.3.0",
         role=ROLE_LATEST_2X,
         reason=(
-            "2.x 최신 (2026-10-02). 허브(`[hub]`)가 2.x 로 올라간 판 — 허브 MCP 경로(`check_hub_core` case 9)를 "
-            "여기서 밟는다 (TASK-2026-11-22-main-022). 이 자리는 2.1.1 이었다: 2.0.0 은 `mcp.server.fastmcp` 를 없앴고 (lowlevel decorator 는 "
+            "현재 확인된 2.x 최신판(2026-10-02). 허브 MCP 경로(`check_hub_core` case 9)를 "
+            "여기서 밟는다 (TASK-2026-11-22-main-022). 2.x 이전 판은 지원하지 않는다."
+            " 2.0.0 은 `mcp.server.fastmcp` 를 없앴고 (lowlevel decorator 는 "
             "`add_request_handler` 로 — §2.41, §2.43), 2.1.1 은 그 모듈을 되살리되 "
             "`FastMCP` 심볼만 없다 — CI mypy-strict(부동 최신)만 red 가 되고 "
-            "로컬(1.27)은 green 이던 2026-08-28 사건의 재현 자리다."
+            "이전 개발 pin에서는 이 차이를 놓쳤던 2026-08-28 사건의 재현 자리다."
         ),
     ),
 )
@@ -238,11 +221,8 @@ def run_local_matrix(
     ## 왜 필요한가
 
     매트릭스가 CI 에만 있던 시절 **"로컬 green → CI red" 가 구조적으로 발생했다.**
-    개발 venv 는 `requirements-dev.txt` 가 깐 하한(1.27.0) 하나뿐이라, 2.0.0 에서만
-    갈라지는 코드를 로컬에서 밟을 방법이 없다. 실제로 2026-08-05 에
-    `check_mcp_apply_mode_criterion` 이 `result.isError`(1.x 이름)를 써서 로컬은
-    통과하고 matrix 2.0.0 셀만 red 였다 — 저장소가 **이미 알고 있던 함정**인데
-    로컬에서 재현할 수단이 없었다.
+    개발 venv pin(2.3.0)뿐 아니라 최소 지원판(2.0.0)에서도 실제 API를 밟는다.
+    SDK 1.x 는 지원 대상에서 제외한다.
 
     버전 목록은 이 파일의 `PINNED_VERSIONS` 에서 읽는다.
 

@@ -1,13 +1,14 @@
 # 워크플로우 허브 운영 가이드 (2.x · 3.x pilot)
 
 - 문서 목적: 2.0 워크플로우 허브를 설치하고 띄우고 지키는 법 — 사람(허브 관리자)이 읽는다
-- 범위: 설치 · 띄우기 · 노출과 공개 주소 · 토큰 · 프로젝트 셋업 안내 · 지침 · 백업과 복원 · 판 올리기 · 허브 간 이전 · 점검
+- 범위: 설치 · SQLite/PostgreSQL 선택 · 띄우기 · 노출과 공개 주소 · 토큰 · 프로젝트 셋업 안내 · 지침 · 백업과 복원 · 판 올리기 · 허브 간 이전 · 점검
 - 대상 독자: 허브 관리자, 저장소 관리자
 - 상태: beta
 - 최종 수정일: 2026-11-23
 - 관련 문서: [`../workflow-source/core/hub_spec.md`](../workflow-source/core/hub_spec.md) (계약 정본), [`planning/workflow-hub-requirements-2026-11.md`](./planning/workflow-hub-requirements-2026-11.md) (요구 · 실측 §16), [`RELEASE.md`](./RELEASE.md)
 
-허브는 **프로세스 하나와 SQLite 파일 하나**다. 작업 환경(저장소 · 하네스)은 kit 을 깔지 않는다 — 허브 주소 하나로
+허브는 **프로세스 하나와 SQLite 파일 또는 PostgreSQL 데이터베이스 하나**다. SQLite는 기본·테스트 저장소이고,
+PostgreSQL은 Go와 Python 런타임이 함께 지원하는 서버 저장소다. 작업 환경(저장소 · 하네스)은 kit 을 깔지 않는다 — 허브 주소 하나로
 참여한다. 하네스는 허브의 원격 MCP(`/mcp`)로 붙고, 셋업이 쓰는 파일은 `.gitignore` 한 줄 · 진입 파일 영역 ·
 하네스 설정 · 토큰 파일(`.workflow-hub/env`, git 제외) 뿐이다.
 
@@ -22,6 +23,7 @@ python3 -m venv ~/workflow-hub/venv
 
 - `[hub]` 추가 의존이 허브 서버 몫(`uvicorn` · `starlette`)을 깐다. 없으면 `hub serve` 가
   `허브 의존이 없다 — pip install 'workflow_kit[hub]'` 로 멈춘다.
+- Python 허브를 PostgreSQL에 연결할 때는 `[hub,hub-postgres]`를 설치한다. Go 실행 파일은 PostgreSQL 드라이버를 포함한다.
 - 배포는 GitHub Releases 하나다 (PyPI 에 올리지 않는다 — [`RELEASE.md`](./RELEASE.md) §1 각주 0).
 
 ## 2. 띄우기
@@ -36,6 +38,32 @@ python -m workflow_kit hub serve --db ~/workflow-hub/hub.db [--bind 127.0.0.1] [
 - 앞에서(foreground) 돈다. 상시로 두려면 서비스 관리자(systemd 등)에 맡긴다 — 이 kit 은 배치 자동화를 내지
   않는다 (PURPOSE 제외 영역).
 - 이 저장소의 테스트베드 예: `~/workflow-hub-testbed/start.sh` (loopback `:8770`, requirements §16.6).
+
+### 2.1 PostgreSQL 연결과 SQLite 데이터 복사
+
+`--db`에 `postgresql://` 또는 `postgres://` URL을 주면 PostgreSQL에 연결한다. 연결 시 각 런타임이 schema version을
+읽고 advisory lock 아래 빠진 판을 트랜잭션으로 적용한다. 테스트·개발은 계속 SQLite를 기본으로 쓴다.
+
+```sh
+python -m pip install 'standard_ai_workflow[hub,hub-postgres]'
+python -m workflow_kit hub serve --db 'postgresql://hub_user@db.example.org/workflow_hub' --bind 127.0.0.1
+workflow-hub serve --db 'postgresql://hub_user@db.example.org/workflow_hub' --bind 127.0.0.1
+```
+
+기존 SQLite 데이터 복사는 자동 시작 동작과 분리된 명시적 작업이다. 원본의 일관된 스냅샷을 임시 파일에서 최신 판으로
+올린 뒤, 빈 PostgreSQL 대상에 전체 표를 복사한다. 모든 표의 행 수와 digest를 대조하며 실패하면 대상 트랜잭션을
+롤백한다. SQLite 원본은 수정하지 않는다. 같은 명령을 다시 실행하면 이미 데이터가 있는 대상을 거절한다.
+
+```sh
+python -m workflow_kit hub migrate --from-sqlite ~/workflow-hub/hub.db \
+  --to-postgres 'postgresql://hub_user@db.example.org/workflow_hub'
+workflow-hub migrate --from-sqlite ~/workflow-hub/hub.db \
+  --to-postgres 'postgresql://hub_user@db.example.org/workflow_hub'
+```
+
+PostgreSQL URL의 자격 증명을 셸 기록·서비스 로그에 남기지 않도록 비밀번호는 URL에 직접 넣지 말고 libpq 환경/서비스
+secret 설정을 사용한다. PostgreSQL 백업과 복원은 서버 운영 절차(`pg_dump`, 관리형 snapshot 등)를 따른다.
+Python 허브의 프로젝트 묶음 export/import도 PostgreSQL에서 동작한다. import 전에 서버 운영 백업을 별도로 남기며, import 자체는 단일 transaction이다.
 
 ## 3. 노출과 공개 주소
 
@@ -109,6 +137,7 @@ python -m workflow_kit hub backup --db ~/workflow-hub/hub.db --out ~/backup/hub-
   (`backup_target_exists`) — 덮어쓰지 않는다. 주기는 운영자가 정한다.
 - 복원: 허브를 멈추고 DB 파일을 사본으로 바꾼 뒤 다시 띄운다. 사본이 더 낮은 판이면 시작 때 이관된다.
 - 프로젝트 하나만 옮기거나 되살릴 때는 §9 의 묶음을 쓴다.
+- PostgreSQL에는 SQLite 파일 백업 명령을 적용하지 않는다. 운영 DB는 PostgreSQL 서버의 백업·복원 절차를 쓴다.
 
 ## 8. 판 올리기
 

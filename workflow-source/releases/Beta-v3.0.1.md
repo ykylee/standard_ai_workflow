@@ -22,3 +22,20 @@
 - Go/Python 어느 쪽도 운영 DB 전환용으로 승인된 판이 아니다. 평가할 때 각 서버에 독립된 DB 복제본을 준다.
 - 3.0.0은 Windows DSN 결함이 있는 pre-release로 남는다. Windows 테스트에는 3.0.1 이상을 쓴다.
 - macOS · Windows native 실행, 하네스 4종 실측, same-DB rollback은 계속 후속 검증 항목이다.
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-11-23T07:35:50Z)_
+
+- total wiki pages: **102**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

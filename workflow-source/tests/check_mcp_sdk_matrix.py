@@ -2,11 +2,8 @@
 
 ## 왜 필요한가
 
-CI 가 mcp 1.x 와 2.x 를 동시에 밟은 것은 설계가 아니라 설치 순서였다. `smoke` 는
-`requirements-dev.txt` 의 고정 핀이 editable install *뒤에* 깔려 되돌리기 때문에 1.x 로
-돌고, `mypy-strict` / `mcp-inspector` 는 그 파일을 안 깔아 상한 없는 extra 가 최신을
-집는다. **그 한 줄을 지우면 1.x 커버리지가 조용히 사라지는데 아무 검사도 실패하지
-않았다.**
+소유자 지시에 따라 MCP SDK 최소 지원판을 v2.0.0 으로 올렸다. 이 검사는 optional
+dependency, 개발 pin, matrix 가 모두 2.x 이상에서 일치하는지 확인한다.
 
 정본(`workflow_kit/common/sdk_matrix.py`)을 만드는 것만으로는 이 문제가 안 풀린다.
 선언은 사실이 아니라 주장이라서, 선언과 실제 파일이 갈라지면 **선언 쪽이 조용히
@@ -24,9 +21,8 @@ pinned 정책 강제는 대상을 잃어 삭제했다. "두 층을 둘 다 본�
 
 ## 계약
 
-1. registry 자체가 말이 된다 — floor 는 정확히 하나, 버전은 중복 없고, 근거가 비어
-   있지 않으며, **1.x 와 2.x 를 둘 다** 포함한다 (이 matrix 의 존재 이유다).
-2. registry 의 floor 가 `requirements-dev.txt` 의 핀과 같다.
+1. registry 자체가 말이 된다 — floor 는 정확히 하나, 모든 판이 2.x 이상이고, 근거가 비어 있지 않다.
+2. `requirements-dev.txt` 의 pin 이 지원 하한 이상이며 matrix 에서 실제 실행된다.
 3. `mcp-sdk` extra 에 상한이 없다.
 4. SDK 없이 건너뛸 수 있는 검사는 전부 증거가 선언돼 있다 (완전성).
 5. 선언한 증거 문자열이 그 파일에 실제로 있다.
@@ -64,6 +60,7 @@ from workflow_kit.common.sdk_matrix import (  # noqa: E402
     LOCAL_MATRIX_FILTER,
     PINNED_VERSIONS,
     ROLE_FLOOR,
+    ROLE_LATEST_2X,
     SDK_EXERCISING_CHECKS,
     _assert_installed,
     judge_exercised,
@@ -101,40 +98,39 @@ def test_registry_is_coherent() -> None:
             f"버전 형식이 아니다: {pinned.version}"
         )
 
-    majors = {version.split(".", 1)[0] for version in versions}
-    assert {"1", "2"} <= majors, (
-        f"matrix 가 두 major 를 밟지 않는다 (major: {sorted(majors)}) — "
-        "이 matrix 의 존재 이유가 두 major 커버리지를 선언으로 만드는 것이다"
+    assert all(int(version.split(".", 1)[0]) >= 2 for version in versions), (
+        f"matrix 에 2.x 미만 버전이 선언됐다: {versions}"
     )
 
 
-def test_floor_matches_requirements_dev_pin() -> None:
-    """개발 `.venv` 가 실제로 깔아 도는 버전이 registry 의 floor 와 같은가."""
+def test_development_pin_is_a_tested_supported_version() -> None:
+    """개발 pin 이 지원 하한 이상이고 matrix 가 실제 pin 판을 밟는가."""
     pinned = _pinned_requirement(REQUIREMENTS_DEV.read_text(encoding="utf-8"), "mcp")
     assert pinned is not None, (
         "requirements-dev.txt 에서 mcp 고정 핀을 못 찾았다 — 개발 전량 검사가 "
         "하한에서 돈다는 근거를 잃었다 (핀을 지웠다면 registry 의 floor 도 같이 볼 것)"
     )
-    assert pinned == floor_version(), (
-        f"requirements-dev.txt 핀({pinned}) 과 registry floor({floor_version()}) 가 갈렸다 — "
-        "개발 전량 검사는 실제로 전자로 돈다"
+    assert tuple(map(int, pinned.split("."))) >= tuple(map(int, floor_version().split("."))), (
+        f"requirements-dev.txt 핀({pinned}) 이 지원 하한({floor_version()}) 보다 낮다"
+    )
+    assert pinned in pinned_versions(), f"개발 pin {pinned} 가 SDK matrix 에서 실행되지 않는다"
+    assert pinned == sdk_matrix.version_for_role(ROLE_LATEST_2X), (
+        f"개발 pin({pinned}) 과 검증된 최신 2.x({sdk_matrix.version_for_role(ROLE_LATEST_2X)}) 이 다르다"
     )
 
 
 def test_extra_has_no_upper_bound() -> None:
-    """`mcp-sdk` extra 가 새 major 를 막지 않는가 (소비자에게 상한을 강요하지 않는다)."""
+    """MCP extras 가 v2 미만을 허용하지 않으면서 새 major 를 막지 않는가."""
     data = tomllib.loads(PYPROJECT_PATH.read_text(encoding="utf-8"))
-    specs = [
-        spec
-        for spec in data["project"]["optional-dependencies"]["mcp-sdk"]
-        if spec.replace(" ", "").startswith("mcp")
-    ]
+    optional = data["project"]["optional-dependencies"]
+    specs = [spec for extra in ("mcp-sdk", "hub") for spec in optional[extra]
+             if spec.replace(" ", "").startswith("mcp")]
     assert specs, "mcp-sdk extra 에 mcp requirement 가 없다"
     for spec in specs:
         assert "<" not in spec, (
-            f"mcp-sdk extra 에 상한이 생겼다 ({spec}) — 두 major 를 모두 해석한다는 "
-            "registry 의 전제(1.x·2.x 셀)와 어긋난다. 핀을 의도했다면 registry 를 먼저 고칠 것"
+            f"MCP dependency 에 상한이 생겼다 ({spec}) — `>=2.0.0` 하한만 둬야 한다"
         )
+        assert ">=2.0.0" in spec, f"MCP dependency 가 v2 하한을 강제하지 않는다: {spec}"
 
 
 def test_every_skip_capable_check_is_declared() -> None:
@@ -222,12 +218,12 @@ def test_matrix_tmp_root_is_outside_repo() -> None:
 
 def test_verdicts_actually_fire() -> None:
     """되주입: 어긋남이 각각 다른 신호로 실패하는가."""
-    mismatch = _assert_installed("1.27.0", "2.0.0")
-    assert mismatch is not None and "2.0.0" in mismatch and "1.27.0" in mismatch, (
+    mismatch = _assert_installed("2.0.0", "3.0.0")
+    assert mismatch is not None and "3.0.0" in mismatch and "2.0.0" in mismatch, (
         f"버전이 어긋났는데 통과했다: {mismatch}"
     )
 
-    missing = _assert_installed("1.27.0", None)
+    missing = _assert_installed("2.0.0", None)
     assert missing is not None and "설치" in missing, f"미설치인데 통과했다: {missing}"
     assert missing != mismatch, "미설치와 버전 불일치가 같은 메시지로 나온다 — 구분되지 않는다"
 
@@ -260,7 +256,7 @@ def test_verdicts_actually_fire() -> None:
 def main() -> int:
     test_funcs = [
         test_registry_is_coherent,
-        test_floor_matches_requirements_dev_pin,
+        test_development_pin_is_a_tested_supported_version,
         test_extra_has_no_upper_bound,
         test_every_skip_capable_check_is_declared,
         test_declared_evidence_matches_reality,

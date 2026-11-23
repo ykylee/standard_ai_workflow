@@ -50,6 +50,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- docs(memory): record 3.0.1 verification progress (b8c0af8c)
 - chore(memory): close Go UI verification session (a5a958a0)
 - chore(memory): record Go UI verification stage (1f8f215d)
 - chore(memory): close release prep session (92c52dce)
@@ -79,11 +80,11 @@ All notable changes to this project will be documented in this file.
 - docs(release): 두 줄 발행 정책 — 2.x(main) wheel+sdist · latest 규칙 · PEP 440 사전 판, 1.x(release/1.x) 플러그인 zip · --latest=false (R16.6 · R16.7, TASK-2026-11-21-main-026) (5ea567d6)
 - docs(2.0): README 2.0 허브 안내 · 설치 문서 플러그인 채널은 1.x 줄(release/1.x 고정) (M-040 WBS-40.1, TASK-2026-11-21-main-026) (4ac980e7)
 - docs(hub): 2.0.0-beta 발행 범위 확정 · 허브 운영 가이드 (M-040 WBS-40.1, TASK-2026-11-21-main-024) (dfec2494)
-- chore(memory): 138차 세션 정리 — handoff 기준선 · 주 작업 축 갱신, 기준선 1건 이관 (M-039) (f044897b)
-- ... (569 more)
+- ... (570 more)
 
 ### Fixed
 
+- fix(hub): prepare 3.0.1 Windows DSN and Python fallback (aa84d307)
 - fix(matrix): SDK · 해석기 매트릭스 임시 폴더를 저장소 밖으로 — git 밖 fixture 가 이 저장소 하위가 되던 위양성 (TASK-2026-11-22-main-020) (99901ae8)
 - fix(vscode): 실제 VS Code 실측 — 중계 화면이 비던 것 · 일시정지 버튼이 죽던 것 + .vsix (M-048 WBS-48.1, TASK-2026-11-22-main-016) (423ddfbb)
 - fix(relay): Codex 일하는 세션이 커밋할 수 있게 — sandbox 쓰기 루트에 git dir 추가, push 는 보고 (TASK-2026-11-22-main-014) (63cb86fd)
@@ -113,8 +114,7 @@ All notable changes to this project will be documented in this file.
 - fix(mcp): 오류 신호 불일치 둘 — invoke_tool 이 status error 를 rc 0 으로, summarize_git_history 가 git 실패를 커밋 0건으로 (main-002) (85d9596c)
 - fix(gate): 경고 분류기가 /tmp · /var/tmp 경로를 정규화한 뒤 분류해 서드파티 경고를 저장소 경고로 오판하던 결함 (main-001) (f75822ff)
 - fix(memory): 합류 반영이 완료 task 를 archived/ 로만 보내 roadmap 근거를 잃던 결함 — 완료 task 도 모 브랜치로 (7fdf0eb5)
-- fix(mcp): MCP 도구 4종 성공 경로의 output contract 미등록 — 1.22.0 발행본 결함 (TASK-2026-11-04-main-002) (bbcc2203)
-- ... (255 more)
+- ... (256 more)
 
 ## [2.1.0] - 2026-11-22
 

@@ -2245,9 +2245,9 @@
       "sdlc_phase": "stabilization",
       "declared_status": "in_progress",
       "derived_status": "in_progress",
-      "progress": 0.0,
+      "progress": 0.3333333333333333,
       "total_leaves": 6,
-      "done_leaves": 0,
+      "done_leaves": 2,
       "deliverables_missing": [],
       "wbs": [
         {
@@ -2284,12 +2284,12 @@
         {
           "id": "WBS-57.4",
           "title": "macOS·Windows 실측과 배포 정책 확정",
-          "derived_status": "in_progress",
+          "derived_status": "done",
           "linked_task_ids": [
             "TASK-2026-11-23-main-008"
           ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         },
         {
@@ -2304,18 +2304,76 @@
         {
           "id": "WBS-57.6",
           "title": "릴리즈 게이트 통과 후 Go 3.0.0 배포",
-          "derived_status": "in_progress",
+          "derived_status": "done",
           "linked_task_ids": [
-            "TASK-2026-11-23-main-007"
+            "TASK-2026-11-23-main-007",
+            "TASK-2026-11-23-main-009"
           ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "M-058",
+      "title": "허브 PostgreSQL 백엔드와 SQLite 데이터 이관",
+      "sdlc_phase": "implementation",
+      "declared_status": "in_progress",
+      "derived_status": "done",
+      "progress": 1.0,
+      "total_leaves": 4,
+      "done_leaves": 4,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-58.1",
+          "title": "PostgreSQL 연결·schema migration·SQLite 데이터 이전의 운영 계약 및 설계 정리",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-23-main-010"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        },
+        {
+          "id": "WBS-58.2",
+          "title": "PostgreSQL 연결과 versioned schema migration 구현",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-23-main-011"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        },
+        {
+          "id": "WBS-58.3",
+          "title": "기존 SQLite DB를 PostgreSQL로 복사하고 무결성·행 수를 대조",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-23-main-012"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        },
+        {
+          "id": "WBS-58.4",
+          "title": "SQLite 테스트 유지, 설치·운영 안내와 실제 PostgreSQL 격리 pilot",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-23-main-013"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
           "children": []
         }
       ]
     }
   ],
-  "current_milestone_id": "M-057",
+  "current_milestone_id": "M-058",
   "exempt_tasks": [
     {
       "task_id": "TASK-2026-08-25-main-010",
@@ -2542,5 +2600,11 @@
       "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-11-23-main-004.md"
     }
   ],
-  "issues": []
+  "issues": [
+    {
+      "code": "declared_derived_mismatch",
+      "detail": "M-058: 선언 in_progress ≠ 파생 done (done 경계)",
+      "where": "M-058-hub-postgresql-backend.md"
+    }
+  ]
 }

@@ -13,7 +13,7 @@ import (
 // version 은 -ldflags "-X main.version=<판>" 로 덮어쓴다 (hub_go_spec.md §7).
 var version = "2.1.0"
 
-var subcommands = []string{"serve", "backup", "admin", "relay", "judge"}
+var subcommands = []string{"serve", "backup", "admin", "migrate", "relay", "judge"}
 
 func printUsage(w io.Writer) {
 	fmt.Fprintf(w, "usage: workflow-hub <command> [args...]\n\n")
@@ -56,6 +56,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return cmdBackup(args[1:], stdout, stderr)
 	case "admin":
 		return cmdAdmin(args[1:], stdout, stderr)
+	case "migrate":
+		return cmdMigrate(args[1:], stdout, stderr)
 	}
 	cmd := args[0]
 	if isKnownSubcommand(cmd) {

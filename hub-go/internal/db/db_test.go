@@ -33,6 +33,14 @@ func TestDSNForWindowsDrivePathIsAbsoluteURI(t *testing.T) {
 	}
 }
 
+func TestPostgresSQLCompatibilityRewrite(t *testing.T) {
+	got := pgSQL("INSERT OR IGNORE INTO inbox_message(id, body) VALUES (?, '?') AND callsign IS NOT ? ORDER BY rowid")
+	want := "INSERT INTO inbox_message(id, body) VALUES ($1, '?') AND callsign IS DISTINCT FROM $2 ORDER BY ctid ON CONFLICT DO NOTHING"
+	if got != want {
+		t.Fatalf("pgSQL rewrite\n got: %s\nwant: %s", got, want)
+	}
+}
+
 func TestDSNForUnixPathRemainsAbsoluteURI(t *testing.T) {
 	dsn := dsnForAbsolutePath("/var/lib/workflow hub/hub.db", false)
 	u, err := url.Parse(dsn)

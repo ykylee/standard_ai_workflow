@@ -28,7 +28,7 @@ HTTP 경로, DB 판 12 의 표 32개, 1.x 생성물 형식, 판정 결과가 Pyt
 | 화면 정적 파일 | 4개 (`index.html` · `hub.js` · `hub.css` · `favicon.svg`), 44 KB | `hub/static/` |
 | 응답 머리 | `X-Hub-Kit` · `X-Hub-Contract` · `X-Hub-Db`, 화면 CSP · `Referrer-Policy` | 2.0 §4.1 · §4.7 |
 | 오류 형식 | `{error_code, message, detail}` + HTTP 상태 | 2.0 §4.3 · 2.1 §12 |
-| MCP 전송 | streamable HTTP · stateless · JSON 응답, SDK `mcp>=1.27,<3` (2.3.0 실측 — main-022) | 2.0 §2.3 |
+| MCP 전송 | streamable HTTP · stateless · JSON 응답, SDK `mcp>=2.0.0` (2.3.0 실측 — main-022 및 TASK-2026-11-23-main-009) | 2.0 §2.3 |
 | DB | 판 **12** · 표 **32** · 인덱스 36 · 트리거 0 — 시작 때 이관 · 이관 전 사본 · `version` 대조 쓰기 | 2.0 §3 · 2.1 §4 |
 | 판정 입구 (`hub/judge.py`) | 7종 — 계획 파싱 · 린트 / 응답 자격 · 결정 상태 / done 게이트 / WBS 게이트 / 로드맵 파싱 · 진척 / 상태 생성 / handoff 파싱 | 2.0 §2.2 표 |
 | 판정이 딸고 오는 코드 | 허브 7.0k 줄 + 공유 kit 19.3k 줄 (`common` 14.9k · `backlog_update` 1.6k · OKF 2.0k · 경로 · 진입 파일 0.7k) | concept §3 |

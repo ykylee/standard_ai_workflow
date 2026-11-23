@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Smoke test the official MCP SDK stdio candidate through a real MCP client session.
 
-## 1.x / 2.x 양쪽 (TASK-2026-07-31-main-001)
+## MCP SDK v2+ (기존 1.x 이름 수용 코드는 이전 호출자 대비 호환 보조)
 
 이 검사는 **클라이언트 쪽** 이라 SDK 의 응답 모델을 직접 읽는다. mcp 2.0.0 이 모델
 field 를 snake_case 로 바꾸면서 (`serverInfo` → `server_info`, `isError` → `is_error`)

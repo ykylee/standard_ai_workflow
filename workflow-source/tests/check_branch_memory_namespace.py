@@ -185,7 +185,9 @@ def _git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
 
 def current_branch(repo: Path) -> str | None:
     """체크아웃한 브랜치. detached HEAD 면 None (env 를 보지 않는다)."""
-    result = _git(repo, "symbolic-ref", "--quiet", "--short", "HEAD")
+    # `symbolic-ref --short` can return `heads/<branch>` when a same-named
+    # tag exists. Branch-only query must preserve the memory namespace.
+    result = _git(repo, "branch", "--show-current")
     return result.stdout.strip() or None if result.returncode == 0 else None
 
 

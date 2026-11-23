@@ -390,12 +390,22 @@ def _git_branch_slug(repo_root: Path) -> str | None:
     그 브랜치의 네임스페이스를 쓴다 (소유자 결정 2026-09-30).
     """
     try:
+        # `rev-parse --abbrev-ref HEAD` may return `heads/<branch>` when a tag
+        # has the same name as the checked-out branch. Prefer the branch-only
+        # command so version branches such as `v3.0.2` keep their memory slug.
         branch = subprocess.check_output(
-            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            ["git", "branch", "--show-current"],
             cwd=str(repo_root),
             stderr=subprocess.DEVNULL,
             text=True, encoding="utf-8", errors="replace",
         ).strip()
+        if not branch:
+            branch = subprocess.check_output(
+                ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                cwd=str(repo_root),
+                stderr=subprocess.DEVNULL,
+                text=True, encoding="utf-8", errors="replace",
+            ).strip()
     except (subprocess.CalledProcessError, FileNotFoundError, NotADirectoryError, OSError):
         return None
 

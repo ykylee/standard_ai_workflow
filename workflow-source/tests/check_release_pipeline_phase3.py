@@ -23,9 +23,12 @@ WATCHES_ALL_REASON = (
 )
 
 import importlib.util
+import argparse
 import json
+import hashlib
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -225,6 +228,78 @@ def test_dist_skip_existing_argparse() -> None:
     assert "mode" in out
 
 
+def test_go_release_asset_scope_and_missing_gate() -> None:
+    mod = _import_tool()
+    with tempfile.TemporaryDirectory() as temp_dir:
+        go_dir = Path(temp_dir)
+        assert mod.planned_go_release_assets(go_dir, "2.1.0") == []
+        planned = mod.planned_go_release_assets(go_dir, "3.0.0")
+        assert len(planned) == 7
+        assert planned[-1].name == "SHA256SUMS"
+        try:
+            mod.go_release_assets(go_dir, "3.0.0")
+        except FileNotFoundError as exc:
+            assert "release-pipeline dist --apply" in str(exc)
+        else:
+            raise AssertionError("3.x release must reject missing Go assets")
+
+
+def test_dist_3x_dry_run_includes_go_asset_plan() -> None:
+    from unittest.mock import patch
+
+    mod = _import_tool()
+    args = argparse.Namespace(
+        dry_run=True, timeout=10, sdist_only=False, wheel_only=False, skip_existing=False,
+    )
+    with patch.object(mod, "read_version", return_value="3.0.0"), patch.object(
+        mod, "_check_build_module", return_value={"available": True, "version": "test"}
+    ):
+        result = mod.cmd_dist(args)
+    assert result["ok"] is True
+    assert len(result["planned_go_assets"]) == 7
+    assert result["go_assets"] == result["planned_go_assets"]
+
+
+def test_go_release_asset_build_writes_sums() -> None:
+    """Go build helper emits six versioned files and checksums; use fake go process."""
+    from unittest.mock import patch
+
+    mod = _import_tool()
+    spec = importlib.util.spec_from_file_location(
+        "release_pipeline_go", SOURCE_ROOT / "workflow_kit" / "tools" / "release_pipeline_go.py"
+    )
+    assert spec and spec.loader
+    go_helper = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(go_helper)
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        out_dir = Path(temp_dir)
+
+        def fake_run(command, **_kwargs):
+            output = Path(command[command.index("-o") + 1])
+            output.write_bytes(b"test binary:" + output.name.encode("utf-8"))
+            return subprocess.CompletedProcess(command, 0, "", "")
+
+        with patch.object(go_helper.subprocess, "run", side_effect=fake_run):
+            built = go_helper.build_go_release_assets(out_dir, "3.0.0")
+        assets = go_helper.go_release_assets(out_dir, "3.0.0")
+        assert len(built["built"]) == 6
+        assert len(assets) == 7
+        rows = (out_dir / "SHA256SUMS").read_text(encoding="utf-8").splitlines()
+        assert len(rows) == 6
+        for row, binary in zip(rows, assets[:-1]):
+            digest, name = row.split("  ", 1)
+            assert name == binary.name
+            assert digest == hashlib.sha256(binary.read_bytes()).hexdigest()
+        (out_dir / rows[0].split("  ", 1)[1]).write_bytes(b"tampered")
+        try:
+            go_helper.go_release_assets(out_dir, "3.0.0")
+        except ValueError as exc:
+            assert "SHA256SUMS" in str(exc)
+        else:
+            raise AssertionError("mismatched Go checksum must be rejected")
+
+
 # --- 메인 실행 ---
 
 
@@ -252,6 +327,9 @@ def _run_cases() -> int:
         test_expected_dist_pattern_pep440,
         test_dist_subcommand_help,
         test_dist_skip_existing_argparse,
+        test_go_release_asset_scope_and_missing_gate,
+        test_dist_3x_dry_run_includes_go_asset_plan,
+        test_go_release_asset_build_writes_sums,
     ]
 
     failed: list[str] = []

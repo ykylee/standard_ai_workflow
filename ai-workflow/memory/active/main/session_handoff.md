@@ -85,6 +85,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-11-23-main-004 3.0.0 Go 런타임 릴리즈 준비 점검
 - TASK-2026-11-23-main-003 세션·오케스트레이션 Python/Go 실사용 차분 검사
 - TASK-2026-11-23-main-002 Go 허브 오케스트레이터 lease · 배정 · 승인 포팅
 - TASK-2026-11-23-main-001 Go 허브 세션 · 받은편지함 · 오케스트레이션 포팅 1 — 세션/인박스 저장 계층
@@ -94,7 +95,6 @@
 - TASK-2026-11-22-main-038 judge/1 corpus 및 check_judge_parity 차분 검사 구현 (M-054 WBS-54.3)
 - TASK-2026-11-22-main-037 wbs.gate · roadmap.derive · handoff.parse · state.build 순수 판정 구현 (M-054 WBS-54.2)
 - TASK-2026-11-22-main-036 judge/1 CLI 프로토콜 + plan.lint · plan.states · task.status 순수 판정 구현 (M-054 WBS-54.1)
-- TASK-2026-11-22-main-035 PC 중계 로컬 화면(Python·Go) 무깜빡임 갱신 · 로컬 상세 · 허브 딥링크 · 개별 세션 종료 (M-053 WBS-53.2)
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

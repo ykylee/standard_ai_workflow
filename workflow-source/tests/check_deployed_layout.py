@@ -64,6 +64,7 @@ LAYOUT_EXEMPT: dict[str, str] = {
     "path_resolver.py": "in-repo 경로 예시 문자열 (해석 대상이지 조립 대상이 아니다)",
     "tools/release_pipeline.py": "릴리스 파이프라인 — 저장소 전용",
     "tools/release_pipeline_dist.py": "릴리스 파이프라인 — 저장소 전용",
+    "tools/release_pipeline_go.py": "Go 바이너리 릴리스 파이프라인 — 저장소 전용",
     "tools/release_pipeline_changelog.py": "릴리스 파이프라인 — 저장소 전용",
     "tools/watch_transient_writer.py": "전량 검사 보조 — 저장소 전용",
     "tools/wiki_emit.py": "REPO_ROOT 는 소비자 저장소, 문서 문자열만 남음",

@@ -120,6 +120,11 @@ from release_pipeline_changelog import *  # noqa: E402,F401,F403
 from release_pipeline_dist import *  # noqa: E402,F401,F403
 from release_pipeline_emit import *  # noqa: E402,F401,F403
 from release_pipeline_frontmatter import *  # noqa: E402,F401,F403
+from release_pipeline_go import (  # noqa: E402
+    build_go_release_assets,
+    go_release_assets,
+    planned_go_release_assets,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -2630,6 +2635,10 @@ def cmd_release(args) -> dict:
         plugin_dist_files = _release_plugin_files(version)
     except FileNotFoundError as exc:
         return _attach_release_summary({**results, "error": str(exc)})
+    try:
+        go_dist_files = go_release_assets(REPO_ROOT / "dist", version)
+    except (FileNotFoundError, ValueError) as exc:
+        return _attach_release_summary({**results, "error": str(exc)})
 
     # 3. tag 결정 + 원격 tag pre-check (v0.7.18+)
     tag = f"v{version}"
@@ -2689,6 +2698,10 @@ def cmd_release(args) -> dict:
                         plugin_dist_files = _release_plugin_files(version)
                     except FileNotFoundError as exc:
                         return _attach_release_summary({**results, "error": str(exc)})
+                    try:
+                        go_dist_files = go_release_assets(REPO_ROOT / "dist", version)
+                    except (FileNotFoundError, ValueError) as exc:
+                        return _attach_release_summary({**results, "error": str(exc)})
                     tag_check = _check_remote_tag(tag)
                     results["tag_pre_check"] = tag_check
                     results["full_auto_re_tag"] = tag
@@ -2744,7 +2757,7 @@ def cmd_release(args) -> dict:
         if tag_check["exists"]:
             results["tag_pre_check_warning"] = f"remote tag {tag} already exists (dry-run: pre-check only)"
 
-    release_files = [*dist_files, *plugin_dist_files]
+    release_files = [*dist_files, *plugin_dist_files, *go_dist_files]
     rel_assets = [f.relative_to(REPO_ROOT).as_posix() for f in release_files]
     results["tag"] = tag
     results["assets"] = rel_assets
@@ -3152,6 +3165,9 @@ def cmd_dist(args) -> dict:
     results["planned_plugin_archives"] = [
         path.relative_to(REPO_ROOT).as_posix() for path in planned_plugin_archives(_dist_dir, current_version)
     ]
+    results["planned_go_assets"] = [
+        path.name for path in planned_go_release_assets(_dist_dir, current_version)
+    ]
 
     # 4) skip-existing check (--skip-existing) — skip build but still run
     #    twine check + upload simulation on existing artifacts (v0.8.15).
@@ -3185,12 +3201,14 @@ def cmd_dist(args) -> dict:
                     for path in build_plugin_archives(_dist_dir, version=current_version)
                 ]
             )
+            results["go_assets"] = [path.name for path in go_release_assets(_dist_dir, current_version)]
             results["ok"] = True
             return results
 
     # 5) dry-run: command plan 만 반환
     if args.dry_run:
         results["plugin_archives"] = results["planned_plugin_archives"]
+        results["go_assets"] = results["planned_go_assets"]
         results["ok"] = True
         return results
 
@@ -3237,6 +3255,16 @@ def cmd_dist(args) -> dict:
         path.relative_to(REPO_ROOT).as_posix()
         for path in build_plugin_archives(_dist_dir, version=current_version)
     ]
+    if current_version.split(".", 1)[0].isdigit() and int(current_version.split(".", 1)[0]) >= 3:
+        try:
+            results["go_build"] = build_go_release_assets(
+                _dist_dir, current_version, timeout=getattr(args, "timeout", 180)
+            )
+            results["go_assets"] = [path.name for path in go_release_assets(_dist_dir, current_version)]
+        except (OSError, RuntimeError, ValueError, subprocess.TimeoutExpired) as exc:
+            results["error"] = f"Go release asset build failed: {exc}"
+            results["ok"] = False
+            return results
 
     # 8) twine check (metadata validation) — spec §7.1 step 2, §9 #7
     twine_check = _twine_check(_dist_dir, timeout=getattr(args, "timeout", 300))

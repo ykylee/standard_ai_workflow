@@ -5,7 +5,7 @@
 - 대상 독자: 저장소 maintainer (`ykylee`), 릴리스 매니저
 - 상태: beta (v2.1.0 기준; 절차 자체는 v0.5.7+ 부터 정식 도입된 정책 유지)
 - 현재 package version: 2.1.0 (`workflow-source/pyproject.toml`)
-- 최종 수정일: 2026-11-22
+- 최종 수정일: 2026-11-23
 - 관련 문서: [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md), [./INSTALLATION_AND_USAGE.md](./INSTALLATION_AND_USAGE.md), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md), [workflow-source/releases/](https://github.com/ykylee/standard_ai_workflow/tree/main/workflow-source/releases/)
 
 > **최종 갱신**: 2026-07-18 (회귀 표를 v0.15.15 까지 확장하고 `release_pipeline.py` 자동화 경로 반영)
@@ -24,17 +24,18 @@
 
 | 채널 | 상태 | 비고 |
 |---|---|---|
-| GitHub Releases (wheel + sdist, 1.x 줄은 + native plugin ZIP) | ✅ **유일한 공식 채널** | 1.x 줄만 Codex·Claude Code 플러그인 asset 을 함께 attach (§1.1) |
+| GitHub Releases (wheel + sdist, 1.x 줄은 + native plugin ZIP, 3.x 줄은 + Go 허브 바이너리) | ✅ **유일한 공식 채널** | 1.x 는 Codex·Claude Code 플러그인, 3.x 는 Go 6종 바이너리와 `SHA256SUMS` 를 함께 attach (§1.1) |
 | TestPyPI | ❌ 사용 안 함 | 2026-08-14 각주 1 **만료** — 리허설의 목적이던 PyPI 판단이 끝났다 |
 | PyPI | ❌ 사용 안 함 — **결정 완료, 재론하지 않는다** | 2026-08-14 소유자 최종 결정. 아래 **각주 0** 이 근거와 재검토 트리거를 고정한다 |
-| Docker / brew / system pkg | ❌ 해당 없음 | (Python wheel 만 다룸) |
+| Docker / brew / system pkg | ❌ 해당 없음 | 별도 이미지·시스템 패키지 채널은 제공하지 않는다 |
 
-### 1.1 두 줄 — 2.x(`main`) 와 1.x(`release/1.x`) (2026-11-21, M-040)
+### 1.1 릴리스 줄 — 3.x · 2.x(`main`) 와 1.x(`release/1.x`) (2026-11-23)
 
 | 줄 | 브랜치 | asset | GitHub 'latest' | 판 번호 |
 |---|---|---|---|---|
+| **3.x Go 런타임** | `main` | wheel + sdist + Linux/macOS/Windows × amd64/arm64 `workflow-hub-<version>-<os>-<arch>[.exe]` + `SHA256SUMS`; kit 플러그인 ZIP 없음 | 원격 태그 가운데 가장 높으면 latest | 정수 판 `X.Y.Z`; Python wheel 은 S4 까지 병행 (M-050) |
 | **2.x 허브** | `main` | wheel + sdist **만** — kit 플러그인 ZIP 을 만들지도 요구하지도 않는다 (`plugin_payload.KIT_PLUGIN_CHANNEL` 거짓, 요구 R16.6) | 원격 태그 가운데 가장 높으면 latest (소유자 2026-11-21) | 정수 판 `X.Y.Z` — 베타 여부는 판 번호가 아니라 Release 제목 · 노트 · README 의 표기로 (소유자 2026-11-21: 키트 곳곳 · 플러그인 manifest(SemVer)가 정수 판을 가정해 `2.0.0` 은 16곳을 깼다). 정렬 함수는 PEP 440 사전 판도 바르게 다룬다 |
-| **1.x 유지보수** | `release/1.x` | wheel + sdist + 아래 플러그인 ZIP | 2.x 태그가 원격에 있으면 `--latest=false` (요구 R16.7) — 발행 도구가 `release_latest_decision` 으로 정한다 | patch 만 (`1.N.x`, R16.2). minor 는 안내 판 1.30.0 하나 |
+| **1.x 유지보수** | `release/1.x` | wheel + sdist + 아래 플러그인 ZIP | 2.x 이상 태그가 원격에 있으면 `--latest=false` (요구 R16.7) — 발행 도구가 `release_latest_decision` 으로 정한다 | patch 만 (`1.N.x`, R16.2). minor 는 안내 판 1.30.0 하나 |
 
 - 판정 정본은 코드다: 정렬 `release_pipeline.release_version_key` (PEP 440 — 사전 판 < 정식 판, 옛 `-beta` 태그는 `b0`),
   latest `release_pipeline.release_latest_decision` (원격 최고일 때만). `gh release create` 는 `--target <현재 브랜치>`.
@@ -229,7 +230,7 @@ wk release-pipeline release \
 
 `--dry-run` 결과와 릴리스 노트·태그·산출물을 검토한 뒤에만 `--apply`로 외부 배포한다. `release`는 tag push와 GitHub Release 생성을 포함하므로 maintainer 승인이 필요하다.
 
-`wk release-pipeline dist --apply`는 Python wheel/sdist와 함께 Codex·Claude Code native plugin ZIP을 생성한다. `release`는 두 ZIP이 없으면 중단하며, 존재하면 GitHub Release asset으로 같이 첨부한다.
+`wk release-pipeline dist --apply`는 Python wheel/sdist를 생성한다. 1.x 에서는 Codex·Claude Code native plugin ZIP을, 3.x 에서는 Go 6종 바이너리와 `SHA256SUMS`를 추가 생성한다. `release`는 해당 줄의 필수 산출물이 없으면 중단하며, 존재하면 GitHub Release asset으로 함께 첨부한다. Go 산출물은 `hub_go_spec.md` §7 의 6개 대상과 동일하게 `CGO_ENABLED=0` 으로 빌드한다.
 
 v1.1.4+ 기본값: `--apply` 를 명시하지 않으면 `release` 는 **dry-run** 이다 (이전에는 무인자 실행이 APPLY 로 진입했다). v1.1.5+ 에서 `dist` 도 같은 기본값으로 반전됐다 — 무인자 `dist` 는 빌드 plan 만 낸다. `--dry-run --apply` 동시 지정 시 dry-run 이 이긴다. pre_check 게이트는 `--skip-packaging` / `--skip-doctor` / `--skip-state` / `--skip-git` / `--skip-mypy` 로 개별 skip 할 수 있다 — `--skip-validate` 는 5 게이트 전부를 끄므로 개별 flag 를 우선한다.
 
@@ -255,6 +256,11 @@ python3 -m venv .venv-build
   --output-dir dist \
   --version <X>.<Y>.<Z>
 #   → dist/plugins/{codex,claude-code}/<X>.<Y>.<Z>/*.zip
+
+# 3.x 는 여기에 더해 Go 런타임 바이너리 6종과 SHA256SUMS 를 만든다.
+# 정본 자동 경로: `wk release-pipeline dist --apply` (hub_go_spec.md §7 의
+# CGO_ENABLED=0, linux/darwin/windows × amd64/arm64 설정을 사용한다).
+# `release` 는 3.x 에서 6개 바이너리와 체크섬이 모두 있고 일치해야 진행한다.
 ```
 
 ### 2.5 로컬 smoke (fresh venv)

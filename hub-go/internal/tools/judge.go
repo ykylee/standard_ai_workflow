@@ -25,10 +25,10 @@ var (
 	doneCriteriaPref = []string{"- 완료 기준:", "- Done criteria:", "- Completion criteria:"}
 	planFilesPref    = []string{"- 바뀌는 파일:", "- Files that change:"}
 	blankLetters     = map[rune]bool{
-		'\u3164': true,
-		'\u1160': true,
-		'\u115f': true,
-		'\uffa0': true,
+		'\u3164':     true,
+		'\u1160':     true,
+		'\u115f':     true,
+		'\uffa0':     true,
 		'\U00013441': true,
 		'\U00013442': true,
 	}
@@ -854,7 +854,7 @@ func (j *JudgeBridge) RoadmapPut(ctx store.Ctx, path string, expectedVersion *in
 
 // RoadmapState derives roadmap_state v1 without filesystem deliverable checks.
 func (j *JudgeBridge) RoadmapState(ctx store.Ctx) (map[string]any, error) {
-	p, err := store.NeedCallsign(ctx)
+	p, err := store.NeedReader(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -863,7 +863,7 @@ func (j *JudgeBridge) RoadmapState(ctx store.Ctx) (map[string]any, error) {
 		return nil, err
 	}
 	if rm == nil {
-		return map[string]any{"roadmap": nil, "reason": "로드맵이 없다 (index.md 없음)"}, nil
+		return map[string]any{"roadmap_state": nil, "reason": "로드맵이 없다 (index.md 없음)"}, nil
 	}
 	rows, err := j.Store.DB().Query(
 		"SELECT id, status, wbs, wbs_exempt_reason FROM task WHERE project_id = ? AND wbs != ''",

@@ -3,7 +3,7 @@
 
 3 cases:
   1. 이관 SQL(판 1~12) — Go ``internal/db/migrations.go`` 의 ``V1..V12`` 와 Python ``hub.db.MIGRATIONS`` 바이트 일치
-  2. 내장 자산(§2.1) — ``hub-go/internal/assets/`` 사본(``hub_client.py`` · ``standard_block.md`` · ``static/*``)과
+  2. 내장 자산(§2.1) — ``hub-go/internal/assets/`` 사본(``hub_client.py`` · setup guide · ``standard_block.md`` · ``static/*``)과
      Python 정본 바이트 일치 (실제 파일 집합 포함)
   3. 되주입 — SQL 이관 문자열 1글자 변조 · 내장 자산 1바이트 변조 모두 red 로 잡힌다
 """
@@ -31,6 +31,7 @@ if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit.hub import db as hubdb  # noqa: E402
+from workflow_kit.hub import guide_page as hubguide  # noqa: E402
 from workflow_kit.hub import render as hubrender  # noqa: E402
 from workflow_kit.hub._standard_snapshot import STANDARD_BLOCK  # noqa: E402
 
@@ -73,6 +74,14 @@ def asset_pairs() -> list[tuple[str, bytes, bytes]]:
     py_client = py_hub / "client" / "hub_client.py"
     go_client = go_assets / "hub_client.py"
     pairs.append(("hub_client.py", go_client.read_bytes() if go_client.is_file() else b"", py_client.read_bytes()))
+
+    go_setup = go_assets / "setup.md"
+    py_setup = hubguide.render_setup_md("{{BASE}}").replace(hubguide.KIT_VERSION, "{{KIT_VERSION}}")
+    pairs.append((
+        "setup.md",
+        go_setup.read_bytes() if go_setup.is_file() else b"",
+        py_setup.encode("utf-8"),
+    ))
 
     go_std = go_assets / "standard_block.md"
     pairs.append((
@@ -131,7 +140,7 @@ def case_2_embedded_assets_sync() -> list[tuple[str, bytes, bytes]]:
     pairs = asset_pairs()
     problems = check_assets_match(pairs)
     _record(
-        "case 2 (내장 자산 hub_client · standard_block · static/* 바이트 일치)",
+        "case 2 (내장 자산 hub_client · setup guide · standard_block · static/* 바이트 일치)",
         not problems,
         "; ".join(problems) or f"{len(pairs)}/{len(pairs)} 자산 일치",
     )

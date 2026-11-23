@@ -37,7 +37,7 @@ type Config struct {
 	Clock        func() time.Time
 }
 
-// Server wraps net/http handling for /healthz, /v1/tools/{name}, /v1/bootstrap/hub_client.py, and /mcp.
+// Server wraps the public guide, health, bootstrap, tool, and MCP HTTP routes.
 type Server struct {
 	cfg Config
 	mux *http.ServeMux
@@ -58,6 +58,12 @@ func New(cfg Config) *Server {
 		Clock:     cfg.Clock,
 	}
 	s.mux.HandleFunc("GET /healthz", s.handleHealthz)
+	s.mux.HandleFunc("GET /{$}", s.handleGuidePage)
+	s.mux.HandleFunc("GET /setup.md", s.handleSetupMarkdown)
+	s.mux.HandleFunc("GET /ui", s.handleUIRedirect)
+	s.mux.HandleFunc("GET /ui/", s.handleUIStatic)
+	s.mux.HandleFunc("GET /ui/{name}", s.handleUIStatic)
+	s.mux.HandleFunc("/api/", s.handleUIAPI)
 	s.mux.HandleFunc("GET /v1/bootstrap/hub_client.py", s.handleHubClientPy)
 	s.mux.HandleFunc("POST /v1/tools/{name}", s.handleToolHTTP)
 	s.mux.Handle("/mcp", mcp)

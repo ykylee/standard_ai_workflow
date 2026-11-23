@@ -125,3 +125,5 @@
   - path: [`./M-055-go-port-hub-core.md`](./M-055-go-port-hub-core.md)
 - **M-056** [implementation] 2.x 전면 Go 전환 — implementation S2-c (세션 · 받은편지함 · 오케스트레이션) — status: done
   - path: [`./M-056-go-port-orchestration.md`](./M-056-go-port-orchestration.md)
+- **M-057** [stabilization] Go 허브 실전 검증과 사용 가능한 3.0 전환 — status: in_progress
+  - path: [`./M-057-go-hub-real-validation.md`](./M-057-go-hub-real-validation.md)

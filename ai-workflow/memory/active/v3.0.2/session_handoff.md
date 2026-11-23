@@ -9,14 +9,13 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: v3.0.2 워크스페이스 — `main@ae732239` 에서 이어받음 (2026-11-23). 이 브랜치의 작업은 아직 없다. 모 브랜치 기준선: **144차 세션 말 (2026-11-23, Linux 호스트) — `main`/`origin/main` = `1f8f215d`, 세션 변경 push 완료.** M-057/WBS-57.1은 Linux 테스트베드 복제본 shadow 범위 확대 중, WBS-57.2는 Go 화면·relay HTTP parity 중이다. Go UI에는 정적 `/ui/`, session/projects/project/tasks/callsigns/events, callsign 상세·handoff, guide GET, roadmap GET, wiki list/search/page, callsign register/approve, 계획 응답 POST가 있다. Go 화면 전체 shadow는 미수행이고 guide 제안/결정·orchestration API·`/v1/relay/{register,poll,result}`는 미구현이다. `go test ./...`, `go vet ./...`, 자산 동기화 3/3, Go 코어 실프로세스 11/11, 변경 게이트 124/124, 양 문맥 전량 게이트 353/353 통과. Python `check_hub_ui.py` 15/15는 Python 정본만 검사한다. **3.0.0 미발행**: Go 전체 parity·4 harness·macOS/Windows·동일 DB rollback 전이다.
+- 현재 기준선: v3.0.2 prerelease가 2026-11-23 공개됐다 (`v3.0.2` → `ad9e664a`). 릴리스 노트·Python wheel/sdist·Go 6개 플랫폼 바이너리·SHA256SUMS가 GitHub Release에 있다. 공식 Linux amd64 바이너리는 192.168.0.38에서 격리 SQLite 사본(schema 12)으로 systemd `workflow-hub-3.0.2.service`에 기동 중이다. dacpi `192.168.0.86`의 `/workflow` 경로에서 public HTTPS health와 MCP 2026-07-28 Client(auto) tools/list + project lookup이 통과했다. 전체 게이트는 clean commit에서 native/slash 각각 354/354 통과. 기존 Go/Python parity 작업(M-057/WBS-57.1·57.2)은 계속 열린다.
 - 현재 주 작업 축: **2.x 전면 Go 전환 (M-049~M-056, 2026-11-22 소유자, ADR-035) — M-049~M-056 done (concept · requirements · design · S1 PC 중계 · UI/UX · S2-a judge/1 · S2-b 중앙 허브 코어 · S2-c 세션/오케스트레이션).** 이전 2.0 허브 stabilization M-039 에는 WBS-39.1 macOS · Windows · 대화형 실측과 WBS-39.3 arcturus 이전이 남아 있다. 1.x 는 `release/1.x` 에서 결함 수리만. 이전 축: **로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · ~~[TASK-2026-08-13-main-004] mypy flake 관찰~~ ✅ (66차 close — 33/33 표본, mypy 실패 0).
 - 원류: `main@ae732239` — [`active/main/session_handoff.md`](../main/session_handoff.md) 의 기준선 · 주 작업 축 · 열린 task 10건 · §5 를 옮겨 적었다 (모 브랜치에는 쓰지 않았다). 옮겨 온 task 는 frontmatter `inherited_from` 로 원류를 갖고, 합류 아카이브 때 고친 것만 원본에 되돌려 적힌다.
 
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
-- TASK-2026-11-23-v3.0.2-002 MCP 2026-07-28 최신 프로토콜 v3.0.2 prerelease 발행
 - TASK-2026-11-23-main-005 Go 허브 Linux 테스트베드 실전 shadow 검증
 - TASK-2026-11-23-main-006 Go 허브 화면 API 및 PC 중계 HTTP parity
 - TASK-2026-11-23-main-014 사내 Windows V3가 3.0 허브 실행 파일을 악성코드로 격리하는 탐지 조사
@@ -31,8 +30,10 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-11-23-v3.0.2-002 MCP 2026-07-28 최신 프로토콜 v3.0.2 prerelease 발행
 - TASK-2026-11-23-v3.0.2-001 브랜치 네임스페이스 자동 seed — `main` 에서 이어받음
 ## 5. 다음 세션 시작 포인트
+- (146차, 2026-11-23, Linux) TASK-2026-11-23-v3.0.2-002 완료. 기존 v3.0.1을 덮지 않고 v3.0.2 prerelease를 발행했으며, 공식 asset으로 홈랩과 dacpi `/workflow` public MCP 왕복까지 검증했다. 후속은 main의 M-057/WBS-57.1 Go/Python shadow parity와 WBS-57.2 화면·relay HTTP parity를 계속한다.
 
 - (`main@ae732239` handoff §5 에서 이어받음 — 아래 6줄은 모 브랜치의 다음 시작 포인트다)
 - (145차, 2026-11-23, Linux) 수정 커밋 `b8c0af8c`를 push하고 v3.0.1 pre-release를 발행했다. Go Windows DSN 단위 회귀와 Python 3.0.1 wheel fallback을 준비했다. 다음은 M-057/WBS-57.1·57.2에서 Python/Go API parity를 업데이트하고 화면 write 및 relay DB 효과를 격리 복제 DB로 비교한다. native Windows 실행, 4 harness, same-DB rollback은 미검증이다. stable latest는 v2.1.0이다.
@@ -54,4 +55,4 @@
 
 ## 6. 남은 리스크
 
-- 아직 검증된 산출물이 없다.
+- Go/Python hub parity와 Windows/macOS native 실행은 미완료라 v3.0.2는 prerelease 파일럿이다. `/workflow`는 public host에서 도달 가능하고 project registration이 anonymous인 설계이므로 운영/민감 데이터 대신 격리 복제 DB만 사용한다.

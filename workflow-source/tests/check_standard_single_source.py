@@ -394,8 +394,13 @@ def test_entrypoint_paths_match_generated_layout() -> None:
         referenced = sorted(set(re.findall(
             r"ai-workflow/memory/active/[A-Za-z0-9_<>./-]+", "\n".join(lines))))
         missing: list[str] = []
+        branch_result = subprocess.run(
+            ["git", "-C", str(target), "branch", "--show-current"],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+        )
+        branch = branch_result.stdout.strip() or "main"
         for ref in referenced:
-            concrete = ref.replace("<branch>", "main").rstrip("/.")
+            concrete = ref.replace("<branch>", branch).rstrip("/.")
             if not (target / concrete).exists():
                 missing.append(ref)
 

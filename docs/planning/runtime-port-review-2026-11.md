@@ -4,7 +4,7 @@
 - 범위: 공식 MCP SDK 현황, 두 언어 탐침 서버 실측(빌드 · 크기 · 메모리 · 크로스 빌드 · 실제 하네스 연결), 현재 Python 허브 기준선, 이식량 인벤토리, 범위 선택지, 위험, 권고, 열린 결정. 코드 · 스펙 변경은 없다 (탐침은 저장소 밖 `/var/tmp`).
 - 대상 독자: 소유자 (전환 결정), maintainer
 - 상태: **종결 (2026-11-22)** — 소유자 결정: R1 = **D 전면 Go 전환**, R2~R5 = 권고안 (§11). 다음은 requirements (M-050)
-- 최종 수정일: 2026-11-22
+- 최종 수정일: 2026-11-23
 - 관련 문서: [`M-049`](../../ai-workflow/memory/active/roadmap/M-049-runtime-port-concept.md), [`hub_spec.md`](../../workflow-source/core/hub_spec.md) (§1 불변 조건 · R0.3 · R0.7), [`hub_orchestration_spec.md`](../../workflow-source/core/hub_orchestration_spec.md) (§9 중계), [`PURPOSE.md`](../../ai-workflow/memory/active/PURPOSE.md) (제외 영역 — Python 외 런타임)
 
 ## 0. 한 줄 결론
@@ -103,8 +103,8 @@
 
 ## 6. 위험
 
-- **Windows 백신 평판 (미측정)** — 이미 pip 가 만든 `wk.exe`(서명 없음)가 V3 평판 차단을 받았다 (TASK-2026-10-02-main-007).
-  서명 없는 Go 바이너리도 같은 일을 겪을 수 있다. 대책은 코드 서명 인증서(연 비용) 또는 Windows 는 Python 중계 유지. 이 호스트에서 잴 수 없다 — Windows 호스트 실측 필요.
+- **Windows 백신 평판 (미해결)** — `wk.exe` 차단 이력에 더해, 2026-11-23 사내 Windows에서 Go 허브가 AhnLab V3에 격리됐다는 소유자 보고가 있다. 파일명·탐지명·해시를 아직 몰라 공식 자산과 대조 중이며 오탐으로 단정하지 않는다 (`TASK-2026-11-23-main-014`).
+  Go 릴리스 빌드에는 코드 서명 단계가 없고 `-s -w` strip을 쓴다. 사내/보안 관리 Windows 또는 환경 불명은 셋업에서 Python-only로 안내하고, Go는 보안 담당자 승인 뒤에만 선택한다.
 - **macOS 공증 (미측정)** — 내려받은 서명 없는 바이너리는 Gatekeeper 가 막는다. Developer ID · 공증 비용.
 - **PURPOSE 제외 영역** — "Python 외 runtime" 은 제외다. 예외는 VS Code 껍데기뿐 (2026-11-22). B 는 예외를 **중계 바이너리**로 넓히는 결정이다 → ADR.
 - **두 벌 기간** — B 이행 중 Python 중계와 Go 중계가 함께 있다. 중계 HTTP 계약(`/v1/relay/*`)과 어댑터 실측(요구 §1.5)을 Go 판에도 다시 해야 한다. 끝나면 Python 중계를 deprecation 정책으로 내린다.
@@ -112,7 +112,7 @@
 
 ## 7. 미측정 (통과로 세지 않는다)
 
-- Windows · macOS 에서 Go 바이너리 실행 · 백신 · Gatekeeper
+- Windows · macOS 네이티브 Go 바이너리 실행은 미측정. AhnLab V3 격리 보고는 있으나 대상·탐지명 미확인이라 원인 판정도 미측정.
 - Rust 의 Windows · musl 정적 빌드
 - Go/Rust 서버에서 120초 이상 대기 도구 (하네스 상한은 2.1 실측으로 없음)
 - 허브 규모(도구 74 · DB 판 12)를 옮긴 뒤의 메모리 · 지연 — 탐침은 도구 1개

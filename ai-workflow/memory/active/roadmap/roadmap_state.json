@@ -2245,9 +2245,9 @@
       "sdlc_phase": "stabilization",
       "declared_status": "in_progress",
       "derived_status": "in_progress",
-      "progress": 0.3333333333333333,
+      "progress": 0.16666666666666666,
       "total_leaves": 6,
-      "done_leaves": 2,
+      "done_leaves": 1,
       "deliverables_missing": [],
       "wbs": [
         {
@@ -2284,12 +2284,13 @@
         {
           "id": "WBS-57.4",
           "title": "macOS·Windows 실측과 배포 정책 확정",
-          "derived_status": "done",
+          "derived_status": "in_progress",
           "linked_task_ids": [
-            "TASK-2026-11-23-main-008"
+            "TASK-2026-11-23-main-008",
+            "TASK-2026-11-23-main-014"
           ],
           "total_leaves": 1,
-          "done_leaves": 1,
+          "done_leaves": 0,
           "children": []
         },
         {

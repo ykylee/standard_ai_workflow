@@ -73,6 +73,7 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
+- TASK-2026-11-23-main-014 사내 Windows V3가 3.0 허브 실행 파일을 악성코드로 격리하는 탐지 조사
 - TASK-2026-11-23-main-006 Go 허브 화면 API 및 PC 중계 HTTP parity
 - TASK-2026-11-23-main-005 Go 허브 Linux 테스트베드 실전 shadow 검증
 ## 3. 차단 작업

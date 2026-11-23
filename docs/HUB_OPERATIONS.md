@@ -150,6 +150,29 @@ python -m workflow_kit hub backup --db ~/workflow-hub/hub.db --out ~/backup/hub-
 3.x pilot 은 Go 바이너리를 제공하고 Python wheel 에도 기존 Python 허브를 유지한다. Windows에서 Go 런타임 문제가
 나면 같은 pilot 판의 Python 허브를 별도 프로세스와 DB 사본으로 평가할 수 있다.
 
+#### 셋업 전 사내 Windows 확인
+
+런타임을 고르기 전에 먼저 운영자에게 묻는다: **“이 호스트는 사내 관리형 Windows인가요? AhnLab V3 또는 회사 EDR이
+설치되어 있나요?”** 둘 중 하나라도 `예`이거나 담당자가 모르면 **Python 허브만 선택**한다. 이 경우 Go 실행 파일을
+내려받거나 실행하지 말고, Python venv 안에서 허브를 띄운다. 도메인 가입 여부만으로 사내 PC를 판정하지 않는다 —
+비도메인 사내 PC와 개인 도메인 환경이 모두 있을 수 있다.
+
+2026-11-23 사내 Windows에서 Go 허브가 V3에 격리됐다는 보고가 있었다. 격리 파일명과 탐지명은 아직 확인되지 않아
+오탐 판정을 내리지 않았다. 백신을 끄거나 격리를 우회하지 않는다. 사내 환경에서는 Python 경로를 기본으로 삼고,
+Go 선택은 보안 담당자가 해당 산출물을 확인하고 승인한 뒤에만 한다. [Go 바이너리 V3 탐지 조사](../ai-workflow/memory/active/main/backlog/tasks/TASK-2026-11-23-main-014.md)
+
+Windows PowerShell 예시 (SQLite 복제본으로 pilot):
+
+```powershell
+py -3.11 -m venv "$env:USERPROFILE\workflow-hub\venv-3x"
+$py = "$env:USERPROFILE\workflow-hub\venv-3x\Scripts\python.exe"
+& $py -m pip install 'standard-ai-workflow[hub] @ https://github.com/ykylee/standard_ai_workflow/releases/download/v3.0.1/standard_ai_workflow-3.0.1-py3-none-any.whl'
+& $py -m workflow_kit hub serve --db "$env:USERPROFILE\workflow-hub\pilot-copy.db" --bind 127.0.0.1 --port 8770
+```
+
+설치된 Python도 회사 보안 정책의 검사 대상이므로, 실행 허용은 사내 정책을 따른다. Python 선택은 Go 실행 파일을
+피하는 운영 선택이지 백신 검사를 무력화하거나 모든 탐지를 안전하다고 판정하는 절차가 아니다.
+
 ```sh
 python3 -m venv ~/workflow-hub/venv-3x
 ~/workflow-hub/venv-3x/bin/python -m pip install \

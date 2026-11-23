@@ -121,7 +121,8 @@ workflow-hub judge <op>                  # Go 판
 - 대상 6: linux · darwin · windows × amd64 · arm64, `CGO_ENABLED=0 -trimpath -ldflags "-s -w -X main.version=<판>"`. 판은 `workflow-source/pyproject.toml` 의 판과 같다 (S4 전까지 판 정본 하나).
 - SQLite 파일 경로는 OS 별 절대 경로를 `file:` URI로 바꿀 때 드라이브 경로를 `file:///C:/...` 로 직렬화한다. Windows 경로를 `file:C:/...` 로 내면 상대 URI가 되므로 금지하고, Windows 드라이브 · 공백 · 비ASCII 경로를 회귀 검사한다.
 - 산출물: `workflow-hub-<판>-<os>-<arch>[.exe]` + `SHA256SUMS`. 발행 도구(`release_pipeline`)의 `dist` 가 Go 빌드를 부르고, `release` 가 asset 으로 싣는다. 발행 게이트는 바이너리 · 체크섬 존재를 본다 (요구 R32.3).
-- 서명 · 공증은 concept R4 대로 실측 뒤 (요구 R31.2).
+- Windows Go 실행 파일은 아직 서명하지 않는다. 2026-11-23 사내 Windows AhnLab V3 격리 보고가 접수됐지만 파일명·탐지명·해시가 없어 원인이나 오탐 여부는 미판정이다. 셋업은 사내/보안 관리 Windows 또는 환경 불명에서 Python 런타임만 권하고, Go 선택은 보안 담당자 확인 뒤로 미룬다 (`TASK-2026-11-23-main-014`).
+- macOS 공증 및 Windows 코드 서명은 concept R4 와 요구 R31.2 대로 실측·정책 결정 뒤 진행한다.
 
 ## 8. 단계별 완료 기준
 

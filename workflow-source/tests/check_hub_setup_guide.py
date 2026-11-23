@@ -23,6 +23,8 @@ WATCHES = (
     "workflow-source/workflow_kit/*",
     "workflow-source/tests/check_hub_core.py",  # 허브 프로세스 도우미(Hub)를 빌려 쓴다
     "workflow-source/pyproject.toml",
+    "docs/HUB_OPERATIONS.md",
+    "workflow-source/core/hub_go_spec.md",
 )
 
 import json
@@ -238,6 +240,25 @@ def case_7_antigravity(e: Env, agy_list: Path, agy_log: Path) -> None:
             not problems, "; ".join(problems))
 
 
+def case_8_operator_runtime_policy() -> None:
+    """사내/보안 관리 Windows는 setup 때 Go 실행 파일 대신 Python만 권한다."""
+    ops = (REPO_ROOT / "docs" / "HUB_OPERATIONS.md").read_text(encoding="utf-8")
+    spec = (REPO_ROOT / "workflow-source" / "core" / "hub_go_spec.md").read_text(encoding="utf-8")
+    start = ops.find("#### 셋업 전 사내 Windows 확인")
+    end = ops.find("\n## 9.", start)
+    section = ops[start:end] if start >= 0 and end >= 0 else ""
+    problems = []
+    for token in ("사내 관리형 Windows", "Python 허브만 선택", "담당자가 모르면", "Go 실행 파일", "백신을 끄거나 격리를 우회하지 않는다"):
+        if token not in section:
+            problems.append(f"운영 안내에 정책이 없다: {token}")
+    if "-m workflow_kit hub serve" not in section:
+        problems.append("Windows Python hub serve 예시가 없다")
+    if "TASK-2026-11-23-main-014" not in spec or "원인이나 오탐 여부는 미판정" not in spec:
+        problems.append("Go 정본 스펙에 탐지 보고와 미판정 경계가 없다")
+    _record("case 8 (사내 Windows 셋업은 Python-only · 미확인 탐지를 오탐 단정하지 않음)",
+            not problems, "; ".join(problems))
+
+
 def main() -> int:
     print("=== 에이전트용 셋업 가이드 · bootstrap · 원격 없는 등록 (M-039 WBS-39.1) ===")
     with tempfile.TemporaryDirectory(prefix="hubguide-") as d:
@@ -269,6 +290,7 @@ def main() -> int:
                 _record("case 3~5", False, f"예외: {exc!r}")
             case_6_legacy(Env(hub, tmp / "legacy", env, src))
             case_7_antigravity(Env(hub, tmp / "agy", env, src), agy_list, agy_log)
+            case_8_operator_runtime_policy()
         finally:
             err = hub.stop()
             if _failures:

@@ -11,6 +11,7 @@ import (
 
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/store"
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/tools"
+	"github.com/ykylee/standard_ai_workflow/hub-go/internal/waiter"
 )
 
 const (
@@ -178,7 +179,13 @@ func (s *Server) handleOne(r *http.Request, msg map[string]any) (map[string]any,
 			Principal: p,
 			PublicURL: s.PublicURL,
 		}
-		res, err := tools.Call(s.Store, toolName, args, ctx)
+		var res map[string]any
+		var err error
+		if toolName == "hub_wait" {
+			res, err = waiter.Call(r.Context(), s.Store, args, ctx, s.Clock)
+		} else {
+			res, err = tools.Call(s.Store, toolName, args, ctx)
+		}
 		if err != nil {
 			if he, ok := store.AsHubError(err); ok {
 				return jsonRPCResult(id, callToolErrorResult(he)), false

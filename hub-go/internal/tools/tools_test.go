@@ -1,6 +1,7 @@
 package tools
 
 import (
+	"database/sql"
 	"path/filepath"
 	"testing"
 	"time"
@@ -48,6 +49,164 @@ func TestVisibleToolsAndSchemas(t *testing.T) {
 	lookupProps := lookupSchema["properties"].(map[string]any)
 	if _, ok := lookupProps["session"]; ok {
 		t.Fatal("bootstrap tool should not inject shared session property")
+	}
+}
+
+func TestCallSessionAndInboxTools(t *testing.T) {
+	st := openTestStore(t)
+	now := time.Date(2026, 11, 22, 12, 0, 0, 0, time.UTC)
+	reg, err := st.RegisterProject(store.Ctx{Now: now, Via: "test"}, "https://github.com/acme/session-tools", "session tools", "owner-human", "human", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, err := st.Authenticate(reg["token"].(string), &now, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	sid := "S-20261122-aabbccdd"
+	if _, err := st.DB().Exec(`INSERT INTO session (project_id,id,callsign,harness,kind,delivery_json,last_signal_at,started_at)
+		VALUES (?,?,?,?,?,?,?,?)`, p.ProjectID, sid, p.Callsign, "codex", "interactive", `[]`, db.FormatISO(now), db.FormatISO(now)); err != nil {
+		t.Fatal(err)
+	}
+	ctx := store.Ctx{Now: now, Via: "http", Principal: p}
+	updated, err := Call(st, "hub_session_update", map[string]any{"session": sid, "kind": "worker", "delivery": []any{"wait"}}, ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	view := updated["session"].(map[string]any)
+	if view["kind"] != "worker" {
+		t.Fatalf("session update not dispatched: %#v", updated)
+	}
+	inbox, err := Call(st, "hub_inbox_list", map[string]any{"session": sid}, ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(inbox["messages"].([]map[string]any)) != 0 {
+		t.Fatalf("unexpected inbox: %#v", inbox)
+	}
+	if _, err := st.WriteTx(func(tx *sql.Tx) (map[string]any, error) {
+		_, err := st.EnqueueMessage(tx, ctx, p.ProjectID, "session", sid, "note", map[string]any{"text": "hello"}, p.Callsign, "", false, "")
+		return nil, err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	listed, err := Call(st, "hub_task_list", map[string]any{"session": sid}, ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := listed["hub_inbox"]; !ok {
+		t.Fatalf("expected piggyback inbox: %#v", listed)
+	}
+	started, err := Call(st, "hub_session_start", map[string]any{"session": map[string]any{"harness": "codex", "kind": "worker"}}, ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if started["phase"] != 1 || started["session"].(map[string]any)["resumed"] != false {
+		t.Fatalf("unexpected session start response: %#v", started)
+	}
+	checked, err := Call(st, "hub_session_start", map[string]any{"repo_results": map[string]any{
+		"fetch":        map[string]any{"rc": 0, "output": ""},
+		"status":       map[string]any{"rc": 0, "output": "# branch.upstream origin/main\n# branch.ab +0 -0\n"},
+		"check_ignore": map[string]any{"rc": 0, "output": ".gitignore:1:/.workflow-hub/ .workflow-hub/env\n"},
+	}}, ctx)
+	if err != nil || checked["phase"] != 2 || checked["verdict"] != "start" {
+		t.Fatalf("unexpected session start verdict: %#v err=%v", checked, err)
+	}
+	sessionID := started["session"].(map[string]any)["id"].(string)
+	ended, err := Call(st, "hub_session_end", map[string]any{"session": sessionID, "handoff": map[string]any{}}, ctx)
+	if err != nil || ended["progress_written"] != 0 {
+		t.Fatalf("unexpected session end: %#v err=%v", ended, err)
+	}
+	if _, attached := ended["hub_inbox"]; attached {
+		t.Fatalf("session end must not piggyback: %#v", ended)
+	}
+}
+
+func TestCallOrchestratorTools(t *testing.T) {
+	st := openTestStore(t)
+	now := time.Date(2026, 11, 22, 12, 0, 0, 0, time.UTC)
+	reg, err := st.RegisterProject(store.Ctx{Now: now, Via: "test"}, "https://github.com/acme/orch-tools", "Orch Tools", "owner-human", "human", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, err := st.Authenticate(reg["token"].(string), &now, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := store.Ctx{Now: now, Via: "test", Principal: p}
+	session, err := st.RegisterSession(ctx, map[string]any{"harness": "codex", "kind": "worker"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sid := session["id"].(string)
+	declared, err := Call(st, "hub_orch_declare", map[string]any{"session": sid}, ctx)
+	if err != nil || declared["orchestrator"] == nil {
+		t.Fatalf("declare=%#v err=%v", declared, err)
+	}
+	second, err := st.RegisterSession(ctx, map[string]any{"harness": "codex", "harness_session_id": "second-orch", "kind": "worker"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	transferred, err := Call(st, "hub_orch_transfer", map[string]any{"session": second["id"]}, ctx)
+	if err != nil || transferred["orchestrator"] == nil {
+		t.Fatalf("transfer=%#v err=%v", transferred, err)
+	}
+	if _, err := Call(st, "hub_orch_transfer", map[string]any{"session": sid}, ctx); err != nil {
+		t.Fatal(err)
+	}
+	halted, err := Call(st, "hub_orch_halt", map[string]any{"on": true}, ctx)
+	if err != nil || halted["halted"] != true {
+		t.Fatalf("halt=%#v err=%v", halted, err)
+	}
+	resumed, err := Call(st, "hub_orch_halt", map[string]any{"on": false}, ctx)
+	if err != nil || resumed["halted"] != false {
+		t.Fatalf("resume=%#v err=%v", resumed, err)
+	}
+	worker, err := st.RegisterSession(ctx, map[string]any{"harness": "codex", "harness_session_id": "worker", "kind": "worker", "delivery": []any{"wait"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	task, err := st.TaskCreate(ctx, map[string]any{"title": "tool routed task"}, "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	taskID := task["task"].(map[string]any)["id"].(string)
+	assigned, err := Call(st, "hub_orch_assign", map[string]any{"session": sid, "task_id": taskID, "to_session": worker["id"], "request_id": "routed-assign"}, ctx)
+	if err != nil || assigned["assignment"] == nil {
+		t.Fatalf("assign=%#v err=%v", assigned, err)
+	}
+	if _, err := Call(st, "hub_orch_recall", map[string]any{"session": sid, "task_id": taskID, "reason": "change"}, ctx); err != nil {
+		t.Fatal(err)
+	}
+	message, err := Call(st, "hub_orch_message", map[string]any{"session": sid, "to": worker["id"], "body": map[string]any{"text": "hello"}, "request_id": "routed-message"}, ctx)
+	if err != nil || message["message_id"] == nil {
+		t.Fatalf("message=%#v err=%v", message, err)
+	}
+	if _, err := st.DB().Exec("INSERT INTO relay_host(host_id,name,token_hash,owner_callsign,projects_json,harnesses_json) VALUES(?,?,?,?,?,?)", "H-routed", "host", store.HashToken("relay-token"), p.Callsign, store.MustJSON([]string{p.ProjectID}), store.MustJSON([]string{"codex"})); err != nil {
+		t.Fatal(err)
+	}
+	request, err := Call(st, "hub_orch_request_session", map[string]any{"session": sid, "host_id": "H-routed", "dir_alias": "repo", "harness": "codex"}, ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	requestID := request["request"].(map[string]any)["id"].(string)
+	if _, err := Call(st, "hub_approval_decide", map[string]any{"request_id": requestID, "decision": "approve"}, ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.DB().Exec("UPDATE session SET host_id='H-routed' WHERE project_id=? AND id=?", p.ProjectID, worker["id"]); err != nil {
+		t.Fatal(err)
+	}
+	stop, err := Call(st, "hub_orch_request_stop", map[string]any{"session": sid, "target_session": worker["id"], "reason": "stop"}, ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stopID := stop["request"].(map[string]any)["id"].(string)
+	if _, err := Call(st, "hub_approval_decide", map[string]any{"request_id": stopID, "decision": "reject", "note": "keep running"}, ctx); err != nil {
+		t.Fatal(err)
+	}
+	released, err := Call(st, "hub_orch_release", map[string]any{}, ctx)
+	if err != nil || released["released"] != true {
+		t.Fatalf("release=%#v err=%v", released, err)
 	}
 }
 

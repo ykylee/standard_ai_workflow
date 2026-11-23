@@ -126,4 +126,29 @@ func TestMCPAuthAndToolParity(t *testing.T) {
 	if len(toolsAuth) != 74 {
 		t.Fatalf("expected 74 authed tools, got %d", len(toolsAuth))
 	}
+
+	startRec := postMCP(t, srv, tok, map[string]any{
+		"jsonrpc": "2.0", "id": 6, "method": "tools/call",
+		"params": map[string]any{"name": "hub_session_start", "arguments": map[string]any{
+			"session": map[string]any{"harness": "codex", "kind": "worker", "delivery": []string{"wait"}},
+		}},
+	})
+	var startRPC map[string]any
+	if err := json.Unmarshal(startRec.Body.Bytes(), &startRPC); err != nil {
+		t.Fatal(err)
+	}
+	startContent := startRPC["result"].(map[string]any)["structuredContent"].(map[string]any)
+	sessionID := startContent["session"].(map[string]any)["id"].(string)
+	waitRec := postMCP(t, srv, tok, map[string]any{
+		"jsonrpc": "2.0", "id": 7, "method": "tools/call",
+		"params": map[string]any{"name": "hub_wait", "arguments": map[string]any{"session": sessionID, "timeout_s": 1}},
+	})
+	var waitRPC map[string]any
+	if err := json.Unmarshal(waitRec.Body.Bytes(), &waitRPC); err != nil {
+		t.Fatal(err)
+	}
+	waitResult := waitRPC["result"].(map[string]any)["structuredContent"].(map[string]any)
+	if waitResult["call_again"] != true || waitResult["waited_s"].(float64) < 1 {
+		t.Fatalf("MCP wait did not long-poll to timeout: %#v", waitResult)
+	}
 }

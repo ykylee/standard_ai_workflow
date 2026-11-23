@@ -115,3 +115,36 @@ func TestHTTPHealthzAndToolsAndLimits(t *testing.T) {
 		t.Fatalf("list failed code=%d body=%s", tl.Code, tl.Body.String())
 	}
 }
+
+func TestHTTPHubWaitLongPollTimeout(t *testing.T) {
+	srv, _ := newTestServer(t)
+	reg := doReq(t, srv, http.MethodPost, "/v1/tools/hub_project_register", "", []byte(`{"remote_url":"https://github.com/acme/wait-demo","display_name":"Wait Demo","callsign":"worker","kind":"human"}`), nil)
+	if reg.Code != http.StatusOK {
+		t.Fatalf("register failed code=%d body=%s", reg.Code, reg.Body.String())
+	}
+	var registered map[string]any
+	if err := json.Unmarshal(reg.Body.Bytes(), &registered); err != nil {
+		t.Fatal(err)
+	}
+	token := registered["token"].(string)
+	started := doReq(t, srv, http.MethodPost, "/v1/tools/hub_session_start", token, []byte(`{"session":{"harness":"codex","kind":"worker","delivery":["wait"]}}`), nil)
+	if started.Code != http.StatusOK {
+		t.Fatalf("session start failed code=%d body=%s", started.Code, started.Body.String())
+	}
+	var startedJSON map[string]any
+	if err := json.Unmarshal(started.Body.Bytes(), &startedJSON); err != nil {
+		t.Fatal(err)
+	}
+	sessionID := startedJSON["session"].(map[string]any)["id"].(string)
+	waited := doReq(t, srv, http.MethodPost, "/v1/tools/hub_wait", token, []byte(`{"session":"`+sessionID+`","timeout_s":1}`), nil)
+	if waited.Code != http.StatusOK {
+		t.Fatalf("wait failed code=%d body=%s", waited.Code, waited.Body.String())
+	}
+	var result map[string]any
+	if err := json.Unmarshal(waited.Body.Bytes(), &result); err != nil {
+		t.Fatal(err)
+	}
+	if result["call_again"] != true || result["waited_s"].(float64) < 1 {
+		t.Fatalf("expected timeout response after long poll, got %#v", result)
+	}
+}

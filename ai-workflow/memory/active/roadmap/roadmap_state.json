@@ -2192,6 +2192,52 @@
           "children": []
         }
       ]
+    },
+    {
+      "id": "M-056",
+      "title": "2.x 전면 Go 전환 — implementation S2-c (세션 · 받은편지함 · 오케스트레이션)",
+      "sdlc_phase": "implementation",
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
+      "total_leaves": 3,
+      "done_leaves": 3,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-56.1",
+          "title": "세션 · 받은편지함 저장 계층과 도구 구현 (`hub_session_start/update/list/end`, `hub_wait`, `hub_inbox_ack/list`, `hub_report`) — Go 단위 검사로 권한·상태 전이를 고정한다.",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-23-main-001"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        },
+        {
+          "id": "WBS-56.2",
+          "title": "오케스트레이터 lease · 배정 도구 구현 (`hub_orch_declare/transfer/release/halt/assign/recall/message`, 세션/중지 요청, 승인) — Go 단위 검사로 권한·lease·승인 전이를 고정한다.",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-23-main-002"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        },
+        {
+          "id": "WBS-56.3",
+          "title": "`check_hub_core` 에 세션 · 오케스트레이션 실사용 흐름을 추가하고 Python/Go 적합성 모두 통과시킨다.",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-23-main-003"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        }
+      ]
     }
   ],
   "current_milestone_id": "M-039",

@@ -337,11 +337,43 @@ func optIntArg(args map[string]any, key string) *int {
 }
 
 // Call executes the named hub tool under ctx using the single validation/auth gate.
-func Call(s *store.Store, name string, rawArgs any, ctx store.Ctx) (map[string]any, error) {
+func Call(s *store.Store, name string, rawArgs any, ctx store.Ctx) (result map[string]any, callErr error) {
 	_, clean, err := Prepare(s, name, rawArgs, ctx)
 	if err != nil {
 		return nil, err
 	}
+	sessionID, _ := clean["session"].(string)
+	if sessionID, ok := clean["session"].(string); ok && sessionID != "" &&
+		name != "hub_session_update" && name != "hub_wait" && name != "hub_inbox_ack" &&
+		name != "hub_orch_declare" && name != "hub_orch_transfer" {
+		if err := s.Signal(ctx, sessionID); err != nil {
+			return nil, err
+		}
+	}
+	defer func() {
+		if callErr != nil || result == nil || name == "hub_wait" || name == "hub_inbox_ack" || name == "hub_inbox_list" || name == "hub_session_end" || name == "hub_orch_declare" || name == "hub_orch_transfer" {
+			return
+		}
+		if name == "hub_session_start" {
+			if session, ok := result["session"].(map[string]any); ok {
+				if id, ok := session["id"].(string); ok {
+					sessionID = id
+				}
+			}
+		}
+		if sessionID == "" {
+			return
+		}
+		inbox, err := s.InboxTake(ctx, sessionID, "piggyback")
+		if err != nil {
+			result, callErr = nil, err
+			return
+		}
+		messages, _ := inbox["messages"].([]map[string]any)
+		if len(messages) > 0 {
+			result["hub_inbox"] = map[string]any{"for_session": sessionID, "messages": messages, "remaining": inbox["remaining"]}
+		}
+	}()
 	jb := &JudgeBridge{Store: s}
 
 	switch name {
@@ -453,6 +485,76 @@ func Call(s *store.Store, name string, rawArgs any, ctx store.Ctx) (map[string]a
 		return s.TaskLinkCommit(ctx, strArg(clean, "id", ""), strArg(clean, "sha", ""), strArg(clean, "branch", ""), strArg(clean, "request_id", ""))
 	case "hub_events":
 		return s.Events(ctx, strArg(clean, "target_kind", ""), strArg(clean, "target_id", ""), intArg(clean, "after_seq", 0), intArg(clean, "limit", 200))
+	case "hub_session_update":
+		values := map[string]any{}
+		for _, key := range []string{"kind", "allow_wait", "delivery", "harness_session_id"} {
+			if value, ok := clean[key]; ok {
+				values[key] = value
+			}
+		}
+		return s.SessionUpdate(ctx, strArg(clean, "session", ""), values)
+	case "hub_session_list":
+		return s.SessionList(ctx, strArg(clean, "callsign", ""), strArg(clean, "status", ""))
+	case "hub_session_start":
+		out, err := sessionStart(s, ctx, clean)
+		if err != nil {
+			return nil, err
+		}
+		if spec, ok := clean["session"].(map[string]any); ok {
+			session, err := s.RegisterSession(ctx, spec)
+			if err != nil {
+				return nil, err
+			}
+			out["session"] = session
+		}
+		return out, nil
+	case "hub_session_end":
+		handoff, ok := clean["handoff"].(map[string]any)
+		if !ok {
+			return nil, store.InvalidField("handoff", "객체여야 한다")
+		}
+		var expected *int
+		if raw, exists := clean["expected_version"]; exists {
+			expected = optIntArg(map[string]any{"v": raw}, "v")
+		}
+		progress, _ := clean["progress"].([]any)
+		if progress == nil {
+			progress = []any{}
+		}
+		return s.SessionEnd(ctx, strArg(clean, "session", ""), handoff, expected, progress)
+	case "hub_inbox_list":
+		return s.InboxList(ctx, strArg(clean, "session", ""), strArg(clean, "state", ""))
+	case "hub_inbox_ack":
+		return s.InboxAck(ctx, strArg(clean, "session", ""), strArg(clean, "message_id", ""),
+			strArg(clean, "decision", ""), strArg(clean, "reason", ""), strArg(clean, "request_id", ""))
+	case "hub_wait":
+		return s.Wait(ctx, strArg(clean, "session", ""))
+	case "hub_report":
+		return s.Report(ctx, strArg(clean, "session", ""), strArg(clean, "task_id", ""),
+			strArg(clean, "summary", ""), strArg(clean, "verification", ""), strArg(clean, "request_id", ""))
+	case "hub_orch_declare":
+		return s.OrchDeclare(ctx, strArg(clean, "session", ""))
+	case "hub_orch_transfer":
+		return s.OrchTransfer(ctx, strArg(clean, "session", ""))
+	case "hub_orch_release":
+		return s.OrchRelease(ctx, strArg(clean, "session", ""))
+	case "hub_orch_halt":
+		on, _ := clean["on"].(bool)
+		return s.OrchHalt(ctx, on)
+	case "hub_orch_assign":
+		return s.OrchAssign(ctx, strArg(clean, "session", ""), strArg(clean, "task_id", ""),
+			strArg(clean, "to_session", ""), strArg(clean, "note", ""), strArg(clean, "request_id", ""))
+	case "hub_orch_recall":
+		return s.OrchRecall(ctx, strArg(clean, "session", ""), strArg(clean, "task_id", ""), strArg(clean, "reason", ""))
+	case "hub_orch_message":
+		return s.OrchMessage(ctx, strArg(clean, "session", ""), strArg(clean, "to", ""), strArg(clean, "kind", ""), clean["body"], strArg(clean, "request_id", ""))
+	case "hub_orch_request_session":
+		return s.OrchRequestSession(ctx, strArg(clean, "session", ""), strArg(clean, "host_id", ""), strArg(clean, "dir_alias", ""),
+			strArg(clean, "harness", ""), strArg(clean, "permission_mode", ""), strArg(clean, "prompt", ""), strArg(clean, "request_id", ""))
+	case "hub_orch_request_stop":
+		return s.OrchRequestStop(ctx, strArg(clean, "session", ""), strArg(clean, "target_session", ""), strArg(clean, "reason", ""))
+	case "hub_approval_decide":
+		return s.ApprovalDecide(ctx, strArg(clean, "request_id", ""), strArg(clean, "decision", ""), strArg(clean, "note", ""))
 	default:
 		return nil, &store.HubError{
 			Status:  501,

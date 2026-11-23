@@ -123,3 +123,5 @@
   - path: [`./M-054-go-port-judge.md`](./M-054-go-port-judge.md)
 - **M-055** [implementation] 2.x 전면 Go 전환 — implementation S2-b (중앙 허브 코어 — db · assets · store · tools · httpapi · mcpserver) — status: done
   - path: [`./M-055-go-port-hub-core.md`](./M-055-go-port-hub-core.md)
+- **M-056** [implementation] 2.x 전면 Go 전환 — implementation S2-c (세션 · 받은편지함 · 오케스트레이션) — status: done
+  - path: [`./M-056-go-port-orchestration.md`](./M-056-go-port-orchestration.md)

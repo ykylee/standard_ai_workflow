@@ -4,7 +4,7 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-11-23 (141차 세션 **종료** — Linux 호스트. **Go 전환 S1 · UI/UX · S2-a · S2-b 완료**: M-052 S1 PC 중계 Go 판(main-031~033, Claude Code · Codex 실측) · M-053 허브/중계 UI/UX 완성(main-034~035) · M-054 S2-a 순수 판정 judge/1 7종 & 차분 검사(main-036~038) · M-055 S2-b 중앙 허브 코어 Go 판 db/assets/store/tools/mcpserver/httpapi/CLI & check_hub_core both 18/18(main-039~041) done. 발행 없음. 다음 S2-c/d 허브 나머지 도구 · 오케스트레이션 · 웹 화면 Go 전환)
+- 최종 수정일: 2026-11-23 (142차 세션 **종료** — Linux 호스트. **Go 전환 S1 · UI/UX · S2-a · S2-b · S2-c 완료**: M-052 S1 PC 중계 · M-053 허브/중계 UI/UX · M-054 judge/1 · M-055 중앙 허브 코어 · M-056 세션/인박스/lease/배정/승인. WBS-56.1~56.3 완료, `check_hub_core` Python/Go 20/20 · `go test ./...` · `go vet ./...` 통과. 발행 없음. 다음 로드맵 후보는 M-039/WBS-39.1 (TASK-2026-11-21-main-013, macOS · Windows · 대화형 실측 대기))
 - 이전 수정일: 2026-11-22 (140차 세션 **종료** — Linux 호스트. main-014 Codex 커밋 경로 · **M-048 done → v2.1.0 발행** (VS Code 실측 결함 2 수리 · 진입 지침 push 막힘 문구 · 매트릭스 tmp 위양성 수리) · README 재작성 · main-022 허브 mcp 2.x · **Go 전환 결정**: M-049 concept (소유자 R1=D 전면 Go) · M-050 requirements · M-051 design done, ADR-035 Accepted · PURPOSE Go 예외. 다음 M-052 S1 중계 Go 판)
 - 이전 수정일: 2026-11-22 (139차 세션 **종료** — Linux 호스트. 결함 수리 4 (main-027 · 234c32-002 · main-012 · main-002, 전부 release/1.x 이식) · **새 축 2.1 허브 오케스트레이션 M-041~M-047 done** (concept · requirements · design · ADR-034 Accepted · 구현 1~4: 세션 · 받은편지함 · lease · 배정 · PC 중계 · VS Code 껍데기, 실제 Claude · Codex 실측). 발행 없음)
 - 이전 수정일: 2026-11-21 (138차 세션 **종료** — Linux 호스트. 2.0 허브 M-037 · M-038 · M-040 done, M-039 진행(남은 것: macOS · Windows · 대화형 실측 · 이 저장소 표식 전환 · arcturus). 이 저장소 테스트베드 실제 등록 · `/setup.md` 4 하네스 실측 · 운영 가이드 · **v2.0.0 (베타 표기) · v1.30.0 발행**, latest = v2.0.0)
@@ -52,7 +52,7 @@
 - 그 이전 기준선: **138차 (2026-11-21, Linux 호스트) — 2.0 허브 화면 · 1.x 전환 · 허브 간 이전 · 테스트베드 · 셋업 가이드.** M-037 done (화면 `/ui/` · 콜사인 표 · 지침 제안), M-038 WBS-38.1~38.3 (전환 계획 · 들여오기 · 표식 · 1.x 거절; 남은 몫 = 2.0.0 발행 때 1.x 안내판, main-011), M-039: 39.1 Linux 4하네스 · `/setup.md` + `hub_client.py bootstrap` (빈 폴더에서 Claude Code 완주), 39.2 리허설 · 테스트베드(`~/workflow-hub-testbed/start.sh`, :8770) · 이 저장소 실제 등록(P-20261121-fcfdccb1, 표식 보류), 39.4 허브 간 이전(CLI · HTTP 초대 코드). 마지막 push `53076aac` 뒤 세션 정리 커밋.
 - 그 이전 기준선은 [`baselines.md`](./baselines.md) 에 있다 (이관 142건, 최신이 위).
 
-- 현재 주 작업 축: **2.x 전면 Go 전환 (M-049~M-055, 2026-11-22 소유자, ADR-035) — M-049~M-055 done (concept · requirements · design · S1 PC 중계 · M-053 허브/중계 UI/UX · S2-a judge/1 · S2-b 중앙 허브 코어), 다음: S2-c/d (나머지 허브 도구 · 오케스트레이션 · 웹 화면 Go 전환).** 이전 2.0 허브 축(M-031~M-040)은 M-031~M-037 done, M-038 · M-039 진행(남은 것: 실제 전환 · 39.1 다른 호스트/하네스 · M-040). 1.x 는 `release/1.x` 에서 결함 수리만. 이전 축: **로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · ~~[TASK-2026-08-13-main-004] mypy flake 관찰~~ ✅ (66차 close — 33/33 표본, mypy 실패 0).
+- 현재 주 작업 축: **2.x 전면 Go 전환 (M-049~M-056, 2026-11-22 소유자, ADR-035) — M-049~M-056 done (concept · requirements · design · S1 PC 중계 · UI/UX · S2-a judge/1 · S2-b 중앙 허브 코어 · S2-c 세션/오케스트레이션).** 이전 2.0 허브 stabilization M-039 에는 WBS-39.1 macOS · Windows · 대화형 실측과 WBS-39.3 arcturus 이전이 남아 있다. 1.x 는 `release/1.x` 에서 결함 수리만. 이전 축: **로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · ~~[TASK-2026-08-13-main-004] mypy flake 관찰~~ ✅ (66차 close — 33/33 표본, mypy 실패 0).
 - ~~소유자 결정 대기: state.json 생성물 여부~~ — ✅ **해소** (TASK-018, 2026-08-11): **생성물로 확정.** 정본 §11.2 에 선언, `wk refresh-state` 로 재생성, `check_state_json_generated` case 5 가 이 저장소의 정합을 상시 검사. 상세 요약·산문은 state.json 이 아니라 handoff §4 와 task 파일(SSOT)에 남긴다.
 - 다음 후보 축: ~~PyPI 발행~~ → ⛔ **닫힘 (2026-08-14 소유자 최종 결정 = 발행 안 함, `RELEASE.md` §1 각주 0)** / cross-host federation (두 번째 호스트 = **MacBook 확정, 시점 추후**) / memory_index 3-tuple 지표 추이 관찰. ~~federation self-host add~~ ✅ (14차) · ~~v1.1.9/v1.2.0 미발행 누적~~ ✅ **해소 (32차 — v1.2.0-beta 발행, 누적분 0)**. (v1.1.0·v1.1.1 노트 누적 표기는 TASK-014 에서 **미삽입 확정**, branch protection 은 소유자가 **보류 결정** (2026-08-11) — 둘 다 후보 축에서 제거.)
 - 발견한 cross-project 패턴 (agent memory 추가):
@@ -85,6 +85,9 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-11-23-main-003 세션·오케스트레이션 Python/Go 실사용 차분 검사
+- TASK-2026-11-23-main-002 Go 허브 오케스트레이터 lease · 배정 · 승인 포팅
+- TASK-2026-11-23-main-001 Go 허브 세션 · 받은편지함 · 오케스트레이션 포팅 1 — 세션/인박스 저장 계층
 - TASK-2026-11-22-main-041 hub-go tools · mcpserver · httpapi · workflow-hub CLI 및 Go/Python 적합성 테스트 (M-055 WBS-55.3)
 - TASK-2026-11-22-main-040 hub-go/internal/store 저장 계층 구현 (M-055 WBS-55.2)
 - TASK-2026-11-22-main-039 hub-go/internal/db · assets · check_go_assets_sync 구현 (M-055 WBS-55.1)
@@ -92,9 +95,6 @@
 - TASK-2026-11-22-main-037 wbs.gate · roadmap.derive · handoff.parse · state.build 순수 판정 구현 (M-054 WBS-54.2)
 - TASK-2026-11-22-main-036 judge/1 CLI 프로토콜 + plan.lint · plan.states · task.status 순수 판정 구현 (M-054 WBS-54.1)
 - TASK-2026-11-22-main-035 PC 중계 로컬 화면(Python·Go) 무깜빡임 갱신 · 로컬 상세 · 허브 딥링크 · 개별 세션 종료 (M-053 WBS-53.2)
-- TASK-2026-11-22-main-034 중앙 허브 /ui/ 2.1 오케스트레이션 판 · 로드맵 화면 · 1.x 워크벤치 UX 복원 (M-053 WBS-53.1)
-- TASK-2026-11-22-main-033 check_hub_relay 구현 스위치(WORKFLOW_RELAY_IMPL) · Go 중계 실제 어댑터 실측 (M-052 WBS-52.3)
-- TASK-2026-11-22-main-032 PC 중계 Go 판 — CLI · 설정 · 긴 폴링 · 어댑터 3종 · 로컬 화면 (M-052 WBS-52.2)
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

@@ -310,6 +310,100 @@ def _mcp_session(base: str, token: str | None, calls: list[tuple[str, dict[str, 
     return asyncio.run(go())
 
 
+def case_11_orchestration(hub: Hub, db: Path, impl: str, token_owner: str, token_worker: str,
+                          project_id: str, task_id: str) -> None:
+    """세션 등록부터 relay 승인 · 배정 수락 · 보고까지 실제 HTTP 도구 흐름을 잰다."""
+    start_owner_status, started_owner, _ = hub.call(
+        "hub_session_start", {"session": {"harness": "codex", "kind": "worker", "delivery": ["wait"]}}, token_owner)
+    owner_session = started_owner.get("session", {}).get("id")
+
+    # relay_host 등록은 WBS-56.2 범위 밖이다. 실제 도구 요청은 허브 HTTP 경로를 쓰고,
+    # 중계가 등록한 host row만 fixture로 둔다.
+    host_id = f"H-check-{impl}"
+    with sqlite3.connect(db) as conn:
+        conn.execute("INSERT INTO relay_host(host_id,name,token_hash,owner_callsign,projects_json,harnesses_json) "
+                     "VALUES(?,?,?,?,?,?)", (host_id, "checker host", f"checker-hash-{impl}", "claude-a",
+                                             json.dumps([project_id]), json.dumps(["codex"])))
+
+    declare_status, declared, _ = hub.call("hub_orch_declare", {"session": owner_session}, token_owner)
+    request_status, request, _ = hub.call("hub_orch_request_session", {
+        "session": owner_session, "host_id": host_id, "dir_alias": "demo", "harness": "codex",
+        "permission_mode": "default", "prompt": "work on one task", "request_id": "check-spawn-1",
+    }, token_owner)
+    request_id = request.get("request", {}).get("id")
+    approval_status, approval, _ = hub.call("hub_approval_decide", {
+        "request_id": request_id, "decision": "approve", "note": "approved by checker",
+    }, token_owner)
+    # 중계 poll의 dispatch를 fixture로 반영한 뒤, worker가 첫 요청에서 spawn_request를 싣는다.
+    with sqlite3.connect(db) as conn:
+        conn.execute("UPDATE session_request SET state='dispatched' WHERE project_id=? AND id=?", (project_id, request_id))
+    start_worker_status, started_worker, _ = hub.call("hub_session_start", {
+        "session": {"harness": "codex", "kind": "interactive", "spawn_request": request_id},
+    }, token_worker)
+    worker_session = started_worker.get("session", {}).get("id")
+
+    transfer_status, transferred, _ = hub.call("hub_orch_transfer", {"session": worker_session}, token_owner)
+    back_status, transferred_back, _ = hub.call("hub_orch_transfer", {"session": owner_session}, token_owner)
+    assign_status, assigned, _ = hub.call("hub_orch_assign", {
+        "session": owner_session, "task_id": task_id, "to_session": worker_session,
+        "note": "complete this", "request_id": "check-assign-1",
+    }, token_owner)
+    message_id = assigned.get("assignment", {}).get("message_id")
+    ack_status, ack, _ = hub.call("hub_inbox_ack", {
+        "session": worker_session, "message_id": message_id, "decision": "accept", "request_id": "check-ack-1",
+    }, token_worker)
+    report_status, report, _ = hub.call("hub_report", {
+        "session": worker_session, "task_id": task_id, "summary": "implemented", "verification": "checks pass",
+        "request_id": "check-report-1",
+    }, token_worker)
+    message_status, message, _ = hub.call("hub_orch_message", {
+        "session": owner_session, "to": worker_session, "body": {"text": "thanks"}, "kind": "note",
+        "request_id": "check-message-1",
+    }, token_owner)
+    stop_status, stop, _ = hub.call("hub_orch_request_stop", {
+        "session": owner_session, "target_session": worker_session, "reason": "task complete",
+    }, token_owner)
+    stop_id = stop.get("request", {}).get("id")
+    stop_decision_status, stop_decision, _ = hub.call("hub_approval_decide", {
+        "request_id": stop_id, "decision": "reject", "note": "leave worker available",
+    }, token_owner)
+    halt_status, halted, _ = hub.call("hub_orch_halt", {"on": True}, token_owner)
+    resume_status, resumed, _ = hub.call("hub_orch_halt", {"on": False}, token_owner)
+    release_status, released, _ = hub.call("hub_orch_release", {}, token_owner)
+
+    with sqlite3.connect(db) as conn:
+        assignment_state = conn.execute("SELECT state FROM assignment WHERE project_id=? AND task_id=?",
+                                        (project_id, task_id)).fetchone()
+        linked = conn.execute("SELECT state,result_json FROM session_request WHERE project_id=? AND id=?",
+                              (project_id, request_id)).fetchone()
+        stop_state = conn.execute("SELECT state FROM session_request WHERE project_id=? AND id=?",
+                                  (project_id, stop_id)).fetchone()
+    linked_result = json.loads(linked[1]) if linked else {}
+    ok = (start_owner_status == 200 and bool(owner_session)
+          and declare_status == 200 and declared.get("orchestrator", {}).get("session") == owner_session
+          and request_status == 200 and request.get("request", {}).get("state") == "pending_approval"
+          and approval_status == 200 and approval.get("request", {}).get("state") == "approved"
+          and start_worker_status == 200 and bool(worker_session)
+          and linked and linked[0] == "dispatched" and linked_result.get("session") == worker_session
+          and transfer_status == 200 and transferred.get("orchestrator", {}).get("session") == worker_session
+          and back_status == 200 and transferred_back.get("orchestrator", {}).get("session") == owner_session
+          and assign_status == 200 and ack_status == 200 and ack.get("state") == "acked"
+          and report_status == 200 and report.get("state") == "reported"
+          and assignment_state and assignment_state[0] == "reported"
+          and message_status == 200 and bool(message.get("message_id"))
+          and stop_status == 200 and stop_decision_status == 200
+          and stop_decision.get("request", {}).get("state") == "rejected" and stop_state and stop_state[0] == "rejected"
+          and halt_status == 200 and halted.get("halted") is True
+          and resume_status == 200 and resumed.get("halted") is False
+          and release_status == 200 and released.get("released") is True)
+    _record(f"case 11 (세션 · lease · 배정 · 승인 실사용 흐름) [{impl}]", ok,
+            f"start={start_owner_status}/{start_worker_status} declare={declare_status} request={request_status}/{approval_status} "
+            f"transfer={transfer_status}/{back_status}:{transferred.get('error_code')}:{transferred.get('error')} "
+            f"assign={assign_status} ack={ack_status} report={report_status} "
+            f"stop={stop_status}/{stop_decision_status} halt={halt_status}/{resume_status} release={release_status} "
+            f"assignment={assignment_state[0] if assignment_state else None}")
+
+
 def case_4_to_10(tmp: Path, impl: str, cmd_prefix: list[str]) -> None:
     sub = tmp / f"core-{impl}"
     sub.mkdir(parents=True, exist_ok=True)
@@ -425,14 +519,19 @@ def case_4_to_10(tmp: Path, impl: str, cmd_prefix: list[str]) -> None:
         _record(f"case 9 (MCP 인증 경계 · HTTP 와 같은 결과) [{impl}]", ok9,
                 f"anon={names_anon} auth={len(names_auth)}/{len(full)} anon_res={res_anon} last={last.get('via')}/{last.get('op')}")
 
+        # 11 세션 · lease · 배정 · 승인 — relays host 등록과 dispatch만 fixture 로 둔다.
+        case_11_orchestration(hub, db, impl, tok_a, tok_b, pid, t2.get("task", {}).get("id", ""))
+
         # 10 거두기
         rv = subprocess.run([*cmd_prefix, "admin", "--db", str(db), "callsign", "revoke",
                              "--project", pid, "--callsign", "codex-b"], capture_output=True, encoding="utf-8", env=_env(), timeout=60)
         out = json.loads(rv.stdout or "{}")
         r1, gone, _ = hub.call("hub_whoami", {}, tok_b)
         _, after, _ = hub.call("hub_task_get", {"id": id1}, tok_a)
-        ok10 = (rv.returncode == 0 and out.get("released_tasks") == [id1] and r1 == 401
-                and after["task"]["assignee"] is None)
+        released_tasks = out.get("released_tasks", [])
+        ok10 = (rv.returncode == 0 and id1 in released_tasks and t2.get("task", {}).get("id") in released_tasks and r1 == 401
+                and after["task"]["assignee"] is None
+                and hub.call("hub_task_get", {"id": t2["task"]["id"]}, tok_a)[1]["task"]["assignee"] is None)
         _record(f"case 10 (거두기 — 토큰 무효 · 맡던 task 비움) [{impl}]", ok10, f"rc={rv.returncode} out={out} whoami={r1}")
     finally:
         err = hub.stop()

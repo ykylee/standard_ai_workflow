@@ -13,6 +13,7 @@ import (
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/mcpserver"
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/store"
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/tools"
+	"github.com/ykylee/standard_ai_workflow/hub-go/internal/waiter"
 )
 
 const (
@@ -203,8 +204,16 @@ func (s *Server) handleToolHTTP(w http.ResponseWriter, r *http.Request) {
 		ClientVersion: clientVer,
 		PublicURL:     s.cfg.PublicURL,
 	}
-	res, err := tools.Call(s.cfg.Store, name, args, ctx)
+	var res map[string]any
+	if name == "hub_wait" {
+		res, err = waiter.Call(r.Context(), s.cfg.Store, args, ctx, s.cfg.Clock)
+	} else {
+		res, err = tools.Call(s.cfg.Store, name, args, ctx)
+	}
 	if err != nil {
+		if r.Context().Err() != nil {
+			return
+		}
 		if he, ok := store.AsHubError(err); ok {
 			writeJSONResponse(w, he.Status, he.Payload())
 			return

@@ -29,7 +29,7 @@ hub-go/
     judgedb/   DB → 판정 입력 조립 (Python `hub/judge.py` 의 DB 쪽 절반)
     render/    진입 파일 렌더 영역 (Python `hub/render.py` + `bootstrap_lib/harnesses` 의 생성기)
     httpapi/   `/healthz` · `/v1/tools` · `/v1/relay` · `/` · `/setup.md` · `/v1/bootstrap` · 머리 · 오류 형식
-    mcpserver/ `go-sdk` streamable HTTP · stateless · JSON (요구 R25.3)
+    mcpserver/ Streamable HTTP · stateless · JSON; MCP `2026-07-28` modern protocol (`server/discover`, per-request metadata, `Mcp-Method`/`Mcp-Name` binding) (요구 R25.3)
     ui/        `/ui/` 정적 파일 · `/api/…` 21개 project 경로 (Python `hub/ui.py`)
     relay/     PC 중계 (Python `workflow_kit/relay/` — S1, §6)
     assets/    내장 자산 (§2.1)

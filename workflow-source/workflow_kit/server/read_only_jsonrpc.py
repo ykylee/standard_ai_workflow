@@ -32,6 +32,10 @@ from workflow_kit.server.read_only_registry import (
 
 JSONRPC_VERSION = "2.0"
 SERVER_NOT_INITIALIZED_CODE = -32002
+MODERN_PROTOCOL_VERSION = "2026-07-28"
+PROTOCOL_VERSION_META_KEY = "io.modelcontextprotocol/protocolVersion"
+CLIENT_CAPABILITIES_META_KEY = "io.modelcontextprotocol/clientCapabilities"
+SERVER_INFO_META_KEY = "io.modelcontextprotocol/serverInfo"
 
 
 def jsonrpc_result(request_id: object, result: dict[str, Any]) -> dict[str, Any]:
@@ -168,6 +172,61 @@ def build_tools_list_result(bundle: str = BUNDLE_ALL) -> dict[str, Any]:
     }
 
 
+def is_modern_request(request: dict[str, Any]) -> bool:
+    if request.get("method") == "server/discover":
+        return True
+    params = request.get("params")
+    if not isinstance(params, dict):
+        return False
+    meta = params.get("_meta")
+    return isinstance(meta, dict) and PROTOCOL_VERSION_META_KEY in meta
+
+
+def validate_modern_request(request_id: object, params: Any) -> dict[str, Any] | None:
+    if not isinstance(params, dict):
+        return jsonrpc_error(request_id, -32602, "Invalid params", {"reason": "modern requests require params._meta"})
+    meta = params.get("_meta")
+    if not isinstance(meta, dict):
+        return jsonrpc_error(request_id, -32602, "Invalid params", {"reason": "modern requests require params._meta"})
+    version = meta.get(PROTOCOL_VERSION_META_KEY)
+    if not isinstance(version, str) or not version:
+        return jsonrpc_error(request_id, -32602, "Invalid params", {"reason": "protocolVersion metadata is required"})
+    if not isinstance(meta.get(CLIENT_CAPABILITIES_META_KEY), dict):
+        return jsonrpc_error(request_id, -32602, "Invalid params", {"reason": "clientCapabilities metadata is required"})
+    if version != MODERN_PROTOCOL_VERSION:
+        return jsonrpc_error(
+            request_id,
+            -32022,
+            "Unsupported protocol version",
+            {"supported": [MODERN_PROTOCOL_VERSION], "requested": version},
+        )
+    return None
+
+
+def modern_result(result: dict[str, Any], bundle: str) -> dict[str, Any]:
+    result["resultType"] = "complete"
+    result["_meta"] = {
+        **result.get("_meta", {}),
+        SERVER_INFO_META_KEY: {
+            "name": server_name_for_bundle(bundle),
+            "version": build_transport_tool_descriptors(bundle)["tool_version"],
+        },
+    }
+    return result
+
+
+def build_discover_result(bundle: str) -> dict[str, Any]:
+    return modern_result(
+        {
+            "supportedVersions": [MODERN_PROTOCOL_VERSION],
+            "capabilities": {"tools": {}},
+            "ttlMs": 0,
+            "cacheScope": "private",
+        },
+        bundle,
+    )
+
+
 def build_tools_call_result(name: str, arguments: dict[str, Any]) -> tuple[int, dict[str, Any]]:
     returncode, payload = invoke_tool(name, json.dumps(arguments, ensure_ascii=False))
     if returncode != 0:
@@ -217,6 +276,23 @@ def handle_jsonrpc_request(
     if not isinstance(method, str):
         return jsonrpc_error(request_id, -32600, "Invalid Request", {"reason": "method is required"})
 
+    modern = is_modern_request(request)
+    if modern:
+        if request_id is None:
+            return jsonrpc_error(None, -32600, "Invalid Request", {"reason": "modern request id must not be null"})
+        error = validate_modern_request(request_id, request.get("params"))
+        if error is not None:
+            return error
+        if method == "server/discover":
+            return jsonrpc_result(request_id, build_discover_result(bundle))
+        if method == "initialize":
+            return jsonrpc_error(
+                request_id,
+                -32601,
+                "Method not found",
+                {"method": method, "reason": "initialize is not part of the modern protocol"},
+            )
+
     if method.startswith("notifications/"):
         if "id" in request:
             return jsonrpc_error(request_id, -32600, "Invalid Request", {"reason": "notifications must not include id"})
@@ -239,11 +315,15 @@ def handle_jsonrpc_request(
             session_state.client_initialized = False
         return jsonrpc_result(request_id, build_initialize_result(bundle))
     if method == "tools/list":
-        if session_state is not None and not session_state.initialized:
+        if not modern and session_state is not None and not session_state.initialized:
             return server_not_initialized_error(request_id, method)
-        return jsonrpc_result(request_id, build_tools_list_result(bundle))
+        result = build_tools_list_result(bundle)
+        if modern:
+            result.update({"ttlMs": 0, "cacheScope": "private"})
+            result = modern_result(result, bundle)
+        return jsonrpc_result(request_id, result)
     if method == "tools/call":
-        if session_state is not None and not session_state.initialized:
+        if not modern and session_state is not None and not session_state.initialized:
             return server_not_initialized_error(request_id, method)
         params = request.get("params")
         if not isinstance(params, dict):
@@ -264,6 +344,8 @@ def handle_jsonrpc_request(
         returncode, result = build_tools_call_result(name, arguments)
         if returncode != 0:
             return jsonrpc_error(request_id, -32000, "Tool call failed", result)
+        if modern:
+            result = modern_result(result, bundle)
         return jsonrpc_result(request_id, result)
 
     return jsonrpc_error(request_id, -32601, "Method not found", {"method": method})

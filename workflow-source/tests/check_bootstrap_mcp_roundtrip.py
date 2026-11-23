@@ -271,6 +271,30 @@ def round_trip(
     raise AssertionError(f"No response within {timeout}s for request {request['method']}")
 
 
+def modern_round_trip(
+    proc: subprocess.Popen[str], request_id: int, method: str, params: dict[str, object]
+) -> dict[str, object]:
+    """Send one 2026-07-28 stateless request over stdio."""
+    modern_params = {
+        **params,
+        "_meta": {
+            "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+            "io.modelcontextprotocol/clientCapabilities": {},
+            "io.modelcontextprotocol/clientInfo": {"name": "bootstrap-smoke", "version": "1"},
+        },
+    }
+    response = round_trip(
+        proc,
+        {"jsonrpc": "2.0", "id": request_id, "method": method, "params": modern_params},
+    )
+    if "error" in response:
+        raise AssertionError(f"{method} failed over modern protocol: {response['error']}")
+    result = response.get("result")
+    if not isinstance(result, dict) or result.get("resultType") != "complete":
+        raise AssertionError(f"{method} did not return a modern complete result: {result!r}")
+    return result
+
+
 def _parse_codex_toml_server_block(toml_text: str) -> dict[str, object]:
     """Best-effort parser for the Codex ``[mcp_servers.<alias>]`` TOML block.
 
@@ -325,17 +349,14 @@ def smoke_one_harness(harness: str, *, literal_command: bool = False) -> None:
         manifest = run_bootstrap(target_root, harness)
         proc = spawn_bridge(manifest, target_root, harness, literal_command=literal_command)
         try:
-            init = round_trip(
-                proc,
-                {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}},
-            )
-            if init["result"]["serverInfo"]["name"] != "workflow_read_only_bundle":
-                raise AssertionError("initialize did not return the expected server name.")
+            discover = modern_round_trip(proc, 1, "server/discover", {})
+            if discover["supportedVersions"] != ["2026-07-28"]:
+                raise AssertionError("server/discover did not advertise MCP 2026-07-28.")
+            server_info = discover.get("_meta", {}).get("io.modelcontextprotocol/serverInfo", {})
+            if server_info.get("name") != "workflow_read_only_bundle":
+                raise AssertionError("server/discover did not return the expected server name.")
 
-            tools = round_trip(
-                proc,
-                {"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}},
-            )["result"]["tools"]
+            tools = modern_round_trip(proc, 2, "tools/list", {})["tools"]
             if not tools:
                 raise AssertionError("tools/list returned no tools.")
             names = {tool["name"] for tool in tools}
@@ -343,28 +364,27 @@ def smoke_one_harness(harness: str, *, literal_command: bool = False) -> None:
                 if required not in names:
                     raise AssertionError(f"required tool missing: {required}")
 
-            call_result = round_trip(
+            call_result = modern_round_trip(
                 proc,
+                3,
+                "tools/call",
                 {
-                    "jsonrpc": "2.0",
-                    "id": 3,
-                    "method": "tools/call",
-                    "params": {
-                        "name": "latest_backlog",
-                        "arguments": {
-                            "work_backlog_index_path": str(
-                                REPO_ROOT
-                                / "workflow-source"
-                                / "examples"
-                                / "acme_delivery_platform"
-                                / "work_backlog.md"
-                            )
-                        },
+                    "name": "latest_backlog",
+                    "arguments": {
+                        "work_backlog_index_path": str(
+                            REPO_ROOT
+                            / "workflow-source"
+                            / "examples"
+                            / "acme_delivery_platform"
+                            / "work_backlog.md"
+                        )
                     },
                 },
-            )["result"]
+            )
             if call_result.get("_meta", {}).get("transport_phase") != "jsonrpc_draft":
                 raise AssertionError("latest_backlog call did not return the expected bridge phase.")
+            if call_result.get("resultType") != "complete":
+                raise AssertionError("latest_backlog call did not return a modern complete result.")
             structured = call_result.get("structuredContent", {})
             if structured.get("status") != "ok":
                 raise AssertionError(

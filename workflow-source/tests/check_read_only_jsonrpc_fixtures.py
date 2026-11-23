@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify checked-in JSON-RPC draft bridge fixtures stay aligned with runtime output."""
+"""Verify checked-in modern and legacy JSON-RPC bridge fixtures match runtime output."""
 
 from __future__ import annotations
 
@@ -45,6 +45,8 @@ def main() -> int:
         raise AssertionError("transport_ready 는 제거된 필드다 (§6.2).")
     if checked_in["session_fixture_count"] != len(checked_in["session_fixtures"]):
         raise AssertionError("Expected session fixture count to match the checked-in session fixture list.")
+    if checked_in["modern_fixture_count"] != len(checked_in["modern_fixtures"]):
+        raise AssertionError("Expected modern fixture count to match the checked-in modern fixture list.")
     names = [fixture["name"] for fixture in checked_in["fixtures"]]
     expected_names = [
         "initialize",
@@ -129,6 +131,25 @@ def main() -> int:
     duplicate_initialize = checked_in["session_fixtures"][1]["responses"][1]["error"]
     if duplicate_initialize["data"]["reason"] != "initialize may only be called once per stdio session":
         raise AssertionError("Expected duplicate initialize session fixture to preserve session validation reason.")
+
+    modern = {fixture["name"]: fixture for fixture in checked_in["modern_fixtures"]}
+    discover = modern["server_discover"]["response"]["result"]
+    if discover["supportedVersions"] != ["2026-07-28"] or discover["resultType"] != "complete":
+        raise AssertionError("Expected server/discover to advertise the current modern protocol.")
+    if discover["_meta"]["io.modelcontextprotocol/serverInfo"]["name"] != "workflow_read_only_bundle":
+        raise AssertionError("Expected modern serverInfo result stamp.")
+    tools_list = modern["modern_tools_list"]["response"]["result"]
+    if tools_list["resultType"] != "complete" or tools_list["ttlMs"] != 0 or tools_list["cacheScope"] != "private":
+        raise AssertionError("Expected modern tools/list cache/result fields.")
+    call = modern["modern_latest_backlog_call"]["response"]["result"]
+    if call["resultType"] != "complete" or call["structuredContent"]["status"] != "ok":
+        raise AssertionError("Expected modern tools/call to preserve a complete structured result.")
+    initialize = modern["modern_initialize_not_supported"]["response"]["error"]
+    if initialize["code"] != -32601:
+        raise AssertionError("Modern protocol must not fall back to the legacy initialize handshake.")
+    unsupported = modern["modern_unsupported_version"]["response"]["error"]
+    if unsupported["code"] != -32022 or unsupported["data"]["supported"] != ["2026-07-28"]:
+        raise AssertionError("Expected unsupported modern version error to advertise supported versions.")
 
     print("Read-only JSON-RPC fixture generation check passed.")
     return 0

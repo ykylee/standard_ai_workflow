@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "standard-ai-workflow"
-version = "3.0.1"
+version = "3.0.2"
 description = "Standard AI workflow kit — bootstrap, skills, MCP servers, templates, and examples."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -58,20 +58,20 @@ mcp-jsonrpc = []
 mcp-sdk = [
     # 상한 해제. mcp 를 쓰는 표면은 **둘**이고 (전수 조사: `from mcp` /
     # `import mcp` / `import_module("mcp…")` / `__import__` 네 문법으로 sweep)
-    # MCP Python SDK 지원 하한은 v2.0.0:
+    # MCP Python SDK 지원 하한은 최신 안정판 v2.3.0:
     #   - `mcp_v1_server.py`     — fastmcp.FastMCP ↔ mcpserver.MCPServer
     #   - `read_only_mcp_sdk.py` — lowlevel decorator ↔ add_request_handler
-    # v2.0.0 과 최신 선언 버전에서 mypy strict + 프로토콜 왕복
+    # v2.3.0에서 mypy strict + 프로토콜 왕복
     # (initialize → tools/list → tools/call) 실측한다.
     # 다음 major 가 또 이름을 옮기면 `check_mcp_server_sdk_compat.py` 와
     # `check_mcp_lowlevel_sdk_compat.py` 가 먼저 실패한다.
-    "mcp[cli]>=2.0.0",
+    "mcp[cli]>=2.3.0",
 ]
 # M-033 (hub_spec §2.3, DS1): 2.0 워크플로우 허브 서버 — 허브 쪽만 깐다. 작업 환경은 이 의존이 없다.
-# MCP Python SDK v2 이상을 사용한다. v2.3.0에서 허브 · 중계 검사와 Claude Code · Codex 실측.
-# SDK 매트릭스가 하한 및 현재 검증 판에서 허브 MCP 경로를 밟는다.
+# MCP Python SDK v2.3.0 이상을 사용한다. v2.3.0에서 허브 · 중계 검사와 Claude Code · Codex 실측.
+# SDK 매트릭스는 최소 지원판 v2.3.0에서 허브 MCP 경로를 밟는다.
 hub = [
-    "mcp>=2.0.0",
+    "mcp>=2.3.0",
     "uvicorn>=0.30",
     "starlette>=0.40",
 ]

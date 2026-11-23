@@ -74,8 +74,8 @@
 ├── dist/                           # 빌드 산출물 (.gitignore)
 │   └── harnesses/                  # codex, opencode 패키지
 ├── .codex/                         # Codex 설정 예시
-├── requirements.txt                # pydantic>=2, anyio>=4, mcp>=1
-├── requirements-dev.txt            # mcp[cli]==1.27.0
+├── requirements.txt                # pydantic>=2, anyio>=4, mcp>=2.3
+├── requirements-dev.txt            # mcp[cli]==2.3.0
 ├── .github/workflows/             # mkdocs(문서 배포) · consumer-metrics-digest(주간 집계) — 테스트 CI 는 없다
 ├── AGENTS.md                       # Codex 진입 규칙 (bootstrap 생성)
 └── README.md                       # 저장소 홈
@@ -147,7 +147,7 @@ v0.5.2+ 리팩터. 6-module 패키지:
 | Language | Python 3.10+ (3.11+ 권장) |
 | Schema/Contracts | Pydantic v2 |
 | Async | anyio >= 4.0 |
-| Agent Protocol | MCP (Model Context Protocol) Python SDK `mcp[cli]` >= 1.0 |
+| Agent Protocol | MCP (Model Context Protocol) Python SDK `mcp[cli]` >= 2.3.0 |
 | Package Build | setuptools >= 68 + wheel |
 | Linting | ruff (line-length 100, py310) |
 | Type Checking | mypy (strict, 109 file clean, py310, **FULL strict 도달 v0.11.18**) |

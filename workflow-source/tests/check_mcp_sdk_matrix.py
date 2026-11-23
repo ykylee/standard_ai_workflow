@@ -2,7 +2,7 @@
 
 ## 왜 필요한가
 
-소유자 지시에 따라 MCP SDK 최소 지원판을 v2.0.0 으로 올렸다. 이 검사는 optional
+소유자 지시에 따라 MCP SDK 최소 지원판을 v2.3.0 으로 올렸다. 이 검사는 optional
 dependency, 개발 pin, matrix 가 모두 2.x 이상에서 일치하는지 확인한다.
 
 정본(`workflow_kit/common/sdk_matrix.py`)을 만드는 것만으로는 이 문제가 안 풀린다.
@@ -60,7 +60,6 @@ from workflow_kit.common.sdk_matrix import (  # noqa: E402
     LOCAL_MATRIX_FILTER,
     PINNED_VERSIONS,
     ROLE_FLOOR,
-    ROLE_LATEST_2X,
     SDK_EXERCISING_CHECKS,
     _assert_installed,
     judge_exercised,
@@ -72,6 +71,7 @@ MATRIX_FILTER = tuple(LOCAL_MATRIX_FILTER.split(","))
 """`--run-local` 이 `run_all_checks --filter` 에 넘기는 값. 아래 완전성 검사가 쓴다."""
 
 REQUIREMENTS_DEV = REPO_ROOT / "requirements-dev.txt"
+REQUIREMENTS = REPO_ROOT / "requirements.txt"
 PYPROJECT_PATH = SOURCE_ROOT / "pyproject.toml"
 
 _skipped: list[str] = []
@@ -110,12 +110,16 @@ def test_development_pin_is_a_tested_supported_version() -> None:
         "requirements-dev.txt 에서 mcp 고정 핀을 못 찾았다 — 개발 전량 검사가 "
         "하한에서 돈다는 근거를 잃었다 (핀을 지웠다면 registry 의 floor 도 같이 볼 것)"
     )
-    assert tuple(map(int, pinned.split("."))) >= tuple(map(int, floor_version().split("."))), (
-        f"requirements-dev.txt 핀({pinned}) 이 지원 하한({floor_version()}) 보다 낮다"
+    assert pinned == floor_version(), (
+        f"requirements-dev.txt 핀({pinned}) 과 지원 하한({floor_version()}) 이 다르다"
     )
     assert pinned in pinned_versions(), f"개발 pin {pinned} 가 SDK matrix 에서 실행되지 않는다"
-    assert pinned == sdk_matrix.version_for_role(ROLE_LATEST_2X), (
-        f"개발 pin({pinned}) 과 검증된 최신 2.x({sdk_matrix.version_for_role(ROLE_LATEST_2X)}) 이 다르다"
+
+
+def test_base_requirement_uses_supported_floor() -> None:
+    text = REQUIREMENTS.read_text(encoding="utf-8")
+    assert re.search(r"^mcp>=2\.3\.0(?:\s|$)", text, re.MULTILINE), (
+        "requirements.txt 가 MCP SDK 최소 지원판 2.3.0 이상을 요구하지 않는다"
     )
 
 
@@ -128,9 +132,9 @@ def test_extra_has_no_upper_bound() -> None:
     assert specs, "mcp-sdk extra 에 mcp requirement 가 없다"
     for spec in specs:
         assert "<" not in spec, (
-            f"MCP dependency 에 상한이 생겼다 ({spec}) — `>=2.0.0` 하한만 둬야 한다"
+            f"MCP dependency 에 상한이 생겼다 ({spec}) — `>=2.3.0` 하한만 둬야 한다"
         )
-        assert ">=2.0.0" in spec, f"MCP dependency 가 v2 하한을 강제하지 않는다: {spec}"
+        assert ">=2.3.0" in spec, f"MCP dependency 가 2.3.0 하한을 강제하지 않는다: {spec}"
 
 
 def test_every_skip_capable_check_is_declared() -> None:
@@ -218,12 +222,12 @@ def test_matrix_tmp_root_is_outside_repo() -> None:
 
 def test_verdicts_actually_fire() -> None:
     """되주입: 어긋남이 각각 다른 신호로 실패하는가."""
-    mismatch = _assert_installed("2.0.0", "3.0.0")
-    assert mismatch is not None and "3.0.0" in mismatch and "2.0.0" in mismatch, (
+    mismatch = _assert_installed("2.3.0", "3.0.0")
+    assert mismatch is not None and "3.0.0" in mismatch and "2.3.0" in mismatch, (
         f"버전이 어긋났는데 통과했다: {mismatch}"
     )
 
-    missing = _assert_installed("2.0.0", None)
+    missing = _assert_installed("2.3.0", None)
     assert missing is not None and "설치" in missing, f"미설치인데 통과했다: {missing}"
     assert missing != mismatch, "미설치와 버전 불일치가 같은 메시지로 나온다 — 구분되지 않는다"
 

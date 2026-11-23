@@ -86,9 +86,9 @@ python3 workflow-source/tests/run_all_checks.py --branch-context=all --tmp-dir=<
 - read-only MCP bundle manifest 가 tool별 input schema 와 payload example 을 노출하는지 확인
 - read-only MCP bundle manifest 가 tool별 generated JSON Schema 를 runtime output contract 에서 직접 노출하는지 확인
 - read-only MCP bundle 이 draft transport tool descriptor 를 노출하는지 확인
-- read-only JSON-RPC bridge 가 `initialize`, initialize capability shape validation, notification lifecycle, stdio session initialize gating, `tools/list`, `tools/call`, malformed JSON, invalid request, tool-call error mapping 을 유지하는지 확인
+- read-only JSON-RPC bridge 가 MCP 2026-07-28 `server/discover`, 요청 metadata, `resultType: complete`, `tools/list`, `tools/call` 을 지원하고, 기존 initialize handshake 호환 회귀 검사도 유지하는지 확인
 - optional official MCP SDK candidate 가 runtime availability metadata 와 미설치 환경 오류 경계를 유지하는지 확인
-- official MCP SDK client 가 stdio server candidate 와 실제 `initialize -> tools/list -> tools/call` 왕복을 수행할 수 있는지 확인
+- official MCP SDK `Client(auto)` 가 stdio server candidate 와 `2026-07-28 server/discover -> tools/list -> tools/call` 왕복을 수행하는지 확인
 - read-only JSON-RPC fixture 가 runtime bridge 결과와 같은 request/response envelope 를 유지하는지 확인
 - read-only MCP transport 승격 기준 문서가 fixture 기준선과 유지할 descriptor 계약을 놓치지 않는지 확인
 - read-only transport descriptor 체크인 산출물과 생성 스크립트가 registry 결과와 같은지 확인

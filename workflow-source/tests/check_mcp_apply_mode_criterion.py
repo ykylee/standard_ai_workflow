@@ -21,7 +21,8 @@
 **둘 다** 통과해야 한다. 선언만으로는 통과하지 못한다.
 
 1. **공식 MCP 클라이언트 왕복** — 손수 만든 JSON-RPC 가 아니라 `mcp` SDK 의
-   `ClientSession` 으로 `initialize` → `tools/list` → `tools/call` 이 성공한다.
+   `Client` 자동 협상으로 `server/discover` → `tools/list` → `tools/call` 이 성공하고
+   최신 2026-07-28 프로토콜을 사용한다.
    (`check_bootstrap_mcp_roundtrip.py` 는 stdin/stdout 에 JSON 을 직접 쓰는
    손수 만든 클라이언트다 — 그건 우리 구현끼리의 대화라 하네스 호환성을 증명하지
    못한다.)
@@ -110,9 +111,8 @@ def _shim_dir(tmp: str) -> str:
 
 
 async def _round_trip(server: dict[str, object], extra_pythonpath: str | None) -> tuple[bool, str]:
-    """공식 MCP 클라이언트로 initialize + tools/list + tools/call 왕복."""
-    from mcp import ClientSession, StdioServerParameters  # noqa: PLC0415
-    from mcp.client.stdio import stdio_client  # noqa: PLC0415
+    """공식 MCP 클라이언트의 modern discovery + tools/list + tools/call 왕복."""
+    from mcp import Client, StdioServerParameters  # noqa: PLC0415
 
     env = dict(os.environ)
     env.update({str(k): str(v) for k, v in dict(server.get("env") or {}).items()})
@@ -127,16 +127,17 @@ async def _round_trip(server: dict[str, object], extra_pythonpath: str | None) -
         cwd=str(REPO_ROOT),
     )
     try:
-        async with stdio_client(params) as (read_stream, write_stream):
-            async with ClientSession(read_stream, write_stream) as session:
-                await session.initialize()
-                tools = await session.list_tools()
-                if not tools.tools:
-                    return False, "tools/list 가 0건"
-                result = await session.call_tool(PROBE_TOOL, PROBE_ARGS)
-                if _is_error(result):
-                    return False, f"tools/call {PROBE_TOOL} 이 오류를 냈다"
-                return True, f"tools/list {len(tools.tools)}종 + tools/call 성공"
+        async with Client(params) as session:
+            protocol_version = getattr(session, "protocol_version", getattr(session, "protocolVersion", None))
+            if protocol_version != "2026-07-28":
+                return False, f"modern protocol 대신 {protocol_version!r} 협상"
+            tools = await session.list_tools()
+            if not tools.tools:
+                return False, "tools/list 가 0건"
+            result = await session.call_tool(PROBE_TOOL, PROBE_ARGS)
+            if _is_error(result):
+                return False, f"tools/call {PROBE_TOOL} 이 오류를 냈다"
+            return True, f"2026-07-28 tools/list {len(tools.tools)}종 + tools/call 성공"
     except BaseException as exc:  # noqa: BLE001 — 서버가 안 뜨는 것도 판정 대상이다
         return False, _flatten(exc)
 

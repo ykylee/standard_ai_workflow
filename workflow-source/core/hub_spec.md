@@ -71,7 +71,7 @@ python -m workflow_kit hub admin   --db PATH project import --file FILE | seal -
 
 ### 2.3 의존 (DS1)
 
-허브 쪽 설치는 `workflow_kit[hub]` — MCP 공식 SDK `mcp>=2.0.0` (streamable HTTP 서버) 와 ASGI 서버를 쓴다. SDK v2 API (`add_request_handler`, HTTP 요청은 `ctx.request`)로 조립한다. 최소판 2.0.0 과 개발 검증판 2.3.0 에서 허브 MCP 경로를 밟는다 (TASK-2026-11-22-main-022; §16.3). 작업 환경은 이 의존을 갖지 않는다 (R0.4).
+허브 쪽 설치는 `workflow_kit[hub]` — MCP 공식 SDK `mcp>=2.3.0` (streamable HTTP 서버) 와 ASGI 서버를 쓴다. SDK v2 API (`add_request_handler`, HTTP 요청은 `ctx.request`)로 조립하며 MCP `2026-07-28` modern protocol 을 기본으로 사용한다. Go 허브도 같은 판의 `server/discover`, 요청별 metadata, HTTP routing headers 를 구현한다. 작업 환경은 이 의존을 갖지 않는다 (R0.4).
 
 ## 3. 스키마 · 이관 (WBS-32.1)
 

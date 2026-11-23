@@ -275,39 +275,37 @@ def case_3_backup(tmp: Path, impl: str, cmd_prefix: list[str]) -> None:
 
 
 def _mcp_session(base: str, token: str | None, calls: list[tuple[str, dict[str, Any]]]) -> tuple[list[str], list[Any]]:
-    from mcp import ClientSession
+    from mcp import Client
     from mcp.client.streamable_http import streamable_http_client
 
-    # SDK 1.x/2.x 클라이언트 차이 (TASK-2026-11-22-main-022): 2.x 는 `streamablehttp_client(headers=)` 를 없애고
-    # `streamable_http_client(http_client=)` 만 남겼다 — HTTP 클라이언트는 2.x 가 `httpx2`, 1.x 가 `httpx`.
-    # 스트림도 1.x 는 (read, write, session_id), 2.x 는 (read, write) 라 앞의 둘만 쓴다.
-    try:
-        import httpx2 as _httpx  # type: ignore[import-not-found, unused-ignore]
-    except ImportError:
-        import httpx as _httpx
+    import httpx2 as _httpx
 
     async def go() -> tuple[list[str], list[Any]]:
         headers = {"Authorization": f"Bearer {token}"} if token else {}
-        async with _httpx.AsyncClient(headers=headers) as http, \
-                streamable_http_client(base + "/mcp", http_client=http) as streams:
-            r, w = streams[0], streams[1]
-            async with ClientSession(r, w) as s:
-                await s.initialize()
+        async with _httpx.AsyncClient(headers=headers) as http:
+            async with Client(streamable_http_client(base + "/mcp", http_client=http)) as s:
+                protocol_version = _sdk_field(s, "protocol_version", "protocolVersion")
+                if protocol_version != "2026-07-28":
+                    raise AssertionError(f"hub negotiated legacy MCP protocol {protocol_version!r}")
                 names = sorted(t.name for t in (await s.list_tools()).tools)
                 results = []
                 for name, args in calls:
                     res = await s.call_tool(name, args)
-                    # SDK 1.x/2.x 필드 이름 차이를 getattr 로 둘 다 읽는다 (check_mcp_lowlevel_sdk_compat)
-                    is_error = getattr(res, "isError", None)
-                    if is_error is None:
-                        is_error = getattr(res, "is_error", None)
-                    structured = getattr(res, "structuredContent", None)
-                    if structured is None:
-                        structured = getattr(res, "structured_content", None)
-                    results.append((is_error, structured))
+                    results.append((
+                        _sdk_field(res, "is_error", "isError"),
+                        _sdk_field(res, "structured_content", "structuredContent"),
+                    ))
                 return names, results
 
     return asyncio.run(go())
+
+
+def _sdk_field(model: object, *names: str) -> Any:
+    """Read renamed MCP SDK fields across supported major versions."""
+    for name in names:
+        if hasattr(model, name):
+            return getattr(model, name)
+    raise AssertionError(f"{type(model).__name__} has none of the MCP SDK fields {names!r}")
 
 
 def case_11_orchestration(hub: Hub, db: Path, impl: str, token_owner: str, token_worker: str,

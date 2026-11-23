@@ -14,7 +14,14 @@ SOURCE_ROOT = REPO_ROOT / "workflow-source"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
-from workflow_kit.server.read_only_jsonrpc import JsonRpcSessionState, handle_jsonrpc_request, parse_request_json
+from workflow_kit.server.read_only_jsonrpc import (
+    CLIENT_CAPABILITIES_META_KEY,
+    MODERN_PROTOCOL_VERSION,
+    PROTOCOL_VERSION_META_KEY,
+    JsonRpcSessionState,
+    handle_jsonrpc_request,
+    parse_request_json,
+)
 from workflow_kit.server.read_only_registry import build_transport_tool_descriptors
 
 
@@ -90,6 +97,31 @@ def session_request_response_pair(name: str, requests: list[dict[str, Any]]) -> 
         "requests": normalize_fixture_value(requests),
         "responses": normalize_fixture_value(responses),
     }
+
+
+def modern_request_response_pair(
+    name: str,
+    method: str,
+    params: dict[str, Any],
+    protocol_version: str = MODERN_PROTOCOL_VERSION,
+) -> dict[str, Any]:
+    request = {
+        "jsonrpc": "2.0",
+        "id": 100 + len(name),
+        "method": method,
+        "params": {
+            **params,
+            "_meta": {
+                PROTOCOL_VERSION_META_KEY: protocol_version,
+                CLIENT_CAPABILITIES_META_KEY: {},
+                "io.modelcontextprotocol/clientInfo": {"name": "fixture-client", "version": "1.0"},
+            },
+        },
+    }
+    response = handle_jsonrpc_request(request)
+    if response is None:
+        raise ValueError(f"Modern fixture request produced no response: {name}")
+    return {"name": name, "request": normalize_fixture_value(request), "response": normalize_fixture_value(response)}
 
 
 def build_jsonrpc_fixtures() -> dict[str, Any]:
@@ -206,6 +238,22 @@ def build_jsonrpc_fixtures() -> dict[str, Any]:
             ],
         ),
     ]
+    modern_fixtures = [
+        modern_request_response_pair("server_discover", "server/discover", {}),
+        modern_request_response_pair("modern_tools_list", "tools/list", {}),
+        modern_request_response_pair(
+            "modern_latest_backlog_call",
+            "tools/call",
+            {"name": "latest_backlog", "arguments": latest_backlog_payload},
+        ),
+        modern_request_response_pair("modern_initialize_not_supported", "initialize", {}),
+        modern_request_response_pair(
+            "modern_unsupported_version",
+            "tools/list",
+            {},
+            protocol_version="2025-11-25",
+        ),
+    ]
     return {
         "status": "ok",
         "fixture_phase": "jsonrpc_draft_fixture",
@@ -214,8 +262,10 @@ def build_jsonrpc_fixtures() -> dict[str, Any]:
         "tool_version": descriptors["tool_version"],
         "fixture_count": len(fixtures),
         "session_fixture_count": len(session_fixtures),
+        "modern_fixture_count": len(modern_fixtures),
         "fixtures": fixtures,
         "session_fixtures": session_fixtures,
+        "modern_fixtures": modern_fixtures,
     }
 
 

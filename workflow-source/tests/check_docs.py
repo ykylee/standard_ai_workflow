@@ -173,6 +173,10 @@ def iter_markdown_files(root: Path = REPO_ROOT) -> list[Path]:
             continue
         if len(rel_parts) >= 2 and tuple(rel_parts[:2]) in IGNORED_DOCS_SUBTREES:
             continue
+        # `hub-go/internal/assets/` contains Go embedded copies of runtime templates (`standard_block.md`),
+        # verified byte-for-byte by `check_go_assets_sync.py`, not repository prose docs.
+        if len(rel_parts) >= 3 and tuple(rel_parts[:3]) == ("hub-go", "internal", "assets"):
+            continue
         if Path(*rel_parts) in HARNESS_OVERLAY_FILES:
             continue
         markdown_files.append(path)

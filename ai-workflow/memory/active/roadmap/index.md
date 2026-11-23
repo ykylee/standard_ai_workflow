@@ -121,3 +121,5 @@
   - path: [`./M-053-hub-relay-ui-ux.md`](./M-053-hub-relay-ui-ux.md)
 - **M-054** [implementation] 2.x 전면 Go 전환 — implementation S2-a (순수 판정 judge/1 · 차분 검사) — status: done
   - path: [`./M-054-go-port-judge.md`](./M-054-go-port-judge.md)
+- **M-055** [implementation] 2.x 전면 Go 전환 — implementation S2-b (중앙 허브 코어 — db · assets · store · tools · httpapi · mcpserver) — status: done
+  - path: [`./M-055-go-port-hub-core.md`](./M-055-go-port-hub-core.md)

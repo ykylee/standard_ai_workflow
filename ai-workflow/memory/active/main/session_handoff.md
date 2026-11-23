@@ -45,7 +45,7 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **141차 진행 (2026-11-22, Linux 호스트) — v2.1.0 (`a423d21d`) 위 Go 전환 S1·UI·S2-a 진행 완료: M-052(S1 PC 중계 Go 판, Claude Code 2.1.330·Codex 0.171.0 실측) · M-053(허브 2.1/로드맵/1.x UX · 중계 무깜빡임) · M-054(S2-a 순수 판정 7 op judge/1 · corpus · check_judge_parity 불일치 0) done.** 다음: M-055(S2-b 중앙 허브 DB·저장소 Go 판). 설계: `workflow-source/core/hub_go_spec.md` · ADR-035 Accepted. 검증 간소화 기간 유지 — `--changed` + 스모크 뒤 `--no-verify` push, 전량 게이트는 발행 때.
+- 현재 기준선: **141차 진행 (2026-11-22, Linux 호스트) — v2.1.0 (`a423d21d`) 위 Go 전환 S1·UI·S2-a·S2-b 완료: M-052(S1 PC 중계 Go 판, Claude Code 2.1.330·Codex 0.171.0 실측) · M-053(허브 2.1/로드맵/1.x UX · 중계 무깜빡임) · M-054(S2-a 순수 판정 7 op judge/1 · corpus · check_judge_parity 불일치 0) · M-055(S2-b 중앙 허브 코어 Go 판 — db/assets/store/tools/httpapi/mcpserver · serve/backup/admin · check_hub_core both 18/18) done.** 다음: S2-c/d (나머지 허브 도구 · 오케스트레이션 · 웹 화면 Go 전환). 설계: `workflow-source/core/hub_go_spec.md` · ADR-035 Accepted. 검증 간소화 기간 유지 — `--changed` + 스모크 뒤 `--no-verify` push, 전량 게이트는 발행 때.
 - 직전 기준선: **139차 말 (2026-11-22, Linux 호스트) — 발행 없음, 정본 v2.0.0 + 2.1 오케스트레이션 미발행 (main `HEAD`).** 2.1 축: 중앙 허브 · PC 중계 · 하네스 · 세션 — concept `docs/planning/hub-orchestration-review-2026-11.md` · 요구 `hub-orchestration-requirements-2026-11.md` (실측 §1.2 · §1.4 · §1.5) · 스펙 `workflow-source/core/hub_orchestration_spec.md` · ADR-034 Accepted. 코드: `hub/orchestration.py` · `hub/relay.py` (DB 판 12) · `workflow_kit/relay/` (`python -m workflow_kit hub relay …`) · `editors/vscode/`. 검사 `check_hub_orch` 10 · `check_hub_orch_assign` 9 · `check_hub_relay` 10 · `check_vscode_shell` 6 (각각 되주입). 검증 간소화 기간 — `--changed` + 스모크 뒤 `--no-verify` push, 전량 게이트는 발행 때. release/1.x 에 이식 4건 push.
 - 그 이전 기준선: **138차 말 (2026-11-21, Linux 호스트) — v2.0.0 (2.0 허브, 베타 표기) · v1.30.0 (1.x 안내 판) 발행.** GitHub latest = v2.0.0. main 은 kit 플러그인 채널을 내지 않는다 (`KIT_PLUGIN_CHANNEL`, R16.6) — 이 호스트 Claude Code 채널은 `../standard_ai_workflow-1x` (Folder) 로 옮김. 판 번호는 정수 (2.0.0b1 은 키트 16곳이 깨져 소유자가 정수로 정함). 운영 가이드 `docs/HUB_OPERATIONS.md`, 두 줄 발행 정책 RELEASE.md §1.1. 게이트: main 346×2 (20c61a09) · 1.x 336×2 (24ca6ae3).
 - 그 이전 기준선: **138차 (2026-11-21, Linux 호스트) — 2.0 허브 화면 · 1.x 전환 · 허브 간 이전 · 테스트베드 · 셋업 가이드.** M-037 done (화면 `/ui/` · 콜사인 표 · 지침 제안), M-038 WBS-38.1~38.3 (전환 계획 · 들여오기 · 표식 · 1.x 거절; 남은 몫 = 2.0.0 발행 때 1.x 안내판, main-011), M-039: 39.1 Linux 4하네스 · `/setup.md` + `hub_client.py bootstrap` (빈 폴더에서 Claude Code 완주), 39.2 리허설 · 테스트베드(`~/workflow-hub-testbed/start.sh`, :8770) · 이 저장소 실제 등록(P-20261121-fcfdccb1, 표식 보류), 39.4 허브 간 이전(CLI · HTTP 초대 코드). 마지막 push `53076aac` 뒤 세션 정리 커밋.
@@ -84,6 +84,9 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-11-22-main-041 hub-go tools · mcpserver · httpapi · workflow-hub CLI 및 Go/Python 적합성 테스트 (M-055 WBS-55.3)
+- TASK-2026-11-22-main-040 hub-go/internal/store 저장 계층 구현 (M-055 WBS-55.2)
+- TASK-2026-11-22-main-039 hub-go/internal/db · assets · check_go_assets_sync 구현 (M-055 WBS-55.1)
 - TASK-2026-11-22-main-038 judge/1 corpus 및 check_judge_parity 차분 검사 구현 (M-054 WBS-54.3)
 - TASK-2026-11-22-main-037 wbs.gate · roadmap.derive · handoff.parse · state.build 순수 판정 구현 (M-054 WBS-54.2)
 - TASK-2026-11-22-main-036 judge/1 CLI 프로토콜 + plan.lint · plan.states · task.status 순수 판정 구현 (M-054 WBS-54.1)
@@ -91,9 +94,6 @@
 - TASK-2026-11-22-main-034 중앙 허브 /ui/ 2.1 오케스트레이션 판 · 로드맵 화면 · 1.x 워크벤치 UX 복원 (M-053 WBS-53.1)
 - TASK-2026-11-22-main-033 check_hub_relay 구현 스위치(WORKFLOW_RELAY_IMPL) · Go 중계 실제 어댑터 실측 (M-052 WBS-52.3)
 - TASK-2026-11-22-main-032 PC 중계 Go 판 — CLI · 설정 · 긴 폴링 · 어댑터 3종 · 로컬 화면 (M-052 WBS-52.2)
-- TASK-2026-11-22-main-031 hub-go 모듈 뼈대 · cmd/workflow-hub · check_go_build (M-052 WBS-52.1)
-- TASK-2026-11-22-main-030 Go 전환 design 결정 DG1~DG5 · ADR-035 Accepted (M-051 WBS-51.4)
-- TASK-2026-11-22-main-029 Go 전환 S1 중계 · 빌드 · 배포 설계 (M-051 WBS-51.3)
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

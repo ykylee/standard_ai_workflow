@@ -73,16 +73,41 @@ func TestHelpAndCommands(t *testing.T) {
 		}
 	})
 
-	t.Run("unimplemented_subcommands", func(t *testing.T) {
-		for _, sub := range []string{"serve", "backup", "admin"} {
+	t.Run("hub_commands_wired", func(t *testing.T) {
+		tmp := t.TempDir()
+		dbPath := tmp + "/hub.db"
+		outPath := tmp + "/backup.db"
+
+		// Missing flags return exit 2
+		for _, args := range [][]string{{"serve"}, {"backup"}, {"admin"}} {
 			var out, errBuf bytes.Buffer
-			rc := run([]string{sub}, &out, &errBuf)
-			if rc != 2 {
-				t.Fatalf("%s: got rc=%d, want 2", sub, rc)
+			if rc := run(args, &out, &errBuf); rc != 2 {
+				t.Fatalf("%v: got rc=%d, want 2", args, rc)
 			}
-			if !strings.Contains(errBuf.String(), "not implemented yet") {
-				t.Fatalf("%s: unexpected stderr %q", sub, errBuf.String())
-			}
+		}
+
+		// admin token issue & revoke + backup round-trip
+		var out, errBuf bytes.Buffer
+		if rc := run([]string{"admin", "--db", dbPath, "token", "issue", "--role", "admin", "--name", "ops"}, &out, &errBuf); rc != 0 {
+			t.Fatalf("admin token issue failed rc=%d stderr=%q", rc, errBuf.String())
+		}
+		if !strings.Contains(out.String(), `"status":"ok"`) || !strings.Contains(out.String(), `"token":"wfh_`) {
+			t.Fatalf("unexpected token issue output: %q", out.String())
+		}
+
+		out.Reset()
+		errBuf.Reset()
+		if rc := run([]string{"backup", "--db", dbPath, "--out", outPath}, &out, &errBuf); rc != 0 {
+			t.Fatalf("backup failed rc=%d stderr=%q", rc, errBuf.String())
+		}
+		if !strings.Contains(out.String(), `"status":"ok"`) {
+			t.Fatalf("unexpected backup output: %q", out.String())
+		}
+
+		out.Reset()
+		errBuf.Reset()
+		if rc := run([]string{"admin", "--db", dbPath, "token", "revoke", "--name", "ops"}, &out, &errBuf); rc != 0 {
+			t.Fatalf("admin token revoke failed rc=%d stderr=%q", rc, errBuf.String())
 		}
 	})
 

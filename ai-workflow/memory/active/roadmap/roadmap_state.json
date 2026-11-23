@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "generated_by": "workflow_kit.common.state.roadmap.generate_roadmap_state",
-  "generated_at": "2026-11-22",
+  "generated_at": "2026-11-23",
   "milestones": [
     {
       "id": "M-001",
@@ -2140,6 +2140,52 @@
           "derived_status": "done",
           "linked_task_ids": [
             "TASK-2026-11-22-main-038"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "M-055",
+      "title": "2.x 전면 Go 전환 — implementation S2-b (중앙 허브 코어 — db · assets · store · tools · httpapi · mcpserver)",
+      "sdlc_phase": "implementation",
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
+      "total_leaves": 3,
+      "done_leaves": 3,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-55.1",
+          "title": "`hub-go/internal/db` (SQLite `modernc.org/sqlite` · 이관 판 1~12 SQL 복사 · 이관 전 사본 · 온라인 백업) + `hub-go/internal/assets` + `check_go_assets_sync.py`",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-22-main-039"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        },
+        {
+          "id": "WBS-55.2",
+          "title": "`hub-go/internal/store` (`HubError` · `gitkey` · `Principal`/`Ctx` · 비밀 스캔 · 멱등 `applied_request` · 등록/콜사인/토큰/task CRUD/맡기/진행/커밋/이력)",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-22-main-040"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        },
+        {
+          "id": "WBS-55.3",
+          "title": "`hub-go/internal/{tools,httpapi,mcpserver}` + `cmd/workflow-hub` (`serve` · `backup` · `admin`) + `check_hub_core` `WORKFLOW_HUB_IMPL=go` 10/10 통과",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-22-main-041"
           ],
           "total_leaves": 1,
           "done_leaves": 1,

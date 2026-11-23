@@ -50,6 +50,12 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return relay.Main(args[1:], stdout, stderr)
 	case "judge":
 		return judge.Main(args[1:], os.Stdin, stdout, stderr)
+	case "serve":
+		return cmdServe(args[1:], stdout, stderr)
+	case "backup":
+		return cmdBackup(args[1:], stdout, stderr)
+	case "admin":
+		return cmdAdmin(args[1:], stdout, stderr)
 	}
 	cmd := args[0]
 	if isKnownSubcommand(cmd) {

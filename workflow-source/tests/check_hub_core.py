@@ -20,15 +20,19 @@ from __future__ import annotations
 
 CHECK_TIMEOUT_S = 240
 
-# `python -m workflow_kit hub` 로 실제 프로세스를 띄우므로 dispatcher 를 거쳐 kit 전체를 읽는다.
+# `python -m workflow_kit hub` 또는 `workflow-hub` 로 실제 프로세스를 띄운다.
+# 구현 스위치 `WORKFLOW_HUB_IMPL` (`python` | `go` | `both`, 기본 `both` — Go 가 있으면 둘 다 잰다).
 WATCHES = (
     "workflow-source/workflow_kit/*",
     "workflow-source/pyproject.toml",
+    "hub-go/*",
 )
 
 import asyncio
 import json
 import os
+import re
+import shutil
 import socket
 import sqlite3
 import subprocess
@@ -44,6 +48,7 @@ from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
+HUB_GO = REPO_ROOT / "hub-go"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
@@ -55,6 +60,7 @@ from workflow_kit.hub.store import Ctx, Store  # noqa: E402
 
 _failures: list[str] = []
 _passes: list[str] = []
+_skips: list[str] = []
 
 
 def _record(case: str, ok: bool, detail: str = "") -> None:
@@ -78,13 +84,56 @@ def _now() -> datetime:
     return datetime.now(timezone.utc).replace(microsecond=0)
 
 
+def _declared_go_version() -> str | None:
+    mod = HUB_GO / "go.mod"
+    if not mod.is_file():
+        return None
+    for raw in mod.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if line.startswith("go "):
+            return line.split(None, 1)[1].strip()
+    return None
+
+
+def _resolve_go_hub(tmp: Path) -> tuple[list[str] | None, str]:
+    explicit = os.environ.get("WORKFLOW_HUB_BIN", "").strip()
+    if explicit:
+        bin_path = Path(explicit)
+        if bin_path.is_file():
+            return [str(bin_path)], ""
+        return None, f"WORKFLOW_HUB_BIN 파일이 없다: {explicit}"
+
+    go_exe = shutil.which("go")
+    if not go_exe:
+        return None, "go 실행 파일이 PATH 에 없다"
+    declared = _declared_go_version()
+    if not declared:
+        return None, "hub-go/go.mod 에서 go 판을 읽지 못했다"
+    env = {**os.environ, "GOTOOLCHAIN": "local", "CGO_ENABLED": "0"}
+    vproc = subprocess.run([go_exe, "version"], capture_output=True, text=True, env=env, timeout=30,
+                           encoding="utf-8", errors="replace")
+    m = re.search(r"\bgo(\d+\.\d+(?:\.\d+)?)\b", vproc.stdout)
+    actual = m.group(1) if m else ""
+    if actual != declared:
+        return None, f"go 판 불일치: 호스트 {actual} != go.mod {declared}"
+    out_bin = tmp / ("workflow-hub.exe" if os.name == "nt" else "workflow-hub")
+    bproc = subprocess.run([go_exe, "build", "-trimpath", "-o", str(out_bin), "./cmd/workflow-hub"],
+                           cwd=str(HUB_GO), env=env, capture_output=True, text=True, timeout=120,
+                           encoding="utf-8", errors="replace")
+    if bproc.returncode != 0 or not out_bin.is_file():
+        err_snip = (bproc.stdout + bproc.stderr).strip()[:200]
+        return None, f"go build 실패: {err_snip}"
+    return [str(out_bin)], ""
+
+
 class Hub:
-    def __init__(self, db: Path, bind: str = "127.0.0.1", extra: tuple[str, ...] = ()) -> None:
+    def __init__(self, db: Path, bind: str = "127.0.0.1", extra: tuple[str, ...] = (),
+                 cmd_prefix: list[str] | None = None) -> None:
         self.port = _free_port()
         self.base = f"http://127.0.0.1:{self.port}"
+        prefix = list(cmd_prefix) if cmd_prefix is not None else [sys.executable, "-m", "workflow_kit", "hub"]
         self.proc = subprocess.Popen(
-            [sys.executable, "-m", "workflow_kit", "hub", "serve", "--db", str(db), "--bind", bind, "--port", str(self.port),
-             *extra],
+            [*prefix, "serve", "--db", str(db), "--bind", bind, "--port", str(self.port), *extra],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=_env(), encoding="utf-8", errors="replace",
         )
         deadline = time.time() + 30
@@ -96,8 +145,8 @@ class Hub:
                 if self.proc.poll() is not None:
                     break
                 time.sleep(0.2)
-        self.stop()
-        raise RuntimeError(f"허브가 뜨지 않았다: {self.proc.stderr.read() if self.proc.stderr else ''}")
+        err = self.stop()
+        raise RuntimeError(f"허브가 뜨지 않았다: {err}")
 
     def stop(self) -> str:
         if self.proc.poll() is None:
@@ -182,8 +231,10 @@ def case_2_migration(tmp: Path) -> None:
             f"fresh={ok_fresh} newer={ok_newer} v2={ok_v2} atomic={ok_atomic}")
 
 
-def case_3_backup(tmp: Path) -> None:
-    db = tmp / "b.db"
+def case_3_backup(tmp: Path, impl: str, cmd_prefix: list[str]) -> None:
+    sub = tmp / f"bk-{impl}"
+    sub.mkdir(parents=True, exist_ok=True)
+    db = sub / "b.db"
     hubdb.open_db(db, now=_now())
     store = Store(db)
     reg = store.register_project(Ctx(now=_now(), via="test"), "https://github.com/acme/bk", "bk", "agent-a", "agent")
@@ -203,15 +254,23 @@ def case_3_backup(tmp: Path) -> None:
     t = threading.Thread(target=writer)
     t.start()
     time.sleep(0.3)
-    out = tmp / "b.copy.db"
-    hubdb.backup(db, out)
+    out = sub / "b.copy.db"
+    bk_ok = True
+    if impl == "python":
+        hubdb.backup(db, out)
+    else:
+        proc = subprocess.run([*cmd_prefix, "backup", "--db", str(db), "--out", str(out)],
+                              capture_output=True, encoding="utf-8", env=_env(), timeout=60)
+        bk_ok = proc.returncode == 0
+        if not bk_ok:
+            errors.append(f"backup rc={proc.returncode} err={(proc.stderr or proc.stdout)[:200]}")
     stop.set()
     t.join()
     conn = sqlite3.connect(str(out))
     integrity = conn.execute("PRAGMA integrity_check").fetchone()[0]
     rows = conn.execute("SELECT COUNT(*) FROM task").fetchone()[0]
     conn.close()
-    _record("case 3 (쓰는 중 온라인 백업)", integrity == "ok" and rows > 0 and not errors,
+    _record(f"case 3 (쓰는 중 온라인 백업) [{impl}]", bk_ok and integrity == "ok" and rows > 0 and not errors,
             f"integrity={integrity} rows={rows} errors={errors[:2]}")
 
 
@@ -251,18 +310,20 @@ def _mcp_session(base: str, token: str | None, calls: list[tuple[str, dict[str, 
     return asyncio.run(go())
 
 
-def case_4_to_10(tmp: Path) -> None:
-    db = tmp / "e2e.db"
-    hub = Hub(db)
+def case_4_to_10(tmp: Path, impl: str, cmd_prefix: list[str]) -> None:
+    sub = tmp / f"core-{impl}"
+    sub.mkdir(parents=True, exist_ok=True)
+    db = sub / "e2e.db"
+    hub = Hub(db, cmd_prefix=cmd_prefix)
     try:
         r = urllib.request.urlopen(hub.base + "/healthz", timeout=5)
         health = json.loads(r.read().decode("utf-8"))
         ok4 = (health.get("ok") is True and health.get("contract") == "hub/1" and health.get("db_version") == hubdb.latest_version()
                and r.headers.get("X-Hub-Contract") == "hub/1" and r.headers.get("X-Hub-Kit") and health.get("exposure") == "loopback")
-        wild = Hub(tmp / "wild.db", bind="0.0.0.0")
+        wild = Hub(sub / "wild.db", bind="0.0.0.0", cmd_prefix=cmd_prefix)
         warn = wild.stop()
         ok4b = "loopback 이 아닌" in warn and "누구나 프로젝트를 등록" in warn
-        _record("case 4 (healthz · 머리 · loopback 밖 경고)", ok4 and ok4b, f"health={health} warn={warn[:120]!r}")
+        _record(f"case 4 (healthz · 머리 · loopback 밖 경고) [{impl}]", ok4 and ok4b, f"health={health} warn={warn[:120]!r}")
 
         # 5 등록 · 합류
         st, reg, _ = hub.call("hub_project_register", {"remote_url": "git@github.com:Acme/Demo.git", "display_name": "Demo",
@@ -287,13 +348,13 @@ def case_4_to_10(tmp: Path) -> None:
                and st7 == 400 and reserved.get("error_code") == "invalid_field"
                and st8 == 400 and local.get("error_code") == "invalid_remote"
                and tok_a.encode() not in raw and tok_b.encode() not in raw)
-        _record("case 5 (등록 · 합류 · 토큰 원문 미저장)", ok5,
+        _record(f"case 5 (등록 · 합류 · 토큰 원문 미저장) [{impl}]", ok5,
                 f"{st} {st2} {st3}/{dup.get('error_code')} {st4} {st5} {st6} {st7} {st8} 원문저장={tok_a.encode() in raw}")
 
         # 6 task
         today = _now().strftime("%Y-%m-%d")
         s0, noauth, _ = hub.call("hub_task_create", {"title": "x"})
-        adm = subprocess.run([sys.executable, "-m", "workflow_kit", "hub", "admin", "--db", str(db), "token", "issue",
+        adm = subprocess.run([*cmd_prefix, "admin", "--db", str(db), "token", "issue",
                               "--role", "admin", "--name", "ops"], capture_output=True, encoding="utf-8", env=_env(), timeout=60)
         adm_tok = json.loads(adm.stdout).get("token", "")
         s1, admin_try, _ = hub.call("hub_task_create", {"title": "x"}, adm_tok)
@@ -316,7 +377,7 @@ def case_4_to_10(tmp: Path) -> None:
                and len(listing.get("tasks", [])) == 2
                and s8 == 200 and upd["task"]["version"] == 2
                and s9 == 409 and stale.get("error_code") == "version_conflict" and stale["detail"].get("current_version") == 2)
-        _record("case 6 (task 생성 · 검증 · 409)", ok6,
+        _record(f"case 6 (task 생성 · 검증 · 409) [{impl}]", ok6,
                 f"{s0} {s1} {s2} id={id1} {s4}/{long.get('message','')[:40]} {s5} {s6} {s7} tasks={len(listing.get('tasks', []))} {s8} {s9}")
 
         # 7 맡기
@@ -329,7 +390,7 @@ def case_4_to_10(tmp: Path) -> None:
                and c4 == 200 and c5 == 200 and claim_b["task"]["assignee"] == "codex-b"
                # 맡는 순간 시작 — planned → in_progress, 놓아도 되돌리지 않는다 (소유자 2026-11-21)
                and claim_a["task"]["status"] == "in_progress" and claim_b["task"]["status"] == "in_progress")
-        _record("case 7 (맡기 409 · 놓기 권한)", ok7, f"{c1} {c2} {c3} {c4} {c5}")
+        _record(f"case 7 (맡기 409 · 놓기 권한) [{impl}]", ok7, f"{c1} {c2} {c3} {c4} {c5}")
 
         # 8 이력 · request_id
         p1, prog, _ = hub.call("hub_task_progress", {"id": id1, "note": "구현 중", "request_id": "r-1"}, tok_b)
@@ -344,7 +405,7 @@ def case_4_to_10(tmp: Path) -> None:
                and upd_ev.get("before", {}).get("title") == "첫 task" and upd_ev.get("after", {}).get("title") == "고친 제목"
                and upd_ev.get("callsign") == "claude-a" and upd_ev.get("via") == "http"
                and prog["task"]["progress_note"].endswith("구현 중"))
-        _record("case 8 (이력 · request_id 멱등)", ok8, f"ops={ops} replayed={again.get('replayed')} upd={upd_ev}")
+        _record(f"case 8 (이력 · request_id 멱등) [{impl}]", ok8, f"ops={ops} replayed={again.get('replayed')} upd={upd_ev}")
 
         # 9 MCP 경계
         boot = sorted(t.name for t in hubtools.visible_tools(False))
@@ -361,34 +422,49 @@ def case_4_to_10(tmp: Path) -> None:
                and names_auth == full
                and [t["id"] for t in mcp_list["tasks"]] == [t["id"] for t in http_list["tasks"]]
                and last.get("via") == "mcp" and last.get("op") == "progress" and last.get("callsign") == "claude-a")
-        _record("case 9 (MCP 인증 경계 · HTTP 와 같은 결과)", ok9,
+        _record(f"case 9 (MCP 인증 경계 · HTTP 와 같은 결과) [{impl}]", ok9,
                 f"anon={names_anon} auth={len(names_auth)}/{len(full)} anon_res={res_anon} last={last.get('via')}/{last.get('op')}")
 
         # 10 거두기
-        rv = subprocess.run([sys.executable, "-m", "workflow_kit", "hub", "admin", "--db", str(db), "callsign", "revoke",
+        rv = subprocess.run([*cmd_prefix, "admin", "--db", str(db), "callsign", "revoke",
                              "--project", pid, "--callsign", "codex-b"], capture_output=True, encoding="utf-8", env=_env(), timeout=60)
         out = json.loads(rv.stdout or "{}")
         r1, gone, _ = hub.call("hub_whoami", {}, tok_b)
         _, after, _ = hub.call("hub_task_get", {"id": id1}, tok_a)
         ok10 = (rv.returncode == 0 and out.get("released_tasks") == [id1] and r1 == 401
                 and after["task"]["assignee"] is None)
-        _record("case 10 (거두기 — 토큰 무효 · 맡던 task 비움)", ok10, f"rc={rv.returncode} out={out} whoami={r1}")
+        _record(f"case 10 (거두기 — 토큰 무효 · 맡던 task 비움) [{impl}]", ok10, f"rc={rv.returncode} out={out} whoami={r1}")
     finally:
         err = hub.stop()
         if _failures:
-            print("  --- 허브 stderr ---\n" + err[-2000:])
+            print(f"  --- [{impl}] 허브 stderr ---\n" + err[-2000:])
 
 
 def main() -> int:
-    print("=== 허브 코어 (M-033) ===")
+    print("=== 허브 코어 (M-033 · M-055) ===")
+    mode = os.environ.get("WORKFLOW_HUB_IMPL", "both").strip().lower() or "both"
+    if mode not in ("python", "go", "both"):
+        print(f"  ✗ 알 수 없는 WORKFLOW_HUB_IMPL={mode!r} (python · go · both 만 허용)")
+        return 2
+
+    py_cmd = [sys.executable, "-m", "workflow_kit", "hub"]
     with tempfile.TemporaryDirectory(prefix="hubcore-") as d:
         tmp = Path(d)
         case_1_gitkey()
         case_2_migration(tmp)
-        case_3_backup(tmp)
-        case_4_to_10(tmp)
+        if mode in ("python", "both"):
+            case_3_backup(tmp, "python", py_cmd)
+            case_4_to_10(tmp, "python", py_cmd)
+        if mode in ("go", "both"):
+            go_cmd, reason = _resolve_go_hub(tmp)
+            if go_cmd is None:
+                _skips.append(f"go ({reason})")
+                print(f"    [unmeasured] go 허브 미측정: {reason}")
+            else:
+                case_3_backup(tmp, "go", go_cmd)
+                case_4_to_10(tmp, "go", go_cmd)
     total = len(_passes) + len(_failures)
-    print(f"\n{len(_passes)}/{total} passed")
+    print(f"\n{len(_passes)}/{total} passed" + (f" · 미측정 {len(_skips)}" if _skips else ""))
     if _failures:
         for f in _failures:
             print(f"  ✗ {f}")

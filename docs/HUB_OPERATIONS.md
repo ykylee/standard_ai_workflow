@@ -1,10 +1,10 @@
-# 워크플로우 허브 운영 가이드 (2.0)
+# 워크플로우 허브 운영 가이드 (2.x · 3.x pilot)
 
 - 문서 목적: 2.0 워크플로우 허브를 설치하고 띄우고 지키는 법 — 사람(허브 관리자)이 읽는다
 - 범위: 설치 · 띄우기 · 노출과 공개 주소 · 토큰 · 프로젝트 셋업 안내 · 지침 · 백업과 복원 · 판 올리기 · 허브 간 이전 · 점검
 - 대상 독자: 허브 관리자, 저장소 관리자
 - 상태: beta
-- 최종 수정일: 2026-11-21
+- 최종 수정일: 2026-11-23
 - 관련 문서: [`../workflow-source/core/hub_spec.md`](../workflow-source/core/hub_spec.md) (계약 정본), [`planning/workflow-hub-requirements-2026-11.md`](./planning/workflow-hub-requirements-2026-11.md) (요구 · 실측 §16), [`RELEASE.md`](./RELEASE.md)
 
 허브는 **프로세스 하나와 SQLite 파일 하나**다. 작업 환경(저장소 · 하네스)은 kit 을 깔지 않는다 — 허브 주소 하나로
@@ -115,6 +115,40 @@ python -m workflow_kit hub backup --db ~/workflow-hub/hub.db --out ~/backup/hub-
 새 wheel 을 같은 venv 에 `[hub]` 로 깔고 허브를 다시 띄운다. DB 판이 오르면 시작 때 이관 전 사본을 남긴다.
 작업 환경은 아무것도 다시 깔지 않는다 — 지침 판이 바뀌었으면 다음 세션 시작이 렌더 지시를 낸다. 선택
 클라이언트(`hub_client.py`)는 허브가 `/v1/bootstrap/hub_client.py` 로 내려주며 요청마다 지금 판을 준다.
+
+### 8.1 3.x pre-release pilot 런타임 선택
+
+3.x pilot 은 Go 바이너리를 제공하고 Python wheel 에도 기존 Python 허브를 유지한다. Windows에서 Go 런타임 문제가
+나면 같은 pilot 판의 Python 허브를 별도 프로세스와 DB 사본으로 평가할 수 있다.
+
+```sh
+python3 -m venv ~/workflow-hub/venv-3x
+~/workflow-hub/venv-3x/bin/python -m pip install \
+  'standard-ai-workflow[hub] @ https://github.com/ykylee/standard_ai_workflow/releases/download/v3.0.1/standard_ai_workflow-3.0.1-py3-none-any.whl'
+~/workflow-hub/venv-3x/bin/python -m workflow_kit hub serve \
+  --db ~/workflow-hub/pilot-copy.db --bind 127.0.0.1 --port 8770
+```
+
+- Python은 SQLite에 경로를 직접 전달하므로 Go의 `file:` DSN URI 생성 경로를 거치지 않는다.
+- Go와 Python 모두 parity 및 rollback 검증이 끝나기 전까지 운영 DB에 연결하지 않는다. pilot 시에는 각각 독립된 일관된 DB 사본을 쓴다.
+- 3.0.0 pre-release는 Windows 경로 DSN 결함이 있어 Windows에서는 사용하지 않는다. 수정판은 3.0.1이다.
+
+### 8.1 3.x pre-release pilot 런타임 선택
+
+3.x pilot 은 Go 바이너리를 제공하고 Python wheel 에도 기존 Python 허브를 유지한다. Windows에서 Go 런타임 문제가
+나면 같은 pilot 판의 Python 허브를 별도 프로세스와 DB 사본으로 평가할 수 있다.
+
+```sh
+python3 -m venv ~/workflow-hub/venv-3x
+~/workflow-hub/venv-3x/bin/python -m pip install \
+  'standard-ai-workflow[hub] @ https://github.com/ykylee/standard_ai_workflow/releases/download/v3.0.1/standard_ai_workflow-3.0.1-py3-none-any.whl'
+~/workflow-hub/venv-3x/bin/python -m workflow_kit hub serve \
+  --db ~/workflow-hub/pilot-copy.db --bind 127.0.0.1 --port 8770
+```
+
+- Python은 SQLite에 경로를 직접 전달하므로 Go의 `file:` DSN URI 생성 경로를 거치지 않는다.
+- Go와 Python 모두 parity 및 rollback 검증이 끝나기 전까지 운영 DB에 연결하지 않는다. pilot 시에는 각각 독립된 일관된 DB 사본을 쓴다.
+- 3.0.0 pre-release는 Windows 경로 DSN 결함이 있어 Windows에서는 사용하지 않는다. 수정판은 3.0.1이다.
 
 ## 9. 허브 간 프로젝트 이전
 

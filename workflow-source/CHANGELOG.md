@@ -4,7 +4,7 @@
 - 범위: git log 에서 추출한 release 별 Added / Changed / Fixed 항목.
 - 대상 독자: maintainer, 릴리스 매니저, 외부 consumer
 - 상태: stable (자동 생성물)
-- 최종 수정일: 2026-11-22
+- 최종 수정일: 2026-11-23
 - 관련 문서: [`./releases/`](./releases/) (release note), [`../docs/RELEASE.md`](../docs/RELEASE.md) (릴리스 절차)
 
 All notable changes to this project will be documented in this file.
@@ -12,10 +12,20 @@ All notable changes to this project will be documented in this file.
 본 파일은 `tools/release_pipeline.py changelog-gen` 으로 자동 생성됩니다 (v0.7.14+).
 수동 편집은 다음 생성 시 덮어써진다 — 형식/metadata 변경은 생성기를 고칠 것.
 
-## [Unreleased] - 2026-11-22
+## [Unreleased] - 2026-11-23
 
 ### Added
 
+- feat(hub): prepare Go 3.0.0 pre-release pilot (548e8654)
+- feat(hub-go): extend web UI route coverage (b0214862)
+- feat(release): package Go hub assets for 3.0 (2711126a)
+- feat(hub-go): port sessions and orchestration (M-056) (08f9bd40)
+- feat(judge): judge/1 CLI 프로토콜 및 plan.lint · plan.states · task.status Python·Go 순수 판정 구현 (M-054 WBS-54.1, TASK-2026-11-22-main-036) (8d1c2840)
+- feat(ui): 중앙 허브 2.1 오케스트레이션·로드맵·워크벤치 UX 및 PC 중계(Python·Go) 무깜빡임 로컬 화면 완성 (M-053 WBS-53.1~53.2, TASK-2026-11-22-main-034~035) (1cfe442a)
+- feat(hub-go): check_hub_relay 구현 스위치(python·go) + Go 중계 실제 어댑터 실측 — M-052 S1 완료 (WBS-52.3, TASK-2026-11-22-main-033) (7aff454b)
+- feat(hub-go): PC 중계 Go 판 — CLI · 설정 · 긴 폴링 · 어댑터 3종 · 로컬 화면 (M-052 WBS-52.2, TASK-2026-11-22-main-032) (5bd6baf5)
+- feat(hub-go): hub-go 모듈 뼈대 · cmd/workflow-hub · check_go_build 6 대상 크로스 빌드 (M-052 WBS-52.1, TASK-2026-11-22-main-031) (4cd322e3)
+- feat(hub): mcp 2.x 지원 — [hub] 상한 <3, lowlevel 처리기 등록형 · SDK 매트릭스가 허브 MCP 경로를 밟는다 (TASK-2026-11-22-main-022) (99664b10)
 - feat(editors): VS Code 확장 껍데기 — 중계 화면 webview · 상태 표시줄 (M-047, TASK-2026-11-22-main-015) (54d684ab)
 - feat(relay): 중계 로컬 화면 + 실제 어댑터 실측 — Claude Code · Codex 전 과정 (M-046 WBS-46.3, TASK-2026-11-22-main-013) (7db4bdac)
 - feat(hub): 2.1 PC 중계 — 허브 쪽 API · workflow_kit/relay 패키지 · 하네스 어댑터 (M-046 WBS-46.2, TASK-2026-11-22-main-011) (8dab7174)
@@ -36,20 +46,24 @@ All notable changes to this project will be documented in this file.
 - feat(hub): 1.x 전환 — '허브로 옮김' 표식 쓰기 지시 · 되돌리기 (M-038 WBS-38.2, TASK-2026-11-21-main-009) (9dfb42c5)
 - feat(hub): 1.x 전환 — 감지 · 전환 계획 · 들여오기 (M-038 WBS-38.1, TASK-2026-11-21-main-008) (0bbbfcd3)
 - feat(hub): 허브 화면 — 지침 편집 · 에이전트 제안 승인(D11) · 위키 읽기 (M-037 WBS-37.3, TASK-2026-11-21-main-007) · M-037 done (88523dc9)
-- feat(hub): 허브 화면 — 콜사인별 handoff · 지금 누가 무엇을 · 지침 판 현황 (M-037 WBS-37.2, TASK-2026-11-21-main-006) (c86b58ef)
-- feat(hub): 허브 화면 첫 판 — 프로젝트 · task 목록 · 계획 · 결정 답 · 이력 (M-037 WBS-37.1, TASK-2026-11-21-main-005) (69e65a37)
-- feat(hub): 선택 클라이언트 첫 판 — 오프라인 보낼편지함 · 캐시 · 세션 시작 보고 (M-036 WBS-36.3 B, TASK-2026-11-21-main-004) · M-036 done (25e8574a)
-- feat(hub): 위키 운반 — 디렉터리 무손실 들여오기 · 내보내기 + OKF 출판 · 남의 묶음 들여오기 (M-036 WBS-36.3 A, TASK-2026-11-21-main-003) (825cb49c)
-- feat(hub): memory_index · 양방향 링크 · 출처 sha · 위키 원격 읽기 (M-036 WBS-36.2, TASK-2026-11-21-main-002) (d6c64e28)
-- feat(hub): 위키 — 페이지 · ingest 묶음 · index/log 생성 · 읽기 · lint (M-036 WBS-36.1, TASK-2026-11-21-main-001) (c21bf708)
-- feat(hub): 콜사인별 기억 — handoff · 세션 끝 · compact · state.json v1 (M-035 WBS-35.1, M-035 done) (7e42bf9e)
-- feat(hub): 1.x 와 같은 판정 — 계획 린트 · done 게이트 · 결정 응답 · WBS 게이트 · 로드맵 진척 (M-035 WBS-35.2 · 35.3) (6337828e)
-- feat(hub): 부트스트랩 셋업 · 지침 렌더링 · 세션 시작 확인 (M-034) (7c7df1db)
-- feat(hub): 2.0 허브 코어 — 서버 · SQLite · 등록 · 콜사인 · task · 이력 · 원격 MCP 경계 (M-033) (67a00c96)
-- ... (211 more)
+- ... (221 more)
 
 ### Changed
 
+- chore(memory): close Go UI verification session (a5a958a0)
+- chore(memory): record Go UI verification stage (1f8f215d)
+- chore(memory): close release prep session (92c52dce)
+- chore(memory): record release prep push gate (cd2d8b37)
+- chore(memory): record M-056 push gate (6c3acd07)
+- chore(memory): 141차 세션 종료 — M-052~M-055 Go 전환 S1·UI·S2-a·S2-b 반영, 다음 S2-c/d (71954d44)
+- hub-go: implement hub core db, assets, store, tools, mcpserver, httpapi, CLI (M-055) (7d7986cb)
+- M-054 WBS-54.2~54.3: complete 7 pure judge/1 ops, corpus, and parity gate (468ff6eb)
+- chore(memory): 140차 세션 종료 — v2.1.0 발행 · mcp 2.x · Go 전환 concept/requirements/design 반영, 다음 M-052 S1 중계 (07db4a9b)
+- docs: Go 전환 design 확정 — DG1~DG5 권고안 · ADR-035 Accepted · PURPOSE Go 런타임 예외 · M-051 done · M-052 S1 중계 선언 (TASK-2026-11-22-main-030) (0199b6db)
+- docs(core): 허브 Go 판 설계 hub_go_spec — hub-go 배치 · 순수 판정 op · judge/1 CLI · 차분 · 적합성 검사 · S1 중계 · 빌드 · DG1~DG5 (M-050 done · M-051, TASK-2026-11-22-main-024~030) (bf1116dd)
+- docs(planning): 2.x 전면 Go 전환 requirements R25~R35 · 계약 표면 실측 · 정할 것 Q1~Q6 · ADR-035 Proposed (M-050, TASK-2026-11-22-main-024 · 025 · 026) (01d562fd)
+- docs(planning): Go 전환 결정 — R1 전면 Go(허브 · 공유 판정 · 중계), 나머지 권고안 · M-049 done · M-050 requirements 선언 (TASK-2026-11-22-main-021 · 023) (30199b4d)
+- docs(planning): 허브 · PC 중계 Go/Rust 전환 concept — SDK · 탐침 실측 · 이식량 · 선택지 A~D · 권고 B(중계만 Go) (M-049, TASK-2026-11-22-main-021) (ddfa5321)
 - chore(memory): 2.1.0 발행 task 등록 (TASK-2026-11-22-main-019) (19fb3080)
 - docs: README 재작성 — 2.0 허브 · 2.1 오케스트레이션 구성 · 시스템 구성도 · 아키텍처 (TASK-2026-11-22-main-018) (33a39ea8)
 - docs(hub): 2.1 진입 지침 세션 끝 — push 가 막힌 일하는 세션은 권한을 바꾸지 않고 보고 (M-048 WBS-48.2, TASK-2026-11-22-main-017) (f0cd1248)
@@ -66,21 +80,7 @@ All notable changes to this project will be documented in this file.
 - docs(2.0): README 2.0 허브 안내 · 설치 문서 플러그인 채널은 1.x 줄(release/1.x 고정) (M-040 WBS-40.1, TASK-2026-11-21-main-026) (4ac980e7)
 - docs(hub): 2.0.0-beta 발행 범위 확정 · 허브 운영 가이드 (M-040 WBS-40.1, TASK-2026-11-21-main-024) (dfec2494)
 - chore(memory): 138차 세션 정리 — handoff 기준선 · 주 작업 축 갱신, 기준선 1건 이관 (M-039) (f044897b)
-- chore(hub): 이 저장소 테스트베드 허브 실제 등록 close — 들여오기 1193 파일 실패 0, 표식 보류 (M-039 WBS-39.2, TASK-2026-11-21-main-021) (427e839e)
-- chore(hub): 이 저장소 허브 등록 셋업 — .workflow-hub/ git-ignore (M-039 WBS-39.2, TASK-2026-11-21-main-021) (1be9dfec)
-- chore(memory): WBS-38.3 일부 close (D1 = 1.x 안내 판은 2.0.0 발행 때) · 안내 판 발행 task 등록 (TASK-2026-11-21-main-010 · -011) (cc3beedb)
-- test(hub): check_hub_wiki case 11 의 초 경계 흔들림 — OKF index.md 생성 시각만 걷어 비교 (0a56fe41)
-- chore(memory): 합친 수정 브랜치 메모리 정리 — fix/1x-long-lived-branch-memory task 닫고 아카이브 · 명세 스탬프 (v1.29.1 게이트) (148e6cdc)
-- Merge remote-tracking branch 'origin/main' (c150de60)
-- Merge pull request #32 from ykylee/fix/long-lived-branch-memory (383d1fdf)
-- Merge pull request #31 from ykylee/fix/1x-long-lived-branch-memory (0a7e4c76)
-- chore(memory): 137차 세션 종료 — 기준선 M-036 done · 다음 M-037, 지난 compact 체크포인트 정리 (aa746c88)
-- chore(memory): release/1.x 브랜치 메모리 seed · 1.x OKF 결함 2건 등록 (R16.8) (e16ce897)
-- chore(memory): WBS-36.2 close · handoff 다음 WBS-36.3 (9e8f5817)
-- chore(memory): 2.0 허브 합류 반영 · main 기준선 137차 · §5 이관 + fix(kit): sessions/ 로 옮기는 블록의 상대 링크 보정 (ddc703dd)
-- merge: claude/workflow-hub-concept → main — 2.0 허브 M-031~M-035 (R16.5 release/1.x 분기 뒤) (dd011029)
-- docs(hub): R16.5 1.x 분기 브랜치 이름 release/1.x 확정 · handoff (8ef1ee07)
-- ... (555 more)
+- ... (569 more)
 
 ### Fixed
 
@@ -120,6 +120,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- release(v2.1.0): 발행 완료 — tag v2.1.0 (a423d21d) · GitHub Release Latest (wheel · sdist) · M-048 done · M-049 Go/Rust 전환 concept 등록 (46320576)
 - release(v2.1.0): 발행 준비 — 2.1 허브 오케스트레이션 (minor, 베타 표기) (a423d21d)
 
 ## [2.0.0] - 2026-11-21

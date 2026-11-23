@@ -119,6 +119,7 @@ workflow-hub judge <op>                  # Go 판
 ## 7. 빌드 · 배포 (요구 R31)
 
 - 대상 6: linux · darwin · windows × amd64 · arm64, `CGO_ENABLED=0 -trimpath -ldflags "-s -w -X main.version=<판>"`. 판은 `workflow-source/pyproject.toml` 의 판과 같다 (S4 전까지 판 정본 하나).
+- SQLite 파일 경로는 OS 별 절대 경로를 `file:` URI로 바꿀 때 드라이브 경로를 `file:///C:/...` 로 직렬화한다. Windows 경로를 `file:C:/...` 로 내면 상대 URI가 되므로 금지하고, Windows 드라이브 · 공백 · 비ASCII 경로를 회귀 검사한다.
 - 산출물: `workflow-hub-<판>-<os>-<arch>[.exe]` + `SHA256SUMS`. 발행 도구(`release_pipeline`)의 `dist` 가 Go 빌드를 부르고, `release` 가 asset 으로 싣는다. 발행 게이트는 바이너리 · 체크섬 존재를 본다 (요구 R32.3).
 - 서명 · 공증은 concept R4 대로 실측 뒤 (요구 R31.2).
 

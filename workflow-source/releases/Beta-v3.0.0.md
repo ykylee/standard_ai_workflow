@@ -32,3 +32,25 @@
 ## 이전 판
 
 - v2.1.0 — Python 허브 안정판. 이 pilot 동안 GitHub `latest`를 유지한다.
+
+## 2026-11-23 후속 공지
+
+- Windows Go 바이너리에서 SQLite DSN 드라이브 경로가 상대 URI가 되는 결함이 확인됐다. Windows pilot은 v3.0.1 이상을 사용한다.
+- 수정판에는 Go DSN 수정과 Python 허브 fallback 절차가 포함된다. 안정판 latest는 v2.1.0으로 유지한다.
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-11-23T06:47:22Z)_
+
+- total wiki pages: **102**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

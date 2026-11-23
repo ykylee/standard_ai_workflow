@@ -2284,8 +2284,10 @@
         {
           "id": "WBS-57.4",
           "title": "macOS·Windows 실측과 배포 정책 확정",
-          "derived_status": "planned",
-          "linked_task_ids": [],
+          "derived_status": "in_progress",
+          "linked_task_ids": [
+            "TASK-2026-11-23-main-008"
+          ],
           "total_leaves": 1,
           "done_leaves": 0,
           "children": []

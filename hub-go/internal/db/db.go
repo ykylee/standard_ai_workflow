@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -40,9 +41,20 @@ func dsnForPath(dbPath string) string {
 	if a, err := filepath.Abs(dbPath); err == nil {
 		abs = a
 	}
+	return dsnForAbsolutePath(abs, runtime.GOOS == "windows")
+}
+
+// dsnForAbsolutePath builds a file URI from an absolute filesystem path. Windows drive paths
+// need a leading slash in the URI path (`file:///C:/...`); without it URL serialization produces
+// `file:C:/...`, which modernc SQLite interprets as a relative URI.
+func dsnForAbsolutePath(abs string, windows bool) string {
+	path := filepath.ToSlash(abs)
+	if windows && len(path) >= 3 && isDriveLetter(path[0]) && path[1] == ':' && path[2] == '/' {
+		path = "/" + path
+	}
 	u := url.URL{
 		Scheme: "file",
-		Path:   filepath.ToSlash(abs),
+		Path:   path,
 	}
 	q := url.Values{}
 	q.Add("_txlock", "immediate")
@@ -50,6 +62,10 @@ func dsnForPath(dbPath string) string {
 	q.Add("_pragma", "busy_timeout(10000)")
 	u.RawQuery = q.Encode()
 	return u.String()
+}
+
+func isDriveLetter(c byte) bool {
+	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')
 }
 
 // Connect opens a SQLite connection pool configured with foreign_keys=ON, busy_timeout=10000,

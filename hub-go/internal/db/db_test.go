@@ -2,8 +2,10 @@ package db
 
 import (
 	"errors"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -11,6 +13,35 @@ import (
 
 func testNow() time.Time {
 	return time.Date(2026, 11, 22, 12, 0, 0, 0, time.UTC)
+}
+
+func TestDSNForWindowsDrivePathIsAbsoluteURI(t *testing.T) {
+	dsn := dsnForAbsolutePath("C:/Users/A User/워크 폴더/hub.db", true)
+	u, err := url.Parse(dsn)
+	if err != nil {
+		t.Fatalf("url.Parse(%q): %v", dsn, err)
+	}
+	if u.Scheme != "file" || u.Host != "" || u.Path != "/C:/Users/A User/워크 폴더/hub.db" {
+		t.Fatalf("Windows DSN URI = scheme %q host %q path %q; want file URI with /C:/ drive path", u.Scheme, u.Host, u.Path)
+	}
+	if !strings.HasPrefix(dsn, "file:///C:/") {
+		t.Fatalf("Windows DSN = %q; want file:///C:/...", dsn)
+	}
+	q := u.Query()
+	if q.Get("_txlock") != "immediate" || len(q["_pragma"]) != 2 {
+		t.Fatalf("Windows DSN query options lost: %v", q)
+	}
+}
+
+func TestDSNForUnixPathRemainsAbsoluteURI(t *testing.T) {
+	dsn := dsnForAbsolutePath("/var/lib/workflow hub/hub.db", false)
+	u, err := url.Parse(dsn)
+	if err != nil {
+		t.Fatalf("url.Parse(%q): %v", dsn, err)
+	}
+	if u.Scheme != "file" || u.Host != "" || u.Path != "/var/lib/workflow hub/hub.db" {
+		t.Fatalf("Unix DSN URI = scheme %q host %q path %q", u.Scheme, u.Host, u.Path)
+	}
 }
 
 func TestMigrationsAndAtomicity(t *testing.T) {

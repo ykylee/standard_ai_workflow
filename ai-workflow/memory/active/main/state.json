@@ -32,6 +32,7 @@
     "current_focus": "TASK-2026-11-23-main-007 Go 허브 3.0.0 pre-release 발행 및 Linux 격리 pilot",
     "in_progress_items": [
       "TASK-2026-11-23-main-007 Go 허브 3.0.0 pre-release 발행 및 Linux 격리 pilot",
+      "TASK-2026-11-23-main-008 Go 허브 Windows SQLite DSN 절대 경로 수정",
       "TASK-2026-11-23-main-006 Go 허브 화면 API 및 PC 중계 HTTP parity",
       "TASK-2026-11-23-main-005 Go 허브 Linux 테스트베드 실전 shadow 검증"
     ],
@@ -63,11 +64,12 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-11-23.md",
-    "task_count": 7,
+    "task_count": 8,
     "in_progress_items": [
       "TASK-2026-11-23-main-005 — Go 허브 Linux 테스트베드 실전 shadow 검증",
       "TASK-2026-11-23-main-006 — Go 허브 화면 API 및 PC 중계 HTTP parity",
-      "TASK-2026-11-23-main-007 — Go 허브 3.0.0 pre-release 발행 및 Linux 격리 pilot"
+      "TASK-2026-11-23-main-007 — Go 허브 3.0.0 pre-release 발행 및 Linux 격리 pilot",
+      "TASK-2026-11-23-main-008 — Go 허브 Windows SQLite DSN 절대 경로 수정"
     ],
     "blocked_items": [],
     "done_items": [

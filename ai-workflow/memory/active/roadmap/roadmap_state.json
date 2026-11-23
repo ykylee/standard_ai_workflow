@@ -2599,6 +2599,20 @@
       "wbs_ref": "exempt",
       "exempt_reason": "기존 WBS-6.1 release milestone은 done이고 M-039는 2.0 안정화에 남아 있으나 Go 3.0 릴리즈 준비를 포괄하는 현재 roadmap leaf가 없다. 이번 점검만 임시 exempt로 등록하며, 실제 발행 전에 roadmap 범위를 정리한다.",
       "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-11-23-main-004.md"
+    },
+    {
+      "task_id": "TASK-2026-11-23-v3.0.2-001",
+      "task_status": "done",
+      "wbs_ref": "exempt",
+      "exempt_reason": "로드맵 밖 — worktree 브랜치 네임스페이스 자동 seed 사건 기록",
+      "source_path": "ai-workflow/memory/active/v3.0.2/backlog/tasks/TASK-2026-11-23-v3.0.2-001.md"
+    },
+    {
+      "task_id": "TASK-2026-11-23-v3.0.2-002",
+      "task_status": "in_progress",
+      "wbs_ref": "exempt",
+      "exempt_reason": "프로토콜 prerelease 발행은 전용 roadmap leaf가 없다",
+      "source_path": "ai-workflow/memory/active/v3.0.2/backlog/tasks/TASK-2026-11-23-v3.0.2-002.md"
     }
   ],
   "issues": []

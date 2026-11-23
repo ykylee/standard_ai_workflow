@@ -1,0 +1,19 @@
+# 세션 기록 — 브랜치 메모리 seed (2026-11-23)
+
+- 문서 목적: 이 브랜치 네임스페이스가 언제·왜 만들어졌는지 남긴다. seed 가 곧 첫 세션 사건이다.
+- 범위: seed 산출물 (handoff / task / backlog index / state.json)
+- 대상 독자: AI agent, 저장소 관리자
+- 상태: active
+- 최종 수정일: 2026-11-23
+- 관련 문서: [task](../backlog/tasks/TASK-2026-11-23-v3.0.2-001.md), [handoff](../session_handoff.md)
+
+## 1. 무엇을 만들었나
+
+- 브랜치: `v3.0.2`
+- 작업 축: `main` 에서 분기한 worktree — 작업 축은 첫 backlog-update 로 등록하는 task 가 정한다. 분기 시점 기준선은 `active/main/session_handoff.md`
+- 시작 task: [TASK-2026-11-23-v3.0.2-001](../backlog/tasks/TASK-2026-11-23-v3.0.2-001.md) — 브랜치 네임스페이스 자동 seed — `main` 에서 이어받음
+- 원류: `main@ae732239` — 기준선 · 주 작업 축 · §5 6줄 · 열린 task 10건(TASK-2026-08-25-main-017, TASK-2026-10-02-main-006, TASK-2026-10-02-main-007, TASK-2026-11-13-claude-remote-sync-check-234c32-005, TASK-2026-11-17-claude-remote-sync-check-234c32-002, TASK-2026-11-17-claude-remote-sync-check-234c32-004, TASK-2026-11-21-main-013, TASK-2026-11-23-main-005, TASK-2026-11-23-main-006, TASK-2026-11-23-main-014)을 옮겨 적었다
+
+## 2. 다음 세션 시작 포인트
+
+- `python -m workflow_kit session-start` 로 기준선을 복원하고 TASK-2026-11-23-v3.0.2-001 의 완료 기준을 채운다.

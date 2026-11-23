@@ -2,7 +2,7 @@
 id: M-058
 title: 허브 PostgreSQL 백엔드와 SQLite 데이터 이관
 sdlc_phase: implementation
-status: in_progress
+status: done
 order: 58
 parallel_allowed:
   - M-007

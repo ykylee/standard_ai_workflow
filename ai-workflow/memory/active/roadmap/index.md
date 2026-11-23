@@ -127,5 +127,5 @@
   - path: [`./M-056-go-port-orchestration.md`](./M-056-go-port-orchestration.md)
 - **M-057** [stabilization] Go 허브 실전 검증과 사용 가능한 3.0 전환 — status: in_progress
   - path: [`./M-057-go-hub-real-validation.md`](./M-057-go-hub-real-validation.md)
-- **M-058** [implementation] 허브 PostgreSQL 백엔드와 SQLite 데이터 이관 — status: in_progress
+- **M-058** [implementation] 허브 PostgreSQL 백엔드와 SQLite 데이터 이관 — status: done
   - path: [`./M-058-hub-postgresql-backend.md`](./M-058-hub-postgresql-backend.md)

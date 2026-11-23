@@ -81,7 +81,13 @@ OPTIONAL_DEPENDENCIES: tuple[OptionalDependency, ...] = (
             "uvicorn",
             "starlette.applications",
         ),
-        note="2.0 워크플로우 허브 서버 (core/hub_spec.md §2.3, DS1) — 허브 쪽에만 깐다. mcp<2 로 고정.",
+        note="2.0 워크플로우 허브 서버 (core/hub_spec.md §2.3, DS1) — 허브 쪽에만 깐다. MCP SDK 2.x 이상을 사용한다.",
+    ),
+    OptionalDependency(
+        extra="hub-postgres",
+        distributions=("psycopg",),
+        required_modules=("psycopg",),
+        note="PostgreSQL backend for the workflow hub; SQLite remains the default.",
     ),
     OptionalDependency(
         extra="mcp-jsonrpc",

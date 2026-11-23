@@ -2319,7 +2319,7 @@
       "id": "M-058",
       "title": "허브 PostgreSQL 백엔드와 SQLite 데이터 이관",
       "sdlc_phase": "implementation",
-      "declared_status": "in_progress",
+      "declared_status": "done",
       "derived_status": "done",
       "progress": 1.0,
       "total_leaves": 4,
@@ -2373,7 +2373,7 @@
       ]
     }
   ],
-  "current_milestone_id": "M-058",
+  "current_milestone_id": "M-057",
   "exempt_tasks": [
     {
       "task_id": "TASK-2026-08-25-main-010",
@@ -2600,11 +2600,5 @@
       "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-11-23-main-004.md"
     }
   ],
-  "issues": [
-    {
-      "code": "declared_derived_mismatch",
-      "detail": "M-058: 선언 in_progress ≠ 파생 done (done 경계)",
-      "where": "M-058-hub-postgresql-backend.md"
-    }
-  ]
+  "issues": []
 }

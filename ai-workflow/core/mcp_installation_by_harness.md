@@ -4,7 +4,7 @@
 - 범위: 하네스별 MCP config 위치 / 스키마 / 자동 심기 (`--enable-mcp`) / 수동 적용 / 트러블슈팅
 - 대상 독자: 워크플로우 도입자, AI agent 운영자, 멀티 에이전트 setup 담당자
 - 상태: beta
-- 최종 수정일: 2026-09-28
+- 최종 수정일: 2026-11-23
 - 관련 문서: [./workflow_harness_distribution.md](./workflow_harness_distribution.md), [./read_only_mcp_transport_promotion.md](./read_only_mcp_transport_promotion.md), [../core/workflow_global_injection_policy.md](./workflow_global_injection_policy.md), [`../../scripts/bootstrap_workflow_kit.py`](../../scripts/bootstrap_workflow_kit.py), [../harnesses/*/apply_guide.md](../harnesses/)
 
 ## 1. 두 가지 MCP transport
@@ -14,7 +14,7 @@
 | 이름 | 엔트리포인트 | 상태 | 권장 시나리오 |
 | --- | --- | --- | --- |
 | `jsonrpc-bridge` (default) | `python3 -m workflow_kit.server.read_only_jsonrpc --stdio-lines` | stable (v0.5.0) | 일반 도입. 항상 동작. 공식 MCP 클라이언트 왕복 확인됨 (`apply_mode: active_ok`, §6.1) |
-| `stdio-sdk` | `python3 -m workflow_kit.server.read_only_mcp_sdk --stdio-sdk` | **stable (v0.11.25)** | 정식 MCP SDK 호환. **v0.11.25 cycle 의 `CallToolResult` API 정합 + smoke PASS** (`check_read_only_mcp_sdk_stdio.py` 가 mcp 1.27.0 에서 client-server round-trip 정상). |
+| `stdio-sdk` | `python3 -m workflow_kit.server.read_only_mcp_sdk --stdio-sdk` | **stable (v0.11.25)** | 정식 MCP SDK 호환. **v0.11.25 cycle 의 `CallToolResult` API 정합 + smoke PASS** (`check_read_only_mcp_sdk_stdio.py` 가 MCP SDK 2.3.0 에서 client-server round-trip 을 검증한다. 최소 버전은 2.0.0. |
 
 권장: 처음 도입 시 `jsonrpc-bridge` 로 시작. SDK 호환이 꼭 필요하면 별도 TASK 로 추적하면서 점진 전환.
 
@@ -318,7 +318,7 @@ Grok Build 와 Codex 가 *동시에* 같은 저장소를 다룰 때, 동일 alia
 - **v0.11.25 의 1차 검증 결과 (mcp 1.27.0 venv 직접 install)**: `CallToolResult(_meta=..., structuredContent=...)` 호출이 *정상 동작*. `_meta` kwarg 가 Pydantic 의 `**extra_data` catch-all 으로 받아져 `meta` field (underscore 없음) 에 alias 됨. `model_dump` 결과 `meta: {...}` (no underscore).
 - **근본 원인** (v0.11.24 feasibility report 의 가설 A 부터 검증): ~~`structuredContent` / `_meta` kwarg 누락~~ *기각*. 실제 원인은 *구 mcp SDK 버전 (0.x ~ 1.0.x 시점)* 의 `CallToolResult` 가 본 kwarg 들을 *미지원* 했던 것. v0.5.10 ~ v0.11.24 동안 `mcp[cli]==1.27.0` 이 *pin* 되어 있어 본 회귀는 *historical* — 현재 cycle 의 *env 설치 검증* 으로 해소.
 - **해결 (v0.11.25)**: CI env 에 mcp SDK 설치 + `check_read_only_mcp_sdk_stdio.py` 가 PASS. spec §1 status 갱신. `transport_ready: True` advertise.
-- **호환성**: `mcp 1.27.0` 의 `CallToolResult` (struct, fields: `[meta, content, structuredContent, isError]`) 와 정합. mcp 0.x ~ 1.0.x 의 *구 SDK* 사용 시 회귀 재발 가능 → consumer 가 `mcp>=1.27.0` 권장.
+- **호환성**: `mcp 1.27.0` 의 `CallToolResult` (struct, fields: `[meta, content, structuredContent, isError]`) 와 정합. mcp 0.x ~ 1.0.x 의 *구 SDK* 사용 시 회귀 재발 가능 → 현재 consumer 는 `mcp>=2.0.0` 을 설치해야 한다.
 
 ### 7.3 `tools/list` 가 비어 있음
 

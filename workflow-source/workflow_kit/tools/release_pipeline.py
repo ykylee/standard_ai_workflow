@@ -667,6 +667,15 @@ def is_prerelease(version: str) -> bool:
     return len(key) > 3 and key[3] < 3
 
 
+def release_channel_flags(version: str, latest: bool, force_prerelease: bool = False) -> list[str]:
+    """Build GitHub flags while keeping prereleases out of the stable latest slot."""
+    prerelease = force_prerelease or is_prerelease(version)
+    flags = ["--latest" if latest and not prerelease else "--latest=false"]
+    if prerelease:
+        flags.append("--prerelease")
+    return flags
+
+
 def release_latest_decision(tag: str, remote_tags: list[str]) -> dict:
     """GitHub Release 의 'latest' 여부 — 원격 태그(이 태그 제외) 가운데 이 판이 가장 높은가 (R16.7)."""
     others = [t for t in remote_tags if t != tag and release_version_key(t) != (-1,)]
@@ -811,7 +820,7 @@ def write_workflow_kit_version(new_version: str, *, suffix: str = "-beta") -> st
     replacement = f'{new_version}{suffix or ""}'
     # v1.2.1: literal 이 `return "1.2.1"` 형태다. `v?` 로 구 포맷도 받아 마이그레이션.
     new_text, n = re.subn(
-        r'(return\s+")v?\d+\.\d+(?:\.\d+)?(?:[-+][a-zA-Z0-9.]+)?(")',
+        r'(return\s+")v?\d+\.\d+(?:\.\d+)?(?:(?:a|b|rc|\.post|\.dev)\d+|[-+][a-zA-Z0-9.]+)?(")',
         rf'\g<1>{replacement}\g<2>',
         text,
     )
@@ -2788,7 +2797,7 @@ def cmd_release(args) -> dict:
         "--notes-file", str(notes_file),
         "--target", branch,
         "--verify-tag",
-        "--latest" if latest["latest"] else "--latest=false",
+        *release_channel_flags(version, latest["latest"], getattr(args, "prerelease", False)),
     ] + [str(f) for f in release_files]
     results["gh_command"] = " ".join(gh_cmd)
 
@@ -3567,6 +3576,8 @@ def main() -> int:
                        help="release note 의 `누적 smoke **N/N PASS**` 검증 step skip (v1.1.3+)")
     p_rel.add_argument("--version", default=None,
                        help="version override (e.g. 0.7.5 for backfill). default: pyproject.toml [project] version")
+    p_rel.add_argument("--prerelease", action="store_true", default=False,
+                       help="GitHub Release 를 pre-release 로 표시하고 stable latest 슬롯에서 제외")
     p_rel.add_argument("--auto-bump", dest="auto_bump", action="store_true", default=False,
                        help="remote tag pre-check fail 시 다음 version 으로 자동 bump + re-flow. "
                             "v0.7.18+: release coordination observability.")

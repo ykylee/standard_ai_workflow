@@ -66,17 +66,17 @@ def _read_init_fallback_literal() -> str:
     """__init__.py 의 loud fallback literal (return "X.Y.Z") 읽기. v0.8.0+ SSOT."""
     text = WORKFLOW_KIT_INIT.read_text()
     # v1.2.1: 리터럴이 `return "1.2.1"`. 구 포맷(v..., -beta)도 받아 준다.
-    m = re.search(r'return\s+"(v?\d+\.\d+\.\d+(?:-[a-zA-Z0-9.]+)?)"', text)
+    m = re.search(r'return\s+"(v?\d+\.\d+\.\d+(?:(?:a|b|rc|\.post|\.dev)\d+|[-+][a-zA-Z0-9.]+)?)"', text)
     assert m, f"loud fallback literal not found in {WORKFLOW_KIT_INIT}"
     return m.group(1)
 
 
 def _bump_patch(version: str) -> str:
-    """version 'X.Y.Z' → 'X.Y.(Z+1)'."""
-    parts = version.split(".")
-    if len(parts) != 3:
+    """version 'X.Y.Z[pre]' → 'X.Y.(Z+1)', dropping a pre-release suffix."""
+    m = re.match(r"^(\d+)\.(\d+)\.(\d+)", version)
+    if not m:
         raise ValueError(f"invalid version format: {version}")
-    return f"{parts[0]}.{parts[1]}.{int(parts[2]) + 1}"
+    return f"{m.group(1)}.{m.group(2)}.{int(m.group(3)) + 1}"
 
 
 # --- Test 1: argparse 인식 ---

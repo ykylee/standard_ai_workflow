@@ -5,7 +5,7 @@
 - 대상 독자: 허브 관리자, 허브를 쓰는 저장소 주인, AI 에이전트 설계자, 이 저장소 기여자
 - 상태: beta (2.0 허브 2.0.0 — 계약 보장 전)
 - 최종 수정일: 2026-11-22
-- 버전: v2.1.0 (2.0 워크플로우 허브 첫 판, 베타 표기 · main 에는 미발행 2.1 오케스트레이션 포함; package: standard-ai-workflow 2.1.0, runtime `__version__` = 2.1.0, latest tag **v2.1.0**)
+- 버전: v3.0.0 (Go 허브 pre-release pilot; package: standard-ai-workflow 3.0.0, runtime `__version__` = 3.0.0, latest tag **v3.0.0**. GitHub 안정판 latest 는 **v2.1.0** 유지)
 - 관련 문서: [`docs/HUB_OPERATIONS.md`](./docs/HUB_OPERATIONS.md), [`workflow-source/core/hub_spec.md`](./workflow-source/core/hub_spec.md), [`workflow-source/core/hub_orchestration_spec.md`](./workflow-source/core/hub_orchestration_spec.md), [`docs/INSTALLATION_AND_USAGE.md`](./docs/INSTALLATION_AND_USAGE.md), [`docs/LOCAL_GATE.md`](./docs/LOCAL_GATE.md)
 
 ## 1. 한눈에
@@ -16,7 +16,8 @@
 | 판 | 어디에 | 상태 | 한 줄 |
 |---|---|---|---|
 | **2.0** 워크플로우 허브 | `main` · 태그 `v2.0.0` | 발행 (베타 표기) | 허브 서버 + 원격 MCP + 허브 화면. 저장소는 진입 파일 한 영역과 토큰 파일만 가진다 |
-| **2.1** 허브 오케스트레이션 | `main` (M-041~M-048) | 구현 완료 · 2.1.0 발행 준비 중 | 오케스트레이터 세션이 일하는 세션들에게 배정 · 받은편지함 · PC 중계로 하네스 세션 띄우기 · VS Code 확장 |
+| **2.1** 허브 오케스트레이션 | `main` (M-041~M-048) | v2.1.0 발행 · 안정판 latest | 오케스트레이터 세션이 일하는 세션들에게 배정 · 받은편지함 · PC 중계로 하네스 세션 띄우기 · VS Code 확장 |
+| **3.0.0** Go 허브 pilot | `main` | pre-release · 실험용, Python parity 미완료 | Go 허브 6개 대상 바이너리. 실험은 운영 DB가 아닌 일관된 사본에서 수행한다 |
 | **1.x** 독립 kit | [`release/1.x`](https://github.com/ykylee/standard_ai_workflow/tree/release/1.x) | 유지보수 (결함 수리만, 2028-07-20 까지) | 각 저장소에 kit 를 깔고 `ai-workflow/memory/` 파일로 상태를 두는 판 |
 
 배포는 GitHub Releases 하나다 (PyPI 에 올리지 않는다 — [`docs/RELEASE.md`](./docs/RELEASE.md) §1).

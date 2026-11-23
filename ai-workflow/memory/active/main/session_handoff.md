@@ -4,7 +4,7 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-11-23 (144차 세션 **종료** — Linux 호스트. M-057/WBS-57.1·57.2 계속 진행. Go UI 일부 추가와 결정 응답 구현, 세션 종료 메모리 포함 커밋 `b0214862` · `1f8f215d`를 push했다. 변경 게이트 124/124 및 push 전 branch-context=all 양 문맥 353/353, 실패 0 통과. Go test/vet, 자산 동기화 3/3, 코어 실프로세스 11/11도 통과. **3.0.0 미발행** — Go UI 전체 parity·쓰기 일부·orchestration·PC relay 3경로, 전체 Go shadow, 4 harness, macOS/Windows, 동일 DB Python rollback 미완료.)
+- 최종 수정일: 2026-11-23 (145차 세션 진행 — Linux 호스트. 소유자 지시로 v3.0.0을 GitHub pre-release pilot으로 제한 발행 준비. 정수 버전 + 명시적 `--prerelease` 지원, 3.0.0 wheel/sdist 및 Go 6종+SHA256SUMS 생성, 변경 게이트 339/339 통과. 이전 isolated shadow GET 23개 status 23/23·본문 14/23 일치, 쓰기/relay parity 미측정. 운영 DB는 pilot에 연결하지 않는다. 다음: memory를 포함해 commit → clean tree `--branch-context=all` 전량 게이트 → GitHub prerelease/latest/assets 검증 → 실제 Linux 격리 복제본 smoke. M-057/WBS-57.1·57.2는 미완료 유지.)
 - 이전 수정일: 2026-11-22 (140차 세션 **종료** — Linux 호스트. main-014 Codex 커밋 경로 · **M-048 done → v2.1.0 발행** (VS Code 실측 결함 2 수리 · 진입 지침 push 막힘 문구 · 매트릭스 tmp 위양성 수리) · README 재작성 · main-022 허브 mcp 2.x · **Go 전환 결정**: M-049 concept (소유자 R1=D 전면 Go) · M-050 requirements · M-051 design done, ADR-035 Accepted · PURPOSE Go 예외. 다음 M-052 S1 중계 Go 판)
 - 이전 수정일: 2026-11-22 (139차 세션 **종료** — Linux 호스트. 결함 수리 4 (main-027 · 234c32-002 · main-012 · main-002, 전부 release/1.x 이식) · **새 축 2.1 허브 오케스트레이션 M-041~M-047 done** (concept · requirements · design · ADR-034 Accepted · 구현 1~4: 세션 · 받은편지함 · lease · 배정 · PC 중계 · VS Code 껍데기, 실제 Claude · Codex 실측). 발행 없음)
 - 이전 수정일: 2026-11-21 (138차 세션 **종료** — Linux 호스트. 2.0 허브 M-037 · M-038 · M-040 done, M-039 진행(남은 것: macOS · Windows · 대화형 실측 · 이 저장소 표식 전환 · arcturus). 이 저장소 테스트베드 실제 등록 · `/setup.md` 4 하네스 실측 · 운영 가이드 · **v2.0.0 (베타 표기) · v1.30.0 발행**, latest = v2.0.0)
@@ -73,8 +73,9 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
-- TASK-2026-11-23-main-005 Go 허브 Linux 테스트베드 실전 shadow 검증
+- TASK-2026-11-23-main-007 Go 허브 3.0.0 pre-release 발행 및 Linux 격리 pilot
 - TASK-2026-11-23-main-006 Go 허브 화면 API 및 PC 중계 HTTP parity
+- TASK-2026-11-23-main-005 Go 허브 Linux 테스트베드 실전 shadow 검증
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:

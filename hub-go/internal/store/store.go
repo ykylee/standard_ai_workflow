@@ -21,8 +21,9 @@ import (
 )
 
 const (
-	TokenPrefix = "wfh_"
-	TitleMax    = 200
+	HubKitVersion = "2.1.0"
+	TokenPrefix   = "wfh_"
+	TitleMax      = 200
 )
 
 var (
@@ -44,13 +45,13 @@ var (
 )
 
 type Principal struct {
-	Kind         string
-	ProjectID    string
-	Callsign     string
-	CallsignKind string
+	Kind          string
+	ProjectID     string
+	Callsign      string
+	CallsignKind  string
 	HumanApproved bool
-	Role         string
-	Name         string
+	Role          string
+	Name          string
 }
 
 type Ctx struct {

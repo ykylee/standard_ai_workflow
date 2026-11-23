@@ -257,6 +257,71 @@ func (s *Server) handleProjectUIAPI(w http.ResponseWriter, r *http.Request, prin
 		writeJSONResponse(w, http.StatusOK, result)
 		return
 	}
+	if len(parts) == 3 && parts[2] == "guide" && r.Method == http.MethodPost {
+		if principal.Kind != "callsign" || principal.ProjectID != pid {
+			writeScreenError(w, store.Forbidden("쓰기는 이 프로젝트의 콜사인 토큰으로만 한다 (화면 공용 토큰은 읽기 · 등록만)"))
+			return
+		}
+		body, err := readScreenJSON(r)
+		if err != nil {
+			writeScreenError(w, err)
+			return
+		}
+		baseValue, ok := body["base_version"].(json.Number)
+		base, parseErr := strconv.Atoi(baseValue.String())
+		if !ok || parseErr != nil {
+			writeScreenError(w, store.InvalidField("base_version", "정수"))
+			return
+		}
+		text := ""
+		if value, present := body["body"]; present {
+			var valid bool
+			text, valid = value.(string)
+			if !valid {
+				writeScreenError(w, store.InvalidField("body", "문자열"))
+				return
+			}
+		}
+		note := ""
+		if value, present := body["note"]; present {
+			var valid bool
+			note, valid = value.(string)
+			if !valid {
+				writeScreenError(w, store.InvalidField("note", "문자열"))
+				return
+			}
+		}
+		result, err := s.cfg.Store.GuidePropose(store.Ctx{Now: now, Via: "ui", Principal: principal}, base, text, note)
+		if err != nil {
+			writeScreenError(w, err)
+			return
+		}
+		writeJSONResponse(w, http.StatusOK, result)
+		return
+	}
+	if len(parts) == 5 && parts[2] == "guide" && parts[3] == "proposals" && r.Method == http.MethodPost {
+		if principal.Kind != "callsign" || principal.ProjectID != pid {
+			writeScreenError(w, store.Forbidden("쓰기는 이 프로젝트의 콜사인 토큰으로만 한다 (화면 공용 토큰은 읽기 · 등록만)"))
+			return
+		}
+		body, err := readScreenJSON(r)
+		if err != nil {
+			writeScreenError(w, err)
+			return
+		}
+		approve, ok := body["approve"].(bool)
+		if !ok {
+			writeScreenError(w, store.InvalidField("approve", "true · false"))
+			return
+		}
+		result, err := s.cfg.Store.GuideDecide(store.Ctx{Now: now, Via: "ui", Principal: principal}, parts[4], approve)
+		if err != nil {
+			writeScreenError(w, err)
+			return
+		}
+		writeJSONResponse(w, http.StatusOK, result)
+		return
+	}
 	if len(parts) == 3 && parts[2] == "roadmap" && r.Method == http.MethodGet {
 		result, err := (&tools.JudgeBridge{Store: s.cfg.Store}).RoadmapState(ctx)
 		if err != nil {
@@ -265,6 +330,110 @@ func (s *Server) handleProjectUIAPI(w http.ResponseWriter, r *http.Request, prin
 		}
 		if result["roadmap_state"] == nil && result["reason"] == nil {
 			result["reason"] = "로드맵이 없다 (index.md 없음)"
+		}
+		writeJSONResponse(w, http.StatusOK, result)
+		return
+	}
+	if len(parts) == 3 && parts[2] == "orchestration" && r.Method == http.MethodGet {
+		result, err := s.screenOrchestration(pid, principal, now, r)
+		if err != nil {
+			writeScreenError(w, err)
+			return
+		}
+		writeJSONResponse(w, http.StatusOK, result)
+		return
+	}
+	if len(parts) == 4 && parts[2] == "orchestration" && parts[3] == "halt" && r.Method == http.MethodPost {
+		body, err := readScreenJSON(r)
+		if err != nil {
+			writeScreenError(w, err)
+			return
+		}
+		on, ok := body["on"].(bool)
+		if !ok {
+			writeScreenError(w, store.InvalidField("on", "true · false"))
+			return
+		}
+		result, err := s.cfg.Store.OrchHalt(store.Ctx{Now: now, Via: "ui", Principal: principal}, on)
+		if err != nil {
+			writeScreenError(w, err)
+			return
+		}
+		writeJSONResponse(w, http.StatusOK, result)
+		return
+	}
+	if len(parts) == 4 && parts[2] == "orchestration" && parts[3] == "lease" && r.Method == http.MethodPost {
+		body, err := readScreenJSON(r)
+		if err != nil {
+			writeScreenError(w, err)
+			return
+		}
+		action, _ := body["action"].(string)
+		session, _ := body["session"].(string)
+		ctxWrite := store.Ctx{Now: now, Via: "ui", Principal: principal}
+		var result map[string]any
+		switch action {
+		case "declare":
+			result, err = s.cfg.Store.OrchDeclare(ctxWrite, session)
+		case "transfer":
+			result, err = s.cfg.Store.OrchTransfer(ctxWrite, session)
+		case "release":
+			result, err = s.cfg.Store.OrchRelease(ctxWrite, "")
+		default:
+			err = store.InvalidField("action", "declare · transfer · release 중 하나")
+		}
+		if err != nil {
+			writeScreenError(w, err)
+			return
+		}
+		writeJSONResponse(w, http.StatusOK, result)
+		return
+	}
+	if len(parts) == 5 && parts[2] == "orchestration" && parts[3] == "approvals" && r.Method == http.MethodPost {
+		body, err := readScreenJSON(r)
+		if err != nil {
+			writeScreenError(w, err)
+			return
+		}
+		decision, _ := body["decision"].(string)
+		note, _ := body["note"].(string)
+		if _, present := body["note"]; present {
+			if _, ok := body["note"].(string); !ok {
+				writeScreenError(w, store.InvalidField("note", "문자열"))
+				return
+			}
+		}
+		result, err := s.cfg.Store.ApprovalDecide(store.Ctx{Now: now, Via: "ui", Principal: principal}, parts[4], decision, note)
+		if err != nil {
+			writeScreenError(w, err)
+			return
+		}
+		writeJSONResponse(w, http.StatusOK, result)
+		return
+	}
+	if len(parts) == 5 && parts[2] == "orchestration" && parts[3] == "relays" && parts[4] == "invite" && r.Method == http.MethodPost {
+		if _, err := readScreenJSON(r); err != nil {
+			writeScreenError(w, err)
+			return
+		}
+		ctxWrite := store.Ctx{Now: now, Via: "ui", Principal: principal, PublicURL: s.cfg.PublicURL}
+		result, err := s.cfg.Store.RelayInvite(ctxWrite)
+		if err != nil {
+			writeScreenError(w, err)
+			return
+		}
+		writeJSONResponse(w, http.StatusOK, result)
+		return
+	}
+	if len(parts) == 6 && parts[2] == "orchestration" && parts[3] == "relays" && parts[5] == "revoke" && r.Method == http.MethodPost {
+		if _, err := readScreenJSON(r); err != nil {
+			writeScreenError(w, err)
+			return
+		}
+		result, err := s.cfg.Store.RelayRevoke(store.Ctx{Now: now, Via: "ui", Principal: principal}, parts[4])
+		if err != nil {
+			writeScreenError(w, err)
+			return
 		}
 		writeJSONResponse(w, http.StatusOK, result)
 		return
@@ -768,7 +937,13 @@ func readScreenJSON(r *http.Request) (map[string]any, error) {
 		return map[string]any{}, nil
 	}
 	var body map[string]any
-	if err := json.Unmarshal(raw, &body); err != nil || body == nil {
+	dec := json.NewDecoder(strings.NewReader(string(raw)))
+	dec.UseNumber()
+	if err := dec.Decode(&body); err != nil || body == nil {
+		return nil, &store.HubError{Status: http.StatusBadRequest, Code: "invalid_json", Message: "본문은 JSON 객체다"}
+	}
+	var extra any
+	if err := dec.Decode(&extra); err != io.EOF {
 		return nil, &store.HubError{Status: http.StatusBadRequest, Code: "invalid_json", Message: "본문은 JSON 객체다"}
 	}
 	return body, nil

@@ -3,6 +3,7 @@ package httpapi
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -366,6 +367,301 @@ func TestHTTPUICallsignRegisterAndApprove(t *testing.T) {
 	approve := doReq(t, srv, http.MethodPost, "/api/projects/"+pid+"/callsigns/new-human/approve", token, []byte(`{}`), map[string]string{"Content-Type": "application/json"})
 	if approve.Code != http.StatusOK {
 		t.Fatalf("callsign approval status=%d body=%s", approve.Code, approve.Body.String())
+	}
+}
+
+func TestHTTPUIGuideProposeAndDecide(t *testing.T) {
+	srv, st := newTestServer(t)
+	reg := doReq(t, srv, http.MethodPost, "/v1/tools/hub_project_register", "", []byte(`{"remote_url":"https://github.com/acme/ui-guide-write","display_name":"UI Guide Write","callsign":"owner-human","kind":"human"}`), nil)
+	if reg.Code != http.StatusOK {
+		t.Fatalf("register status=%d body=%s", reg.Code, reg.Body.String())
+	}
+	var owner map[string]any
+	if err := json.Unmarshal(reg.Body.Bytes(), &owner); err != nil {
+		t.Fatal(err)
+	}
+	ownerToken, pid := owner["token"].(string), owner["project_id"].(string)
+
+	direct := doReq(t, srv, http.MethodPost, "/api/projects/"+pid+"/guide", ownerToken, []byte(`{"base_version":0,"body":"owner guide"}`), map[string]string{"Content-Type": "application/json"})
+	if direct.Code != http.StatusOK {
+		t.Fatalf("direct guide status=%d body=%s", direct.Code, direct.Body.String())
+	}
+	var directResult map[string]any
+	if err := json.Unmarshal(direct.Body.Bytes(), &directResult); err != nil {
+		t.Fatal(err)
+	}
+	if directResult["status"] != "approved" || directResult["applied_version"] != float64(1) {
+		t.Fatalf("direct result=%#v", directResult)
+	}
+
+	registered := doReq(t, srv, http.MethodPost, "/v1/tools/hub_callsign_register", ownerToken, []byte(fmt.Sprintf(`{"project_id":%q,"callsign":"worker-agent","kind":"agent"}`, pid)), nil)
+	if registered.Code != http.StatusOK {
+		t.Fatalf("agent register status=%d body=%s", registered.Code, registered.Body.String())
+	}
+	var agent map[string]any
+	if err := json.Unmarshal(registered.Body.Bytes(), &agent); err != nil {
+		t.Fatal(err)
+	}
+	agentToken := agent["token"].(string)
+	proposal := doReq(t, srv, http.MethodPost, "/api/projects/"+pid+"/guide", agentToken, []byte(`{"base_version":1,"body":"agent guide","note":"proposal"}`), map[string]string{"Content-Type": "application/json"})
+	if proposal.Code != http.StatusOK {
+		t.Fatalf("proposal status=%d body=%s", proposal.Code, proposal.Body.String())
+	}
+	var proposalResult map[string]any
+	if err := json.Unmarshal(proposal.Body.Bytes(), &proposalResult); err != nil {
+		t.Fatal(err)
+	}
+	if proposalResult["status"] != "open" || proposalResult["proposal_id"] != "GP-0002" {
+		t.Fatalf("proposal result=%#v", proposalResult)
+	}
+	unauthorizedDecision := doReq(t, srv, http.MethodPost, "/api/projects/"+pid+"/guide/proposals/GP-0002", agentToken, []byte(`{"approve":true}`), map[string]string{"Content-Type": "application/json"})
+	if unauthorizedDecision.Code != http.StatusForbidden {
+		t.Fatalf("agent decision status=%d body=%s", unauthorizedDecision.Code, unauthorizedDecision.Body.String())
+	}
+	decision := doReq(t, srv, http.MethodPost, "/api/projects/"+pid+"/guide/proposals/GP-0002", ownerToken, []byte(`{"approve":true}`), map[string]string{"Content-Type": "application/json"})
+	if decision.Code != http.StatusOK {
+		t.Fatalf("decision status=%d body=%s", decision.Code, decision.Body.String())
+	}
+	var decisionResult map[string]any
+	if err := json.Unmarshal(decision.Body.Bytes(), &decisionResult); err != nil {
+		t.Fatal(err)
+	}
+	if decisionResult["status"] != "approved" || decisionResult["applied_version"] != float64(2) {
+		t.Fatalf("decision result=%#v", decisionResult)
+	}
+	var versions int
+	if err := st.DB().QueryRow("SELECT COUNT(*) FROM guide WHERE project_id=?", pid).Scan(&versions); err != nil {
+		t.Fatal(err)
+	}
+	if versions != 2 {
+		t.Fatalf("guide versions=%d, want 2", versions)
+	}
+
+	stale := doReq(t, srv, http.MethodPost, "/api/projects/"+pid+"/guide", agentToken, []byte(`{"base_version":1,"body":"stale guide"}`), map[string]string{"Content-Type": "application/json"})
+	if stale.Code != http.StatusConflict {
+		t.Fatalf("stale proposal status=%d body=%s", stale.Code, stale.Body.String())
+	}
+	floatVersion := doReq(t, srv, http.MethodPost, "/api/projects/"+pid+"/guide", agentToken, []byte(`{"base_version":2.0,"body":"float version"}`), map[string]string{"Content-Type": "application/json"})
+	if floatVersion.Code != http.StatusBadRequest {
+		t.Fatalf("float base_version status=%d body=%s", floatVersion.Code, floatVersion.Body.String())
+	}
+	trailingJSON := doReq(t, srv, http.MethodPost, "/api/projects/"+pid+"/guide", agentToken, []byte(`{"base_version":2,"body":"trailing"} {}`), map[string]string{"Content-Type": "application/json"})
+	if trailingJSON.Code != http.StatusBadRequest {
+		t.Fatalf("trailing JSON status=%d body=%s", trailingJSON.Code, trailingJSON.Body.String())
+	}
+	largeBody, _ := json.Marshal(map[string]any{"base_version": 2, "body": strings.Repeat("x", 7000)})
+	tooLarge := doReq(t, srv, http.MethodPost, "/api/projects/"+pid+"/guide", agentToken, largeBody, map[string]string{"Content-Type": "application/json"})
+	if tooLarge.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("over-budget proposal status=%d body=%s", tooLarge.Code, tooLarge.Body.String())
+	}
+}
+
+func TestHTTPUIOrchestrationRoutes(t *testing.T) {
+	srv, st := newTestServer(t)
+	reg := doReq(t, srv, http.MethodPost, "/v1/tools/hub_project_register", "", []byte(`{"remote_url":"https://github.com/acme/ui-orchestration","display_name":"UI Orchestration","callsign":"owner-human","kind":"human"}`), nil)
+	if reg.Code != http.StatusOK {
+		t.Fatalf("register status=%d body=%s", reg.Code, reg.Body.String())
+	}
+	var project map[string]any
+	if err := json.Unmarshal(reg.Body.Bytes(), &project); err != nil {
+		t.Fatal(err)
+	}
+	token, pid := project["token"].(string), project["project_id"].(string)
+	start := doReq(t, srv, http.MethodPost, "/v1/tools/hub_session_start", token, []byte(`{"session":{"harness":"codex"}}`), nil)
+	if start.Code != http.StatusOK {
+		t.Fatalf("session start status=%d body=%s", start.Code, start.Body.String())
+	}
+	var started map[string]any
+	if err := json.Unmarshal(start.Body.Bytes(), &started); err != nil {
+		t.Fatal(err)
+	}
+	sessionID := started["session"].(map[string]any)["id"].(string)
+	start2 := doReq(t, srv, http.MethodPost, "/v1/tools/hub_session_start", token, []byte(`{"session":{"harness":"claude-code"}}`), nil)
+	if start2.Code != http.StatusOK {
+		t.Fatalf("second session start status=%d body=%s", start2.Code, start2.Body.String())
+	}
+	var started2 map[string]any
+	if err := json.Unmarshal(start2.Body.Bytes(), &started2); err != nil {
+		t.Fatal(err)
+	}
+	sessionID2 := started2["session"].(map[string]any)["id"].(string)
+	base := "/api/projects/" + pid + "/orchestration"
+	for _, body := range []string{`{"action":"declare","session":"` + sessionID + `"}`, `{"action":"transfer","session":"` + sessionID2 + `"}`, `{"action":"release"}`, `{"action":"declare","session":"` + sessionID + `"}`} {
+		res := doReq(t, srv, http.MethodPost, base+"/lease", token, []byte(body), map[string]string{"Content-Type": "application/json"})
+		if res.Code != http.StatusOK {
+			t.Fatalf("lease %s status=%d body=%s", body, res.Code, res.Body.String())
+		}
+	}
+	for _, on := range []bool{true, false} {
+		body, _ := json.Marshal(map[string]bool{"on": on})
+		res := doReq(t, srv, http.MethodPost, base+"/halt", token, body, map[string]string{"Content-Type": "application/json"})
+		if res.Code != http.StatusOK {
+			t.Fatalf("halt=%v status=%d body=%s", on, res.Code, res.Body.String())
+		}
+	}
+	if _, err := st.DB().Exec("INSERT INTO relay_host(host_id,name,token_hash,owner_callsign,projects_json,harnesses_json) VALUES(?,?,?,?,?,?)", "H-ui", "test relay", store.HashToken("relay-token"), "owner-human", store.MustJSON([]string{pid}), store.MustJSON([]string{"codex"})); err != nil {
+		t.Fatal(err)
+	}
+	agentRegistration := doReq(t, srv, http.MethodPost, "/v1/tools/hub_callsign_register", token, []byte(fmt.Sprintf(`{"project_id":%q,"callsign":"viewer-agent","kind":"agent"}`, pid)), nil)
+	if agentRegistration.Code != http.StatusOK {
+		t.Fatalf("agent registration status=%d body=%s", agentRegistration.Code, agentRegistration.Body.String())
+	}
+	var agentPayload map[string]any
+	if err := json.Unmarshal(agentRegistration.Body.Bytes(), &agentPayload); err != nil {
+		t.Fatal(err)
+	}
+	agentToken := agentPayload["token"].(string)
+	agentHalt := doReq(t, srv, http.MethodPost, base+"/halt", agentToken, []byte(`{"on":true}`), map[string]string{"Content-Type": "application/json"})
+	if agentHalt.Code != http.StatusForbidden {
+		t.Fatalf("agent halt status=%d body=%s", agentHalt.Code, agentHalt.Body.String())
+	}
+	if _, err := st.DB().Exec("INSERT INTO session_request(project_id,id,kind,host_id,target_json,requested_by,state,created_at) VALUES(?,?, 'spawn', ?, ?, ?, 'pending_approval', ?)", pid, "SR-0001", "H-ui", `{"dir_alias":"repo","harness":"codex"}`, sessionID, "2026-11-22T12:00:00Z"); err != nil {
+		t.Fatal(err)
+	}
+	decision := doReq(t, srv, http.MethodPost, base+"/approvals/SR-0001", token, []byte(`{"decision":"approve","note":"checked"}`), map[string]string{"Content-Type": "application/json"})
+	if decision.Code != http.StatusOK {
+		t.Fatalf("approval decision status=%d body=%s", decision.Code, decision.Body.String())
+	}
+	invite := doReq(t, srv, http.MethodPost, base+"/relays/invite", token, []byte(`{}`), map[string]string{"Content-Type": "application/json"})
+	if invite.Code != http.StatusOK {
+		t.Fatalf("relay invite status=%d body=%s", invite.Code, invite.Body.String())
+	}
+	var inviteResult map[string]any
+	if err := json.Unmarshal(invite.Body.Bytes(), &inviteResult); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := inviteResult["invite"].(string); !ok || !strings.Contains(inviteResult["command"].(string), "http://127.0.0.1:8770") {
+		t.Fatalf("invite result=%#v", inviteResult)
+	}
+	view := doReq(t, srv, http.MethodGet, base, token, nil, nil)
+	if view.Code != http.StatusOK {
+		t.Fatalf("orchestration view status=%d body=%s", view.Code, view.Body.String())
+	}
+	var snapshot map[string]any
+	if err := json.Unmarshal(view.Body.Bytes(), &snapshot); err != nil {
+		t.Fatal(err)
+	}
+	if snapshot["principal"].(map[string]any)["can_manage"] != true || snapshot["orchestrator"].(map[string]any)["session"] != sessionID {
+		t.Fatalf("orchestration snapshot=%#v", snapshot)
+	}
+	if len(snapshot["hosts"].([]any)) != 1 || len(snapshot["requests"].([]any)) != 1 {
+		t.Fatalf("orchestration hosts/requests=%#v", snapshot)
+	}
+	revoke := doReq(t, srv, http.MethodPost, base+"/relays/H-ui/revoke", token, []byte(`{}`), map[string]string{"Content-Type": "application/json"})
+	if revoke.Code != http.StatusOK {
+		t.Fatalf("relay revoke status=%d body=%s", revoke.Code, revoke.Body.String())
+	}
+}
+
+func TestHTTPRelayRegisterPollResult(t *testing.T) {
+	srv, st := newTestServer(t)
+	reg := doReq(t, srv, http.MethodPost, "/v1/tools/hub_project_register", "", []byte(`{"remote_url":"https://github.com/acme/relay-http","display_name":"Relay HTTP","callsign":"owner-human","kind":"human"}`), nil)
+	if reg.Code != http.StatusOK {
+		t.Fatalf("project register status=%d body=%s", reg.Code, reg.Body.String())
+	}
+	var project map[string]any
+	if err := json.Unmarshal(reg.Body.Bytes(), &project); err != nil {
+		t.Fatal(err)
+	}
+	ownerToken, pid := project["token"].(string), project["project_id"].(string)
+	invitePath := "/api/projects/" + pid + "/orchestration/relays/invite"
+	inviteResponse := doReq(t, srv, http.MethodPost, invitePath, ownerToken, []byte(`{}`), map[string]string{"Content-Type": "application/json"})
+	if inviteResponse.Code != http.StatusOK {
+		t.Fatalf("invite status=%d body=%s", inviteResponse.Code, inviteResponse.Body.String())
+	}
+	var invitePayload map[string]any
+	if err := json.Unmarshal(inviteResponse.Body.Bytes(), &invitePayload); err != nil {
+		t.Fatal(err)
+	}
+	inviteCode := invitePayload["invite"].(string)
+	registerBody, _ := json.Marshal(map[string]any{"invite": inviteCode, "name": "Test PC", "harnesses": []string{"codex"}})
+	registered := doReq(t, srv, http.MethodPost, "/v1/relay/register", "", registerBody, nil)
+	if registered.Code != http.StatusOK {
+		t.Fatalf("relay register status=%d body=%s", registered.Code, registered.Body.String())
+	}
+	var relay map[string]any
+	if err := json.Unmarshal(registered.Body.Bytes(), &relay); err != nil {
+		t.Fatal(err)
+	}
+	hostID, relayToken := relay["host_id"].(string), relay["token"].(string)
+	if relay["project_id"] != pid || !strings.HasPrefix(hostID, "H-20261122-") {
+		t.Fatalf("relay registration=%#v", relay)
+	}
+	var storedHash string
+	if err := st.DB().QueryRow("SELECT token_hash FROM relay_host WHERE host_id=?", hostID).Scan(&storedHash); err != nil {
+		t.Fatal(err)
+	}
+	if storedHash == relayToken || storedHash != store.HashToken(relayToken) {
+		t.Fatal("relay token was not stored as a hash")
+	}
+
+	badAuth := doReq(t, srv, http.MethodPost, "/v1/relay/poll", "", []byte(`{"wait_s":0}`), nil)
+	if badAuth.Code != http.StatusUnauthorized {
+		t.Fatalf("missing relay auth status=%d", badAuth.Code)
+	}
+	callsignAuth := doReq(t, srv, http.MethodPost, "/v1/relay/poll", ownerToken, []byte(`{"wait_s":0}`), nil)
+	if callsignAuth.Code != http.StatusUnauthorized {
+		t.Fatalf("callsign token on relay route status=%d", callsignAuth.Code)
+	}
+	firstPoll := doReq(t, srv, http.MethodPost, "/v1/relay/poll", relayToken, []byte(`{"wait_s":0,"allow_digest":"allow-v1","sessions":[]}`), nil)
+	if firstPoll.Code != http.StatusOK {
+		t.Fatalf("poll status=%d body=%s", firstPoll.Code, firstPoll.Body.String())
+	}
+	var pollPayload map[string]any
+	if err := json.Unmarshal(firstPoll.Body.Bytes(), &pollPayload); err != nil {
+		t.Fatal(err)
+	}
+	if pollPayload["dispatch"] == nil || pollPayload["deliver"] == nil || pollPayload["halted"] == nil || pollPayload["sessions"] == nil || pollPayload["waited_s"] != float64(0) {
+		t.Fatalf("poll response=%#v", pollPayload)
+	}
+	unknownPollField := doReq(t, srv, http.MethodPost, "/v1/relay/poll", relayToken, []byte(`{"wait_s":0,"unexpected":true}`), nil)
+	if unknownPollField.Code != http.StatusBadRequest {
+		t.Fatalf("unknown poll field status=%d body=%s", unknownPollField.Code, unknownPollField.Body.String())
+	}
+	floatWait := doReq(t, srv, http.MethodPost, "/v1/relay/poll", relayToken, []byte(`{"wait_s":1.0}`), nil)
+	if floatWait.Code != http.StatusBadRequest {
+		t.Fatalf("float wait_s status=%d body=%s", floatWait.Code, floatWait.Body.String())
+	}
+	if _, err := st.DB().Exec("INSERT INTO session_request(project_id,id,kind,host_id,target_json,requested_by,state,created_at) VALUES(?,?,?,?,?,?,?,?)", pid, "SR-0001", "spawn", hostID, `{"dir_alias":"repo","harness":"codex"}`, "owner-human", "approved", "2026-11-22T12:00:00Z"); err != nil {
+		t.Fatal(err)
+	}
+	dispatch := doReq(t, srv, http.MethodPost, "/v1/relay/poll", relayToken, []byte(`{"wait_s":0}`), nil)
+	if dispatch.Code != http.StatusOK {
+		t.Fatalf("dispatch poll status=%d body=%s", dispatch.Code, dispatch.Body.String())
+	}
+	var dispatchPayload map[string]any
+	if err := json.Unmarshal(dispatch.Body.Bytes(), &dispatchPayload); err != nil {
+		t.Fatal(err)
+	}
+	if len(dispatchPayload["dispatch"].([]any)) != 1 {
+		t.Fatalf("dispatch payload=%#v", dispatchPayload)
+	}
+	result := doReq(t, srv, http.MethodPost, "/v1/relay/result", relayToken, []byte(`{"project_id":"`+pid+`","request":"SR-0001","state":"done","result":{"session":"S-20261122-aabbccdd"}}`), nil)
+	if result.Code != http.StatusOK {
+		t.Fatalf("result status=%d body=%s", result.Code, result.Body.String())
+	}
+	var requestState string
+	if err := st.DB().QueryRow("SELECT state FROM session_request WHERE project_id=? AND id=?", pid, "SR-0001").Scan(&requestState); err != nil {
+		t.Fatal(err)
+	}
+	if requestState != "done" {
+		t.Fatalf("request state=%q", requestState)
+	}
+	secondResult := doReq(t, srv, http.MethodPost, "/v1/relay/result", relayToken, []byte(`{"project_id":"`+pid+`","request":"SR-0001","state":"done"}`), nil)
+	if secondResult.Code != http.StatusConflict {
+		t.Fatalf("duplicate result status=%d body=%s", secondResult.Code, secondResult.Body.String())
+	}
+	replay := doReq(t, srv, http.MethodPost, "/v1/relay/register", "", registerBody, nil)
+	if replay.Code != http.StatusForbidden {
+		t.Fatalf("invite replay status=%d body=%s", replay.Code, replay.Body.String())
+	}
+	revoke := doReq(t, srv, http.MethodPost, "/api/projects/"+pid+"/orchestration/relays/"+hostID+"/revoke", ownerToken, []byte(`{}`), map[string]string{"Content-Type": "application/json"})
+	if revoke.Code != http.StatusOK {
+		t.Fatalf("revoke status=%d body=%s", revoke.Code, revoke.Body.String())
+	}
+	revoked := doReq(t, srv, http.MethodPost, "/v1/relay/poll", relayToken, []byte(`{"wait_s":0}`), nil)
+	if revoked.Code != http.StatusUnauthorized {
+		t.Fatalf("revoked relay token status=%d", revoked.Code)
 	}
 }
 

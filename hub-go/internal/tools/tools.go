@@ -17,7 +17,7 @@ const (
 	// Contract is the wire contract version enforced by HTTP and tool arguments.
 	Contract = "hub/1"
 	// KitVersion matches workflow_kit.__version__ emitted in healthz and response headers.
-	KitVersion = "2.1.0"
+	KitVersion = store.HubKitVersion
 )
 
 // SealedAllowed enumerates tools permitted on sealed (migrated-away) projects.

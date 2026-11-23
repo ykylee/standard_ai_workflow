@@ -60,6 +60,19 @@ def main() -> int:
     _record("case 2 (사전 판 판정)", pre == {"2.0.0b1": True, "v1.0.0-beta": True, "2.0.0rc1": True, "1.30.0": False,
                                        "2.0.0": False, "v1.29.1": False}, str(pre))
 
+    channel_flags = {
+        "prerelease": rp.release_channel_flags("3.0.0", True, force_prerelease=True),
+        "stable": rp.release_channel_flags("3.0.0", True),
+        "older": rp.release_channel_flags("1.30.0", False),
+    }
+    want_channel_flags = {
+        "prerelease": ["--latest=false", "--prerelease"],
+        "stable": ["--latest"],
+        "older": ["--latest=false"],
+    }
+    _record("case 4 (pre-release flag · stable latest 보존)", channel_flags == want_channel_flags,
+            str(channel_flags))
+
     d = rp.release_latest_decision
     table = {
         "2.0.0b1 첫 발행": (d("v2.0.0b1", ["v1.29.0", "v1.29.1", "beta-v1"])["latest"], True),
@@ -69,7 +82,7 @@ def main() -> int:
         "2.x 없을 때 1.x": (d("v1.29.2", ["v1.29.1"])["latest"], True),
     }
     wrong = {k: v for k, v in table.items() if v[0] != v[1]}
-    _record("case 3 (latest 판정 — 원격 최고일 때만)", not wrong, str(wrong))
+    _record("case 5 (latest 판정 — 원격 최고일 때만)", not wrong, str(wrong))
 
     src = (SOURCE_ROOT / "workflow_kit" / "tools" / "release_pipeline.py").read_text(encoding="utf-8")
     tree = ast.parse(src)
@@ -80,15 +93,17 @@ def main() -> int:
     problems4 = []
     if len(gh_lists) != 1:
         problems4.append(f"gh release create 목록 {len(gh_lists)}개")
-    if '"--latest" if latest["latest"] else "--latest=false"' not in seg:
-        problems4.append("latest 판정 인자 없음")
+    if "release_channel_flags(version, latest[\"latest\"], getattr(args, \"prerelease\", False))" not in seg:
+        problems4.append("latest/pre-release 판정 인자 없음")
     if '"--target", "main"' in seg:
         problems4.append("--target main 고정")
     if "release_latest_decision(" not in src:
         problems4.append("latest 판정을 부르지 않는다")
-    _record("case 4 (발행 명령 — latest 인자 · target 고정 아님)", not problems4, "; ".join(problems4))
+    if "--prerelease" not in src or "--latest=false" not in src:
+        problems4.append("GitHub pre-release/latest flag 정의 없음")
+    _record("case 6 (발행 명령 — latest/pre-release 인자 · target 고정 아님)", not problems4, "; ".join(problems4))
 
-    _record("case 5 (산출물 이름 — 2.0.0b1 은 그대로)", _expected_dist_pattern("2.0.0b1") == "2.0.0b1",
+    _record("case 7 (산출물 이름 — 2.0.0b1 은 그대로)", _expected_dist_pattern("2.0.0b1") == "2.0.0b1",
             _expected_dist_pattern("2.0.0b1"))
 
     import tempfile  # noqa: PLC0415
@@ -107,7 +122,7 @@ def main() -> int:
     finally:
         rp.PYPROJECT = original
     bad6 = {k: v for k, v in results6.items() if v != (k[1], True)}
-    _record("case 6 (판 쓰기 — 두 번 써도 2.0.0b1 · 전체 교체 · 다른 version 키 보존)", not bad6, str(bad6))
+    _record("case 8 (판 쓰기 — 두 번 써도 2.0.0b1 · 전체 교체 · 다른 version 키 보존)", not bad6, str(bad6))
 
     results7 = {}
     g = rp.find_dist_files.__globals__  # release_pipeline 이 재-export 한 바로 그 모듈의 REPO_ROOT
@@ -136,7 +151,7 @@ def main() -> int:
         "9.9.9": [],
     }
     bad7 = {k: v for k, v in results7.items() if v != want7[k]}
-    _record("case 7 (산출물 고르기 — 이 판의 wheel · sdist 만, 접두사가 같은 다른 판 제외)", not bad7, str(bad7))
+    _record("case 9 (산출물 고르기 — 이 판의 wheel · sdist 만, 접두사가 같은 다른 판 제외)", not bad7, str(bad7))
 
     print(f"PASS {len(_passes)} · FAIL {len(_failures)}")
     for f in _failures:

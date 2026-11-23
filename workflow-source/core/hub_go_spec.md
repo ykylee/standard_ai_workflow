@@ -4,7 +4,7 @@
 - 범위: **언어만 바꾼다.** 도구 · HTTP 경로 · DB · 생성물 · 판정 결과는 `hub_spec.md` · `hub_orchestration_spec.md` 그대로 (요구 R25 · R26 · R29). 여기에는 그 계약을 Go 로 지키는 방법만 적는다.
 - 대상 독자: 구현자 (M-052~), 소유자 (DG 결정)
 - 상태: draft (M-051, 2026-11-22) — design 결정 DG1~DG5 **소유자 확정 (권고안 전부)** · ADR-035 Accepted. 구현은 M-052~ (S1 중계부터)
-- 최종 수정일: 2026-11-22
+- 최종 수정일: 2026-11-23
 - 관련 문서: `../../docs/planning/go-port-requirements-2026-11.md` (요구 R25~R35 · 결정 Q1~Q6 — 아래 "요구 R…" · "Q…"), `../../docs/planning/runtime-port-review-2026-11.md` (concept), `./hub_spec.md` (2.0 계약), `./hub_orchestration_spec.md` (2.1 계약), `../../ai-workflow/wiki/decisions/adr-035-go-runtime.md`
 
 ## 1. 불변 조건
@@ -30,7 +30,7 @@ hub-go/
     render/    진입 파일 렌더 영역 (Python `hub/render.py` + `bootstrap_lib/harnesses` 의 생성기)
     httpapi/   `/healthz` · `/v1/tools` · `/v1/relay` · `/` · `/setup.md` · `/v1/bootstrap` · 머리 · 오류 형식
     mcpserver/ `go-sdk` streamable HTTP · stateless · JSON (요구 R25.3)
-    ui/        `/ui/` 정적 파일 · `/api/…` 16 (Python `hub/ui.py`)
+    ui/        `/ui/` 정적 파일 · `/api/…` 21개 project 경로 (Python `hub/ui.py`)
     relay/     PC 중계 (Python `workflow_kit/relay/` — S1, §6)
     assets/    내장 자산 (§2.1)
 ```
@@ -43,6 +43,7 @@ hub-go/
 - **S4 전까지 정본은 Python 쪽**이다. `go generate` 가 정본을 `internal/assets/` 로 복사하고, 사본은 커밋한다 (Go 만으로 빌드되게).
 - 검사 `check_go_assets_sync` 가 사본과 정본의 바이트를 대조한다 — 다르면 red (1.x `_standard_snapshot` 과 같은 방식, `check_hub_bootstrap`).
 - S4 에서 정본을 `hub-go/` 로 옮기고 방향을 뒤집는다.
+- 화면 API 는 Python `hub/ui.py` 의 21개 project 경로를 그대로 제공한다. 지침 변경은 승인된 human 의 즉시 반영 또는 agent·미승인 human 의 제안으로 처리하고, 승인·거절은 승인된 human 에게만 허용한다. PC relay HTTP 경로는 별도로 `/v1/relay/register`, `/poll`, `/result` 세 개다.
 
 ## 3. 순수 판정 입구 — DB 와 분리
 

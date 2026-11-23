@@ -66,6 +66,9 @@ func New(cfg Config) *Server {
 	s.mux.HandleFunc("/api/", s.handleUIAPI)
 	s.mux.HandleFunc("GET /v1/bootstrap/hub_client.py", s.handleHubClientPy)
 	s.mux.HandleFunc("POST /v1/tools/{name}", s.handleToolHTTP)
+	s.mux.HandleFunc("POST /v1/relay/register", s.handleRelayRegister)
+	s.mux.HandleFunc("POST /v1/relay/poll", s.handleRelayPoll)
+	s.mux.HandleFunc("POST /v1/relay/result", s.handleRelayResult)
 	s.mux.Handle("/mcp", mcp)
 	return s
 }

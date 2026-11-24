@@ -213,7 +213,7 @@ def case_6_legacy(e: Env) -> None:
     ok = (rc == 3 and out.get("status") == "partial" and "entry:claude-code" in pend
           and (out.get("legacy_1x") or {}).get("files") and claude.read_text(encoding="utf-8") == original
           and (e.root / ".workflow-hub/env").is_file())
-    _record("case 6a (1.x 흔적 — 전환 전 진입 파일 pending · legacy_1x · env 는 씀)", ok,
+    _record("case 6 (1.x 흔적 — 전환 전 진입 파일 pending · legacy_1x · env 는 씀)", ok,
             f"rc={rc} status={out.get('status')} pending={pend} legacy={out.get('legacy_1x')}")
     marker_path = e.root / "ai-workflow" / "HUB_MIGRATED.json"
     marker_path.parent.mkdir(parents=True, exist_ok=True)
@@ -228,7 +228,7 @@ def case_6_legacy(e: Env) -> None:
     ok2 = ("entry:claude-code" in out2.get("confirmed", []) and new_guidance in updated
            and READ_FIRST_LINES[0] not in updated and "## 사용자 메모\n이 문장은 보존한다." in updated
            and "<!-- standard-ai-workflow-kit: 1.29.0 -->" in updated)
-    _record("case 6b (표식 커밋 뒤 재셋업 — Hub 시작 경로로 교체 · 사용자 본문 보존)", ok2,
+    _record("case 7 (표식 커밋 뒤 재셋업 — Hub 시작 경로로 교체 · 사용자 본문 보존)", ok2,
             f"rc={rc2} confirmed={out2.get('confirmed')} output={raw2[:400]}")
     custom_entry = original.replace(READ_FIRST_LINES[0], "- Locally customized 1.x startup instructions.")
     _, custom_plan, _ = e.hub.call("hub_setup_plan", {"project_id": out.get("project_id"),
@@ -236,7 +236,7 @@ def case_6_legacy(e: Env) -> None:
             "CLAUDE.md": custom_entry, "ai-workflow/HUB_MIGRATED.json": marker_path.read_text(encoding="utf-8")},
             "relay": {"required": False}}}, e.token())
     custom_blocked = any(row.get("reason") == "legacy_entry_needs_review" for row in custom_plan.get("blocked", []))
-    _record("case 6c (사용자 편집 시작 안내 — 자동 변경 대신 사람 검토)", custom_blocked,
+    _record("case 8 (사용자 편집 시작 안내 — 자동 변경 대신 사람 검토)", custom_blocked,
             f"blocked={custom_plan.get('blocked')}")
 
 
@@ -262,7 +262,7 @@ def case_7_antigravity(e: Env, agy_list: Path, agy_log: Path) -> None:
     calls = agy_log.read_text(encoding="utf-8").splitlines() if agy_log.is_file() else []
     if any(c.startswith("mcp add") for c in calls):
         problems.append(f"클라이언트가 agy 등록 명령을 냈다 {calls}")
-    _record("case 7 (Antigravity — 사람 몫 pending · 다른 주소/꺼짐 pending · 등록 뒤 list 로 complete · 등록 명령 0)",
+    _record("case 9 (Antigravity — 사람 몫 pending · 다른 주소/꺼짐 pending · 등록 뒤 list 로 complete · 등록 명령 0)",
             not problems, "; ".join(problems))
 
 
@@ -281,7 +281,7 @@ def case_8_operator_runtime_policy() -> None:
         problems.append("Windows Python hub serve 예시가 없다")
     if "TASK-2026-11-23-main-014" not in spec or "원인이나 오탐 여부는 미판정" not in spec:
         problems.append("Go 정본 스펙에 탐지 보고와 미판정 경계가 없다")
-    _record("case 8 (사내 Windows 셋업은 Python-only · 미확인 탐지를 오탐 단정하지 않음)",
+    _record("case 10 (사내 Windows 셋업은 Python-only · 미확인 탐지를 오탐 단정하지 않음)",
             not problems, "; ".join(problems))
 
 

@@ -24,7 +24,7 @@ hub-go/
   internal/
     db/        스키마 · 이관(판 1~13 SQL 은 Python `hub/db.py` MIGRATIONS 를 그대로) · 백업 · 판 대조 쓰기
     store/     Ctx · 인증 · 비밀 검사 · 이력 (Python `hub/store.py`)
-    tools/     도구 82 — 스키마 · 묶음 · 처리기 (Python `hub/tools.py` · `session.py` · `orchestration.py` · `relay.py` · `setup.py` · `transfer.py` · `migrate1x.py` · `guide.py` · `memory.py` · `wiki.py` · `knowledge.py` · `wiki_remote.py`)
+    tools/     도구 87 — 스키마 · credential bundle별 노출/권한 · 처리기 (Python `hub/tools.py` · `session.py` · `orchestration.py` · `relay.py` · `setup.py` · `transfer.py` · `migrate1x.py` · `guide.py` · `memory.py` · `wiki.py` · `knowledge.py` · `wiki_remote.py` · `harness_intake.py`)
     judge/     순수 판정 — §3. DB 를 모른다
     judgedb/   DB → 판정 입력 조립 (Python `hub/judge.py` 의 DB 쪽 절반)
     render/    진입 파일 렌더 영역 (Python `hub/render.py` + `bootstrap_lib/harnesses` 의 생성기)

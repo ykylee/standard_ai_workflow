@@ -4,7 +4,7 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-11-24 (M-059 지식·결정 공유 시스템 릴리스 진행 — Python/Go V13 knowledge source·revision·DCR·ADR sync·Wiki history와 project-only MCP/API/UI 구현. Python은 hub_setup_plan · hub_guide_render · hub_guide_get · hub_guide_propose · hub_guide_decide 모두 연결. Go에서 첫 세 도구의 501 stub과 후자 두 도구의 Call dispatch 누락을 보완하고 MCP 왕복·제안/이력 조회·local-edit 보호 회귀 추가. targeted regressions와 changed 339/339 통과; 최종 변경 포함 게이트·3.2.0 pre-release·홈랩 C5 실측은 남음. 다음: clean-tree 전량 게이트 → v3.2.0 발행 → 홈랩 Go 서비스 배포 → knowledge provenance와 DCR 권한 실측.
+- 최종 수정일: 2026-11-24 (M-060·M-061 done — 미등록 하네스 승인·사람 레지스트리와 task 필터·페이지네이션·카드 보기 구현. main-005 done — 1.x Hub 전환 뒤 표식 커밋 후 bootstrap 재실행으로 canonical 시작 안내를 `hub_session_start`로 갱신; 사용자 수정 문안은 사람 검토. Python/Go setup parity, 회귀·정적 검사 통과. M-059/WBS-59.3 지식·결정 공유 구현은 진행 중이며 최종 변경 포함 게이트·3.2.0 pre-release·홈랩 C5 실측이 남음. 다음: M-059 변경 정리 → clean-tree 전량 게이트 → v3.2.0 발행·홈랩 Go 배포 → knowledge provenance와 DCR 권한 실측.
 - 이전 수정일: 2026-11-22 (140차 세션 **종료** — Linux 호스트. main-014 Codex 커밋 경로 · **M-048 done → v2.1.0 발행** (VS Code 실측 결함 2 수리 · 진입 지침 push 막힘 문구 · 매트릭스 tmp 위양성 수리) · README 재작성 · main-022 허브 mcp 2.x · **Go 전환 결정**: M-049 concept (소유자 R1=D 전면 Go) · M-050 requirements · M-051 design done, ADR-035 Accepted · PURPOSE Go 예외. 다음 M-052 S1 중계 Go 판)
 - 이전 수정일: 2026-11-22 (139차 세션 **종료** — Linux 호스트. 결함 수리 4 (main-027 · 234c32-002 · main-012 · main-002, 전부 release/1.x 이식) · **새 축 2.1 허브 오케스트레이션 M-041~M-047 done** (concept · requirements · design · ADR-034 Accepted · 구현 1~4: 세션 · 받은편지함 · lease · 배정 · PC 중계 · VS Code 껍데기, 실제 Claude · Codex 실측). 발행 없음)
 - 이전 수정일: 2026-11-21 (138차 세션 **종료** — Linux 호스트. 2.0 허브 M-037 · M-038 · M-040 done, M-039 진행(남은 것: macOS · Windows · 대화형 실측 · 이 저장소 표식 전환 · arcturus). 이 저장소 테스트베드 실제 등록 · `/setup.md` 4 하네스 실측 · 운영 가이드 · **v2.0.0 (베타 표기) · v1.30.0 발행**, latest = v2.0.0)
@@ -88,6 +88,9 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-11-24-main-005 1.x → Hub 전환 뒤 진입 파일의 이전 경로 잔존 수정
+- TASK-2026-11-24-main-004 허브 task 목록 분류·페이지네이션·카드 보기
+- TASK-2026-11-24-main-003 미등록 하네스 제보와 승인 등록 흐름
 - TASK-2026-11-24-main-001 3.1.0 pre-release 및 홈랩 허브 배포
 - TASK-2026-11-23-main-021 허브 release 버전과 kit 호환 버전을 API·페이지에 함께 표시
 - TASK-2026-11-23-main-020 프로젝트 목록 화면에 null 문자열 노출 수정
@@ -95,9 +98,6 @@
 - TASK-2026-11-23-main-022 3단계 작업 카테고리와 roadmap·WBS·테스트 관리 연결
 - TASK-2026-11-23-main-018 홈랩 3.0.1 허브 배포 및 dacpi /workflow 프록시 연결
 - TASK-2026-11-23-main-017 허브 배포 위치 검토: 개발 호스트 vs 홈랩
-- TASK-2026-11-23-main-016 MCP 전체 최신 2026-07-28 프로토콜 전환
-- TASK-2026-11-23-main-015 MCP Python SDK 최소 버전을 최신 안정판 2.3.0으로 상향
-- TASK-2026-11-23-main-013 PostgreSQL 운영 안내와 격리 양 런타임 pilot 검증
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

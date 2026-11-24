@@ -18,16 +18,6 @@
 
 from __future__ import annotations
 
-CHECK_TIMEOUT_S = 240
-
-# `python -m workflow_kit hub` 또는 `workflow-hub` 로 실제 프로세스를 띄운다.
-# 구현 스위치 `WORKFLOW_HUB_IMPL` (`python` | `go` | `both`, 기본 `both` — Go 가 있으면 둘 다 잰다).
-WATCHES = (
-    "workflow-source/workflow_kit/*",
-    "workflow-source/pyproject.toml",
-    "hub-go/*",
-)
-
 import asyncio
 import json
 import os
@@ -45,6 +35,16 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+CHECK_TIMEOUT_S = 240
+
+# `python -m workflow_kit hub` 또는 `workflow-hub` 로 실제 프로세스를 띄운다.
+# 구현 스위치 `WORKFLOW_HUB_IMPL` (`python` | `go` | `both`, 기본 `both` — Go 가 있으면 둘 다 잰다).
+WATCHES = (
+    "workflow-source/workflow_kit/*",
+    "workflow-source/pyproject.toml",
+    "hub-go/*",
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
@@ -275,10 +275,9 @@ def case_3_backup(tmp: Path, impl: str, cmd_prefix: list[str]) -> None:
 
 
 def _mcp_session(base: str, token: str | None, calls: list[tuple[str, dict[str, Any]]]) -> tuple[list[str], list[Any]]:
+    import httpx2 as _httpx
     from mcp import Client
     from mcp.client.streamable_http import streamable_http_client
-
-    import httpx2 as _httpx
 
     async def go() -> tuple[list[str], list[Any]]:
         headers = {"Authorization": f"Bearer {token}"} if token else {}
@@ -504,21 +503,23 @@ def case_4_to_10(tmp: Path, impl: str, cmd_prefix: list[str]) -> None:
 
         # 9 MCP 경계
         boot = sorted(t.name for t in hubtools.visible_tools(False))
-        full = sorted(hubtools.TOOLS)
+        full = sorted(t.name for t in hubtools.visible_tools("callsign"))
         names_anon, res_anon = _mcp_session(hub.base, None, [("hub_task_list", {})])
         names_auth, res_auth = _mcp_session(hub.base, tok_a, [("hub_task_list", {}), ("hub_task_progress", {"id": id1, "note": "mcp 로"})])
         _, http_list, _ = hub.call("hub_task_list", {}, tok_a)
         mcp_list = res_auth[0][1]
         _, ev_mcp, _ = hub.call("hub_events", {"target_kind": "task", "target_id": id1}, tok_a)
         last = ev_mcp["events"][-1] if ev_mcp.get("events") else {}
+        admin_tools = {name for name, spec in hubtools.TOOLS.items() if spec.bundle == "hub_admin"}
         ok9 = (names_anon == boot and 0 < len(boot) < len(full) and all(hubtools.TOOLS[n].bundle == "bootstrap" for n in names_anon)
                and res_anon[0][0] is True
                and (res_anon[0][1] or {}).get("error_code") == "unauthorized"
                and names_auth == full
+               and admin_tools.isdisjoint(names_auth)
                and [t["id"] for t in mcp_list["tasks"]] == [t["id"] for t in http_list["tasks"]]
                and last.get("via") == "mcp" and last.get("op") == "progress" and last.get("callsign") == "claude-a")
         _record(f"case 9 (MCP 인증 경계 · HTTP 와 같은 결과) [{impl}]", ok9,
-                f"anon={names_anon} auth={len(names_auth)}/{len(full)} anon_res={res_anon} last={last.get('via')}/{last.get('op')}")
+                f"anon={names_anon} callsign={len(names_auth)}/{len(full)} admin_hidden={admin_tools.isdisjoint(names_auth)} anon_res={res_anon} last={last.get('via')}/{last.get('op')}")
 
         # 11 세션 · lease · 배정 · 승인 — relays host 등록과 dispatch만 fixture 로 둔다.
         case_11_orchestration(hub, db, impl, tok_a, tok_b, pid, t2.get("task", {}).get("id", ""))

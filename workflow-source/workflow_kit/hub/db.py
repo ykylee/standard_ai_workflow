@@ -512,10 +512,57 @@ CREATE TABLE decision_event (
 CREATE INDEX decision_event_target ON decision_event(project_id, dcr_id, seq);
 """
 
+#: 판 14 (M-060) — client-reported harness intake and hub-admin-reviewed registry.
+_V14 = """
+CREATE TABLE harness_report (
+    id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL REFERENCES project(id),
+    harness_id TEXT NOT NULL,
+    report_json TEXT NOT NULL,
+    submitted_by TEXT NOT NULL,
+    client_version TEXT NOT NULL DEFAULT '',
+    submitted_at TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('pending', 'approved', 'rejected')),
+    reviewed_by TEXT NOT NULL DEFAULT '',
+    reviewed_at TEXT,
+    decision_note TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX harness_report_queue ON harness_report(status, submitted_at DESC);
+CREATE INDEX harness_report_project ON harness_report(project_id, submitted_at DESC);
+CREATE TABLE harness_registry (
+    harness_id TEXT PRIMARY KEY,
+    display_name TEXT NOT NULL,
+    profile_json TEXT NOT NULL,
+    source_report_id TEXT NOT NULL REFERENCES harness_report(id),
+    version INTEGER NOT NULL DEFAULT 1,
+    active INTEGER NOT NULL DEFAULT 1,
+    registered_by TEXT NOT NULL,
+    registered_at TEXT NOT NULL
+);
+"""
+
+#: 판 15 (M-060) — web-admin harness review and human owner roster.
+_V15 = """
+CREATE TABLE harness_person (
+    id TEXT PRIMARY KEY,
+    display_name TEXT NOT NULL,
+    active INTEGER NOT NULL DEFAULT 1,
+    created_by TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+CREATE TABLE harness_registry_person (
+    harness_id TEXT NOT NULL REFERENCES harness_registry(harness_id) ON DELETE CASCADE,
+    person_id TEXT NOT NULL REFERENCES harness_person(id),
+    assigned_by TEXT NOT NULL,
+    assigned_at TEXT NOT NULL,
+    PRIMARY KEY (harness_id, person_id)
+);
+"""
+
 #: 판 순서 = 목록 순서. 판 n = ``MIGRATIONS[n-1]`` (SQL 스크립트).
 #: ``executescript`` 는 열린 트랜잭션을 먼저 커밋하므로, 판 하나의 원자성은
 #: 스크립트 **안의** ``BEGIN IMMEDIATE … COMMIT`` 으로 만든다 (:func:`_apply`).
-MIGRATIONS: list[str] = [_V1, _V2, _V3, _V4, _V5, _V6, _V7, _V8, _V9, _V10, _V11, _V12, _V13]
+MIGRATIONS: list[str] = [_V1, _V2, _V3, _V4, _V5, _V6, _V7, _V8, _V9, _V10, _V11, _V12, _V13, _V14, _V15]
 
 
 def latest_version() -> int:

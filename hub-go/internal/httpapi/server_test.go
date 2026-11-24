@@ -221,6 +221,99 @@ func TestHTTPUIScreenSessionAndProjectScope(t *testing.T) {
 	}
 }
 
+func TestHTTPUIHarnessReviewRequiresAdminAndHumanOwners(t *testing.T) {
+	srv, st := newTestServer(t)
+	now := time.Date(2026, 11, 22, 12, 0, 0, 0, time.UTC)
+	project, err := st.RegisterProject(store.Ctx{Now: now, Via: "test"}, "https://github.com/acme/harness-review", "Harness review", "owner-human", "human", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	owner, err := st.Authenticate(project["token"].(string), &now, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	report, err := st.HarnessReportSubmit(store.Ctx{Now: now, Via: "mcp", Principal: owner}, map[string]any{
+		"harness_id": "review-agent", "display_name": "Review Agent", "entry_file_candidates": []any{"AGENTS.md"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	adminToken, err := st.IssueHubToken("admin", "reviewer", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := doReq(t, srv, http.MethodGet, "/api/harness-reports", project["token"].(string), nil, nil); got.Code != http.StatusForbidden {
+		t.Fatalf("callsign listed global queue: %d %s", got.Code, got.Body.String())
+	}
+	queued := doReq(t, srv, http.MethodGet, "/api/harness-reports?status=pending", adminToken, nil, nil)
+	if queued.Code != http.StatusOK {
+		t.Fatalf("admin queue status=%d body=%s", queued.Code, queued.Body.String())
+	}
+	personRec := doReq(t, srv, http.MethodPost, "/api/harness-people", adminToken, []byte(`{"display_name":"Harness Steward"}`), map[string]string{"Content-Type": "application/json"})
+	if personRec.Code != http.StatusOK {
+		t.Fatalf("person create status=%d body=%s", personRec.Code, personRec.Body.String())
+	}
+	var personBody map[string]any
+	if err := json.Unmarshal(personRec.Body.Bytes(), &personBody); err != nil {
+		t.Fatal(err)
+	}
+	personID := personBody["person"].(map[string]any)["id"].(string)
+	decisionURL := "/api/harness-reports/" + report["report_id"].(string) + "/decision"
+	missingOwner := doReq(t, srv, http.MethodPost, decisionURL, adminToken, []byte(`{"decision":"approve"}`), map[string]string{"Content-Type": "application/json"})
+	if missingOwner.Code != http.StatusBadRequest {
+		t.Fatalf("approval without owner status=%d body=%s", missingOwner.Code, missingOwner.Body.String())
+	}
+	body, _ := json.Marshal(map[string]any{"decision": "approve", "owner_ids": []string{personID}, "note": "reviewed"})
+	approved := doReq(t, srv, http.MethodPost, decisionURL, adminToken, body, map[string]string{"Content-Type": "application/json"})
+	if approved.Code != http.StatusOK {
+		t.Fatalf("admin decision status=%d body=%s", approved.Code, approved.Body.String())
+	}
+	registry := doReq(t, srv, http.MethodGet, "/api/harness-registry", adminToken, nil, nil)
+	if registry.Code != http.StatusOK || !strings.Contains(registry.Body.String(), "Harness Steward") {
+		t.Fatalf("registry owner missing status=%d body=%s", registry.Code, registry.Body.String())
+	}
+}
+
+func TestHTTPUITaskListFiltersAndPagination(t *testing.T) {
+	srv, st := newTestServer(t)
+	now := time.Date(2026, 11, 24, 12, 0, 0, 0, time.UTC)
+	project, err := st.RegisterProject(store.Ctx{Now: now, Via: "test"}, "https://github.com/acme/task-page-api", "Task page", "owner-human", "human", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, err := st.Authenticate(project["token"].(string), &now, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := store.Ctx{Now: now, Via: "test", Principal: p}
+	category := map[string]any{"category": map[string]any{"level_1": "Product", "level_2": "Hub", "level_3": "Listing"}}
+	for _, values := range []map[string]any{
+		{"title": "page one", "wbs": "M-061/WBS-61.1", "fields": category},
+		{"title": "page two", "wbs": "M-061/WBS-61.2", "fields": category},
+		{"title": "unlinked", "fields": map[string]any{"category": map[string]any{"level_1": "Operations", "level_2": "Support", "level_3": "Triage"}}},
+	} {
+		if _, err := st.TaskCreate(ctx, values, "", nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	target := "/api/projects/" + project["project_id"].(string) + "/tasks?roadmap=linked&milestone=M-061&category_level_1=Product&limit=1&offset=1"
+	response := doReq(t, srv, http.MethodGet, target, project["token"].(string), nil, nil)
+	if response.Code != http.StatusOK {
+		t.Fatalf("task page status=%d body=%s", response.Code, response.Body.String())
+	}
+	var page map[string]any
+	if err := json.Unmarshal(response.Body.Bytes(), &page); err != nil {
+		t.Fatal(err)
+	}
+	if page["total"] != float64(2) || page["offset"] != float64(1) || len(page["tasks"].([]any)) != 1 {
+		t.Fatalf("unexpected filtered page: %#v", page)
+	}
+	facets := page["facets"].(map[string]any)
+	if len(facets["wbs"].([]any)) != 2 {
+		t.Fatalf("missing WBS facets: %#v", facets)
+	}
+}
+
 func TestHTTPUIProjectReadAPIs(t *testing.T) {
 	srv, _ := newTestServer(t)
 	reg := doReq(t, srv, http.MethodPost, "/v1/tools/hub_project_register", "", []byte(`{"remote_url":"https://github.com/acme/ui-read-api","display_name":"UI Read API","callsign":"owner-human","kind":"human"}`), nil)

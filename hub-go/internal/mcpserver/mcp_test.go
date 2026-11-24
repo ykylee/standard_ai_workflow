@@ -292,7 +292,7 @@ func TestMCPAuthAndToolParity(t *testing.T) {
 		t.Fatalf("expected unauthorized, got %#v", unauthRes)
 	}
 
-	// Authenticated tools/list returns all 82 tools
+	// Authenticated callsign tools/list excludes the hub-admin bundle.
 	listAuth := postMCP(t, srv, tok, map[string]any{
 		"jsonrpc": "2.0",
 		"id":      5,
@@ -301,8 +301,8 @@ func TestMCPAuthAndToolParity(t *testing.T) {
 	var authResp map[string]any
 	_ = json.Unmarshal(listAuth.Body.Bytes(), &authResp)
 	toolsAuth := authResp["result"].(map[string]any)["tools"].([]any)
-	if len(toolsAuth) != 82 {
-		t.Fatalf("expected 82 authed tools, got %d", len(toolsAuth))
+	if len(toolsAuth) != 85 {
+		t.Fatalf("expected 85 callsign tools, got %d", len(toolsAuth))
 	}
 
 	startRec := postMCP(t, srv, tok, map[string]any{
@@ -329,4 +329,59 @@ func TestMCPAuthAndToolParity(t *testing.T) {
 	if waitResult["call_again"] != true || waitResult["waited_s"].(float64) < 1 {
 		t.Fatalf("MCP wait did not long-poll to timeout: %#v", waitResult)
 	}
+}
+
+func TestHarnessIntakeMCPRoundTripAndAdminScope(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "hub.db")
+	now := time.Date(2026, 11, 24, 12, 0, 0, 0, time.UTC)
+	if _, err := db.OpenDB(dbPath, now); err != nil {
+		t.Fatal(err)
+	}
+	st, err := store.New(dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = st.Close() })
+	srv := &Server{Store: st, HubVersion: "3.2.0", PublicURL: "http://127.0.0.1:8770", Clock: func() time.Time { return now }}
+	project, err := st.RegisterProject(store.Ctx{Now: now, Via: "test"}, "https://github.com/acme/mcp-harness", "Harness", "owner-human", "human", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	adminToken, err := st.IssueHubToken("admin", "mcp-reviewer", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ownerList := postMCP(t, srv, project["token"].(string), map[string]any{"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
+	adminList := postMCP(t, srv, adminToken, map[string]any{"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
+	var ownerRPC, adminRPC map[string]any
+	_ = json.Unmarshal(ownerList.Body.Bytes(), &ownerRPC)
+	_ = json.Unmarshal(adminList.Body.Bytes(), &adminRPC)
+	ownerTools := ownerRPC["result"].(map[string]any)["tools"].([]any)
+	adminTools := adminRPC["result"].(map[string]any)["tools"].([]any)
+	hasAdminTool := func(items []any, name string) bool {
+		for _, item := range items {
+			if item.(map[string]any)["name"] == name {
+				return true
+			}
+		}
+		return false
+	}
+	if hasAdminTool(ownerTools, "hub_harness_admin_decide") || hasAdminTool(adminTools, "hub_harness_admin_decide") {
+		t.Fatal("human approval tool must not be available over MCP")
+	}
+	reportRec := postMCP(t, srv, project["token"].(string), map[string]any{
+		"jsonrpc": "2.0", "id": 3, "method": "tools/call",
+		"params": map[string]any{"name": "hub_harness_report", "arguments": map[string]any{"report": map[string]any{
+			"harness_id": "mcp-agent", "display_name": "MCP Agent", "entry_file_candidates": []string{"AGENTS.md"},
+		}}},
+	})
+	var reportRPC map[string]any
+	if err := json.Unmarshal(reportRec.Body.Bytes(), &reportRPC); err != nil {
+		t.Fatal(err)
+	}
+	reportResult := reportRPC["result"].(map[string]any)["structuredContent"].(map[string]any)
+	if reportResult["status"] != "pending" || reportResult["registered"] != false {
+		t.Fatalf("report result=%#v", reportResult)
+	}
+	_ = reportResult
 }

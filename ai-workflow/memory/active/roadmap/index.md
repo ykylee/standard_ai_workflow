@@ -131,3 +131,7 @@
   - path: [`./M-058-hub-postgresql-backend.md`](./M-058-hub-postgresql-backend.md)
 - **M-059** [implementation] 프로젝트 지식·결정 공유 시스템 — status: in_progress
   - path: [`./M-059-project-knowledge-decisions.md`](./M-059-project-knowledge-decisions.md)
+- **M-060** [implementation] 미등록 하네스 제보와 승인 등록 흐름 — status: done
+  - path: [`./M-060-unknown-harness-intake.md`](./M-060-unknown-harness-intake.md)
+- **M-061** [implementation] 허브 task 목록 분류·페이지네이션·보기 전환 — status: done
+  - path: [`./M-061-hub-task-list-navigation.md`](./M-061-hub-task-list-navigation.md)

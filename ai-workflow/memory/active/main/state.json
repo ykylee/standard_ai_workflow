@@ -48,29 +48,32 @@
       "TASK-2026-11-21-main-013"
     ],
     "recent_done_items": [
+      "TASK-2026-11-24-main-005 — 1.x → Hub 전환 뒤 진입 파일의 이전 경로 잔존 수정",
+      "TASK-2026-11-24-main-004 — 허브 task 목록 분류·페이지네이션·카드 보기",
+      "TASK-2026-11-24-main-003 — 미등록 하네스 제보와 승인 등록 흐름",
       "TASK-2026-11-24-main-001 — 3.1.0 pre-release 및 홈랩 허브 배포",
       "TASK-2026-11-23-main-022 — 3단계 작업 카테고리와 roadmap·WBS·테스트 관리 연결",
       "TASK-2026-11-23-main-021 — 허브 release 버전과 kit 호환 버전을 API·페이지에 함께 표시",
       "TASK-2026-11-23-main-020 — 프로젝트 목록 화면에 null 문자열 노출 수정",
       "TASK-2026-11-23-main-019 — 허브 셋업에서 로컬 중계 필요 여부와 상태 확인",
       "TASK-2026-11-23-main-018 — 홈랩 3.0.1 허브 배포 및 dacpi /workflow 프록시 연결",
-      "TASK-2026-11-23-main-017 — 허브 배포 위치 검토: 개발 호스트 vs 홈랩",
-      "TASK-2026-11-23-main-016 — MCP 전체 최신 2026-07-28 프로토콜 전환",
-      "TASK-2026-11-23-main-015 — MCP Python SDK 최소 버전을 최신 안정판 2.3.0으로 상향",
-      "TASK-2026-11-23-main-013 — PostgreSQL 운영 안내와 격리 양 런타임 pilot 검증"
+      "TASK-2026-11-23-main-017 — 허브 배포 위치 검토: 개발 호스트 vs 홈랩"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-11-24.md",
-    "task_count": 2,
+    "task_count": 5,
     "in_progress_items": [
       "TASK-2026-11-24-main-002 — 프로젝트 지식·결정 공유 시스템"
     ],
     "blocked_items": [],
     "done_items": [
-      "TASK-2026-11-24-main-001 — 3.1.0 pre-release 및 홈랩 허브 배포"
+      "TASK-2026-11-24-main-001 — 3.1.0 pre-release 및 홈랩 허브 배포",
+      "TASK-2026-11-24-main-003 — 미등록 하네스 제보와 승인 등록 흐름",
+      "TASK-2026-11-24-main-004 — 허브 task 목록 분류·페이지네이션·카드 보기",
+      "TASK-2026-11-24-main-005 — 1.x → Hub 전환 뒤 진입 파일의 이전 경로 잔존 수정"
     ]
   },
   "next_documents": [

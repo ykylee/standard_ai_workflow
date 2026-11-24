@@ -122,10 +122,10 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
 
     async def list_tools_for(req: Any) -> list[mtypes.Tool]:
         principal, _ = await run_in_threadpool(principal_from_request, req)
-        authed = principal is not None and principal.kind == "callsign"
+        caller_kind = principal.kind if principal is not None else None
         return [
             mtypes.Tool.model_validate({"name": t.name, "description": t.description, "inputSchema": t.schema()})
-            for t in hubtools.visible_tools(authed)
+            for t in hubtools.visible_tools(caller_kind)
         ]
 
     async def call_tool_for(req: Any, name: str, arguments: dict[str, Any] | None) -> mtypes.CallToolResult:

@@ -231,6 +231,24 @@ def test_changelog_gen_out_of_range_graceful() -> None:
 
 
 
+def test_changelog_gen_keeps_all_section_commits() -> None:
+    """섹션당 30개를 넘어도 모든 커밋을 CHANGELOG 에 기록한다."""
+    mod = _import_tool()
+    commits = [
+        {
+            "version": "unreleased",
+            "date": "2026-11-24",
+            "subject": f"feat: change item {i:02d}",
+            "short": f"{i:07x}",
+        }
+        for i in range(35)
+    ]
+    body = mod.draft_changelog(commits)
+    missing = [c["subject"] for c in commits if c["subject"] not in body]
+    assert not missing, f"changelog 에서 커밋이 누락됨: {missing}"
+    assert "more)" not in body, "절단 요약 대신 모든 항목을 기록해야 한다"
+
+
 def test_non_release_versions_are_not_sections() -> None:
     """v1.1.3+: 선언된 예외 version 은 release section 이 되지 않는다.
 
@@ -280,6 +298,7 @@ def main() -> int:
         test_changelog_gen_section_categorization,
         test_changelog_gen_range_filter,
         test_changelog_gen_out_of_range_graceful,
+        test_changelog_gen_keeps_all_section_commits,
         test_non_release_versions_are_not_sections,
     ]
 

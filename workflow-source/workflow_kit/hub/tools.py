@@ -18,6 +18,7 @@ from typing import Any
 from workflow_kit.common.hub_marker import MARKER_REL
 from workflow_kit.hub.errors import HubError, invalid_field, unauthorized, unknown_field
 from workflow_kit.hub.guide import Guides
+from workflow_kit.hub.harness_intake import HarnessIntake
 from workflow_kit.hub.judge import Judge
 from workflow_kit.hub.knowledge import Knowledge
 from workflow_kit.hub.memory import Memory
@@ -126,7 +127,15 @@ def _guide_render(store: Store, ctx: Ctx, a: dict[str, Any]) -> dict[str, Any]:
 
 
 def _session_start(store: Store, ctx: Ctx, a: dict[str, Any]) -> dict[str, Any]:
-    result = SessionStart(_setup(ctx, store)).run(ctx, a.get("repo_results"), a.get("client"))
+    client = a.get("client")
+    if client is None:
+        client = {}
+    elif isinstance(client, dict):
+        client = dict(client)
+    session_arg = a.get("session")
+    if isinstance(client, dict) and isinstance(session_arg, dict) and isinstance(session_arg.get("harness"), str):
+        client.setdefault("harness", session_arg["harness"])
+    result = SessionStart(_setup(ctx, store)).run(ctx, a.get("repo_results"), client or None)
     # 2.1 — ``session`` 객체면 세션 등록 · 이어 붙임 (스펙 §4-1). 문자열(받은 ID)은 call() 의 공통 경로가 다룬다.
     if isinstance(a.get("session"), dict):
         result["session"] = Orchestration(store).register(ctx, a["session"])
@@ -208,6 +217,12 @@ TOOLS: dict[str, ToolSpec] = {
                   "session": {"type": ["object", "string"],
                               "description": "2.1 — 첫 호출은 {harness, harness_session_id?, kind?, delivery?, resume?} 로 세션 등록, "
                                              "이후(두 번째 호출 포함)는 받은 세션 ID 문자열"}}, (), _session_start),
+        ToolSpec("hub_harness_report", "token", "등록되지 않은 하네스의 비밀 없는 프로필 관측을 검토 대기열에 제보한다. 제보만으로 허브 설정은 바뀌지 않는다.",
+                 {"report": _OBJ}, ("report",), lambda s, c, a: HarnessIntake(s).submit(c, a["report"])),
+        ToolSpec("hub_harness_report_list", "token", "이 프로젝트가 제출한 하네스 제보 상태 목록.", {"status": _STR}, (),
+                 lambda s, c, a: HarnessIntake(s).list_reports(c, a.get("status", ""))),
+        ToolSpec("hub_harness_registry_list", "token", "승인된 허브 전역 하네스 메타데이터 목록. 셋업 어댑터 지원과는 별도다.", {}, (),
+                 lambda s, c, a: HarnessIntake(s).registry_list(c)),
         ToolSpec("hub_guide_render", "token",
                  "하네스 진입 파일의 새 내용 (렌더 영역 갱신). current = 지금 파일 내용 (없으면 생략). 로컬에서 고친 영역이면 blocked.",
                  {"harness": _STR, "current": _STR}, ("harness",), _guide_render),
@@ -474,9 +489,11 @@ SELF_SIGNAL_TOOLS = frozenset({"hub_session_update", "hub_wait", "hub_inbox_ack"
 NO_PIGGYBACK_TOOLS = frozenset({"hub_wait", "hub_inbox_ack", "hub_inbox_list"})
 
 
-def visible_tools(authenticated: bool) -> list[ToolSpec]:
-    """토큰 없는 연결에는 부트스트랩 묶음만 (요구 R2.3)."""
-    return [t for t in TOOLS.values() if authenticated or t.bundle == "bootstrap"]
+def visible_tools(authenticated: bool | str | None) -> list[ToolSpec]:
+    """Expose only tools available to the caller's credential scope."""
+    kind = ("callsign" if authenticated else None) if isinstance(authenticated, bool) else authenticated
+    return [t for t in TOOLS.values() if t.bundle == "bootstrap" or
+            (t.bundle == "token" and kind == "callsign") or (t.bundle == "hub_admin" and kind == "admin")]
 
 
 def prepare(store: Store, name: str, args: dict[str, Any], ctx: Ctx) -> tuple[ToolSpec, dict[str, Any]]:
@@ -484,11 +501,14 @@ def prepare(store: Store, name: str, args: dict[str, Any], ctx: Ctx) -> tuple[To
     spec = TOOLS.get(name)
     if spec is None:
         raise HubError(404, "unknown_tool", f"모르는 도구: {name}", {"tool": name})
-    if spec.bundle != "bootstrap":
+    if spec.bundle == "token" and (ctx.principal is None or ctx.principal.kind != "callsign"):
         if ctx.principal is None:
             raise unauthorized()
-        if ctx.principal.kind != "callsign":
-            raise HubError(403, "forbidden", "이 도구는 콜사인 토큰이 필요하다 (web · admin 토큰은 쓸 수 없다)")
+        raise HubError(403, "forbidden", "이 도구는 프로젝트 콜사인 토큰이 필요하다")
+    if spec.bundle == "hub_admin" and (ctx.principal is None or ctx.principal.kind != "admin"):
+        if ctx.principal is None:
+            raise unauthorized()
+        raise HubError(403, "forbidden", "이 도구는 hub admin 토큰이 필요하다")
     clean = validate_args(spec, args)
     # 봉인된(다른 허브로 옮긴) 프로젝트 — 조회 말고는 410 + 새 주소 (M-039 WBS-39.4). 셋업 도구는 인자로 프로젝트를 준다.
     pid = ctx.principal.project_id if ctx.principal is not None else clean.get("project_id")

@@ -233,10 +233,8 @@ def draft_changelog(commits: list[dict], unreleased_label: str = "Unreleased") -
             if sec not in by_section:
                 continue
             lines += [f"### {sec}", ""]
-            for c in by_section[sec][:30]:  # max 30
+            for c in by_section[sec]:
                 lines.append(f"- {c['subject']} ({c['short']})")
-            if len(by_section[sec]) > 30:
-                lines.append(f"- ... ({len(by_section[sec]) - 30} more)")
             lines.append("")
 
     return "\n".join(lines).rstrip() + "\n"

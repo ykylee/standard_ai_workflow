@@ -23,9 +23,9 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-from workflow_kit.hub import KIT_COMPAT_VERSION as KIT_VERSION
 from workflow_kit.bootstrap_lib.harnesses import spec_for
 from workflow_kit.bootstrap_lib.harnesses.entry_sections import ENTRY_BUDGET_BYTES
+from workflow_kit.hub import KIT_COMPAT_VERSION as KIT_VERSION
 from workflow_kit.hub.errors import HubError
 
 #: 지원 하네스 4종 — 이 목록 하나에서 렌더 대상 · 안내 페이지 · 실측 대상이 파생된다 (요구 R2.8, Q8).
@@ -136,6 +136,24 @@ def merge_into(existing: str | None, region: str) -> tuple[str | None, str | Non
     if sha256(found.body) != found.sha:
         return None, "local_edit_detected"
     return text[:found.start] + region + text[found.end:], None
+
+
+def migrate_legacy_start_guidance(text: str) -> str | None:
+    """Replace only the canonical 1.x session-start pointer after Hub migration.
+
+    A customized or older variant is left for a person to review; callers must
+    not guess which user-authored instructions are safe to remove.
+    """
+    from workflow_kit.bootstrap_lib.harnesses.entry_sections import READ_FIRST_LINES
+
+    legacy = READ_FIRST_LINES[0]
+    if legacy not in text:
+        return None
+    replacement = (
+        "- Start each session with the Workflow Hub MCP tool `hub_session_start`. "
+        "The Hub is the source of task and handoff state; do not restore state from local 1.x paths."
+    )
+    return text.replace(legacy, replacement)
 
 
 def write_snapshot() -> Path:

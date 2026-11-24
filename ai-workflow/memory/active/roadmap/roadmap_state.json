@@ -1557,7 +1557,8 @@
             "TASK-2026-11-21-main-015",
             "TASK-2026-11-21-main-016",
             "TASK-2026-11-21-main-020",
-            "TASK-2026-11-21-main-021"
+            "TASK-2026-11-21-main-021",
+            "TASK-2026-11-24-main-005"
           ],
           "total_leaves": 1,
           "done_leaves": 1,
@@ -2423,6 +2424,81 @@
           "children": []
         }
       ]
+    },
+    {
+      "id": "M-060",
+      "title": "미등록 하네스 제보와 승인 등록 흐름",
+      "sdlc_phase": "implementation",
+      "declared_status": "done",
+      "derived_status": "in_progress",
+      "progress": 0.5,
+      "total_leaves": 2,
+      "done_leaves": 1,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-60.1",
+          "title": "제보 정보·웹 승인·별도 사람 명부·등록 수명주기 정의 및 Python/Go 구현",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        },
+        {
+          "id": "WBS-60.2",
+          "title": "민감 정보 차단·권한·멱등성·런타임 parity 검증과 운영 안내",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-24-main-003"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "M-061",
+      "title": "허브 task 목록 분류·페이지네이션·보기 전환",
+      "sdlc_phase": "implementation",
+      "declared_status": "done",
+      "derived_status": "in_progress",
+      "progress": 0.3333333333333333,
+      "total_leaves": 3,
+      "done_leaves": 1,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-61.1",
+          "title": "task 목록 API 필터·페이지네이션 계약과 UI 요구 정의",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        },
+        {
+          "id": "WBS-61.2",
+          "title": "Python·Go API 및 웹 UI 구현",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        },
+        {
+          "id": "WBS-61.3",
+          "title": "범위·빈 결과·필터 조합·보기 선호 parity 검증 및 운영 문서",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-11-24-main-004"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        }
+      ]
     }
   ],
   "current_milestone_id": "M-059",
@@ -2715,5 +2791,16 @@
       "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-11-24-main-001.md"
     }
   ],
-  "issues": []
+  "issues": [
+    {
+      "code": "declared_derived_mismatch",
+      "detail": "M-060: 선언 done ≠ 파생 in_progress (done 경계)",
+      "where": "M-060-unknown-harness-intake.md"
+    },
+    {
+      "code": "declared_derived_mismatch",
+      "detail": "M-061: 선언 done ≠ 파생 in_progress (done 경계)",
+      "where": "M-061-hub-task-list-navigation.md"
+    }
+  ]
 }

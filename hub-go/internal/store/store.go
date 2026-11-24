@@ -1081,6 +1081,131 @@ func (s *Store) TaskList(ctx Ctx, status *string, assignee *string, limit int, n
 	return map[string]any{"tasks": tasks}, nil
 }
 
+func (s *Store) TaskListPage(ctx Ctx, filters map[string]string, limit, offset int) (map[string]any, error) {
+	p, err := NeedReader(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if limit < 1 || limit > 100 {
+		return nil, InvalidField("limit", "1~100")
+	}
+	if offset < 0 || offset > 1_000_000 {
+		return nil, InvalidField("offset", "0~1000000")
+	}
+	status := filters["status"]
+	if status != "" && !ValidStatuses[status] {
+		return nil, InvalidField("status", "planned · in_progress · blocked · done 가운데 하나")
+	}
+	roadmap := filters["roadmap"]
+	if roadmap != "" && roadmap != "linked" && roadmap != "unlinked" {
+		return nil, InvalidField("roadmap", "linked · unlinked")
+	}
+	milestone := filters["milestone"]
+	if milestone != "" && !regexp.MustCompile(`^M-[0-9]{3}$`).MatchString(milestone) {
+		return nil, InvalidField("milestone", "M-001 형식")
+	}
+	wbs := filters["wbs"]
+	if len(wbs) > 80 || strings.Contains(wbs, "..") || strings.Contains(wbs, `\`) {
+		return nil, InvalidField("wbs", "80자 이하 WBS 키")
+	}
+	where := []string{"project_id = ?"}
+	args := []any{p.ProjectID}
+	if status != "" {
+		where = append(where, "status = ?")
+		args = append(args, status)
+	}
+	if roadmap == "linked" {
+		where = append(where, "wbs != ''")
+	} else if roadmap == "unlinked" {
+		where = append(where, "wbs = ''")
+	}
+	if milestone != "" {
+		where = append(where, "wbs LIKE ?")
+		args = append(args, milestone+"/%")
+	}
+	if wbs != "" {
+		where = append(where, "wbs = ?")
+		args = append(args, wbs)
+	}
+	categoryExpr := "json_extract(fields_json, '$.category.%s')"
+	if strings.HasPrefix(s.Path, "postgres://") || strings.HasPrefix(s.Path, "postgresql://") {
+		categoryExpr = "fields_json::jsonb #>> '{category,%s}'"
+	}
+	for _, key := range []string{"level_1", "level_2", "level_3"} {
+		if value := filters["category_"+key]; value != "" {
+			where = append(where, fmt.Sprintf(categoryExpr, key)+" = ?")
+			args = append(args, value)
+		}
+	}
+	clause := strings.Join(where, " AND ")
+	var total int
+	if err := s.pool.QueryRow("SELECT COUNT(*) FROM task WHERE "+clause, args...).Scan(&total); err != nil {
+		return nil, err
+	}
+	rows, err := s.pool.Query("SELECT "+taskSelectCols+" FROM task WHERE "+clause+" ORDER BY created_at DESC,id DESC LIMIT ? OFFSET ?", append(args, limit, offset)...)
+	if err != nil {
+		return nil, err
+	}
+	tasks := []map[string]any{}
+	for rows.Next() {
+		item, scanErr := scanTaskRow(rows)
+		if scanErr != nil {
+			rows.Close()
+			return nil, scanErr
+		}
+		tasks = append(tasks, item)
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return nil, err
+	}
+	rows.Close()
+	facetRows, err := s.pool.Query("SELECT wbs,fields_json FROM task WHERE project_id=?", p.ProjectID)
+	if err != nil {
+		return nil, err
+	}
+	milestones, wbss := map[string]bool{}, map[string]bool{}
+	categories := []map[string]bool{{}, {}, {}}
+	for facetRows.Next() {
+		var taskWBS, blob string
+		if err := facetRows.Scan(&taskWBS, &blob); err != nil {
+			facetRows.Close()
+			return nil, err
+		}
+		if taskWBS != "" {
+			wbss[taskWBS] = true
+			milestones[strings.SplitN(taskWBS, "/", 2)[0]] = true
+		}
+		var fields map[string]any
+		if err := json.Unmarshal([]byte(blob), &fields); err == nil {
+			if category, ok := fields["category"].(map[string]any); ok {
+				for index, key := range []string{"level_1", "level_2", "level_3"} {
+					if v, ok := category[key].(string); ok && v != "" {
+						categories[index][v] = true
+					}
+				}
+			}
+		}
+	}
+	if err := facetRows.Err(); err != nil {
+		facetRows.Close()
+		return nil, err
+	}
+	facetRows.Close()
+	return map[string]any{"tasks": tasks, "total": total, "limit": limit, "offset": offset,
+		"facets": map[string]any{"roadmaps": []string{"linked", "unlinked"}, "milestones": sortedKeys(milestones), "wbs": sortedKeys(wbss),
+			"category_level_1": sortedKeys(categories[0]), "category_level_2": sortedKeys(categories[1]), "category_level_3": sortedKeys(categories[2])}}, nil
+}
+
+func sortedKeys(values map[string]bool) []string {
+	out := make([]string, 0, len(values))
+	for value := range values {
+		out = append(out, value)
+	}
+	sort.Strings(out)
+	return out
+}
+
 type mutateFn func(before map[string]any, p *Principal, tx *sql.Tx) (map[string]any, error)
 
 func (s *Store) versionedUpdateIn(tx *sql.Tx, ctx Ctx, p *Principal, taskID string, expectedVersion *int, op string, mutate mutateFn) (map[string]any, error) {

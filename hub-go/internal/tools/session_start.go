@@ -93,11 +93,58 @@ func sessionStart(s *store.Store, ctx store.Ctx, args map[string]any) (map[strin
 	} else if err != sql.ErrNoRows {
 		return nil, err
 	}
-	client, err := localClient(args["client"])
+	clientRaw := args["client"]
+	if session, ok := args["session"].(map[string]any); ok {
+		if harness, ok := session["harness"].(string); ok && harness != "" {
+			clientMap, _ := clientRaw.(map[string]any)
+			merged := map[string]any{}
+			for key, value := range clientMap {
+				merged[key] = value
+			}
+			if _, exists := merged["harness"]; !exists {
+				merged["harness"] = harness
+			}
+			clientRaw = merged
+		}
+	}
+	client, err := localClient(clientRaw)
 	if err != nil {
 		return nil, err
 	}
 	hub := map[string]any{"guide": guide, "setup_complete": setupComplete != 0, "my_tasks": myTasks, "unassigned_open_tasks": freeTasks, "handoff": handoff, "local_client": client}
+	if harness, ok := client["harness"].(string); ok {
+		status := "unknown"
+		for _, builtin := range []string{"claude-code", "codex", "minimax-code", "antigravity"} {
+			if harness == builtin {
+				status = "setup_supported"
+				break
+			}
+		}
+		if status == "unknown" {
+			var found int
+			if err := s.DB().QueryRow("SELECT COUNT(*) FROM harness_registry WHERE harness_id=? AND active=1", harness).Scan(&found); err != nil {
+				return nil, err
+			}
+			if found > 0 {
+				status = "registered_metadata_only"
+			}
+		}
+		hub["harness_support"] = map[string]any{
+			"harness_id": harness, "status": status, "setup_ready": status == "setup_supported",
+			"report_tool": func() any {
+				if status == "unknown" {
+					return "hub_harness_report"
+				}
+				return nil
+			}(),
+			"required_report_fields": func() []string {
+				if status == "unknown" {
+					return []string{"harness_id", "display_name", "version", "platforms", "mcp_transports", "config_formats", "entry_file_candidates", "documentation_url", "notes"}
+				}
+				return []string{}
+			}(),
+		}
+	}
 	commands := map[string]any{"fetch": []string{"git", "fetch", "--prune"}, "status": []string{"git", "status", "--porcelain=v2", "--branch"}, "default_branch": []string{"git", "rev-parse", "--abbrev-ref", "origin/HEAD"}, "check_ignore": []string{"git", "check-ignore", "-v", ".workflow-hub/env"}}
 	for _, path := range entries {
 		commands["entry_head:"+path] = []string{"git", "grep", "--no-index", "-h", "-e", "workflow-hub:begin", "--", path}
@@ -159,22 +206,32 @@ func localClient(raw any) (map[string]any, error) {
 	}
 	c, ok := raw.(map[string]any)
 	if !ok {
-		return nil, store.InvalidField("client", "{version, outbox_pending(0 이상 정수)}")
+		return nil, store.InvalidField("client", "{version, outbox_pending(0 이상 정수), harness?}")
 	}
 	for key := range c {
-		if key != "version" && key != "outbox_pending" {
-			return nil, store.InvalidField("client", "{version, outbox_pending(0 이상 정수)}")
+		if key != "version" && key != "outbox_pending" && key != "harness" {
+			return nil, store.InvalidField("client", "{version, outbox_pending(0 이상 정수), harness?}")
 		}
 	}
 	pending, ok := intValue(c["outbox_pending"])
+	if _, hasHarness := c["harness"]; hasHarness && !ok {
+		pending, ok = 0, true
+	}
 	if !ok || pending < 0 {
-		return nil, store.InvalidField("client", "{version, outbox_pending(0 이상 정수)}")
+		return nil, store.InvalidField("client", "{version, outbox_pending(0 이상 정수), harness?}")
 	}
 	version := ""
 	if value, exists := c["version"]; exists && value != nil {
 		version = fmt.Sprint(value)
 	}
 	out := map[string]any{"status": "present", "version": version, "outbox_pending": pending}
+	if rawHarness, exists := c["harness"]; exists {
+		harness, ok := rawHarness.(string)
+		if !ok || strings.TrimSpace(harness) == "" || len(harness) > 64 {
+			return nil, store.InvalidField("client.harness", "1~64자 하네스 ID")
+		}
+		out["harness"] = strings.ToLower(strings.TrimSpace(harness))
+	}
 	if pending > 0 {
 		out["notice"] = fmt.Sprintf("보낼편지함에 %d건 — hub_client.py flush 로 보낸다 (409 는 남는다, D4)", pending)
 	}

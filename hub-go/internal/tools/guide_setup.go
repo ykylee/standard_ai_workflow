@@ -16,6 +16,46 @@ import (
 
 var guideEntries = map[string]string{"claude-code": "CLAUDE.md", "codex": "AGENTS.md", "minimax-code": "MiniMax.md", "antigravity": "ANTIGRAVITY.md"}
 
+const hubMigrationMarkerPath = "ai-workflow/HUB_MIGRATED.json"
+const hubMigrationMarkerFormat = "workflow-hub-migrated/1"
+
+var legacyEntryMarkers = []string{"standard-ai-workflow-kit:", "generated-from: core/global_workflow_standard.md", "workflow_kit.server."}
+
+const legacyReadFirstLine = "- Restore the session with `python -m workflow_kit session-start` — it reads `ai-workflow/memory/active/<branch>/` (`state.json`, handoff, backlog), `docs/PROJECT_PROFILE.md`, and `PURPOSE.md` (`<branch>` = current git branch)."
+const hubReadFirstLine = "- Start each session with the Workflow Hub MCP tool `hub_session_start`. The Hub is the source of task and handoff state; do not restore state from local 1.x paths."
+
+func hasLegacyEntryMarker(text string) bool {
+	for _, marker := range legacyEntryMarkers {
+		if strings.Contains(text, marker) {
+			return true
+		}
+	}
+	return false
+}
+
+func migrationMarkerReady(files map[string]any, projectID, hubURL string) bool {
+	raw, ok := files[hubMigrationMarkerPath].(string)
+	if !ok {
+		return false
+	}
+	var marker struct {
+		Format    string `json:"format"`
+		Hub       string `json:"hub"`
+		ProjectID string `json:"project_id"`
+	}
+	if json.Unmarshal([]byte(raw), &marker) != nil {
+		return false
+	}
+	return marker.Format == hubMigrationMarkerFormat && marker.ProjectID == projectID && strings.TrimRight(marker.Hub, "/") == strings.TrimRight(hubURL, "/")
+}
+
+func migrateLegacyStartGuidance(text string) (string, bool) {
+	if !strings.Contains(text, legacyReadFirstLine) {
+		return "", false
+	}
+	return strings.ReplaceAll(text, legacyReadFirstLine, hubReadFirstLine), true
+}
+
 func stringList(raw any) ([]string, bool) {
 	switch values := raw.(type) {
 	case []string:
@@ -325,6 +365,7 @@ func setupPlan(s *store.Store, ctx store.Ctx, args map[string]any) (map[string]a
 			return nil, store.InvalidField("scan.files", "경로 → 내용(없으면 null) 객체")
 		}
 	}
+	migrationComplete := migrationMarkerReady(files, pid, ctx.PublicURL)
 	var relayScan map[string]any
 	if rawRelay, exists := scan["relay"]; exists && rawRelay != nil {
 		var ok bool
@@ -383,6 +424,18 @@ func setupPlan(s *store.Store, ctx store.Ctx, args map[string]any) (map[string]a
 			return nil, e
 		}
 		current, _ := files[path].(string)
+		if hasLegacyEntryMarker(current) && !migrationComplete {
+			blocked = append(blocked, map[string]any{"id": "entry:" + h, "path": path, "reason": "legacy_1x_requires_migration", "message": "1.x 작업 정본을 Hub로 가져오고 ai-workflow/HUB_MIGRATED.json 을 커밋한 뒤 다시 셋업한다"})
+			continue
+		}
+		if hasLegacyEntryMarker(current) {
+			var migrated bool
+			current, migrated = migrateLegacyStartGuidance(current)
+			if !migrated {
+				blocked = append(blocked, map[string]any{"id": "entry:" + h, "path": path, "reason": "legacy_entry_needs_review", "message": "진입 파일의 1.x 시작 안내가 표준 생성 문안과 다르다 — 사람이 Hub 경로로 고친 뒤 다시 셋업한다"})
+				continue
+			}
+		}
 		merged, ok := mergeGuide(current, region)
 		if !ok {
 			blocked = append(blocked, map[string]any{"id": "entry:" + h, "path": path, "reason": "local_edit_detected", "message": "렌더 영역이 허브가 낸 판과 다르다 — 덮어쓰지 않는다. 고칠 것은 허브에 지침 제안으로 (요구 R7.5)"})
@@ -418,21 +471,29 @@ func setupPlan(s *store.Store, ctx store.Ctx, args map[string]any) (map[string]a
 		}
 	}
 	legacy := []string{}
-	markers := []string{"standard-ai-workflow-kit:", "generated-from: core/global_workflow_standard.md", "workflow_kit.server."}
 	for path, text := range files {
 		if content, ok := text.(string); ok {
-			for _, marker := range markers {
-				if strings.Contains(content, marker) {
-					legacy = append(legacy, path)
-					break
-				}
+			if hasLegacyEntryMarker(content) {
+				legacy = append(legacy, path)
 			}
 		}
 	}
 	sort.Strings(legacy)
 	var legacyOut any
 	if len(legacy) > 0 {
-		legacyOut = map[string]any{"files": legacy, "next": "1.x kit 흔적이 있다 — python .workflow-hub/hub_client.py migrate plan 으로 사람이 선택해 전환한다"}
+		entryUpdateAllowed := migrationComplete
+		if !entryUpdateAllowed {
+			entryUpdateAllowed = true
+			for _, path := range legacy {
+				for _, entry := range guideEntries {
+					if path == entry {
+						entryUpdateAllowed = false
+					}
+				}
+			}
+		}
+		legacyOut = map[string]any{"files": legacy, "migration_complete": migrationComplete, "entry_update_allowed": entryUpdateAllowed,
+			"next": "1.x kit 흔적이 있다 — 전환은 사람이 선택 클라이언트로 한다: python .workflow-hub/hub_client.py migrate plan → (표를 보이고 고른 종류로) migrate import (hub_spec §6.6). 가져오기와 ai-workflow/HUB_MIGRATED.json 표식 커밋 뒤 셋업을 다시 실행하면 진입 안내를 갱신한다"}
 	}
 	relay := map[string]any{"required": false, "config_present": false, "status": nil, "next": "선택 사항 — 현재 셋업에서는 로컬 중계가 필요하지 않음"}
 	if raw := relayScan; raw != nil {

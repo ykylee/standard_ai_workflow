@@ -473,7 +473,54 @@ CREATE TABLE decision_event (
 CREATE INDEX decision_event_target ON decision_event(project_id, dcr_id, seq);
 `
 
-var Migrations = []string{V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11, V12, V13}
+// V14 is generated from workflow-source/workflow_kit/hub/db.py (M-060).
+const V14 = `
+CREATE TABLE harness_report (
+    id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL REFERENCES project(id),
+    harness_id TEXT NOT NULL,
+    report_json TEXT NOT NULL,
+    submitted_by TEXT NOT NULL,
+    client_version TEXT NOT NULL DEFAULT '',
+    submitted_at TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('pending', 'approved', 'rejected')),
+    reviewed_by TEXT NOT NULL DEFAULT '',
+    reviewed_at TEXT,
+    decision_note TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX harness_report_queue ON harness_report(status, submitted_at DESC);
+CREATE INDEX harness_report_project ON harness_report(project_id, submitted_at DESC);
+CREATE TABLE harness_registry (
+    harness_id TEXT PRIMARY KEY,
+    display_name TEXT NOT NULL,
+    profile_json TEXT NOT NULL,
+    source_report_id TEXT NOT NULL REFERENCES harness_report(id),
+    version INTEGER NOT NULL DEFAULT 1,
+    active INTEGER NOT NULL DEFAULT 1,
+    registered_by TEXT NOT NULL,
+    registered_at TEXT NOT NULL
+);
+`
+
+// V15 is generated from workflow-source/workflow_kit/hub/db.py (M-060).
+const V15 = `
+CREATE TABLE harness_person (
+    id TEXT PRIMARY KEY,
+    display_name TEXT NOT NULL,
+    active INTEGER NOT NULL DEFAULT 1,
+    created_by TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+CREATE TABLE harness_registry_person (
+    harness_id TEXT NOT NULL REFERENCES harness_registry(harness_id) ON DELETE CASCADE,
+    person_id TEXT NOT NULL REFERENCES harness_person(id),
+    assigned_by TEXT NOT NULL,
+    assigned_at TEXT NOT NULL,
+    PRIMARY KEY (harness_id, person_id)
+);
+`
+
+var Migrations = []string{V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11, V12, V13, V14, V15}
 
 func LatestVersion() int {
 	return len(Migrations)

@@ -30,6 +30,7 @@ from workflow_kit.common.schemas.roadmap import RoadmapIssue, TaskWbsLink
 from workflow_kit.common.state import roadmap as rm
 from workflow_kit.hub.errors import HubError, forbidden, invalid_field, not_found, unauthorized
 from workflow_kit.hub.guide import Guides
+from workflow_kit.hub.harness_intake import HarnessIntake
 from workflow_kit.hub.judge import _NO_TREE, INDEX, Judge, task_lines
 from workflow_kit.hub.knowledge import Knowledge
 from workflow_kit.hub.memory import Memory
@@ -90,6 +91,7 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
     knowledge = Knowledge(store)
     orch = Orchestration(store)
     relays = Relays(store)
+    harness_intake = HarnessIntake(store)
 
     def resolve(request: Request, now: datetime) -> Principal:
         token = _bearer(request)
@@ -161,6 +163,31 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
         rows = store.projects(p.project_id if p.kind == "callsign" else None)
         return {"projects": rows, "principal": _principal_summary(p)}
 
+    def _admin_only(p: Principal) -> None:
+        if p.kind != "admin":
+            raise forbidden("허브 관리자 웹 토큰만 하네스 제보를 검토할 수 있다")
+
+    def get_harness_reports(request: Request, p: Principal, now: datetime, _b: Any) -> dict[str, Any]:
+        _admin_only(p)
+        return harness_intake.list_reports(Ctx(now=now, via="ui", principal=p), request.query_params.get("status", "pending"))
+
+    def post_harness_decision(request: Request, p: Principal, now: datetime, b: dict[str, Any]) -> dict[str, Any]:
+        _admin_only(p)
+        return harness_intake.decide(Ctx(now=now, via="ui", principal=p), request.path_params["rid"],
+                                    b.get("decision", ""), b.get("note", ""), b.get("owner_ids"))
+
+    def get_harness_people(request: Request, p: Principal, now: datetime, _b: Any) -> dict[str, Any]:
+        _admin_only(p)
+        return harness_intake.list_people(Ctx(now=now, via="ui", principal=p))
+
+    def get_harness_registry(request: Request, p: Principal, now: datetime, _b: Any) -> dict[str, Any]:
+        _admin_only(p)
+        return harness_intake.registry_list(Ctx(now=now, via="ui", principal=p), include_inactive=True)
+
+    def post_harness_people(request: Request, p: Principal, now: datetime, b: dict[str, Any]) -> dict[str, Any]:
+        _admin_only(p)
+        return harness_intake.create_person(Ctx(now=now, via="ui", principal=p), b.get("display_name", ""))
+
     def _project_summary(pid: str, v: Principal, now: datetime) -> dict[str, Any]:
         ctx = Ctx(now=now, via="ui", principal=v)
         with store.write() as conn:
@@ -210,13 +237,13 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
     def get_tasks(request: Request, p: Principal, now: datetime, _b: Any) -> dict[str, Any]:
         v = scope(p, request.path_params["pid"])
         q = request.query_params
-        assignee = q.get("assignee")
-        out = store.task_list(Ctx(now=now, via="ui", principal=v), q.get("status") or None, assignee,
-                              int(q.get("limit") or 200), newest_first=True)
-        with store.read() as conn:  # 전체 수 — 목록이 잘렸는지 화면이 말하게
-            sql = "SELECT COUNT(*) AS n FROM task WHERE project_id = ?" + (" AND status = ?" if q.get("status") else "")
-            out["total"] = conn.execute(sql, (v.project_id, *([q["status"]] if q.get("status") else []))).fetchone()["n"]
-        return out
+        try:
+            limit, offset = int(q.get("limit") or 25), int(q.get("offset") or 0)
+        except ValueError as exc:
+            raise invalid_field("limit", "limit · offset 는 정수여야 한다") from exc
+        filters = {key: q.get(key, "") for key in
+                   ("status", "roadmap", "milestone", "wbs", "category_level_1", "category_level_2", "category_level_3")}
+        return store.task_list_page(Ctx(now=now, via="ui", principal=v), filters, limit=limit, offset=offset)
 
     def get_task(request: Request, p: Principal, now: datetime, _b: Any) -> dict[str, Any]:
         pid, tid = request.path_params["pid"], request.path_params["tid"]
@@ -574,6 +601,11 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
         Route("/ui/{name}", static, methods=["GET"]),
         Route("/api/session", api(get_session), methods=["GET"]),
         Route("/api/projects", api(get_projects), methods=["GET"]),
+        Route("/api/harness-reports", api(get_harness_reports), methods=["GET"]),
+        Route("/api/harness-reports/{rid}/decision", api(post_harness_decision, body=True), methods=["POST"]),
+        Route("/api/harness-people", api(get_harness_people), methods=["GET"]),
+        Route("/api/harness-people", api(post_harness_people, body=True), methods=["POST"]),
+        Route("/api/harness-registry", api(get_harness_registry), methods=["GET"]),
         Route("/api/projects/{pid}", api(get_project), methods=["GET"]),
         Route("/api/projects/{pid}/tasks", api(get_tasks), methods=["GET"]),
         Route("/api/projects/{pid}/tasks/{tid}", api(get_task), methods=["GET"]),

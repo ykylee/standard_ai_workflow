@@ -392,7 +392,15 @@ def _scan(relay_required: bool = False) -> dict[str, Any]:
                 status = {"error": "status 응답 JSON 해석 실패"}
         else:
             status = {"error": "Python relay status 확인 실패", "rc": checked["rc"]}
-    return {"files": {p: (Path(p).read_text(encoding="utf-8") if Path(p).is_file() else None) for p in paths},
+    files = {p: (Path(p).read_text(encoding="utf-8") if Path(p).is_file() else None) for p in paths}
+    marker = Path("ai-workflow/HUB_MIGRATED.json")
+    if marker.is_file():
+        tracked = _run(["git", "ls-files", "--error-unmatch", marker.as_posix()])
+        dirty = _run(["git", "status", "--porcelain", "--", marker.as_posix()])
+        files[marker.as_posix()] = marker.read_text(encoding="utf-8") if tracked["rc"] == 0 and not dirty["output"].strip() else None
+    else:
+        files[marker.as_posix()] = None
+    return {"files": files,
             "relay": {"required": relay_required, "config_present": relay_config.is_file(), "status": status}}
 
 
@@ -407,7 +415,8 @@ def cmd_bootstrap(argv: list[str]) -> int:
     토큰은 출력하지 않는다 (env 에만). 다시 부르면 env 로 이어 간다 (확인된 단계는 허브가 건너뛴다).
     하네스의 안전 장치를 지나야 하는 단계(:data:`HANDOFF_STEPS`)는 쓰지 않고 ``for_agent`` 로 넘긴다 —
     에이전트가 자기 도구로 쓴 뒤(사람 승인) 이 명령을 다시 부르면 sha256 으로 확인한다.
-    1.x kit 흔적이 있으면 진입 파일을 쓰지 않는다 — 전환(표식)은 사람이 정한다.
+    1.x 흔적이 있으면 전환 전에는 진입 파일을 보존한다. 같은 프로젝트의 전환 표식이 커밋된 뒤 다시 실행하면
+    표준 1.x 시작 안내만 Hub 경로로 바꾸고, 사용자 문안은 건드리지 않는다.
     """
     import argparse  # noqa: PLC0415
 
@@ -490,8 +499,8 @@ def cmd_bootstrap(argv: list[str]) -> int:
                     HUB_DIR.mkdir(exist_ok=True)
                     checks.append({"name": "check_ignore", **_run(s["run"])})
                 elif s["op"] == "write" and sid not in HANDOFF_STEPS:
-                    if sid.startswith("entry:") and legacy:
-                        pending.append({"id": sid, "reason": "1.x kit 흔적이 있어 진입 파일을 쓰지 않았다 — 전환은 사람이 정한다"})
+                    if sid.startswith("entry:") and legacy and not legacy.get("entry_update_allowed"):
+                        pending.append({"id": sid, "reason": "1.x 전환 표식이 확인되지 않아 진입 파일을 보존했다 — 데이터 들여오기와 표식 커밋 후 다시 실행한다"})
                         continue
                     path.parent.mkdir(parents=True, exist_ok=True)
                     path.write_text(s["content"], encoding="utf-8")
@@ -525,7 +534,7 @@ def cmd_bootstrap(argv: list[str]) -> int:
                 return _bootstrap_out({"status": "ignore_not_effective", "unconfirmed": conf["unconfirmed"],
                                        "next": ".gitignore 의 /.workflow-hub/ 가 먹지 않는다 — 사람에게 보인다 (토큰 파일을 쓰지 않았다)"}, 1)
             if plan["stage"] == "files":
-                complete = bool(conf.get("setup_complete"))
+                complete = bool(conf.get("setup_complete")) and not pending and not for_agent and not plan.get("blocked")
                 break
         else:
             complete = False

@@ -156,3 +156,56 @@ func TestStoreLifecycle(t *testing.T) {
 		t.Fatalf("revoked token still accepted: %+v %v", gone, err)
 	}
 }
+
+func TestTaskListPageFiltersAndPagination(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "hub.db")
+	now := time.Date(2026, 11, 24, 12, 0, 0, 0, time.UTC)
+	if _, err := db.OpenDB(dbPath, now); err != nil {
+		t.Fatal(err)
+	}
+	st, err := New(dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	reg, err := st.RegisterProject(Ctx{Now: now, Via: "test"}, "https://github.com/acme/task-page", "Task page", "owner-human", "human", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, err := st.Authenticate(reg["token"].(string), &now, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := Ctx{Now: now, Via: "test", Principal: p}
+	category := map[string]any{"category": map[string]any{"level_1": "Product", "level_2": "Hub", "level_3": "Listing"}}
+	for _, item := range []map[string]any{
+		{"title": "page one", "wbs": "M-061/WBS-61.1", "fields": category},
+		{"title": "page two", "wbs": "M-061/WBS-61.2", "fields": category},
+		{"title": "unlinked", "fields": map[string]any{"category": map[string]any{"level_1": "Operations", "level_2": "Support", "level_3": "Triage"}}},
+	} {
+		if _, err := st.TaskCreate(ctx, item, "", nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	filters := map[string]string{"roadmap": "linked", "milestone": "M-061", "category_level_1": "Product"}
+	first, err := st.TaskListPage(ctx, filters, 1, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first["total"] != 2 || len(first["tasks"].([]map[string]any)) != 1 || first["offset"] != 0 {
+		t.Fatalf("first page=%#v", first)
+	}
+	second, err := st.TaskListPage(ctx, filters, 1, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if second["total"] != 2 || len(second["tasks"].([]map[string]any)) != 1 || second["offset"] != 1 {
+		t.Fatalf("second page=%#v", second)
+	}
+	if first["tasks"].([]map[string]any)[0]["id"] == second["tasks"].([]map[string]any)[0]["id"] {
+		t.Fatal("pagination repeated a task")
+	}
+	if _, err := st.TaskListPage(ctx, map[string]string{"milestone": "bad"}, 25, 0); err == nil {
+		t.Fatal("invalid milestone accepted")
+	}
+}

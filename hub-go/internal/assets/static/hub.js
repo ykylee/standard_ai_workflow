@@ -35,6 +35,12 @@
     } catch (e) { /* 저장소 없음 */ }
     return out;
   }
+  function storedAdminToken() {
+    try { return localStorage.getItem(`hub:${hubHost}:admin-token`) || ""; } catch (e) { return ""; }
+  }
+  function storeAdminToken(token) {
+    try { localStorage.setItem(`hub:${hubHost}:admin-token`, token); return true; } catch (e) { return false; }
+  }
 
   async function api(path, opts) {
     opts = opts || {};
@@ -105,6 +111,7 @@
   }
   function setWho(principal) {
     if (!principal) { whoEl.textContent = ""; return; }
+    if (principal.kind === "admin") { whoEl.textContent = `허브 관리자 ${principal.name || ""}`; return; }
     if (principal.kind === "callsign") {
       whoEl.textContent = `${principal.callsign} (${principal.callsign_kind}${principal.callsign_kind === "human" && !principal.human_approved ? " · 승인 전" : ""} · ${principal.role})`;
     } else {
@@ -204,12 +211,86 @@
       storedToken(p.id) ? el("div", { class: "muted" }, "이 브라우저에 콜사인 토큰 있음") : null));
     render(
       el("section", { class: "card" }, el("h1", {}, "프로젝트"),
+        principal?.kind === "admin" ? el("p", {}, el("a", { href: "#/harnesses" }, "하네스 제보 검토 · 사람 명부 관리")) : null,
         cards.length ? el("div", { class: "grid" }, cards)
           : el("p", { class: "muted" }, anon.status === 401
             ? "토큰 없는 화면 읽기가 꺼져 있다 (허브 기본). 콜사인 토큰을 넣으면 그 프로젝트가 보인다."
             : "등록된 프로젝트가 없다.")),
       errors.length ? el("section", { class: "card" }, errors.map((e) => alertBox("bad", e))) : null,
       el("section", { class: "card" }, el("h2", {}, "이 브라우저에 콜사인 토큰 넣기"), tokenForm(() => route())));
+  }
+
+  async function viewHarnesses() {
+    setCrumbs([{ text: "프로젝트", href: "#/" }, { text: "하네스 등록 검토" }]);
+    const token = storedAdminToken();
+    if (!token) {
+      const input = el("input", { type: "password", autocomplete: "off", placeholder: "hub admin 토큰", "aria-label": "hub admin 토큰" });
+      const message = el("div");
+      setWho(null);
+      render(el("section", { class: "card" }, el("h1", {}, "하네스 제보 검토"),
+        el("p", {}, "허브 관리자 토큰으로 로그인하면 대기 중인 제보와 사람 명부를 관리할 수 있다."),
+        el("form", { class: "row", onsubmit: async (ev) => {
+          ev.preventDefault();
+          const r = await api("session", { token: input.value.trim() });
+          if (r.status !== 200 || r.data.principal.kind !== "admin") {
+            message.replaceChildren(alertBox("bad", "허브 관리자 토큰이 필요하다.")); return;
+          }
+          storeAdminToken(input.value.trim()); input.value = ""; dirty = false; route();
+        } }, el("label", {}, "관리자 토큰", input), el("button", { type: "submit" }, "로그인"), message)));
+      return;
+    }
+    const [session, reportsRes, peopleRes, registryRes] = await Promise.all([
+      api("session", { token }), api("harness-reports?status=pending", { token }),
+      api("harness-people", { token }), api("harness-registry", { token })]);
+    if (session.status !== 200 || session.data.principal.kind !== "admin") {
+      try { localStorage.removeItem(`hub:${hubHost}:admin-token`); } catch (e) { /* 저장소 없음 */ }
+      render(el("section", { class: "card" }, alertBox("bad", "관리자 토큰이 유효하지 않다. 다시 로그인한다."),
+        el("button", { onclick: () => { route(); } }, "다시 로그인")));
+      return;
+    }
+    setWho(session.data.principal);
+    if ([reportsRes, peopleRes, registryRes].some((r) => r.status !== 200)) {
+      render(el("section", { class: "card" }, alertBox("bad", errorText([reportsRes, peopleRes, registryRes].find((r) => r.status !== 200))))); return;
+    }
+    const people = peopleRes.data.people || [];
+    const registry = new Map((registryRes.data.harnesses || []).map((h) => [h.harness_id, h]));
+    const displayName = el("input", { type: "text", maxlength: "100", placeholder: "사람 담당자 이름", "aria-label": "사람 담당자 이름" });
+    const addMessage = el("div");
+    const addPerson = el("form", { class: "row", onsubmit: async (ev) => {
+      ev.preventDefault();
+      const r = await api("harness-people", { method: "POST", token, body: { display_name: displayName.value.trim() } });
+      if (r.status !== 200) { addMessage.replaceChildren(alertBox("bad", errorText(r))); return; }
+      displayName.value = ""; dirty = false; route();
+    } }, el("label", {}, "사람 명부에 등록", displayName), el("button", { type: "submit" }, "사람 추가"), addMessage);
+    const cards = (reportsRes.data.reports || []).map((report) => {
+      const existing = registry.get(report.harness_id);
+      const selectedIds = new Set((existing?.owners || []).map((p) => p.id));
+      const ownerSelect = el("select", { multiple: true, size: String(Math.min(6, Math.max(2, people.length))), "aria-label": "하네스 담당자 여러 명 선택" },
+        people.map((p) => el("option", { value: p.id, selected: selectedIds.has(p.id) }, `${p.display_name} · ${p.id}`)));
+      const note = el("textarea", { maxlength: "1000", placeholder: "검토 메모 (선택)", "aria-label": "검토 메모" });
+      const result = el("div");
+      const decide = async (decision) => {
+        const owner_ids = decision === "approve" ? [...ownerSelect.selectedOptions].map((o) => o.value) : [];
+        const r = await api(`harness-reports/${encodeURIComponent(report.id)}/decision`, {
+          method: "POST", token, body: { decision, note: note.value.trim(), owner_ids } });
+        if (r.status !== 200) { result.replaceChildren(alertBox("bad", errorText(r))); return; }
+        dirty = false; route();
+      };
+      const data = report.report || {};
+      return el("article", { class: "card" }, el("h2", {}, `${data.display_name || report.harness_id} · ${report.harness_id}`),
+        el("p", { class: "muted" }, `제보 ${report.id} · 프로젝트 ${report.project_id} · ${report.submitted_by} · ${when(report.submitted_at)}`),
+        el("pre", {}, JSON.stringify(data, null, 2)),
+        el("label", {}, "사람 담당자 (복수 선택, 최초 등록에 1명 이상 필수)", ownerSelect),
+        !people.length ? alertBox("warn", "먼저 사람 명부에 담당자를 등록해야 승인할 수 있다.") : null,
+        el("label", {}, "검토 메모", note),
+        el("div", { class: "row" }, el("button", { disabled: !people.length, onclick: () => decide("approve") }, "담당자를 지정하고 등록 승인"),
+          el("button", { class: "danger", onclick: () => decide("reject") }, "거절")), result);
+    });
+    render(el("section", { class: "card" }, el("h1", {}, "하네스 제보 검토"),
+      el("nav", { class: "nav-links" }, el("a", { href: "#/" }, "프로젝트"), el("a", { class: "on", href: "#/harnesses" }, "하네스 검토")),
+      el("p", {}, "승인은 사람 명부에 등록된 담당자를 한 명 이상 지정해야 한다."), addPerson,
+      el("button", { class: "ghost", onclick: () => { try { localStorage.removeItem(`hub:${hubHost}:admin-token`); } catch (e) { /* 저장소 없음 */ } route(); } }, "관리자 토큰 지우기")),
+      cards.length ? cards : el("section", { class: "card" }, el("p", { class: "muted" }, "대기 중인 제보가 없다.")));
   }
 
   // --- 화면: 프로젝트 · KPI · task 목록 --------------------------------------------------
@@ -223,7 +304,8 @@
       sub ? el("div", { class: "kpi-sub" }, sub) : null);
   }
 
-  async function viewProject(pid, status) {
+  async function viewProject(pid, status, query) {
+    query = query || new URLSearchParams();
     const token = storedToken(pid);
     const pr = await api(`projects/${encodeURIComponent(pid)}`, { token });
     if (pr.status !== 200) {
@@ -235,9 +317,15 @@
     const { project, principal, summary } = pr.data;
     setWho(principal);
     setCrumbs([{ text: "프로젝트", href: "#/" }, { text: project.display_name }]);
-    const q = status ? `?status=${encodeURIComponent(status)}` : "";
+    const pageLimit = Number(query.get("limit") || 25);
+    const pageOffset = Number(query.get("offset") || 0);
+    const listQuery = new URLSearchParams({ limit: String(pageLimit), offset: String(pageOffset) });
+    if (status) listQuery.set("status", status);
+    for (const key of ["roadmap", "milestone", "wbs", "category_level_1", "category_level_2", "category_level_3"]) {
+      if (query.get(key)) listQuery.set(key, query.get(key));
+    }
     const [tr, cr] = await Promise.all([
-      api(`projects/${encodeURIComponent(pid)}/tasks${q}`, { token }),
+      api(`projects/${encodeURIComponent(pid)}/tasks?${listQuery}`, { token }),
       api(`projects/${encodeURIComponent(pid)}/callsigns`, { token })]);
     const base = `#/p/${encodeURIComponent(pid)}`;
     const sum = summary || {};
@@ -266,8 +354,13 @@
       kpiCard("오케스트레이터", orch ? `${orch.callsign}${orch.halted ? " (정지)" : ""}` : "미지정",
         orch ? `배정 열림 ${sum.open_assignments || 0}건` : "hub_orch_declare 로 지정", orch && orch.halted ? "bad" : orch ? "ok" : ""));
 
-    const filters = el("nav", { class: "filters", "aria-label": "상태" }, STATUSES.map((s) =>
-      el("a", { href: s ? `${base}/s/${s}` : base, class: s === (status || "") ? "on" : "" }, s || "전체")));
+    const statusFilters = el("nav", { class: "filters", "aria-label": "상태" }, STATUSES.map((s) => {
+      const next = new URLSearchParams(query);
+      next.set("limit", String(pageLimit)); next.set("offset", "0");
+      next.delete("status");
+      const suffix = next.toString() ? `?${next}` : "";
+      return el("a", { href: `${s ? `${base}/s/${encodeURIComponent(s)}` : base}${suffix}`, class: s === (status || "") ? "on" : "" }, s || "전체");
+    }));
     const rows = tr.status === 200 ? tr.data.tasks.map((t) => el("tr", {},
       el("td", { class: "mono nowrap" }, el("a", { href: `${base}/t/${encodeURIComponent(t.id)}`, title: t.id }, t.id)),
       el("td", { class: "title" }, t.title),
@@ -276,6 +369,56 @@
       el("td", {}, t.assignee || "—"),
       el("td", { class: "muted progress" }, t.progress_note ? el("div", { class: "clamp-2", title: t.progress_note }, t.progress_note) : ""),
       el("td", { class: "muted nowrap" }, when(t.updated_at)))) : [];
+    const facets = tr.data?.facets || {};
+    const filterOptions = (key, label, values) => el("label", {}, label,
+      el("select", { name: key, "aria-label": label },
+        el("option", { value: "" }, "전체"),
+        (values || []).map((value) => el("option", { value, selected: query.get(key) === value },
+          key === "roadmap" ? (value === "linked" ? "연결됨" : "미지정") : value))));
+    const listFilters = el("form", { class: "task-filters", onsubmit: (ev) => {
+      ev.preventDefault();
+      const next = new URLSearchParams();
+      for (const key of ["roadmap", "milestone", "wbs", "category_level_1", "category_level_2", "category_level_3"]) {
+        const value = ev.currentTarget.elements.namedItem(key)?.value || "";
+        if (value) next.set(key, value);
+      }
+      next.set("limit", String(pageLimit));
+      next.set("view", query.get("view") || "table");
+      location.hash = `${base}${status ? `/s/${encodeURIComponent(status)}` : ""}?${next}`;
+    } },
+      filterOptions("roadmap", "로드맵 연결", ["linked", "unlinked"]),
+      filterOptions("milestone", "마일스톤", facets.milestones),
+      filterOptions("wbs", "WBS", facets.wbs),
+      filterOptions("category_level_1", "카테고리 1", facets.category_level_1),
+      filterOptions("category_level_2", "카테고리 2", facets.category_level_2),
+      filterOptions("category_level_3", "카테고리 3", facets.category_level_3),
+      el("button", { type: "submit" }, "분류 적용"));
+    const viewMode = query.get("view") === "card" ? "card" : "table";
+    const pageQuery = (offset, view = viewMode) => {
+      const next = new URLSearchParams(query);
+      next.set("limit", String(pageLimit)); next.set("offset", String(offset)); next.set("view", view);
+      if (status) next.set("status", status); else next.delete("status");
+      return `${base}${status ? `/s/${encodeURIComponent(status)}` : ""}?${next}`;
+    };
+    const total = tr.data?.total || 0;
+    const page = Math.floor(pageOffset / pageLimit) + 1;
+    const pageCount = Math.max(1, Math.ceil(total / pageLimit));
+    const cards = tr.status === 200 ? tr.data.tasks.map((t) => el("a", { class: "card task-card", href: `${base}/t/${encodeURIComponent(t.id)}` },
+      el("div", { class: "row" }, el("span", { class: "mono muted" }, t.id), chip(t.status), chip(t.priority, "planned")),
+      el("h3", {}, t.title),
+      el("p", { class: "muted" }, t.wbs || "로드맵 미지정", " · ", t.fields?.category ? [t.fields.category.level_1, t.fields.category.level_2, t.fields.category.level_3].filter(Boolean).join(" / ") : "카테고리 없음"),
+      t.progress_note ? el("p", {}, t.progress_note) : null,
+      el("div", { class: "muted" }, `맡은 이 ${t.assignee || "—"} · `, when(t.updated_at)))) : [];
+    const listView = viewMode === "card"
+      ? cards.length ? el("div", { class: "grid task-cards" }, cards) : el("p", { class: "muted" }, "조건에 맞는 task 가 없다.")
+      : rows.length ? el("div", { class: "table-wrap" }, el("table", { class: "tasks" },
+          el("colgroup", {}, ["c-id", "c-title", "c-category", "c-status", "c-who", "c-doing", "c-when"].map((c) => el("col", { class: c }))),
+          el("thead", {}, el("tr", {}, ["ID", "제목", "카테고리", "상태", "맡은 이", "지금 하는 일", "고친 때"].map((h) => el("th", {}, h)))),
+          el("tbody", {}, rows))) : el("p", { class: "muted" }, "조건에 맞는 task 가 없다.");
+    const pagination = tr.status === 200 ? el("div", { class: "row pagination" },
+      el("span", { class: "muted" }, `${total}개 · ${page}/${pageCount}페이지`),
+      el("a", { class: page <= 1 ? "disabled" : "", href: pageQuery(Math.max(0, pageOffset - pageLimit)) }, "이전"),
+      el("a", { class: page >= pageCount ? "disabled" : "", href: pageQuery(Math.min((pageCount - 1) * pageLimit, pageOffset + pageLimit)) }, "다음")) : null;
     render(
       el("section", { class: "card" },
         el("h1", {}, project.display_name),
@@ -287,15 +430,12 @@
       ...attention,
       kpis,
       callsignSection(pid, principal, cr),
-      el("section", { class: "card" }, el("h2", {}, "task"), filters,
-        tr.status === 200 && tr.data.total > tr.data.tasks.length
-          ? el("p", { class: "muted" }, `최근 ${tr.data.tasks.length}개 / 전체 ${tr.data.total}개`) : null,
+      el("section", { class: "card" }, el("h2", {}, "task"), statusFilters, listFilters,
+        el("div", { class: "row view-switch" }, el("span", {}, "보기"),
+          el("a", { class: viewMode === "table" ? "on" : "", href: pageQuery(pageOffset, "table") }, "표"),
+          el("a", { class: viewMode === "card" ? "on" : "", href: pageQuery(pageOffset, "card") }, "카드")),
         tr.status !== 200 ? alertBox("bad", errorText(tr))
-          : rows.length ? el("div", { class: "table-wrap" }, el("table", { class: "tasks" },
-              el("colgroup", {}, ["c-id", "c-title", "c-category", "c-status", "c-who", "c-doing", "c-when"].map((c) => el("col", { class: c }))),
-              el("thead", {}, el("tr", {}, ["ID", "제목", "카테고리", "상태", "맡은 이", "지금 하는 일", "고친 때"].map((h) => el("th", {}, h)))),
-              el("tbody", {}, rows)))
-          : el("p", { class: "muted" }, "task 가 없다.")));
+          : listView, pagination));
   }
 
   // --- 화면: 오케스트레이션 (M-053 WBS-53.1) -----------------------------------------------
@@ -967,9 +1107,12 @@
     const sx = keepScroll ? window.scrollX : 0;
     const sy = keepScroll ? window.scrollY : 0;
     if (!keepScroll) dirty = false;
-    const parts = location.hash.replace(/^#\/?/, "").split("/").map(decodeURIComponent);
+    const hashUrl = new URL(location.hash.slice(1) || "/", location.href);
+    const parts = hashUrl.pathname.replace(/^\/?/, "").replace(/\/$/, "").split("/").map(decodeURIComponent);
     try {
-      if (parts[0] === "p" && parts[1]) {
+      if (parts[0] === "harnesses") {
+        await viewHarnesses();
+      } else if (parts[0] === "p" && parts[1]) {
         if (parts[2] === "t" && parts[3]) await viewTask(parts[1], parts[3]);
         else if (parts[2] === "orch") await viewOrchestration(parts[1]);
         else if (parts[2] === "roadmap") await viewRoadmap(parts[1]);
@@ -980,7 +1123,7 @@
         else if (parts[2] === "k" && parts[3]) await viewKnowledge(parts[1], parts[3]);
         else if (parts[2] === "dcr") await viewDcrs(parts[1], parts[3] || "");
         else if (parts[2] === "wp" && parts[3]) await viewWikiPage(parts[1], parts[3]);
-        else await viewProject(parts[1], parts[2] === "s" ? parts[3] : "");
+        else await viewProject(parts[1], parts[2] === "s" ? parts[3] : "", hashUrl.searchParams);
       } else {
         await viewProjects();
       }

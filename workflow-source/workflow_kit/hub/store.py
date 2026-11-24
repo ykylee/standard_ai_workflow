@@ -15,11 +15,12 @@ import json
 import re
 import secrets
 import sqlite3
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Iterator
+from typing import Any
 
 from workflow_kit.hub import db as hubdb
 from workflow_kit.hub import gitkey
@@ -302,7 +303,7 @@ class Store:
         with self.write() as conn:
             existing = conn.execute("SELECT project_id FROM project_alias WHERE key = ?", (key,)).fetchone()
             if existing:
-                raise HubError(409, "project_exists", f"이미 등록된 프로젝트다 — hub_callsign_register 로 합류한다",
+                raise HubError(409, "project_exists", "이미 등록된 프로젝트다 — hub_callsign_register 로 합류한다",
                                {"project_id": existing["project_id"], "key": key})
             conn.execute(
                 "INSERT INTO project (id, display_name, owner_callsign, created_at) VALUES (?, ?, ?, ?)",
@@ -618,6 +619,75 @@ class Store:
         args.append(limit)
         with self.read() as conn:
             return {"tasks": [self._task_row(r) for r in conn.execute(sql, args)]}
+
+    def task_list_page(self, ctx: Ctx, filters: dict[str, str], *, limit: int = 25, offset: int = 0) -> dict[str, Any]:
+        """Filtered task page plus project facets; UI pagination and category filters (M-061)."""
+        p = self._need_reader(ctx)
+        if not 1 <= limit <= 100:
+            raise invalid_field("limit", "1~100")
+        if not 0 <= offset <= 1_000_000:
+            raise invalid_field("offset", "0~1000000")
+        status = filters.get("status", "")
+        if status and status not in STATUSES:
+            raise invalid_field("status", f"{' · '.join(STATUSES)} 가운데 하나")
+        roadmap = filters.get("roadmap", "")
+        if roadmap not in {"", "linked", "unlinked"}:
+            raise invalid_field("roadmap", "linked · unlinked")
+        milestone = filters.get("milestone", "")
+        if milestone and not re.fullmatch(r"M-[0-9]{3}", milestone):
+            raise invalid_field("milestone", "M-001 형식")
+        wbs = filters.get("wbs", "")
+        if wbs and (len(wbs) > 80 or ".." in wbs or "\\" in wbs):
+            raise invalid_field("wbs", "80자 이하 WBS 키")
+        where = ["project_id = ?"]
+        args: list[Any] = [p.project_id]
+        if status:
+            where.append("status = ?")
+            args.append(status)
+        if roadmap == "linked":
+            where.append("wbs != ''")
+        elif roadmap == "unlinked":
+            where.append("wbs = ''")
+        if milestone:
+            where.append("wbs LIKE ?")
+            args.append(milestone + "/%")
+        if wbs:
+            where.append("wbs = ?")
+            args.append(wbs)
+        category_expr = ("fields_json::jsonb #>> '{category,%s}'" if hubdb.is_postgres(self.path)
+                         else "json_extract(fields_json, '$.category.%s')")
+        for key in ("level_1", "level_2", "level_3"):
+            value = filters.get("category_" + key, "")
+            if value:
+                where.append(category_expr % key + " = ?")
+                args.append(value)
+        clause = " AND ".join(where)
+        with self.read() as conn:
+            total = int(conn.execute("SELECT COUNT(*) FROM task WHERE " + clause, args).fetchone()[0])
+            rows = conn.execute("SELECT * FROM task WHERE " + clause +
+                                " ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?", (*args, limit, offset)).fetchall()
+            facet_rows = conn.execute("SELECT wbs,fields_json FROM task WHERE project_id=?", (p.project_id,)).fetchall()
+        milestones: set[str] = set()
+        wbss: set[str] = set()
+        categories: list[set[str]] = [set(), set(), set()]
+        for row in facet_rows:
+            task_wbs = row["wbs"] or ""
+            if task_wbs:
+                wbss.add(task_wbs)
+                milestones.add(task_wbs.split("/", 1)[0])
+            try:
+                category = json.loads(row["fields_json"] or "{}").get("category") or {}
+            except (ValueError, TypeError):
+                category = {}
+            if isinstance(category, dict):
+                for index, key in enumerate(("level_1", "level_2", "level_3")):
+                    category_value = category.get(key)
+                    if isinstance(category_value, str) and category_value:
+                        categories[index].add(category_value)
+        return {"tasks": [self._task_row(row) for row in rows], "total": total, "limit": limit, "offset": offset,
+                "facets": {"roadmaps": ["linked", "unlinked"], "milestones": sorted(milestones), "wbs": sorted(wbss),
+                           "category_level_1": sorted(categories[0]), "category_level_2": sorted(categories[1]),
+                           "category_level_3": sorted(categories[2])}}
 
     def _versioned_update(self, ctx: Ctx, task_id: str, expected_version: int | None, op: str,
                           mutate: Callable[[dict[str, Any], Principal, sqlite3.Connection], dict[str, Any]],

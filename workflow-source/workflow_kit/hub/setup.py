@@ -6,7 +6,7 @@
 단계 (앞 단계가 확인돼야 다음 지시가 나온다):
     1. ``gitignore``  — ``.gitignore`` 에 ``/.workflow-hub/`` + ``git check-ignore -v .workflow-hub/env`` 확인
     2. ``env``        — ``.workflow-hub/env`` (토큰). **1 이 확인되기 전에는 지시하지 않는다** (요구 R4.2)
-       ``entry:<하네스>`` — 진입 파일 렌더 영역 (로컬에서 고친 영역이면 지시 없이 멈춤)
+    ``entry:<하네스>`` — 진입 파일 렌더 영역 (로컬에서 고친 영역이면 지시 없이 멈춤; 1.x 는 전환 표식 커밋 뒤 시작 안내만 제한 갱신)
        ``harness:<하네스>`` — 하네스 MCP 설정 (환경 변수 참조, Antigravity 만 사용자 범위 + 경고)
     3. 모두 확인되면 콜사인의 ``setup_complete`` = 1. 하네스를 다시 연결하라는 안내.
 """
@@ -17,6 +17,7 @@ import json
 import sqlite3
 from typing import Any
 
+from workflow_kit.common.hub_marker import MARKER_REL
 from workflow_kit.hub import render
 from workflow_kit.hub.errors import HubError, invalid_field, unauthorized
 from workflow_kit.hub.store import Ctx, Principal, Store, _iso
@@ -29,6 +30,7 @@ LEGACY_1X_MARKERS = ("standard-ai-workflow-kit:", "generated-from: core/global_w
 MCP_JSON = ".mcp.json"
 SERVER_NAME = "workflow-hub"
 TOKEN_ENV = "WORKFLOW_HUB_TOKEN"
+MIGRATION_MARKER_FORMAT = "workflow-hub-migrated/1"
 CHECK_IGNORE = ["git", "check-ignore", "-v", ENV_PATH]
 AGY_WARNING = (
     "Antigravity 는 MCP 헤더의 환경 변수 참조를 확장하지 않는다 (requirements §16.3). 그래서 토큰 값이 "
@@ -78,6 +80,19 @@ def _mcp_json(existing: str | None, url: str) -> str:
         "headers": {"Authorization": "Bearer ${" + TOKEN_ENV + "}"},
     }
     return json.dumps(data, ensure_ascii=False, indent=2) + "\n"
+
+
+def _migration_marker_ready(files: dict[str, Any], project_id: str, hub_url: str) -> bool:
+    raw = files.get(MARKER_REL)
+    if not isinstance(raw, str):
+        return False
+    try:
+        marker = json.loads(raw)
+    except json.JSONDecodeError:
+        return False
+    return (isinstance(marker, dict) and marker.get("format") == MIGRATION_MARKER_FORMAT
+            and marker.get("project_id") == project_id
+            and str(marker.get("hub", "")).rstrip("/") == hub_url.rstrip("/"))
 
 
 class Setup:
@@ -136,10 +151,15 @@ class Setup:
             raise HubError(400, "unknown_field", f"scan 의 모르는 칸: {', '.join(sorted(extra))}", {"fields": sorted(extra)})
         legacy = sorted(path for path, text in files.items()
                         if isinstance(text, str) and any(m in text for m in LEGACY_1X_MARKERS))
+        migration_complete = _migration_marker_ready(files, project_id, self.public_url)
+        legacy_entries = {render.entry_file(h) for h in render.SUPPORTED_HARNESSES} & set(legacy)
+        entry_update_allowed = migration_complete or not legacy_entries
         legacy_1x = {"files": legacy,
+                     "migration_complete": migration_complete,
+                     "entry_update_allowed": entry_update_allowed,
                      "next": "1.x kit 흔적이 있다 — 전환은 사람이 선택 클라이언트로 한다: "
                              "python .workflow-hub/hub_client.py migrate plan → (표를 보이고 고른 종류로) migrate import "
-                             "(hub_spec §6.6). 셋업만으로는 1.x 기록이 허브에 들어오지 않는다"} if legacy else None
+                             "(hub_spec §6.6). 가져오기와 ai-workflow/HUB_MIGRATED.json 표식 커밋을 마친 뒤 셋업을 다시 실행하면 진입 안내를 갱신한다"} if legacy else None
         relay_scan = scan.get("relay") or {"required": False}
         if not isinstance(relay_scan, dict) or set(relay_scan) - {"required", "config_present", "status"}:
             raise invalid_field("scan.relay", "{required, config_present, status} 객체")
@@ -183,7 +203,21 @@ class Setup:
             for h in harnesses:
                 path = render.entry_file(h)
                 region, version = render.render_region(h, project_id, display, guide_body, guide_ver)
-                merged, why = render.merge_into(files.get(path), region)
+                existing = files.get(path)
+                existing_text = existing if isinstance(existing, str) else None
+                entry_has_legacy = existing_text is not None and any(m in existing_text for m in LEGACY_1X_MARKERS)
+                migrated_existing = existing_text
+                if entry_has_legacy and not migration_complete:
+                    blocked.append({"id": f"entry:{h}", "path": path, "reason": "legacy_1x_requires_migration",
+                                    "message": "1.x 작업 정본을 Hub로 가져오고 ai-workflow/HUB_MIGRATED.json 을 커밋한 뒤 다시 셋업한다"})
+                    continue
+                if entry_has_legacy:
+                    migrated_existing = render.migrate_legacy_start_guidance(existing_text or "")
+                    if migrated_existing is None:
+                        blocked.append({"id": f"entry:{h}", "path": path, "reason": "legacy_entry_needs_review",
+                                        "message": "진입 파일의 1.x 시작 안내가 표준 생성 문안과 다르다 — 사람이 Hub 경로로 고친 뒤 다시 셋업한다"})
+                        continue
+                merged, why = render.merge_into(migrated_existing, region)
                 if merged is None:
                     blocked.append({"id": f"entry:{h}", "path": path, "reason": why,
                                     "message": "렌더 영역이 허브가 낸 판과 다르다 — 덮어쓰지 않는다. 고칠 것은 허브에 지침 제안으로 (요구 R7.5)"})

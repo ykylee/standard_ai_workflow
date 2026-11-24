@@ -2,6 +2,7 @@ package tools
 
 import (
 	"database/sql"
+	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -27,16 +28,20 @@ func openTestStore(t *testing.T) *store.Store {
 }
 
 func TestVisibleToolsAndSchemas(t *testing.T) {
-	if len(ToolOrder) != 82 || len(Tools) != 82 {
-		t.Fatalf("expected 82 tools, got order=%d map=%d", len(ToolOrder), len(Tools))
+	if len(ToolOrder) != 85 || len(Tools) != 85 {
+		t.Fatalf("expected 85 tools, got order=%d map=%d", len(ToolOrder), len(Tools))
 	}
 	anon := VisibleTools(false)
 	if len(anon) != 6 {
 		t.Fatalf("expected 6 bootstrap tools, got %d", len(anon))
 	}
 	authed := VisibleTools(true)
-	if len(authed) != 82 {
-		t.Fatalf("expected 82 authed tools, got %d", len(authed))
+	if len(authed) != 85 {
+		t.Fatalf("expected 85 callsign tools, got %d", len(authed))
+	}
+	admin := VisibleToolsFor("admin")
+	if len(admin) != 6 {
+		t.Fatalf("expected 6 admin-visible tools, got %d", len(admin))
 	}
 	listSchema := Tools["hub_task_list"].Schema()
 	props := listSchema["properties"].(map[string]any)
@@ -50,6 +55,66 @@ func TestVisibleToolsAndSchemas(t *testing.T) {
 	lookupProps := lookupSchema["properties"].(map[string]any)
 	if _, ok := lookupProps["session"]; ok {
 		t.Fatal("bootstrap tool should not inject shared session property")
+	}
+}
+
+func TestHarnessIntakeToolScopesAndDispatch(t *testing.T) {
+	st := openTestStore(t)
+	now := time.Date(2026, 11, 24, 12, 0, 0, 0, time.UTC)
+	project, err := st.RegisterProject(store.Ctx{Now: now, Via: "test"}, "https://github.com/acme/intake", "Intake", "owner-human", "human", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	owner, err := st.Authenticate(project["token"].(string), &now, "client-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ownerCtx := store.Ctx{Now: now, Via: "mcp", Principal: owner, ClientVersion: "client-test"}
+	adminToken, err := st.IssueHubToken("admin", "reviewer", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	admin, err := st.Authenticate(adminToken, &now, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	adminCtx := store.Ctx{Now: now, Via: "mcp", Principal: admin}
+	started, err := Call(st, "hub_session_start", map[string]any{"session": map[string]any{
+		"harness": "tool-agent", "kind": "worker", "delivery": []any{"wait"},
+	}}, ownerCtx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	startHub := started["hub"].(map[string]any)
+	if startHub["harness_support"].(map[string]any)["status"] != "unknown" {
+		t.Fatalf("unknown harness was not flagged: %#v", started)
+	}
+	report := map[string]any{"harness_id": "tool-agent", "display_name": "Tool Agent", "platforms": []any{"linux"}, "entry_file_candidates": []any{"AGENTS.md"}}
+	created, err := Call(st, "hub_harness_report", map[string]any{"report": report}, ownerCtx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if created["status"] != "pending" {
+		t.Fatalf("report=%#v", created)
+	}
+	if _, err := Call(st, "hub_harness_admin_decide", map[string]any{"report_id": created["report_id"], "decision": "approve"}, adminCtx); err == nil {
+		t.Fatal("human approval MCP tool must not exist")
+	}
+	registry, err := Call(st, "hub_harness_registry_list", map[string]any{}, ownerCtx)
+	if err != nil || len(registry["harnesses"].([]map[string]any)) != 0 {
+		t.Fatalf("registry=%#v err=%v", registry, err)
+	}
+	for _, spec := range VisibleToolsFor("callsign") {
+		if spec.Bundle == "hub_admin" {
+			t.Fatalf("callsign sees admin tool %q", spec.Name)
+		}
+	}
+	adminVisible := map[string]bool{}
+	for _, spec := range VisibleToolsFor("admin") {
+		adminVisible[spec.Name] = true
+	}
+	if adminVisible["hub_harness_admin_reports"] || adminVisible["hub_harness_admin_decide"] {
+		t.Fatalf("human review tools must not be exposed over MCP: %#v", adminVisible)
 	}
 }
 
@@ -148,6 +213,50 @@ func TestGuideAndSetupToolsAreImplemented(t *testing.T) {
 	plan, err = Call(st, "hub_setup_plan", map[string]any{"project_id": projectID, "token": token, "harnesses": []any{"codex"}, "scan": map[string]any{"files": map[string]any{}, "relay": map[string]any{"required": false}}}, bootstrap)
 	if err != nil || plan["stage"] != "files" {
 		t.Fatalf("setup file plan was not dispatched: %#v err=%v", plan, err)
+	}
+	legacyStart := "- Restore the session with `python -m workflow_kit session-start` — it reads `ai-workflow/memory/active/<branch>/` (`state.json`, handoff, backlog), `docs/PROJECT_PROFILE.md`, and `PURPOSE.md` (`<branch>` = current git branch)."
+	legacyEntry := "# Project\n\n" + legacyStart + "\n\n<!-- standard-ai-workflow-kit: v1.29.0 -->\n\n## User notes\nKeep this paragraph.\n"
+	legacyPlan, err := Call(st, "hub_setup_plan", map[string]any{"project_id": projectID, "token": token, "harnesses": []any{"codex"}, "scan": map[string]any{"files": map[string]any{"AGENTS.md": legacyEntry}, "relay": map[string]any{"required": false}}}, bootstrap)
+	if err != nil {
+		t.Fatalf("legacy setup plan failed: %v", err)
+	}
+	legacyBlocked := false
+	for _, row := range legacyPlan["blocked"].([]any) {
+		if row.(map[string]any)["id"] == "entry:codex" {
+			legacyBlocked = true
+		}
+	}
+	if !legacyBlocked {
+		t.Fatalf("legacy entrypoint must remain unchanged before migration marker: %#v", legacyPlan)
+	}
+	marker := fmt.Sprintf(`{"format":"workflow-hub-migrated/1","hub":%q,"project_id":%q}`, bootstrap.PublicURL, projectID)
+	readyPlan, err := Call(st, "hub_setup_plan", map[string]any{"project_id": projectID, "token": token, "harnesses": []any{"codex"}, "scan": map[string]any{"files": map[string]any{"AGENTS.md": legacyEntry, "ai-workflow/HUB_MIGRATED.json": marker}, "relay": map[string]any{"required": false}}}, bootstrap)
+	if err != nil {
+		t.Fatalf("post-migration setup plan failed: %v", err)
+	}
+	updatedEntry := ""
+	for _, row := range readyPlan["steps"].([]any) {
+		step, ok := row.(map[string]any)
+		if ok && step["id"] == "entry:codex" {
+			updatedEntry = step["content"].(string)
+		}
+	}
+	if updatedEntry == "" || strings.Contains(updatedEntry, legacyStart) || !strings.Contains(updatedEntry, "hub_session_start") || !strings.Contains(updatedEntry, "## User notes\nKeep this paragraph.") {
+		t.Fatalf("post-migration entrypoint should use Hub start and preserve user text: %#v", readyPlan)
+	}
+	customEntry := strings.Replace(legacyEntry, legacyStart, "- Locally customized 1.x startup instructions.", 1)
+	customPlan, err := Call(st, "hub_setup_plan", map[string]any{"project_id": projectID, "token": token, "harnesses": []any{"codex"}, "scan": map[string]any{"files": map[string]any{"AGENTS.md": customEntry, "ai-workflow/HUB_MIGRATED.json": marker}, "relay": map[string]any{"required": false}}}, bootstrap)
+	if err != nil {
+		t.Fatalf("custom legacy setup plan failed: %v", err)
+	}
+	customBlocked := false
+	for _, row := range customPlan["blocked"].([]any) {
+		if row.(map[string]any)["reason"] == "legacy_entry_needs_review" {
+			customBlocked = true
+		}
+	}
+	if !customBlocked {
+		t.Fatalf("custom legacy startup text must require review, got %#v", customPlan)
 	}
 
 	guide, err := Call(st, "hub_guide_get", map[string]any{}, ctx)

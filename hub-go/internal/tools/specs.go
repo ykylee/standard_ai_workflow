@@ -118,6 +118,18 @@ var ToolOrder = []*ToolSpec{
 		Required: []string{},
 	},
 	{
+		Name: "hub_harness_report", Bundle: "token", Description: "등록되지 않은 하네스의 비밀 없는 프로필 관측을 검토 대기열에 제보한다. 제보만으로 허브 설정은 바뀌지 않는다.",
+		Properties: map[string]map[string]any{"report": {"type": "object"}}, Required: []string{"report"},
+	},
+	{
+		Name: "hub_harness_report_list", Bundle: "token", Description: "이 프로젝트가 제출한 하네스 제보 상태 목록.",
+		Properties: map[string]map[string]any{"status": {"type": "string"}}, Required: []string{},
+	},
+	{
+		Name: "hub_harness_registry_list", Bundle: "token", Description: "승인된 허브 전역 하네스 메타데이터 목록. 셋업 어댑터 지원과는 별도다.",
+		Properties: map[string]map[string]any{}, Required: []string{},
+	},
+	{
 		Name:        "hub_guide_render",
 		Bundle:      "token",
 		Description: "하네스 진입 파일의 새 내용 (렌더 영역 갱신). current = 지금 파일 내용 (없으면 생략). 로컬에서 고친 영역이면 blocked.",

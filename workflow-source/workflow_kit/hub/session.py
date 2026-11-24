@@ -56,14 +56,20 @@ def _local_client(client: Any) -> dict[str, Any]:
     """선택 클라이언트가 실은 보낼편지함 상태 (요구 R12.3). 없으면 없다고 말한다 — 0건으로 치지 않는다 (R12.1)."""
     if client is None:
         return {"status": "none", "note": "선택 클라이언트 없음 — 보낼편지함 · 캐시를 쓰지 않는 환경이다 (R12.1)"}
-    if not isinstance(client, dict) or set(client) - {"version", "outbox_pending"} \
-            or not isinstance(client.get("outbox_pending"), int) or isinstance(client.get("outbox_pending"), bool) \
-            or client["outbox_pending"] < 0:
-        raise invalid_field("client", "{version, outbox_pending(0 이상 정수)}")
+    if not isinstance(client, dict) or set(client) - {"version", "outbox_pending", "harness"}:
+        raise invalid_field("client", "{version, outbox_pending(0 이상 정수), harness?}")
+    pending = client.get("outbox_pending", 0)
+    if not isinstance(pending, int) or isinstance(pending, bool) or pending < 0:
+        raise invalid_field("client", "{version, outbox_pending(0 이상 정수), harness?}")
     out: dict[str, Any] = {"status": "present", "version": str(client.get("version", "")),
-                           "outbox_pending": client["outbox_pending"]}
-    if client["outbox_pending"]:
-        out["notice"] = f"보낼편지함에 {client['outbox_pending']}건 — hub_client.py flush 로 보낸다 (409 는 남는다, D4)"
+                           "outbox_pending": pending}
+    if "harness" in client:
+        harness = client["harness"]
+        if not isinstance(harness, str) or not harness.strip() or len(harness) > 64:
+            raise invalid_field("client.harness", "1~64자 하네스 ID")
+        out["harness"] = harness.strip().lower()
+    if pending:
+        out["notice"] = f"보낼편지함에 {pending}건 — hub_client.py flush 로 보낸다 (409 는 남는다, D4)"
     return out
 
 
@@ -129,6 +135,24 @@ class SessionStart:
         with self.store.read() as conn:
             hub = self._hub_part(conn, p)
         hub["local_client"] = _local_client(client)
+        harness = hub["local_client"].get("harness")
+        if harness:
+            if harness in render.SUPPORTED_HARNESSES:
+                support = "setup_supported"
+            else:
+                with self.store.read() as conn:
+                    registered = conn.execute("SELECT 1 FROM harness_registry WHERE harness_id=? AND active=1", (harness,)).fetchone()
+                support = "registered_metadata_only" if registered else "unknown"
+            hub["harness_support"] = {
+                "harness_id": harness,
+                "status": support,
+                "setup_ready": support == "setup_supported",
+                "report_tool": None if support != "unknown" else "hub_harness_report",
+                "required_report_fields": [] if support != "unknown" else [
+                    "harness_id", "display_name", "version", "platforms", "mcp_transports",
+                    "config_formats", "entry_file_candidates", "documentation_url", "notes",
+                ],
+            }
         entries: list[str] = hub.pop("_entries")
         commits: dict[str, list[str]] = hub.pop("_commits")
         commands = _commands(entries, sorted(commits))

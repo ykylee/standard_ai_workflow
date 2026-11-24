@@ -297,8 +297,11 @@ func (s *Server) handleOne(r *http.Request, msg map[string]any) (map[string]any,
 		if err != nil {
 			return jsonRPCErr(id, -32603, err.Error()), false
 		}
-		authed := p != nil && p.Kind == "callsign"
-		specs := tools.VisibleTools(authed)
+		kind := ""
+		if p != nil {
+			kind = p.Kind
+		}
+		specs := tools.VisibleToolsFor(kind)
 		list := make([]map[string]any, len(specs))
 		for i, sp := range specs {
 			list[i] = map[string]any{

@@ -50,9 +50,125 @@ func (s *Server) handleUIAPI(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		writeJSONResponse(w, http.StatusOK, map[string]any{"projects": projects, "principal": principalSummary(principal)})
+	case "/api/harness-reports":
+		if principal.Kind != "admin" {
+			writeScreenError(w, store.Forbidden("허브 관리자 웹 토큰만 하네스 제보를 검토할 수 있다"))
+			return
+		}
+		if r.Method != http.MethodGet {
+			writeJSONResponse(w, http.StatusMethodNotAllowed, map[string]any{"error_code": "method_not_allowed", "message": "GET 만 지원한다", "detail": map[string]any{}})
+			return
+		}
+		result, err := s.cfg.Store.HarnessReportList(store.Ctx{Now: now, Via: "ui", Principal: principal}, r.URL.Query().Get("status"), true)
+		if err != nil {
+			writeScreenError(w, err)
+			return
+		}
+		writeJSONResponse(w, http.StatusOK, result)
+	case "/api/harness-people":
+		if principal.Kind != "admin" {
+			writeScreenError(w, store.Forbidden("허브 관리자 웹 토큰만 사람 명부를 관리할 수 있다"))
+			return
+		}
+		ctx := store.Ctx{Now: now, Via: "ui", Principal: principal}
+		if r.Method == http.MethodGet {
+			result, err := s.cfg.Store.HarnessPeopleList(ctx)
+			if err != nil {
+				writeScreenError(w, err)
+				return
+			}
+			writeJSONResponse(w, http.StatusOK, result)
+			return
+		}
+		body, err := readScreenJSON(r)
+		if err != nil {
+			writeScreenError(w, err)
+			return
+		}
+		name, ok := body["display_name"].(string)
+		if !ok {
+			writeScreenError(w, store.InvalidField("display_name", "문자열이어야 한다"))
+			return
+		}
+		result, err := s.cfg.Store.HarnessPersonCreate(ctx, name)
+		if err != nil {
+			writeScreenError(w, err)
+			return
+		}
+		writeJSONResponse(w, http.StatusOK, result)
+		return
+	case "/api/harness-registry":
+		if principal.Kind != "admin" {
+			writeScreenError(w, store.Forbidden("허브 관리자 웹 토큰만 전역 등록부를 조회할 수 있다"))
+			return
+		}
+		if r.Method != http.MethodGet {
+			writeJSONResponse(w, http.StatusMethodNotAllowed, map[string]any{"error_code": "method_not_allowed", "message": "GET 만 지원한다", "detail": map[string]any{}})
+			return
+		}
+		result, err := s.cfg.Store.HarnessRegistryList(store.Ctx{Now: now, Via: "ui", Principal: principal}, true)
+		if err != nil {
+			writeScreenError(w, err)
+			return
+		}
+		writeJSONResponse(w, http.StatusOK, result)
 	default:
+		if strings.HasPrefix(r.URL.Path, "/api/harness-reports/") {
+			s.handleHarnessDecisionUIAPI(w, r, principal, now)
+			return
+		}
 		s.handleProjectUIAPI(w, r, principal, now)
 	}
+}
+
+func (s *Server) handleHarnessDecisionUIAPI(w http.ResponseWriter, r *http.Request, principal *store.Principal, now time.Time) {
+	if principal.Kind != "admin" {
+		writeScreenError(w, store.Forbidden("허브 관리자 웹 토큰만 하네스 제보를 결정할 수 있다"))
+		return
+	}
+	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/harness-reports/"), "/")
+	if len(parts) != 2 || parts[0] == "" || parts[1] != "decision" || r.Method != http.MethodPost {
+		writeJSONResponse(w, http.StatusNotFound, map[string]any{"error_code": "not_found", "message": "없는 하네스 화면 API", "detail": map[string]any{}})
+		return
+	}
+	reportID, err := url.PathUnescape(parts[0])
+	if err != nil || reportID == "" {
+		writeScreenError(w, store.InvalidField("report_id", "경로 인코딩"))
+		return
+	}
+	body, err := readScreenJSON(r)
+	if err != nil {
+		writeScreenError(w, err)
+		return
+	}
+	decision, ok := body["decision"].(string)
+	if !ok {
+		writeScreenError(w, store.InvalidField("decision", "문자열이어야 한다"))
+		return
+	}
+	note, _ := body["note"].(string)
+	ownerIDs := []string{}
+	if raw, exists := body["owner_ids"]; exists {
+		values, ok := raw.([]any)
+		if !ok {
+			writeScreenError(w, store.InvalidField("owner_ids", "문자열 목록이어야 한다"))
+			return
+		}
+		for _, value := range values {
+			id, ok := value.(string)
+			if !ok {
+				writeScreenError(w, store.InvalidField("owner_ids", "문자열 목록이어야 한다"))
+				return
+			}
+			ownerIDs = append(ownerIDs, id)
+		}
+	}
+	result, err := s.cfg.Store.HarnessReportDecide(store.Ctx{Now: now, Via: "ui", Principal: principal}, reportID, decision, note, ownerIDs)
+	if err != nil {
+		writeScreenError(w, err)
+		return
+	}
+	writeJSONResponse(w, http.StatusOK, result)
 }
 
 func (s *Server) handleProjectUIAPI(w http.ResponseWriter, r *http.Request, principal *store.Principal, now time.Time) {
@@ -100,40 +216,15 @@ func (s *Server) handleProjectUIAPI(w http.ResponseWriter, r *http.Request, prin
 		return
 	}
 	if len(parts) == 3 && parts[2] == "tasks" && r.Method == http.MethodGet {
-		args := map[string]any{"limit": 200}
-		if status := r.URL.Query().Get("status"); status != "" {
-			args["status"] = status
+		filters := map[string]string{}
+		for _, key := range []string{"status", "roadmap", "milestone", "wbs", "category_level_1", "category_level_2", "category_level_3"} {
+			filters[key] = r.URL.Query().Get(key)
 		}
-		if assignee, ok := r.URL.Query()["assignee"]; ok && len(assignee) > 0 {
-			args["assignee"] = assignee[0]
-		}
-		status, _ := args["status"].(string)
-		var statusFilter *string
-		if status != "" {
-			statusFilter = &status
-		}
-		assignee, _ := args["assignee"].(string)
-		var assigneeFilter *string
-		if raw, ok := r.URL.Query()["assignee"]; ok && len(raw) > 0 {
-			assigneeFilter = &assignee
-		}
-		result, err := s.cfg.Store.TaskList(ctx, statusFilter, assigneeFilter, args["limit"].(int), true)
+		result, err := s.cfg.Store.TaskListPage(ctx, filters, queryInt(r, "limit", 25), queryInt(r, "offset", 0))
 		if err != nil {
 			writeScreenError(w, err)
 			return
 		}
-		var total int
-		countQuery := "SELECT COUNT(*) FROM task WHERE project_id = ?"
-		countArgs := []any{pid}
-		if status := r.URL.Query().Get("status"); status != "" {
-			countQuery += " AND status = ?"
-			countArgs = append(countArgs, status)
-		}
-		if err := s.cfg.Store.DB().QueryRow(countQuery, countArgs...).Scan(&total); err != nil {
-			writeScreenError(w, err)
-			return
-		}
-		result["total"] = total
 		writeJSONResponse(w, http.StatusOK, result)
 		return
 	}

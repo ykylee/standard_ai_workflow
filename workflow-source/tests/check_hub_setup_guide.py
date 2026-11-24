@@ -10,7 +10,7 @@
    다시 부르면 complete (resumed). 출력에 토큰 없음
 4. 원격 묶기 — agent 403 · 소유자 묶기 · 같은 주소 already · 다른 프로젝트 주소 409 alias_taken, 묶은 뒤 주소 조회가 찾는다
 5. 같은 원격의 두 번째 환경 — 합류(같은 프로젝트), codex 단계는 명령 실행 결과로 확인
-6. 1.x kit 흔적 — 진입 파일을 쓰지 않고 pending · legacy_1x, 진입 파일 바이트 그대로
+6. 1.x kit 흔적 — 표식 전 진입 파일 pending · 바이트 그대로; 전환 후 시작 안내를 제한 갱신
 7. Antigravity — 등록 전에는 pending(토큰 가린 명령), 다른 주소 · 꺼진 항목도 pending, 사람이 등록한 뒤(`agy mcp list` 에
    이 주소 · enabled) 다시 부르면 complete. 클라이언트는 agy 에 등록 명령을 내지 않는다
 """
@@ -27,15 +27,15 @@ WATCHES = (
     "workflow-source/core/hub_go_spec.md",
 )
 
-import json
-import os
-import stat
-import subprocess
-import sys
-import tempfile
-import urllib.request
-from pathlib import Path
-from typing import Any
+import json  # noqa: E402
+import os  # noqa: E402
+import stat  # noqa: E402
+import subprocess  # noqa: E402
+import sys  # noqa: E402
+import tempfile  # noqa: E402
+import urllib.request  # noqa: E402
+from pathlib import Path  # noqa: E402
+from typing import Any  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
@@ -44,6 +44,8 @@ if str(SOURCE_ROOT) not in sys.path:
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from check_hub_core import Hub  # noqa: E402
+
+from workflow_kit.bootstrap_lib.harnesses.entry_sections import READ_FIRST_LINES  # noqa: E402
 from workflow_kit.hub import guide_page, setup  # noqa: E402
 from workflow_kit.hub.tools import TOOLS  # noqa: E402
 
@@ -203,15 +205,39 @@ def case_5_join(e: Env, pid: str, remote: str, fake_log: Path) -> None:
 def case_6_legacy(e: Env) -> None:
     e.git("init", "-q", "-b", "main")
     claude = e.root / "CLAUDE.md"
-    original = f"# 프로젝트\n\n<!-- {setup.LEGACY_1X_MARKERS[0]} 1.29.0 -->\n본문\n"
+    original = (f"# 프로젝트\n\n{READ_FIRST_LINES[0]}\n\n<!-- {setup.LEGACY_1X_MARKERS[0]} 1.29.0 -->\n"
+                "본문\n\n## 사용자 메모\n이 문장은 보존한다.\n")
     claude.write_text(original, encoding="utf-8")
     rc, out, raw = e.bootstrap("--harness", "claude-code", "--callsign", "yk-legacy", "--kind", "human")
     pend = {p["id"] for p in out.get("pending", [])}
     ok = (rc == 3 and out.get("status") == "partial" and "entry:claude-code" in pend
           and (out.get("legacy_1x") or {}).get("files") and claude.read_text(encoding="utf-8") == original
           and (e.root / ".workflow-hub/env").is_file())
-    _record("case 6 (1.x 흔적 — 진입 파일 안 씀 · pending · legacy_1x · env 는 씀)", ok,
+    _record("case 6a (1.x 흔적 — 전환 전 진입 파일 pending · legacy_1x · env 는 씀)", ok,
             f"rc={rc} status={out.get('status')} pending={pend} legacy={out.get('legacy_1x')}")
+    marker_path = e.root / "ai-workflow" / "HUB_MIGRATED.json"
+    marker_path.parent.mkdir(parents=True, exist_ok=True)
+    marker_path.write_text(json.dumps({"format": "workflow-hub-migrated/1", "hub": e.hub.base,
+                                       "project_id": out.get("project_id"), "migration_id": "MIG-0001"}),
+                           encoding="utf-8")
+    e.git("add", "ai-workflow/HUB_MIGRATED.json")
+    e.git("commit", "-q", "-m", "confirm hub migration")
+    rc2, out2, raw2 = e.bootstrap("--harness", "claude-code", "--callsign", "yk-legacy", "--kind", "human")
+    updated = claude.read_text(encoding="utf-8")
+    new_guidance = "Start each session with the Workflow Hub MCP tool `hub_session_start`."
+    ok2 = ("entry:claude-code" in out2.get("confirmed", []) and new_guidance in updated
+           and READ_FIRST_LINES[0] not in updated and "## 사용자 메모\n이 문장은 보존한다." in updated
+           and "<!-- standard-ai-workflow-kit: 1.29.0 -->" in updated)
+    _record("case 6b (표식 커밋 뒤 재셋업 — Hub 시작 경로로 교체 · 사용자 본문 보존)", ok2,
+            f"rc={rc2} confirmed={out2.get('confirmed')} output={raw2[:400]}")
+    custom_entry = original.replace(READ_FIRST_LINES[0], "- Locally customized 1.x startup instructions.")
+    _, custom_plan, _ = e.hub.call("hub_setup_plan", {"project_id": out.get("project_id"),
+        "token": e.token(), "harnesses": ["claude-code"], "scan": {"files": {
+            "CLAUDE.md": custom_entry, "ai-workflow/HUB_MIGRATED.json": marker_path.read_text(encoding="utf-8")},
+            "relay": {"required": False}}}, e.token())
+    custom_blocked = any(row.get("reason") == "legacy_entry_needs_review" for row in custom_plan.get("blocked", []))
+    _record("case 6c (사용자 편집 시작 안내 — 자동 변경 대신 사람 검토)", custom_blocked,
+            f"blocked={custom_plan.get('blocked')}")
 
 
 def case_7_antigravity(e: Env, agy_list: Path, agy_log: Path) -> None:

@@ -45,8 +45,9 @@ python3 .workflow-hub/hub_client.py bootstrap {{BASE}} --harness <하네스> --c
     (Antigravity 등록은 `agy mcp list` 로 확인한다).
   - `not_git_repo` · `not_repo_root` · `other_hub` · `moved` · `ignore_not_effective` · 그 밖의 실패 — 멈추고 출력을 보인다.
   - `register_failed` 의 `callsign_taken` — 다른 콜사인으로 다시.
-- `legacy_1x` 가 있으면 1.x kit 를 쓰던 저장소다. 진입 파일은 쓰지 않았다. 1.x 기록의 전환은 **사람이 정한다**
-  (`python3 .workflow-hub/hub_client.py migrate plan` 으로 계획만 보일 수 있다).
+- `legacy_1x` 가 있으면 1.x kit 를 쓰던 저장소다. 데이터 전환과 `ai-workflow/HUB_MIGRATED.json` 커밋 전에는 진입 파일을 보존한다.
+  둘을 마친 뒤 이 셋업을 다시 실행하면 표준 1.x 시작 안내를 Hub 경로로 갱신한다. 다른 문안이면 자동 변경하지 않고 사람 검토를 요청한다.
+  전환은 **사람이 정한다** (`python3 .workflow-hub/hub_client.py migrate plan` 으로 계획을 확인한다).
 
 Windows PowerShell에서는 위 명령을 `mkdir .workflow-hub` 대신 `New-Item -ItemType Directory -Force .workflow-hub`,
 `curl` 대신 `Invoke-WebRequest -Uri <허브>/v1/bootstrap/hub_client.py -OutFile .workflow-hub/hub_client.py` 로 받는다.

@@ -80,11 +80,20 @@ func normalizeJSONValue(v any) any {
 	}
 }
 
-// VisibleTools returns bootstrap tools when unauthenticated, or all 82 tools when authenticated.
+// VisibleTools returns bootstrap tools when unauthenticated, or the callsign bundle when authenticated.
 func VisibleTools(authenticated bool) []*ToolSpec {
+	kind := ""
+	if authenticated {
+		kind = "callsign"
+	}
+	return VisibleToolsFor(kind)
+}
+
+// VisibleToolsFor exposes only the tool bundle belonging to the caller's credential.
+func VisibleToolsFor(kind string) []*ToolSpec {
 	out := make([]*ToolSpec, 0, len(ToolOrder))
 	for _, spec := range ToolOrder {
-		if authenticated || spec.Bundle == "bootstrap" {
+		if spec.Bundle == "bootstrap" || spec.Bundle == "token" && kind == "callsign" || spec.Bundle == "hub_admin" && kind == "admin" {
 			out = append(out, spec)
 		}
 	}
@@ -228,13 +237,17 @@ func Prepare(s *store.Store, name string, rawArgs any, ctx store.Ctx) (*ToolSpec
 			Detail:  map[string]any{"tool": name},
 		}
 	}
-	if spec.Bundle != "bootstrap" {
+	if spec.Bundle == "token" && (ctx.Principal == nil || ctx.Principal.Kind != "callsign") {
 		if ctx.Principal == nil {
 			return nil, nil, store.Unauthorized("")
 		}
-		if ctx.Principal.Kind != "callsign" {
-			return nil, nil, store.Forbidden("이 도구는 콜사인 토큰이 필요하다 (web · admin 토큰은 쓸 수 없다)")
+		return nil, nil, store.Forbidden("이 도구는 프로젝트 콜사인 토큰이 필요하다")
+	}
+	if spec.Bundle == "hub_admin" && (ctx.Principal == nil || ctx.Principal.Kind != "admin") {
+		if ctx.Principal == nil {
+			return nil, nil, store.Unauthorized("")
 		}
+		return nil, nil, store.Forbidden("이 도구는 hub admin 토큰이 필요하다")
 	}
 	clean, err := ValidateArgs(spec, rawArgs)
 	if err != nil {
@@ -377,6 +390,12 @@ func Call(s *store.Store, name string, rawArgs any, ctx store.Ctx) (result map[s
 	jb := &JudgeBridge{Store: s}
 
 	switch name {
+	case "hub_harness_report":
+		return s.HarnessReportSubmit(ctx, clean["report"])
+	case "hub_harness_report_list":
+		return s.HarnessReportList(ctx, strArg(clean, "status", ""), false)
+	case "hub_harness_registry_list":
+		return s.HarnessRegistryList(ctx, false)
 	case "hub_setup_plan":
 		return setupPlan(s, ctx, clean)
 	case "hub_guide_render":

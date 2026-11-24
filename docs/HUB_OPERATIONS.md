@@ -86,7 +86,7 @@ Python 허브의 프로젝트 묶음 export/import도 PostgreSQL에서 동작한
 |---|---|---|---|
 | 콜사인 (`wfh_…`) | 프로젝트 등록 · 합류 때 허브가 **한 번만** 준다. 작업 환경의 `.workflow-hub/env` (600, git 제외) 에만 | 그 프로젝트의 도구 · 화면. 결정 답 · 지침 판 올리기 · 원격 묶기는 **승인된 human** 만 | `hub admin --db … callsign revoke --project <ID> --callsign <c>` |
 | 화면 공용 `web` | `hub admin --db … token issue --role web --name screen` → `hub serve … --web-token-name screen` | 토큰 없는 화면 요청이 **읽기 · 콜사인 등록** 권한으로 돈다 (기본 꺼짐) | `token revoke --name screen` — 즉시 꺼진다 |
-| `admin` | `token issue --role admin --name <이름>` | 화면에서 모든 프로젝트 읽기 · 콜사인 등록 (공용 토큰을 켜지 않고 관리자만 보기) | `token revoke --name <이름>` |
+| `admin` | `token issue --role admin --name <이름>` | 웹 허브에서 모든 프로젝트 읽기 · 콜사인 등록 · 하네스 제보 검토 · 별도 사람 명부 관리 (MCP 승인 도구 없음) | `token revoke --name <이름>` |
 
 - `hub admin` 은 DB 파일에 직접 접근하는 **로컬 명령**이다 — 네트워크로 열지 않는다. 토큰 값은 발급 출력에서
   한 번만 보인다. DB 에는 해시만 있다.
@@ -110,6 +110,29 @@ Python 허브의 프로젝트 묶음 export/import도 PostgreSQL에서 동작한
 - 새로 합류한 `human` 콜사인은 소유자가 승인하기 전까지 `agent` 권한이다 — 화면의 콜사인 표 또는
   `hub_callsign_approve`.
 
+### 미등록 하네스 제보
+
+세션을 시작할 때 `hub_session_start`에 현재 하네스 이름을 실으면 응답의
+`hub.harness_support.status`가 `unknown`인지 확인할 수 있다. 이 경우 클라이언트가
+`hub_harness_report`에 하네스 ID·표시 이름·버전·플랫폼·MCP transport/설정 형식·진입 파일
+후보·공식 HTTPS 문서 주소·짧은 메모를 보내 검토를 요청한다. 전체 설정 파일, 로그, 절대 경로,
+환경 변수나 토큰은 보내지 않는다.
+
+제보 상태는 해당 프로젝트의 `hub_harness_report_list`에서 확인한다. 사람의 검토는 MCP에서 하지 않는다.
+허브 관리자 토큰으로 웹 화면 `/ui/#/harnesses`에 로그인해 전역 대기열을 검토한다. 담당자는 하네스와
+별도로 사람 명부에 먼저 등록하고, 승인 화면에서 하네스별로 한 명 이상 지정한다. 사람 명부 항목은
+인증 계정이 아니라 책임자 메타데이터다. 승인하면 메타데이터와 담당자 연결이 허브 전역 등록부에 추가되고, 다른 프로젝트는
+`hub_harness_registry_list`에서 볼 수 있다. 등록 자체는 setup adapter 지원을 뜻하지 않는다.
+`setup_supported`는 기존 내장 adapter에만 표시되며, 새 adapter는 별도 구현·검증 후에 지원한다.
+계약은 [`hub_harness_registry_spec.md`](../workflow-source/core/hub_harness_registry_spec.md)에 있다.
+
+### task 목록 탐색
+
+프로젝트 개요의 task 목록은 로드맵 연결 여부, 마일스톤, WBS, 카테고리 1~3단계로
+필터할 수 있다. 목록은 최신 수정 순으로 페이지를 나누며, 필터와 페이지는 주소에 남는다.
+표와 카드 보기는 언제든 바꿀 수 있고 현재 분류 조건을 유지한다. 로드맵 연결 여부는
+task의 WBS 연결 유무를 기준으로 한다.
+
 허브는 Python · Go 런타임 모두 `hub_setup_plan` 으로 단계별 파일 지시를 내고, `hub_guide_render` 로 현재
 프로젝트 지침을 진입 파일에 렌더하며, `hub_guide_get` 으로 지침 본문 · 판 이력 · 제안 상태를 제공한다.
 `hub_guide_propose` · `hub_guide_decide` 도 양쪽 런타임에서 같은 승인 경계를 적용한다 — 승인된 human 만 판을
@@ -131,7 +154,9 @@ python3 .workflow-hub/hub_client.py migrate import <MIG> all     # 고른 종류
 ```
 
 들여온 뒤 사람이 확인하고 `hub_migrate_marker(action='issue')` 로 '허브로 옮김' 표식을 커밋하면 그 저장소의 1.x
-쓰기 명령이 거절된다(종료 코드 3). 표식을 지우면 되돌아간다. 상세: hub_spec §6.6.
+쓰기 명령이 거절된다(종료 코드 3). **표식을 커밋한 뒤 같은 bootstrap 셋업을 다시 실행**하면 진입 파일의 표준 1.x 세션 시작
+안내를 `hub_session_start` 경로로 갱신한다. 표준 문안이 수정돼 있으면 자동 변경하지 않고 사람 검토를 요청한다. 표식을 지우면 되돌아간다.
+상세: hub_spec §6.6.
 
 ## 6. 지침
 
@@ -220,7 +245,7 @@ Hub DB 판 13부터 프로젝트별 지식 카탈로그와 결정 변경 기록(
 
 DCR은 `hub_dcr_create`로 제안한다. project writer는 제안할 수 있지만 결정은 승인된 human project owner만 가능하다. 승인은 새 ADR Markdown과 경로·SHA-256을 내고 상태를 `approved_pending_export`로 바꾼다. 제안자가 해당 파일을 Git에 커밋한 뒤 같은 등록 source에서 path와 내용을 동기화해 hash가 확인되면 Hub가 DCR을 `accepted`로 바꾸고 대상 ADR의 projection을 `superseded`로 표시한다. 거절도 결정 근거와 함께 남는다. Hub는 Git commit/push를 수행하지 않는다.
 
-기본 공유 범위는 프로젝트 callsign이다. 다른 프로젝트의 문서는 검색 결과에 나타나지 않는다. PostgreSQL을 쓰는 경우 판 13은 허브 시작 시 자동 적용되며, SQLite에서 PostgreSQL로 옮길 때도 기존 DB 이관 절차가 새 표를 함께 복사한다.
+기본 공유 범위는 프로젝트 callsign이다. 다른 프로젝트의 문서는 검색 결과에 나타나지 않는다. PostgreSQL을 쓰는 경우 schema migration은 허브 시작 시 자동 적용되며, SQLite에서 PostgreSQL로 옮길 때도 기존 DB 이관 절차가 새 표를 함께 복사한다.
 
 ## 11. 점검
 

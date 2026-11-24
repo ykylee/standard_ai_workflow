@@ -13,9 +13,10 @@ from workflow_kit.hub.store import Ctx, Principal, Store, _iso, _json, scan_secr
 
 _ID = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$")
 _SAFE_PATH = re.compile(r"^[A-Za-z0-9._/-]{1,160}$")
+SETUP_PROFILE_KIND = "mcp-http-json-v1"
 _FIELDS = {
     "harness_id", "display_name", "version", "platforms", "mcp_transports", "config_formats",
-    "entry_file_candidates", "documentation_url", "notes",
+    "entry_file_candidates", "mcp_config_candidates", "documentation_url", "notes",
 }
 
 
@@ -39,6 +40,14 @@ def _string_list(value: Any, name: str, maximum_items: int = 8) -> list[str]:
     return out
 
 
+def _safe_relative_path(value: Any, name: str) -> str:
+    path = _bounded_text(value, name, 160, required=True)
+    if (not _SAFE_PATH.fullmatch(path) or path.startswith(("/", "~")) or ".." in path.split("/")
+            or "\\" in path or ":" in path):
+        raise invalid_field(name, "안전한 상대 경로만 허용")
+    return path
+
+
 def normalize_report(raw: Any) -> dict[str, Any]:
     if not isinstance(raw, dict):
         raise invalid_field("report", "하네스 프로필 객체")
@@ -50,10 +59,10 @@ def normalize_report(raw: Any) -> dict[str, Any]:
     harness_id = _bounded_text(raw.get("harness_id"), "harness_id", 64, required=True).lower()
     if not _ID.fullmatch(harness_id):
         raise invalid_field("report.harness_id", "소문자 영문·숫자와 내부 하이픈만 허용")
-    paths = _string_list(raw.get("entry_file_candidates", []), "entry_file_candidates")
-    for path in paths:
-        if not _SAFE_PATH.fullmatch(path) or path.startswith(("/", "~")) or ".." in path.split("/") or "\\" in path or ":" in path:
-            raise invalid_field("report.entry_file_candidates", "안전한 상대 경로만 허용")
+    paths = [_safe_relative_path(path, "report.entry_file_candidates")
+             for path in _string_list(raw.get("entry_file_candidates", []), "entry_file_candidates")]
+    config_paths = [_safe_relative_path(path, "report.mcp_config_candidates")
+                    for path in _string_list(raw.get("mcp_config_candidates", []), "mcp_config_candidates")]
     doc_url = _bounded_text(raw.get("documentation_url", ""), "documentation_url", 500)
     if doc_url:
         parsed = urlparse(doc_url)
@@ -67,9 +76,41 @@ def normalize_report(raw: Any) -> dict[str, Any]:
         "mcp_transports": _string_list(raw.get("mcp_transports", []), "mcp_transports"),
         "config_formats": _string_list(raw.get("config_formats", []), "config_formats"),
         "entry_file_candidates": paths,
+        "mcp_config_candidates": config_paths,
         "documentation_url": doc_url,
         "notes": _bounded_text(raw.get("notes", ""), "notes", 1000),
     }
+
+
+def normalize_setup_profile(raw: Any, report: dict[str, Any]) -> dict[str, str]:
+    if not isinstance(raw, dict) or set(raw) != {"kind", "entry_file", "mcp_config_path"}:
+        raise invalid_field("setup_profile", "{kind, entry_file, mcp_config_path} 객체")
+    if raw.get("kind") != SETUP_PROFILE_KIND:
+        raise invalid_field("setup_profile.kind", SETUP_PROFILE_KIND)
+    entry_file = _safe_relative_path(raw.get("entry_file"), "setup_profile.entry_file")
+    config_path = _safe_relative_path(raw.get("mcp_config_path"), "setup_profile.mcp_config_path")
+    if entry_file == config_path:
+        raise invalid_field("setup_profile", "진입 파일과 MCP JSON 설정 파일은 서로 달라야 한다")
+    if entry_file not in report.get("entry_file_candidates", []):
+        raise invalid_field("setup_profile.entry_file", "제보된 entry_file_candidates 가운데 하나")
+    if config_path not in report.get("mcp_config_candidates", []):
+        raise invalid_field("setup_profile.mcp_config_path", "제보된 mcp_config_candidates 가운데 하나")
+    if SETUP_PROFILE_KIND not in report.get("config_formats", []):
+        raise invalid_field("setup_profile", f"제보된 config_formats 에 {SETUP_PROFILE_KIND} 가 있어야 한다")
+    if "streamable-http" not in report.get("mcp_transports", []):
+        raise invalid_field("setup_profile", "제보된 mcp_transports 에 streamable-http 가 있어야 한다")
+    if not config_path.lower().endswith(".json"):
+        raise invalid_field("setup_profile.mcp_config_path", ".json 설정 파일 경로")
+    return {"kind": SETUP_PROFILE_KIND, "entry_file": entry_file, "mcp_config_path": config_path}
+
+
+def registered_setup_profile(conn: Any, harness_id: str) -> dict[str, str] | None:
+    row = conn.execute("SELECT profile_json FROM harness_registry WHERE harness_id=? AND active=1", (harness_id,)).fetchone()
+    if row is None:
+        return None
+    profile = json.loads(row["profile_json"])
+    raw = profile.get("setup_support")
+    return normalize_setup_profile(raw, profile) if raw else None
 
 
 def _callsign(ctx: Ctx) -> Principal:
@@ -156,7 +197,12 @@ class HarnessIntake:
             item["active"] = bool(item["active"])
             item["profile"] = json.loads(item.pop("profile_json"))
             item["owners"] = self._owners(item["harness_id"])
-            item["setup_ready"] = False
+            item["setup_ready"] = bool(item["active"] and item["profile"].get("setup_support"))
+            if item["setup_ready"]:
+                try:
+                    normalize_setup_profile(item["profile"]["setup_support"], item["profile"])
+                except HubError:
+                    item["setup_ready"] = False
             items.append(item)
         return {"harnesses": items}
 
@@ -189,7 +235,7 @@ class HarnessIntake:
         return {"person": {"id": person_id, "display_name": display_name}}
 
     def decide(self, ctx: Ctx, report_id: str, decision: str, note: str = "",
-               owner_ids: Any = None) -> dict[str, Any]:
+               owner_ids: Any = None, setup_profile: Any = None) -> dict[str, Any]:
         p = _admin(ctx)
         if decision not in {"approve", "reject"}:
             raise invalid_field("decision", "approve · reject")
@@ -215,12 +261,14 @@ class HarnessIntake:
                 if len(people) != len(owner_ids):
                     raise invalid_field("owner_ids", "활성 사람 명부에서 담당자를 선택해야 한다")
                 report = json.loads(row["report_json"])
+                setup_support = normalize_setup_profile(setup_profile, report)
+                registered_profile = {**report, "setup_support": setup_support}
                 conn.execute(
                     "INSERT INTO harness_registry(harness_id,display_name,profile_json,source_report_id,version,active,registered_by,registered_at) "
                     "VALUES(?,?,?,?,1,1,?,?) ON CONFLICT(harness_id) DO UPDATE SET display_name=excluded.display_name, "
                     "profile_json=excluded.profile_json,source_report_id=excluded.source_report_id,version=harness_registry.version+1, "
                     "active=1,registered_by=excluded.registered_by,registered_at=excluded.registered_at",
-                    (row["harness_id"], report["display_name"], _json(report), report_id, p.name or "hub-admin", _iso(ctx.now)),
+                    (row["harness_id"], report["display_name"], _json(registered_profile), report_id, p.name or "hub-admin", _iso(ctx.now)),
                 )
                 conn.execute("DELETE FROM harness_registry_person WHERE harness_id=?", (row["harness_id"],))
                 conn.executemany(
@@ -229,10 +277,13 @@ class HarnessIntake:
                 )
             conn.execute("UPDATE harness_report SET status=?,reviewed_by=?,reviewed_at=?,decision_note=? WHERE id=? AND status='pending'",
                          ("approved" if decision == "approve" else "rejected", p.name or "hub-admin", _iso(ctx.now), note, report_id))
+            after = {"status": "approved" if decision == "approve" else "rejected",
+                     "harness_id": row["harness_id"], "note": note,
+                     "setup_profile": setup_support if decision == "approve" else None}
             self.store._event(conn, ctx, row["project_id"], "harness_report", report_id, decision,
-                              {"status": "pending"}, {"status": "approved" if decision == "approve" else "rejected",
-                                                        "harness_id": row["harness_id"], "note": note}, p.name or "hub-admin")
+                              {"status": "pending"}, after, p.name or "hub-admin")
         return {"report_id": report_id, "harness_id": row["harness_id"],
                 "status": "approved" if decision == "approve" else "rejected",
-                "registered": decision == "approve", "setup_ready": False,
+                "registered": decision == "approve", "setup_ready": decision == "approve",
+                "setup_profile": setup_support if decision == "approve" else None,
                 "owners": self._owners(row["harness_id"]) if decision == "approve" else []}

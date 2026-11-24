@@ -66,14 +66,16 @@ def check_ignore_ok(rc: int, output: str) -> tuple[bool, str]:
     return True, ""
 
 
-def _mcp_json(existing: str | None, url: str) -> str:
+def _mcp_json(existing: str | None, url: str, path: str = MCP_JSON) -> str:
     try:
         data = json.loads(existing) if existing and existing.strip() else {}
     except json.JSONDecodeError as exc:
-        raise HubError(409, "invalid_existing_file", f"{MCP_JSON} 이 JSON 이 아니다 — 손으로 고친 뒤 다시: {exc}") from exc
+        raise HubError(409, "invalid_existing_file", f"{path} 이 JSON 이 아니다 — 손으로 고친 뒤 다시: {exc}") from exc
     if not isinstance(data, dict):
-        raise HubError(409, "invalid_existing_file", f"{MCP_JSON} 의 최상위가 객체가 아니다")
+        raise HubError(409, "invalid_existing_file", f"{path} 의 최상위가 객체가 아니다")
     servers = data.setdefault("mcpServers", {})
+    if not isinstance(servers, dict):
+        raise HubError(409, "invalid_existing_file", f"{path} 의 mcpServers 가 객체가 아니다")
     servers[SERVER_NAME] = {
         "type": "http",
         "url": url,
@@ -141,8 +143,27 @@ class Setup:
         p = principal_for(self.store, project_id, token, ctx)
         if not harnesses:
             raise invalid_field("harnesses", f"하나 이상 — {', '.join(render.SUPPORTED_HARNESSES)}")
+        setup_profiles: dict[str, dict[str, str]] = {}
         for h in harnesses:
-            render.entry_file(h)  # 지원 하네스인지 (R2.8)
+            if h in render.SUPPORTED_HARNESSES:
+                setup_profiles[h] = {"entry_file": render.entry_file(h), "kind": "builtin"}
+                continue
+            from workflow_kit.hub.harness_intake import registered_setup_profile
+
+            with self.store.read() as conn:
+                profile = registered_setup_profile(conn, h)
+            if profile is None:
+                return {
+                    "stage": "harness_support",
+                    "steps": [],
+                    "blocked": [{"id": f"harness:{h}", "reason": "setup_profile_required",
+                                 "message": f"{h} 는 아직 셋업 프로필이 없다. hub_harness_report 로 하네스 정보와 mcp-http-json-v1 설정 후보를 제보하고 허브 관리자의 승인을 기다린다.",
+                                 "report_tool": "hub_harness_report",
+                                 "required_report_fields": ["entry_file_candidates", "mcp_config_candidates",
+                                                             "config_formats (mcp-http-json-v1)", "mcp_transports (streamable-http)"]}],
+                    "next": "hub_harness_report 제보 후 웹 허브 관리자 승인까지 파일을 수정하지 않는다",
+                }
+            setup_profiles[h] = profile
         files = scan.get("files") or {}
         if not isinstance(files, dict):
             raise invalid_field("scan.files", "경로 → 내용(없으면 null) 객체")
@@ -152,7 +173,7 @@ class Setup:
         legacy = sorted(path for path, text in files.items()
                         if isinstance(text, str) and any(m in text for m in LEGACY_1X_MARKERS))
         migration_complete = _migration_marker_ready(files, project_id, self.public_url)
-        legacy_entries = {render.entry_file(h) for h in render.SUPPORTED_HARNESSES} & set(legacy)
+        legacy_entries = {profile["entry_file"] for profile in setup_profiles.values()} & set(legacy)
         entry_update_allowed = migration_complete or not legacy_entries
         legacy_1x = {"files": legacy,
                      "migration_complete": migration_complete,
@@ -200,9 +221,12 @@ class Setup:
                           "note": "POSIX 는 권한 600. Windows 는 사용자 프로필 ACL 을 따른다 — 적용 결과를 사실대로 보고 (요구 R4.3)"})
             display, guide_body, guide_ver = self.project_guide(conn, project_id)
             mcp_json_written = False
+            dynamic_configs_written: set[str] = set()
             for h in harnesses:
-                path = render.entry_file(h)
-                region, version = render.render_region(h, project_id, display, guide_body, guide_ver)
+                setup_profile = setup_profiles[h]
+                path = setup_profile["entry_file"]
+                region, version = render.render_region(h, project_id, display, guide_body, guide_ver,
+                                                       entry_path=path if setup_profile["kind"] != "builtin" else None)
                 existing = files.get(path)
                 existing_text = existing if isinstance(existing, str) else None
                 entry_has_legacy = existing_text is not None and any(m in existing_text for m in LEGACY_1X_MARKERS)
@@ -250,6 +274,16 @@ class Setup:
                     steps.append({"id": "harness:antigravity", "op": "user_scope_write",
                                   "run": ["agy", "mcp", "add", "--header", f"Authorization: Bearer {token}", SERVER_NAME, self.mcp_url],
                                   "path": "~/.gemini/config/mcp_config.json", "warning": AGY_WARNING})
+                elif setup_profile["kind"] == "mcp-http-json-v1":
+                    config_path = setup_profile["mcp_config_path"]
+                    if config_path not in dynamic_configs_written:
+                        content = _mcp_json(files.get(config_path), self.mcp_url, config_path)
+                        step_id = f"harness:mcp-json:{h}"
+                        self._issue(conn, ctx, p, step_id, "harness", config_path, render.sha256(content))
+                        steps.append({"id": step_id, "op": "write", "path": config_path, "content": content,
+                                      "sha256_after": render.sha256(content),
+                                      "note": "관리자가 승인한 MCP Streamable HTTP JSON 프로필. 토큰은 환경 변수 참조만 저장한다."})
+                        dynamic_configs_written.add(config_path)
             return {
                 "stage": "files",
                 "steps": steps,
@@ -337,8 +371,18 @@ class Setup:
         assert p is not None and p.project_id is not None
         with self.store.write() as conn:
             display, body, ver = self.project_guide(conn, p.project_id)
-            path = render.entry_file(harness)
-            region, version = render.render_region(harness, p.project_id, display, body, ver)
+            entry_path = render.entry_file(harness) if harness in render.SUPPORTED_HARNESSES else None
+            if entry_path is None:
+                from workflow_kit.hub.harness_intake import registered_setup_profile
+
+                profile = registered_setup_profile(conn, harness)
+                if profile is None:
+                    return {"path": None, "blocked": True, "reason": "setup_profile_required",
+                            "next": "hub_harness_report 제보 후 허브 관리자 승인을 기다린다"}
+                entry_path = profile["entry_file"]
+            path = entry_path
+            region, version = render.render_region(harness, p.project_id, display, body, ver,
+                                                   entry_path=path if harness not in render.SUPPORTED_HARNESSES else None)
             merged, why = render.merge_into(current, region)
             if merged is None:
                 return {"path": path, "guide_version": version, "blocked": True, "reason": why}

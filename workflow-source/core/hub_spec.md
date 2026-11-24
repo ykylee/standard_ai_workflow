@@ -200,7 +200,13 @@ python -m workflow_kit hub admin   --db PATH project import --file FILE | seal -
 | `hub_project_lookup` | `remote_url` | `{key, project_id \| null, display_name}` |
 | `hub_project_register` | `remote_url`? · `display_name` · `callsign` · `kind` · `label` · `host` | `{project_id, key, callsign, token}` — 토큰은 **이 응답에서 한 번만**. 등록자 = `owner`, `human` 바로 승인 (Q3). **원격이 없으면 `remote_url` 을 빼거나 비운다** — 키 `local:<난수>` (`gitkey.local_key`, 정규화 키와 겹치지 않음) · `local_key: true` · 주소 조회로는 못 찾아 다른 환경이 합류할 수 없다 → 원격이 생기면 `hub_project_bind_remote` (소유자 2026-11-21 '로컬 키 발급 · 나중에 묶기') |
 | `hub_callsign_register` | `project_id` · `callsign` · `kind` · `label` · `host` | `{callsign, token, human_pending}` — `human` 은 소유자 승인 전 `agent` 권한 (Q3) |
-| `hub_setup_plan` | `project_id` · `token` · `harnesses[]` · `scan` (`{files: {경로: 지금 내용 \| null}}` — `.gitignore` · `.mcp.json` · 진입 파일) | `{stage, steps: [쓰기 지시 …], blocked: […]}` — `stage` 는 `gitignore` → `files` (§6.1). 1.x 전환 계획은 M-038 |
+| `hub_setup_plan` | `project_id` · `token` · `harnesses[]` · `scan` (`{files: {경로: 지금 내용 \| null}}` — `.gitignore` · MCP 설정 · 진입 파일) | `{stage, steps: [쓰기 지시 …], blocked: […]}` — `stage` 는 `gitignore` → `files` (§6.1). 미등록/미지원 하네스는 `stage=harness_support`, 빈 `steps`, `hub_harness_report` 제보 안내를 돌려주며 저장소 변경 지시를 내지 않는다. 관리자 승인 시 설정 지원 프로필을 함께 등록한다. |
+
+### 6.8 미지원 하네스 셋업 등록
+
+클라이언트는 `hub_session_start` 의 `harness_support` 가 `unknown` 이거나 `hub_setup_plan` 이 `harness_support` 를 돌려주면 `hub_harness_report` 로 하네스 정보와 경로 후보를 보고한다. 안전한 선언형 프로필 `mcp-http-json-v1` 을 제보하려면 `config_formats` 에 `mcp-http-json-v1`, `mcp_transports` 에 `streamable-http`, `entry_file_candidates` 와 `.json` 인 `mcp_config_candidates` 가 필요하다. 사람 허브 관리자는 웹 화면에서 후보 경로와 호환성을 확인하고, 사람 담당자 1명 이상 및 명시적 확인과 함께 승인한다. 승인되지 않은 보고는 셋업 파일을 만들지 않는다.
+
+승인된 프로필은 `{kind: "mcp-http-json-v1", entry_file, mcp_config_path}` 이며 선택 경로는 보고된 후보여야 한다. 셋업은 승인된 진입 파일에 표준 허브 영역을 병합하고, MCP JSON 경로의 `mcpServers.workflow-hub` 에 Streamable HTTP 주소와 `${WORKFLOW_HUB_TOKEN}` 참조를 병합한다. 실행 명령/eval, 임의 코드, 토큰 값의 MCP JSON 저장은 지원하지 않는다. Go 판은 Python 판과 같은 응답·경로·쓰기 경계를 지킨다.
 | `hub_setup_confirm` | `project_id` · `token` · `files: [{path, sha256}]` · `checks: [{name, output}]` | `{confirmed[], unconfirmed[], next_steps[]}` (R2.4) |
 
 **등록 직후 토큰 (DS4)** — 하네스의 MCP 연결은 등록 전에 만들어져 헤더 토큰이 없다. 그래서 부트스트랩 묶음의 셋업 도구는 인자 `token` 을 받는다. 다른 묶음은 **헤더 토큰만** 받는다 — 셋업이 끝나 하네스가 환경 변수 참조로 다시 연결한 뒤에야 보인다.

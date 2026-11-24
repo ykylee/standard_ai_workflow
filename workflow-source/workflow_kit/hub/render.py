@@ -95,8 +95,8 @@ def find_region(text: str) -> Region | None:
     return Region(m.start(), stop, m.group("project"), m.group("guide"), m.group("sha"), text[m.end():end])
 
 
-def render_body(harness: str, project_display: str, project_guide: str) -> str:
-    entry = entry_file(harness)
+def render_body(harness: str, project_display: str, project_guide: str, *, entry_path: str | None = None) -> str:
+    entry = entry_path or entry_file(harness)
     parts = [
         f"<!-- 이 영역은 워크플로우 허브가 렌더링한다 ({entry} · {harness}). 고칠 것은 허브에 지침 제안으로. -->\n",
         standard_block(),
@@ -107,15 +107,19 @@ def render_body(harness: str, project_display: str, project_guide: str) -> str:
 
 
 def render_region(harness: str, project_id: str, project_display: str, project_guide: str,
-                  project_version: int) -> tuple[str, str]:
+                  project_version: int, *, entry_path: str | None = None) -> tuple[str, str]:
     """(영역 문자열, 지침 판). 예산을 넘으면 거절한다 (요구 R7.2)."""
-    body = render_body(harness, project_display, project_guide)
+    if entry_path is not None and (not re.fullmatch(r"[A-Za-z0-9._/-]{1,160}", entry_path)
+                                   or entry_path.startswith(("/", "~")) or ".." in entry_path.split("/")
+                                   or "\\" in entry_path or ":" in entry_path):
+        raise HubError(400, "unsafe_entry_path", "하네스 셋업 프로필의 안전하지 않은 진입 파일 경로")
+    body = render_body(harness, project_display, project_guide, entry_path=entry_path)
     version = guide_version(project_version)
     region = f"<!-- workflow-hub:begin project={project_id} guide={version} sha256={sha256(body)} -->\n{body}{END_MARK}\n"
     size = len(region.encode("utf-8"))
     if size > ENTRY_BUDGET_BYTES:
         raise HubError(422, "entry_budget_exceeded",
-                       f"{entry_file(harness)} 렌더 영역 {size}B > 예산 {ENTRY_BUDGET_BYTES}B — 프로젝트 지침을 줄인다",
+                       f"{entry_path or entry_file(harness)} 렌더 영역 {size}B > 예산 {ENTRY_BUDGET_BYTES}B — 프로젝트 지침을 줄인다",
                        {"size": size, "budget": ENTRY_BUDGET_BYTES})
     return region, version
 

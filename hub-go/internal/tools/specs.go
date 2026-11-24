@@ -118,7 +118,7 @@ var ToolOrder = []*ToolSpec{
 		Required: []string{},
 	},
 	{
-		Name: "hub_harness_report", Bundle: "token", Description: "등록되지 않은 하네스의 비밀 없는 프로필 관측을 검토 대기열에 제보한다. 제보만으로 허브 설정은 바뀌지 않는다.",
+		Name: "hub_harness_report", Bundle: "token", Description: "미지원 하네스의 비밀 없는 프로필과 셋업 후보를 제보한다. 허브 관리자가 승인하면 검증된 mcp-http-json-v1 셋업 프로필도 등록한다.",
 		Properties: map[string]map[string]any{"report": {"type": "object"}}, Required: []string{"report"},
 	},
 	{
@@ -126,7 +126,7 @@ var ToolOrder = []*ToolSpec{
 		Properties: map[string]map[string]any{"status": {"type": "string"}}, Required: []string{},
 	},
 	{
-		Name: "hub_harness_registry_list", Bundle: "token", Description: "승인된 허브 전역 하네스 메타데이터 목록. 셋업 어댑터 지원과는 별도다.",
+		Name: "hub_harness_registry_list", Bundle: "token", Description: "승인된 허브 전역 하네스 프로필과 셋업 지원 상태 목록.",
 		Properties: map[string]map[string]any{}, Required: []string{},
 	},
 	{

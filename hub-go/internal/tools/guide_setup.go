@@ -16,6 +16,8 @@ import (
 
 var guideEntries = map[string]string{"claude-code": "CLAUDE.md", "codex": "AGENTS.md", "minimax-code": "MiniMax.md", "antigravity": "ANTIGRAVITY.md"}
 
+const mcpHTTPJSONProfile = "mcp-http-json-v1"
+
 const hubMigrationMarkerPath = "ai-workflow/HUB_MIGRATED.json"
 const hubMigrationMarkerFormat = "workflow-hub-migrated/1"
 
@@ -88,6 +90,13 @@ func renderGuide(harness, projectID, display, body string, version int) (string,
 		return "", &store.HubError{Status: 400, Code: "unsupported_harness", Message: "지원하지 않는 하네스: " + harness,
 			Detail: map[string]any{"supported": []string{"claude-code", "codex", "minimax-code", "antigravity"}}}
 	}
+	return renderGuideAtEntry(harness, entry, projectID, display, body, version)
+}
+
+func renderGuideAtEntry(harness, entry, projectID, display, body string, version int) (string, error) {
+	if !store.IsSafeHarnessRelativePath(entry) {
+		return "", store.InvalidField("entry_file", "안전한 상대 경로만 허용")
+	}
 	text := fmt.Sprintf("<!-- 이 영역은 워크플로우 허브가 렌더링한다 (%s · %s). 고칠 것은 허브에 지침 제안으로. -->\n%s", entry, harness, assets.StandardBlock)
 	if strings.TrimSpace(body) != "" {
 		text += fmt.Sprintf("\n## 프로젝트 지침 — %s\n\n%s\n", display, strings.TrimSpace(body))
@@ -146,10 +155,16 @@ func guideRender(s *store.Store, ctx store.Ctx, harness string, current *string)
 	if err != nil {
 		return nil, err
 	}
-	entry, ok := guideEntries[harness]
-	if !ok {
-		_, err := renderGuide(harness, p.ProjectID, "", "", 0)
-		return nil, err
+	entry, builtin := guideEntries[harness]
+	if !builtin {
+		profile, err := s.HarnessSetupProfile(harness)
+		if err != nil {
+			return nil, err
+		}
+		if profile == nil {
+			return map[string]any{"path": nil, "blocked": true, "reason": "setup_profile_required", "next": "hub_harness_report 제보 후 허브 관리자 승인을 기다린다"}, nil
+		}
+		entry, _ = profile["entry_file"].(string)
 	}
 	var display, body string
 	var version int
@@ -158,7 +173,7 @@ func guideRender(s *store.Store, ctx store.Ctx, harness string, current *string)
 		return nil, err
 	}
 	_ = s.DB().QueryRow("SELECT version,body_md FROM guide WHERE project_id=? ORDER BY version DESC LIMIT 1", p.ProjectID).Scan(&version, &body)
-	region, err := renderGuide(harness, p.ProjectID, display, body, version)
+	region, err := renderGuideAtEntry(harness, entry, p.ProjectID, display, body, version)
 	if err != nil {
 		return nil, err
 	}
@@ -300,16 +315,20 @@ func diffLines(text string) []string {
 }
 
 func setupMCPJSON(existing, url string) (string, error) {
+	return setupMCPJSONAtPath(existing, url, ".mcp.json")
+}
+
+func setupMCPJSONAtPath(existing, url, configPath string) (string, error) {
 	data := map[string]any{}
 	if strings.TrimSpace(existing) != "" {
 		if err := json.Unmarshal([]byte(existing), &data); err != nil {
-			return "", &store.HubError{Status: 409, Code: "invalid_existing_file", Message: ".mcp.json 이 JSON 이 아니다 — 손으로 고친 뒤 다시"}
+			return "", &store.HubError{Status: 409, Code: "invalid_existing_file", Message: configPath + " 이 JSON 이 아니다 — 손으로 고친 뒤 다시"}
 		}
 	}
 	servers, ok := data["mcpServers"].(map[string]any)
 	if !ok {
 		if _, exists := data["mcpServers"]; exists {
-			return "", &store.HubError{Status: 409, Code: "invalid_existing_file", Message: ".mcp.json 의 mcpServers 가 객체가 아니다"}
+			return "", &store.HubError{Status: 409, Code: "invalid_existing_file", Message: configPath + " 의 mcpServers 가 객체가 아니다"}
 		}
 		servers = map[string]any{}
 		data["mcpServers"] = servers
@@ -343,10 +362,28 @@ func setupPlan(s *store.Store, ctx store.Ctx, args map[string]any) (map[string]a
 	if !ok || len(harnesses) == 0 {
 		return nil, store.InvalidField("harnesses", "하나 이상 — claude-code · codex · minimax-code · antigravity")
 	}
+	setupProfiles := map[string]map[string]any{}
+	entryPaths := map[string]string{}
 	for _, h := range harnesses {
-		if _, ok := guideEntries[h]; !ok {
-			return nil, &store.HubError{Status: 400, Code: "unsupported_harness", Message: "지원하지 않는 하네스: " + h, Detail: map[string]any{"supported": []string{"claude-code", "codex", "minimax-code", "antigravity"}}}
+		if entry, builtin := guideEntries[h]; builtin {
+			setupProfiles[h] = map[string]any{"kind": "builtin"}
+			entryPaths[h] = entry
+			continue
 		}
+		profile, err := s.HarnessSetupProfile(h)
+		if err != nil {
+			return nil, err
+		}
+		if profile == nil {
+			return map[string]any{"stage": "harness_support", "steps": []any{}, "blocked": []any{map[string]any{
+				"id": "harness:" + h, "reason": "setup_profile_required",
+				"message":                h + " 는 셋업 프로필이 없다. hub_harness_report 로 지원 정보와 설정 후보를 제보하고 웹 허브 관리자 승인을 기다린다.",
+				"report_tool":            "hub_harness_report",
+				"required_report_fields": []string{"entry_file_candidates", "mcp_config_candidates", "config_formats: mcp-http-json-v1", "mcp_transports: streamable-http"},
+			}}, "next": "hub_harness_report 제보 후 관리자 승인까지 프로젝트 파일을 수정하지 않는다"}, nil
+		}
+		setupProfiles[h] = profile
+		entryPaths[h], _ = profile["entry_file"].(string)
 	}
 	scan, _ := args["scan"].(map[string]any)
 	var unknownScan []string
@@ -417,9 +454,17 @@ func setupPlan(s *store.Store, ctx store.Ctx, args map[string]any) (map[string]a
 	_ = s.DB().QueryRow("SELECT version,body_md FROM guide WHERE project_id=? ORDER BY version DESC LIMIT 1", pid).Scan(&guideVer, &guideBody)
 	blocked := []any{}
 	mcpJSONWritten := false
+	dynamicConfigsWritten := map[string]bool{}
 	for _, h := range harnesses {
-		path := guideEntries[h]
-		region, e := renderGuide(h, pid, display, guideBody, guideVer)
+		setupProfile := setupProfiles[h]
+		path := entryPaths[h]
+		var region string
+		var e error
+		if setupProfile["kind"] == "builtin" {
+			region, e = renderGuide(h, pid, display, guideBody, guideVer)
+		} else {
+			region, e = renderGuideAtEntry(h, path, pid, display, guideBody, guideVer)
+		}
 		if e != nil {
 			return nil, e
 		}
@@ -469,6 +514,21 @@ func setupPlan(s *store.Store, ctx store.Ctx, args map[string]any) (map[string]a
 			}
 			steps = append(steps, map[string]any{"id": "harness:antigravity", "op": "user_scope_write", "run": []string{"agy", "mcp", "add", "--header", "Authorization: Bearer " + token, "workflow-hub", publicURL + "/mcp"}, "path": "~/.gemini/config/mcp_config.json", "warning": "Antigravity 설정은 토큰 값을 사용자 범위 파일에 저장할 수 있으므로 공유하지 않는다"})
 		}
+		if kind, _ := setupProfile["kind"].(string); kind == mcpHTTPJSONProfile {
+			configPath, _ := setupProfile["mcp_config_path"].(string)
+			if !(configPath == ".mcp.json" && mcpJSONWritten) && !dynamicConfigsWritten[configPath] {
+				content, err := setupMCPJSONAtPath(strArg(files, configPath, ""), publicURL+"/mcp", configPath)
+				if err != nil {
+					return nil, err
+				}
+				stepID := "harness:mcp-json:" + h
+				if err := issue(stepID, "harness", configPath, digest(content), ""); err != nil {
+					return nil, err
+				}
+				steps = append(steps, map[string]any{"id": stepID, "op": "write", "path": configPath, "content": content, "sha256_after": digest(content), "note": "관리자가 승인한 MCP Streamable HTTP JSON 프로필. 토큰은 환경 변수 참조만 저장한다."})
+				dynamicConfigsWritten[configPath] = true
+			}
+		}
 	}
 	legacy := []string{}
 	for path, text := range files {
@@ -485,7 +545,7 @@ func setupPlan(s *store.Store, ctx store.Ctx, args map[string]any) (map[string]a
 		if !entryUpdateAllowed {
 			entryUpdateAllowed = true
 			for _, path := range legacy {
-				for _, entry := range guideEntries {
+				for _, entry := range entryPaths {
 					if path == entry {
 						entryUpdateAllowed = false
 					}

@@ -174,7 +174,8 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
     def post_harness_decision(request: Request, p: Principal, now: datetime, b: dict[str, Any]) -> dict[str, Any]:
         _admin_only(p)
         return harness_intake.decide(Ctx(now=now, via="ui", principal=p), request.path_params["rid"],
-                                    b.get("decision", ""), b.get("note", ""), b.get("owner_ids"))
+                                    b.get("decision", ""), b.get("note", ""), b.get("owner_ids"),
+                                    b.get("setup_profile"))
 
     def get_harness_people(request: Request, p: Principal, now: datetime, _b: Any) -> dict[str, Any]:
         _admin_only(p)

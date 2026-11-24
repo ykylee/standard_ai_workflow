@@ -233,7 +233,9 @@ func TestHTTPUIHarnessReviewRequiresAdminAndHumanOwners(t *testing.T) {
 		t.Fatal(err)
 	}
 	report, err := st.HarnessReportSubmit(store.Ctx{Now: now, Via: "mcp", Principal: owner}, map[string]any{
-		"harness_id": "review-agent", "display_name": "Review Agent", "entry_file_candidates": []any{"AGENTS.md"},
+		"harness_id": "review-agent", "display_name": "Review Agent",
+		"mcp_transports": []any{"streamable-http"}, "config_formats": []any{"mcp-http-json-v1"},
+		"entry_file_candidates": []any{"AGENTS.md"}, "mcp_config_candidates": []any{"review-mcp.json"},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -263,7 +265,10 @@ func TestHTTPUIHarnessReviewRequiresAdminAndHumanOwners(t *testing.T) {
 	if missingOwner.Code != http.StatusBadRequest {
 		t.Fatalf("approval without owner status=%d body=%s", missingOwner.Code, missingOwner.Body.String())
 	}
-	body, _ := json.Marshal(map[string]any{"decision": "approve", "owner_ids": []string{personID}, "note": "reviewed"})
+	body, _ := json.Marshal(map[string]any{
+		"decision": "approve", "owner_ids": []string{personID}, "note": "reviewed",
+		"setup_profile": map[string]any{"kind": "mcp-http-json-v1", "entry_file": "AGENTS.md", "mcp_config_path": "review-mcp.json"},
+	})
 	approved := doReq(t, srv, http.MethodPost, decisionURL, adminToken, body, map[string]string{"Content-Type": "application/json"})
 	if approved.Code != http.StatusOK {
 		t.Fatalf("admin decision status=%d body=%s", approved.Code, approved.Body.String())

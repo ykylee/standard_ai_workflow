@@ -141,16 +141,19 @@ class SessionStart:
                 support = "setup_supported"
             else:
                 with self.store.read() as conn:
+                    from workflow_kit.hub.harness_intake import registered_setup_profile
+
+                    setup_profile = registered_setup_profile(conn, harness)
                     registered = conn.execute("SELECT 1 FROM harness_registry WHERE harness_id=? AND active=1", (harness,)).fetchone()
-                support = "registered_metadata_only" if registered else "unknown"
+                support = "setup_supported" if setup_profile else "registered_metadata_only" if registered else "unknown"
             hub["harness_support"] = {
                 "harness_id": harness,
                 "status": support,
                 "setup_ready": support == "setup_supported",
-                "report_tool": None if support != "unknown" else "hub_harness_report",
-                "required_report_fields": [] if support != "unknown" else [
+                "report_tool": "hub_harness_report" if support in {"unknown", "registered_metadata_only"} else None,
+                "required_report_fields": [] if support == "setup_supported" else [
                     "harness_id", "display_name", "version", "platforms", "mcp_transports",
-                    "config_formats", "entry_file_candidates", "documentation_url", "notes",
+                    "config_formats", "entry_file_candidates", "mcp_config_candidates", "documentation_url", "notes",
                 ],
             }
         entries: list[str] = hub.pop("_entries")

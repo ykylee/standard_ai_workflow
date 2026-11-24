@@ -217,11 +217,11 @@ TOOLS: dict[str, ToolSpec] = {
                   "session": {"type": ["object", "string"],
                               "description": "2.1 — 첫 호출은 {harness, harness_session_id?, kind?, delivery?, resume?} 로 세션 등록, "
                                              "이후(두 번째 호출 포함)는 받은 세션 ID 문자열"}}, (), _session_start),
-        ToolSpec("hub_harness_report", "token", "등록되지 않은 하네스의 비밀 없는 프로필 관측을 검토 대기열에 제보한다. 제보만으로 허브 설정은 바뀌지 않는다.",
+        ToolSpec("hub_harness_report", "token", "셋업 미지원 하네스의 비밀 없는 프로필 관측과 후보 경로를 검토 대기열에 제보한다. 관리자는 승인 시 검증된 mcp-http-json-v1 셋업 프로필도 함께 등록한다. 제보만으로 허브 설정은 바뀌지 않는다.",
                  {"report": _OBJ}, ("report",), lambda s, c, a: HarnessIntake(s).submit(c, a["report"])),
         ToolSpec("hub_harness_report_list", "token", "이 프로젝트가 제출한 하네스 제보 상태 목록.", {"status": _STR}, (),
                  lambda s, c, a: HarnessIntake(s).list_reports(c, a.get("status", ""))),
-        ToolSpec("hub_harness_registry_list", "token", "승인된 허브 전역 하네스 메타데이터 목록. 셋업 어댑터 지원과는 별도다.", {}, (),
+        ToolSpec("hub_harness_registry_list", "token", "승인된 허브 전역 하네스 프로필과 셋업 지원 상태 목록.", {}, (),
                  lambda s, c, a: HarnessIntake(s).registry_list(c)),
         ToolSpec("hub_guide_render", "token",
                  "하네스 진입 파일의 새 내용 (렌더 영역 갱신). current = 지금 파일 내용 (없으면 생략). 로컬에서 고친 영역이면 blocked.",

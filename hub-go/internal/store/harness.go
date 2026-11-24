@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"path"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/db"
@@ -17,9 +18,11 @@ import (
 var harnessIDPattern = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$`)
 var harnessFilePattern = regexp.MustCompile(`^[A-Za-z0-9._/-]{1,160}$`)
 
+const harnessSetupProfileKind = "mcp-http-json-v1"
+
 var harnessReportFields = map[string]bool{
 	"harness_id": true, "display_name": true, "version": true, "platforms": true,
-	"mcp_transports": true, "config_formats": true, "entry_file_candidates": true,
+	"mcp_transports": true, "config_formats": true, "entry_file_candidates": true, "mcp_config_candidates": true,
 	"documentation_url": true, "notes": true,
 }
 
@@ -35,11 +38,21 @@ func harnessText(raw any, field string, max int, required bool) (string, error) 
 }
 
 func harnessStringList(raw any, field string) ([]string, error) {
-	items, ok := raw.([]any)
 	if raw == nil {
 		return []string{}, nil
 	}
-	if !ok || len(items) > 8 {
+	var items []any
+	switch values := raw.(type) {
+	case []any:
+		items = values
+	case []string:
+		for _, value := range values {
+			items = append(items, value)
+		}
+	default:
+		return nil, InvalidField("report."+field, "문자열 목록 0~8개")
+	}
+	if len(items) > 8 {
 		return nil, InvalidField("report."+field, "문자열 목록 0~8개")
 	}
 	out := []string{}
@@ -55,6 +68,80 @@ func harnessStringList(raw any, field string) ([]string, error) {
 		}
 	}
 	return out, nil
+}
+
+func safeHarnessRelativePath(raw any, field string) (string, error) {
+	value, err := harnessText(raw, field, 160, true)
+	if err != nil {
+		return "", err
+	}
+	if !harnessFilePattern.MatchString(value) || strings.Contains(value, `\`) || strings.HasPrefix(value, "/") || strings.HasPrefix(value, "~") || strings.Contains(value, ":") || path.IsAbs(value) {
+		return "", InvalidField(field, "안전한 상대 경로만 허용")
+	}
+	for _, part := range strings.Split(value, "/") {
+		if part == ".." {
+			return "", InvalidField(field, "경로 역행은 허용하지 않는다")
+		}
+	}
+	return value, nil
+}
+
+func IsSafeHarnessRelativePath(value string) bool {
+	_, err := safeHarnessRelativePath(value, "entry_file")
+	return err == nil
+}
+
+func normalizeHarnessSetupProfile(raw any, report map[string]any) (map[string]any, error) {
+	profile, ok := raw.(map[string]any)
+	if !ok || len(profile) != 3 || profile["kind"] != harnessSetupProfileKind {
+		return nil, InvalidField("setup_profile", "{kind, entry_file, mcp_config_path} 객체, kind=mcp-http-json-v1")
+	}
+	for key := range profile {
+		if key != "kind" && key != "entry_file" && key != "mcp_config_path" {
+			return nil, InvalidField("setup_profile", "허용되지 않은 필드")
+		}
+	}
+	entry, err := safeHarnessRelativePath(profile["entry_file"], "setup_profile.entry_file")
+	if err != nil {
+		return nil, err
+	}
+	config, err := safeHarnessRelativePath(profile["mcp_config_path"], "setup_profile.mcp_config_path")
+	if err != nil {
+		return nil, err
+	}
+	if entry == config {
+		return nil, InvalidField("setup_profile", "진입 파일과 MCP JSON 설정 파일은 서로 달라야 한다")
+	}
+	entries, _ := harnessStringList(report["entry_file_candidates"], "entry_file_candidates")
+	configs, _ := harnessStringList(report["mcp_config_candidates"], "mcp_config_candidates")
+	formats, _ := harnessStringList(report["config_formats"], "config_formats")
+	transports, _ := harnessStringList(report["mcp_transports"], "mcp_transports")
+	if !slices.Contains(entries, entry) || !slices.Contains(configs, config) {
+		return nil, InvalidField("setup_profile", "진입 파일과 MCP JSON 경로는 제보된 후보 가운데 선택해야 한다")
+	}
+	if !slices.Contains(formats, harnessSetupProfileKind) || !slices.Contains(transports, "streamable-http") || !strings.HasSuffix(strings.ToLower(config), ".json") {
+		return nil, InvalidField("setup_profile", "mcp-http-json-v1 config format, streamable-http transport, .json 경로 제보가 필요하다")
+	}
+	return map[string]any{"kind": harnessSetupProfileKind, "entry_file": entry, "mcp_config_path": config}, nil
+}
+
+func (s *Store) HarnessSetupProfile(harnessID string) (map[string]any, error) {
+	var raw string
+	if err := s.DB().QueryRow("SELECT profile_json FROM harness_registry WHERE harness_id=? AND active=1", harnessID).Scan(&raw); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	var profile map[string]any
+	if err := json.Unmarshal([]byte(raw), &profile); err != nil {
+		return nil, err
+	}
+	setup, ok := profile["setup_support"]
+	if !ok || setup == nil {
+		return nil, nil
+	}
+	return normalizeHarnessSetupProfile(setup, profile)
 }
 
 func normalizeHarnessReport(raw any) (map[string]any, error) {
@@ -120,19 +207,25 @@ func normalizeHarnessReport(raw any) (map[string]any, error) {
 	if err != nil {
 		return nil, err
 	}
-	for _, file := range files {
-		if !harnessFilePattern.MatchString(file) || strings.Contains(file, `\`) || strings.HasPrefix(file, "/") || strings.HasPrefix(file, "~") || strings.Contains(file, ":") || path.IsAbs(file) {
-			return nil, InvalidField("report.entry_file_candidates", "안전한 상대 경로만 허용")
+	for i, file := range files {
+		files[i], err = safeHarnessRelativePath(file, "report.entry_file_candidates")
+		if err != nil {
+			return nil, err
 		}
-		for _, part := range strings.Split(file, "/") {
-			if part == ".." {
-				return nil, InvalidField("report.entry_file_candidates", "경로 역행은 허용하지 않는다")
-			}
+	}
+	configFiles, err := harnessStringList(input["mcp_config_candidates"], "mcp_config_candidates")
+	if err != nil {
+		return nil, err
+	}
+	for i, file := range configFiles {
+		configFiles[i], err = safeHarnessRelativePath(file, "report.mcp_config_candidates")
+		if err != nil {
+			return nil, err
 		}
 	}
 	return map[string]any{"harness_id": id, "display_name": display, "version": version,
 		"platforms": platforms, "mcp_transports": transports, "config_formats": formats,
-		"entry_file_candidates": files, "documentation_url": docURL, "notes": notes}, nil
+		"entry_file_candidates": files, "mcp_config_candidates": configFiles, "documentation_url": docURL, "notes": notes}, nil
 }
 
 func needHarnessCallsign(ctx Ctx) (*Principal, error) {
@@ -272,8 +365,10 @@ func (s *Store) HarnessRegistryList(ctx Ctx, includeInactive bool) (map[string]a
 		if err := json.Unmarshal([]byte(profileJSON), &profile); err != nil {
 			return nil, err
 		}
+		_, setupErr := normalizeHarnessSetupProfile(profile["setup_support"], profile)
+		setupReady := setupErr == nil
 		items = append(items, map[string]any{"harness_id": id, "display_name": display, "profile": profile, "source_report_id": sourceID,
-			"version": version, "active": active != 0, "registered_by": actor, "registered_at": registered, "setup_ready": false})
+			"version": version, "active": active != 0, "registered_by": actor, "registered_at": registered, "setup_ready": active != 0 && setupReady})
 	}
 	if err := rows.Err(); err != nil {
 		rows.Close()
@@ -352,7 +447,11 @@ func (s *Store) HarnessPersonCreate(ctx Ctx, displayName string) (map[string]any
 	return map[string]any{"person": map[string]any{"id": id, "display_name": displayName}}, nil
 }
 
-func (s *Store) HarnessReportDecide(ctx Ctx, reportID, decision, note string, ownerIDs []string) (map[string]any, error) {
+func (s *Store) HarnessReportDecide(ctx Ctx, reportID, decision, note string, ownerIDs []string, setupProfiles ...any) (map[string]any, error) {
+	var rawSetupProfile any
+	if len(setupProfiles) > 0 {
+		rawSetupProfile = setupProfiles[0]
+	}
 	p, err := needHarnessAdmin(ctx)
 	if err != nil {
 		return nil, err
@@ -376,6 +475,7 @@ func (s *Store) HarnessReportDecide(ctx Ctx, reportID, decision, note string, ow
 		}
 	}
 	var harnessID string
+	var approvedSetupProfile map[string]any
 	result, err := s.withWriteTx(func(tx *sql.Tx) (map[string]any, error) {
 		var projectID, reportJSON, status string
 		if err := tx.QueryRow("SELECT project_id,harness_id,report_json,status FROM harness_report WHERE id=?", reportID).Scan(&projectID, &harnessID, &reportJSON, &status); err != nil {
@@ -399,7 +499,17 @@ func (s *Store) HarnessReportDecide(ctx Ctx, reportID, decision, note string, ow
 			if err := json.Unmarshal([]byte(reportJSON), &profile); err != nil {
 				return nil, err
 			}
-			if _, err := tx.Exec("INSERT INTO harness_registry(harness_id,display_name,profile_json,source_report_id,version,active,registered_by,registered_at) VALUES(?,?,?,?,1,1,?,?) ON CONFLICT(harness_id) DO UPDATE SET display_name=excluded.display_name,profile_json=excluded.profile_json,source_report_id=excluded.source_report_id,version=harness_registry.version+1,active=1,registered_by=excluded.registered_by,registered_at=excluded.registered_at", harnessID, profile["display_name"], reportJSON, reportID, p.Name, db.FormatISO(ctx.Now)); err != nil {
+			setupProfile, err := normalizeHarnessSetupProfile(rawSetupProfile, profile)
+			if err != nil {
+				return nil, err
+			}
+			approvedSetupProfile = setupProfile
+			profile["setup_support"] = setupProfile
+			profileJSON, err := json.Marshal(profile)
+			if err != nil {
+				return nil, err
+			}
+			if _, err := tx.Exec("INSERT INTO harness_registry(harness_id,display_name,profile_json,source_report_id,version,active,registered_by,registered_at) VALUES(?,?,?,?,1,1,?,?) ON CONFLICT(harness_id) DO UPDATE SET display_name=excluded.display_name,profile_json=excluded.profile_json,source_report_id=excluded.source_report_id,version=harness_registry.version+1,active=1,registered_by=excluded.registered_by,registered_at=excluded.registered_at", harnessID, profile["display_name"], string(profileJSON), reportID, p.Name, db.FormatISO(ctx.Now)); err != nil {
 				return nil, err
 			}
 			if _, err := tx.Exec("DELETE FROM harness_registry_person WHERE harness_id=?", harnessID); err != nil {
@@ -416,10 +526,10 @@ func (s *Store) HarnessReportDecide(ctx Ctx, reportID, decision, note string, ow
 			return nil, err
 		}
 		pid := projectID
-		if err := s.RecordEvent(tx, ctx, &pid, "harness_report", reportID, decision, map[string]any{"status": "pending"}, map[string]any{"status": approvedStatus, "harness_id": harnessID, "note": note}, &p.Name); err != nil {
+		if err := s.RecordEvent(tx, ctx, &pid, "harness_report", reportID, decision, map[string]any{"status": "pending"}, map[string]any{"status": approvedStatus, "harness_id": harnessID, "note": note, "setup_profile": approvedSetupProfile}, &p.Name); err != nil {
 			return nil, err
 		}
-		return map[string]any{"report_id": reportID, "harness_id": harnessID, "status": approvedStatus, "registered": decision == "approve", "setup_ready": false}, nil
+		return map[string]any{"report_id": reportID, "harness_id": harnessID, "status": approvedStatus, "registered": decision == "approve", "setup_ready": decision == "approve"}, nil
 	})
 	return result, err
 }

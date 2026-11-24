@@ -27,7 +27,7 @@
           "protocolVersion": "2025-03-26",
           "serverInfo": {
             "name": "workflow_read_only_bundle",
-            "version": "3.2.0"
+            "version": "3.2.1"
           }
         }
       }
@@ -73,7 +73,7 @@
           "protocolVersion": "2025-03-26",
           "serverInfo": {
             "name": "workflow_read_only_bundle",
-            "version": "3.2.0"
+            "version": "3.2.1"
           }
         }
       }
@@ -2063,7 +2063,7 @@
           },
           "content": [
             {
-              "text": "{\"candidates\": [\"workflow-source/core/global_workflow_standard.md\", \"workflow-source/examples/acme_delivery_platform/backlog/2026-04-18.md\"], \"latest_backlog_path\": \"workflow-source/examples/acme_delivery_platform/backlog/2026-04-18.md\", \"status\": \"ok\", \"tool_version\": \"3.2.0\", \"warnings\": []}",
+              "text": "{\"candidates\": [\"workflow-source/core/global_workflow_standard.md\", \"workflow-source/examples/acme_delivery_platform/backlog/2026-04-18.md\"], \"latest_backlog_path\": \"workflow-source/examples/acme_delivery_platform/backlog/2026-04-18.md\", \"status\": \"ok\", \"tool_version\": \"3.2.1\", \"warnings\": []}",
               "type": "text"
             }
           ],
@@ -2074,7 +2074,7 @@
             ],
             "latest_backlog_path": "workflow-source/examples/acme_delivery_platform/backlog/2026-04-18.md",
             "status": "ok",
-            "tool_version": "3.2.0",
+            "tool_version": "3.2.1",
             "warnings": []
           }
         }
@@ -2106,7 +2106,7 @@
               "tool": "check_doc_metadata"
             },
             "status": "error",
-            "tool_version": "3.2.0",
+            "tool_version": "3.2.1",
             "warnings": [
               "`doc_dir_path` field 는 필수다."
             ]
@@ -2215,7 +2215,7 @@
           "_meta": {
             "io.modelcontextprotocol/serverInfo": {
               "name": "workflow_read_only_bundle",
-              "version": "3.2.0"
+              "version": "3.2.1"
             }
           },
           "cacheScope": "private",
@@ -2255,7 +2255,7 @@
             "descriptor_target": "mcp_tools_list_draft",
             "io.modelcontextprotocol/serverInfo": {
               "name": "workflow_read_only_bundle",
-              "version": "3.2.0"
+              "version": "3.2.1"
             },
             "tool_count": 15,
             "transport_phase": "jsonrpc_draft"
@@ -4124,14 +4124,14 @@
           "_meta": {
             "io.modelcontextprotocol/serverInfo": {
               "name": "workflow_read_only_bundle",
-              "version": "3.2.0"
+              "version": "3.2.1"
             },
             "tool": "latest_backlog",
             "transport_phase": "jsonrpc_draft"
           },
           "content": [
             {
-              "text": "{\"candidates\": [\"workflow-source/core/global_workflow_standard.md\", \"workflow-source/examples/acme_delivery_platform/backlog/2026-04-18.md\"], \"latest_backlog_path\": \"workflow-source/examples/acme_delivery_platform/backlog/2026-04-18.md\", \"status\": \"ok\", \"tool_version\": \"3.2.0\", \"warnings\": []}",
+              "text": "{\"candidates\": [\"workflow-source/core/global_workflow_standard.md\", \"workflow-source/examples/acme_delivery_platform/backlog/2026-04-18.md\"], \"latest_backlog_path\": \"workflow-source/examples/acme_delivery_platform/backlog/2026-04-18.md\", \"status\": \"ok\", \"tool_version\": \"3.2.1\", \"warnings\": []}",
               "type": "text"
             }
           ],
@@ -4143,7 +4143,7 @@
             ],
             "latest_backlog_path": "workflow-source/examples/acme_delivery_platform/backlog/2026-04-18.md",
             "status": "ok",
-            "tool_version": "3.2.0",
+            "tool_version": "3.2.1",
             "warnings": []
           }
         }
@@ -4269,7 +4269,7 @@
             "protocolVersion": "2025-03-26",
             "serverInfo": {
               "name": "workflow_read_only_bundle",
-              "version": "3.2.0"
+              "version": "3.2.1"
             }
           }
         },
@@ -6150,7 +6150,7 @@
             "protocolVersion": "2025-03-26",
             "serverInfo": {
               "name": "workflow_read_only_bundle",
-              "version": "3.2.0"
+              "version": "3.2.1"
             }
           }
         },
@@ -6169,6 +6169,6 @@
     }
   ],
   "status": "ok",
-  "tool_version": "3.2.0",
+  "tool_version": "3.2.1",
   "transport_phase": "jsonrpc_draft"
 }

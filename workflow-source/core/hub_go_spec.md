@@ -45,6 +45,7 @@ hub-go/
 - S4 에서 정본을 `hub-go/` 로 옮기고 방향을 뒤집는다.
 - 화면 API 는 Python `hub/ui.py` 와 같은 project 경로를 제공한다. 지식 검색은 Wiki 화면에서 Git snapshot provenance를 포함해 보여주고, knowledge ref 및 DCR timeline 조회를 제공한다. 지침 변경은 승인된 human 의 즉시 반영 또는 agent·미승인 human 의 제안으로 처리하고, 승인·거절은 승인된 human 에게만 허용한다. PC relay HTTP 경로는 별도로 `/v1/relay/register`, `/poll`, `/result` 세 개다.
 - `hub_setup_plan`, `hub_guide_render`, `hub_guide_get`, `hub_guide_propose`, `hub_guide_decide` 도 Go 도구 처리기에서 구현하며 Python 판과 같은 단계 전환·로컬 수정 보호·지침 이력 응답·human 승인 경계를 제공한다. Go MCP 회귀 검사는 셋업 계획, 지침 조회·렌더·제안이 501 없이 실행되는지 확인하고 로컬 렌더 영역 수정 보호를 대조한다.
+- 미지원 하네스 부트스트랩은 HTTP 400으로 끝내지 않고 `stage=harness_support` 와 제보 안내를 돌려준다. 제보 후보를 웹 허브에서 관리자가 검토·승인하면 제한된 `mcp-http-json-v1` 설정 프로필을 등록한다. Go 설정 파일 병합, 후보 경로 제한, 환경 변수 토큰 참조는 Python `hub_spec.md` §6.8 계약과 같아야 한다.
 
 ## 3. 순수 판정 입구 — DB 와 분리
 

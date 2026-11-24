@@ -121,25 +121,33 @@ func sessionStart(s *store.Store, ctx store.Ctx, args map[string]any) (map[strin
 			}
 		}
 		if status == "unknown" {
-			var found int
-			if err := s.DB().QueryRow("SELECT COUNT(*) FROM harness_registry WHERE harness_id=? AND active=1", harness).Scan(&found); err != nil {
+			setupProfile, err := s.HarnessSetupProfile(harness)
+			if err != nil {
 				return nil, err
 			}
-			if found > 0 {
-				status = "registered_metadata_only"
+			if setupProfile != nil {
+				status = "setup_supported"
+			} else {
+				var found int
+				if err := s.DB().QueryRow("SELECT COUNT(*) FROM harness_registry WHERE harness_id=? AND active=1", harness).Scan(&found); err != nil {
+					return nil, err
+				}
+				if found > 0 {
+					status = "registered_metadata_only"
+				}
 			}
 		}
 		hub["harness_support"] = map[string]any{
 			"harness_id": harness, "status": status, "setup_ready": status == "setup_supported",
 			"report_tool": func() any {
-				if status == "unknown" {
+				if status == "unknown" || status == "registered_metadata_only" {
 					return "hub_harness_report"
 				}
 				return nil
 			}(),
 			"required_report_fields": func() []string {
-				if status == "unknown" {
-					return []string{"harness_id", "display_name", "version", "platforms", "mcp_transports", "config_formats", "entry_file_candidates", "documentation_url", "notes"}
+				if status == "unknown" || status == "registered_metadata_only" {
+					return []string{"harness_id", "display_name", "version", "platforms", "mcp_transports: streamable-http", "config_formats: mcp-http-json-v1", "entry_file_candidates", "mcp_config_candidates", "documentation_url", "notes"}
 				}
 				return []string{}
 			}(),

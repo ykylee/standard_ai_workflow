@@ -6,8 +6,8 @@ Status: implementation contract (M-060/WBS-60.1)
 
 Client observations are untrusted submissions. A report never adds a supported harness,
 changes project setup, or modifies the global registry. An authenticated human hub
-administrator reviews and decides reports through the web Hub. Registration does not
-imply setup support; only built-in adapters are currently setup-ready.
+administrator reviews and decides reports through the web Hub. Setup support is added only
+when the administrator approves a constrained setup profile with the registry entry.
 
 ## 2. Lifecycle and provenance
 
@@ -27,8 +27,8 @@ stakeholders; they are not login accounts or authorization principals.
 ## 3. Client report schema
 
 The report accepts only `harness_id`, `display_name`, `version`, `platforms`,
-`mcp_transports`, `config_formats`, `entry_file_candidates`, `documentation_url`, and
-`notes`. IDs use lowercase kebab-case. Lists have bounded cardinality and length. File
+`mcp_transports`, `config_formats`, `entry_file_candidates`, `mcp_config_candidates`,
+`documentation_url`, and `notes`. IDs use lowercase kebab-case. Lists have bounded cardinality and length. File
 names are relative, normalized paths with no `..`, home directory, or drive prefix.
 URLs must be HTTPS. Notes are short plain text. Unknown fields are rejected. Secrets are
 scanned recursively before persistence. Raw config, environment, logs, executable paths,
@@ -53,9 +53,23 @@ callsign tokens cannot view the global queue, manage the people registry, or dec
 
 `hub_session_start(session.harness=...)` returns `hub.harness_support` with one of
 `setup_supported`, `registered_metadata_only`, or `unknown`. For `unknown`, it names the
-report tool and accepted fields. Built-in adapters remain unchanged; a metadata-only
-registry entry does not make `hub_setup_plan` or `hub_guide_render` accept the harness.
-The client-submitted profile is never executed.
+report tool and accepted fields. `hub_setup_plan` for an unknown or metadata-only harness
+returns `stage=harness_support`, an empty `steps` list, and instructions to submit a report;
+it does not issue project file changes.
+
+For a profile, the report must claim `config_formats` includes `mcp-http-json-v1`,
+`mcp_transports` includes `streamable-http`, and provide entry/config candidates. The web
+admin selects one path from each candidate list, reviews compatibility, explicitly enables
+setup support, and assigns at least one active human contact. The stored profile is exactly
+`{kind: "mcp-http-json-v1", entry_file, mcp_config_path}`. Both paths must be safe relative
+paths, distinct, and the config path must end in `.json`. Approval rejects any missing or
+incompatible profile rather than silently registering metadata-only.
+
+The profile is declarative and never runs client-provided commands or code. Setup merges the
+standard Hub region into the selected entry file and the Streamable HTTP
+`mcpServers.workflow-hub` object into the selected JSON config, using
+`${WORKFLOW_HUB_TOKEN}` for the token. Built-in adapters remain unchanged. The client-
+submitted profile itself is never executed.
 
 ## 6. Storage and migration
 

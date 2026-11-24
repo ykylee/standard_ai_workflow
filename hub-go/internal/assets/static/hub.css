@@ -31,8 +31,14 @@ header.top .bar { max-width: 76rem; margin: 0 auto; display: flex; gap: .75rem; 
 .brand { font-weight: 700; color: var(--fg); }
 .crumbs { display: flex; gap: .4rem; flex-wrap: wrap; color: var(--muted); }
 .who { margin-left: auto; color: var(--muted); font-size: .9rem; }
+.admin-link { display: inline-flex; align-items: center; border-radius: 8px; padding: .3rem .7rem; background: var(--accent-soft); color: var(--accent); font-size: .9rem; font-weight: 650; white-space: nowrap; }
+.admin-link:hover { text-decoration: none; filter: brightness(.96); }
 main { max-width: 76rem; margin: 0 auto; padding: 1.25rem; display: grid; gap: 1rem; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 1rem 1.1rem; box-shadow: var(--shadow); }
+.admin-entry { display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-left: 4px solid var(--accent); }
+.admin-entry h2, .admin-entry p { margin: 0; }
+.admin-entry-button { display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; padding: .5rem .9rem; background: var(--accent); color: var(--accent-fg); font-weight: 650; white-space: nowrap; }
+.admin-entry-button:hover { text-decoration: none; filter: brightness(.96); }
 .muted { color: var(--muted); }
 .grid { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); }
 
@@ -54,10 +60,11 @@ th, td { text-align: left; padding: .45rem .5rem; border-bottom: 1px solid var(-
 th { color: var(--muted); font-weight: 600; font-size: .85rem; white-space: nowrap; }
 .nowrap { white-space: nowrap; }
 .table-wrap { overflow-x: auto; }
-table.tasks { table-layout: fixed; min-width: 56rem; }
-col.c-id { width: 15.5rem; } col.c-status { width: 6.5rem; } col.c-who { width: 7.5rem; } col.c-when { width: 9.5rem; }
-col.c-title { width: 34%; } col.c-doing { width: 30%; }
+table.tasks { table-layout: fixed; min-width: 72rem; }
+col.c-id { width: 13rem; } col.c-title { width: 14rem; } col.c-category { width: 12rem; }
+col.c-status { width: 7rem; } col.c-who { width: 7rem; } col.c-doing { width: 10rem; } col.c-when { width: 9rem; }
 table.tasks td.mono.nowrap { font-size: .78rem; overflow: hidden; text-overflow: ellipsis; }
+table.tasks td:nth-child(3) { overflow-wrap: anywhere; }
 
 /* 칩 */
 .chip { white-space: nowrap; display: inline-block; padding: .05rem .55rem; border-radius: 999px; font-size: .8rem; background: var(--neutral-soft); }
@@ -137,6 +144,9 @@ input[type=search] { border: 1px solid var(--line); border-radius: 8px; padding:
 .clamp-3 { -webkit-line-clamp: 3; line-clamp: 3; }
 .clamp-2 { -webkit-line-clamp: 2; line-clamp: 2; }
 @media (max-width: 40rem) {
+  header.top .bar { padding: .65rem .75rem; gap: .5rem; }
+  .who { margin-left: 0; }
+  .admin-entry { align-items: flex-start; flex-direction: column; }
   main { padding: .75rem; }
   .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

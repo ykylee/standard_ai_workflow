@@ -163,7 +163,7 @@ func (s *Server) handleHarnessDecisionUIAPI(w http.ResponseWriter, r *http.Reque
 			ownerIDs = append(ownerIDs, id)
 		}
 	}
-	result, err := s.cfg.Store.HarnessReportDecide(store.Ctx{Now: now, Via: "ui", Principal: principal}, reportID, decision, note, ownerIDs)
+	result, err := s.cfg.Store.HarnessReportDecide(store.Ctx{Now: now, Via: "ui", Principal: principal}, reportID, decision, note, ownerIDs, body["setup_profile"])
 	if err != nil {
 		writeScreenError(w, err)
 		return

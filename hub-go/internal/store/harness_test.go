@@ -39,8 +39,9 @@ func TestHarnessReportReviewAndRegistry(t *testing.T) {
 	adminCtx := Ctx{Now: now, Via: "mcp", Principal: admin}
 	report := map[string]any{
 		"harness_id": "new-agent", "display_name": "New Agent", "version": "1.2.3",
-		"platforms": []any{"windows"}, "mcp_transports": []any{"stdio"}, "config_formats": []any{"json"},
-		"entry_file_candidates": []any{"AGENTS.md"}, "documentation_url": "https://example.com/docs", "notes": "Observed MCP support.",
+		"platforms": []any{"windows"}, "mcp_transports": []any{"streamable-http"}, "config_formats": []any{"mcp-http-json-v1"},
+		"entry_file_candidates": []any{"AGENTS.md"}, "mcp_config_candidates": []any{"harness-mcp.json"},
+		"documentation_url": "https://example.com/docs", "notes": "Observed MCP support.",
 	}
 	submitted, err := s.HarnessReportSubmit(ownerCtx, report)
 	if err != nil {
@@ -76,10 +77,10 @@ func TestHarnessReportReviewAndRegistry(t *testing.T) {
 	if _, err = s.HarnessReportDecide(adminCtx, reportID, "approve", "", nil); err == nil {
 		t.Fatal("approved registry without a designated human owner")
 	}
-	decision, err := s.HarnessReportDecide(adminCtx, reportID, "approve", "metadata reviewed", []string{
+	decision, err := s.HarnessReportDecide(adminCtx, reportID, "approve", "setup profile reviewed", []string{
 		person1["person"].(map[string]any)["id"].(string), person2["person"].(map[string]any)["id"].(string),
-	})
-	if err != nil || decision["registered"] != true || decision["setup_ready"] != false {
+	}, map[string]any{"kind": "mcp-http-json-v1", "entry_file": "AGENTS.md", "mcp_config_path": "harness-mcp.json"})
+	if err != nil || decision["registered"] != true || decision["setup_ready"] != true {
 		t.Fatalf("decision=%#v err=%v", decision, err)
 	}
 	registry, err = s.HarnessRegistryList(ownerCtx, false)
@@ -88,6 +89,9 @@ func TestHarnessReportReviewAndRegistry(t *testing.T) {
 	}
 	if len(registry["harnesses"].([]map[string]any)[0]["owners"].([]map[string]any)) != 2 {
 		t.Fatalf("expected two independently registered people: %#v", registry)
+	}
+	if registry["harnesses"].([]map[string]any)[0]["setup_ready"] != true {
+		t.Fatalf("approved setup profile missing from registry: %#v", registry)
 	}
 	unsafe := map[string]any{"harness_id": "other", "display_name": "Other", "entry_file_candidates": []any{"../../secret"}}
 	if _, err = s.HarnessReportSubmit(ownerCtx, unsafe); err == nil {

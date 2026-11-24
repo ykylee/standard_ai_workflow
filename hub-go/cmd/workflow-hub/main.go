@@ -11,7 +11,7 @@ import (
 )
 
 // version 은 -ldflags "-X main.version=<판>" 로 덮어쓴다 (hub_go_spec.md §7).
-var version = "3.2.0"
+var version = "3.2.1"
 
 var subcommands = []string{"serve", "backup", "admin", "migrate", "relay", "judge"}
 

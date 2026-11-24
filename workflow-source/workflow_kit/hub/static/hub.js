@@ -6,6 +6,7 @@
 (function () {
   const app = document.getElementById("app");
   const crumbs = document.getElementById("crumbs");
+  const adminLink = document.getElementById("admin-link");
   const whoEl = document.getElementById("who");
   let hubHost = location.host;
   let pendingFlash = null;
@@ -196,14 +197,23 @@
     const seen = new Map();
     let principal = null;
     const errors = [];
-    const anon = await api("projects");
-    if (anon.status === 200) { principal = anon.data.principal; anon.data.projects.forEach((p) => seen.set(p.id, p)); }
+    const adminToken = storedAdminToken();
+    if (adminToken) {
+      const session = await api("session", { token: adminToken });
+      if (session.status === 200 && session.data.principal.kind === "admin") principal = session.data.principal;
+      else if (session.status === 401 || session.status === 403 || session.status === 200) {
+        try { localStorage.removeItem(`hub:${hubHost}:admin-token`); } catch (e) { /* 저장소 없음 */ }
+      } else errors.push(`관리자 세션 확인: ${errorText(session)}`);
+    }
+    const projectList = await api("projects", { token: principal?.kind === "admin" ? adminToken : undefined });
+    if (projectList.status === 200) { principal = principal || projectList.data.principal; projectList.data.projects.forEach((p) => seen.set(p.id, p)); }
     for (const pid of storedProjects()) {
       const r = await api("projects", { token: storedToken(pid) });
       if (r.status === 200) r.data.projects.forEach((p) => seen.set(p.id, p));
       else errors.push(`${pid}: ${errorText(r)}`);
     }
     setWho(principal);
+    adminLink.textContent = principal?.kind === "admin" ? "관리 화면" : "관리자 모드";
     const cards = [...seen.values()].map((p) => el("a", { class: "card", href: `#/p/${encodeURIComponent(p.id)}` },
       el("h2", {}, p.display_name),
       el("div", { class: "mono muted" }, p.id),
@@ -211,11 +221,13 @@
       storedToken(p.id) ? el("div", { class: "muted" }, "이 브라우저에 콜사인 토큰 있음") : null));
     render(
       el("section", { class: "card" }, el("h1", {}, "프로젝트"),
-        principal?.kind === "admin" ? el("p", {}, el("a", { href: "#/harnesses" }, "하네스 제보 검토 · 사람 명부 관리")) : null,
         cards.length ? el("div", { class: "grid" }, cards)
-          : el("p", { class: "muted" }, anon.status === 401
+          : el("p", { class: "muted" }, projectList.status === 401
             ? "토큰 없는 화면 읽기가 꺼져 있다 (허브 기본). 콜사인 토큰을 넣으면 그 프로젝트가 보인다."
             : "등록된 프로젝트가 없다.")),
+      el("section", { class: "card admin-entry" }, el("div", {}, el("h2", {}, "허브 전체 관리"),
+        el("p", { class: "muted" }, "하네스 등록 제보를 검토하고 사람 담당자 명부를 관리합니다. 관리자 토큰이 필요합니다.")),
+        el("a", { class: "admin-entry-button", href: "#/harnesses" }, principal?.kind === "admin" ? "관리 화면 열기" : "관리자 로그인")),
       errors.length ? el("section", { class: "card" }, errors.map((e) => alertBox("bad", e))) : null,
       el("section", { class: "card" }, el("h2", {}, "이 브라우저에 콜사인 토큰 넣기"), tokenForm(() => route())));
   }
@@ -226,26 +238,35 @@
     if (!token) {
       const input = el("input", { type: "password", autocomplete: "off", placeholder: "hub admin 토큰", "aria-label": "hub admin 토큰" });
       const message = el("div");
-      setWho(null);
-      render(el("section", { class: "card" }, el("h1", {}, "하네스 제보 검토"),
-        el("p", {}, "허브 관리자 토큰으로 로그인하면 대기 중인 제보와 사람 명부를 관리할 수 있다."),
+      setWho(null); adminLink.textContent = "관리자 로그인";
+      render(el("section", { class: "card" }, el("h1", {}, "허브 관리자 로그인"),
+        el("p", {}, "허브 관리자 토큰으로 하네스 제보를 검토하고 사람 담당자 명부를 관리한다."),
+        el("h2", {}, "관리자 토큰 발급"),
+        el("p", { class: "muted" }, "토큰은 허브 서버에서 한 번 발급한다. Python 또는 Go 허브 터미널에서 실행한다."),
+        el("pre", {}, "Python: python -m workflow_kit hub admin --db <DB 경로> token issue --role admin --name <이름>\nGo: workflow-hub admin --db <DB 경로> token issue --role admin --name <이름>"),
+        el("p", { class: "muted" }, "로그인하면 토큰은 이 브라우저에 저장된다. 공유 기기에서는 사용 후 관리자 토큰을 지운다."),
         el("form", { class: "row", onsubmit: async (ev) => {
           ev.preventDefault();
-          const r = await api("session", { token: input.value.trim() });
+          const submitted = input.value.trim();
+          const r = await api("session", { token: submitted });
           if (r.status !== 200 || r.data.principal.kind !== "admin") {
-            message.replaceChildren(alertBox("bad", "허브 관리자 토큰이 필요하다.")); return;
+            const reason = r.status === 200 ? "이 토큰은 허브 관리자 권한이 아니다. web 또는 콜사인 토큰 대신 admin 토큰을 입력한다."
+              : r.status === 401 || r.status === 403 ? "토큰을 확인할 수 없다. 허브 관리자 토큰을 다시 확인한다." : errorText(r);
+            message.replaceChildren(alertBox("bad", reason)); return;
           }
-          storeAdminToken(input.value.trim()); input.value = ""; dirty = false; route();
-        } }, el("label", {}, "관리자 토큰", input), el("button", { type: "submit" }, "로그인"), message)));
+          if (!storeAdminToken(submitted)) { message.replaceChildren(alertBox("bad", "브라우저 저장소에 토큰을 보관할 수 없다. 브라우저 저장소 설정을 확인한다.")); return; }
+          input.value = ""; dirty = false; route();
+        } }, el("label", {}, "관리자 토큰", input), el("button", { type: "submit" }, "관리자 모드로 로그인"), message)));
       return;
     }
     const [session, reportsRes, peopleRes, registryRes] = await Promise.all([
       api("session", { token }), api("harness-reports?status=pending", { token }),
       api("harness-people", { token }), api("harness-registry", { token })]);
     if (session.status !== 200 || session.data.principal.kind !== "admin") {
-      try { localStorage.removeItem(`hub:${hubHost}:admin-token`); } catch (e) { /* 저장소 없음 */ }
-      render(el("section", { class: "card" }, alertBox("bad", "관리자 토큰이 유효하지 않다. 다시 로그인한다."),
-        el("button", { onclick: () => { route(); } }, "다시 로그인")));
+      const invalid = session.status === 401 || session.status === 403 || session.status === 200;
+      if (invalid) { try { localStorage.removeItem(`hub:${hubHost}:admin-token`); } catch (e) { /* 저장소 없음 */ } }
+      render(el("section", { class: "card" }, alertBox("bad", invalid ? "관리자 토큰이 유효하지 않다. 새 토큰으로 로그인한다." : `관리자 세션을 확인할 수 없다. 토큰은 보존했다. ${errorText(session)}`),
+        el("button", { onclick: () => { route(); } }, invalid ? "다시 로그인" : "다시 확인")));
       return;
     }
     setWho(session.data.principal);
@@ -267,12 +288,26 @@
       const selectedIds = new Set((existing?.owners || []).map((p) => p.id));
       const ownerSelect = el("select", { multiple: true, size: String(Math.min(6, Math.max(2, people.length))), "aria-label": "하네스 담당자 여러 명 선택" },
         people.map((p) => el("option", { value: p.id, selected: selectedIds.has(p.id) }, `${p.display_name} · ${p.id}`)));
+      const setup = report.report || {};
+      const entryCandidates = setup.entry_file_candidates || [];
+      const configCandidates = setup.mcp_config_candidates || [];
+      const supportsProfile = (setup.config_formats || []).includes("mcp-http-json-v1")
+        && (setup.mcp_transports || []).includes("streamable-http") && entryCandidates.length > 0 && configCandidates.length > 0;
+      const entryFile = el("select", { "aria-label": "셋업 진입 파일" },
+        entryCandidates.map((path) => el("option", { value: path }, path)));
+      const configPath = el("select", { "aria-label": "MCP JSON 설정 파일" },
+        configCandidates.map((path) => el("option", { value: path }, path)));
+      const setupConfirmed = el("input", { type: "checkbox", "aria-label": "셋업 프로필을 검토하고 활성화" });
       const note = el("textarea", { maxlength: "1000", placeholder: "검토 메모 (선택)", "aria-label": "검토 메모" });
       const result = el("div");
       const decide = async (decision) => {
         const owner_ids = decision === "approve" ? [...ownerSelect.selectedOptions].map((o) => o.value) : [];
+        if (decision === "approve" && (!supportsProfile || !setupConfirmed.checked)) {
+          result.replaceChildren(alertBox("bad", "승인하려면 mcp-http-json-v1 호환 정보와 경로를 확인한 뒤 셋업 프로필 활성화를 체크한다.")); return;
+        }
         const r = await api(`harness-reports/${encodeURIComponent(report.id)}/decision`, {
-          method: "POST", token, body: { decision, note: note.value.trim(), owner_ids } });
+          method: "POST", token, body: { decision, note: note.value.trim(), owner_ids,
+            setup_profile: decision === "approve" ? { kind: "mcp-http-json-v1", entry_file: entryFile.value, mcp_config_path: configPath.value } : undefined } });
         if (r.status !== 200) { result.replaceChildren(alertBox("bad", errorText(r))); return; }
         dirty = false; route();
       };
@@ -282,6 +317,11 @@
         el("pre", {}, JSON.stringify(data, null, 2)),
         el("label", {}, "사람 담당자 (복수 선택, 최초 등록에 1명 이상 필수)", ownerSelect),
         !people.length ? alertBox("warn", "먼저 사람 명부에 담당자를 등록해야 승인할 수 있다.") : null,
+        el("h3", {}, "셋업 지원 프로필 · mcp-http-json-v1"),
+        supportsProfile ? el("div", { class: "row" },
+          el("label", {}, "진입 파일", entryFile), el("label", {}, "MCP JSON 경로", configPath),
+          el("label", {}, setupConfirmed, "이 경로와 Streamable HTTP JSON 호환을 확인하고 셋업 지원 활성화"))
+          : alertBox("warn", "자동 셋업 승인에 필요한 정보가 부족하다. mcp_transports에 streamable-http, config_formats에 mcp-http-json-v1, 두 후보 경로 목록을 포함해 다시 제보해야 한다."),
         el("label", {}, "검토 메모", note),
         el("div", { class: "row" }, el("button", { disabled: !people.length, onclick: () => decide("approve") }, "담당자를 지정하고 등록 승인"),
           el("button", { class: "danger", onclick: () => decide("reject") }, "거절")), result);

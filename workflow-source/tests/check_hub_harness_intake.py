@@ -41,9 +41,10 @@ def test_intake_review() -> int:
             "display_name": "New Agent",
             "version": "1.2.3",
             "platforms": ["windows"],
-            "mcp_transports": ["stdio"],
-            "config_formats": ["json"],
+            "mcp_transports": ["streamable-http"],
+            "config_formats": ["mcp-http-json-v1"],
             "entry_file_candidates": ["AGENTS.md"],
+            "mcp_config_candidates": ["harness-mcp.json"],
             "documentation_url": "https://example.com/docs",
             "notes": "Client observed MCP support.",
         }
@@ -52,6 +53,15 @@ def test_intake_review() -> int:
         }, owner_ctx)
         assert started["hub"]["harness_support"]["status"] == "unknown"
         assert started["hub"]["harness_support"]["report_tool"] == "hub_harness_report"
+        with store.read() as conn:
+            setup_before = conn.execute("SELECT COUNT(*) FROM setup_step").fetchone()[0]
+        unsupported = tools.call(store, "hub_setup_plan", {
+            "project_id": owner.project_id, "token": owner_data["token"], "harnesses": ["new-agent"],
+            "scan": {"files": {}},
+        }, owner_ctx)
+        assert unsupported["stage"] == "harness_support" and unsupported["steps"] == []
+        with store.read() as conn:
+            assert conn.execute("SELECT COUNT(*) FROM setup_step").fetchone()[0] == setup_before
         submitted = tools.call(store, "hub_harness_report", {"report": report}, owner_ctx)
         assert submitted["status"] == "pending" and submitted["registered"] is False
         replay = tools.call(store, "hub_harness_report", {"report": report}, owner_ctx)
@@ -97,17 +107,41 @@ def test_intake_review() -> int:
             assert p1[0] == 200 and p2[0] == 200
             owner_ids = [p1[1]["person"]["id"], p2[1]["person"]["id"]]
             decision = ui_call(f"/api/harness-reports/{submitted['report_id']}/decision", method="POST",
-                               body={"decision": "approve", "note": "metadata reviewed", "owner_ids": owner_ids})
-            assert decision[0] == 200 and decision[1]["registered"] is True
+                               body={"decision": "approve", "note": "setup profile reviewed", "owner_ids": owner_ids,
+                                     "setup_profile": {"kind": "mcp-http-json-v1", "entry_file": "AGENTS.md",
+                                                       "mcp_config_path": "harness-mcp.json"}})
+            assert decision[0] == 200 and decision[1]["registered"] is True and decision[1]["setup_ready"] is True
             queue = ui_call("/api/harness-reports?status=approved")
             assert queue[0] == 200 and len(queue[1]["reports"]) == 1
             listing = tools.call(store, "hub_harness_registry_list", {}, owner_ctx)
             assert listing["harnesses"][0]["harness_id"] == "new-agent"
-            assert listing["harnesses"][0]["setup_ready"] is False
+            assert listing["harnesses"][0]["setup_ready"] is True
             assert len(listing["harnesses"][0]["owners"]) == 2
+            supported = tools.call(store, "hub_session_start", {
+                "session": {"harness": "new-agent", "kind": "worker", "delivery": ["wait"]},
+            }, owner_ctx)
+            assert supported["hub"]["harness_support"]["status"] == "setup_supported"
+            rendered = tools.call(store, "hub_guide_render", {"harness": "new-agent"}, owner_ctx)
+            assert rendered["path"] == "AGENTS.md" and rendered["blocked"] is False
+            setup_args = {"project_id": owner.project_id, "token": owner_data["token"],
+                          "harnesses": ["new-agent"],
+                          "scan": {"files": {".gitignore": "/.workflow-hub/\n", "AGENTS.md": None,
+                                              "harness-mcp.json": "{}"}}}
+            first_plan = tools.call(store, "hub_setup_plan", setup_args, owner_ctx)
+            assert first_plan["stage"] == "gitignore"
+            confirmation = tools.call(store, "hub_setup_confirm", {
+                "project_id": owner.project_id, "token": owner_data["token"], "files": [],
+                "checks": [{"name": "check_ignore", "rc": 0,
+                            "output": ".gitignore:1:/.workflow-hub/ .workflow-hub/env"}],
+            }, owner_ctx)
+            assert "gitignore" in confirmation["confirmed"]
+            file_plan = tools.call(store, "hub_setup_plan", setup_args, owner_ctx)
+            config_step = next(step for step in file_plan["steps"] if step.get("path") == "harness-mcp.json")
+            assert file_plan["stage"] == "files"
+            assert "${WORKFLOW_HUB_TOKEN}" in config_step["content"]
         finally:
             live.stop()
-    return 11
+    return 19
 
 
 if __name__ == "__main__":

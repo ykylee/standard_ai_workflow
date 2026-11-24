@@ -199,6 +199,11 @@ def case_5_join(e: Env, pid: str, remote: str, fake_log: Path) -> None:
         problems.append(f"codex 명령 {calls}")
     if not (e.root / "AGENTS.md").is_file():
         problems.append("AGENTS.md 없음")
+    else:
+        agents = (e.root / "AGENTS.md").read_text(encoding="utf-8")
+        for tool in TOOLS:
+            if tool not in agents:
+                problems.append(f"생성된 AGENTS.md 에 {tool} 사용 안내가 없다")
     _record("case 5 (같은 원격의 두 번째 환경 — 합류 · codex 단계 실행 확인 · complete)", not problems, "; ".join(problems))
 
 

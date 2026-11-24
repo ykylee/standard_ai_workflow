@@ -1,17 +1,17 @@
 # 워크플로우 허브 표준 규칙 (2.0)
 
 - 문서 목적: 2.0 허브 흐름의 표준 규칙 층 정본 — 허브가 모든 프로젝트 · 모든 지원 하네스의 진입 파일 렌더 영역에 싣는 규칙이다 (hub_spec §5.2, DS6).
-- 범위: 세션 시작 확인 · 작업 중 기록 · 허브 받은편지함(2.1 — `hub_orchestration_spec.md` §11) · 세션 끝 순서 · compact 직후 확인 · 쓰기 금지. 1.x 흐름의 정본은 `global_workflow_standard.md` 그대로다.
+- 범위: 세션 시작 확인 · 작업/지식 도구 사용 · 허브 받은편지함 · 세션 끝 순서 · compact 직후 확인 · 쓰기 금지. 1.x 흐름의 정본은 `global_workflow_standard.md` 그대로다.
 - 대상 독자: AI agent (진입 파일로 읽는다), workflow 설계자
-- 상태: draft (M-034, 2026-11-21 · 2.1 받은편지함 절 M-045, 2026-11-22)
-- 최종 수정일: 2026-11-22
+- 상태: draft (M-034, 2026-11-21 · 2.1 받은편지함 절 M-045, 2026-11-22 · 2.2 도구 카탈로그, 2026-11-24)
+- 최종 수정일: 2026-11-24
 - 관련 문서: `./hub_spec.md`, `../../docs/planning/workflow-hub-requirements-2026-11.md` (요구 R6.4 · R7.3 · R10 · R11), `./global_workflow_standard.md`
 
 > 아래 `hub-standard` 표식 사이가 렌더 영역에 들어가는 본문이다 (`workflow_kit.hub.render`).
 > 명령은 허브 MCP 도구 이름이다 — `python -m workflow_kit …` 를 쓰지 않는다 (요구 R7.3).
 
 <!-- hub-standard:begin -->
-## 워크플로우 허브 규칙 (표준 · 2.1)
+## 워크플로우 허브 규칙 (표준 · 2.2)
 
 이 저장소의 task · handoff · 이력 · 로드맵 · 공유 지침 · 위키의 정본은 **워크플로우 허브**다. 저장소의 파일은 내보내기다.
 
@@ -22,10 +22,26 @@
 4. 보고에는 확인한 것과 확인하지 못한 것을 나눠 적는다. 허브에 닿지 않으면 "허브 미확인" 이라고 적는다 — 확인한 척하지 않는다.
 
 ### 작업 중
-- task 를 맡을 때 `hub_task_claim`. 다른 콜사인이 맡고 있으면(409) 그 task 를 하지 않는다.
+- 새 작업은 로드맵/WBS와 완료 조건을 확인한 뒤 `hub_task_create` 로 등록하고, 기존 작업은 `hub_task_list` · `hub_task_get` 으로 찾는다. 계획·담당·상태 변경은 `hub_task_update`, 시작/인계는 `hub_task_claim` · `hub_task_release`, 완료는 필수 검증 결과를 갖춰 `hub_task_close` 를 쓴다.
+- 다른 콜사인이 맡고 있으면(409) 그 task 를 하지 않는다.
 - 단계마다(계획 → 구현 → 검사 → 커밋 · push) `hub_task_progress` 로 진행 한 줄을 남긴다.
 - 커밋하면 `hub_task_link_commit` 으로 task 에 묶는다.
 - 쓰기가 409(`version_conflict`)면 지금 값을 다시 읽고 판단한다 — 덮어쓰지 않는다.
+
+### 허브 지식 · 결정 도구
+- 설계 문서와 출처가 고정된 지식은 `hub_knowledge_search` · `hub_knowledge_get` 으로 찾는다. 위키 문서는 `hub_wiki_search` · `hub_wiki_get` · `hub_wiki_list` 로 읽고, 작성·수정 뒤에는 `hub_wiki_lint` 로 점검한다.
+- 프로젝트 결정 변경은 `hub_dcr_create` 로 제안하고 `hub_dcr_list` · `hub_dcr_get` 으로 상태와 근거를 확인한다. 승인/거절은 권한 있는 사람만 `hub_dcr_decide` 로 한다.
+- 현재 지침·프로젝트 문서·로드맵은 `hub_guide_get`, `hub_project_doc_get`, `hub_roadmap_get` · `hub_roadmap_state` 로 확인한다. 갱신은 각 `*_put` 도구의 버전 조건과 승인 규칙을 따른다.
+
+### 도구 카탈로그 — 작업에 맞는 MCP 도구를 고른다
+- 프로젝트 · 하네스 등록/셋업: `hub_project_lookup` · `hub_project_register` · `hub_project_bind_remote` · `hub_callsign_register` · `hub_callsign_approve` · `hub_setup_plan` · `hub_setup_confirm` · `hub_harness_report` · `hub_harness_report_list` · `hub_harness_registry_list` · `hub_guide_render`.
+- task · 계획: `hub_task_list` · `hub_task_get` · `hub_task_create` · `hub_task_update` · `hub_task_close` · `hub_task_claim` · `hub_task_release` · `hub_task_progress` · `hub_task_link_commit` · `hub_plan_status` · `hub_plan_respond`.
+- 세션 · 상태 · handoff: `hub_whoami` · `hub_session_start` · `hub_session_update` · `hub_session_list` · `hub_session_end` · `hub_wait` · `hub_inbox_list` · `hub_inbox_ack` · `hub_report` · `hub_handoff_get` · `hub_handoff_put` · `hub_state` · `hub_checkpoint_put` · `hub_compact_resume`.
+- 위키 · 지식 · memory: `hub_wiki_search` · `hub_wiki_get` · `hub_wiki_list` · `hub_wiki_ingest` · `hub_wiki_lint` · `hub_wiki_remote_set` · `hub_wiki_import_dir` · `hub_wiki_export` · `hub_wiki_import_okf` · `hub_knowledge_source_register` · `hub_knowledge_sync` · `hub_knowledge_search` · `hub_knowledge_get` · `hub_memory_entry_put` · `hub_memory_entry_get` · `hub_memory_entry_list`.
+- 결정 · 계획 · 프로젝트 문서: `hub_guide_get` · `hub_guide_propose` · `hub_guide_decide` · `hub_project_doc_get` · `hub_project_doc_put` · `hub_roadmap_get` · `hub_roadmap_put` · `hub_roadmap_state` · `hub_dcr_create` · `hub_dcr_list` · `hub_dcr_get` · `hub_dcr_decide`.
+- 이전: `hub_migrate_plan` · `hub_migrate_import` · `hub_migrate_marker` · `hub_migrate_report` · `hub_project_export` · `hub_project_unseal` · `hub_project_import`.
+- 오케스트레이션 · 승인 · 중계: `hub_orch_declare` · `hub_orch_transfer` · `hub_orch_release` · `hub_orch_halt` · `hub_orch_assign` · `hub_orch_recall` · `hub_orch_message` · `hub_orch_request_session` · `hub_orch_request_stop` · `hub_approval_decide` · `hub_events` · `hub_relay_invite` · `hub_relay_list` · `hub_relay_revoke`.
+- 서버가 제공하는 현재 도구와 입력 스키마는 MCP `tools/list` 가 정본이다. 카탈로그와 다르면 서버 목록을 따르고 문서 누락을 보고한다.
 
 ### 허브 받은편지함
 - 받은 세션 ID 를 **이후 모든 허브 도구 호출**의 `session` 인자에 싣는다.

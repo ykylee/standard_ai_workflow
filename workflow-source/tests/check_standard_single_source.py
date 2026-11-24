@@ -59,6 +59,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
 sys.path.insert(0, str(SOURCE_ROOT))
 
+from _hub_entry import hub_entry_problem  # noqa: E402
 from workflow_kit.common.standard_rules import (  # noqa: E402
     STANDARD_RELPATH,
     load_standard_rules,
@@ -243,6 +244,8 @@ def test_this_repo_entrypoints_carry_rules() -> None:
         if not path.exists():
             continue
         text = path.read_text(encoding="utf-8")
+        if hub_entry_problem(REPO_ROOT, name, text) is None:
+            continue
         if "## Memory Update Paths" not in text:
             problems.append(f"{name}: 규칙 블록 없음")
             continue

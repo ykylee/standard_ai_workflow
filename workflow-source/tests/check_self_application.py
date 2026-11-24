@@ -70,6 +70,7 @@ from workflow_kit.common.paths import (  # noqa: E402
     memory_active_dir,
     state_path_for_workspace,
 )
+from _hub_entry import hub_entry_problem  # noqa: E402
 from workflow_kit.common.standard_rules import load_standard_rules  # noqa: E402
 from workflow_kit.common.state.memory_index import (  # noqa: E402
     TELEMETRY_SKIP_ROOT_ENV,
@@ -184,6 +185,8 @@ def test_repo_has_own_entrypoints() -> None:
                 problems.append(f"{name} 없음")
             continue
         text = path.read_text(encoding="utf-8")
+        if hub_entry_problem(REPO_ROOT, name, text) is None:
+            continue
         if verify not in text:
             problems.append(f"{name}: §1 원칙 누락")
         if rules.close_order not in text:

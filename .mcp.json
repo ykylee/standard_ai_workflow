@@ -1,8 +1,6 @@
 {
   "mcpServers": {
     "standardAiWorkflowReadOnly": {
-      "type": "stdio",
-      "command": "python3",
       "args": [
         "-m",
         "workflow_kit.server.read_only_jsonrpc",
@@ -10,14 +8,14 @@
         "--bundle",
         "read-only"
       ],
+      "command": "python3",
       "env": {
-        "STANDARD_AI_WORKFLOW_ROOT": ".",
-        "PYTHONPATH": "workflow-source"
-      }
+        "PYTHONPATH": "workflow-source",
+        "STANDARD_AI_WORKFLOW_ROOT": "."
+      },
+      "type": "stdio"
     },
     "standardAiWorkflowWrite": {
-      "type": "stdio",
-      "command": "python3",
       "args": [
         "-m",
         "workflow_kit.server.read_only_jsonrpc",
@@ -25,10 +23,19 @@
         "--bundle",
         "write"
       ],
+      "command": "python3",
       "env": {
-        "STANDARD_AI_WORKFLOW_ROOT": ".",
-        "PYTHONPATH": "workflow-source"
-      }
+        "PYTHONPATH": "workflow-source",
+        "STANDARD_AI_WORKFLOW_ROOT": "."
+      },
+      "type": "stdio"
+    },
+    "workflow-hub": {
+      "headers": {
+        "Authorization": "Bearer ${WORKFLOW_HUB_TOKEN}"
+      },
+      "type": "http",
+      "url": "https://homelab.ddn777.synology.me/workflow/mcp"
     }
   }
 }

@@ -121,7 +121,7 @@ def case_rules() -> list[str]:
     if "Record progress as you work" not in skill or "--progress-note" not in skill:
         problems.append("backlog-update 스킬에 단계마다 진행을 기록하라는 규칙이 없다")
     claude = (REPO_ROOT / "CLAUDE.md").read_text(encoding="utf-8")
-    if not re.search(r"작업 중: .*--progress-note", claude):
+    if not re.search(r"작업 중: .*--progress-note", claude) and "hub_task_progress" not in claude:
         problems.append("CLAUDE.md 에 작업 중 진행 기록 규칙이 없다")
     return problems
 

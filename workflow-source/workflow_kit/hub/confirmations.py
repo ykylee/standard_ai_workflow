@@ -1,4 +1,4 @@
-"""Agent confirmation requests stored and delivered through the A2A inbox."""
+"""Agent confirmation requests stored and delivered through the hub inbox."""
 
 from __future__ import annotations
 
@@ -57,7 +57,7 @@ class Confirmations:
                     "approval_id": request_id,
                     "next": "사람이 허브 계정으로 로그인해 확인 요청에서 승인하면, 같은 콜사인으로 실행 도구에 approval_id 를 싣는다 (승인 뒤 24시간)."}
         return {"request": {"id": request_id, "state": "pending", "title": title.strip()},
-                "next": "사람이 웹 허브의 확인 요청 메뉴에서 결정할 때까지 대기한다. 결과는 A2A 받은편지함으로 온다."}
+                "next": "사람이 웹 허브의 확인 요청 메뉴에서 결정할 때까지 대기한다. 결과는 허브 받은편지함으로 온다."}
 
     def list_pending(self, ctx: Ctx) -> dict[str, Any]:
         p = self.orch._need_owner(ctx)

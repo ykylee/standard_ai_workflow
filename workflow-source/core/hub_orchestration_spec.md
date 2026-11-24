@@ -68,7 +68,7 @@
 | `hub_wait` | 그 세션 (`allow_wait` = 1) | **`session`** · `timeout_s` (기본 · 상한 **50** — §6.2 · §6.6) | 그 세션 앞 메시지가 오면 즉시 돌려줌, 없으면 상한에서 빈 응답 + `call_again: true` | R18.3 · Q1 |
 | `hub_inbox_ack` | 받은 세션 | **`session`** · **`message_id`** · **`decision`** (`accept`/`decline`/`seen`) · `reason` · `request_id` | 수신 확인 · 배정 수락/거절 | R18.8 · R20 |
 | `hub_inbox_list` | 그 세션 · 오케스트레이터 | `session` · `state` | 받은편지함 읽기 (편승을 못 받는 경로의 보조) | R18.1 |
-| `hub_approval_request` | active session 의 agent | **`session`** · **`title`** · **`question`** · `details` · `action` | 사람 owner에게 확인 요청. `action`({type: migrate_import, migration_id, kinds} · {type: migrate_marker, migration_id, marker})을 실으면 계정 로그인 승인 뒤 그 실행에만 쓰는 `approval_id` 가 된다. 결정은 웹 화면 전용이고 결과는 A2A `confirmation_result` note로 돌아온다 | R18 · R22 |
+| `hub_approval_request` | active session 의 agent | **`session`** · **`title`** · **`question`** · `details` · `action` | 사람 owner에게 확인 요청. `action`({type: migrate_import, migration_id, kinds} · {type: migrate_marker, migration_id, marker})을 실으면 계정 로그인 승인 뒤 그 실행에만 쓰는 `approval_id` 가 된다. 결정은 웹 화면 전용이고 결과는 허브 받은편지함 `confirmation_result` note로 돌아온다 | R18 · R22 |
 | `hub_report` | 배정받은 세션 | **`session`** · **`task_id`** · **`summary`** · `verification` · `request_id` | 배정 `reported` · 오케스트레이터 앞 `report` 메시지. done 은 바꾸지 않는다 | R20.3 |
 | `hub_orch_declare` | 승인된 human `owner` | **`session`** (대상) | lease 생성 (이미 있으면 409 `orchestrator_exists` — 인계는 `hub_orch_transfer`) | R19.1 |
 | `hub_orch_transfer` | 승인된 human `owner` | **`session`** (새 대상) | lease 교체 · 열린 배정 · 대기 요청이 넘어감 · 양쪽에 `note` | R19.3 |
@@ -248,7 +248,7 @@ class Adapter(Protocol):
 - **중앙** `/ui/` 에 `오케스트레이션` 판(`#/p/{pid}/orch`) · `로드맵` 판(`#/p/{pid}/roadmap`) · 프로젝트 요약 KPI:
   - 프로젝트 홈 요약(`GET /api/projects/{pid}` 의 `summary`): 열린 결정 task 수 · 승인 대기(`pending_approval`) 수 · `unacknowledged` 수 · 활성/전체 세션 및 **`unknown` 수 별도 집계** · 오케스트레이터 lease 및 `halted` 상태.
   - HTTP API (`/api/projects/{pid}/orchestration` · `/halt` · `/lease` · `/approvals/{rid}` · `/relays/invite` · `/relays/{hid}/revoke`, `/api/projects/{pid}/roadmap`): 읽기는 2.0 화면 인증(2.0 R13.2a `scope`), 제어 쓰기는 이 프로젝트의 승인된 owner 콜사인 토큰(`application/json`, `hub/orchestration.py` · `hub/relay.py` 와 같은 함수).
-  - 일반 사람 확인은 세션 생성/중지 `session_request`와 분리한다. agent가 `hub_approval_request(session, title, question, details?)`로 `inbox_message(kind=approval, request_type=agent_confirmation)`를 owner에게 보낸다. owner는 `/api/projects/{pid}/confirmations`에서 승인/거절하고, MCP `hub_inbox_ack`로 이 요청을 결정할 수 없다. 결과(`confirmation_result`)는 요청 콜사인의 A2A 받은편지함에 들어가며 실행은 agent가 승인 범위를 재확인한 뒤 별도로 수행한다. 브라우저 owner 인증은 허브 계정 세션 또는 기존 owner 콜사인 토큰이다.
+  - 일반 사람 확인은 세션 생성/중지 `session_request`와 분리한다. agent가 `hub_approval_request(session, title, question, details?)`로 `inbox_message(kind=approval, request_type=agent_confirmation)`를 owner에게 보낸다. owner는 `/api/projects/{pid}/confirmations`에서 승인/거절하고, MCP `hub_inbox_ack`로 이 요청을 결정할 수 없다. 결과(`confirmation_result`)는 요청 콜사인의 허브 받은편지함에 들어가며 실행은 agent가 승인 범위를 재확인한 뒤 별도로 수행한다. 브라우저 owner 인증은 허브 계정 세션 또는 기존 owner 콜사인 토큰이다.
   - UX 규약(1.x 워크벤치 계승): 10초 자동 갱신(입력 중 `dirty` 면 덮지 않고 `.refresh-notice` 배너만) · `<details class="claim">` 주장 트리 + `.decision.open` 라디오 카드(`toggle`/`change` 시 `opened` 자동 설정) · 좁은 폭에서 열 숨김 없이 `.table-wrap` 가로 스크롤 유지.
 - **중계** `hub relay serve --ui-port 8771` → `127.0.0.1` 만 (`relay/ui.py` · Go `internal/relay/ui.go`):
   - `<meta http-equiv="refresh">` 전체 새로고침을 쓰지 않고 `fetch('/api/state')` 주기 폴링으로 변경된 DOM 만 부분 갱신한다(로그 스크롤 · 선택 유지).

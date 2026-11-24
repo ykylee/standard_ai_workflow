@@ -222,7 +222,7 @@ func TestHubAccountCookieUIAuthentication(t *testing.T) {
 	}
 	inbox := doReq(t, srv, http.MethodPost, "/v1/tools/hub_inbox_list", agentToken, []byte(`{"session":"`+sid+`"}`), nil)
 	if inbox.Code != http.StatusOK || !strings.Contains(inbox.Body.String(), "confirmation_result") {
-		t.Fatalf("A2A result=%d %s", inbox.Code, inbox.Body.String())
+		t.Fatalf("inbox result=%d %s", inbox.Code, inbox.Body.String())
 	}
 	badOrigin := doReq(t, srv, http.MethodPost, "http://127.0.0.1:8770/api/account/login", "", []byte(`{"username":"human.owner","password":"long-test-password-123"}`), map[string]string{"Origin": "https://evil.example", "Content-Type": "application/json"})
 	if badOrigin.Code != http.StatusForbidden {

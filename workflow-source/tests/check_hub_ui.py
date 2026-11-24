@@ -636,7 +636,7 @@ def case_16_accounts_confirmations(tmp: Path) -> None:
               and bool(login_headers.get("set-cookie")) and s_bad_login == 401 and s_locked == 429
               and locked.get("error_code") == "login_rate_limited"
               and b"long-test-password-123" not in raw_db and owner.encode() not in raw_db)
-        _record("case 16 (허브 계정 등록/로그인 쿠키 · 확인 요청 결정 · A2A 결과 · 멱등성 · 권한 경계)", ok,
+        _record("case 16 (허브 계정 등록/로그인 쿠키 · 확인 요청 결정 · 받은편지함 결과 · 멱등성 · 권한 경계)", ok,
                 f"enroll={status} projects={s_projects} request={s_task}:{requested}/{s_list} decision={s_decide} inbox={s_inbox} replay={s_replay} wrong={s_wrong} login={s_login}/{s_bad_login}")
     finally:
         hub.stop()

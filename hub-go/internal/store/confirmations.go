@@ -68,7 +68,7 @@ func (s *Store) ConfirmationRequest(ctx Ctx, sessionID, title, question, details
 				"next": "사람이 허브 계정으로 로그인해 확인 요청에서 승인하면, 같은 콜사인으로 실행 도구에 approval_id 를 싣는다 (승인 뒤 24시간)."}, nil
 		}
 		return map[string]any{"request": map[string]any{"id": id, "state": "pending", "title": title},
-			"next": "사람이 웹 허브 확인 요청 메뉴에서 결정할 때까지 대기한다. 결과는 A2A 받은편지함으로 온다."}, nil
+			"next": "사람이 웹 허브 확인 요청 메뉴에서 결정할 때까지 대기한다. 결과는 허브 받은편지함으로 온다."}, nil
 	})
 }
 

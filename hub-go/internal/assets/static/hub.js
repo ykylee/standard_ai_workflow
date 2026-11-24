@@ -742,7 +742,7 @@
           method: "POST", token, body: { decision, note: note.value.trim() },
         });
         if (r.status !== 200) { pendingFlash = { kind: "bad", text: errorText(r) }; return route(); }
-        pendingFlash = { kind: "ok", text: `요청 ${req.id} ${decision === "approve" ? "승인" : "거절"} — A2A로 결과를 보냈다.` };
+        pendingFlash = { kind: "ok", text: `요청 ${req.id} ${decision === "approve" ? "승인" : "거절"} — 허브 받은편지함으로 결과를 보냈다.` };
         dirty = false;
         route();
       };
@@ -762,7 +762,7 @@
           el("button", { class: "danger", type: "button", onclick: decide("reject") }, "거절")));
     });
     render(el("section", { class: "card" }, el("h1", {}, "에이전트 확인 요청"),
-      el("p", { class: "muted" }, "요청에 답하면 승인 또는 거절 결과가 요청한 콜사인의 A2A 받은편지함으로 전달됩니다. 승인은 요청 내용을 승인하는 결정이며, 작업은 에이전트가 결과를 확인한 뒤 진행합니다."),
+      el("p", { class: "muted" }, "요청에 답하면 승인 또는 거절 결과가 요청한 콜사인의 허브 받은편지함으로 전달됩니다. 승인은 요청 내용을 승인하는 결정이며, 작업은 에이전트가 결과를 확인한 뒤 진행합니다."),
       projectNav(pid, "confirmations")),
       ...(cards.length ? cards : [el("section", { class: "card muted" }, "대기 중인 에이전트 확인 요청이 없습니다.")]));
   }

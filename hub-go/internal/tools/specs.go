@@ -120,7 +120,7 @@ var ToolOrder = []*ToolSpec{
 	{
 		Name:        "hub_approval_request",
 		Bundle:      "token",
-		Description: "사람 확인이 필요할 때 요청을 owner에게 전달한다. 웹 허브 확인 요청 메뉴에서 승인/거절하며 결과는 요청 콜사인의 A2A 받은편지함으로 돌아온다. 승인 자체가 작업을 실행하지는 않는다. action 을 실으면 (migrate_import · migrate_marker) 사람이 계정 로그인으로 승인한 뒤 그 실행에만 쓰는 approval_id 가 된다.",
+		Description: "사람 확인이 필요할 때 요청을 owner에게 전달한다. 웹 허브 확인 요청 메뉴에서 승인/거절하며 결과는 요청 콜사인의 허브 받은편지함으로 돌아온다. 승인 자체가 작업을 실행하지는 않는다. action 을 실으면 (migrate_import · migrate_marker) 사람이 계정 로그인으로 승인한 뒤 그 실행에만 쓰는 approval_id 가 된다.",
 		Properties: map[string]map[string]any{
 			"session":  map[string]any{"type": "string"},
 			"title":    map[string]any{"type": "string"},

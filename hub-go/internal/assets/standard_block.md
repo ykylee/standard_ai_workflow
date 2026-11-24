@@ -29,7 +29,7 @@
 - 결정 · 계획 · 프로젝트 문서: `hub_guide_get` · `hub_guide_propose` · `hub_guide_decide` · `hub_project_doc_get` · `hub_project_doc_put` · `hub_roadmap_get` · `hub_roadmap_put` · `hub_roadmap_state` · `hub_dcr_create` · `hub_dcr_list` · `hub_dcr_get` · `hub_dcr_decide`.
 - 이전: `hub_migrate_plan` · `hub_migrate_import` · `hub_migrate_marker` · `hub_migrate_report` · `hub_project_export` · `hub_project_unseal` · `hub_project_import`.
 - 오케스트레이션 · 승인 · 중계: `hub_orch_declare` · `hub_orch_transfer` · `hub_orch_release` · `hub_orch_halt` · `hub_orch_assign` · `hub_orch_recall` · `hub_orch_message` · `hub_orch_request_session` · `hub_orch_request_stop` · `hub_approval_decide` · `hub_events` · `hub_relay_invite` · `hub_relay_list` · `hub_relay_revoke`.
-- 사람 확인 요청: `hub_approval_request` 로 질문을 등록한다. 사람은 웹 허브의 확인 요청 메뉴에서 승인/거절하며, 결과는 A2A 받은편지함에 `confirmation_result` 로 도착한다. 승인 결과만 전달하며 작업 실행은 에이전트가 별도로 판단한다.
+- 사람 확인 요청: `hub_approval_request` 로 질문을 등록한다. 사람은 웹 허브의 확인 요청 메뉴에서 승인/거절하며, 결과는 허브 받은편지함에 `confirmation_result` 로 도착한다. 승인 결과만 전달하며 작업 실행은 에이전트가 별도로 판단한다.
 - 서버가 제공하는 현재 도구와 입력 스키마는 MCP `tools/list` 가 정본이다. 카탈로그와 다르면 서버 목록을 따르고 문서 누락을 보고한다.
 
 ### 허브 받은편지함

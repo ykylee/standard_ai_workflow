@@ -8,7 +8,7 @@ import (
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/db"
 )
 
-func TestAccountEnrollmentLoginAndConfirmationA2A(t *testing.T) {
+func TestAccountEnrollmentLoginAndConfirmationInbox(t *testing.T) {
 	now := time.Date(2026, 11, 24, 12, 0, 0, 0, time.UTC)
 	path := filepath.Join(t.TempDir(), "hub.db")
 	if _, err := db.OpenDB(path, now); err != nil {
@@ -60,9 +60,9 @@ func TestAccountEnrollmentLoginAndConfirmationA2A(t *testing.T) {
 		t.Fatal("agent saw owner confirmation queue")
 	}
 	if _, err := s.InboxAck(ownerCtx, ownerSession, rid, "seen", "", "ack-confirm"); err == nil {
-		t.Fatal("generic A2A ack bypassed human confirmation decision")
+		t.Fatal("generic inbox ack bypassed human confirmation decision")
 	} else if he, ok := AsHubError(err); !ok || he.Code != "human_decision_required" {
-		t.Fatalf("generic A2A ack error=%v", err)
+		t.Fatalf("generic inbox ack error=%v", err)
 	}
 	decision, err := s.ConfirmationDecide(ownerCtx, rid, "approve", "go ahead")
 	if err != nil || decision["request"].(map[string]any)["state"] != "approved" {
@@ -95,7 +95,7 @@ func TestAccountEnrollmentLoginAndConfirmationA2A(t *testing.T) {
 		}
 	}
 	if !found || count != 2 {
-		t.Fatalf("A2A confirmation result missing: %#v", list)
+		t.Fatalf("inbox confirmation result missing: %#v", list)
 	}
 	session, account, linked, err := s.AccountEnroll(ownerToken, "owner.one", "Owner One", "long-test-password-123", now)
 	if err != nil {

@@ -219,7 +219,7 @@ TOOLS: dict[str, ToolSpec] = {
                               "description": "2.1 — 첫 호출은 {harness, harness_session_id?, kind?, delivery?, resume?} 로 세션 등록, "
                                              "이후(두 번째 호출 포함)는 받은 세션 ID 문자열"}}, (), _session_start),
         ToolSpec("hub_approval_request", "token",
-                 "사람 확인이 필요할 때 요청을 owner에게 전달한다. 웹 허브 확인 요청 메뉴에서 승인/거절하며 결과는 요청 콜사인의 A2A 받은편지함으로 돌아온다. 승인 자체가 작업을 실행하지는 않는다. action 을 실으면 (migrate_import · migrate_marker) 사람이 계정 로그인으로 승인한 뒤 그 실행에만 쓰는 approval_id 가 된다.",
+                 "사람 확인이 필요할 때 요청을 owner에게 전달한다. 웹 허브 확인 요청 메뉴에서 승인/거절하며 결과는 요청 콜사인의 허브 받은편지함으로 돌아온다. 승인 자체가 작업을 실행하지는 않는다. action 을 실으면 (migrate_import · migrate_marker) 사람이 계정 로그인으로 승인한 뒤 그 실행에만 쓰는 approval_id 가 된다.",
                  {"session": _STR, "title": _STR, "question": _STR, "details": _STR, "action": _OBJ},
                  ("session", "title", "question"), lambda s, c, a: Confirmations(s).request(c, a)),
         ToolSpec("hub_harness_report", "token", "셋업 미지원 하네스의 비밀 없는 프로필 관측과 후보 경로를 검토 대기열에 제보한다. 관리자는 승인 시 검증된 mcp-http-json-v1 셋업 프로필도 함께 등록한다. 제보만으로 허브 설정은 바뀌지 않는다.",

@@ -68,7 +68,7 @@ def _mcp_json(existing: str | None, url: str) -> str:
     try:
         data = json.loads(existing) if existing and existing.strip() else {}
     except json.JSONDecodeError as exc:
-        raise HubError(409, "invalid_existing_file", f"{MCP_JSON} 이 JSON 이 아니다 — 손으로 고친 뒤 다시: {exc}")
+        raise HubError(409, "invalid_existing_file", f"{MCP_JSON} 이 JSON 이 아니다 — 손으로 고친 뒤 다시: {exc}") from exc
     if not isinstance(data, dict):
         raise HubError(409, "invalid_existing_file", f"{MCP_JSON} 의 최상위가 객체가 아니다")
     servers = data.setdefault("mcpServers", {})

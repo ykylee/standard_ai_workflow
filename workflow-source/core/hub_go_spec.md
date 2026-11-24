@@ -22,15 +22,15 @@ hub-go/
   go.mod                      module github.com/ykylee/standard_ai_workflow/hub-go · go/toolchain 줄 고정 (R32.1)
   cmd/workflow-hub/           바이너리 하나 — serve · backup · admin · relay · judge (§4)
   internal/
-    db/        스키마 · 이관(판 1~12 SQL 은 Python `hub/db.py` MIGRATIONS 를 그대로) · 백업 · 판 대조 쓰기
+    db/        스키마 · 이관(판 1~13 SQL 은 Python `hub/db.py` MIGRATIONS 를 그대로) · 백업 · 판 대조 쓰기
     store/     Ctx · 인증 · 비밀 검사 · 이력 (Python `hub/store.py`)
-    tools/     도구 74 — 스키마 · 묶음 · 처리기 (Python `hub/tools.py` · `session.py` · `orchestration.py` · `relay.py` · `setup.py` · `transfer.py` · `migrate1x.py` · `guide.py` · `memory.py` · `wiki.py` · `wiki_remote.py`)
+    tools/     도구 82 — 스키마 · 묶음 · 처리기 (Python `hub/tools.py` · `session.py` · `orchestration.py` · `relay.py` · `setup.py` · `transfer.py` · `migrate1x.py` · `guide.py` · `memory.py` · `wiki.py` · `knowledge.py` · `wiki_remote.py`)
     judge/     순수 판정 — §3. DB 를 모른다
     judgedb/   DB → 판정 입력 조립 (Python `hub/judge.py` 의 DB 쪽 절반)
     render/    진입 파일 렌더 영역 (Python `hub/render.py` + `bootstrap_lib/harnesses` 의 생성기)
     httpapi/   `/healthz` · `/v1/tools` · `/v1/relay` · `/` · `/setup.md` · `/v1/bootstrap` · 머리 · 오류 형식
     mcpserver/ Streamable HTTP · stateless · JSON; MCP `2026-07-28` modern protocol (`server/discover`, per-request metadata, `Mcp-Method`/`Mcp-Name` binding) (요구 R25.3)
-    ui/        `/ui/` 정적 파일 · `/api/…` 21개 project 경로 (Python `hub/ui.py`)
+    ui/        `/ui/` 정적 파일 · `/api/…` project 경로 (Python `hub/ui.py`)
     relay/     PC 중계 (Python `workflow_kit/relay/` — S1, §6)
     assets/    내장 자산 (§2.1)
 ```
@@ -43,7 +43,8 @@ hub-go/
 - **S4 전까지 정본은 Python 쪽**이다. `go generate` 가 정본을 `internal/assets/` 로 복사하고, 사본은 커밋한다 (Go 만으로 빌드되게).
 - 검사 `check_go_assets_sync` 가 사본과 정본의 바이트를 대조한다 — 다르면 red (1.x `_standard_snapshot` 과 같은 방식, `check_hub_bootstrap`).
 - S4 에서 정본을 `hub-go/` 로 옮기고 방향을 뒤집는다.
-- 화면 API 는 Python `hub/ui.py` 의 21개 project 경로를 그대로 제공한다. 지침 변경은 승인된 human 의 즉시 반영 또는 agent·미승인 human 의 제안으로 처리하고, 승인·거절은 승인된 human 에게만 허용한다. PC relay HTTP 경로는 별도로 `/v1/relay/register`, `/poll`, `/result` 세 개다.
+- 화면 API 는 Python `hub/ui.py` 와 같은 project 경로를 제공한다. 지식 검색은 Wiki 화면에서 Git snapshot provenance를 포함해 보여주고, knowledge ref 및 DCR timeline 조회를 제공한다. 지침 변경은 승인된 human 의 즉시 반영 또는 agent·미승인 human 의 제안으로 처리하고, 승인·거절은 승인된 human 에게만 허용한다. PC relay HTTP 경로는 별도로 `/v1/relay/register`, `/poll`, `/result` 세 개다.
+- `hub_setup_plan`, `hub_guide_render`, `hub_guide_get`, `hub_guide_propose`, `hub_guide_decide` 도 Go 도구 처리기에서 구현하며 Python 판과 같은 단계 전환·로컬 수정 보호·지침 이력 응답·human 승인 경계를 제공한다. Go MCP 회귀 검사는 셋업 계획, 지침 조회·렌더·제안이 501 없이 실행되는지 확인하고 로컬 렌더 영역 수정 보호를 대조한다.
 
 ## 3. 순수 판정 입구 — DB 와 분리
 

@@ -3,6 +3,7 @@ package tools
 import (
 	"database/sql"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -26,16 +27,16 @@ func openTestStore(t *testing.T) *store.Store {
 }
 
 func TestVisibleToolsAndSchemas(t *testing.T) {
-	if len(ToolOrder) != 74 || len(Tools) != 74 {
-		t.Fatalf("expected 74 tools, got order=%d map=%d", len(ToolOrder), len(Tools))
+	if len(ToolOrder) != 82 || len(Tools) != 82 {
+		t.Fatalf("expected 82 tools, got order=%d map=%d", len(ToolOrder), len(Tools))
 	}
 	anon := VisibleTools(false)
 	if len(anon) != 6 {
 		t.Fatalf("expected 6 bootstrap tools, got %d", len(anon))
 	}
 	authed := VisibleTools(true)
-	if len(authed) != 74 {
-		t.Fatalf("expected 74 authed tools, got %d", len(authed))
+	if len(authed) != 82 {
+		t.Fatalf("expected 82 authed tools, got %d", len(authed))
 	}
 	listSchema := Tools["hub_task_list"].Schema()
 	props := listSchema["properties"].(map[string]any)
@@ -119,6 +120,59 @@ func TestCallSessionAndInboxTools(t *testing.T) {
 	}
 	if _, attached := ended["hub_inbox"]; attached {
 		t.Fatalf("session end must not piggyback: %#v", ended)
+	}
+}
+
+func TestGuideAndSetupToolsAreImplemented(t *testing.T) {
+	st := openTestStore(t)
+	now := time.Date(2026, 11, 24, 12, 0, 0, 0, time.UTC)
+	bootstrap := store.Ctx{Now: now, Via: "http", PublicURL: "https://hub.example/workflow"}
+	reg, err := st.RegisterProject(bootstrap, "https://github.com/acme/guide-tools", "Guide Tools", "guide-owner", "human", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	projectID, token := reg["project_id"].(string), reg["token"].(string)
+	principal, err := st.Authenticate(token, &now, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := store.Ctx{Now: now, Via: "http", Principal: principal, PublicURL: bootstrap.PublicURL}
+
+	plan, err := Call(st, "hub_setup_plan", map[string]any{"project_id": projectID, "token": token, "harnesses": []any{"codex"}, "scan": map[string]any{"files": map[string]any{".gitignore": "node_modules/\n"}, "relay": map[string]any{"required": false}}}, bootstrap)
+	if err != nil || plan["stage"] != "gitignore" {
+		t.Fatalf("setup plan was not dispatched: %#v err=%v", plan, err)
+	}
+	if _, err := st.DB().Exec("UPDATE setup_step SET status='confirmed' WHERE project_id=? AND callsign=? AND step_id='gitignore'", projectID, principal.Callsign); err != nil {
+		t.Fatal(err)
+	}
+	plan, err = Call(st, "hub_setup_plan", map[string]any{"project_id": projectID, "token": token, "harnesses": []any{"codex"}, "scan": map[string]any{"files": map[string]any{}, "relay": map[string]any{"required": false}}}, bootstrap)
+	if err != nil || plan["stage"] != "files" {
+		t.Fatalf("setup file plan was not dispatched: %#v err=%v", plan, err)
+	}
+
+	guide, err := Call(st, "hub_guide_get", map[string]any{}, ctx)
+	if err != nil || guide["version"] != 0 {
+		t.Fatalf("guide get was not dispatched: %#v err=%v", guide, err)
+	}
+	if _, err := Call(st, "hub_guide_propose", map[string]any{"base_version": 0, "body": "Use the project's documented conventions."}, ctx); err != nil {
+		t.Fatalf("guide proposal failed: %v", err)
+	}
+	guide, err = Call(st, "hub_guide_get", map[string]any{}, ctx)
+	if err != nil || guide["version"] != 1 || len(guide["history"].([]map[string]any)) != 1 || len(guide["proposals"].([]map[string]any)) != 1 {
+		t.Fatalf("guide history/proposal response was not dispatched: %#v err=%v", guide, err)
+	}
+	rendered, err := Call(st, "hub_guide_render", map[string]any{"harness": "codex"}, ctx)
+	if err != nil || rendered["blocked"] != false {
+		t.Fatalf("guide render was not dispatched: %#v err=%v", rendered, err)
+	}
+	step := rendered["step"].(map[string]any)
+	if step["path"] != "AGENTS.md" || !strings.Contains(step["content"].(string), "workflow-hub:begin") {
+		t.Fatalf("unexpected render output: %#v", rendered)
+	}
+	modified := strings.Replace(step["content"].(string), "Use the project's documented conventions.", "locally changed guidance", 1)
+	blocked, err := Call(st, "hub_guide_render", map[string]any{"harness": "codex", "current": modified}, ctx)
+	if err != nil || blocked["blocked"] != true || blocked["reason"] != "local_edit_detected" {
+		t.Fatalf("local guide edit was not protected: %#v err=%v", blocked, err)
 	}
 }
 

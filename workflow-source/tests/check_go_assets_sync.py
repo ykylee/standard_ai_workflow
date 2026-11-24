@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Go 내장 자산 · SQL 이관 판 1~12 단일 출처 동기화 검사 (M-055 WBS-55.1, hub_go_spec §2.1 · §5.4 · DG5).
+"""Go 내장 자산 · SQL 이관 판 1~13 단일 출처 동기화 검사 (M-055 WBS-55.1, hub_go_spec §2.1 · §5.4 · DG5).
 
 3 cases:
-  1. 이관 SQL(판 1~12) — Go ``internal/db/migrations.go`` 의 ``V1..V12`` 와 Python ``hub.db.MIGRATIONS`` 바이트 일치
+  1. 이관 SQL(판 1~13) — Go ``internal/db/migrations.go`` 의 ``V1..V13`` 와 Python ``hub.db.MIGRATIONS`` 바이트 일치
   2. 내장 자산(§2.1) — ``hub-go/internal/assets/`` 사본(``hub_client.py`` · setup guide · ``standard_block.md`` · ``static/*``)과
      Python 정본 바이트 일치 (실제 파일 집합 포함)
   3. 되주입 — SQL 이관 문자열 1글자 변조 · 내장 자산 1바이트 변조 모두 red 로 잡힌다
@@ -126,12 +126,12 @@ def check_assets_match(pairs: list[tuple[str, bytes, bytes]]) -> list[str]:
 def case_1_migrations_sql_sync() -> str:
     mig_file = HUB_GO / "internal" / "db" / "migrations.go"
     if not mig_file.is_file():
-        _record("case 1 (이관 SQL 판 1~12 Go=Python 바이트 일치)", False, "migrations.go 없음")
+        _record("case 1 (이관 SQL 판 1~13 Go=Python 바이트 일치)", False, "migrations.go 없음")
         return ""
     go_src = mig_file.read_text(encoding="utf-8")
     problems = check_migrations_match(go_src, hubdb.MIGRATIONS)
     _record(
-        "case 1 (이관 SQL 판 1~12 Go=Python 바이트 일치)",
+        "case 1 (이관 SQL 판 1~13 Go=Python 바이트 일치)",
         not problems,
         "; ".join(problems) or f"V1~V{len(hubdb.MIGRATIONS)} 바이트 100% 일치",
     )

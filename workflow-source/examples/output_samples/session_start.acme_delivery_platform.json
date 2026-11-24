@@ -29,7 +29,7 @@
     "진행 중 작업 1건 확인",
     "주요 제약: VPN 미연결 상태에서는 staging API 및 운영 콘솔 접근 불가"
   ],
-  "tool_version": "3.1.0",
+  "tool_version": "3.2.0",
   "validation_notes": [],
   "warnings": [
     "blocked 항목이 handoff 와 backlog 사이에서 다르다 — handoff 에만: TASK-019 staging 운영 계정 접근 권한 재승인 대기, TASK-021 배송 상태 동기화 실패 대응 절차 문서 정리"

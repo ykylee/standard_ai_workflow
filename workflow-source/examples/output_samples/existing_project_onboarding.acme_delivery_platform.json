@@ -112,7 +112,7 @@
     "work_backlog_index_path": "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/work_backlog.md"
   },
   "status": "ok",
-  "tool_version": "3.1.0",
+  "tool_version": "3.2.0",
   "validation_plan": {
     "documentation_checks": [
       "허브 문서, 메타데이터, 관련 링크 무결성을 함께 점검한다.",

@@ -129,3 +129,5 @@
   - path: [`./M-057-go-hub-real-validation.md`](./M-057-go-hub-real-validation.md)
 - **M-058** [implementation] 허브 PostgreSQL 백엔드와 SQLite 데이터 이관 — status: done
   - path: [`./M-058-hub-postgresql-backend.md`](./M-058-hub-postgresql-backend.md)
+- **M-059** [implementation] 프로젝트 지식·결정 공유 시스템 — status: in_progress
+  - path: [`./M-059-project-knowledge-decisions.md`](./M-059-project-knowledge-decisions.md)

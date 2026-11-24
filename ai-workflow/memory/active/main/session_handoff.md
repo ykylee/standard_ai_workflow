@@ -4,7 +4,7 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-11-23 (146차 세션 종료 — Linux. MCP Python SDK >=2.0.0 요구로 상향하고 Go·Python 허브 모두 PostgreSQL URL 연결, 버전형 schema migration, 기존 SQLite snapshot 복사/정합성 검사 구현. 격리 PostgreSQL 17에서 양 런타임 startup·healthz·쓰기·이관·rollback·identity 연속성 검증, Python PostgreSQL bundle export/import 검증. SQLite 회귀·Go 전체 테스트/vet·Ruff·mypy·문서 smoke·metadata·MCP matrix 통과. Native Windows PostgreSQL은 미검증. 신규 릴리스는 발행하지 않음. 다음: M-057/WBS-57.1·57.2 shadow/parity 작업. 운영 DB 미접촉.
+- 최종 수정일: 2026-11-24 (M-059 지식·결정 공유 시스템 릴리스 진행 — Python/Go V13 knowledge source·revision·DCR·ADR sync·Wiki history와 project-only MCP/API/UI 구현. Python은 hub_setup_plan · hub_guide_render · hub_guide_get · hub_guide_propose · hub_guide_decide 모두 연결. Go에서 첫 세 도구의 501 stub과 후자 두 도구의 Call dispatch 누락을 보완하고 MCP 왕복·제안/이력 조회·local-edit 보호 회귀 추가. targeted regressions와 changed 339/339 통과; 최종 변경 포함 게이트·3.2.0 pre-release·홈랩 C5 실측은 남음. 다음: clean-tree 전량 게이트 → v3.2.0 발행 → 홈랩 Go 서비스 배포 → knowledge provenance와 DCR 권한 실측.
 - 이전 수정일: 2026-11-22 (140차 세션 **종료** — Linux 호스트. main-014 Codex 커밋 경로 · **M-048 done → v2.1.0 발행** (VS Code 실측 결함 2 수리 · 진입 지침 push 막힘 문구 · 매트릭스 tmp 위양성 수리) · README 재작성 · main-022 허브 mcp 2.x · **Go 전환 결정**: M-049 concept (소유자 R1=D 전면 Go) · M-050 requirements · M-051 design done, ADR-035 Accepted · PURPOSE Go 예외. 다음 M-052 S1 중계 Go 판)
 - 이전 수정일: 2026-11-22 (139차 세션 **종료** — Linux 호스트. 결함 수리 4 (main-027 · 234c32-002 · main-012 · main-002, 전부 release/1.x 이식) · **새 축 2.1 허브 오케스트레이션 M-041~M-047 done** (concept · requirements · design · ADR-034 Accepted · 구현 1~4: 세션 · 받은편지함 · lease · 배정 · PC 중계 · VS Code 껍데기, 실제 Claude · Codex 실측). 발행 없음)
 - 이전 수정일: 2026-11-21 (138차 세션 **종료** — Linux 호스트. 2.0 허브 M-037 · M-038 · M-040 done, M-039 진행(남은 것: macOS · Windows · 대화형 실측 · 이 저장소 표식 전환 · arcturus). 이 저장소 테스트베드 실제 등록 · `/setup.md` 4 하네스 실측 · 운영 가이드 · **v2.0.0 (베타 표기) · v1.30.0 발행**, latest = v2.0.0)
@@ -46,7 +46,7 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **144차 세션 말 (2026-11-23, Linux 호스트) — `main`/`origin/main` = `1f8f215d`, 세션 변경 push 완료.** M-057/WBS-57.1은 Linux 테스트베드 복제본 shadow 범위 확대 중, WBS-57.2는 Go 화면·relay HTTP parity 중이다. Go UI에는 정적 `/ui/`, session/projects/project/tasks/callsigns/events, callsign 상세·handoff, guide GET, roadmap GET, wiki list/search/page, callsign register/approve, 계획 응답 POST가 있다. Go 화면 전체 shadow는 미수행이고 guide 제안/결정·orchestration API·`/v1/relay/{register,poll,result}`는 미구현이다. `go test ./...`, `go vet ./...`, 자산 동기화 3/3, Go 코어 실프로세스 11/11, 변경 게이트 124/124, 양 문맥 전량 게이트 353/353 통과. Python `check_hub_ui.py` 15/15는 Python 정본만 검사한다. **3.0.0 미발행**: Go 전체 parity·4 harness·macOS/Windows·동일 DB rollback 전이다.
+- 현재 기준선: **145차 세션 말 (2026-11-24, Linux 호스트) — 직전 origin 기준은 `1f8f215d`; 이 세션 작업은 미커밋.** M-057/WBS-57.1·57.2와 V3 조사 task는 계속 진행 중. M-059/WBS-59.3 지식·결정 공유 및 Go guide/setup parity 구현은 changed 게이트 339/339 통과, v3.2.0 발행 및 홈랩 pilot이 남아 있다. 상세는 TASK-2026-11-24-main-002.
 - 직전 기준선: **139차 말 (2026-11-22, Linux 호스트) — 발행 없음, 정본 v2.0.0 + 2.1 오케스트레이션 미발행 (main `HEAD`).** 2.1 축: 중앙 허브 · PC 중계 · 하네스 · 세션 — concept `docs/planning/hub-orchestration-review-2026-11.md` · 요구 `hub-orchestration-requirements-2026-11.md` (실측 §1.2 · §1.4 · §1.5) · 스펙 `workflow-source/core/hub_orchestration_spec.md` · ADR-034 Accepted. 코드: `hub/orchestration.py` · `hub/relay.py` (DB 판 12) · `workflow_kit/relay/` (`python -m workflow_kit hub relay …`) · `editors/vscode/`. 검사 `check_hub_orch` 10 · `check_hub_orch_assign` 9 · `check_hub_relay` 10 · `check_vscode_shell` 6 (각각 되주입). 검증 간소화 기간 — `--changed` + 스모크 뒤 `--no-verify` push, 전량 게이트는 발행 때. release/1.x 에 이식 4건 push.
 - 그 이전 기준선: **138차 말 (2026-11-21, Linux 호스트) — v2.0.0 (2.0 허브, 베타 표기) · v1.30.0 (1.x 안내 판) 발행.** GitHub latest = v2.0.0. main 은 kit 플러그인 채널을 내지 않는다 (`KIT_PLUGIN_CHANNEL`, R16.6) — 이 호스트 Claude Code 채널은 `../standard_ai_workflow-1x` (Folder) 로 옮김. 판 번호는 정수 (2.0.0b1 은 키트 16곳이 깨져 소유자가 정수로 정함). 운영 가이드 `docs/HUB_OPERATIONS.md`, 두 줄 발행 정책 RELEASE.md §1.1. 게이트: main 346×2 (20c61a09) · 1.x 336×2 (24ca6ae3).
 - 그 이전 기준선: **138차 (2026-11-21, Linux 호스트) — 2.0 허브 화면 · 1.x 전환 · 허브 간 이전 · 테스트베드 · 셋업 가이드.** M-037 done (화면 `/ui/` · 콜사인 표 · 지침 제안), M-038 WBS-38.1~38.3 (전환 계획 · 들여오기 · 표식 · 1.x 거절; 남은 몫 = 2.0.0 발행 때 1.x 안내판, main-011), M-039: 39.1 Linux 4하네스 · `/setup.md` + `hub_client.py bootstrap` (빈 폴더에서 Claude Code 완주), 39.2 리허설 · 테스트베드(`~/workflow-hub-testbed/start.sh`, :8770) · 이 저장소 실제 등록(P-20261121-fcfdccb1, 표식 보류), 39.4 허브 간 이전(CLI · HTTP 초대 코드). 마지막 push `53076aac` 뒤 세션 정리 커밋.
@@ -73,6 +73,7 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
+- TASK-2026-11-24-main-002 프로젝트 지식·결정 공유 시스템
 - TASK-2026-11-23-main-014 사내 Windows V3가 3.0 허브 실행 파일을 악성코드로 격리하는 탐지 조사
 - TASK-2026-11-23-main-006 Go 허브 화면 API 및 PC 중계 HTTP parity
 - TASK-2026-11-23-main-005 Go 허브 Linux 테스트베드 실전 shadow 검증
@@ -100,6 +101,8 @@
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
+
+- (2026-11-24) TASK-2026-11-24-main-002: Python/Go 지식·결정 기능과 세 guide/setup MCP 도구 구현·회귀는 통과했고 운영 문서도 반영했다. `docs/index.md` 는 internal 운영 문서가 범위 밖이라고 이미 안내하므로 링크 변경은 하지 않는다. 소유자가 배포를 지시했으므로 clean-tree 전량 게이트 후 v3.2.0 pre-release를 발행하고 홈랩에 새 버전 서비스를 올린다. C5는 실환경 MCP에서 Git 문서/Wiki/ADR provenance, DCR 승인 권한, 승인 ADR 경로·SHA sync를 확인한다. changed gate 339/339 PASS; Python·Go targeted checks도 PASS.
 
 - (145차, 2026-11-23, Linux) 수정 커밋 `b8c0af8c`를 push하고 v3.0.1 pre-release를 발행했다. Go Windows DSN 단위 회귀와 Python 3.0.1 wheel fallback을 준비했다. 다음은 M-057/WBS-57.1·57.2에서 Python/Go API parity를 업데이트하고 화면 write 및 relay DB 효과를 격리 복제 DB로 비교한다. native Windows 실행, 4 harness, same-DB rollback은 미검증이다. stable latest는 v2.1.0이다.
 

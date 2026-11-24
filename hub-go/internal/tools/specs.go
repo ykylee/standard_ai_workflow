@@ -85,7 +85,7 @@ var ToolOrder = []*ToolSpec{
 	{
 		Name:        "hub_setup_plan",
 		Bundle:      "bootstrap",
-		Description: "셋업 쓰기 지시 — .gitignore 확인 전에는 토큰 파일 지시가 나오지 않는다. token 은 등록 응답의 것 (DS4). harnesses: claude-code · codex · minimax-code · antigravity. scan.files: 경로 → 지금 내용(없으면 null) — .gitignore · 진입 파일 · .mcp.json.",
+		Description: "셋업 쓰기 지시 — .gitignore 확인 전에는 토큰 파일 지시가 나오지 않는다. token 은 등록 응답의 것 (DS4). harnesses: claude-code · codex · minimax-code · antigravity. scan.files: 경로 → 지금 내용(없으면 null), scan.relay: {required, config_present, status}.",
 		Properties: map[string]map[string]any{
 			"project_id": map[string]any{"type": "string"},
 			"token":      map[string]any{"type": "string"},
@@ -471,6 +471,38 @@ var ToolOrder = []*ToolSpec{
 			"limit": map[string]any{"type": "integer"},
 		},
 		Required: []string{"query"},
+	},
+	{
+		Name: "hub_knowledge_source_register", Bundle: "token", Description: "프로젝트 Git 문서 원본을 등록한다. 허용 경로만 스냅샷으로 수신하며 허브는 Git 원격을 실행하지 않는다.",
+		Properties: map[string]map[string]any{"source_id": {"type": "string"}, "repo_key": {"type": "string"}, "allowlist": {"type": "array"}}, Required: []string{"source_id", "repo_key", "allowlist"},
+	},
+	{
+		Name: "hub_knowledge_sync", Bundle: "token", Description: "등록된 Git 지식 원본에 커밋 고정 문서 스냅샷을 동기화한다.",
+		Properties: map[string]map[string]any{"source_id": {"type": "string"}, "commit_sha": {"type": "string"}, "documents": {"type": "array"}}, Required: []string{"source_id", "commit_sha", "documents"},
+	},
+	{
+		Name: "hub_knowledge_search", Bundle: "token", Description: "프로젝트 범위 지식 검색. 결과에 정본·커밋·판 provenance를 포함한다.",
+		Properties: map[string]map[string]any{"query": {"type": "string"}, "limit": {"type": "integer"}}, Required: []string{"query"},
+	},
+	{
+		Name: "hub_knowledge_get", Bundle: "token", Description: "provenance ref로 고정된 문서 판 또는 Wiki revision을 조회한다.",
+		Properties: map[string]map[string]any{"ref": {"type": "string"}}, Required: []string{"ref"},
+	},
+	{
+		Name: "hub_dcr_create", Bundle: "token", Description: "프로젝트 결정 변경 제안(DCR)을 생성한다. 수락은 승인된 human owner만 할 수 있다.",
+		Properties: map[string]map[string]any{"title": {"type": "string"}, "rationale": {"type": "string"}, "proposal": {"type": "string"}, "target_refs": {"type": "array"}}, Required: []string{"title", "rationale", "proposal"},
+	},
+	{
+		Name: "hub_dcr_decide", Bundle: "token", Description: "DCR 승인/거절. 승인 시 Git ADR 커밋·동기화 전까지 approved_pending_export 상태로 둔다.",
+		Properties: map[string]map[string]any{"id": {"type": "string"}, "expected_version": {"type": "integer"}, "outcome": {"type": "string"}, "rationale": {"type": "string"}}, Required: []string{"id", "expected_version", "outcome", "rationale"},
+	},
+	{
+		Name: "hub_dcr_list", Bundle: "token", Description: "프로젝트 DCR 목록과 현재 상태.",
+		Properties: map[string]map[string]any{"status": {"type": "string"}}, Required: []string{},
+	},
+	{
+		Name: "hub_dcr_get", Bundle: "token", Description: "DCR 제안, 승인/거절 근거, 감사 timeline 및 ADR 연결을 조회한다.",
+		Properties: map[string]map[string]any{"id": {"type": "string"}}, Required: []string{"id"},
 	},
 	{
 		Name:        "hub_wiki_lint",

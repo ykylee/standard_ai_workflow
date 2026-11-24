@@ -24,9 +24,13 @@ from typing import Any
 from pydantic import ValidationError
 
 from workflow_kit.common.schemas.memory_index import MemoryEntry
-from workflow_kit.common.wiki_rules import check_canonical_location, classify_wikilinks, validate_index
 from workflow_kit.common.state.bidir_link import audit_bidirectional_links
 from workflow_kit.common.state.memory_index import entries_dir
+from workflow_kit.common.wiki_rules import (
+    check_canonical_location,
+    classify_wikilinks,
+    validate_index,
+)
 from workflow_kit.hub import wiki_remote
 from workflow_kit.hub.errors import HubError, forbidden, invalid_field
 from workflow_kit.hub.store import Ctx, Store, _iso, scan_secrets
@@ -195,8 +199,10 @@ class Wiki:
             for page in clean:
                 cur = current[page["path"]]
                 if page["delete"]:
+                    conn.execute("INSERT INTO wiki_page_revision(project_id,path,revision,body_md,status,updated_by,updated_at) VALUES(?,?,?,'','tombstone',?,?)",
+                                 (pid, page["path"], cur + 1, p.callsign, now))
                     conn.execute("DELETE FROM wiki_page WHERE project_id = ? AND path = ?", (pid, page["path"]))
-                    written.append({"path": page["path"], "version": cur, "deleted": True})
+                    written.append({"path": page["path"], "version": cur + 1, "deleted": True})
                     continue
                 # 출처는 이번 쓰기가 말하는 것 — 주지 않으면 지운다 (옛 sha 가 새 본문의 출처인 척하지 않게).
                 src = page["source"] or {"repo_key": "", "sha": ""}
@@ -207,7 +213,10 @@ class Wiki:
                     "updated_at = excluded.updated_at, last_ingest = excluded.last_ingest, "
                     "source_repo_key = excluded.source_repo_key, source_sha = excluded.source_sha",
                     (pid, page["path"], page["body"], p.callsign, now, ing_id, src["repo_key"], src["sha"]))
-                written.append({"path": page["path"], "version": cur + 1})
+                revision = cur + 1
+                conn.execute("INSERT INTO wiki_page_revision(project_id,path,revision,body_md,status,updated_by,updated_at) VALUES(?,?,?,?,'active',?,?)",
+                             (pid, page["path"], revision, page["body"], p.callsign, now))
+                written.append({"path": page["path"], "version": revision})
             log_line = f"## [{ctx.now.strftime('%Y-%m-%d')}] ingest | {summary}"
             conn.execute(
                 "INSERT INTO wiki_ingest (project_id, id, seq, callsign, at, log_line, pages_json) VALUES (?, ?, ?, ?, ?, ?, ?)",

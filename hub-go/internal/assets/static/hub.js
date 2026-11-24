@@ -126,7 +126,8 @@
       ["roadmap", "로드맵", `${base}/roadmap`],
       ["events", "이력", `${base}/events`],
       ["guide", "지침", `${base}/guide`],
-      ["wiki", "위키", `${base}/w`],
+      ["wiki", "지식", `${base}/w`],
+      ["dcr", "결정", `${base}/dcr`],
     ];
     return el("nav", { class: "nav-links", "aria-label": "프로젝트 판" },
       tabs.map(([id, label, href]) => el("a", { href, class: active === id ? "on" : "" }, label)));
@@ -701,8 +702,8 @@
     let body;
     if (r.status !== 200) body = alertBox("bad", errorText(r));
     else if (q) body = r.data.hits.length ? el("ul", { class: "hits" }, r.data.hits.map((h) => el("li", {},
-      el("a", { href: pageHref(base, h.path) }, h.title), " ", el("span", { class: "mono muted" }, h.path),
-      h.snippet ? el("div", { class: "muted" }, h.snippet) : null))) : el("p", { class: "muted" }, "맞는 페이지가 없다.");
+      el("a", { href: h.kind === "wiki" ? pageHref(base, h.path) : `${base}/k/${encodeURIComponent(h.ref)}` }, h.title), " ", el("span", { class: "mono muted" }, h.path || h.canonical_ref || ""),
+      h.snippet || h.excerpt ? el("div", { class: "muted" }, h.snippet || h.excerpt) : null))) : el("p", { class: "muted" }, "맞는 문서가 없다.");
     else body = el("div", {},
       el("div", { class: "row" }, (r.data.generated || []).map((g) => el("a", { href: pageHref(base, g) }, g)), el("span", { class: "muted" }, "(생성물)")),
       r.data.pages.length ? el("div", { class: "table-wrap" }, el("table", {}, el("thead", {}, el("tr", {}, ["페이지", "경로", "판", "고친 이", "고친 때"].map((h) => el("th", {}, h)))),
@@ -710,8 +711,35 @@
           el("td", { class: "mono muted" }, pg.path), el("td", { class: "mono" }, `v${pg.version}`), el("td", {}, pg.updated_by || "—"),
           el("td", { class: "muted nowrap" }, when(pg.updated_at)))))))
         : el("p", { class: "muted" }, "위키 페이지가 없다."));
-    render(el("section", { class: "card" }, el("h1", {}, "위키"), projectNav(pid, "wiki"), search,
+    render(el("section", { class: "card" }, el("h1", {}, "프로젝트 지식"), projectNav(pid, "wiki"), search,
       r.status === 200 && q ? el("p", { class: "muted" }, `${r.data.total}건`) : null, body));
+  }
+
+  async function viewKnowledge(pid, ref) {
+    const { token } = await projectHead(pid, "문서");
+    const r = await api(`projects/${encodeURIComponent(pid)}/knowledge/ref?ref=${encodeURIComponent(ref)}`, { token });
+    let body = "";
+    if (r.status === 200) {
+      body = typeof r.data.body === "string" ? r.data.body
+        : r.data.proposal_md ? `## Context\n\n${r.data.rationale || ""}\n\n## Proposal\n\n${r.data.proposal_md}`
+          : JSON.stringify(r.data.body ?? r.data, null, 2);
+    }
+    render(el("section", { class: "card" }, el("h1", {}, r.status === 200 ? r.data.title || r.data.path || r.data.id : "문서"), projectNav(pid, "wiki"),
+      r.status === 200 ? el("div", {}, el("p", { class: "muted mono" }, `${r.data.authority || "hub"} · ${r.data.ref} · ${r.data.status || `v${r.data.revision}`}`),
+        el("pre", { class: "wiki" }, body)) : alertBox("bad", errorText(r))));
+  }
+
+  async function viewDcrs(pid, id) {
+    const { token, base } = await projectHead(pid, "결정 변경 기록");
+    const r = await api(`projects/${encodeURIComponent(pid)}/dcr${id ? `/${encodeURIComponent(id)}` : ""}`, { token });
+    const body = r.status !== 200 ? alertBox("bad", errorText(r)) : id
+      ? el("div", {}, el("p", { class: "muted" }, `${r.data.status} · v${r.data.version} · ${r.data.author}`),
+        el("h2", {}, "근거"), el("pre", { class: "wiki" }, r.data.rationale), el("h2", {}, "제안"), el("pre", { class: "wiki" }, r.data.proposal_md),
+        el("h2", {}, "감사 기록"), el("ul", {}, r.data.timeline.map((e) => el("li", {}, `${e.at} · ${e.actor} · ${e.op}`))),
+        r.data.adr_path ? el("p", { class: "mono" }, `ADR: ${r.data.adr_path}`) : null)
+      : r.data.dcrs.length ? el("ul", { class: "hits" }, r.data.dcrs.map((d) => el("li", {}, el("a", { href: `${base}/dcr/${encodeURIComponent(d.id)}` }, d.title), ` · ${d.status} · ${d.author}`)))
+        : el("p", { class: "muted" }, "등록된 DCR이 없다.");
+    render(el("section", { class: "card" }, el("h1", {}, id ? `DCR ${id}` : "결정 변경 기록"), projectNav(pid, "dcr"), body));
   }
 
   function wikiLinks(path, text) {
@@ -949,6 +977,8 @@
         else if (parts[2] === "c" && parts[3]) await viewCallsign(parts[1], parts[3]);
         else if (parts[2] === "guide") await viewGuide(parts[1]);
         else if (parts[2] === "w") await viewWiki(parts[1], parts[3] === "q" ? parts[4] : "");
+        else if (parts[2] === "k" && parts[3]) await viewKnowledge(parts[1], parts[3]);
+        else if (parts[2] === "dcr") await viewDcrs(parts[1], parts[3] || "");
         else if (parts[2] === "wp" && parts[3]) await viewWikiPage(parts[1], parts[3]);
         else await viewProject(parts[1], parts[2] === "s" ? parts[3] : "");
       } else {

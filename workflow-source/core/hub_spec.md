@@ -52,6 +52,7 @@ python -m workflow_kit hub admin   --db PATH project import --file FILE | seal -
 | `render.py` | 지침 렌더링 — 1.x 진입 파일 생성기(`bootstrap_lib/harnesses`) 재사용 |
 | `gitkey.py` | git 주소 정규화 (§3.2) |
 | `wiki.py` | 위키 페이지 · ingest 묶음 · index/log 생성 · 읽기 · lint (§6.7) — 판정은 `common/wiki_rules.py` (1.x 검사와 공유) |
+| `knowledge.py` | 프로젝트 전용 Git 문서 snapshot/search/get · DCR/ADR lifecycle (ADR-036) |
 | `migrate1x.py` | 1.x 감지 · 들여오기 매핑 (§6.6) |
 | `export.py` | git 내보내기 (R15) |
 | `client/hub_client.py` | 선택 클라이언트 원문 (표준 라이브러리만, `/v1/bootstrap` 이 내려준다) |
@@ -115,6 +116,9 @@ python -m workflow_kit hub admin   --db PATH project import --file FILE | seal -
 | `guide_proposal` | `project_id` · `id` (`GP-<4자리>`) · `base_version` · `body_md` · `note` · `proposed_by` · `proposed_at` · `status` (`open`/`approved`/`rejected`) · `decided_by` · `decided_at` · `applied_version` | `(project_id, id)` — 판 7 (M-037 WBS-37.3) | R7.5 · R7.7 |
 | `roadmap_doc` | `project_id` · `path` (`index.md` · `M-NNN-*.md`) · `body_md` · `version` | `(project_id, path)` | R9.1 |
 | `wiki_page` | `project_id` · `path` · `body_md` · `source_repo_key` · `source_sha` · `version` · `updated_by` · `updated_at` · `last_ingest` | `(project_id, path)` · `index.md` · `log.md` 는 저장하지 않는다 (생성물) | R8.1~R8.4 |
+| `wiki_page_revision` | `project_id` · `path` · `revision` · `body_md` · `status` (`active`/`tombstone`) · `updated_by` · `updated_at` | `(project_id,path,revision)` 불변 — 판 13, 기존 페이지는 현재 판을 초기 snapshot으로 복사 | ADR-036 |
+| `knowledge_source` · `knowledge_revision` | 프로젝트 Git 원본/allowlist · path · commit SHA · content SHA-256 · 불변 Markdown body/revision | 프로젝트 범위. Git 원격 fetch 없이 호출자가 전달한 snapshot만 받는다 — 판 13 | ADR-036 |
+| `decision_change` · `decision_event` | DCR proposal · target refs/base revisions · state/version · reviewer · decision · ADR path/hash · append-only timeline | `(project_id,id)` · 결정 변화와 감사 event — 판 13 | ADR-036 |
 | `wiki_ingest` | `project_id` · `id` (`ING-<5자리>`) · `seq` · `callsign` · `at` · `log_line` · `pages_json` | `(project_id, seq)` 유일 — 거절된 묶음은 번호를 먹지 않는다 | R8.2 |
 | `memory_entry` | `project_id` · `id` · `body_json` (1.x `MemoryEntry` 로 검증한 그대로) · `version` · `updated_by` · `updated_at` | `(project_id, id)` — 판 6 | R8.1 (E5) |
 | `event` | `seq` (자동 증가) · `project_id` · `at` · `callsign` · `target_kind` · `target_id` · `op` · `before_json` · `after_json` · `via` (`mcp`/`http`/`client`) · `client_version` | 추가만 | R1.5 · R5.10 · R2.7 |
@@ -217,6 +221,7 @@ python -m workflow_kit hub admin   --db PATH project import --file FILE | seal -
 | 위키 원격 읽기 | `hub_wiki_remote_set(fetch_url)` | **소유자만** — `project.settings_json.wiki_remote`. 빈 값이면 끈다. `https://` · `ssh://` · `git@host:path` · `file:///` 만 (git 원격 도우미 `ext::` 등 거절) (R3.7 · R8.4) |
 | 로드맵 | `hub_roadmap_get()` · `hub_roadmap_put(path, expected_version, body)` · `hub_roadmap_state()` | 스키마 오류는 필드 · 제약과 함께 (R9.2) |
 | 위키 | `hub_wiki_search(query, limit?)` · `hub_wiki_get(path)` · `hub_wiki_list(prefix?)` · `hub_wiki_ingest(pages[{path, body \| delete, expected_version, source?{repo_key, sha}}], summary)` · `hub_wiki_lint()` | 묶음 하나 = ingest 하나, 하나라도 409 면 전체 거절 (R8.2). 새 페이지는 `expected_version` 0. `log` 줄 `## [날짜] ingest \| <summary>` 은 허브가 만든다. 페이지 ≤ 192KB · 묶음 ≤ 200 페이지 — 요청 본문 상한(256KB)을 넘는 들여오기는 여러 ingest 로 (M-036 WBS-36.1) |
+| 프로젝트 지식 · 결정 | `hub_knowledge_source_register(source_id, repo_key, allowlist[])` · `hub_knowledge_sync(source_id, commit_sha, documents[{path,title,body}])` · `hub_knowledge_search(query, limit?)` · `hub_knowledge_get(ref)` · `hub_dcr_create(title, rationale, proposal, target_refs[])` · `hub_dcr_list(status?)` · `hub_dcr_get(id)` · `hub_dcr_decide(id, expected_version, outcome, rationale)` | v13 additive schema. Git 동기화는 호출자가 읽은 allowlist Markdown 스냅샷만 받는다 — Hub 는 Git 원격/로컬 경로를 실행·읽지 않는다. 검색은 Wiki · Git 문서/ADR · DCR · Memory Index를 자기 프로젝트에서만 찾고 commit/revision/hash를 싣는다. DCR 은 project writer 가 만들고 승인·거절은 승인된 human owner만 수행한다. 승인하면 hash-bound 신규 ADR 내용을 반환하고 `approved_pending_export` 로 둔다. 같은 경로·SHA가 Git source sync로 확인된 뒤 DCR `accepted`, 대상 ADR `superseded` 가 된다. Hub는 Git에 쓰거나 push하지 않는다 (ADR-036 · `hub_knowledge_decisions_spec.md`). |
 | 전환 | `hub_migrate_plan(scan?)` · `hub_migrate_import(migration_id, kinds[], files[{path, content}], final?)` · `hub_migrate_marker(migration_id, action, sha256?, check?)` · `hub_migrate_report(migration_id)` | 소유자(승인된 `human` · `owner`)만. §6.6 |
 | 내보내기 | `hub_export(kinds[])` | 쓰기 지시로 1.x 형식 파일 (R15) |
 
@@ -240,7 +245,7 @@ python -m workflow_kit hub admin   --db PATH project import --file FILE | seal -
 | `GET /api/projects/{id}/callsigns` | 콜사인 표 (WBS-37.2) — 콜사인마다 종류 · 승인 · 역할 · 마지막 활동(`last_seen_at`) · 받은 지침 판과 `guide_state` (`current` / `stale` / `never` — 허브 판은 세션 시작과 같은 `render.guide_version`) · 클라이언트 판(`client_version_seen`) · 셋업 끝 여부 · 보관(거둔 콜사인) · handoff 시각 · **맡은 열린 task 와 진행 한 줄** ('지금 누가 무엇을', R5.7) |
 | `GET /api/projects/{id}/callsigns/{cs}` | 표의 줄 + 그 콜사인의 handoff 칸 · version (읽기는 프로젝트 안 누구나 — G3) |
 | `GET /api/projects/{id}/guide` · `POST …/guide` · `POST …/guide/proposals/{gid}` | 지침 (WBS-37.3) — 지금 판 · 본문 · 판 이력 · 제안(지금 판 대비가 아니라 **기준 판 대비** unified diff · `stale`) · `can_decide` · `can_propose`. 쓰기는 `hub_guide_propose` · `hub_guide_decide` 와 같은 함수, 콜사인 토큰만 (web 403) |
-| `GET /api/projects/{id}/wiki` · `/wiki/page?path=` | 위키 읽기 (WBS-37.3) — `q` 가 있으면 검색, 아니면 목록(`prefix`) · 생성물(`index.md` · `log.md`) · 페이지. `hub_wiki_list` · `search` · `get` 과 같은 함수. 화면은 페이지 본문을 글자 그대로 보이고, 상대 `.md` 링크와 `[[경로]]` 위키 링크만 화면 길로 바꾼다 |
+| `GET /api/projects/{id}/wiki` · `/wiki/page?path=` · `/knowledge/ref?ref=` · `/dcr[/{id}]` | 프로젝트 지식 화면 — 목록은 위키 페이지, `q` 검색은 Git 문서/ADR · Wiki · DCR · Memory Index를 provenance와 함께 찾고 ref로 연다. DCR 목록·상세는 감사 timeline 및 ADR 링크를 보인다. 모두 프로젝트 범위 읽기 함수다 |
 | `POST /api/projects/{id}/callsigns/{cs}/approve` | 사람 콜사인 승인 (`hub_callsign_approve` 와 같은 함수 — 승인된 `human` 소유자만, 그 밖 403) |
 | `GET /api/projects/{id}` · `/tasks` (최근 것부터 · `total` 전체 수 — 화면은 '최근 n개 / 전체 m개') · `/tasks/{task}` · `/events` · `/roadmap` · `/orchestration` | 프로젝트(요약 KPI `summary` 포함) · task 목록(`status` · `assignee`) · task 상세(계획 원문 · 주장 · 결정 상태 · 열린 결정 · 린트 · 그 task 의 이력 · 커밋) · 프로젝트 이력 · 로드맵 파생 상태 · 2.1 오케스트레이션 현황(세션 5상태·unknown · 배정 · 미전달 · 세션 요청 · 중계 호스트) |
 | `POST /api/projects/{id}/orchestration/halt` · `/lease` · `/approvals/{rid}` · `/relays/invite` · `/relays/{hid}/revoke` | 2.1 오케스트레이션 제어(소유자 콜사인 토큰만, `application/json`, `hub/orchestration.py` · `hub/relay.py` 와 같은 함수) |

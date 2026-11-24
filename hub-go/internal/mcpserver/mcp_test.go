@@ -60,7 +60,7 @@ func TestModernProtocolDiscoveryAndTools(t *testing.T) {
 		t.Fatalf("store.New: %v", err)
 	}
 	t.Cleanup(func() { _ = st.Close() })
-	srv := &Server{Store: st, HubVersion: "3.1.0", PublicURL: "http://127.0.0.1:8770", Clock: func() time.Time { return now }}
+	srv := &Server{Store: st, HubVersion: "3.2.0", PublicURL: "http://127.0.0.1:8770", Clock: func() time.Time { return now }}
 
 	init := postModernMCP(t, srv, "initialize", map[string]any{})
 	if init.Code != http.StatusNotFound || !bytes.Contains(init.Body.Bytes(), []byte(`"code":-32601`)) {
@@ -83,7 +83,7 @@ func TestModernProtocolDiscoveryAndTools(t *testing.T) {
 		t.Fatalf("serverInfo stamp missing: %#v", discoverResult)
 	}
 	serverInfo := discoverResult["_meta"].(map[string]any)[serverInfoMetaKey].(map[string]any)
-	if serverInfo["version"] != "3.1.0" || serverInfo["_meta"].(map[string]any)["kitVersion"] != "2.1.0" {
+	if serverInfo["version"] != "3.2.0" || serverInfo["_meta"].(map[string]any)["kitVersion"] != "2.1.0" {
 		t.Fatalf("serverInfo version fields missing: %#v", serverInfo)
 	}
 
@@ -179,7 +179,7 @@ func TestMCPAuthAndToolParity(t *testing.T) {
 
 	srv := &Server{
 		Store:      st,
-		HubVersion: "3.1.0",
+		HubVersion: "3.2.0",
 		PublicURL:  "http://127.0.0.1:8770",
 		Clock:      func() time.Time { return now },
 	}
@@ -199,7 +199,7 @@ func TestMCPAuthAndToolParity(t *testing.T) {
 		t.Fatal(err)
 	}
 	initInfo := initRPC["result"].(map[string]any)["serverInfo"].(map[string]any)
-	if initInfo["version"] != "3.1.0" || initInfo["_meta"].(map[string]any)["kitVersion"] != "2.1.0" {
+	if initInfo["version"] != "3.2.0" || initInfo["_meta"].(map[string]any)["kitVersion"] != "2.1.0" {
 		t.Fatalf("initialize version fields missing: %#v", initInfo)
 	}
 
@@ -243,6 +243,37 @@ func TestMCPAuthAndToolParity(t *testing.T) {
 	var regRPC map[string]any
 	_ = json.Unmarshal(regRec.Body.Bytes(), &regRPC)
 	tok := regRPC["result"].(map[string]any)["structuredContent"].(map[string]any)["token"].(string)
+	projectID := regRPC["result"].(map[string]any)["structuredContent"].(map[string]any)["project_id"].(string)
+
+	setupPlanRec := postMCP(t, srv, "", map[string]any{"jsonrpc": "2.0", "id": 31, "method": "tools/call", "params": map[string]any{"name": "hub_setup_plan", "arguments": map[string]any{"project_id": projectID, "token": tok, "harnesses": []any{"codex"}, "scan": map[string]any{"files": map[string]any{}, "relay": map[string]any{"required": false}}}}})
+	var setupPlanRPC map[string]any
+	if err := json.Unmarshal(setupPlanRec.Body.Bytes(), &setupPlanRPC); err != nil {
+		t.Fatal(err)
+	}
+	setupPlanData := setupPlanRPC["result"].(map[string]any)["structuredContent"].(map[string]any)
+	if setupPlanData["stage"] != "gitignore" {
+		t.Fatalf("hub_setup_plan returned unexpected response: %#v", setupPlanData)
+	}
+
+	guideGetRec := postMCP(t, srv, tok, map[string]any{"jsonrpc": "2.0", "id": 32, "method": "tools/call", "params": map[string]any{"name": "hub_guide_get", "arguments": map[string]any{}}})
+	var guideGetRPC map[string]any
+	if err := json.Unmarshal(guideGetRec.Body.Bytes(), &guideGetRPC); err != nil {
+		t.Fatal(err)
+	}
+	guideData := guideGetRPC["result"].(map[string]any)["structuredContent"].(map[string]any)
+	if guideData["version"].(float64) != 0 {
+		t.Fatalf("hub_guide_get returned unexpected response: %#v", guideData)
+	}
+
+	guideRenderRec := postMCP(t, srv, tok, map[string]any{"jsonrpc": "2.0", "id": 33, "method": "tools/call", "params": map[string]any{"name": "hub_guide_render", "arguments": map[string]any{"harness": "codex"}}})
+	var guideRenderRPC map[string]any
+	if err := json.Unmarshal(guideRenderRec.Body.Bytes(), &guideRenderRPC); err != nil {
+		t.Fatal(err)
+	}
+	renderData := guideRenderRPC["result"].(map[string]any)["structuredContent"].(map[string]any)
+	if renderData["blocked"] != false || renderData["path"] != "AGENTS.md" {
+		t.Fatalf("hub_guide_render returned unexpected response: %#v", renderData)
+	}
 
 	// Unauthenticated token tool call fails with isError=true unauthorized
 	unauthCall := postMCP(t, srv, "", map[string]any{
@@ -261,7 +292,7 @@ func TestMCPAuthAndToolParity(t *testing.T) {
 		t.Fatalf("expected unauthorized, got %#v", unauthRes)
 	}
 
-	// Authenticated tools/list returns all 74 tools
+	// Authenticated tools/list returns all 82 tools
 	listAuth := postMCP(t, srv, tok, map[string]any{
 		"jsonrpc": "2.0",
 		"id":      5,
@@ -270,8 +301,8 @@ func TestMCPAuthAndToolParity(t *testing.T) {
 	var authResp map[string]any
 	_ = json.Unmarshal(listAuth.Body.Bytes(), &authResp)
 	toolsAuth := authResp["result"].(map[string]any)["tools"].([]any)
-	if len(toolsAuth) != 74 {
-		t.Fatalf("expected 74 authed tools, got %d", len(toolsAuth))
+	if len(toolsAuth) != 82 {
+		t.Fatalf("expected 82 authed tools, got %d", len(toolsAuth))
 	}
 
 	startRec := postMCP(t, srv, tok, map[string]any{

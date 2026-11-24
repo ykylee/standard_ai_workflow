@@ -35,7 +35,7 @@
     "blocked 항목이 다르다. handoff: TASK-019 staging 운영 계정 접근 권한 재승인 대기 / backlog: 없음"
   ],
   "status": "ok",
-  "tool_version": "3.1.0",
+  "tool_version": "3.2.0",
   "validation_follow_up": "병합 후 별도 검증 결과가 없으면 상태 재확정 전에 확인이 필요하다.",
   "warnings": []
 }

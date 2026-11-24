@@ -11,13 +11,15 @@ M-033 범위: 등록 · 합류 · task CRUD · 맡기 · 진행 · 커밋 묶기
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
-from workflow_kit.hub.errors import HubError, invalid_field, unauthorized, unknown_field
 from workflow_kit.common.hub_marker import MARKER_REL
+from workflow_kit.hub.errors import HubError, invalid_field, unauthorized, unknown_field
 from workflow_kit.hub.guide import Guides
 from workflow_kit.hub.judge import Judge
+from workflow_kit.hub.knowledge import Knowledge
 from workflow_kit.hub.memory import Memory
 from workflow_kit.hub.migrate1x import Migrator
 from workflow_kit.hub.orchestration import WAIT_CAP_S, Orchestration
@@ -323,6 +325,27 @@ TOOLS: dict[str, ToolSpec] = {
                  {"prefix": _STR}, (), lambda s, c, a: Wiki(s).list_pages(c, a.get("prefix", ""))),
         ToolSpec("hub_wiki_search", "token", "위키 검색 — 낱말이 모두 들어간 페이지 (경로 · 제목 · 본문).",
                  {"query": _STR, "limit": _INT}, ("query",), lambda s, c, a: Wiki(s).search(c, a["query"], a.get("limit", 20))),
+        ToolSpec("hub_knowledge_source_register", "token", "프로젝트 Git 문서 원본을 등록한다. 허용 경로만 스냅샷으로 수신하며 허브는 Git 원격을 실행하지 않는다.",
+                 {"source_id": _STR, "repo_key": _STR, "allowlist": _ARR}, ("source_id", "repo_key", "allowlist"),
+                 lambda s, c, a: Knowledge(s).source_register(c, a["source_id"], a["repo_key"], a["allowlist"])),
+        ToolSpec("hub_knowledge_sync", "token", "등록된 Git 지식 원본에 커밋 고정 문서 스냅샷을 동기화한다.",
+                 {"source_id": _STR, "commit_sha": _STR, "documents": _ARR}, ("source_id", "commit_sha", "documents"),
+                 lambda s, c, a: Knowledge(s).sync(c, a["source_id"], a["commit_sha"], a["documents"])),
+        ToolSpec("hub_knowledge_search", "token", "프로젝트 범위 지식 검색. 결과에 정본·커밋·판 provenance를 포함한다.",
+                 {"query": _STR, "limit": _INT}, ("query",),
+                 lambda s, c, a: Knowledge(s).search(c, a["query"], a.get("limit", 20))),
+        ToolSpec("hub_knowledge_get", "token", "provenance ref로 고정된 문서 판 또는 Wiki revision을 조회한다.",
+                 {"ref": _STR}, ("ref",), lambda s, c, a: Knowledge(s).get(c, a["ref"])),
+        ToolSpec("hub_dcr_create", "token", "프로젝트 결정 변경 제안(DCR)을 생성한다. 수락은 승인된 human owner만 할 수 있다.",
+                 {"title": _STR, "rationale": _STR, "proposal": _STR, "target_refs": _ARR}, ("title", "rationale", "proposal"),
+                 lambda s, c, a: Knowledge(s).dcr_create(c, a["title"], a["rationale"], a["proposal"], a.get("target_refs"))),
+        ToolSpec("hub_dcr_decide", "token", "DCR 승인/거절. 승인 시 Git ADR 커밋·동기화 전까지 approved_pending_export 상태로 둔다.",
+                 {"id": _STR, "expected_version": _INT, "outcome": _STR, "rationale": _STR}, ("id", "expected_version", "outcome", "rationale"),
+                 lambda s, c, a: Knowledge(s).dcr_decide(c, a["id"], a["expected_version"], a["outcome"], a["rationale"])),
+        ToolSpec("hub_dcr_list", "token", "프로젝트 DCR 목록과 현재 상태.", {"status": _STR}, (),
+                 lambda s, c, a: Knowledge(s).dcr_list(c, a.get("status"))),
+        ToolSpec("hub_dcr_get", "token", "DCR 제안, 승인/거절 근거, 감사 timeline 및 ADR 연결을 조회한다.", {"id": _STR}, ("id",),
+                 lambda s, c, a: Knowledge(s).dcr_get(c, a["id"])),
         ToolSpec("hub_wiki_lint", "token",
                  "위키 lint — 1.x 와 같은 함수로 정위치(V-1) · index 구조(V-4) · 양방향 링크(bidir), 깨진 위키 링크. 저장소 참조 · 출처 sha · freshness 는 원격 읽기를 켰을 때만 측정, 아니면 미측정.",
                  {}, (), lambda s, c, a: Wiki(s).lint(c)),

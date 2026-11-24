@@ -2372,9 +2372,60 @@
           "children": []
         }
       ]
+    },
+    {
+      "id": "M-059",
+      "title": "프로젝트 지식·결정 공유 시스템",
+      "sdlc_phase": "implementation",
+      "declared_status": "in_progress",
+      "derived_status": "in_progress",
+      "progress": 0.0,
+      "total_leaves": 4,
+      "done_leaves": 0,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-59.1",
+          "title": "기존 지식·결정 데이터와 공유 경로 조사, 개념·요구 정리",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        },
+        {
+          "id": "WBS-59.2",
+          "title": "데이터 모델·권한·동기화·DCR→ADR 수명주기 설계 및 ADR 합의",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        },
+        {
+          "id": "WBS-59.3",
+          "title": "Python·Go 허브의 프로젝트 지식 카탈로그, provenance 검색, DCR→ADR workflow, MCP/API/UI 구현",
+          "derived_status": "in_progress",
+          "linked_task_ids": [
+            "TASK-2026-11-24-main-002"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        },
+        {
+          "id": "WBS-59.4",
+          "title": "Python/Go parity, 권한·충돌·복구 검증과 홈랩 pilot",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        }
+      ]
     }
   ],
-  "current_milestone_id": "M-057",
+  "current_milestone_id": "M-059",
   "exempt_tasks": [
     {
       "task_id": "TASK-2026-08-25-main-010",

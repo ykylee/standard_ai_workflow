@@ -439,7 +439,35 @@ func (s *Server) handleProjectUIAPI(w http.ResponseWriter, r *http.Request, prin
 		return
 	}
 	if len(parts) == 3 && parts[2] == "wiki" && r.Method == http.MethodGet {
-		result, err := s.screenWiki(pid, r)
+		result, err := s.screenWiki(pid, r, ctx)
+		if err != nil {
+			writeScreenError(w, err)
+			return
+		}
+		writeJSONResponse(w, http.StatusOK, result)
+		return
+	}
+	if len(parts) == 4 && parts[2] == "knowledge" && parts[3] == "ref" && r.Method == http.MethodGet {
+		ref := r.URL.Query().Get("ref")
+		result, err := s.cfg.Store.KnowledgeGet(ctx, ref)
+		if err != nil {
+			writeScreenError(w, err)
+			return
+		}
+		writeJSONResponse(w, http.StatusOK, result)
+		return
+	}
+	if len(parts) == 3 && parts[2] == "dcr" && r.Method == http.MethodGet {
+		result, err := s.cfg.Store.DCRList(ctx, r.URL.Query().Get("status"))
+		if err != nil {
+			writeScreenError(w, err)
+			return
+		}
+		writeJSONResponse(w, http.StatusOK, result)
+		return
+	}
+	if len(parts) == 4 && parts[2] == "dcr" && r.Method == http.MethodGet {
+		result, err := s.cfg.Store.DCRGet(ctx, parts[3])
 		if err != nil {
 			writeScreenError(w, err)
 			return
@@ -669,9 +697,12 @@ var wikiPathPattern = regexp.MustCompile(`^(?:[A-Za-z0-9_][A-Za-z0-9_.-]*/)*[A-Z
 
 type wikiIndexPage struct{ path, body string }
 
-func (s *Server) screenWiki(pid string, r *http.Request) (map[string]any, error) {
+func (s *Server) screenWiki(pid string, r *http.Request, ctx store.Ctx) (map[string]any, error) {
 	q := strings.TrimSpace(r.URL.Query().Get("q"))
 	prefix := r.URL.Query().Get("prefix")
+	if q != "" {
+		return s.cfg.Store.KnowledgeSearch(ctx, q, 50)
+	}
 	rows, err := s.cfg.Store.DB().Query("SELECT path,body_md,version,updated_by,updated_at FROM wiki_page WHERE project_id=? ORDER BY path", pid)
 	if err != nil {
 		return nil, err

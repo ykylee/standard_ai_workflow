@@ -80,7 +80,7 @@ func normalizeJSONValue(v any) any {
 	}
 }
 
-// VisibleTools returns bootstrap tools when unauthenticated, or all 74 tools when authenticated.
+// VisibleTools returns bootstrap tools when unauthenticated, or all 82 tools when authenticated.
 func VisibleTools(authenticated bool) []*ToolSpec {
 	out := make([]*ToolSpec, 0, len(ToolOrder))
 	for _, spec := range ToolOrder {
@@ -377,6 +377,17 @@ func Call(s *store.Store, name string, rawArgs any, ctx store.Ctx) (result map[s
 	jb := &JudgeBridge{Store: s}
 
 	switch name {
+	case "hub_setup_plan":
+		return setupPlan(s, ctx, clean)
+	case "hub_guide_render":
+		return guideRender(s, ctx, strArg(clean, "harness", ""), optStrArg(clean, "current"))
+	case "hub_guide_get":
+		return guideGet(s, ctx)
+	case "hub_guide_propose":
+		return s.GuidePropose(ctx, intArg(clean, "base_version", 0), strArg(clean, "body", ""), strArg(clean, "note", ""))
+	case "hub_guide_decide":
+		approve, _ := clean["approve"].(bool)
+		return s.GuideDecide(ctx, strArg(clean, "proposal_id", ""), approve)
 	case "hub_project_lookup":
 		return s.LookupProject(strArg(clean, "remote_url", ""))
 	case "hub_project_register":
@@ -411,6 +422,24 @@ func Call(s *store.Store, name string, rawArgs any, ctx store.Ctx) (result map[s
 			"human_approved": p.HumanApproved,
 			"role":           p.Role,
 		}, nil
+	case "hub_wiki_ingest":
+		return s.WikiIngest(ctx, clean["pages"], strArg(clean, "summary", ""), strArg(clean, "request_id", ""))
+	case "hub_knowledge_source_register":
+		return s.KnowledgeSourceRegister(ctx, strArg(clean, "source_id", ""), strArg(clean, "repo_key", ""), clean["allowlist"])
+	case "hub_knowledge_sync":
+		return s.KnowledgeSync(ctx, strArg(clean, "source_id", ""), strArg(clean, "commit_sha", ""), clean["documents"])
+	case "hub_knowledge_search":
+		return s.KnowledgeSearch(ctx, strArg(clean, "query", ""), intArg(clean, "limit", 20))
+	case "hub_knowledge_get":
+		return s.KnowledgeGet(ctx, strArg(clean, "ref", ""))
+	case "hub_dcr_create":
+		return s.DCRCreate(ctx, strArg(clean, "title", ""), strArg(clean, "rationale", ""), strArg(clean, "proposal", ""), clean["target_refs"])
+	case "hub_dcr_decide":
+		return s.DCRDecide(ctx, strArg(clean, "id", ""), intArg(clean, "expected_version", 0), strArg(clean, "outcome", ""), strArg(clean, "rationale", ""))
+	case "hub_dcr_list":
+		return s.DCRList(ctx, strArg(clean, "status", ""))
+	case "hub_dcr_get":
+		return s.DCRGet(ctx, strArg(clean, "id", ""))
 	case "hub_task_list":
 		return s.TaskList(ctx, optStrArg(clean, "status"), optStrArg(clean, "assignee"), intArg(clean, "limit", 100), false)
 	case "hub_task_get":

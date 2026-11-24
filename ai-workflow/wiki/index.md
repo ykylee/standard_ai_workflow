@@ -66,6 +66,7 @@
 ### [[decisions/adr-033-workflow-hub]] {#adr-033-workflow-hub}
 ### [[decisions/adr-034-hub-orchestration]] {#adr-034-hub-orchestration}
 ### [[decisions/adr-035-go-runtime]] {#adr-035-go-runtime}
+### [[decisions/adr-036-project-knowledge-decisions]] {#adr-036-project-knowledge-decisions}
 ### [[patterns/r4-anchor-index]] {#r4-anchor-index}
 ### [[patterns/frozen-archive-immutability]] {#frozen-archive-immutability}
 ### [[patterns/wiki-stub-emit]] {#wiki-stub-emit}

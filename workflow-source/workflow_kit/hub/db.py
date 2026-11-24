@@ -433,10 +433,89 @@ CREATE TABLE relay_invite (
 );
 """
 
+#: 판 13 — project-scoped knowledge snapshots and auditable DCR lifecycle.
+_V13 = """
+CREATE TABLE knowledge_source (
+    project_id TEXT NOT NULL REFERENCES project(id),
+    id TEXT NOT NULL,
+    kind TEXT NOT NULL CHECK (kind IN ('git', 'hub_wiki')),
+    authority TEXT NOT NULL CHECK (authority IN ('git', 'hub')),
+    repo_key TEXT NOT NULL DEFAULT '',
+    allowlist_json TEXT NOT NULL DEFAULT '[]',
+    enabled INTEGER NOT NULL DEFAULT 1,
+    version INTEGER NOT NULL DEFAULT 1,
+    created_by TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (project_id, id),
+    UNIQUE (project_id, repo_key)
+);
+CREATE TABLE knowledge_revision (
+    project_id TEXT NOT NULL,
+    source_id TEXT NOT NULL,
+    path TEXT NOT NULL,
+    revision INTEGER NOT NULL,
+    commit_sha TEXT NOT NULL,
+    content_sha256 TEXT NOT NULL,
+    title TEXT NOT NULL,
+    body_md TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'superseded', 'tombstone')),
+    created_by TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (project_id, source_id, path, revision),
+    FOREIGN KEY (project_id, source_id) REFERENCES knowledge_source(project_id, id)
+);
+CREATE INDEX knowledge_revision_lookup ON knowledge_revision(project_id, source_id, path, revision DESC);
+CREATE TABLE wiki_page_revision (
+    project_id TEXT NOT NULL,
+    path TEXT NOT NULL,
+    revision INTEGER NOT NULL,
+    body_md TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'tombstone')),
+    updated_by TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (project_id, path, revision),
+    FOREIGN KEY (project_id) REFERENCES project(id)
+);
+INSERT INTO wiki_page_revision(project_id,path,revision,body_md,status,updated_by,updated_at)
+SELECT project_id,path,version,body_md,'active',updated_by,updated_at FROM wiki_page;
+CREATE TABLE decision_change (
+    project_id TEXT NOT NULL REFERENCES project(id),
+    id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    rationale TEXT NOT NULL,
+    proposal_md TEXT NOT NULL,
+    target_refs_json TEXT NOT NULL,
+    base_revisions_json TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('open', 'approved_pending_export', 'accepted', 'rejected', 'withdrawn', 'stale')),
+    version INTEGER NOT NULL DEFAULT 1,
+    author TEXT NOT NULL,
+    reviewer TEXT,
+    decision_rationale TEXT,
+    adr_path TEXT,
+    adr_sha256 TEXT,
+    supersedes_json TEXT NOT NULL DEFAULT '[]',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (project_id, id)
+);
+CREATE TABLE decision_event (
+    seq INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id TEXT NOT NULL,
+    dcr_id TEXT NOT NULL,
+    at TEXT NOT NULL,
+    actor TEXT NOT NULL,
+    op TEXT NOT NULL,
+    before_json TEXT,
+    after_json TEXT,
+    FOREIGN KEY (project_id, dcr_id) REFERENCES decision_change(project_id, id)
+);
+CREATE INDEX decision_event_target ON decision_event(project_id, dcr_id, seq);
+"""
+
 #: 판 순서 = 목록 순서. 판 n = ``MIGRATIONS[n-1]`` (SQL 스크립트).
 #: ``executescript`` 는 열린 트랜잭션을 먼저 커밋하므로, 판 하나의 원자성은
 #: 스크립트 **안의** ``BEGIN IMMEDIATE … COMMIT`` 으로 만든다 (:func:`_apply`).
-MIGRATIONS: list[str] = [_V1, _V2, _V3, _V4, _V5, _V6, _V7, _V8, _V9, _V10, _V11, _V12]
+MIGRATIONS: list[str] = [_V1, _V2, _V3, _V4, _V5, _V6, _V7, _V8, _V9, _V10, _V11, _V12, _V13]
 
 
 def latest_version() -> int:

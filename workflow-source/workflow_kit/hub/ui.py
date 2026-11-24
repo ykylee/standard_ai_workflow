@@ -15,9 +15,10 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Awaitable, Callable
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Awaitable, Callable
+from typing import Any
 
 from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
@@ -29,12 +30,13 @@ from workflow_kit.common.schemas.roadmap import RoadmapIssue, TaskWbsLink
 from workflow_kit.common.state import roadmap as rm
 from workflow_kit.hub.errors import HubError, forbidden, invalid_field, not_found, unauthorized
 from workflow_kit.hub.guide import Guides
-from workflow_kit.hub.judge import INDEX, _NO_TREE, Judge, task_lines
+from workflow_kit.hub.judge import _NO_TREE, INDEX, Judge, task_lines
+from workflow_kit.hub.knowledge import Knowledge
 from workflow_kit.hub.memory import Memory
 from workflow_kit.hub.orchestration import Orchestration
 from workflow_kit.hub.relay import Relays
-from workflow_kit.hub.wiki import Wiki
 from workflow_kit.hub.store import Ctx, Principal, Store
+from workflow_kit.hub.wiki import Wiki
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
@@ -85,6 +87,7 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
     memory = Memory(store)
     guides = Guides(store)
     wiki = Wiki(store)
+    knowledge = Knowledge(store)
     orch = Orchestration(store)
     relays = Relays(store)
 
@@ -275,8 +278,20 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
         ctx = Ctx(now=now, via="ui", principal=scope(p, request.path_params["pid"]))
         q = request.query_params
         if (q.get("q") or "").strip():
-            return wiki.search(ctx, q["q"], int(q.get("limit") or 50))
+            return knowledge.search(ctx, q["q"], int(q.get("limit") or 50))
         return wiki.list_pages(ctx, q.get("prefix") or "")
+
+    def get_knowledge_ref(request: Request, p: Principal, now: datetime, _b: Any) -> dict[str, Any]:
+        ref = request.query_params.get("ref") or ""
+        if not ref:
+            raise invalid_field("ref", "필수")
+        return knowledge.get(Ctx(now=now, via="ui", principal=scope(p, request.path_params["pid"])), ref)
+
+    def get_dcrs(request: Request, p: Principal, now: datetime, _b: Any) -> dict[str, Any]:
+        return knowledge.dcr_list(Ctx(now=now, via="ui", principal=scope(p, request.path_params["pid"])), request.query_params.get("status"))
+
+    def get_dcr(request: Request, p: Principal, now: datetime, _b: Any) -> dict[str, Any]:
+        return knowledge.dcr_get(Ctx(now=now, via="ui", principal=scope(p, request.path_params["pid"])), request.path_params["did"])
 
     def get_wiki_page(request: Request, p: Principal, now: datetime, _b: Any) -> dict[str, Any]:
         path = request.query_params.get("path") or ""
@@ -568,6 +583,9 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
         Route("/api/projects/{pid}/guide/proposals/{gid}", api(post_decide, body=True), methods=["POST"]),
         Route("/api/projects/{pid}/wiki", api(get_wiki), methods=["GET"]),
         Route("/api/projects/{pid}/wiki/page", api(get_wiki_page), methods=["GET"]),
+        Route("/api/projects/{pid}/knowledge/ref", api(get_knowledge_ref), methods=["GET"]),
+        Route("/api/projects/{pid}/dcr", api(get_dcrs), methods=["GET"]),
+        Route("/api/projects/{pid}/dcr/{did}", api(get_dcr), methods=["GET"]),
         Route("/api/projects/{pid}/callsigns", api(get_callsigns), methods=["GET"]),
         Route("/api/projects/{pid}/callsigns", api(post_callsign, body=True), methods=["POST"]),
         Route("/api/projects/{pid}/callsigns/{cs}", api(get_callsign), methods=["GET"]),

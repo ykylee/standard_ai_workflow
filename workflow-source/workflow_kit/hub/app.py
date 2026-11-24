@@ -321,7 +321,7 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
     from workflow_kit.hub.ui import build_routes
 
     ui_routes = build_routes(store, clock=clock, web_token_name=web_token_name,
-                             hub_headers=lambda: _hub_headers(store), max_body=MAX_BODY)
+                             hub_headers=lambda: _hub_headers(store), max_body=MAX_BODY, public_url=public_url)
 
     return Starlette(
         routes=[

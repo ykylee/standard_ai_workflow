@@ -54,8 +54,8 @@ class HubAccounts:
         display_name = display_name.strip()
         if not display_name or len(display_name) > 100:
             raise invalid_field("display_name", "1~100자")
-        if len(password) < 12 or len(password) > 256:
-            raise invalid_field("password", "12~256자")
+        if len(password) < 8 or len(password) > 256:
+            raise invalid_field("password", "8~256자")
         account_id = "acct_" + secrets.token_hex(16)
         session = new_token()
         try:

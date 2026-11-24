@@ -105,7 +105,7 @@ python -m workflow_kit hub admin   --db PATH project import --file FILE | seal -
 | `project_alias` | `key` (정규화 주소) · `project_id` · `kind` (`primary`/`alias`) · `added_by` · `added_at` | `key` 유일 | R3.2 · R3.5 · R3.6 |
 | `callsign` | `project_id` · `id` · `kind` (`human`/`agent`) · `human_approved` · `role` (`owner`/`editor`) · `label` · `host` · `token_hash` · `guide_version_seen` · `client_version_seen` · `last_seen_at` · `revoked_at` · `version` | `(project_id, id)` 유일 · `id` 는 `^[a-z][a-z0-9-]{1,30}[a-z0-9]$`, 예약 `hub` | R4.1 · R4.7 · R7.7 · R7.8 · Q3 |
 | `hub_token` | `token_hash` · `role` (`web`/`admin`) · `name` · `created_at` · `revoked_at` | — | R13.2 · R13.2a |
-| `hub_account` · `hub_account_callsign` · `hub_account_session` · `hub_account_login_attempt` | 사람 계정 · 승인된 human 콜사인 연결 · 만료/폐기 가능한 세션 해시 · 로그인 실패 제한 | v16 | 3.2.2 |
+| `hub_account` · `hub_account_callsign` · `hub_account_session` · `hub_account_login_attempt` | 사람 계정 · 승인된 human 콜사인 연결 · 만료/폐기 가능한 세션 해시 · 로그인 실패 제한 | v16 | 3.2.3 |
 | `task` | `project_id` · `id` · `title` · `status` · `priority` · `assignee` (콜사인, 빈 값 허용) · `branch` · `wbs` · `wbs_exempt_reason` · `description` · `plan_md` · `fields_json` · `progress_note` · `progress_at` · `created_at` · `updated_at` · `version` | `(project_id, id)` 유일 · `status` ∈ 4 값 | R5.1~R5.7 |
 | `task_seq` | `project_id` · `date` · `namespace` · `next` | `(project_id, date, namespace)` | R5.2 |
 | `task_commit` | `project_id` · `task_id` · `sha` · `branch` · `added_by` · `added_at` | — | R5.9 · R10.4 |
@@ -236,7 +236,7 @@ python -m workflow_kit hub admin   --db PATH project import --file FILE | seal -
 
 - 토큰은 `Authorization: Bearer` 로만 받는다. 쿼리 · 쿠키로 받지 않는다.
 - 에이전트/MCP 요청은 기존처럼 `Authorization: Bearer` 콜사인 토큰을 쓴다. 사람 웹 사용은 허브 계정(계정 이름 + PBKDF2-HMAC-SHA256 비밀번호)을 쓰며, 최초 등록은 승인된 human 콜사인 토큰을 한 번 제시한다. 계정은 사람 콜사인을 여러 프로젝트에서 연결할 수 있고, 같은 프로젝트의 콜사인은 계정 하나에만 묶인다.
-- 사람 로그인은 30일 만료 세션의 해시만 DB에 저장하고 `HttpOnly; SameSite=Strict` 쿠키로 세션을 전달한다 (`Secure` 는 HTTPS 요청에서 켠다). 로그아웃/만료 세션은 인증되지 않는다. 비밀번호 실패는 계정 이름 기준 8회/15분으로 잠근다.
+- 사람 로그인은 30일 만료 세션의 해시만 DB에 저장하고 `HttpOnly; SameSite=Strict` 쿠키로 세션을 전달한다. 출처는 설정한 공개 주소이거나 요청이 온 호스트여야 하고, 공개 주소로 오면 `Secure` 는 그 scheme 을, `Path` 는 그 하위 경로를 따른다(프록시 머리에 기대지 않는다). 비밀번호는 8~256자다. 로그아웃/만료 세션은 인증되지 않는다. 비밀번호 실패는 계정 이름 기준 8회/15분으로 잠근다.
 - 브라우저 세션 쿠키를 동반한 쓰기 요청은 `Origin` 과 같은 출처인지 확인한다. 계정 이름은 public API 에 노출하지 않고 로그인 실패 응답도 계정 유무를 구분하지 않는다.
 - 기존 콜사인 토큰 브라우저 인증은 하위 호환으로 유지하지만, 사람 사용 가이드와 화면 기본 동작은 계정 로그인을 우선한다. 화면은 계정에 연결된 프로젝트만 나열한다.
 - 토큰 없는 화면 요청은 허브 설정의 **화면 공용 `web` 토큰**이 켜져 있을 때만 `web` 권한(읽기 · 콜사인 등록)으로 돈다 — `hub serve --web-token-name NAME` 또는 앞단 프록시가 '토큰 없는 요청에만' 머리를 붙인다. **기본 꺼짐.**

@@ -81,8 +81,8 @@ func (s *Store) AccountEnroll(token, username, displayName, password string, now
 	if displayName == "" || len([]rune(displayName)) > 100 {
 		return "", HubAccount{}, nil, InvalidField("display_name", "1~100자")
 	}
-	if len([]rune(password)) < 12 || len([]rune(password)) > 256 {
-		return "", HubAccount{}, nil, InvalidField("password", "12~256자")
+	if len([]rune(password)) < 8 || len([]rune(password)) > 256 {
+		return "", HubAccount{}, nil, InvalidField("password", "8~256자")
 	}
 	passwordHash, err := accountPasswordHash(password)
 	if err != nil {

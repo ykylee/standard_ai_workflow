@@ -39,7 +39,7 @@ func (s *Server) handleUIAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.Method == http.MethodPost && bearerToken(r.Header) == "" {
-		if _, cookieErr := r.Cookie("workflow_hub_session"); cookieErr == nil && !sameScreenOrigin(r) {
+		if _, cookieErr := r.Cookie("workflow_hub_session"); cookieErr == nil && !s.screenOrigin(r).ok {
 			writeScreenError(w, store.Forbidden("같은 출처의 브라우저 요청만 허용한다"))
 			return
 		}
@@ -1186,7 +1186,8 @@ func (s *Server) handleAccountAPI(w http.ResponseWriter, r *http.Request, now ti
 		writeJSONResponse(w, http.StatusMethodNotAllowed, map[string]any{"error_code": "method_not_allowed", "message": "POST 만 지원한다"})
 		return
 	}
-	if !sameScreenOrigin(r) {
+	origin := s.screenOrigin(r)
+	if !origin.ok {
 		writeJSONResponse(w, http.StatusForbidden, map[string]any{"error_code": "origin_mismatch", "message": "같은 출처의 브라우저 요청만 허용한다"})
 		return
 	}
@@ -1244,11 +1245,10 @@ func (s *Server) handleAccountAPI(w http.ResponseWriter, r *http.Request, now ti
 		writeScreenError(w, err)
 		return
 	}
-	secure := r.TLS != nil || strings.TrimSpace(strings.Split(r.Header.Get("X-Forwarded-Proto"), ",")[0]) == "https"
 	if action == "logout" {
-		http.SetCookie(w, &http.Cookie{Name: "workflow_hub_session", Value: "", Path: "/", MaxAge: -1, HttpOnly: true, Secure: secure, SameSite: http.SameSiteStrictMode})
+		http.SetCookie(w, &http.Cookie{Name: "workflow_hub_session", Value: "", Path: origin.path, MaxAge: -1, HttpOnly: true, Secure: origin.secure, SameSite: http.SameSiteStrictMode})
 	} else {
-		http.SetCookie(w, &http.Cookie{Name: "workflow_hub_session", Value: session, Path: "/", MaxAge: 30 * 24 * 3600, HttpOnly: true, Secure: secure, SameSite: http.SameSiteStrictMode})
+		http.SetCookie(w, &http.Cookie{Name: "workflow_hub_session", Value: session, Path: origin.path, MaxAge: 30 * 24 * 3600, HttpOnly: true, Secure: origin.secure, SameSite: http.SameSiteStrictMode})
 	}
 	var output any = account
 	if action == "logout" {
@@ -1257,17 +1257,34 @@ func (s *Server) handleAccountAPI(w http.ResponseWriter, r *http.Request, now ti
 	writeJSONResponse(w, http.StatusOK, map[string]any{"account": output})
 }
 
-func sameScreenOrigin(r *http.Request) bool {
+// screenOrigin is what a browser request's Origin allows and how its session cookie is scoped.
+type screenOrigin struct {
+	ok, secure bool
+	path       string
+}
+
+// screenOrigin accepts the configured public address or the host the request came to. A reverse proxy may
+// rewrite Host and drop X-Forwarded-Proto, so the public address is compared from configuration, not headers.
+// Behind a sub-path the cookie is limited to that path: other apps on the same host must not receive it.
+func (s *Server) screenOrigin(r *http.Request) screenOrigin {
 	origin := strings.TrimRight(r.Header.Get("Origin"), "/")
+	if origin == "" {
+		return screenOrigin{}
+	}
+	if u, err := url.Parse(s.cfg.PublicURL); err == nil && u.Host != "" && strings.EqualFold(origin, u.Scheme+"://"+u.Host) {
+		path := strings.TrimRight(u.Path, "/")
+		if path == "" {
+			path = "/"
+		}
+		return screenOrigin{ok: true, secure: u.Scheme == "https", path: path}
+	}
 	scheme := strings.TrimSpace(strings.Split(r.Header.Get("X-Forwarded-Proto"), ",")[0])
 	if scheme == "" {
-		if r.TLS != nil {
+		if scheme = "http"; r.TLS != nil {
 			scheme = "https"
-		} else {
-			scheme = "http"
 		}
 	}
-	return origin != "" && origin == scheme+"://"+r.Host
+	return screenOrigin{ok: origin == scheme+"://"+r.Host, secure: scheme == "https", path: "/"}
 }
 
 func principalSummary(p *store.Principal) map[string]any {

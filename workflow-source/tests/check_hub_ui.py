@@ -30,6 +30,7 @@ CHECK_TIMEOUT_S = 240
 
 WATCHES = (
     "workflow-source/workflow_kit/*",
+    "hub-go/*",
     "workflow-source/pyproject.toml",
     "workflow-source/tests/check_hub_core.py",
 )
@@ -51,7 +52,7 @@ if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from check_hub_core import Hub, _env  # noqa: E402
+from check_hub_core import Hub, _resolve_go_hub, _env  # noqa: E402
 from workflow_kit.common import plan_claims, plan_responses  # noqa: E402
 
 STATIC = SOURCE_ROOT / "workflow_kit" / "hub" / "static"
@@ -642,6 +643,34 @@ def case_16_accounts_confirmations(tmp: Path) -> None:
         hub.stop()
 
 
+def case_17_proxy_origin(tmp: Path, impl: str, cmd: list[str] | None) -> None:
+    """리버스 프록시 뒤 — Host 가 안쪽 주소이고 X-Forwarded-Proto 가 없어도 공개 주소 출처로 등록 · 로그인 · 결정이 된다."""
+    hub = Hub(tmp / f"proxy-{impl}.db", extra=("--public-url", "https://home.example/workflow"), cmd_prefix=cmd)
+    try:
+        _, owner = _project(hub, "proxy-origin")
+        body = {"username": "proxy-owner", "display_name": "P", "password": "long-test-password-123"}
+        enroll = lambda origin: _req(hub.base, "/api/account/enroll", method="POST", token=owner, body=body, origin=origin)  # noqa: E731
+        short = _req(hub.base, "/api/account/enroll", method="POST", token=owner, body={**body, "password": "short-7"}, origin="https://home.example")
+        body["password"] = "eight-ch"
+        bad = [enroll(o)[0] for o in ("https://evil.example", "http://home.example", "https://home.example.evil", "https://home.example:8443", "null")]
+        st, _, head = enroll("https://home.example")
+        cookie = head.get("set-cookie", "")
+        login = lambda origin: _req(hub.base, "/api/account/login", method="POST", body=body, origin=origin)  # noqa: E731
+        st_login, _, _ = login("https://home.example")
+        st_lan, _, lan_head = login(hub.base)  # 안쪽 주소로 직접 — 그대로 된다
+        lan = lan_head.get("set-cookie", "")
+        session = cookie.split(";", 1)[0]
+        act = lambda origin: _req(hub.base, "/api/account/logout", method="POST", body={}, cookie=session, origin=origin)[0]  # noqa: E731
+        st_evil, st_out = act("https://evil.example"), act("https://home.example")
+        ok = (bad == [403] * 5 and short[0] == 400 and short[1].get("detail", {}).get("field") == "password" and st == 200 and st_login == 200 and st_lan == 200 and "secure" in cookie.lower()
+              and "path=/workflow" in cookie.lower() and "secure" not in lan.lower() and "path=/" in lan.lower()
+              and "path=/workflow" not in lan.lower() and st_evil == 403 and st_out == 200)
+        _record(f"case 17 (프록시 뒤 공개 주소 출처 · 쿠키 Secure/Path) [{impl}]", ok,
+                f"bad={bad} short={short[:2]} enroll={st} login={st_login}/{st_lan} cookie={cookie.split(';', 1)[1:]} lan={lan.split(';', 1)[1:]} logout={st_evil}/{st_out}")
+    finally:
+        hub.stop()
+
+
 def main() -> int:
     print("check_hub_ui")
     with tempfile.TemporaryDirectory(prefix="hub-ui-") as d:
@@ -653,6 +682,12 @@ def main() -> int:
         case_10_11_12(tmp)
         case_13_14_15(tmp)
         case_16_accounts_confirmations(tmp)
+        case_17_proxy_origin(tmp, "python", None)
+        go_cmd, reason = _resolve_go_hub(tmp)
+        if go_cmd is None:
+            print(f"    [unmeasured] go 허브 미측정: {reason}")
+        else:
+            case_17_proxy_origin(tmp, "go", go_cmd)
     print(f"PASS {len(_passes)} · FAIL {len(_failures)}")
     for f in _failures:
         print(f"  FAIL {f}")

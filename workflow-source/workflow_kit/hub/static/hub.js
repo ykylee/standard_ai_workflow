@@ -177,7 +177,7 @@
     const enrollToken = el("input", { required: true, autocomplete: "off", placeholder: "기존 승인된 사람 콜사인 토큰" });
     const enrollUser = el("input", { required: true, autocomplete: "username", placeholder: "계정 이름" });
     const enrollName = el("input", { required: true, autocomplete: "name", placeholder: "표시 이름" });
-    const enrollPass = el("input", { required: true, type: "password", autocomplete: "new-password", minlength: "12", placeholder: "비밀번호 (12자 이상)" });
+    const enrollPass = el("input", { required: true, type: "password", autocomplete: "new-password", minlength: "8", placeholder: "비밀번호 (8자 이상)" });
     return el("section", { class: "card" }, el("h2", {}, "허브 계정 로그인"),
       el("p", { class: "muted" }, "계정은 이 브라우저에 토큰을 저장하지 않는다. 처음에는 승인된 사람 콜사인 토큰으로 1회 등록한다."),
       el("form", { class: "row", onsubmit: async (ev) => { ev.preventDefault(); const r = await api("account/login", { method: "POST", body: { username: loginUser.value, password: loginPass.value } }); if (r.status !== 200) status.replaceChildren(alertBox("bad", errorText(r))); else { signedInAccount = true; dirty = false; onDone(); } } }, loginUser, loginPass, el("button", { type: "submit" }, "로그인")),

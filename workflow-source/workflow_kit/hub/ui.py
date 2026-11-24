@@ -18,6 +18,7 @@ import json
 from collections.abc import Awaitable, Callable
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from urllib.parse import urlsplit
 from typing import Any
 
 from starlette.concurrency import run_in_threadpool
@@ -71,6 +72,24 @@ def _bearer(request: Request) -> str | None:
     return None
 
 
+def screen_origin(request: Request, public_url: str) -> tuple[bool, str] | None:
+    """브라우저 요청의 출처가 맞으면 (쿠키 Secure, 쿠키 Path), 아니면 None.
+
+    설정한 공개 주소이거나 요청이 온 호스트다. 리버스 프록시는 Host 를 바꾸고 X-Forwarded-Proto 를 빠뜨릴 수 있어
+    공개 주소는 머리가 아니라 설정과 견준다. 하위 경로면 쿠키를 그 경로로 좁힌다 — 같은 호스트의 다른 앱에 보내지 않는다.
+    """
+    origin = request.headers.get("origin", "").rstrip("/")
+    if not origin:
+        return None
+    u = urlsplit(public_url)
+    if u.netloc and origin.lower() == f"{u.scheme}://{u.netloc}".lower():
+        return u.scheme == "https", u.path.rstrip("/") or "/"
+    scheme = request.headers.get("x-forwarded-proto", "").split(",", 1)[0].strip() or request.url.scheme
+    if origin != f"{scheme}://{request.headers.get('host', '')}":
+        return None
+    return scheme == "https", "/"
+
+
 def _principal_summary(p: Principal) -> dict[str, Any]:
     is_owner = p.kind == "callsign" and p.callsign_kind == "human" and p.human_approved and p.role == "owner"
     return {"kind": p.kind, "project_id": p.project_id, "callsign": p.callsign, "callsign_kind": p.callsign_kind,
@@ -85,7 +104,7 @@ def _decision(d: plan_claims.Decision, state: str | None) -> dict[str, Any]:
 
 
 def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name: str | None,
-                 hub_headers: Callable[[], dict[str, str]], max_body: int) -> list[BaseRoute]:
+                 hub_headers: Callable[[], dict[str, str]], max_body: int, public_url: str = "") -> list[BaseRoute]:
     judge = Judge(store)
     memory = Memory(store)
     guides = Guides(store)
@@ -101,11 +120,8 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
         try:
             if request.method != "POST":
                 raise HubError(405, "method_not_allowed", "POST 만 지원한다")
-            origin = request.headers.get("origin", "")
-            expected_host = request.headers.get("host", "")
-            forwarded_proto = request.headers.get("x-forwarded-proto", "").split(",", 1)[0].strip()
-            expected_scheme = forwarded_proto or request.url.scheme
-            if not origin or origin.rstrip("/") != f"{expected_scheme}://{expected_host}":
+            allowed = screen_origin(request, public_url)
+            if allowed is None:
                 raise HubError(403, "origin_mismatch", "같은 출처의 브라우저 요청만 허용한다")
             ctype = (request.headers.get("content-type") or "").split(";", 1)[0].strip().lower()
             if ctype != "application/json":
@@ -136,12 +152,12 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
             else:
                 raise HubError(404, "not_found", "계정 API 경로가 없다")
             response = JSONResponse({"account": account}, headers=headers)
-            secure = request.url.scheme == "https" or forwarded_proto == "https"
+            secure, cookie_path = allowed
             if session:
-                response.set_cookie("workflow_hub_session", session, max_age=30 * 24 * 3600, path="/",
+                response.set_cookie("workflow_hub_session", session, max_age=30 * 24 * 3600, path=cookie_path,
                                     httponly=True, secure=secure, samesite="strict")
             else:
-                response.delete_cookie("workflow_hub_session", path="/", httponly=True, secure=secure, samesite="strict")
+                response.delete_cookie("workflow_hub_session", path=cookie_path, httponly=True, secure=secure, samesite="strict")
             return response
         except HubError as exc:
             return JSONResponse(exc.payload(), status_code=exc.status, headers=headers)
@@ -201,10 +217,7 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
                     if not isinstance(payload, dict):
                         raise HubError(400, "invalid_json", "본문은 JSON 객체다")
                     if request.cookies.get("workflow_hub_session") and not _bearer(request):
-                        origin = request.headers.get("origin", "")
-                        host = request.headers.get("host", "")
-                        proto = request.headers.get("x-forwarded-proto", "").split(",", 1)[0].strip() or request.url.scheme
-                        if not origin or origin.rstrip("/") != f"{proto}://{host}":
+                        if screen_origin(request, public_url) is None:
                             raise HubError(403, "origin_mismatch", "같은 출처의 브라우저 요청만 허용한다")
                 now = clock()
 

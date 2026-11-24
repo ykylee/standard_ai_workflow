@@ -3,7 +3,7 @@
 - 문서 목적: Standard AI Workflow 릴리스 절차 (버전 박기 → 빌드 → 스모크 → GitHub Release attach) 를 한 자리에 정리한다.
 - 범위: 채널 정책, 사전 점검, 빌드, 로컬 smoke, GitHub Release 생성, 트러블슈팅, 회귀 표
 - 대상 독자: 저장소 maintainer (`ykylee`), 릴리스 매니저
-- 상태: beta (v3.2.0 기준, pre-release 준비 중; 절차 자체는 v0.5.7+ 부터 정식 도입된 정책 유지)
+- 상태: beta (v3.2.0 기준 pre-release 발행 완료, HomeLab pilot 운영 중; 절차 자체는 v0.5.7+ 부터 정식 도입된 정책 유지)
 - 현재 package version: 3.2.0 (`workflow-source/pyproject.toml`)
 - 최종 수정일: 2026-11-24
 - 관련 문서: [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md), [./INSTALLATION_AND_USAGE.md](./INSTALLATION_AND_USAGE.md), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md), [workflow-source/releases/](https://github.com/ykylee/standard_ai_workflow/tree/main/workflow-source/releases/)
@@ -41,7 +41,7 @@
   latest `release_pipeline.release_latest_decision` (원격 최고일 때만). `gh release create` 는 `--target <현재 브랜치>`.
 - 3.x pilot 은 정수 판(예: `3.0.2`)과 GitHub prerelease 속성을 함께 쓴다. 발행 시 `--prerelease --latest=false` 로
   현재 안정판 `latest` 를 유지한다. 안정판은 별도 승인된 tag 로 발행한다.
-- 2026-11-24 기준 발행 준비 중인 Go pilot prerelease와 Python wheel은 **3.2.0**이다. 두 실행판의 런타임 버전은 각 빌드에서
+- 2026-11-24 발행한 Go pilot prerelease와 Python wheel은 **3.2.0**이다. GitHub Release는 prerelease이며 `latest=false`; 현재 latest 안정판은 **2.1.0**이다. 홈랩에서는 기존 DB를 V15로 올려 Go 3.2.0 서비스를 운영한다. 두 실행판의 런타임 버전은 각 빌드에서
   보고하고 kit 호환 계약 버전 **2.1.0**과 분리한다. 3.x pilot 은 parity·플랫폼 실측 진행 중인 평가판이다.
 - **같은 날 두 줄을 낼 때 (2.0.0 + 1.30.0)**: 1.x 를 먼저 낸다 — 그때는 원격에 2.x 가 없어 1.30.0 이 잠시 latest 가
   된다. 이어 2.0.0 이 latest 를 가져간다. 순서를 바꾸면 1.30.0 은 처음부터 `--latest=false` 다. 어느 쪽이든 끝 상태는

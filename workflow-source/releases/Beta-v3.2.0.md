@@ -27,3 +27,21 @@
 
 - 이 판은 평가용 pre-release다. 운영 DB를 전환하기 전에 일관된 복제본으로 검증한다.
 - 홈랩 pilot은 프로젝트 지식 검색·출처 검증·DCR 승인 권한과 ADR hash sync를 확인한다. 전체 Go/Python shadow parity 및 Windows/macOS native 실행은 별도 검증 범위다.
+- Go MCP 전용 `hub_wiki_get/list/search`는 현재 `not_implemented_in_go`를 반환한다. 통합 `hub_knowledge_search/get`과 HTTP Wiki API는 동작한다. 전용 도구 parity는 `TASK-2026-11-24-main-006`에서 추적한다.
+- 홈랩 프로젝트에 DCR 항목이 없어 live accept/reject mutation은 실행하지 않았다. 비인증 list/decide 거부와 자동 권한 회귀 검사는 확인했다.
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-11-24T06:01:23Z)_
+
+- total wiki pages: **103**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

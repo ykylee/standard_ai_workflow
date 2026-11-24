@@ -2418,7 +2418,9 @@
           "id": "WBS-59.4",
           "title": "Python/Go parity, 권한·충돌·복구 검증과 홈랩 pilot",
           "derived_status": "planned",
-          "linked_task_ids": [],
+          "linked_task_ids": [
+            "TASK-2026-11-24-main-006"
+          ],
           "total_leaves": 1,
           "done_leaves": 0,
           "children": []

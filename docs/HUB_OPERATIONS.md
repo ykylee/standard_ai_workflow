@@ -241,6 +241,8 @@ python3 -m venv ~/workflow-hub/venv-3x
 
 Hub DB 판 13부터 프로젝트별 지식 카탈로그와 결정 변경 기록(DCR)을 제공한다. 기존 Wiki는 유지되고, 수정·삭제 때 revision snapshot을 남긴다. Git 정본 문서는 프로젝트에 등록된 allowlist 경로만 스냅샷으로 동기화한다. Hub가 Git 원격을 읽거나 저장소 파일에 쓰지 않는다.
 
+Go 허브 3.2.0 pilot에서는 전용 MCP 읽기 도구 `hub_wiki_get`, `hub_wiki_list`, `hub_wiki_search`가 아직 포팅되지 않아 `not_implemented_in_go`를 반환한다. Wiki는 `hub_knowledge_search/get` 통합 MCP 경로와 아래 프로젝트 HTTP API로 검색·조회할 수 있다. Python 허브의 전용 MCP 도구는 동작한다.
+
 프로젝트 owner가 MCP 도구 `hub_knowledge_source_register`로 source ID, 등록된 repository key, Markdown allowlist를 등록한다. 이후 세션은 저장소에서 문서를 읽은 뒤 `hub_knowledge_sync`에 commit SHA와 `{path,title,body}` 목록을 넘긴다. `hub_knowledge_search`는 자기 프로젝트의 Git 문서와 Wiki를 함께 검색하며 commit/revision/hash가 포함된 ref를 돌려준다. `hub_knowledge_get`은 ref에 고정된 과거 판도 읽는다. 관리 화면은 **지식** 탭에서 통합 검색, **결정** 탭에서 DCR 상태와 감사 timeline을 보여준다.
 
 DCR은 `hub_dcr_create`로 제안한다. project writer는 제안할 수 있지만 결정은 승인된 human project owner만 가능하다. 승인은 새 ADR Markdown과 경로·SHA-256을 내고 상태를 `approved_pending_export`로 바꾼다. 제안자가 해당 파일을 Git에 커밋한 뒤 같은 등록 source에서 path와 내용을 동기화해 hash가 확인되면 Hub가 DCR을 `accepted`로 바꾸고 대상 ADR의 projection을 `superseded`로 표시한다. 거절도 결정 근거와 함께 남는다. Hub는 Git commit/push를 수행하지 않는다.

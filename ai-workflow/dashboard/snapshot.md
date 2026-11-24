@@ -1,7 +1,7 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-11-24T00:43:10Z`
-- tool_version: `3.1.0`
+- generated_at: `2026-11-24T06:01:22Z`
+- tool_version: `3.2.0`
 - workspace_root: `/home/yklee/repos/standard_ai_workflow`
 
 ## Panel 1 — Drift Prevention Status
@@ -14,7 +14,7 @@
 - harness_supported_count: `10`
 - head_commit_date: `2026-11-24`
 - last_updated_delta_days: `0`
-- silent_failing_cycles_count: `0` (측정 cycle 48건)
+- silent_failing_cycles_count: `0` (측정 cycle 49건)
 
 ## Panel 2 — Maturity Distribution
 
@@ -75,20 +75,20 @@
 
 ## Panel 4 — Smoke Trend
 
-- cumulative_total: `354`
-- cumulative_pass: `354`
+- cumulative_total: `357`
+- cumulative_pass: `357`
 - cumulative_pass_rate: `1.0000`
-- smoke_files_count: `354`
+- smoke_files_count: `357`
 
 ### Recent release smoke counts
 
 | version | pass | total |
 |---|---|---|
+| Beta-v3.2.0 | 357 | 357 |
 | Beta-v3.1.0 | 354 | 354 |
 | Beta-v3.0.1 | 353 | 353 |
 | Beta-v3.0.0 | 353 | 353 |
 | Beta-v2.1.0 | 350 | 350 |
-| Beta-v2.0.0 | 346 | 346 |
 
 ## Panel 5 — Recent Release Cycle
 
@@ -98,16 +98,16 @@
 
 ### Timeline (preview, first 120 char)
 
-- [0] TASK-2026-11-23-main-022 — 3단계 작업 카테고리와 roadmap·WBS·테스트 관리 연결  `[fresh]`
-- [1] TASK-2026-11-23-main-021 — 허브 release 버전과 kit 호환 버전을 API·페이지에 함께 표시  `[fresh]`
-- [2] TASK-2026-11-23-main-020 — 프로젝트 목록 화면에 null 문자열 노출 수정  `[fresh]`
-- [3] TASK-2026-11-23-main-019 — 허브 셋업에서 로컬 중계 필요 여부와 상태 확인  `[fresh]`
-- [4] TASK-2026-11-23-main-018 — 홈랩 3.0.1 허브 배포 및 dacpi /workflow 프록시 연결  `[fresh]`
-- [5] TASK-2026-11-23-main-017 — 허브 배포 위치 검토: 개발 호스트 vs 홈랩  `[fresh]`
-- [6] TASK-2026-11-23-main-016 — MCP 전체 최신 2026-07-28 프로토콜 전환  `[fresh]`
-- [7] TASK-2026-11-23-main-015 — MCP Python SDK 최소 버전을 최신 안정판 2.3.0으로 상향  `[fresh]`
-- [8] TASK-2026-11-23-main-013 — PostgreSQL 운영 안내와 격리 양 런타임 pilot 검증  `[fresh]`
-- [9] TASK-2026-11-23-main-012 — Go·Python SQLite→PostgreSQL 데이터 복사 및 정합성 검증 구현  `[fresh]`
+- [0] TASK-2026-11-24-main-005 — 1.x → Hub 전환 뒤 진입 파일의 이전 경로 잔존 수정  `[fresh]`
+- [1] TASK-2026-11-24-main-004 — 허브 task 목록 분류·페이지네이션·카드 보기  `[fresh]`
+- [2] TASK-2026-11-24-main-003 — 미등록 하네스 제보와 승인 등록 흐름  `[fresh]`
+- [3] TASK-2026-11-24-main-001 — 3.1.0 pre-release 및 홈랩 허브 배포  `[fresh]`
+- [4] TASK-2026-11-23-main-022 — 3단계 작업 카테고리와 roadmap·WBS·테스트 관리 연결  `[fresh]`
+- [5] TASK-2026-11-23-main-021 — 허브 release 버전과 kit 호환 버전을 API·페이지에 함께 표시  `[fresh]`
+- [6] TASK-2026-11-23-main-020 — 프로젝트 목록 화면에 null 문자열 노출 수정  `[fresh]`
+- [7] TASK-2026-11-23-main-019 — 허브 셋업에서 로컬 중계 필요 여부와 상태 확인  `[fresh]`
+- [8] TASK-2026-11-23-main-018 — 홈랩 3.0.1 허브 배포 및 dacpi /workflow 프록시 연결  `[fresh]`
+- [9] TASK-2026-11-23-main-017 — 허브 배포 위치 검토: 개발 호스트 vs 홈랩  `[fresh]`
 
 ## Panel 6 — Multi-Agent Concurrent Write Conflict
 
@@ -137,10 +137,10 @@
 
 - phase_15_north_star: `utilization_3tuple (query_diversity / entries_new_30d / distinct_entries_retrieved — ADR-006 W-4; hit_rate 는 보조)`
 - entries_total: `30`
-- telemetry_events_total: `3749`
-- telemetry_total_queries: `3749`
-- telemetry_hit_count: `1974`
-- telemetry_hit_rate: `0.5265`
+- telemetry_events_total: `3802`
+- telemetry_total_queries: `3802`
+- telemetry_hit_count: `2027`
+- telemetry_hit_rate: `0.5331`
 
 ### Entries by merge_state
 
@@ -152,8 +152,8 @@
 
 | source | events |
 |---|---|
-| `backlog-update` | 1148 |
+| `backlog-update` | 1188 |
 | `dispatcher` | 13 |
-| `doc-sync` | 19 |
-| `session-start` | 2569 |
+| `doc-sync` | 26 |
+| `session-start` | 2575 |
 

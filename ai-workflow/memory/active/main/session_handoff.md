@@ -4,7 +4,7 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-11-24 (M-060·M-061 done — 미등록 하네스 승인·사람 레지스트리와 task 필터·페이지네이션·카드 보기 구현. main-005 done — 1.x Hub 전환 뒤 표식 커밋 후 bootstrap 재실행으로 canonical 시작 안내를 `hub_session_start`로 갱신; 사용자 수정 문안은 사람 검토. Python/Go setup parity, 회귀·정적 검사 통과. M-059/WBS-59.3 지식·결정 공유 구현은 진행 중이며 최종 변경 포함 게이트·3.2.0 pre-release·홈랩 C5 실측이 남음. 다음: M-059 변경 정리 → clean-tree 전량 게이트 → v3.2.0 발행·홈랩 Go 배포 → knowledge provenance와 DCR 권한 실측.
+- 최종 수정일: 2026-11-24 (M-060·M-061 done — 미등록 하네스 승인·사람 명부와 task 필터·페이지네이션·카드 보기 구현. TASK main-005 done — 1.x Hub 전환 표식 커밋 뒤 canonical 시작 안내 갱신. v3.2.0 pre-release 발행·main push·HomeLab Go 3.2.0/DB v15 배포 완료, 서비스 enabled. live MCP initialize 2025-11-25·knowledge search/get 및 Wiki revision provenance 확인, 비인증 DCR 접근 차단. 잔여: Go 전용 hub_wiki_get/list/search MCP는 not_implemented_in_go; TASK-2026-11-24-main-006 planned. 다음: direct Wiki MCP parity 구현 및 3.2.x pilot 재검증.
 - 이전 수정일: 2026-11-22 (140차 세션 **종료** — Linux 호스트. main-014 Codex 커밋 경로 · **M-048 done → v2.1.0 발행** (VS Code 실측 결함 2 수리 · 진입 지침 push 막힘 문구 · 매트릭스 tmp 위양성 수리) · README 재작성 · main-022 허브 mcp 2.x · **Go 전환 결정**: M-049 concept (소유자 R1=D 전면 Go) · M-050 requirements · M-051 design done, ADR-035 Accepted · PURPOSE Go 예외. 다음 M-052 S1 중계 Go 판)
 - 이전 수정일: 2026-11-22 (139차 세션 **종료** — Linux 호스트. 결함 수리 4 (main-027 · 234c32-002 · main-012 · main-002, 전부 release/1.x 이식) · **새 축 2.1 허브 오케스트레이션 M-041~M-047 done** (concept · requirements · design · ADR-034 Accepted · 구현 1~4: 세션 · 받은편지함 · lease · 배정 · PC 중계 · VS Code 껍데기, 실제 Claude · Codex 실측). 발행 없음)
 - 이전 수정일: 2026-11-21 (138차 세션 **종료** — Linux 호스트. 2.0 허브 M-037 · M-038 · M-040 done, M-039 진행(남은 것: macOS · Windows · 대화형 실측 · 이 저장소 표식 전환 · arcturus). 이 저장소 테스트베드 실제 등록 · `/setup.md` 4 하네스 실측 · 운영 가이드 · **v2.0.0 (베타 표기) · v1.30.0 발행**, latest = v2.0.0)
@@ -46,7 +46,7 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **145차 세션 말 (2026-11-24, Linux 호스트) — 직전 origin 기준은 `1f8f215d`; 이 세션 작업은 미커밋.** M-057/WBS-57.1·57.2와 V3 조사 task는 계속 진행 중. M-059/WBS-59.3 지식·결정 공유 및 Go guide/setup parity 구현은 changed 게이트 339/339 통과, v3.2.0 발행 및 홈랩 pilot이 남아 있다. 상세는 TASK-2026-11-24-main-002.
+- 현재 기준선: **146차 세션 (2026-11-24, Linux 호스트) — `fbe9c820` main push 완료, GitHub `v3.2.0` pre-release 발행, stable latest는 `v2.1.0`. HomeLab `192.168.0.38`에 `workflow-hub-3.2.0.service` enabled/active, DB schema v15; 이전 DB 백업은 `/home/yklee/workflow-hub/backups/hub.db.pre-v3.2.0-20261124.sqlite`, v3.1.0 unit/binary는 rollback용 보존. M-059 live MCP·HTTP 확인 중 Go direct Wiki MCP read 3도구 미구현을 발견해 TASK-2026-11-24-main-006 planned. 상세는 TASK-2026-11-24-main-002·006.
 - 직전 기준선: **139차 말 (2026-11-22, Linux 호스트) — 발행 없음, 정본 v2.0.0 + 2.1 오케스트레이션 미발행 (main `HEAD`).** 2.1 축: 중앙 허브 · PC 중계 · 하네스 · 세션 — concept `docs/planning/hub-orchestration-review-2026-11.md` · 요구 `hub-orchestration-requirements-2026-11.md` (실측 §1.2 · §1.4 · §1.5) · 스펙 `workflow-source/core/hub_orchestration_spec.md` · ADR-034 Accepted. 코드: `hub/orchestration.py` · `hub/relay.py` (DB 판 12) · `workflow_kit/relay/` (`python -m workflow_kit hub relay …`) · `editors/vscode/`. 검사 `check_hub_orch` 10 · `check_hub_orch_assign` 9 · `check_hub_relay` 10 · `check_vscode_shell` 6 (각각 되주입). 검증 간소화 기간 — `--changed` + 스모크 뒤 `--no-verify` push, 전량 게이트는 발행 때. release/1.x 에 이식 4건 push.
 - 그 이전 기준선: **138차 말 (2026-11-21, Linux 호스트) — v2.0.0 (2.0 허브, 베타 표기) · v1.30.0 (1.x 안내 판) 발행.** GitHub latest = v2.0.0. main 은 kit 플러그인 채널을 내지 않는다 (`KIT_PLUGIN_CHANNEL`, R16.6) — 이 호스트 Claude Code 채널은 `../standard_ai_workflow-1x` (Folder) 로 옮김. 판 번호는 정수 (2.0.0b1 은 키트 16곳이 깨져 소유자가 정수로 정함). 운영 가이드 `docs/HUB_OPERATIONS.md`, 두 줄 발행 정책 RELEASE.md §1.1. 게이트: main 346×2 (20c61a09) · 1.x 336×2 (24ca6ae3).
 - 그 이전 기준선: **138차 (2026-11-21, Linux 호스트) — 2.0 허브 화면 · 1.x 전환 · 허브 간 이전 · 테스트베드 · 셋업 가이드.** M-037 done (화면 `/ui/` · 콜사인 표 · 지침 제안), M-038 WBS-38.1~38.3 (전환 계획 · 들여오기 · 표식 · 1.x 거절; 남은 몫 = 2.0.0 발행 때 1.x 안내판, main-011), M-039: 39.1 Linux 4하네스 · `/setup.md` + `hub_client.py bootstrap` (빈 폴더에서 Claude Code 완주), 39.2 리허설 · 테스트베드(`~/workflow-hub-testbed/start.sh`, :8770) · 이 저장소 실제 등록(P-20261121-fcfdccb1, 표식 보류), 39.4 허브 간 이전(CLI · HTTP 초대 코드). 마지막 push `53076aac` 뒤 세션 정리 커밋.
@@ -102,7 +102,9 @@
 
 ## 5. 다음 세션 시작 포인트
 
-- (2026-11-24) TASK-2026-11-24-main-002: Python/Go 지식·결정 기능과 세 guide/setup MCP 도구 구현·회귀는 통과했고 운영 문서도 반영했다. `docs/index.md` 는 internal 운영 문서가 범위 밖이라고 이미 안내하므로 링크 변경은 하지 않는다. 소유자가 배포를 지시했으므로 clean-tree 전량 게이트 후 v3.2.0 pre-release를 발행하고 홈랩에 새 버전 서비스를 올린다. C5는 실환경 MCP에서 Git 문서/Wiki/ADR provenance, DCR 승인 권한, 승인 ADR 경로·SHA sync를 확인한다. changed gate 339/339 PASS; Python·Go targeted checks도 PASS.
+- (2026-11-24) TASK-2026-11-24-main-002: v3.2.0 pre-release를 발행하고 `fbe9c820`을 main에 push했다. 전체 게이트 native/slash 각각 357/357 PASS, release asset 9개와 SHA-256 검증 완료. HomeLab Go 서비스는 schema v15로 migrate되어 `/healthz` direct/proxy 모두 3.2.0을 보고하며 자동 시작 enabled, 구 3.1.0 rollback unit과 DB backup을 보존한다. MCP initialize 2025-11-25·85 tools, 통합 knowledge search 79 hits·Hub Wiki revision get, HTTP Wiki search/page/ref 200, owner callsign과 익명 DCR 접근 거절을 확인했다. DCR 데이터가 없어 승인/거절 변경은 실측하지 않았다. 전용 Go MCP `hub_wiki_get/list/search`가 not_implemented_in_go인 gap은 운영 문서·release note에 기록하고 TASK-2026-11-24-main-006/WBS-59.4로 분리했다.
+
+- (다음) TASK-2026-11-24-main-006: Go Wiki MCP 전용 list/get/search 핸들러를 Python과 parity하게 구현하고 unit/API/MCP 및 권한 경계를 검증한다. 이후 3.2.x pilot 재배포로 세 도구가 live에서 성공하는지 확인한다.
 
 - (145차, 2026-11-23, Linux) 수정 커밋 `b8c0af8c`를 push하고 v3.0.1 pre-release를 발행했다. Go Windows DSN 단위 회귀와 Python 3.0.1 wheel fallback을 준비했다. 다음은 M-057/WBS-57.1·57.2에서 Python/Go API parity를 업데이트하고 화면 write 및 relay DB 효과를 격리 복제 DB로 비교한다. native Windows 실행, 4 harness, same-DB rollback은 미검증이다. stable latest는 v2.1.0이다.
 

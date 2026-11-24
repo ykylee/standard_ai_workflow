@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- feat(hub): complete v3.2.0 pilot capabilities (d1c67801)
 - feat(hub): add project knowledge and DCR sharing (679927a6)
 - feat(mcp): release modern 2026-07-28 protocol support (ae732239)
 - feat(hub): add PostgreSQL backend for Go and Python (152ef811)
@@ -882,6 +883,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- fix(tests): make setup guide cases countable (fbe9c820)
+- fix(release): align smoke and roadmap gates (7fda7fc3)
 - fix(memory): resolve branch names beside version tags (0c57dcd6)
 - fix(hub): align PostgreSQL release metadata (66c8d49f)
 - fix(hub): prepare 3.0.1 Windows DSN and Python fallback (aa84d307)

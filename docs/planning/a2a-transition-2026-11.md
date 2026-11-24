@@ -3,7 +3,7 @@
 - 문서 목적: 승인과 에이전트 통신을 표준 A2A(Agent2Agent) 1.0 으로 옮기는 범위 · 요구 · 계약 · 열린 결정을 정한다.
 - 범위: 허브 A2A 서버(Python · Go), 승인 Task, 에이전트 간 메시지, 작업 배정. MCP 의 기억 · 지식 · task 도구는 대상이 아니다.
 - 대상 독자: 소유자, 허브 구현자
-- 상태: draft
+- 상태: accepted — A1 구현 (ADR-037)
 - 최종 수정일: 2026-11-24
 - 관련 문서: `../../workflow-source/core/hub_orchestration_spec.md`, `../../workflow-source/core/hub_spec.md`, `./plan-workbench-review-2026-11.md`
 

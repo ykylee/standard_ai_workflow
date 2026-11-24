@@ -2380,9 +2380,9 @@
       "sdlc_phase": "implementation",
       "declared_status": "in_progress",
       "derived_status": "in_progress",
-      "progress": 0.0,
+      "progress": 0.25,
       "total_leaves": 4,
-      "done_leaves": 0,
+      "done_leaves": 1,
       "deliverables_missing": [],
       "wbs": [
         {
@@ -2417,7 +2417,7 @@
         {
           "id": "WBS-59.4",
           "title": "Python/Go parity, 권한·충돌·복구 검증과 홈랩 pilot",
-          "derived_status": "in_progress",
+          "derived_status": "done",
           "linked_task_ids": [
             "TASK-2026-11-24-main-006",
             "TASK-2026-11-24-main-007",
@@ -2432,7 +2432,7 @@
             "TASK-2026-11-24-main-017"
           ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         }
       ]

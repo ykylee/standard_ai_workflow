@@ -74,6 +74,8 @@ func New(cfg Config) *Server {
 	s.mux.HandleFunc("POST /v1/relay/register", s.handleRelayRegister)
 	s.mux.HandleFunc("POST /v1/relay/poll", s.handleRelayPoll)
 	s.mux.HandleFunc("POST /v1/relay/result", s.handleRelayResult)
+	s.mux.HandleFunc("GET /.well-known/agent-card.json", s.handleA2ACard)
+	s.mux.HandleFunc("POST /a2a", s.handleA2A)
 	s.mux.Handle("/mcp", mcp)
 	return s
 }

@@ -30,6 +30,7 @@ from starlette.types import Receive, Scope, Send
 from workflow_kit import __version__ as HUB_VERSION
 from workflow_kit.hub import CONTRACT, KIT_COMPAT_VERSION
 from workflow_kit.hub import tools as hubtools
+from workflow_kit.hub.a2a import A2A, agent_card
 from workflow_kit.hub.errors import HubError
 from workflow_kit.hub.orchestration import WAIT_CAP_S, Orchestration
 from workflow_kit.hub.relay import POLL_CAP_S, Relays
@@ -254,6 +255,38 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
         except HubError as e:
             return JSONResponse(e.payload(), status_code=e.status, headers=headers)
 
+    a2a = A2A(store)
+
+    async def a2a_card(request: Request) -> Response:
+        return JSONResponse(agent_card(public_url), headers={**_hub_headers(store), "Cache-Control": "public, max-age=300"})
+
+    async def a2a_rpc(request: Request) -> Response:
+        headers = {**_hub_headers(store), "Cache-Control": "no-store"}
+        try:
+            token, now = _bearer(request.headers), clock()
+            raw = await request.body()
+            if len(raw) > MAX_BODY:
+                raise HubError(413, "payload_too_large", f"본문 상한 {MAX_BODY} 바이트", {"limit": MAX_BODY})
+            version = request.headers.get("a2a-version") or request.query_params.get("A2A-Version") or ""
+
+            def run() -> dict[str, Any]:
+                p = store.authenticate(token, now, request.headers.get("x-hub-client")) if token else None
+                if p is None:
+                    raise HubError(401, "unauthorized", "콜사인 토큰이 필요하다")
+                if p.kind != "callsign" or not p.project_id:
+                    raise HubError(403, "forbidden", "콜사인 토큰이 필요하다")
+                to = store.project_moved(p.project_id)
+                if to:
+                    raise HubError(410, "project_moved", "프로젝트가 다른 허브로 이동했다", {"project_id": p.project_id, "to": to})
+                return a2a.handle(Ctx(now=now, via="a2a", principal=p, client_version=request.headers.get("x-hub-client"),
+                                      public_url=public_url), raw, version.strip())
+
+            return JSONResponse(await run_in_threadpool(run), headers=headers)
+        except HubError as e:
+            if e.status == 401:
+                headers["WWW-Authenticate"] = "Bearer"
+            return JSONResponse(e.payload(), status_code=e.status, headers=headers)
+
     relays = Relays(store)
 
     async def _relay_body(request: Request) -> Any:
@@ -334,6 +367,8 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
             Route("/v1/relay/register", relay_register, methods=["POST"]),
             Route("/v1/relay/poll", relay_poll, methods=["POST"]),
             Route("/v1/relay/result", relay_result, methods=["POST"]),
+            Route("/.well-known/agent-card.json", a2a_card, methods=["GET"]),
+            Route("/a2a", a2a_rpc, methods=["POST"]),
             Route("/mcp", _McpEndpoint(), methods=["GET", "POST", "DELETE"]),
         ],
         lifespan=lifespan,

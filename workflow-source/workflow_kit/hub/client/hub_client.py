@@ -11,7 +11,8 @@
     python .workflow-hub/hub_client.py migrate plan                 # 1.x 전환 계획 — 허브 명령 실행 · 감지 전송 · 요약
     python .workflow-hub/hub_client.py migrate import <MIG> <종류,…|all>  # 고른 종류의 파일을 묶음으로 보내고 끝낸다
     python .workflow-hub/hub_client.py migrate request <MIG> <종류,…|all>  # 소유자가 아니면 — 웹 로그인 승인을 요청한다
-    python .workflow-hub/hub_client.py migrate import <MIG> <종류,…|all> <approval_id>  # 승인받은 뒤 들인다
+    python .workflow-hub/hub_client.py migrate import <MIG> <종류,…|all> <A2A Task|approval_id>  # 승인받은 뒤 들인다
+    python .workflow-hub/hub_client.py a2a send <제목> <질문> | get <Task> | list | cancel <Task>   # A2A 1.0 승인 요청
     python .workflow-hub/hub_client.py move <대상 허브 주소> <초대 코드>   # 허브 간 이전 (소유자) — 봉인 · 뜨기 · 들이기 · 주소 바꾸기
     python .workflow-hub/hub_client.py bootstrap <허브 주소> --harness <h> --callsign <c> [--kind human|agent] [--name <표시 이름>]
                                                     # 빈 환경 부트스트랩 — 등록(또는 합류) · 셋업 지시 실행 · 확인 (토큰은 env 에만)
@@ -93,6 +94,51 @@ def _post(name: str, args: dict[str, Any], timeout: float = 20) -> tuple[int, di
             return e.code, {"error_code": "http_error", "message": body[:500]}
     except (urllib.error.URLError, TimeoutError, ConnectionError, OSError) as e:
         raise Unreachable(str(getattr(e, "reason", e))) from None
+
+
+def _a2a(method: str, params: dict[str, Any], timeout: float = 20) -> tuple[int, dict[str, Any]]:
+    """A2A 1.0 JSON-RPC 한 번 — 승인 같은 통신은 이 길로 한다 (도구 호출은 ``_post``)."""
+    env = _env()
+    url, token = env.get("WORKFLOW_HUB_URL", "").rstrip("/"), env.get("WORKFLOW_HUB_TOKEN", "")
+    if not url or not token:
+        raise SystemExit("hub_client: .workflow-hub/env 에 WORKFLOW_HUB_URL · WORKFLOW_HUB_TOKEN 이 없다")
+    body = {"jsonrpc": "2.0", "id": secrets.token_hex(6), "method": method, "params": params}
+    req = urllib.request.Request(f"{url}/a2a", data=json.dumps(body, ensure_ascii=False).encode("utf-8"), method="POST",
+                                 headers={"content-type": "application/json", "authorization": f"Bearer {token}",
+                                          "a2a-version": "1.0", "x-hub-client": CLIENT_VERSION})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return r.status, json.loads(r.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        text = e.read().decode("utf-8", "replace")
+        try:
+            return e.code, json.loads(text)
+        except ValueError:
+            return e.code, {"error_code": "http_error", "message": text[:500]}
+    except (urllib.error.URLError, TimeoutError, ConnectionError, OSError) as e:
+        raise Unreachable(str(getattr(e, "reason", e))) from None
+
+
+def cmd_a2a(action: str, rest: list[str]) -> int:
+    """a2a send <제목> <질문> · get <Task> · list · cancel <Task>"""
+    call: tuple[str, dict[str, Any]]
+    if action == "send" and len(rest) == 2:
+        call = ("SendMessage", {"message": {"messageId": f"hc-{secrets.token_hex(12)}", "role": "ROLE_USER",
+                                            "parts": [{"data": {"title": rest[0], "question": rest[1]}, "mediaType": "application/json"}]}})
+    elif action in ("get", "cancel") and len(rest) == 1:
+        call = ("GetTask" if action == "get" else "CancelTask", {"id": rest[0]})
+    elif action == "list" and not rest:
+        call = ("ListTasks", {"historyLength": 0})
+    else:
+        print("hub_client: a2a send <제목> <질문> · get <Task> · list · cancel <Task>", file=sys.stderr)
+        return 2
+    try:
+        status, out = _a2a(*call)
+    except Unreachable as e:
+        print(json.dumps({"status": "unreachable", "reason": str(e)}, ensure_ascii=False))
+        return 2
+    print(json.dumps({"http": status, **out}, ensure_ascii=False, indent=1))
+    return 0 if status == 200 and "result" in out else 1
 
 
 def _queue(name: str, args: dict[str, Any], reason: str) -> Path:
@@ -240,24 +286,34 @@ def cmd_migrate_request(mig: str, kinds_arg: str) -> int:
         return 2
     table = [row["kind"] for row in json.loads(path.read_text(encoding="utf-8")).get("table", [])]
     kinds = table if kinds_arg == "all" else [k.strip() for k in kinds_arg.split(",") if k.strip()]
+    data = {"title": f"1.x 이관 실행 {mig}", "question": f"{mig} 의 {len(kinds)}개 종류를 이 허브로 들여올까요?",
+            "action": {"type": "migrate_import", "migration_id": mig, "kinds": kinds}}
     try:
-        status, started = _post("hub_session_start", {"session": {"harness": "hub-client", "kind": "worker", "delivery": ["wait"]},
-                                                      "client": {"version": CLIENT_VERSION}})
-        if status < 400:
-            status, started = _post("hub_approval_request", {
-                "session": started["session"]["id"], "title": f"1.x 이관 실행 {mig}",
-                "question": f"{mig} 의 {len(kinds)}개 종류를 이 허브로 들여올까요?",
-                "action": {"type": "migrate_import", "migration_id": mig, "kinds": kinds}})
+        status, out = _a2a("SendMessage", {"message": {"messageId": f"hc-{secrets.token_hex(12)}", "role": "ROLE_USER",
+                                                       "parts": [{"data": data, "mediaType": "application/json"}]}})
     except Unreachable as e:
         print(json.dumps({"status": "unreachable", "reason": str(e)}, ensure_ascii=False))
         return 2
-    out = {"http": status, **started}
-    if status < 400:
-        base = _env().get("WORKFLOW_HUB_URL", "").rstrip("/")
-        out["approve_at"] = f"{base}/ui/#/p/{_env().get('WORKFLOW_HUB_PROJECT', '')}/confirmations"
-        out["then"] = f"hub_client.py migrate import {mig} {kinds_arg} {started['approval_id']}"
-    print(json.dumps(out, ensure_ascii=False, indent=1))
-    return 0 if status < 400 else 1
+    task = out.get("result", {}).get("task")
+    if status != 200 or not task:
+        print(json.dumps({"http": status, **out}, ensure_ascii=False, indent=1))
+        return 1
+    print(json.dumps({"http": status, "task_id": task["id"], "state": task["status"]["state"],
+                      "approve_at": task["status"]["message"]["parts"][1]["data"]["approval_url"],
+                      "then": f"hub_client.py migrate import {mig} {kinds_arg} {task['id']}"}, ensure_ascii=False, indent=1))
+    return 0
+
+
+def _approval_of(task_id: str) -> tuple[str, dict[str, Any]]:
+    """A2A Task → 승인 아티팩트의 approval_id (아직이면 빈 문자열과 지금 상태)."""
+    status, out = _a2a("GetTask", {"id": task_id, "historyLength": 0})
+    task = out.get("result") or {}
+    for artifact in task.get("artifacts", []):
+        for part in artifact.get("parts", []):
+            found = (part.get("data") or {}).get("approval_id")
+            if found:
+                return str(found), out
+    return "", {"http": status, "state": task.get("status", {}).get("state"), **({"error": out["error"]} if "error" in out else {})}
 
 
 def cmd_migrate_import(mig: str, kinds_arg: str, approval_id: str = "") -> int:
@@ -266,6 +322,15 @@ def cmd_migrate_import(mig: str, kinds_arg: str, approval_id: str = "") -> int:
     if not path.is_file():
         print(json.dumps({"status": "error", "message": f"계획 캐시가 없다: {path} — migrate plan 을 먼저"}, ensure_ascii=False))
         return 2
+    if approval_id.startswith("A2A-"):
+        try:
+            approval_id, why = _approval_of(approval_id)
+        except Unreachable as e:
+            print(json.dumps({"status": "unreachable", "reason": str(e), "sent_batches": 0}, ensure_ascii=False))
+            return 3
+        if not approval_id:
+            print(json.dumps({"status": "not_approved", **why, "errors": [{"error_code": "not_approved"}]}, ensure_ascii=False))
+            return 1
     plan = json.loads(path.read_text(encoding="utf-8"))
     files_by_kind: dict[str, list[str]] = plan.get("files", {})
     # 계획 표의 순서대로 — 결정 응답은 그 task 뒤에 들어가야 자격을 판정할 수 있다
@@ -602,6 +667,8 @@ def main(argv: list[str]) -> int:
         return cmd_move(rest[0], rest[1])
     if cmd == "migrate" and rest[:1] == ["plan"]:
         return cmd_migrate_plan()
+    if cmd == "a2a" and rest:
+        return cmd_a2a(rest[0], rest[1:])
     if cmd == "migrate" and len(rest) == 3 and rest[0] == "request":
         return cmd_migrate_request(rest[1], rest[2])
     if cmd == "migrate" and len(rest) in (3, 4) and rest[0] == "import":

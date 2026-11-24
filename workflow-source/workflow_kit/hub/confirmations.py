@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from typing import Any
 
 from workflow_kit.hub import approval_grants
 from workflow_kit.hub.errors import HubError, invalid_field, not_found
 from workflow_kit.hub.orchestration import Orchestration
-from workflow_kit.hub.store import Ctx, Store, _iso, scan_secrets
+from workflow_kit.hub.store import Ctx, Principal, Store, _iso, scan_secrets
 
 
 class Confirmations:
@@ -16,7 +17,8 @@ class Confirmations:
         self.store = store
         self.orch = Orchestration(store)
 
-    def request(self, ctx: Ctx, args: dict[str, Any]) -> dict[str, Any]:
+    @staticmethod
+    def validate(args: dict[str, Any]) -> tuple[str, str, str]:
         title = args.get("title")
         question = args.get("question")
         details = args.get("details") or ""
@@ -27,36 +29,46 @@ class Confirmations:
         if not isinstance(details, str) or len(details) > 4000:
             raise invalid_field("details", "4000자 이하 문자열")
         scan_secrets({"title": title, "question": question, "details": details}, "confirmation")
+        return title.strip(), question.strip(), details
+
+    def create(self, conn: sqlite3.Connection, ctx: Ctx, p: Principal, title: str, question: str, details: str,
+               action: Any, session_id: str) -> tuple[str, tuple[dict[str, Any], dict[str, Any]] | None]:
+        """확인 요청 한 건을 쌓는다 — MCP 도구와 A2A 가 같은 함수를 쓴다 (세션은 있을 때만)."""
+        callsign = str(p.callsign)
+        row = conn.execute("SELECT owner_callsign FROM project WHERE id=?", (p.project_id,)).fetchone()
+        if row is None:
+            raise not_found(f"프로젝트가 없다: {p.project_id}")
+        prepared = approval_grants.prepare(conn, str(p.project_id), action) if action is not None else None
+        request_id = self.orch.enqueue(
+            conn, ctx, str(p.project_id), to_kind="callsign", to_id=row["owner_callsign"],
+            kind="approval", body={"request_type": "agent_confirmation", "title": title,
+                                   "question": question, "details": details,
+                                   "requested_by": callsign, "requested_by_session": session_id,
+                                   "state": "pending"},
+            from_callsign=callsign, from_session=session_id,
+        )
+        if prepared is not None:
+            approval_grants.insert(conn, ctx, str(p.project_id), request_id, callsign, *prepared)
+        self.store._event(conn, ctx, str(p.project_id), "confirmation_request", request_id, "request", None,
+                          {"state": "pending", "requested_by": callsign, "action": prepared[0] if prepared else None})
+        return request_id, prepared
+
+    def request(self, ctx: Ctx, args: dict[str, Any]) -> dict[str, Any]:
+        title, question, details = self.validate(args)
         p = self.orch._callsign(ctx)
-        callsign = p.callsign
-        if not callsign:
+        if not p.callsign:
             raise invalid_field("callsign", "콜사인 토큰이 필요하다")
         session_id = args.get("session")
         if not isinstance(session_id, str):
             raise invalid_field("session", "세션 식별자가 필요하다")
         with self.store.write() as conn:
             self.orch._session_row(conn, p, session_id)
-            row = conn.execute("SELECT owner_callsign FROM project WHERE id=?", (p.project_id,)).fetchone()
-            if row is None:
-                raise not_found(f"프로젝트가 없다: {p.project_id}")
-            prepared = approval_grants.prepare(conn, str(p.project_id), args["action"]) if args.get("action") is not None else None
-            request_id = self.orch.enqueue(
-                conn, ctx, str(p.project_id), to_kind="callsign", to_id=row["owner_callsign"],
-                kind="approval", body={"request_type": "agent_confirmation", "title": title.strip(),
-                                       "question": question.strip(), "details": details,
-                                       "requested_by": callsign, "requested_by_session": session_id,
-                                       "state": "pending"},
-                from_callsign=callsign, from_session=session_id,
-            )
-            if prepared is not None:
-                approval_grants.insert(conn, ctx, str(p.project_id), request_id, callsign, *prepared)
-            self.store._event(conn, ctx, str(p.project_id), "confirmation_request", request_id, "request", None,
-                              {"state": "pending", "requested_by": callsign, "action": prepared[0] if prepared else None})
+            request_id, prepared = self.create(conn, ctx, p, title, question, details, args.get("action"), session_id)
         if prepared is not None:
-            return {"request": {"id": request_id, "state": "pending", "title": title.strip(), "action": prepared[0]},
+            return {"request": {"id": request_id, "state": "pending", "title": title, "action": prepared[0]},
                     "approval_id": request_id,
                     "next": "사람이 허브 계정으로 로그인해 확인 요청에서 승인하면, 같은 콜사인으로 실행 도구에 approval_id 를 싣는다 (승인 뒤 24시간)."}
-        return {"request": {"id": request_id, "state": "pending", "title": title.strip()},
+        return {"request": {"id": request_id, "state": "pending", "title": title},
                 "next": "사람이 웹 허브의 확인 요청 메뉴에서 결정할 때까지 대기한다. 결과는 허브 받은편지함으로 온다."}
 
     def list_pending(self, ctx: Ctx) -> dict[str, Any]:

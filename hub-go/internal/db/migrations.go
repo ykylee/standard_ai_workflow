@@ -576,7 +576,25 @@ CREATE TABLE approval_grant (
 );
 `
 
-var Migrations = []string{V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11, V12, V13, V14, V15, V16, V17}
+// V18 is generated from workflow-source/workflow_kit/hub/db.py.
+const V18 = `
+CREATE TABLE a2a_task (
+    project_id TEXT NOT NULL REFERENCES project(id),
+    id TEXT NOT NULL,
+    context_id TEXT NOT NULL,
+    callsign TEXT NOT NULL,
+    message_id TEXT NOT NULL,
+    request_id TEXT NOT NULL,
+    source_json TEXT NOT NULL,
+    message_json TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    canceled_at TEXT,
+    PRIMARY KEY (project_id, id),
+    UNIQUE (project_id, callsign, message_id)
+);
+`
+
+var Migrations = []string{V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11, V12, V13, V14, V15, V16, V17, V18}
 
 func LatestVersion() int {
 	return len(Migrations)

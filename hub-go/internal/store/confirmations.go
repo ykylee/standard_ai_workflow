@@ -9,22 +9,58 @@ import (
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/db"
 )
 
+// ValidateConfirmation checks the human question an agent wants answered.
+func ValidateConfirmation(title, question, details string) (string, string, string, error) {
+	title, question, details = strings.TrimSpace(title), strings.TrimSpace(question), strings.TrimSpace(details)
+	if title == "" || len([]rune(title)) > 160 {
+		return "", "", "", InvalidField("title", "1~160자 문자열")
+	}
+	if question == "" || len([]rune(question)) > 2000 {
+		return "", "", "", InvalidField("question", "1~2000자 문자열")
+	}
+	if len([]rune(details)) > 4000 {
+		return "", "", "", InvalidField("details", "4000자 이하 문자열")
+	}
+	return title, question, details, ScanSecrets(map[string]any{"title": title, "question": question, "details": details}, "confirmation")
+}
+
+// createConfirmation stores one confirmation request; the MCP tool and A2A share it (a session is optional).
+func (s *Store) createConfirmation(tx *sql.Tx, ctx Ctx, p *Principal, title, question, details string, action any, sessionID string) (string, map[string]any, error) {
+	var owner string
+	if err := tx.QueryRow("SELECT owner_callsign FROM project WHERE id=?", p.ProjectID).Scan(&owner); err != nil {
+		return "", nil, err
+	}
+	var params, summary map[string]any
+	var err error
+	if action != nil {
+		if params, summary, err = prepareApproval(tx, p.ProjectID, action); err != nil {
+			return "", nil, err
+		}
+	}
+	body := map[string]any{"request_type": "agent_confirmation", "title": title, "question": question,
+		"details": details, "requested_by": p.Callsign, "requested_by_session": sessionID, "state": "pending"}
+	id, err := s.EnqueueMessage(tx, ctx, p.ProjectID, "callsign", owner, "approval", body, p.Callsign, sessionID, false, "")
+	if err != nil {
+		return "", nil, err
+	}
+	var logged any
+	if params != nil {
+		logged = params
+		if _, err := tx.Exec("INSERT INTO approval_grant (id,project_id,action,params_json,summary_json,requested_by,state,created_at) VALUES (?,?,?,?,?,?,'pending',?)",
+			id, p.ProjectID, params["type"], MustJSON(params), MustJSON(summary), p.Callsign, db.FormatISO(ctx.Now)); err != nil {
+			return "", nil, err
+		}
+	}
+	return id, params, s.RecordEvent(tx, ctx, &p.ProjectID, "confirmation_request", id, "request", nil,
+		map[string]any{"state": "pending", "requested_by": p.Callsign, "action": logged}, nil)
+}
+
 func (s *Store) ConfirmationRequest(ctx Ctx, sessionID, title, question, details string, action any) (map[string]any, error) {
 	p, err := NeedCallsign(ctx)
 	if err != nil {
 		return nil, err
 	}
-	title, question, details = strings.TrimSpace(title), strings.TrimSpace(question), strings.TrimSpace(details)
-	if title == "" || len(title) > 160 {
-		return nil, InvalidField("title", "1~160자 문자열")
-	}
-	if question == "" || len(question) > 2000 {
-		return nil, InvalidField("question", "1~2000자 문자열")
-	}
-	if len(details) > 4000 {
-		return nil, InvalidField("details", "4000자 이하 문자열")
-	}
-	if err := ScanSecrets(map[string]any{"title": title, "question": question, "details": details}, "confirmation"); err != nil {
+	if title, question, details, err = ValidateConfirmation(title, question, details); err != nil {
 		return nil, err
 	}
 	return s.withWriteTx(func(tx *sql.Tx) (map[string]any, error) {
@@ -35,32 +71,8 @@ func (s *Store) ConfirmationRequest(ctx Ctx, sessionID, title, question, details
 		if active["callsign"] != p.Callsign {
 			return nil, &HubError{Status: 403, Code: "session_not_yours", Message: "이 콜사인의 세션이 아니다"}
 		}
-		var owner string
-		if err := tx.QueryRow("SELECT owner_callsign FROM project WHERE id=?", p.ProjectID).Scan(&owner); err != nil {
-			return nil, err
-		}
-		var params, summary map[string]any
-		if action != nil {
-			if params, summary, err = prepareApproval(tx, p.ProjectID, action); err != nil {
-				return nil, err
-			}
-		}
-		body := map[string]any{"request_type": "agent_confirmation", "title": title, "question": question,
-			"details": details, "requested_by": p.Callsign, "requested_by_session": sessionID, "state": "pending"}
-		id, err := s.EnqueueMessage(tx, ctx, p.ProjectID, "callsign", owner, "approval", body, p.Callsign, sessionID, false, "")
+		id, params, err := s.createConfirmation(tx, ctx, p, title, question, details, action, sessionID)
 		if err != nil {
-			return nil, err
-		}
-		var logged any
-		if params != nil {
-			logged = params
-			if _, err := tx.Exec("INSERT INTO approval_grant (id,project_id,action,params_json,summary_json,requested_by,state,created_at) VALUES (?,?,?,?,?,?,'pending',?)",
-				id, p.ProjectID, params["type"], MustJSON(params), MustJSON(summary), p.Callsign, db.FormatISO(ctx.Now)); err != nil {
-				return nil, err
-			}
-		}
-		if err := s.RecordEvent(tx, ctx, &p.ProjectID, "confirmation_request", id, "request", nil,
-			map[string]any{"state": "pending", "requested_by": p.Callsign, "action": logged}, nil); err != nil {
 			return nil, err
 		}
 		if params != nil {

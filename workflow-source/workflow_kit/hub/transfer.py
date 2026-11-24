@@ -34,7 +34,7 @@ HUB_SCOPED_TABLES = frozenset(
         "meta", "hub_token", "sqlite_sequence", "project", "hub_invite", "relay_host", "relay_invite",
         "harness_registry", "harness_person", "harness_registry_person",
         "hub_account", "hub_account_callsign", "hub_account_session", "hub_account_login_attempt",
-        "approval_grant",  # 실행 승인은 그 허브의 로그인에 묶인다 — 옮기지 않는다
+        "approval_grant", "a2a_task",  # 실행 승인은 그 허브의 로그인에 묶인다 — 옮기지 않는다
     }
 )
 #: 봉인된 프로젝트에서도 받는 도구 — 조회(새 주소를 알림) · 소유자의 다시 뜨기 · 봉인 풀기 (이전 실패 복구).

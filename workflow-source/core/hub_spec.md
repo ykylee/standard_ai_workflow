@@ -105,7 +105,7 @@ python -m workflow_kit hub admin   --db PATH project import --file FILE | seal -
 | `project_alias` | `key` (정규화 주소) · `project_id` · `kind` (`primary`/`alias`) · `added_by` · `added_at` | `key` 유일 | R3.2 · R3.5 · R3.6 |
 | `callsign` | `project_id` · `id` · `kind` (`human`/`agent`) · `human_approved` · `role` (`owner`/`editor`) · `label` · `host` · `token_hash` · `guide_version_seen` · `client_version_seen` · `last_seen_at` · `revoked_at` · `version` | `(project_id, id)` 유일 · `id` 는 `^[a-z][a-z0-9-]{1,30}[a-z0-9]$`, 예약 `hub` | R4.1 · R4.7 · R7.7 · R7.8 · Q3 |
 | `hub_token` | `token_hash` · `role` (`web`/`admin`) · `name` · `created_at` · `revoked_at` | — | R13.2 · R13.2a |
-| `hub_account` · `hub_account_callsign` · `hub_account_session` · `hub_account_login_attempt` | 사람 계정 · 승인된 human 콜사인 연결 · 만료/폐기 가능한 세션 해시 · 로그인 실패 제한 | v16 | 3.2.4 |
+| `hub_account` · `hub_account_callsign` · `hub_account_session` · `hub_account_login_attempt` | 사람 계정 · 승인된 human 콜사인 연결 · 만료/폐기 가능한 세션 해시 · 로그인 실패 제한 | v16 | 3.3.0 |
 | `task` | `project_id` · `id` · `title` · `status` · `priority` · `assignee` (콜사인, 빈 값 허용) · `branch` · `wbs` · `wbs_exempt_reason` · `description` · `plan_md` · `fields_json` · `progress_note` · `progress_at` · `created_at` · `updated_at` · `version` | `(project_id, id)` 유일 · `status` ∈ 4 값 | R5.1~R5.7 |
 | `task_seq` | `project_id` · `date` · `namespace` · `next` | `(project_id, date, namespace)` | R5.2 |
 | `task_commit` | `project_id` · `task_id` · `sha` · `branch` · `added_by` · `added_at` | — | R5.9 · R10.4 |

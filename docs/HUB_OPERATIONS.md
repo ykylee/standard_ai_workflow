@@ -12,7 +12,7 @@ PostgreSQL은 Go와 Python 런타임이 함께 지원하는 서버 저장소다.
 참여한다. 하네스는 허브의 원격 MCP(`/mcp`)로 붙고, 셋업이 쓰는 파일은 `.gitignore` 한 줄 · 진입 파일 영역 ·
 하네스 설정 · 토큰 파일(`.workflow-hub/env`, git 제외) 뿐이다.
 
-버전 표시는 런타임 판과 kit 계약판을 구분한다. 현재 Go 허브 pilot과 Python wheel은 모두 **3.2.4**이며, 두 런타임이 구현하는
+버전 표시는 런타임 판과 kit 계약판을 구분한다. 현재 Go 허브 pilot과 Python wheel은 모두 **3.3.0**이며, 두 런타임이 구현하는
 kit 호환 계약은 **2.1.0**이다. 허브 `/healthz` 의 `hub_version`은 런타임, `kit_version`은 호환 계약 판이다.
 `X-Hub-Version` 과 `X-Hub-Kit` 응답 헤더도 같은 구분을 따른다.
 
@@ -191,13 +191,28 @@ python3 .workflow-hub/hub_client.py migrate import <MIG> all     # 고른 종류
 
 소유자 토큰을 에이전트에 주지 않고 이관할 수 있다. 사람은 §계정 절차로 허브 계정을 만들어 둔다.
 
-1. 에이전트: `hub_client.py migrate plan` → `hub_client.py migrate request <MIG> <종류,…|all>`. 승인 화면 주소와 `approval_id`가 나온다.
+1. 에이전트: `hub_client.py migrate plan` → `hub_client.py migrate request <MIG> <종류,…|all>`. 승인 화면 주소와 A2A Task ID가 나온다.
 2. 사람: 계정으로 로그인해 프로젝트의 **확인 요청**에서 허브가 계산한 실행 내용(이관 ID·종류별 파일 수·브랜치·HEAD·미커밋 수)을 보고 승인·거절한다.
-3. 에이전트: `hub_client.py migrate import <MIG> <종류,…|all> <approval_id>`.
+3. 에이전트: `hub_client.py migrate import <MIG> <종류,…|all> <Task ID>`. Task가 승인되면 아티팩트의 `approval_id`를 꺼내 쓴다.
 
 승인은 요청한 콜사인, 그 이관, 그 종류에만 듣는다. 24시간 뒤 만료되고 이관이 끝나면 소진된다. 소유자 콜사인 토큰으로는 승인할 수 없다 —
 에이전트도 들고 있을 수 있어서다. `hub_approval_request(action={type: migrate_marker, …})`로 '허브로 옮김' 표식도 같은 방식으로 승인받는다.
 허브는 승인한 파일 **경로**를 묶지만 저장소를 읽지 않으므로 내용은 에이전트가 보낸 그대로다.
+
+### A2A 1.0
+
+허브는 A2A(Agent2Agent) 1.0 서버다. Agent Card는 `<공개 주소>/.well-known/agent-card.json`, JSON-RPC는 `<공개 주소>/a2a`이다.
+하위 경로로 공개하면 도메인 뿌리의 카드는 프록시 몫이므로 카드 주소를 클라이언트에 직접 준다. 요청마다 콜사인 토큰(`Authorization: Bearer`)과
+`A2A-Version: 1.0`이 필요하다.
+
+| 메서드 | 하는 일 |
+|---|---|
+| `SendMessage` | 승인 요청 Task 생성 (`AUTH_REQUIRED`). data part `{title, question, details?, action?}` 또는 text part. 같은 `messageId`는 같은 Task |
+| `GetTask` · `ListTasks` | 내 콜사인이 만든 Task만 |
+| `CancelTask` | 결정 전 요청을 거둔다 |
+
+사람이 승인하면 `COMPLETED`와 승인 아티팩트, 거절하면 `REJECTED`가 된다. Task 상태는 권한이 아니다 — 실행은 아티팩트의 `approval_id`로 연다.
+스트리밍·푸시 알림·다른 바인딩은 아직 없다. 명령줄에서는 `hub_client.py a2a send|get|list|cancel`을 쓴다. 결정: ADR-037.
 
 ### 콜사인 정리
 
@@ -240,7 +255,7 @@ python -m workflow_kit hub backup --db ~/workflow-hub/hub.db --out ~/backup/hub-
 
 ### 8.1 3.x pre-release pilot 런타임 선택
 
-Go 허브 pilot과 Python 허브 wheel은 **3.2.4**로 배포된다. 사내 Windows에서는 아래 보안 정책을 먼저 확인하고,
+Go 허브 pilot과 Python 허브 wheel은 **3.3.0**로 배포된다. 사내 Windows에서는 아래 보안 정책을 먼저 확인하고,
 Python 런타임은 별도 프로세스와 DB 사본으로 평가한다.
 
 #### 셋업 전 사내 Windows 확인
@@ -259,7 +274,7 @@ Windows PowerShell 예시 (SQLite 복제본으로 pilot):
 ```powershell
 py -3.11 -m venv "$env:USERPROFILE\workflow-hub\venv-3x"
 $py = "$env:USERPROFILE\workflow-hub\venv-3x\Scripts\python.exe"
-& $py -m pip install 'standard-ai-workflow[hub] @ https://github.com/ykylee/standard_ai_workflow/releases/download/v3.2.4/standard_ai_workflow-3.2.4-py3-none-any.whl'
+& $py -m pip install 'standard-ai-workflow[hub] @ https://github.com/ykylee/standard_ai_workflow/releases/download/v3.3.0/standard_ai_workflow-3.3.0-py3-none-any.whl'
 & $py -m workflow_kit hub serve --db "$env:USERPROFILE\workflow-hub\pilot-copy.db" --bind 127.0.0.1 --port 8770
 ```
 
@@ -269,7 +284,7 @@ $py = "$env:USERPROFILE\workflow-hub\venv-3x\Scripts\python.exe"
 ```sh
 python3 -m venv ~/workflow-hub/venv-3x
 ~/workflow-hub/venv-3x/bin/python -m pip install \
-  'standard-ai-workflow[hub] @ https://github.com/ykylee/standard_ai_workflow/releases/download/v3.2.4/standard_ai_workflow-3.2.4-py3-none-any.whl'
+  'standard-ai-workflow[hub] @ https://github.com/ykylee/standard_ai_workflow/releases/download/v3.3.0/standard_ai_workflow-3.3.0-py3-none-any.whl'
 ~/workflow-hub/venv-3x/bin/python -m workflow_kit hub serve \
   --db ~/workflow-hub/pilot-copy.db --bind 127.0.0.1 --port 8770
 ```
@@ -277,7 +292,7 @@ python3 -m venv ~/workflow-hub/venv-3x
 - Python은 SQLite에 경로를 직접 전달하므로 Go의 `file:` DSN URI 생성 경로를 거치지 않는다.
 - Go와 Python 모두 parity 및 rollback 검증이 끝나기 전까지 운영 DB에 연결하지 않는다. pilot 시에는 각각 독립된 일관된 DB 사본을 쓴다.
 - Go 3.0.0 pre-release는 Windows 경로 DSN 결함이 있어 Windows에서 쓰지 않는다. Go 수정판은 3.0.1 이후 판이다.
-  현재 Go/Python pilot은 3.2.4이며, Windows 사내 환경에서는 V3/EDR 정책에 따라 Python 경로를 우선한다.
+  현재 Go/Python pilot은 3.3.0이며, Windows 사내 환경에서는 V3/EDR 정책에 따라 Python 경로를 우선한다.
 
 ## 9. 허브 간 프로젝트 이전
 

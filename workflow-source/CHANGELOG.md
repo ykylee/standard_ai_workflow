@@ -894,6 +894,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- fix(hub): accept a proxy-rewritten Origin scheme only for same-origin fetches (fad70a78)
 - fix(hub): accept the configured public origin behind a proxy, allow 8-char passwords (8f0aa8f7)
 - fix(hub): port Go setup confirm and wiki reads, prepare 3.2.2 prerelease (0166f0ce)
 - fix(tests): make setup guide cases countable (fbe9c820)

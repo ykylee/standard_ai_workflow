@@ -79,6 +79,12 @@ def decide(conn: sqlite3.Connection, ctx: Ctx, request_id: str, approve: bool) -
     return True
 
 
+def withdraw(conn: sqlite3.Connection, ctx: Ctx, project_id: str, request_id: str) -> None:
+    """요청한 에이전트가 거뒀다 — 아직 결정 전인 승인 기록을 닫는다."""
+    conn.execute("UPDATE approval_grant SET state = 'rejected', decided_at = ? WHERE project_id = ? AND id = ? AND state = 'pending'",
+                 (_iso(ctx.now), project_id, request_id))
+
+
 def summaries(conn: sqlite3.Connection, project_id: str) -> dict[str, dict[str, Any]]:
     return {r["id"]: {"type": r["action"], "params": json.loads(r["params_json"]), "summary": json.loads(r["summary_json"])}
             for r in conn.execute("SELECT id, action, params_json, summary_json FROM approval_grant "
@@ -115,4 +121,4 @@ def consume(conn: sqlite3.Connection, ctx: Ctx, project_id: str, approval_id: st
                  (_iso(ctx.now), project_id, approval_id))
 
 
-__all__ = ["GRANT_HOURS", "MARKER_SCOPE", "authorize", "consume", "decide", "insert", "prepare", "summaries"]
+__all__ = ["GRANT_HOURS", "MARKER_SCOPE", "authorize", "consume", "decide", "insert", "prepare", "summaries", "withdraw"]

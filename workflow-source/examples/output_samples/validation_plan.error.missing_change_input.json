@@ -9,7 +9,7 @@
     "session_handoff_path": null
   },
   "status": "error",
-  "tool_version": "3.2.4",
+  "tool_version": "3.3.0",
   "warnings": [
     "최소 하나의 changed file 또는 change summary 가 필요하다."
   ]

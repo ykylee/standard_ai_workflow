@@ -15,6 +15,8 @@ WATCHES = (
     "workflow-source/pyproject.toml",
     "workflow-source/workflow_kit/*",
     "workflow-source/tests/_workbench_fixture.py",
+    "workflow-source/tests/_hub_entry.py",
+    "ai-workflow/HUB_MIGRATED.json",
     "plugin/skills/backlog-update/SKILL.md",
     "CLAUDE.md",
 )

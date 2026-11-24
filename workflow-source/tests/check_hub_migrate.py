@@ -14,13 +14,14 @@
 4. 고른 것만 · 원본 불변 · 보관 — tasks 만 고르면 그것만, 저장소 파일 변화 0, 보관 기록 원문 바이트 일치 + 메타,
    콜사인 handoff 는 현재 브랜치에서
 5. 진입 파일 — kit 생성 절은 버리고 손 문단만 지침 제안 초안(open), 판 불변
-6. 권한 · 입력 · 다시 보내기 — 소유자 아님 403, 계획 밖 경로 · 고르지 않은 종류 400, 다시 보내면 건너뜀,
+6. 권한 · 입력 · 다시 보내기 — 계획은 누구나 · 들여오기는 소유자 아님 403, 계획 밖 경로 · 고르지 않은 종류 400, 다시 보내면 건너뜀,
    final 뒤 409
 7. '허브로 옮김' 표식 (WBS-38.2 · R14.6) — 끝나지 않은 전환 409 · 소유자 아님 403, 쓰기 지시대로 쓰고 커밋 → sha 확인,
    다른 sha 미확인, 두 번 내도 같은 내용, 표식에 허브 · 프로젝트 · 전환 · 시각 · kit 판
 8. 되돌리기 (R14.7) — 삭제 지시 + 확인 명령, 아직 추적되면 미확인, 지우고 커밋하면 확인, 허브 데이터 불변 · 주의 보고
 10. 결정 응답 · 프로젝트 문서 (소유자 2026-11-21) — 자격 있는 1.x 응답은 결정 응답으로(상태 계산), 없는 것은 보관,
     받은편지함은 남김. PURPOSE · PROFILE 이 허브 상태 요약의 목적 · 프로젝트 칸을 채운다, 쓰기는 승인된 human 만
+11. 웹 로그인 승인 — 에이전트 요청 → 계정 로그인 승인 → 그 콜사인 · 그 이관 · 그 종류만, 토큰 승인 거절 · 만료 · 재사용 거절
 9. 선택 클라이언트 운반 (소유자 2026-11-21, 리허설 §16.5) — 허브가 내려준 hub_client.py 를 kit 없는 격리
    인터프리터로 migrate plan → import all: MCP 와 같은 결과, 계획은 캐시에. 전환 두 도구만 큰 요청 상한
 """
@@ -41,6 +42,7 @@ WATCHES = (
 import json
 import os
 import re
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -228,6 +230,108 @@ def corpus_witness() -> tuple[int, list[str]]:
     return len(files), bad
 
 
+def case_11_web_approval(hub: Hub, db: Path, repo: Path, impl: str) -> None:
+    reg = hub.call("hub_project_register", {"remote_url": "git@github.com:acme/approve.git", "display_name": "approve",
+                                             "callsign": "owner-w", "kind": "human"})[1]
+    owner, pid = reg["token"], reg["project_id"]
+    join = lambda cs: hub.call("hub_callsign_register", {"project_id": pid, "callsign": cs, "kind": "agent"})[1]["token"]  # noqa: E731
+    agent, rival = join("agent-w"), join("rival-w")
+
+    def web(path: str, body: dict[str, Any] | None = None, cookie: str = "", token: str = "", method: str = "POST") -> tuple[int, dict[str, Any], Any]:
+        headers = {"content-type": "application/json", "origin": hub.base}
+        if cookie:
+            headers["cookie"] = cookie
+        if token:
+            headers["authorization"] = f"Bearer {token}"
+        req = urllib.request.Request(hub.base + path, method=method, headers=headers,
+                                     data=json.dumps(body or {}).encode() if method == "POST" else None)
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                return r.status, json.loads(r.read()), r.headers
+        except urllib.error.HTTPError as e:
+            return e.code, json.loads(e.read()), e.headers
+
+    _, _, head = web("/api/account/enroll", {"username": f"owner-{impl}", "display_name": "Owner", "password": "long-test-password-123"}, token=owner)
+    cookie = head.get("set-cookie", "").split(";", 1)[0]
+    session = hub.call("hub_session_start", {"session": {"harness": "claude-code", "kind": "worker", "delivery": ["wait"]}}, agent)[1]["session"]["id"]
+    plan = hub.call("hub_migrate_plan", {"scan": run_commands(repo)}, agent)[1]
+    mig = plan["migration_id"]
+
+    def ask(action: Any) -> tuple[int, dict[str, Any]]:
+        st, body, _ = hub.call("hub_approval_request", {"session": session, "title": "이관", "question": "실행할까요?", "action": action}, agent)
+        return st, body
+
+    def imp(token: str, approval: str, kinds: list[str], final: bool = False) -> tuple[int, str]:
+        files = [{"path": f, "content": (repo / f).read_text(encoding="utf-8")} for k in kinds for f in plan["files"][k]]
+        st, body, _ = hub.call("hub_migrate_import", {"migration_id": mig, "kinds": kinds, "files": files, "final": final,
+                                                       **({"approval_id": approval} if approval else {})}, token)
+        return st, body.get("error_code", "")
+
+    act = {"type": "migrate_import", "migration_id": mig, "kinds": ["tasks", "project_docs"]}
+    decide = lambda rid, d, **kw: (lambda r: (r[0], r[1].get("error_code", "")))(web(f"/api/projects/{pid}/confirmations/{rid}", {"decision": d}, **kw))  # noqa: E731
+    got: dict[str, Any] = {
+        "bad type": ask({"type": "rm", "migration_id": mig})[0], "extra key": ask({**act, "x": 1})[0],
+        "bad kind": ask({**act, "kinds": ["nope"]})[0], "no plan": ask({**act, "migration_id": "MIG-9999"})[0],
+        "marker early": ask({"type": "migrate_marker", "migration_id": mig, "marker": "issue"})[0],
+    }
+    st, asked = ask(act)
+    rid = asked.get("approval_id", "")
+    _, pending, _ = web(f"/api/projects/{pid}/confirmations", cookie=cookie, method="GET")
+    shown = next((r["action"] for r in pending["requests"] if r["id"] == rid), None) or {}
+    got["shown"] = (shown.get("type"), shown.get("summary", {}).get("files"), shown.get("params", {}).get("kinds"))
+    got["none"] = imp(agent, "", ["tasks"])
+    got["pending"] = imp(agent, rid, ["tasks", "project_docs"])
+    got["agent decides"] = decide(rid, "approve", token=agent)[0]
+    got["owner token decides"] = decide(rid, "approve", token=owner)
+    got["cross origin"] = web(f"/api/projects/{pid}/confirmations/{rid}", {"decision": "approve"}, cookie="")[0]
+    got["login approves"] = decide(rid, "approve", cookie=cookie)
+    got["rival"] = imp(rival, rid, ["tasks", "project_docs"])
+    got["wider"] = imp(agent, rid, ["tasks", "project_docs", "wiki"])
+    got["narrower"] = imp(agent, rid, ["tasks"])
+    got["batch"] = imp(agent, rid, ["tasks", "project_docs"])
+    got["final"] = imp(agent, rid, ["project_docs", "tasks"], True)
+    got["reuse"] = imp(agent, rid, ["tasks", "project_docs"])
+    got["docs"] = hub.call("hub_project_doc_get", {"name": "purpose"}, agent)[1].get("version")
+    got["marker none"] = hub.call("hub_migrate_marker", {"migration_id": mig, "action": "issue"}, agent)[0]
+    mk = ask({"type": "migrate_marker", "migration_id": mig, "marker": "issue"})[1]["approval_id"]
+    decide(mk, "approve", cookie=cookie)
+    st_m, issued, _ = hub.call("hub_migrate_marker", {"migration_id": mig, "action": "issue", "approval_id": mk}, agent)
+    got["marker issue"] = st_m
+    got["marker revert"] = hub.call("hub_migrate_marker", {"migration_id": mig, "action": "revert", "approval_id": mk}, agent)[0]
+    got["marker confirm"] = hub.call("hub_migrate_marker", {"migration_id": mig, "action": "confirm", "approval_id": mk,
+                                                             "sha256": issued["steps"][0]["sha256_after"]}, agent)[1].get("confirmed")
+    # 거절 · 만료 · 승인자 자격 — 두 번째 계획으로
+    mig = hub.call("hub_migrate_plan", {"scan": run_commands(repo)}, agent)[1]["migration_id"]
+    act["migration_id"] = mig
+    no = ask(act)[1]["approval_id"]
+    got["login rejects"] = decide(no, "reject", cookie=cookie)
+    got["rejected"] = imp(agent, no, ["tasks", "project_docs"])
+    old = ask(act)[1]["approval_id"]
+    decide(old, "approve", cookie=cookie)
+    with sqlite3.connect(db) as c:
+        c.execute("UPDATE approval_grant SET expires_at = '2000-01-01T00:00:00+00:00' WHERE id = ?", (old,))
+    got["expired"] = imp(agent, old, ["tasks", "project_docs"])
+    last = ask(act)[1]["approval_id"]
+    decide(last, "approve", cookie=cookie)
+    with sqlite3.connect(db) as c:
+        c.execute("UPDATE callsign SET role = 'editor' WHERE project_id = ? AND id = 'owner-w'", (pid,))
+    got["owner lost"] = imp(agent, last, ["tasks", "project_docs"])
+    with sqlite3.connect(db) as c:
+        c.row_factory = sqlite3.Row
+        row = c.execute("SELECT state, decided_by, decided_account FROM approval_grant WHERE id = ?", (rid,)).fetchone()
+        got["audit"] = tuple(row)
+    n = {k: len(plan["files"][k]) for k in ("tasks", "project_docs")}
+    want = {"bad type": 400, "extra key": 400, "bad kind": 400, "no plan": 404, "marker early": 409,
+            "shown": ("migrate_import", n, ["project_docs", "tasks"]), "none": (403, "forbidden"), "pending": (403, "approval_pending"),
+            "agent decides": 403, "owner token decides": (403, "account_login_required"), "cross origin": 401, "login approves": (200, ""),
+            "rival": (403, "approval_mismatch"), "wider": (403, "approval_mismatch"), "narrower": (403, "approval_mismatch"),
+            "batch": (200, ""), "final": (200, ""), "reuse": (403, "approval_used"), "docs": 1, "marker none": 403, "marker issue": 200,
+            "marker revert": 403, "marker confirm": True, "login rejects": (200, ""), "rejected": (403, "approval_rejected"),
+            "expired": (403, "approval_expired"), "owner lost": (403, "approval_revoked"), "audit": ("used", "owner-w", f"owner-{impl}")}
+    diff = {k: (got.get(k), want[k]) for k in want if got.get(k) != want[k]}
+    _record("case 11 (웹 로그인 승인 — 요청 · 계정 승인만 · 콜사인/대상/종류에 묶임 · 만료 · 1회)", st == 200 and not diff, f"st={st} diff={diff}")
+
+
 def _measure(impl: str, cmd: list[str] | None) -> None:
     print(f"  --- [{impl}] ---")
     with tempfile.TemporaryDirectory(prefix="hub-mig-") as d:
@@ -361,7 +465,7 @@ def _measure(impl: str, cmd: list[str] | None) -> None:
             # 6 권한 · 입력 · 다시 보내기
             human = hub.call("hub_callsign_register", {"project_id": pid, "callsign": "yk-h", "kind": "human"})[1]["token"]
             hub.call("hub_callsign_approve", {"callsign": "yk-h"}, tok)
-            e0, _, _ = hub.call("hub_migrate_plan", {}, human)  # 승인된 human 이지만 소유자가 아니다
+            e0, _, _ = hub.call("hub_migrate_plan", {}, human)  # 계획(기록)은 콜사인 누구나 — 들여오기는 소유자이거나 승인
             e1, _, _ = hub.call("hub_migrate_plan", {}, other)
             e2, _ = send(hub, other, mig, repo, ["tasks"], files["tasks"][:1])
             e3, bad_path, _ = hub.call("hub_migrate_import", {"migration_id": mig, "kinds": ["tasks"],
@@ -370,7 +474,7 @@ def _measure(impl: str, cmd: list[str] | None) -> None:
             e5, again = send(hub, tok, mig, repo, ["tasks", "archive"], files["tasks"] + files["archive"], final=True)
             e6, _ = send(hub, tok, mig, repo, ["tasks"], files["tasks"][:1])
             _, listing2, _ = hub.call("hub_task_list", {"limit": 500}, tok)
-            ok6 = (e0 == 403 and e1 == 403 and e2 == 403 and e3 == 400 and bad_path["detail"].get("field") == "files[0].path" and e4 == 400
+            ok6 = (e0 == 200 and e1 == 200 and e2 == 403 and e3 == 400 and bad_path["detail"].get("field") == "files[0].path" and e4 == 400
                    and e5 == 200 and again.get("status") == "done" and again["summary"]["tasks"] == {"skipped_exists": 10}
                    and again["summary"]["archive"].get("skipped_exists") == 8 and e6 == 409
                    and len(listing2["tasks"]) == 5 and variants(ID1) == 2)
@@ -446,6 +550,8 @@ def _measure(impl: str, cmd: list[str] | None) -> None:
                    and not (repo / "ai-workflow/HUB_MIGRATED.json").exists())
             _record("case 8 (되돌리기 — 삭제 지시 · 추적되면 미확인 · 지우면 확인 · 허브 데이터 불변)", ok8,
                     f"{r1} {r2}/{still.get('reverted')} {r3}/{done_rv.get('reverted')} tasks {n_before}->{n_after} marker={rep8}")
+
+            case_11_web_approval(hub, tmp / "hub.db", repo, impl)
 
             # 9 선택 클라이언트 운반 — 새 저장소 · 새 프로젝트
             repo2 = build_repo(tmp / "c")

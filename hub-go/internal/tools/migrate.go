@@ -149,7 +149,7 @@ type migCandidate struct {
 }
 
 func migratePlan(s *store.Store, ctx store.Ctx, rawScan any) (map[string]any, error) {
-	p, err := migOwner(ctx)
+	p, err := store.NeedCallsign(ctx) // 계획은 기록만 남긴다 — 들여오기는 소유자이거나 승인이 있어야 한다
 	if err != nil {
 		return nil, err
 	}
@@ -567,11 +567,7 @@ func countGroups(in map[string]any) map[string]any {
 }
 
 func migrateImport(s *store.Store, ctx store.Ctx, args map[string]any) (map[string]any, error) {
-	p, err := migOwner(ctx)
-	if err != nil {
-		return nil, err
-	}
-	mig := strArg(args, "migration_id", "")
+	mig, approvalID := strArg(args, "migration_id", ""), strArg(args, "approval_id", "")
 	kinds, ok := stringList(args["kinds"])
 	known := map[string]bool{}
 	for _, k := range migKinds {
@@ -587,6 +583,16 @@ func migrateImport(s *store.Store, ctx store.Ctx, args map[string]any) (map[stri
 	}
 	if !ok || len(kinds) == 0 || len(bad) > 0 {
 		return nil, store.InvalidField("kinds", fmt.Sprintf("%s 가운데 하나 이상 — 모르는 값: %v", strings.Join(migKinds, " · "), bad))
+	}
+	var p *store.Principal
+	var err error
+	if approvalID != "" {
+		p, err = s.ApprovalAuthorize(ctx, approvalID, "migrate_import", map[string]any{"migration_id": mig, "kinds": sortedSet(chosen)})
+	} else {
+		p, err = migOwner(ctx)
+	}
+	if err != nil {
+		return nil, err
 	}
 	row, err := loadMigration(s, p.ProjectID, mig)
 	if err != nil {
@@ -713,7 +719,14 @@ func migrateImport(s *store.Store, ctx store.Ctx, args map[string]any) (map[stri
 			return nil, err
 		}
 		if final {
-			if err := s.RecordEvent(tx, ctx, &p.ProjectID, "migration_1x", mig, "done", nil, total, nil); err != nil {
+			var before any
+			if approvalID != "" {
+				before = map[string]any{"approval_id": approvalID}
+				if err := store.ApprovalConsume(tx, ctx, p.ProjectID, approvalID); err != nil {
+					return nil, err
+				}
+			}
+			if err := s.RecordEvent(tx, ctx, &p.ProjectID, "migration_1x", mig, "done", before, total, nil); err != nil {
 				return nil, err
 			}
 		}
@@ -1061,8 +1074,7 @@ func (m *migImporter) projectDoc(path, content string) error {
 		m.add("project_docs", "skipped_exists", item)
 		return nil
 	}
-	zero := 0
-	if _, err := m.s.ProjectDocPut(m.ctx, name, content, &zero); err != nil {
+	if _, err := m.s.ProjectDocImport(m.ctx, name, content); err != nil {
 		return err
 	}
 	m.add("project_docs", "imported", item)
@@ -1085,15 +1097,25 @@ func markerContent(publicURL, pid, mig, at string, kits any) (string, error) {
 }
 
 func migrateMarker(s *store.Store, ctx store.Ctx, args map[string]any) (map[string]any, error) {
-	p, err := migOwner(ctx)
-	if err != nil {
-		return nil, err
-	}
-	mig, action := strArg(args, "migration_id", ""), strArg(args, "action", "")
+	mig, action, approvalID := strArg(args, "migration_id", ""), strArg(args, "action", ""), strArg(args, "approval_id", "")
 	switch action {
 	case "issue", "confirm", "revert", "confirm_revert":
 	default:
 		return nil, store.InvalidField("action", "issue · confirm · revert · confirm_revert")
+	}
+	var p *store.Principal
+	var err error
+	if approvalID != "" {
+		scope := "issue"
+		if strings.HasSuffix(action, "revert") {
+			scope = "revert"
+		}
+		p, err = s.ApprovalAuthorize(ctx, approvalID, "migrate_marker", map[string]any{"migration_id": mig, "marker": scope})
+	} else {
+		p, err = migOwner(ctx)
+	}
+	if err != nil {
+		return nil, err
 	}
 	row, err := loadMigration(s, p.ProjectID, mig)
 	if err != nil {
@@ -1179,6 +1201,11 @@ func migrateMarker(s *store.Store, ctx store.Ctx, args map[string]any) (map[stri
 	return s.WriteTx(func(tx *sql.Tx) (map[string]any, error) {
 		if _, err := tx.Exec("UPDATE migration_1x SET report_json=? WHERE project_id=? AND id=?", encoded, p.ProjectID, mig); err != nil {
 			return nil, err
+		}
+		if approvalID != "" && (out["confirmed"] == true || out["reverted"] == true) {
+			if err := store.ApprovalConsume(tx, ctx, p.ProjectID, approvalID); err != nil {
+				return nil, err
+			}
 		}
 		return out, s.RecordEvent(tx, ctx, &p.ProjectID, "migration_1x", mig, "marker_"+action, nil, logged, nil)
 	})

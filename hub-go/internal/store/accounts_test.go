@@ -42,7 +42,7 @@ func TestAccountEnrollmentLoginAndConfirmationA2A(t *testing.T) {
 	if _, err := s.DB().Exec("INSERT INTO session(project_id,id,callsign,harness,kind,delivery_json,last_signal_at,started_at) VALUES(?,?,?,?,?,?,?,?)", pid, sid, agent.Callsign, "codex", "worker", `["piggyback"]`, db.FormatISO(now), db.FormatISO(now)); err != nil {
 		t.Fatal(err)
 	}
-	requested, err := s.ConfirmationRequest(Ctx{Now: now, Via: "mcp", Principal: agent}, sid, "운영 배포", "배포할까요?", "회귀 통과")
+	requested, err := s.ConfirmationRequest(Ctx{Now: now, Via: "mcp", Principal: agent}, sid, "운영 배포", "배포할까요?", "회귀 통과", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,7 +68,7 @@ func TestAccountEnrollmentLoginAndConfirmationA2A(t *testing.T) {
 	if err != nil || decision["request"].(map[string]any)["state"] != "approved" {
 		t.Fatalf("decision=%#v err=%v", decision, err)
 	}
-	second, err := s.ConfirmationRequest(Ctx{Now: now, Via: "mcp", Principal: agent}, sid, "Rotate secret", "Rotate now?", "")
+	second, err := s.ConfirmationRequest(Ctx{Now: now, Via: "mcp", Principal: agent}, sid, "Rotate secret", "Rotate now?", "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}

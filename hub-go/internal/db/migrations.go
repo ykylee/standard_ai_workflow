@@ -556,7 +556,27 @@ CREATE TABLE hub_account_login_attempt (
 );
 `
 
-var Migrations = []string{V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11, V12, V13, V14, V15, V16}
+// V17 is generated from workflow-source/workflow_kit/hub/db.py.
+const V17 = `
+CREATE TABLE approval_grant (
+    id TEXT NOT NULL,
+    project_id TEXT NOT NULL REFERENCES project(id),
+    action TEXT NOT NULL,
+    params_json TEXT NOT NULL,
+    summary_json TEXT NOT NULL,
+    requested_by TEXT NOT NULL,
+    state TEXT NOT NULL CHECK (state IN ('pending', 'approved', 'rejected', 'used')),
+    decided_by TEXT,
+    decided_account TEXT,
+    created_at TEXT NOT NULL,
+    decided_at TEXT,
+    expires_at TEXT,
+    used_at TEXT,
+    PRIMARY KEY (project_id, id)
+);
+`
+
+var Migrations = []string{V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11, V12, V13, V14, V15, V16, V17}
 
 func LatestVersion() int {
 	return len(Migrations)

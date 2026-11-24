@@ -68,7 +68,7 @@
 | `hub_wait` | 그 세션 (`allow_wait` = 1) | **`session`** · `timeout_s` (기본 · 상한 **50** — §6.2 · §6.6) | 그 세션 앞 메시지가 오면 즉시 돌려줌, 없으면 상한에서 빈 응답 + `call_again: true` | R18.3 · Q1 |
 | `hub_inbox_ack` | 받은 세션 | **`session`** · **`message_id`** · **`decision`** (`accept`/`decline`/`seen`) · `reason` · `request_id` | 수신 확인 · 배정 수락/거절 | R18.8 · R20 |
 | `hub_inbox_list` | 그 세션 · 오케스트레이터 | `session` · `state` | 받은편지함 읽기 (편승을 못 받는 경로의 보조) | R18.1 |
-| `hub_approval_request` | active session 의 agent | **`session`** · **`title`** · **`question`** · `details` | 사람 owner에게 확인 요청. 결정은 웹 화면 전용이고 결과는 A2A `confirmation_result` note로 돌아온다 | R18 · R22 |
+| `hub_approval_request` | active session 의 agent | **`session`** · **`title`** · **`question`** · `details` · `action` | 사람 owner에게 확인 요청. `action`({type: migrate_import, migration_id, kinds} · {type: migrate_marker, migration_id, marker})을 실으면 계정 로그인 승인 뒤 그 실행에만 쓰는 `approval_id` 가 된다. 결정은 웹 화면 전용이고 결과는 A2A `confirmation_result` note로 돌아온다 | R18 · R22 |
 | `hub_report` | 배정받은 세션 | **`session`** · **`task_id`** · **`summary`** · `verification` · `request_id` | 배정 `reported` · 오케스트레이터 앞 `report` 메시지. done 은 바꾸지 않는다 | R20.3 |
 | `hub_orch_declare` | 승인된 human `owner` | **`session`** (대상) | lease 생성 (이미 있으면 409 `orchestrator_exists` — 인계는 `hub_orch_transfer`) | R19.1 |
 | `hub_orch_transfer` | 승인된 human `owner` | **`session`** (새 대상) | lease 교체 · 열린 배정 · 대기 요청이 넘어감 · 양쪽에 `note` | R19.3 |

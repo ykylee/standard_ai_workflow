@@ -120,12 +120,13 @@ var ToolOrder = []*ToolSpec{
 	{
 		Name:        "hub_approval_request",
 		Bundle:      "token",
-		Description: "사람 확인이 필요할 때 요청을 owner에게 전달한다. 웹 허브 확인 요청 메뉴에서 승인/거절하며 결과는 요청 콜사인의 A2A 받은편지함으로 돌아온다. 승인 자체가 작업을 실행하지는 않는다.",
+		Description: "사람 확인이 필요할 때 요청을 owner에게 전달한다. 웹 허브 확인 요청 메뉴에서 승인/거절하며 결과는 요청 콜사인의 A2A 받은편지함으로 돌아온다. 승인 자체가 작업을 실행하지는 않는다. action 을 실으면 (migrate_import · migrate_marker) 사람이 계정 로그인으로 승인한 뒤 그 실행에만 쓰는 approval_id 가 된다.",
 		Properties: map[string]map[string]any{
 			"session":  map[string]any{"type": "string"},
 			"title":    map[string]any{"type": "string"},
 			"question": map[string]any{"type": "string"},
 			"details":  map[string]any{"type": "string"},
+			"action":   map[string]any{"type": "object"},
 		},
 		Required: []string{"session", "title", "question"},
 	},
@@ -200,7 +201,7 @@ var ToolOrder = []*ToolSpec{
 	{
 		Name:        "hub_migrate_plan",
 		Bundle:      "token",
-		Description: "1.x 전환 계획 (소유자만) — 인자 없이 부르면 저장소에서 돌릴 명령, scan={name:{rc,output}} 을 실어 다시 부르면 감지 보고 · 전환 표 · 같은 ID 정본 · 하네스 안내와 migration_id. 원본은 건드리지 않는다.",
+		Description: "1.x 전환 계획 — 인자 없이 부르면 저장소에서 돌릴 명령, scan={name:{rc,output}} 을 실어 다시 부르면 감지 보고 · 전환 표 · 같은 ID 정본 · 하네스 안내와 migration_id. 원본은 건드리지 않는다.",
 		Properties: map[string]map[string]any{
 			"scan": map[string]any{"type": "object"},
 		},
@@ -209,24 +210,26 @@ var ToolOrder = []*ToolSpec{
 	{
 		Name:        "hub_migrate_import",
 		Bundle:      "token",
-		Description: "1.x 들여오기 묶음 (소유자만) — kinds: tasks · archive · handoff · roadmap · wiki · memory_index · checkpoint · guide_draft 가운데 소유자가 고른 것. files=[{path, content}] 는 계획에 있는 경로만. 요청 상한(256KB) 안으로 나눠 보내고 마지막에 final=true. 다시 보내도 있는 것은 건너뛴다.",
+		Description: "1.x 들여오기 묶음 (소유자, 또는 로그인 승인받은 approval_id) — kinds: tasks · archive · handoff · roadmap · wiki · memory_index · checkpoint · guide_draft 가운데 소유자가 고른 것. files=[{path, content}] 는 계획에 있는 경로만. 요청 상한(256KB) 안으로 나눠 보내고 마지막에 final=true. 다시 보내도 있는 것은 건너뛴다.",
 		Properties: map[string]map[string]any{
 			"migration_id": map[string]any{"type": "string"},
 			"kinds":        map[string]any{"type": "array"},
 			"files":        map[string]any{"type": "array"},
 			"final":        map[string]any{"type": "boolean"},
+			"approval_id":  map[string]any{"type": "string"},
 		},
 		Required: []string{"migration_id", "kinds"},
 	},
 	{
 		Name:        "hub_migrate_marker",
 		Bundle:      "token",
-		Description: "'허브로 옮김' 표식 (소유자만, 끝난 전환만) — action=issue: ai-workflow/HUB_MIGRATED.json 쓰기 지시 · 커밋 명령, confirm(sha256): 쓴 파일 대조, revert: 삭제 지시 · 확인 명령, confirm_revert(check={rc, output}). 되돌려도 허브 데이터는 옮기지 않는다.",
+		Description: "'허브로 옮김' 표식 (소유자 또는 로그인 승인받은 approval_id, 끝난 전환만) — action=issue: ai-workflow/HUB_MIGRATED.json 쓰기 지시 · 커밋 명령, confirm(sha256): 쓴 파일 대조, revert: 삭제 지시 · 확인 명령, confirm_revert(check={rc, output}). 되돌려도 허브 데이터는 옮기지 않는다.",
 		Properties: map[string]map[string]any{
 			"migration_id": map[string]any{"type": "string"},
 			"action":       map[string]any{"type": "string"},
 			"sha256":       map[string]any{"type": "string"},
 			"check":        map[string]any{"type": "object"},
+			"approval_id":  map[string]any{"type": "string"},
 		},
 		Required: []string{"migration_id", "action"},
 	},

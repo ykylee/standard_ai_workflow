@@ -44,7 +44,7 @@
 - 2026-11-24 발행한 Go pilot prerelease와 Python wheel은 **3.2.0**이다. GitHub Release는 prerelease이며 `latest=false`; 현재 latest 안정판은 **2.1.0**이다. 홈랩에서는 기존 DB를 V15로 올려 Go 3.2.0 서비스를 운영한다. 두 실행판의 런타임 버전은 각 빌드에서
   보고하고 kit 호환 계약 버전 **2.1.0**과 분리한다. 3.x pilot 은 parity·플랫폼 실측 진행 중인 평가판이다.
 - **3.2.1**은 관리자 화면 진입 UX와 관리자 승인형 선언 셋업 프로필을 추가하는 pilot patch다. 발행 후에도 pre-release 표기와 stable latest **2.1.0**을 유지한다.
-- **3.2.2**는 사람 계정·에이전트 확인 요청, Go `hub_setup_confirm`·Wiki 읽기 3종 포팅을 담은 pilot patch다. DB 판이 16으로 오른다. pre-release 표기와 stable latest **2.1.0**을 유지한다.
+- **3.2.2**는 사람 계정·에이전트 확인 요청, Go `hub_setup_confirm`·Wiki 읽기 3종 포팅을 담은 pilot patch다. 에이전트 요청·로그인 승인 이관을 포함하며 DB 판이 17로 오른다. pre-release 표기와 stable latest **2.1.0**을 유지한다.
 - **같은 날 두 줄을 낼 때 (2.0.0 + 1.30.0)**: 1.x 를 먼저 낸다 — 그때는 원격에 2.x 가 없어 1.30.0 이 잠시 latest 가
   된다. 이어 2.0.0 이 latest 를 가져간다. 순서를 바꾸면 1.30.0 은 처음부터 `--latest=false` 다. 어느 쪽이든 끝 상태는
   같다 — 끝난 뒤 `gh release list` 로 latest 가 2.x 인지 본다.

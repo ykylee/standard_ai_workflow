@@ -24,7 +24,7 @@ from workflow_kit.common.paths import HANDOFF_FILENAME
 from workflow_kit.common.project_docs import HandoffParser, task_label, task_label_aliases
 from workflow_kit.common.workflow_writes import read_task_affected_documents, read_task_list_field
 from workflow_kit.hub.errors import HubError, forbidden, invalid_field, not_found
-from workflow_kit.hub import render
+from workflow_kit.hub import approval_grants, render
 from workflow_kit.hub.guide import Guides
 from workflow_kit.hub.judge import Judge
 from workflow_kit.hub.memory import Memory
@@ -254,7 +254,7 @@ class Migrator:
 
     def plan(self, ctx: Ctx, scan: dict[str, Any] | None) -> dict[str, Any]:
         """인자 없이 → 돌릴 명령. ``scan`` 을 실어 → 감지 보고 · 전환 계획 (계획은 ``MIG-NNNN`` 으로 남는다)."""
-        p = self._owner(ctx)
+        p = self.store._need_callsign(ctx)  # 계획은 기록만 남긴다 — 들여오기는 소유자이거나 승인이 있어야 한다
         if scan is None:
             return {"phase": 1, "commands": COMMANDS,
                     "rules": ["저장소 뿌리에서 그대로 돌리고 {name: {rc, output}} 로 scan 에 싣는다",
@@ -427,13 +427,17 @@ class Migrator:
         return {"migration_id": mig, "status": row["status"], "at": row["at"], "callsign": row["callsign"],
                 "plan": json.loads(row["plan_json"]), "report": json.loads(row["report_json"])}
 
-    def import_batch(self, ctx: Ctx, mig: str, kinds: list[str], files: list[Any], final: bool = False) -> dict[str, Any]:
+    def import_batch(self, ctx: Ctx, mig: str, kinds: list[str], files: list[Any], final: bool = False,
+                     approval_id: str | None = None) -> dict[str, Any]:
         """고른 종류의 파일 묶음을 들인다 (R14.2). 계획에 없는 경로 · 고르지 않은 종류의 파일은 거절."""
-        p = self._owner(ctx)
-        pid = p.project_id or ""
+        pid = ctx.principal.project_id or "" if ctx.principal else ""
         bad = [k for k in kinds if k not in KINDS]
         if not kinds or bad:
             raise invalid_field("kinds", f"{' · '.join(KINDS)} 가운데 하나 이상 — 모르는 값: {bad}")
+        if approval_id:
+            p = approval_grants.authorize(self.store, ctx, approval_id, "migrate_import", migration_id=mig, kinds=sorted(set(kinds)))
+        else:
+            p = self._owner(ctx)
         with self.store.read() as conn:
             row = self._load(conn, pid, mig)
         if row["status"] == "done":
@@ -486,8 +490,10 @@ class Migrator:
         with self.store.write() as conn:
             conn.execute("UPDATE migration_1x SET status = ?, report_json = ? WHERE project_id = ? AND id = ?",
                          (status, _json(report), pid, mig))
+            if final and approval_id:
+                approval_grants.consume(conn, ctx, pid, approval_id)
             if final:
-                self.store._event(conn, ctx, pid, "migration_1x", mig, "done", None,
+                self.store._event(conn, ctx, pid, "migration_1x", mig, "done", {"approval_id": approval_id} if approval_id else None,
                                   {k: {kk: len(vv) for kk, vv in v.items()} for k, v in report.items() if isinstance(v, dict)})
         summary = {k: {kk: len(vv) for kk, vv in v.items()} for k, v in batch.items()}
         total = {k: {kk: len(vv) for kk, vv in v.items()} for k, v in report.items() if isinstance(v, dict)}
@@ -498,12 +504,16 @@ class Migrator:
     # --- '허브로 옮김' 표식 (R14.6 · R14.7 · DS9) ---------------------------------------------
 
     def marker(self, ctx: Ctx, mig: str, action: str, sha256: str | None = None,
-               check: dict[str, Any] | None = None) -> dict[str, Any]:
+               check: dict[str, Any] | None = None, approval_id: str | None = None) -> dict[str, Any]:
         """표식 쓰기 지시 · 확인 · 되돌리기. 허브는 저장소에 쓰지 않는다 — 지시를 내고 결과를 대조한다."""
-        p = self._owner(ctx)
-        pid = p.project_id or ""
         if action not in MARKER_ACTIONS:
             raise invalid_field("action", " · ".join(MARKER_ACTIONS))
+        if approval_id:
+            scope = next(k for k, v in approval_grants.MARKER_SCOPE.items() if action in v)
+            p = approval_grants.authorize(self.store, ctx, approval_id, "migrate_marker", migration_id=mig, marker=scope)
+        else:
+            p = self._owner(ctx)
+        pid = p.project_id or ""
         with self.store.read() as conn:
             row = self._load(conn, pid, mig)
         if row["status"] != "done":
@@ -546,6 +556,8 @@ class Migrator:
         report["marker"] = state
         with self.store.write() as conn:
             conn.execute("UPDATE migration_1x SET report_json = ? WHERE project_id = ? AND id = ?", (_json(report), pid, mig))
+            if approval_id and (out.get("confirmed") or out.get("reverted")):
+                approval_grants.consume(conn, ctx, pid, approval_id)
             self.store._event(conn, ctx, pid, "migration_1x", mig, f"marker_{action}", None,
                               {k: v for k, v in out.items() if k in ("confirmed", "reverted", "reason")})
         out["marker"] = state
@@ -601,7 +613,8 @@ class Migrator:
         if mem.doc_get(ctx, name)["version"]:
             add("project_docs", "skipped_exists", {"name": name, "path": path})
             return
-        mem.doc_put(ctx, name, content, 0)
+        with self.store.write() as conn:  # 자격은 들여오기 입구가 봤다 (소유자 또는 로그인 승인) — doc_put 의 human 검사를 다시 하지 않는다
+            mem.doc_put(ctx, name, content, 0, conn=conn)
         add("project_docs", "imported", {"name": name, "path": path})
 
     def _import_tasks(self, ctx: Ctx, p: Principal, plan: dict[str, Any], path: str, content: str, add: Any) -> None:

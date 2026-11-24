@@ -734,6 +734,7 @@
       return;
     }
     const requests = result.data.requests || [];
+    const actingAccount = project.status === 200 && project.data.principal?.auth_mode === "account";
     const cards = requests.map((req) => {
       const note = el("textarea", { rows: "2", placeholder: "결정 메모 (선택)" });
       const decide = (decision) => async () => {
@@ -748,9 +749,16 @@
       return el("section", { class: "card" },
         el("div", { class: "row" }, el("h2", {}, req.title), chip("승인 대기", "blocked")),
         el("div", { class: "muted" }, `${req.requested_by} · ${req.created_at}`),
-        el("p", {}, req.question), req.details ? el("pre", { class: "wrap" }, req.details) : null,
+        req.action ? el("section", { class: "card", "data-action": req.action.type },
+          el("h3", {}, "승인하면 허용되는 실행 (허브가 계산)"),
+          el("p", {}, `${{ migrate_import: "1.x 기록 들여오기", migrate_marker: "'허브로 옮김' 표식" }[req.action.type] || req.action.type} · ${req.action.summary.migration_id}`),
+          el("p", { class: "muted" }, `요청 콜사인 ${req.requested_by}에게만, 승인 뒤 24시간, 한 번. 브랜치 ${req.action.summary.branch} · ${String(req.action.summary.head).slice(0, 8)} · 미커밋 파일 ${req.action.summary.uncommitted}개`),
+          req.action.summary.files ? el("ul", {}, Object.entries(req.action.summary.files).map(([k, n]) => el("li", {}, `${k}: ${n}개 파일`))) : null,
+          req.action.summary.marker ? el("p", {}, `표식 동작: ${req.action.summary.marker}`) : null,
+          actingAccount ? null : alertBox("warn", "이 승인은 허브 계정 로그인이 필요하다. 홈에서 계정으로 로그인한 뒤 승인한다.")) : null,
+        el("p", { class: "muted" }, "요청한 에이전트의 설명"), el("p", {}, req.question), req.details ? el("pre", { class: "wrap" }, req.details) : null,
         el("div", { class: "row" }, note,
-          el("button", { type: "button", onclick: decide("approve") }, "승인"),
+          el("button", { type: "button", disabled: Boolean(req.action) && !actingAccount, onclick: decide("approve") }, "승인"),
           el("button", { class: "danger", type: "button", onclick: decide("reject") }, "거절")));
     });
     render(el("section", { class: "card" }, el("h1", {}, "에이전트 확인 요청"),

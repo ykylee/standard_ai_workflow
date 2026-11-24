@@ -59,6 +59,20 @@ func (s *Store) ProjectDocPut(ctx Ctx, name, body string, expected *int) (map[st
 	if p.CallsignKind != "human" || !p.HumanApproved {
 		return nil, Forbidden("프로젝트 문서는 승인된 human 콜사인이 쓴다")
 	}
+	return s.putProjectDoc(ctx, p, name, body, expected)
+}
+
+// ProjectDocImport writes a new document for an already authorized migration (owner or login approval).
+func (s *Store) ProjectDocImport(ctx Ctx, name, body string) (map[string]any, error) {
+	p, err := NeedCallsign(ctx)
+	if err != nil {
+		return nil, err
+	}
+	zero := 0
+	return s.putProjectDoc(ctx, p, name, body, &zero)
+}
+
+func (s *Store) putProjectDoc(ctx Ctx, p *Principal, name, body string, expected *int) (map[string]any, error) {
 	if err := checkDocName(name); err != nil {
 		return nil, err
 	}

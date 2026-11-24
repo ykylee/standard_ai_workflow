@@ -71,6 +71,9 @@ class Principal:
     human_approved: bool = False
     role: str | None = None
     name: str | None = None
+    #: 화면에서 계정 로그인으로 왔으면 ``account`` — 실행 승인은 이 값을 본다 (토큰은 사람이 봤다는 증거가 아니다).
+    auth_mode: str | None = None
+    account_name: str | None = None
 
 
 @dataclass(frozen=True)

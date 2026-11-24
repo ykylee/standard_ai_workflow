@@ -10,6 +10,8 @@
     python .workflow-hub/hub_client.py session-start                # 남은 보낼편지함 수를 싣고 시작, 브리핑을 캐시
     python .workflow-hub/hub_client.py migrate plan                 # 1.x 전환 계획 — 허브 명령 실행 · 감지 전송 · 요약
     python .workflow-hub/hub_client.py migrate import <MIG> <종류,…|all>  # 고른 종류의 파일을 묶음으로 보내고 끝낸다
+    python .workflow-hub/hub_client.py migrate request <MIG> <종류,…|all>  # 소유자가 아니면 — 웹 로그인 승인을 요청한다
+    python .workflow-hub/hub_client.py migrate import <MIG> <종류,…|all> <approval_id>  # 승인받은 뒤 들인다
     python .workflow-hub/hub_client.py move <대상 허브 주소> <초대 코드>   # 허브 간 이전 (소유자) — 봉인 · 뜨기 · 들이기 · 주소 바꾸기
     python .workflow-hub/hub_client.py bootstrap <허브 주소> --harness <h> --callsign <c> [--kind human|agent] [--name <표시 이름>]
                                                     # 빈 환경 부트스트랩 — 등록(또는 합류) · 셋업 지시 실행 · 확인 (토큰은 env 에만)
@@ -230,7 +232,35 @@ def cmd_migrate_plan() -> int:
     return 0
 
 
-def cmd_migrate_import(mig: str, kinds_arg: str) -> int:
+def cmd_migrate_request(mig: str, kinds_arg: str) -> int:
+    """들여오기 승인을 웹으로 요청한다 — 사람이 허브 계정으로 로그인해 확인 요청에서 승인한다."""
+    path = CACHE / f"migrate-{mig}.json"
+    if not path.is_file():
+        print(json.dumps({"status": "error", "message": f"계획 캐시가 없다: {path} — migrate plan 을 먼저"}, ensure_ascii=False))
+        return 2
+    table = [row["kind"] for row in json.loads(path.read_text(encoding="utf-8")).get("table", [])]
+    kinds = table if kinds_arg == "all" else [k.strip() for k in kinds_arg.split(",") if k.strip()]
+    try:
+        status, started = _post("hub_session_start", {"session": {"harness": "hub-client", "kind": "worker", "delivery": ["wait"]},
+                                                      "client": {"version": CLIENT_VERSION}})
+        if status < 400:
+            status, started = _post("hub_approval_request", {
+                "session": started["session"]["id"], "title": f"1.x 이관 실행 {mig}",
+                "question": f"{mig} 의 {len(kinds)}개 종류를 이 허브로 들여올까요?",
+                "action": {"type": "migrate_import", "migration_id": mig, "kinds": kinds}})
+    except Unreachable as e:
+        print(json.dumps({"status": "unreachable", "reason": str(e)}, ensure_ascii=False))
+        return 2
+    out = {"http": status, **started}
+    if status < 400:
+        base = _env().get("WORKFLOW_HUB_URL", "").rstrip("/")
+        out["approve_at"] = f"{base}/ui/#/p/{_env().get('WORKFLOW_HUB_PROJECT', '')}/confirmations"
+        out["then"] = f"hub_client.py migrate import {mig} {kinds_arg} {started['approval_id']}"
+    print(json.dumps(out, ensure_ascii=False, indent=1))
+    return 0 if status < 400 else 1
+
+
+def cmd_migrate_import(mig: str, kinds_arg: str, approval_id: str = "") -> int:
     """계획의 파일을 읽어 묶음으로 보낸다. 다시 돌려도 허브가 있는 것을 건너뛴다 (마지막 묶음 final 뒤에는 409)."""
     path = CACHE / f"migrate-{mig}.json"
     if not path.is_file():
@@ -266,7 +296,8 @@ def cmd_migrate_import(mig: str, kinds_arg: str) -> int:
     for i, batch in enumerate(batches):
         try:
             status, out = _post("hub_migrate_import", {"migration_id": mig, "kinds": kinds, "files": batch,
-                                                        "final": i == len(batches) - 1}, timeout=600)
+                                                        "final": i == len(batches) - 1,
+                                                        **({"approval_id": approval_id} if approval_id else {})}, timeout=600)
         except Unreachable as e:
             print(json.dumps({"status": "unreachable", "reason": str(e), "sent_batches": i}, ensure_ascii=False))
             return 3
@@ -571,8 +602,10 @@ def main(argv: list[str]) -> int:
         return cmd_move(rest[0], rest[1])
     if cmd == "migrate" and rest[:1] == ["plan"]:
         return cmd_migrate_plan()
-    if cmd == "migrate" and len(rest) == 3 and rest[0] == "import":
-        return cmd_migrate_import(rest[1], rest[2])
+    if cmd == "migrate" and len(rest) == 3 and rest[0] == "request":
+        return cmd_migrate_request(rest[1], rest[2])
+    if cmd == "migrate" and len(rest) in (3, 4) and rest[0] == "import":
+        return cmd_migrate_import(*rest[1:])
     print(f"hub_client: 모르는 명령 {cmd!r}", file=sys.stderr)
     return 2
 

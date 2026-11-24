@@ -9,7 +9,7 @@ import (
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/db"
 )
 
-func (s *Store) ConfirmationRequest(ctx Ctx, sessionID, title, question, details string) (map[string]any, error) {
+func (s *Store) ConfirmationRequest(ctx Ctx, sessionID, title, question, details string, action any) (map[string]any, error) {
 	p, err := NeedCallsign(ctx)
 	if err != nil {
 		return nil, err
@@ -39,15 +39,33 @@ func (s *Store) ConfirmationRequest(ctx Ctx, sessionID, title, question, details
 		if err := tx.QueryRow("SELECT owner_callsign FROM project WHERE id=?", p.ProjectID).Scan(&owner); err != nil {
 			return nil, err
 		}
+		var params, summary map[string]any
+		if action != nil {
+			if params, summary, err = prepareApproval(tx, p.ProjectID, action); err != nil {
+				return nil, err
+			}
+		}
 		body := map[string]any{"request_type": "agent_confirmation", "title": title, "question": question,
 			"details": details, "requested_by": p.Callsign, "requested_by_session": sessionID, "state": "pending"}
 		id, err := s.EnqueueMessage(tx, ctx, p.ProjectID, "callsign", owner, "approval", body, p.Callsign, sessionID, false, "")
 		if err != nil {
 			return nil, err
 		}
+		var logged any
+		if params != nil {
+			logged = params
+			if _, err := tx.Exec("INSERT INTO approval_grant (id,project_id,action,params_json,summary_json,requested_by,state,created_at) VALUES (?,?,?,?,?,?,'pending',?)",
+				id, p.ProjectID, params["type"], MustJSON(params), MustJSON(summary), p.Callsign, db.FormatISO(ctx.Now)); err != nil {
+				return nil, err
+			}
+		}
 		if err := s.RecordEvent(tx, ctx, &p.ProjectID, "confirmation_request", id, "request", nil,
-			map[string]any{"state": "pending", "requested_by": p.Callsign}, nil); err != nil {
+			map[string]any{"state": "pending", "requested_by": p.Callsign, "action": logged}, nil); err != nil {
 			return nil, err
+		}
+		if params != nil {
+			return map[string]any{"request": map[string]any{"id": id, "state": "pending", "title": title, "action": params}, "approval_id": id,
+				"next": "사람이 허브 계정으로 로그인해 확인 요청에서 승인하면, 같은 콜사인으로 실행 도구에 approval_id 를 싣는다 (승인 뒤 24시간)."}, nil
 		}
 		return map[string]any{"request": map[string]any{"id": id, "state": "pending", "title": title},
 			"next": "사람이 웹 허브 확인 요청 메뉴에서 결정할 때까지 대기한다. 결과는 A2A 받은편지함으로 온다."}, nil
@@ -56,6 +74,10 @@ func (s *Store) ConfirmationRequest(ctx Ctx, sessionID, title, question, details
 
 func (s *Store) ConfirmationList(ctx Ctx) (map[string]any, error) {
 	p, err := needOwner(ctx)
+	if err != nil {
+		return nil, err
+	}
+	actions, err := s.pendingApprovals(p.ProjectID)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +101,7 @@ func (s *Store) ConfirmationList(ctx Ctx) (map[string]any, error) {
 		}
 		requests = append(requests, map[string]any{"id": id, "requested_by": fromCallsign,
 			"requested_by_session": fromSession, "created_at": created, "title": body["title"],
-			"question": body["question"], "details": body["details"]})
+			"question": body["question"], "details": body["details"], "action": actions[id]})
 	}
 	return map[string]any{"requests": requests}, rows.Err()
 }
@@ -129,6 +151,9 @@ func (s *Store) ConfirmationDecide(ctx Ctx, requestID, decision, note string) (m
 		}
 		if old == "expired" {
 			return nil, &HubError{Status: 409, Code: "request_expired", Message: "만료된 확인 요청이다"}
+		}
+		if err := decideApproval(tx, ctx, p, requestID, decision == "approve"); err != nil {
+			return nil, err
 		}
 		if _, err := tx.Exec("UPDATE inbox_message SET state=?,acked_at=?,ack_by_session=?,ack_reason=?,version=version+1 WHERE project_id=? AND id=?",
 			target, db.FormatISO(ctx.Now), "web:"+p.Callsign, note, p.ProjectID, requestID); err != nil {

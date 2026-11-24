@@ -398,7 +398,7 @@ func Call(s *store.Store, name string, rawArgs any, ctx store.Ctx) (result map[s
 		return s.HarnessRegistryList(ctx, false)
 	case "hub_approval_request":
 		return s.ConfirmationRequest(ctx, strArg(clean, "session", ""), strArg(clean, "title", ""),
-			strArg(clean, "question", ""), strArg(clean, "details", ""))
+			strArg(clean, "question", ""), strArg(clean, "details", ""), clean["action"])
 	case "hub_setup_plan":
 		return setupPlan(s, ctx, clean)
 	case "hub_setup_confirm":

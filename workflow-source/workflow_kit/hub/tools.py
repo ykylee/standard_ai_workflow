@@ -219,8 +219,8 @@ TOOLS: dict[str, ToolSpec] = {
                               "description": "2.1 — 첫 호출은 {harness, harness_session_id?, kind?, delivery?, resume?} 로 세션 등록, "
                                              "이후(두 번째 호출 포함)는 받은 세션 ID 문자열"}}, (), _session_start),
         ToolSpec("hub_approval_request", "token",
-                 "사람 확인이 필요할 때 요청을 owner에게 전달한다. 웹 허브 확인 요청 메뉴에서 승인/거절하며 결과는 요청 콜사인의 A2A 받은편지함으로 돌아온다. 승인 자체가 작업을 실행하지는 않는다.",
-                 {"session": _STR, "title": _STR, "question": _STR, "details": _STR},
+                 "사람 확인이 필요할 때 요청을 owner에게 전달한다. 웹 허브 확인 요청 메뉴에서 승인/거절하며 결과는 요청 콜사인의 A2A 받은편지함으로 돌아온다. 승인 자체가 작업을 실행하지는 않는다. action 을 실으면 (migrate_import · migrate_marker) 사람이 계정 로그인으로 승인한 뒤 그 실행에만 쓰는 approval_id 가 된다.",
+                 {"session": _STR, "title": _STR, "question": _STR, "details": _STR, "action": _OBJ},
                  ("session", "title", "question"), lambda s, c, a: Confirmations(s).request(c, a)),
         ToolSpec("hub_harness_report", "token", "셋업 미지원 하네스의 비밀 없는 프로필 관측과 후보 경로를 검토 대기열에 제보한다. 관리자는 승인 시 검증된 mcp-http-json-v1 셋업 프로필도 함께 등록한다. 제보만으로 허브 설정은 바뀌지 않는다.",
                  {"report": _OBJ}, ("report",), lambda s, c, a: HarnessIntake(s).submit(c, a["report"])),
@@ -249,23 +249,23 @@ TOOLS: dict[str, ToolSpec] = {
                  {"proposal_id": _STR, "approve": {"type": "boolean"}}, ("proposal_id", "approve"),
                  lambda s, c, a: Guides(s).decide(c, a["proposal_id"], bool(a["approve"]))),
         ToolSpec("hub_migrate_plan", "token",
-                 "1.x 전환 계획 (소유자만) — 인자 없이 부르면 저장소에서 돌릴 명령, scan={name:{rc,output}} 을 실어 다시 부르면 "
+                 "1.x 전환 계획 — 인자 없이 부르면 저장소에서 돌릴 명령, scan={name:{rc,output}} 을 실어 다시 부르면 "
                  "감지 보고 · 전환 표 · 같은 ID 정본 · 하네스 안내와 migration_id. 원본은 건드리지 않는다.",
                  {"scan": _OBJ}, (), lambda s, c, a: Migrator(s).plan(c, a.get("scan"))),
         ToolSpec("hub_migrate_import", "token",
-                 "1.x 들여오기 묶음 (소유자만) — kinds: tasks · archive · handoff · roadmap · wiki · memory_index · checkpoint · "
+                 "1.x 들여오기 묶음 (소유자, 또는 로그인 승인받은 approval_id) — kinds: tasks · archive · handoff · roadmap · wiki · memory_index · checkpoint · "
                  "guide_draft 가운데 소유자가 고른 것. files=[{path, content}] 는 계획에 있는 경로만. 요청 상한(256KB) 안으로 나눠 "
                  "보내고 마지막에 final=true. 다시 보내도 있는 것은 건너뛴다.",
-                 {"migration_id": _STR, "kinds": _ARR, "files": _ARR, "final": {"type": "boolean"}},
+                 {"migration_id": _STR, "kinds": _ARR, "files": _ARR, "final": {"type": "boolean"}, "approval_id": _STR},
                  ("migration_id", "kinds"),
                  lambda s, c, a: Migrator(s).import_batch(c, a["migration_id"], a["kinds"], a.get("files") or [],
-                                                          bool(a.get("final")))),
+                                                          bool(a.get("final")), a.get("approval_id"))),
         ToolSpec("hub_migrate_marker", "token",
-                 "'허브로 옮김' 표식 (소유자만, 끝난 전환만) — action=issue: " + MARKER_REL + " 쓰기 지시 · 커밋 명령, "
+                 "'허브로 옮김' 표식 (소유자 또는 로그인 승인받은 approval_id, 끝난 전환만) — action=issue: " + MARKER_REL + " 쓰기 지시 · 커밋 명령, "
                  "confirm(sha256): 쓴 파일 대조, revert: 삭제 지시 · 확인 명령, confirm_revert(check={rc, output}). "
                  "되돌려도 허브 데이터는 옮기지 않는다.",
-                 {"migration_id": _STR, "action": _STR, "sha256": _STR, "check": _OBJ}, ("migration_id", "action"),
-                 lambda s, c, a: Migrator(s).marker(c, a["migration_id"], a["action"], a.get("sha256"), a.get("check"))),
+                 {"migration_id": _STR, "action": _STR, "sha256": _STR, "check": _OBJ, "approval_id": _STR}, ("migration_id", "action"),
+                 lambda s, c, a: Migrator(s).marker(c, a["migration_id"], a["action"], a.get("sha256"), a.get("check"), a.get("approval_id"))),
         ToolSpec("hub_migrate_report", "token", "1.x 전환 기록 — 계획 · 종류별 들인 것 · 건너뛴 것 · 실패.",
                  {"migration_id": _STR}, ("migration_id",), lambda s, c, a: Migrator(s).report(c, a["migration_id"])),
         ToolSpec("hub_project_doc_get", "token", "프로젝트 문서 (name=purpose · profile — 1.x 의 PURPOSE.md · PROJECT_PROFILE.md).",

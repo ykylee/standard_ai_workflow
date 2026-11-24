@@ -595,10 +595,29 @@ CREATE TABLE hub_account_login_attempt (
 );
 """
 
+_V17 = """
+CREATE TABLE approval_grant (
+    id TEXT NOT NULL,
+    project_id TEXT NOT NULL REFERENCES project(id),
+    action TEXT NOT NULL,
+    params_json TEXT NOT NULL,
+    summary_json TEXT NOT NULL,
+    requested_by TEXT NOT NULL,
+    state TEXT NOT NULL CHECK (state IN ('pending', 'approved', 'rejected', 'used')),
+    decided_by TEXT,
+    decided_account TEXT,
+    created_at TEXT NOT NULL,
+    decided_at TEXT,
+    expires_at TEXT,
+    used_at TEXT,
+    PRIMARY KEY (project_id, id)
+);
+"""
+
 #: 판 순서 = 목록 순서. 판 n = ``MIGRATIONS[n-1]`` (SQL 스크립트).
 #: ``executescript`` 는 열린 트랜잭션을 먼저 커밋하므로, 판 하나의 원자성은
 #: 스크립트 **안의** ``BEGIN IMMEDIATE … COMMIT`` 으로 만든다 (:func:`_apply`).
-MIGRATIONS: list[str] = [_V1, _V2, _V3, _V4, _V5, _V6, _V7, _V8, _V9, _V10, _V11, _V12, _V13, _V14, _V15, _V16]
+MIGRATIONS: list[str] = [_V1, _V2, _V3, _V4, _V5, _V6, _V7, _V8, _V9, _V10, _V11, _V12, _V13, _V14, _V15, _V16, _V17]
 
 
 def latest_version() -> int:

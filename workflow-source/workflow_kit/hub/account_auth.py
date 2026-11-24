@@ -148,15 +148,16 @@ class HubAccounts:
 
     def callsign(self, account_id: str, project_id: str, now: datetime) -> Principal | None:
         with self.store.read() as conn:
-            row = conn.execute("SELECT c.project_id,c.id,c.kind,c.human_approved,c.role,c.label "
+            row = conn.execute("SELECT c.project_id,c.id,c.kind,c.human_approved,c.role,c.label,a.username "
                                "FROM hub_account_callsign l JOIN callsign c ON c.project_id=l.project_id AND c.id=l.callsign "
+                               "JOIN hub_account a ON a.id=l.account_id "
                                "WHERE l.account_id=? AND l.project_id=? AND c.revoked_at IS NULL",
                                (account_id, project_id)).fetchone()
         if not row:
             return None
         return Principal(kind="callsign", project_id=row["project_id"], callsign=row["id"],
                          callsign_kind=row["kind"], human_approved=bool(row["human_approved"]),
-                         role=row["role"], name=row["label"])
+                         role=row["role"], name=row["label"], auth_mode="account", account_name=row["username"])
 
     def projects(self, account_id: str) -> list[str]:
         with self.store.read() as conn:

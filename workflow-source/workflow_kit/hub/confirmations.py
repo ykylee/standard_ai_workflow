@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from workflow_kit.hub import approval_grants
 from workflow_kit.hub.errors import HubError, invalid_field, not_found
 from workflow_kit.hub.orchestration import Orchestration
 from workflow_kit.hub.store import Ctx, Store, _iso, scan_secrets
@@ -38,6 +39,7 @@ class Confirmations:
             row = conn.execute("SELECT owner_callsign FROM project WHERE id=?", (p.project_id,)).fetchone()
             if row is None:
                 raise not_found(f"프로젝트가 없다: {p.project_id}")
+            prepared = approval_grants.prepare(conn, str(p.project_id), args["action"]) if args.get("action") is not None else None
             request_id = self.orch.enqueue(
                 conn, ctx, str(p.project_id), to_kind="callsign", to_id=row["owner_callsign"],
                 kind="approval", body={"request_type": "agent_confirmation", "title": title.strip(),
@@ -46,8 +48,14 @@ class Confirmations:
                                        "state": "pending"},
                 from_callsign=callsign, from_session=session_id,
             )
+            if prepared is not None:
+                approval_grants.insert(conn, ctx, str(p.project_id), request_id, callsign, *prepared)
             self.store._event(conn, ctx, str(p.project_id), "confirmation_request", request_id, "request", None,
-                              {"state": "pending", "requested_by": callsign})
+                              {"state": "pending", "requested_by": callsign, "action": prepared[0] if prepared else None})
+        if prepared is not None:
+            return {"request": {"id": request_id, "state": "pending", "title": title.strip(), "action": prepared[0]},
+                    "approval_id": request_id,
+                    "next": "사람이 허브 계정으로 로그인해 확인 요청에서 승인하면, 같은 콜사인으로 실행 도구에 approval_id 를 싣는다 (승인 뒤 24시간)."}
         return {"request": {"id": request_id, "state": "pending", "title": title.strip()},
                 "next": "사람이 웹 허브의 확인 요청 메뉴에서 결정할 때까지 대기한다. 결과는 A2A 받은편지함으로 온다."}
 
@@ -62,6 +70,7 @@ class Confirmations:
                 "AND state IN ('queued','delivered','unacknowledged') ORDER BY created_at DESC LIMIT 200",
                 (p.project_id, p.callsign),
             ).fetchall()
+            actions = approval_grants.summaries(conn, p.project_id)
         requests = []
         for row in rows:
             body = json.loads(row["body_json"])
@@ -70,7 +79,7 @@ class Confirmations:
             requests.append({"id": row["id"], "requested_by": row["from_callsign"],
                              "requested_by_session": row["from_session"], "created_at": row["created_at"],
                              "title": body.get("title", ""), "question": body.get("question", ""),
-                             "details": body.get("details", "")})
+                             "details": body.get("details", ""), "action": actions.get(row["id"])})
         return {"requests": requests}
 
     def decide(self, ctx: Ctx, request_id: str, decision: str, note: str = "") -> dict[str, Any]:
@@ -100,6 +109,7 @@ class Confirmations:
                 raise HubError(409, "already_decided", "이미 다른 결정을 내린 요청이다", {"state": row["state"]})
             if row["state"] == "expired":
                 raise HubError(409, "request_expired", "만료된 확인 요청이다")
+            approval_grants.decide(conn, ctx, request_id, decision == "approve")
             conn.execute(
                 "UPDATE inbox_message SET state=?,acked_at=?,ack_by_session=?,ack_reason=?,version=version+1 "
                 "WHERE project_id=? AND id=?",

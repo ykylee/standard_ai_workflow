@@ -1,0 +1,12 @@
+{
+  "format": "workflow-hub-migrated/1",
+  "from_kit_versions": [
+    "1.0.0-beta"
+  ],
+  "hub": "https://homelab.ddn777.synology.me/workflow",
+  "kit_version": "2.1.0",
+  "migrated_at": "2026-11-24T13:37:23+00:00",
+  "migration_id": "MIG-0003",
+  "note": "이 저장소의 워크플로우 정본은 허브다 — 1.x kit 의 쓰기 도구는 이 파일을 보면 거절한다. 1.x 로 되돌리려면 이 파일만 지운다 (허브 쪽 데이터는 옮기지 않는다).",
+  "project_id": "P-20261121-fcfdccb1"
+}

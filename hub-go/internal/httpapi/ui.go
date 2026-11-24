@@ -1286,13 +1286,16 @@ type screenOrigin struct {
 
 // screenOrigin accepts the configured public address or the host the request came to. A reverse proxy may
 // rewrite Host and drop X-Forwarded-Proto, so the public address is compared from configuration, not headers.
+// Some proxies rewrite the scheme of their own Origin (https -> http); that is accepted only together with
+// Sec-Fetch-Site: same-origin, which the browser sets and a page cannot forge.
 // Behind a sub-path the cookie is limited to that path: other apps on the same host must not receive it.
 func (s *Server) screenOrigin(r *http.Request) screenOrigin {
 	origin := strings.TrimRight(r.Header.Get("Origin"), "/")
 	if origin == "" {
 		return screenOrigin{}
 	}
-	if u, err := url.Parse(s.cfg.PublicURL); err == nil && u.Host != "" && strings.EqualFold(origin, u.Scheme+"://"+u.Host) {
+	if u, err := url.Parse(s.cfg.PublicURL); err == nil && u.Host != "" && (strings.EqualFold(origin, u.Scheme+"://"+u.Host) ||
+		(u.Scheme == "https" && strings.EqualFold(origin, "http://"+u.Host) && r.Header.Get("Sec-Fetch-Site") == "same-origin")) {
 		path := strings.TrimRight(u.Path, "/")
 		if path == "" {
 			path = "/"

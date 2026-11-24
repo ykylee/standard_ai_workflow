@@ -77,8 +77,11 @@ def _record(case: str, ok: bool, detail: str = "") -> None:
 
 def _req(base: str, path: str, *, token: str | None = None, method: str = "GET", body: Any = None,
          ctype: str = "application/json", raw: bytes | None = None, follow: bool = True,
-         cookie: str | None = None, origin: str | None = None) -> tuple[int, Any, Any]:
+         cookie: str | None = None, origin: str | None = None,
+         fetch_site: str | None = None) -> tuple[int, Any, Any]:
     headers = {}
+    if fetch_site:
+        headers["sec-fetch-site"] = fetch_site
     if token:
         headers["authorization"] = f"Bearer {token}"
     if cookie:
@@ -657,6 +660,12 @@ def case_17_proxy_origin(tmp: Path, impl: str, cmd: list[str] | None) -> None:
         cookie = head.get("set-cookie", "")
         login = lambda origin: _req(hub.base, "/api/account/login", method="POST", body=body, origin=origin)  # noqa: E731
         st_login, _, _ = login("https://home.example")
+        site = lambda origin, fetch: _req(hub.base, "/api/account/login", method="POST", body=body, origin=origin, fetch_site=fetch)  # noqa: E731
+        # 홈랩 프록시 실측(2026-11-24): 자기 Origin 을 http 로 바꾼다 — same-origin 표식이 있을 때만 받는다
+        st_rw, _, rw_head = site("http://home.example", "same-origin")
+        rw_bad = [site(o, f)[0] for o, f in (("http://home.example", "cross-site"), ("http://home.example", "same-site"),
+                                             ("http://evil.example", "same-origin"), ("http://home.example:81", "same-origin"))]
+        rw_ok = st_rw == 200 and rw_bad == [403] * 4 and "secure" in rw_head.get("set-cookie", "").lower()
         st_lan, _, lan_head = login(hub.base)  # 안쪽 주소로 직접 — 그대로 된다
         lan = lan_head.get("set-cookie", "")
         session = cookie.split(";", 1)[0]
@@ -664,9 +673,9 @@ def case_17_proxy_origin(tmp: Path, impl: str, cmd: list[str] | None) -> None:
         st_evil, st_out = act("https://evil.example"), act("https://home.example")
         ok = (bad == [403] * 5 and short[0] == 400 and short[1].get("detail", {}).get("field") == "password" and st == 200 and st_login == 200 and st_lan == 200 and "secure" in cookie.lower()
               and "path=/workflow" in cookie.lower() and "secure" not in lan.lower() and "path=/" in lan.lower()
-              and "path=/workflow" not in lan.lower() and st_evil == 403 and st_out == 200)
+              and "path=/workflow" not in lan.lower() and st_evil == 403 and st_out == 200 and rw_ok)
         _record(f"case 17 (프록시 뒤 공개 주소 출처 · 쿠키 Secure/Path) [{impl}]", ok,
-                f"bad={bad} short={short[:2]} enroll={st} login={st_login}/{st_lan} cookie={cookie.split(';', 1)[1:]} lan={lan.split(';', 1)[1:]} logout={st_evil}/{st_out}")
+                f"bad={bad} short={short[:2]} enroll={st} login={st_login}/{st_lan} cookie={cookie.split(';', 1)[1:]} lan={lan.split(';', 1)[1:]} logout={st_evil}/{st_out} rewritten={st_rw}/{rw_bad}")
     finally:
         hub.stop()
 

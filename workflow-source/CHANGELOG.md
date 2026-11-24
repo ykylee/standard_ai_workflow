@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- feat(hub): allow signing up without a token (c5150883)
 - feat(hub): run migrations through agent request and human login approval (85b9865a)
 - feat(hub): port 1.x migration to Go and let admins delete unused callsigns (92124377)
 - feat(hub): add human accounts and agent confirmations (8fde5f02)
@@ -277,6 +278,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- docs(workflow): record v3.2.2 rollout and open the A2A 1.0 transition (cbb0cc5c)
 - docs(hub): call the hub inbox by its name instead of A2A (9682fc4d)
 - docs(workflow): close human confirmation implementation task (190286cb)
 - Sync embedded Go bootstrap guidance (08c2c3bd)
@@ -892,6 +894,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- fix(hub): accept the configured public origin behind a proxy, allow 8-char passwords (8f0aa8f7)
 - fix(hub): port Go setup confirm and wiki reads, prepare 3.2.2 prerelease (0166f0ce)
 - fix(tests): make setup guide cases countable (fbe9c820)
 - fix(release): align smoke and roadmap gates (7fda7fc3)

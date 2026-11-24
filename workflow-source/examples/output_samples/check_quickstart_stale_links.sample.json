@@ -18,6 +18,6 @@
     "bootstrap_output_samples.md 문서가 현재 워크플로우 핵심 진입 문서 일부를 직접 가리키지 않아 onboarding 흐름이 약할 수 있다."
   ],
   "status": "ok",
-  "tool_version": "3.2.3",
+  "tool_version": "3.2.4",
   "warnings": []
 }

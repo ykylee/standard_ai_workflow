@@ -76,13 +76,16 @@ def screen_origin(request: Request, public_url: str) -> tuple[bool, str] | None:
     """브라우저 요청의 출처가 맞으면 (쿠키 Secure, 쿠키 Path), 아니면 None.
 
     설정한 공개 주소이거나 요청이 온 호스트다. 리버스 프록시는 Host 를 바꾸고 X-Forwarded-Proto 를 빠뜨릴 수 있어
-    공개 주소는 머리가 아니라 설정과 견준다. 하위 경로면 쿠키를 그 경로로 좁힌다 — 같은 호스트의 다른 앱에 보내지 않는다.
+    공개 주소는 머리가 아니라 설정과 견준다. 자기 Origin 의 scheme 을 바꾸는 프록시(https → http)는 브라우저가 붙이고 페이지가
+    위조할 수 없는 ``Sec-Fetch-Site: same-origin`` 이 함께 있을 때만 받는다. 하위 경로면 쿠키를 그 경로로 좁힌다 — 같은 호스트의 다른 앱에 보내지 않는다.
     """
     origin = request.headers.get("origin", "").rstrip("/")
     if not origin:
         return None
     u = urlsplit(public_url)
-    if u.netloc and origin.lower() == f"{u.scheme}://{u.netloc}".lower():
+    rewritten = (u.scheme == "https" and origin.lower() == f"http://{u.netloc}".lower()
+                 and request.headers.get("sec-fetch-site") == "same-origin")
+    if u.netloc and (origin.lower() == f"{u.scheme}://{u.netloc}".lower() or rewritten):
         return u.scheme == "https", u.path.rstrip("/") or "/"
     scheme = request.headers.get("x-forwarded-proto", "").split(",", 1)[0].strip() or request.url.scheme
     if origin != f"{scheme}://{request.headers.get('host', '')}":

@@ -53,7 +53,7 @@ func migrationMarkerReady(files map[string]any, projectID, hubURL string) bool {
 
 func migrateLegacyStartGuidance(text string) (string, bool) {
 	if !strings.Contains(text, legacyReadFirstLine) {
-		return "", false
+		return text, strings.Contains(text, hubReadFirstLine) // 이미 바꾼 파일은 다시 셋업해도 그대로
 	}
 	return strings.ReplaceAll(text, legacyReadFirstLine, hubReadFirstLine), true
 }
@@ -181,8 +181,12 @@ func guideRender(s *store.Store, ctx store.Ctx, harness string, current *string)
 	if current != nil {
 		old = *current
 	}
-	merged, ok := mergeGuide(old, region)
 	gv := guideVersion(version)
+	if hasLegacyEntryMarker(old) && !strings.Contains(old, "workflow-hub:begin") {
+		// hub_setup_plan 과 같은 판정 — 1.x 지침이 든 파일에 허브 영역을 덧붙이면 두 정본이 한 파일에서 부딪힌다.
+		return map[string]any{"path": entry, "guide_version": gv, "blocked": true, "reason": "legacy_1x_requires_migration"}, nil
+	}
+	merged, ok := mergeGuide(old, region)
 	if !ok {
 		return map[string]any{"path": entry, "guide_version": gv, "blocked": true, "reason": "local_edit_detected"}, nil
 	}
@@ -503,21 +507,35 @@ func setupPlan(s *store.Store, ctx store.Ctx, args map[string]any) (map[string]a
 			return nil, e
 		}
 		current, _ := files[path].(string)
-		if hasLegacyEntryMarker(current) && !migrationComplete {
-			blocked = append(blocked, map[string]any{"id": "entry:" + h, "path": path, "reason": "legacy_1x_requires_migration", "message": "1.x 작업 정본을 Hub로 가져오고 ai-workflow/HUB_MIGRATED.json 을 커밋한 뒤 다시 셋업한다"})
-			continue
-		}
+		// 진입 파일이 막혀도 하네스 MCP 단계는 낸다 — 허브에 붙는 것과 지침을 바꾸는 것은 따로다.
+		reason, message, merged := "", "", ""
 		if hasLegacyEntryMarker(current) {
-			var migrated bool
-			current, migrated = migrateLegacyStartGuidance(current)
-			if !migrated {
-				blocked = append(blocked, map[string]any{"id": "entry:" + h, "path": path, "reason": "legacy_entry_needs_review", "message": "진입 파일의 1.x 시작 안내가 표준 생성 문안과 다르다 — 사람이 Hub 경로로 고친 뒤 다시 셋업한다"})
-				continue
+			if !migrationComplete {
+				reason, message = "legacy_1x_requires_migration", "1.x 작업 정본을 Hub로 가져오고 ai-workflow/HUB_MIGRATED.json 을 커밋한 뒤 다시 셋업한다"
+			} else if migrated, ok := migrateLegacyStartGuidance(current); ok {
+				current = migrated
+			} else {
+				reason, message = "legacy_entry_needs_review", "진입 파일의 1.x 시작 안내가 표준 생성 문안과 다르다 — 사람이 Hub 경로로 고친 뒤 다시 셋업한다"
 			}
 		}
-		merged, ok := mergeGuide(current, region)
-		if !ok {
-			blocked = append(blocked, map[string]any{"id": "entry:" + h, "path": path, "reason": "local_edit_detected", "message": "렌더 영역이 허브가 낸 판과 다르다 — 덮어쓰지 않는다. 고칠 것은 허브에 지침 제안으로 (요구 R7.5)"})
+		if reason == "" {
+			var ok bool
+			if merged, ok = mergeGuide(current, region); !ok {
+				reason, message = "local_edit_detected", "렌더 영역이 허브가 낸 판과 다르다 — 덮어쓰지 않는다. 고칠 것은 허브에 지침 제안으로 (요구 R7.5)"
+			}
+		}
+		if reason != "" {
+			blocked = append(blocked, map[string]any{"id": "entry:" + h, "path": path, "reason": reason, "message": message})
+			// 막힌 단계도 남긴다 — 안 남기면 나머지만 확인돼도 셋업이 끝난 것으로 보인다.
+			if err := issue("entry:"+h, "entry", path, "", ""); err != nil {
+				return nil, err
+			}
+			if _, err := s.DB().Exec("UPDATE setup_step SET status='unconfirmed',detail=?,confirmed_at=NULL WHERE project_id=? AND callsign=? AND step_id=?", "blocked: "+reason, pid, p.Callsign, "entry:"+h); err != nil {
+				return nil, err
+			}
+			if _, err := s.DB().Exec("UPDATE callsign SET setup_complete=0 WHERE project_id=? AND id=?", pid, p.Callsign); err != nil {
+				return nil, err
+			}
 		} else {
 			gv := guideVersion(guideVer)
 			if err := issue("entry:"+h, "entry", path, digest(merged), gv); err != nil {

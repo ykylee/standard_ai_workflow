@@ -1,7 +1,7 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-11-24T14:12:09Z`
-- tool_version: `3.2.4`
+- generated_at: `2026-11-24T14:35:39Z`
+- tool_version: `3.3.0`
 - workspace_root: `/home/yklee/repos/standard_ai_workflow`
 
 ## Panel 1 — Drift Prevention Status
@@ -14,7 +14,7 @@
 - harness_supported_count: `10`
 - head_commit_date: `2026-11-24`
 - last_updated_delta_days: `0`
-- silent_failing_cycles_count: `0` (측정 cycle 53건)
+- silent_failing_cycles_count: `0` (측정 cycle 54건)
 
 ## Panel 2 — Maturity Distribution
 
@@ -75,20 +75,20 @@
 
 ## Panel 4 — Smoke Trend
 
-- cumulative_total: `357`
-- cumulative_pass: `357`
+- cumulative_total: `358`
+- cumulative_pass: `358`
 - cumulative_pass_rate: `1.0000`
-- smoke_files_count: `357`
+- smoke_files_count: `358`
 
 ### Recent release smoke counts
 
 | version | pass | total |
 |---|---|---|
+| Beta-v3.3.0 | 358 | 358 |
 | Beta-v3.2.4 | 357 | 357 |
 | Beta-v3.2.3 | 357 | 357 |
 | Beta-v3.2.2 | 357 | 357 |
 | Beta-v3.2.1 | 357 | 357 |
-| Beta-v3.2.0 | 357 | 357 |
 
 ## Panel 5 — Recent Release Cycle
 
@@ -98,16 +98,16 @@
 
 ### Timeline (preview, first 120 char)
 
-- [0] TASK-2026-11-24-main-015 — v3.2.2 pre-release 및 홈랩 배포  `[fresh]`
-- [1] TASK-2026-11-24-main-014 — 에이전트 요청·사람 로그인 승인으로 이관 실행  `[fresh]`
-- [2] TASK-2026-11-24-main-013 — Go 허브 1.x 이관 도구 포팅과 홈랩 셀프 이관  `[fresh]`
-- [3] TASK-2026-11-24-main-012 — 허브 관리자 콜사인 삭제와 고아 콜사인 정리  `[fresh]`
-- [4] TASK-2026-11-24-main-011 — Go 허브 hub_setup_confirm 포팅 — 새 환경 부트스트랩 차단 해소  `[fresh]`
-- [5] TASK-2026-11-24-main-010 — 에이전트 확인 요청 메뉴와 A2A 승인 결과 전달  `[fresh]`
-- [6] TASK-2026-11-24-main-009 — 3.2.1 pre-release 및 홈랩 파일럿 배포  `[fresh]`
-- [7] TASK-2026-11-24-main-008 — 미지원 하네스 셋업 부트스트랩과 지원 등록  `[fresh]`
-- [8] TASK-2026-11-24-main-007 — 웹 허브 관리자 모드 진입 UX 개선  `[fresh]`
-- [9] TASK-2026-11-24-main-006 — Go 허브 전용 Wiki MCP 읽기 도구 parity  `[fresh]`
+- [0] TASK-2026-11-24-main-017 — 프록시 뒤 계정 등록 403 수리와 비밀번호 8자 (v3.2.3)  `[fresh]`
+- [1] TASK-2026-11-24-main-015 — v3.2.2 pre-release 및 홈랩 배포  `[fresh]`
+- [2] TASK-2026-11-24-main-014 — 에이전트 요청·사람 로그인 승인으로 이관 실행  `[fresh]`
+- [3] TASK-2026-11-24-main-013 — Go 허브 1.x 이관 도구 포팅과 홈랩 셀프 이관  `[fresh]`
+- [4] TASK-2026-11-24-main-012 — 허브 관리자 콜사인 삭제와 고아 콜사인 정리  `[fresh]`
+- [5] TASK-2026-11-24-main-011 — Go 허브 hub_setup_confirm 포팅 — 새 환경 부트스트랩 차단 해소  `[fresh]`
+- [6] TASK-2026-11-24-main-010 — 에이전트 확인 요청 메뉴와 A2A 승인 결과 전달  `[fresh]`
+- [7] TASK-2026-11-24-main-009 — 3.2.1 pre-release 및 홈랩 파일럿 배포  `[fresh]`
+- [8] TASK-2026-11-24-main-008 — 미지원 하네스 셋업 부트스트랩과 지원 등록  `[fresh]`
+- [9] TASK-2026-11-24-main-007 — 웹 허브 관리자 모드 진입 UX 개선  `[fresh]`
 
 ## Panel 6 — Multi-Agent Concurrent Write Conflict
 
@@ -137,10 +137,10 @@
 
 - phase_15_north_star: `utilization_3tuple (query_diversity / entries_new_30d / distinct_entries_retrieved — ADR-006 W-4; hit_rate 는 보조)`
 - entries_total: `30`
-- telemetry_events_total: `3864`
-- telemetry_total_queries: `3864`
-- telemetry_hit_count: `2089`
-- telemetry_hit_rate: `0.5406`
+- telemetry_events_total: `3866`
+- telemetry_total_queries: `3866`
+- telemetry_hit_count: `2091`
+- telemetry_hit_rate: `0.5409`
 
 ### Entries by merge_state
 
@@ -152,7 +152,7 @@
 
 | source | events |
 |---|---|
-| `backlog-update` | 1240 |
+| `backlog-update` | 1242 |
 | `dispatcher` | 13 |
 | `doc-sync` | 33 |
 | `session-start` | 2578 |

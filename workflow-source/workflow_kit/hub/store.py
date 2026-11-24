@@ -112,6 +112,8 @@ def scan_secrets(value: Any, path: str = "") -> None:
 class Store:
     def __init__(self, path: Path) -> None:
         self.path = path
+        #: 위키 원격 읽기(소유자가 준 주소를 허브가 git 으로 받는다)를 허용하는가 — 바깥에 노출된 허브는 운영자가 켜야 한다
+        self.wiki_remote_allowed = True
 
     # --- 연결 · 트랜잭션 ----------------------------------------------------------
 

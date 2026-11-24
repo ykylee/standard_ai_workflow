@@ -155,7 +155,7 @@ func setupConfirm(s *store.Store, ctx store.Ctx, args map[string]any) (map[strin
 			case row.kind == "env" || row.kind == "entry" || (row.kind == "harness" && row.path != ""):
 				if fileReported {
 					got := byPath[row.path]
-					ok, why = got == row.sha256, ""
+					ok, why = row.sha256 != "" && got == row.sha256, ""
 					if !ok {
 						why = fmt.Sprintf("sha256 이 지시와 다르다 (지시 %s…, 받음 %s…)", short12(row.sha256), short12(got))
 					}

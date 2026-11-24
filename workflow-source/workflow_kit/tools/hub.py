@@ -51,6 +51,9 @@ def _parser() -> argparse.ArgumentParser:
         help="화면 공용 web 토큰 이름 — 주면 토큰 없는 화면 요청이 읽기 · 콜사인 등록 권한으로 돈다 (기본 꺼짐)",
     )
 
+    s.add_argument("--allow-wiki-remote", action="store_true",
+                   help="바깥에 노출된 허브에서도 위키 원격 읽기를 허용한다 (소유자가 준 주소를 허브가 받는다 — 기본은 loopback 만)")
+
     m = sub.add_parser("migrate", help="기존 SQLite 허브를 빈 PostgreSQL 대상으로 복사한다")
     m.add_argument("--from-sqlite", required=True, type=Path)
     m.add_argument("--to-postgres", required=True, help="postgresql:// 또는 postgres:// URL")
@@ -268,6 +271,7 @@ def main(argv: list[str] | None = None) -> int:
                 "(요구 R3.4 · R13.3). 바깥 노출은 프록시 뒤에서 한다.",
                 file=sys.stderr,
             )
+        store.wiki_remote_allowed = loopback or args.allow_wiki_remote
         for c in copies:
             print(f"hub: 이관 전 사본 {c}", file=sys.stderr)
         if args.web_token_name and store.web_principal(args.web_token_name) is None:

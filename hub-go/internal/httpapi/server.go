@@ -62,6 +62,7 @@ func New(cfg Config) *Server {
 		PublicURL:  cfg.PublicURL,
 		Clock:      cfg.Clock,
 	}
+	tools.HubVersion = cfg.HubVersion
 	s.mux.HandleFunc("GET /healthz", s.handleHealthz)
 	s.mux.HandleFunc("GET /{$}", s.handleGuidePage)
 	s.mux.HandleFunc("GET /setup.md", s.handleSetupMarkdown)

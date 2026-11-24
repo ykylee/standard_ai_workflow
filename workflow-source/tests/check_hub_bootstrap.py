@@ -13,6 +13,7 @@
 5. 해시가 다르면 미확인 · 완료 아님 (R2.4)
 6. 로컬에서 고친 렌더 영역은 지시하지 않고 멈춤 (R7.5)
 7. 세션 시작 — 결과 없음은 미확인 · 맞음 start · 뒤처짐 fast-forward · 미커밋/갈라짐 멈춤 · 지침 바뀜 · 없는 커밋 (R10)
+9. 막힌 진입 파일 — 셋업 미완료 · MCP 단계 유지 · guide_render 같은 판정
 8. 안내 페이지 — 4종 명령 · 토큰 없음 · CSP (R2.6)
 """
 
@@ -340,6 +341,34 @@ def case_8_page(hub: Hub, tok: str) -> None:
     _record("case 8 (안내 페이지 — 버전 · 4종 · relay 가이드 · 토큰 없음 · CSP)", ok, f"len={len(body)} setup_len={len(setup)} csp={r.headers.get('Content-Security-Policy')}")
 
 
+def case_9_blocked_entry(hub: Hub, tmp: Path) -> None:
+    """1.x 진입 파일이 막히면 셋업은 끝난 것이 아니고, MCP 단계는 나오고, guide_render 도 같은 판정을 한다."""
+    _, repo = _make_clone(tmp, "blocked")
+    (repo / "CLAUDE.md").write_text("<!-- standard-ai-workflow-kit: v1.29.0 -->\n# 1.x\n", encoding="utf-8")
+    pid, tok = _register(hub, "git@github.com:acme/blocked.git", "claude-k")
+    args = {"project_id": pid, "token": tok, "harnesses": ["claude-code"]}
+
+    def step() -> tuple[dict[str, Any], dict[str, Any]]:
+        plan = hub.call("hub_setup_plan", {**args, "scan": _scan(repo)})[1]
+        files, checks = _apply(repo, plan["steps"])
+        return plan, hub.call("hub_setup_confirm", {"project_id": pid, "token": tok, "files": files, "checks": checks})[1]
+
+    step()
+    plan, conf = step()
+    ids = [s_["id"] for s_ in plan["steps"]]
+    forged = hub.call("hub_setup_confirm", {"project_id": pid, "token": tok, "files": [{"path": "CLAUDE.md", "sha256": ""}], "checks": []})[1]
+    legacy_render = hub.call("hub_guide_render", {"harness": "claude-code", "current": (repo / "CLAUDE.md").read_text(encoding="utf-8")}, tok)[1]
+    (repo / "CLAUDE.md").write_text("# 새 진입 파일\n", encoding="utf-8")
+    again, done = step()
+    ok = ("harness:mcp-json" in ids and "entry:claude-code" not in ids and [b["id"] for b in plan["blocked"]] == ["entry:claude-code"]
+          and conf.get("setup_complete") is False and any(u["id"] == "entry:claude-code" for u in conf["unconfirmed"])
+          and forged.get("setup_complete") is False and legacy_render.get("blocked") is True
+          and legacy_render.get("reason") == "legacy_1x_requires_migration"
+          and not again["blocked"] and done.get("setup_complete") is True)
+    _record("case 9 (막힌 진입 파일 — 미완료로 남음 · MCP 단계는 나옴 · guide_render 같은 판정 · 풀리면 완료)", ok,
+            f"ids={ids} blocked={plan['blocked']} conf={conf} forged={forged.get('setup_complete')} render={legacy_render.get('reason')} done={done}")
+
+
 def _measure(tmp: Path, cmd: list[str] | None) -> None:
     impl = tmp.name
     print(f"  --- [{impl}] ---")
@@ -361,6 +390,10 @@ def _measure(tmp: Path, cmd: list[str] | None) -> None:
             except Exception as exc:  # noqa: BLE001
                 _record("case 7 (세션 시작)", False, f"예외: {exc!r}")
             case_8_page(hub, tok)
+        try:
+            case_9_blocked_entry(hub, tmp)
+        except Exception as exc:  # noqa: BLE001
+            _record("case 9 (막힌 진입 파일)", False, f"예외: {exc!r}")
     finally:
         err = hub.stop()
         if len(_failures) > before:

@@ -438,6 +438,26 @@ func Call(s *store.Store, name string, rawArgs any, ctx store.Ctx) (result map[s
 	case "hub_wiki_import_dir":
 		overwrite, _ := clean["overwrite"].(bool)
 		return s.WikiImportDir(ctx, clean["files"], strArg(clean, "summary", ""), overwrite, strArg(clean, "request_id", ""))
+	case "hub_project_export":
+		return s.ProjectExport(ctx, strArg(clean, "seal_to", ""))
+	case "hub_project_unseal":
+		return s.ProjectUnseal(ctx)
+	case "hub_project_import":
+		return s.ProjectImport(ctx, strArg(clean, "invite", ""), clean["bundle"])
+	case "hub_relay_invite":
+		return s.RelayInvite(ctx)
+	case "hub_relay_list":
+		return s.RelayList(ctx)
+	case "hub_relay_revoke":
+		return s.RelayRevoke(ctx, strArg(clean, "host_id", ""))
+	case "hub_wiki_remote_set":
+		return s.WikiRemoteSet(ctx, strArg(clean, "fetch_url", ""))
+	case "hub_wiki_lint":
+		return wikiLint(s, ctx)
+	case "hub_wiki_export":
+		return wikiExport(s, ctx, strArg(clean, "format", ""), optStrArg(clean, "out_dir"), intArg(clean, "cursor", 0))
+	case "hub_wiki_import_okf":
+		return wikiImportOKF(s, ctx, clean["files"], strArg(clean, "summary", ""), strArg(clean, "request_id", ""))
 	case "hub_guide_render":
 		return guideRender(s, ctx, strArg(clean, "harness", ""), optStrArg(clean, "current"))
 	case "hub_guide_get":

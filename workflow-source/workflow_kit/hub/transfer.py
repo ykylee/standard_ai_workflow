@@ -66,7 +66,8 @@ def project_tables(conn: Any) -> list[str]:
         ]
     for name in tables:
         cols = _columns(conn, name)
-        if "project_id" in cols:
+        # 계정 연결 · 실행 승인 같은 허브 전역 표는 그 허브의 로그인에 묶인다 — project_id 가 있어도 옮기지 않는다
+        if "project_id" in cols and name not in HUB_SCOPED_TABLES:
             out.append(name)
     return out
 
@@ -193,6 +194,9 @@ class Transfer:
             raise HubError(
                 400, "bundle_digest_mismatch", "묶음 내용이 digest 와 다르다 — 바뀌었거나 잘렸다"
             )
+        # 예전 묶음에 실린 허브 전역 표(계정 연결 · 승인 기록)는 들이지 않는다 — 남의 승인이 이 허브에서 열리면 안 된다
+        skipped = sorted(set(tables) & HUB_SCOPED_TABLES)
+        tables = {k: v for k, v in tables.items() if k not in HUB_SCOPED_TABLES}
         src_db = int((bundle.get("source") or {}).get("db_version", 0))
         if src_db > hubdb.latest_version():
             raise HubError(
@@ -227,6 +231,8 @@ class Transfer:
                         {"project_id": pid},
                     )
                 # 되옮기기 — 이 허브의 봉인된 사본을 새 묶음으로 바꾼다 (봉인된 사본은 정본이 아니다)
+                for name in ("hub_account_callsign", "a2a_task", "approval_grant"):  # 봉인된 사본에 매인 로그인 · 승인은 함께 거둔다
+                    conn.execute(f"DELETE FROM {name} WHERE project_id = ?", (pid,))
                 for name in reversed(ordered_known):
                     conn.execute(f'DELETE FROM "{name}" WHERE project_id = ?', (pid,))
                 conn.execute("DELETE FROM project WHERE id = ?", (pid,))
@@ -270,7 +276,11 @@ class Transfer:
                     )
                 idx = [spec["columns"].index(c) for c in cols]
                 sql = f'INSERT INTO "{name}" ({", ".join(cols)}) VALUES ({", ".join("?" for _ in cols)})'
+                at = spec.get("columns", []).index("project_id") if "project_id" in spec.get("columns", []) else -1
                 for row in spec.get("rows", []):
+                    if at < 0 or len(row) != len(spec["columns"]) or row[at] != pid:
+                        # 묶음의 줄은 그 프로젝트 것이어야 한다 — 다른 프로젝트에 줄을 심지 못하게
+                        raise HubError(400, "invalid_bundle", f"{name} 의 줄이 이 프로젝트의 것이 아니다")
                     conn.execute(sql, [row[i] for i in idx])
                 counts[name] = len(spec.get("rows", []))
             self.store._event(
@@ -292,6 +302,7 @@ class Transfer:
             "project_id": pid,
             "counts": counts,
             "replaced_sealed_copy": replaced,
+            "skipped_hub_tables": skipped,
             "digest": bundle.get("digest"),
         }
 

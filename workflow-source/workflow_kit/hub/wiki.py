@@ -479,6 +479,8 @@ class Wiki:
         assert pid is not None
         if p.role != "owner":
             raise forbidden("위키 원격 읽기는 소유자만 켜고 끈다 — 허브가 외부에 접속하는 유일한 설정이다 (R3.7 · R8.4)")
+        if fetch_url and not self.store.wiki_remote_allowed:
+            raise HubError(403, "wiki_remote_disabled", "바깥에 노출된 허브라 위키 원격 읽기가 꺼져 있다 — 운영자가 serve --allow-wiki-remote 로 켠다")
         if fetch_url:
             try:
                 wiki_remote.check_fetch_url(fetch_url)
@@ -531,7 +533,7 @@ class Wiki:
             index_errors, n_entries = validate_index(index.splitlines(), root)
             broken, repo_refs = classify_wikilinks(root)
             bidir = audit_bidirectional_links(workspace)
-        remote = wiki_remote.measure((settings.get("wiki_remote") or {}).get("fetch_url"),
+        remote = wiki_remote.measure((settings.get("wiki_remote") or {}).get("fetch_url") if self.store.wiki_remote_allowed else None,
                                      [{"path": path, "body": body, "source_sha": shas.get(path, "")} for path, body in pages],
                                      repo_refs)
         ok = not location and not index_errors and not broken and bidir.is_symmetric

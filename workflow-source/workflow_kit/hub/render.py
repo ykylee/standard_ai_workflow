@@ -151,12 +151,12 @@ def migrate_legacy_start_guidance(text: str) -> str | None:
     from workflow_kit.bootstrap_lib.harnesses.entry_sections import READ_FIRST_LINES
 
     legacy = READ_FIRST_LINES[0]
-    if legacy not in text:
-        return None
     replacement = (
         "- Start each session with the Workflow Hub MCP tool `hub_session_start`. "
         "The Hub is the source of task and handoff state; do not restore state from local 1.x paths."
     )
+    if legacy not in text:
+        return text if replacement in text else None  # 이미 바꾼 파일은 다시 셋업해도 그대로
     return text.replace(legacy, replacement)
 
 

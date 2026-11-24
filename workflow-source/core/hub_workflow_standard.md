@@ -3,7 +3,7 @@
 - 문서 목적: 2.0 허브 흐름의 표준 규칙 층 정본 — 허브가 모든 프로젝트 · 모든 지원 하네스의 진입 파일 렌더 영역에 싣는 규칙이다 (hub_spec §5.2, DS6).
 - 범위: 세션 시작 확인 · 작업/지식 도구 사용 · 허브 받은편지함 · 세션 끝 순서 · compact 직후 확인 · 쓰기 금지. 1.x 흐름의 정본은 `global_workflow_standard.md` 그대로다.
 - 대상 독자: AI agent (진입 파일로 읽는다), workflow 설계자
-- 상태: draft (M-034, 2026-11-21 · 2.1 받은편지함 절 M-045, 2026-11-22 · 2.2 도구 카탈로그, 2026-11-24)
+- 상태: draft (M-034, 2026-11-21 · 2.1 받은편지함 절 M-045, 2026-11-22 · 2.2 도구 카탈로그 · 2.3 A2A 승인, 2026-11-24)
 - 최종 수정일: 2026-11-24
 - 관련 문서: `./hub_spec.md`, `../../docs/planning/workflow-hub-requirements-2026-11.md` (요구 R6.4 · R7.3 · R10 · R11), `./global_workflow_standard.md`
 
@@ -11,7 +11,7 @@
 > 명령은 허브 MCP 도구 이름이다 — `python -m workflow_kit …` 를 쓰지 않는다 (요구 R7.3).
 
 <!-- hub-standard:begin -->
-## 워크플로우 허브 규칙 (표준 · 2.2)
+## 워크플로우 허브 규칙 (표준 · 2.3)
 
 이 저장소의 task · handoff · 이력 · 로드맵 · 공유 지침 · 위키의 정본은 **워크플로우 허브**다. 저장소의 파일은 내보내기다.
 
@@ -27,7 +27,7 @@
 - 단계마다(계획 → 구현 → 검사 → 커밋 · push) `hub_task_progress` 로 진행 한 줄을 남긴다.
 - 커밋하면 `hub_task_link_commit` 으로 task 에 묶는다.
 - 쓰기가 409(`version_conflict`)면 지금 값을 다시 읽고 판단한다 — 덮어쓰지 않는다.
-- 사람 판단은 `hub_approval_request(session, title, question, details?)` 로 요청한다. 웹의 확인 요청 결과를 `hub_wait`/`hub_inbox_list` 에서 확인하고, 승인 범위를 검증해 진행한다. 승인은 실행 권한을 대신하지 않는다.
+- 사람 판단이나 실행 승인은 **A2A**로 요청한다: `.workflow-hub/hub_client.py a2a send <제목> <질문>` (A2A 클라이언트면 `<허브>/a2a` 의 `SendMessage`). Task 가 `AUTH_REQUIRED` → 사람이 로그인해 승인하면 `COMPLETED`, 거절하면 `REJECTED` — `a2a get` 으로 확인한다. 상태는 권한이 아니다: 실행은 아티팩트의 `approval_id` 로만 연다. 세션 안에서는 `hub_approval_request` 도 같은 요청이다.
 
 ### 허브 지식 · 결정 도구
 - 설계 문서와 출처가 고정된 지식은 `hub_knowledge_search` · `hub_knowledge_get` 으로 찾는다. 위키 문서는 `hub_wiki_search` · `hub_wiki_get` · `hub_wiki_list` 로 읽고, 작성·수정 뒤에는 `hub_wiki_lint` 로 점검한다.
@@ -41,8 +41,7 @@
 - 위키 · 지식 · memory: `hub_wiki_search` · `hub_wiki_get` · `hub_wiki_list` · `hub_wiki_ingest` · `hub_wiki_lint` · `hub_wiki_remote_set` · `hub_wiki_import_dir` · `hub_wiki_export` · `hub_wiki_import_okf` · `hub_knowledge_source_register` · `hub_knowledge_sync` · `hub_knowledge_search` · `hub_knowledge_get` · `hub_memory_entry_put` · `hub_memory_entry_get` · `hub_memory_entry_list`.
 - 결정 · 계획 · 프로젝트 문서: `hub_guide_get` · `hub_guide_propose` · `hub_guide_decide` · `hub_project_doc_get` · `hub_project_doc_put` · `hub_roadmap_get` · `hub_roadmap_put` · `hub_roadmap_state` · `hub_dcr_create` · `hub_dcr_list` · `hub_dcr_get` · `hub_dcr_decide`.
 - 이전: `hub_migrate_plan` · `hub_migrate_import` · `hub_migrate_marker` · `hub_migrate_report` · `hub_project_export` · `hub_project_unseal` · `hub_project_import`.
-- 오케스트레이션 · 승인 · 중계: `hub_orch_declare` · `hub_orch_transfer` · `hub_orch_release` · `hub_orch_halt` · `hub_orch_assign` · `hub_orch_recall` · `hub_orch_message` · `hub_orch_request_session` · `hub_orch_request_stop` · `hub_approval_decide` · `hub_events` · `hub_relay_invite` · `hub_relay_list` · `hub_relay_revoke`.
-- 사람 확인 요청: `hub_approval_request` 로 질문을 등록한다. 사람은 웹 허브의 확인 요청 메뉴에서 승인/거절하며, 결과는 허브 받은편지함에 `confirmation_result` 로 도착한다. 승인 결과만 전달하며 작업 실행은 에이전트가 별도로 판단한다.
+- 오케스트레이션 · 승인 · 중계: `hub_orch_declare` · `hub_orch_transfer` · `hub_orch_release` · `hub_orch_halt` · `hub_orch_assign` · `hub_orch_recall` · `hub_orch_message` · `hub_orch_request_session` · `hub_orch_request_stop` · `hub_approval_request` · `hub_approval_decide` · `hub_events` · `hub_relay_invite` · `hub_relay_list` · `hub_relay_revoke`.
 - 서버가 제공하는 현재 도구와 입력 스키마는 MCP `tools/list` 가 정본이다. 카탈로그와 다르면 서버 목록을 따르고 문서 누락을 보고한다.
 
 ### 허브 받은편지함

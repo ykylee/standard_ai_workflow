@@ -19,10 +19,11 @@
 
 from __future__ import annotations
 
-CHECK_TIMEOUT_S = 300
+CHECK_TIMEOUT_S = 480
 
 WATCHES = (
     "workflow-source/workflow_kit/*",
+    "hub-go/*",
     "workflow-source/pyproject.toml",
     "workflow-source/tests/check_hub_core.py",
     "workflow-source/tests/check_roadmap_gates.py",
@@ -44,10 +45,10 @@ if str(SOURCE_ROOT) not in sys.path:
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import check_roadmap_gates as rg  # noqa: E402
-from check_hub_core import Hub, _env  # noqa: E402
+from check_hub_core import Hub, _env, _resolve_go_hub  # noqa: E402
 from workflow_kit.common import plan_claims, plan_responses  # noqa: E402
 from workflow_kit.hub import db as hubdb  # noqa: E402
-from workflow_kit.hub.transfer import HUB_SCOPED_TABLES, project_tables  # noqa: E402
+from workflow_kit.hub.transfer import HUB_SCOPED_TABLES, project_tables, _digest  # noqa: E402
 
 _failures: list[str] = []
 _passes: list[str] = []
@@ -62,8 +63,16 @@ def _record(case: str, ok: bool, detail: str = "") -> None:
     print(f"  {case}: {'PASS' if ok else 'FAIL'}{(' — ' + detail) if detail and not ok else ''}")
 
 
+_PY = [sys.executable, "-m", "workflow_kit", "hub"]
+_CMD: dict[str, list[str]] = {}  # DB 이름 → 그 허브의 실행 명령 (교차 이전을 재려고 DB 마다 다르다)
+
+
+def _cmd(db: Path) -> list[str]:
+    return _CMD.get(db.name, _PY)
+
+
 def admin(db: Path, *args: str) -> tuple[int, dict[str, Any]]:
-    r = subprocess.run([sys.executable, "-m", "workflow_kit", "hub", "admin", "--db", str(db), "project", *args],
+    r = subprocess.run([*_cmd(db), "admin", "--db", str(db), "project", *args],
                        capture_output=True, encoding="utf-8", env=_env(), timeout=120)
     try:
         return r.returncode, json.loads(r.stdout.strip().splitlines()[-1])
@@ -123,24 +132,13 @@ def ops(hub: Hub, tok: str) -> list[str]:
     return [f"{e['op']}:{e['target_kind']}:{e['target_id']}" for e in ev.get("events", [])]
 
 
-def main() -> int:
-    print("check_hub_transfer")
-    # 1 분류
-    with tempfile.TemporaryDirectory(prefix="hub-xfer-0-") as d:
-        p = Path(d) / "x.db"
-        hubdb.open_db(p, now=datetime.now(timezone.utc))
-        with sqlite3.connect(p) as c:
-            names = {r[0] for r in c.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
-            proj = set(project_tables(c))
-    unclassified = sorted(names - proj - HUB_SCOPED_TABLES)
-    _record("case 1 (분류 — 모든 표가 프로젝트 표 또는 허브 전역 표)", not unclassified and "task" in proj and "event" in proj,
-            f"미분류={unclassified}")
-
+def _measure(label: str) -> None:
+    print(f"  --- [{label}] ---")
     with tempfile.TemporaryDirectory(prefix="hub-xfer-") as d:
         tmp = Path(d)
         db_a, db_b, db_c = tmp / "a.db", tmp / "b.db", tmp / "c.db"
-        a = Hub(db_a)
-        b = Hub(db_b)
+        a = Hub(db_a, cmd_prefix=_cmd(db_a))
+        b = Hub(db_b, cmd_prefix=_cmd(db_b))
         try:
             _, reg, _ = a.call("hub_project_register", {"remote_url": "git@github.com:acme/moving.git", "display_name": "moving",
                                                          "callsign": "owner-a", "kind": "human"})
@@ -148,6 +146,12 @@ def main() -> int:
             _, other, _ = a.call("hub_project_register", {"remote_url": "git@github.com:acme/staying.git",
                                                            "display_name": "staying", "callsign": "owner-q", "kind": "human"})
             tid = fill(a, tok, "A")
+            # 허브 전역 표(계정 연결 · 실행 승인)를 심어 둔다 — 묶음에 실리면 안 된다
+            with sqlite3.connect(db_a) as c:
+                c.execute("INSERT INTO hub_account VALUES ('acct_x', 'x', 'X', 'h', 1, '2026-01-01T00:00:00+00:00')")
+                c.execute("INSERT INTO hub_account_callsign VALUES ('acct_x', ?, 'owner-a', '2026-01-01T00:00:00+00:00')", (pid,))
+                c.execute("INSERT INTO approval_grant (id, project_id, action, params_json, summary_json, requested_by, state, created_at) "
+                          "VALUES ('MSG-x', ?, 'migrate_import', '{}', '{}', 'owner-a', 'approved', '2026-01-01T00:00:00+00:00')", (pid,))
             before = snapshot(a, tok, tid)
             ops_a = ops(a, tok)
             counts_a = counts(db_a, pid)
@@ -164,7 +168,9 @@ def main() -> int:
                    and {k: v for k, v in counts_b.items() if k != "event"} == {k: v for k, v in counts_a.items() if k != "event"}
                    and counts_b["event"] == counts_a["event"] + 2  # 봉인 1(A 에서 · 묶음에 실림) + 들임 1
                    and ops_b[: len(ops_a)] == ops_a and ops_b[-2:] == [f"sealed:project:{pid}", f"project_imported:project:{pid}"]
-                   and bundle.stat().st_mode & 0o077 == 0)
+                   and bundle.stat().st_mode & 0o077 == 0
+                   and not ({"approval_grant", "hub_account_callsign", "a2a_task"} & set(json.loads(bundle.read_text(encoding="utf-8"))["tables"]))
+                   and sqlite3.connect(db_b).execute("SELECT COUNT(*) FROM approval_grant").fetchone()[0] == 0)
             _record("case 2 (왕복 — 같은 토큰으로 B 의 응답이 이전 직전의 A 와 같다 · 표별 행 수 · 이력 순서)", ok2,
                     f"export={e_rc}/{e_out.get('counts')} import={i_rc}/{i_out} diff={diff} "
                     f"counts_a={counts_a} counts_b={counts_b} tail={ops_b[-3:]}")
@@ -198,11 +204,27 @@ def main() -> int:
             bad["tables"]["task"]["rows"][0][2] = "변조"
             (tmp / "bad.json").write_text(json.dumps(bad, ensure_ascii=False), encoding="utf-8")
             r_bad, badout = admin(db_c, "import", "--file", str(tmp / "bad.json"))
+            # 남의 프로젝트 줄 · 옛 묶음의 승인 기록 — digest 를 맞춰도 들어가지 않는다
+            def resign(b_: dict[str, Any], name: str) -> Path:
+                b_["digest"] = _digest(b_["project"], b_["tables"])
+                (tmp / name).write_text(json.dumps(b_, ensure_ascii=False), encoding="utf-8")
+                return tmp / name
+            alien = json.loads(json.dumps(data))
+            tcols = alien["tables"]["task"]["columns"]
+            alien["tables"]["task"]["rows"][0][tcols.index("project_id")] = "P-someone-else"
+            r_alien, alienout = admin(db_c, "import", "--file", str(resign(alien, "alien.json")))
+            smuggle = json.loads(json.dumps(data))
+            smuggle["tables"]["approval_grant"] = {"columns": ["id", "project_id", "state"], "rows": [["MSG-y", pid, "approved"]]}
+            db_d = tmp / "d.db"
+            hubdb.open_db(db_d, now=datetime.now(timezone.utc))
+            r_smug, smug = admin(db_d, "import", "--file", str(resign(smuggle, "smuggle.json")))
+            with sqlite3.connect(db_d) as c:
+                grants = c.execute("SELECT COUNT(*) FROM approval_grant").fetchone()[0]
             newer = json.loads(json.dumps(data))
             newer["source"]["db_version"] = hubdb.latest_version() + 1
             (tmp / "newer.json").write_text(json.dumps(newer, ensure_ascii=False), encoding="utf-8")
             r_new, newout = admin(db_c, "import", "--file", str(tmp / "newer.json"))
-            cc = Hub(db_c)
+            cc = Hub(db_c, cmd_prefix=_cmd(db_c))
             try:
                 cc.call("hub_project_register", {"remote_url": "git@github.com:acme/moving.git", "display_name": "squatter",
                                                   "callsign": "own-c", "kind": "human"})
@@ -211,12 +233,13 @@ def main() -> int:
             r_key, keyout = admin(db_c, "import", "--file", str(bundle))
             with sqlite3.connect(db_c) as c:
                 c_tasks = c.execute("SELECT COUNT(*) FROM task").fetchone()[0]
-            ok4 = (r_dup != 0 and "project_exists" in json.dumps(dup) and counts(db_b, pid) == c_b
+            ok4 = (r_alien != 0 and "invalid_bundle" in json.dumps(alienout) and r_smug == 0 and grants == 0
+                   and smug.get("skipped_hub_tables") == ["approval_grant"] and r_dup != 0 and "project_exists" in json.dumps(dup) and counts(db_b, pid) == c_b
                    and r_bad != 0 and "bundle_digest_mismatch" in json.dumps(badout)
                    and r_new != 0 and "bundle_newer_than_hub" in json.dumps(newout)
                    and r_key != 0 and "alias_taken" in json.dumps(keyout) and c_tasks == 0)
             _record("case 4 (거절 — 같은 프로젝트 · 변조 · 더 새로운 판 · 남의 주소 키, 대상 변화 0)", ok4,
-                    f"dup={r_dup}/{dup} bad={r_bad}/{badout} newer={r_new}/{newout} key={r_key}/{keyout} c_tasks={c_tasks}")
+                    f"alien={r_alien}/{alienout} smuggle={r_smug}/{smug.get('skipped_hub_tables')}/{grants} dup={r_dup}/{dup} bad={r_bad}/{badout} newer={r_new}/{newout} key={r_key}/{keyout} c_tasks={c_tasks}")
 
             # 5 되옮기기 — B 에서 바뀐 뒤 B → A
             # 로드맵이 함께 옮겨져 B 에서도 WBS 게이트가 산다 — 로드맵 밖 작업으로 선언한다
@@ -263,7 +286,7 @@ def main() -> int:
                     return r.returncode, {"raw": r.stdout[-300:], "err": r.stderr[-300:]}
 
             def invite(project: str, hours: str = "24") -> str:
-                r = subprocess.run([sys.executable, "-m", "workflow_kit", "hub", "admin", "--db", str(db_b), "project", "invite",
+                r = subprocess.run([*_cmd(db_b), "admin", "--db", str(db_b), "project", "invite",
                                     "--project", project, "--hours", hours], capture_output=True, encoding="utf-8", env=_env(), timeout=60)
                 return str(json.loads(r.stdout.strip().splitlines()[-1]).get("code", ""))
 
@@ -297,6 +320,33 @@ def main() -> int:
         finally:
             a.stop()
             b.stop()
+
+
+def main() -> int:
+    print("check_hub_transfer")
+    # 1 분류
+    with tempfile.TemporaryDirectory(prefix="hub-xfer-0-") as d:
+        p = Path(d) / "x.db"
+        hubdb.open_db(p, now=datetime.now(timezone.utc))
+        with sqlite3.connect(p) as c:
+            names = {r[0] for r in c.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
+            proj = set(project_tables(c))
+    unclassified = sorted(names - proj - HUB_SCOPED_TABLES)
+    _record("case 1 (분류 — 모든 표가 프로젝트 표 또는 허브 전역 표)", not unclassified and "task" in proj and "event" in proj,
+            f"미분류={unclassified}")
+
+    _measure("python → python")
+    with tempfile.TemporaryDirectory(prefix="hub-xfer-go-") as gd:
+        go_cmd, reason = _resolve_go_hub(Path(gd))
+        if go_cmd is None:
+            print(f"    [unmeasured] go 허브 미측정: {reason}")
+        else:
+            # 같은 묶음 형식 · digest 를 두 구현이 서로 읽는다
+            for label, names in (("go → go", ("a.db", "b.db", "c.db", "d.db")), ("python → go", ("b.db", "d.db")), ("go → python", ("a.db", "c.db"))):
+                _CMD.clear()
+                _CMD.update({n: go_cmd for n in names})
+                _measure(label)
+            _CMD.clear()
     print(f"PASS {len(_passes)} · FAIL {len(_failures)}")
     for f in _failures:
         print(f"  FAIL {f}")

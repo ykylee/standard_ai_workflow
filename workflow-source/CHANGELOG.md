@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- feat(hub): serve approval requests as A2A 1.0 tasks (dc583488)
 - feat(hub): allow signing up without a token (c5150883)
 - feat(hub): run migrations through agent request and human login approval (85b9865a)
 - feat(hub): port 1.x migration to Go and let admins delete unused callsigns (92124377)

@@ -231,21 +231,30 @@ class Setup:
                 existing_text = existing if isinstance(existing, str) else None
                 entry_has_legacy = existing_text is not None and any(m in existing_text for m in LEGACY_1X_MARKERS)
                 migrated_existing = existing_text
+                # 진입 파일이 막혀도 하네스 MCP 단계는 낸다 — 허브에 붙는 것과 지침을 바꾸는 것은 따로다.
+                stop: tuple[str, str] | None = None
+                merged: str | None = None
                 if entry_has_legacy and not migration_complete:
-                    blocked.append({"id": f"entry:{h}", "path": path, "reason": "legacy_1x_requires_migration",
-                                    "message": "1.x 작업 정본을 Hub로 가져오고 ai-workflow/HUB_MIGRATED.json 을 커밋한 뒤 다시 셋업한다"})
-                    continue
-                if entry_has_legacy:
+                    stop = ("legacy_1x_requires_migration",
+                            "1.x 작업 정본을 Hub로 가져오고 ai-workflow/HUB_MIGRATED.json 을 커밋한 뒤 다시 셋업한다")
+                elif entry_has_legacy:
                     migrated_existing = render.migrate_legacy_start_guidance(existing_text or "")
                     if migrated_existing is None:
-                        blocked.append({"id": f"entry:{h}", "path": path, "reason": "legacy_entry_needs_review",
-                                        "message": "진입 파일의 1.x 시작 안내가 표준 생성 문안과 다르다 — 사람이 Hub 경로로 고친 뒤 다시 셋업한다"})
-                        continue
-                merged, why = render.merge_into(migrated_existing, region)
-                if merged is None:
-                    blocked.append({"id": f"entry:{h}", "path": path, "reason": why,
-                                    "message": "렌더 영역이 허브가 낸 판과 다르다 — 덮어쓰지 않는다. 고칠 것은 허브에 지침 제안으로 (요구 R7.5)"})
-                else:
+                        stop = ("legacy_entry_needs_review",
+                                "진입 파일의 1.x 시작 안내가 표준 생성 문안과 다르다 — 사람이 Hub 경로로 고친 뒤 다시 셋업한다")
+                if stop is None:
+                    merged, why = render.merge_into(migrated_existing, region)
+                    if merged is None:
+                        stop = (why or "local_edit_detected", "렌더 영역이 허브가 낸 판과 다르다 — 덮어쓰지 않는다. 고칠 것은 허브에 지침 제안으로 (요구 R7.5)")
+                if stop is not None:
+                    blocked.append({"id": f"entry:{h}", "path": path, "reason": stop[0], "message": stop[1]})
+                    self._issue(conn, ctx, p, f"entry:{h}", "entry", path)
+                    # 막힌 단계도 남긴다 — 안 남기면 나머지만 확인돼도 셋업이 끝난 것으로 보인다
+                    conn.execute("UPDATE setup_step SET status = 'unconfirmed', detail = ?, confirmed_at = NULL "
+                                 "WHERE project_id = ? AND callsign = ? AND step_id = ?",
+                                 (f"blocked: {stop[0]}", p.project_id, p.callsign, f"entry:{h}"))
+                    conn.execute("UPDATE callsign SET setup_complete = 0 WHERE project_id = ? AND id = ?", (p.project_id, p.callsign))
+                elif merged is not None:
                     self._issue(conn, ctx, p, f"entry:{h}", "entry", path, render.sha256(merged), version)
                     steps.append({"id": f"entry:{h}", "op": "write", "path": path, "content": merged,
                                   "sha256_after": render.sha256(merged), "guide_version": version,
@@ -325,7 +334,7 @@ class Setup:
                 elif row["kind"] in ("env", "entry") or (row["kind"] == "harness" and row["path"]):
                     got = by_path.get(row["path"])
                     if got is not None:
-                        ok = got == row["sha256"]
+                        ok = bool(row["sha256"]) and got == row["sha256"]  # 막힌 단계는 지시한 내용이 없다
                         why = "" if ok else f"sha256 이 지시와 다르다 (지시 {row['sha256'][:12]}…, 받음 {got[:12]}…)"
                 elif row["kind"] == "harness":
                     hc = by_check.get(sid)
@@ -381,6 +390,10 @@ class Setup:
                             "next": "hub_harness_report 제보 후 허브 관리자 승인을 기다린다"}
                 entry_path = profile["entry_file"]
             path = entry_path
+            if current and any(m in current for m in LEGACY_1X_MARKERS) and "workflow-hub:begin" not in current:
+                # hub_setup_plan 과 같은 판정 — 1.x 지침이 든 파일에 허브 영역을 덧붙이면 두 정본이 한 파일에서 부딪힌다
+                return {"path": path, "guide_version": render.guide_version(ver), "blocked": True,
+                        "reason": "legacy_1x_requires_migration"}
             region, version = render.render_region(harness, p.project_id, display, body, ver,
                                                    entry_path=path if harness not in render.SUPPORTED_HARNESSES else None)
             merged, why = render.merge_into(current, region)

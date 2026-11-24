@@ -66,6 +66,7 @@ func cmdServe(args []string, stdout, stderr io.Writer) int {
 	port := fs.Int("port", 8770, "포트")
 	publicURL := fs.String("public-url", "", "허브 공개 주소 (기본: http://<bind>:<port>)")
 	webTokenName := fs.String("web-token-name", "", "화면 공용 web 토큰 이름")
+	allowWikiRemote := fs.Bool("allow-wiki-remote", false, "바깥에 노출된 허브에서도 위키 원격 읽기를 허용한다 (기본은 loopback 만)")
 	if err := fs.Parse(args); err != nil {
 		if err == flag.ErrHelp {
 			return 0
@@ -89,6 +90,7 @@ func cmdServe(args []string, stdout, stderr io.Writer) int {
 	defer func() { _ = st.Close() }()
 
 	loopback := isLoopbackHost(*bind)
+	st.WikiRemoteAllowed = loopback || *allowWikiRemote
 	if !loopback {
 		fmt.Fprintf(
 			stderr,
@@ -315,6 +317,8 @@ func cmdAdmin(args []string, stdout, stderr io.Writer) int {
 		}
 		writeJSONOut(stdout, out)
 		return 0
+	case "project":
+		return cmdAdminProject(st, *dbPath, action, subArgs, now, stdout, stderr)
 	default:
 		fmt.Fprintf(stderr, "hub admin %s %s: Go 허브에 아직 포팅되지 않았다\n", what, action)
 		return 2

@@ -21,3 +21,20 @@
 - 평가용 pre-release다. 스트리밍·푸시 알림·HTTP+JSON·gRPC·에이전트 간 메시지·작업 배정은 아직 없다. 기존 MCP 승인·메시지 도구는 그대로 쓸 수 있다.
 - `A2A-Version: 1.0`이 없는 요청은 `-32009`로 거절한다.
 - DB 판 17 → 18 migration이 실행된다. 시작 전에 백업한다.
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-11-24T14:35:39Z)_
+
+- total wiki pages: **104**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

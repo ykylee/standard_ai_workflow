@@ -177,6 +177,8 @@ func AsHubError(err error) (*HubError, bool) {
 type Store struct {
 	Path string
 	pool *sql.DB
+	// WikiRemoteAllowed lets lint fetch the repository address an owner set. An exposed hub needs an operator opt-in.
+	WikiRemoteAllowed bool
 }
 
 func New(dbPath string) (*Store, error) {
@@ -184,7 +186,7 @@ func New(dbPath string) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Store{Path: dbPath, pool: conn}, nil
+	return &Store{Path: dbPath, pool: conn, WikiRemoteAllowed: true}, nil
 }
 
 func (s *Store) Close() error {

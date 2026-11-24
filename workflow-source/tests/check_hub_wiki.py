@@ -23,6 +23,7 @@ CHECK_TIMEOUT_S = 420
 
 WATCHES = (
     "workflow-source/workflow_kit/*",
+    "hub-go/*",
     "workflow-source/pyproject.toml",
     "workflow-source/tests/check_hub_core.py",
     "ai-workflow/wiki/*",
@@ -41,7 +42,7 @@ if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from check_hub_core import Hub  # noqa: E402
+from check_hub_core import Hub, _resolve_go_hub  # noqa: E402
 from workflow_kit.common.wiki_rules import classify_wikilinks, validate_index  # noqa: E402
 
 _failures: list[str] = []
@@ -392,11 +393,12 @@ def run_36_3(hub: Hub, tmp: Path) -> None:
     _record("case 12 남의 OKF 묶음 — loose 한 방향 · 같은 경로 409", not problems, "; ".join(problems))
 
 
-def main() -> int:
-    print("=== 허브 위키 (M-036 WBS-36.1 · 36.2 · 36.3) ===")
+def _measure(impl: str, cmd: list[str] | None) -> None:
+    print(f"  --- [{impl}] ---")
+    before = len(_failures)
     with tempfile.TemporaryDirectory(prefix="hubwiki-") as d:
         tmp = Path(d)
-        hub = Hub(tmp / "hub.db")
+        hub = Hub(tmp / "hub.db", cmd_prefix=cmd)
         try:
             try:
                 run(hub, tmp)
@@ -406,8 +408,31 @@ def main() -> int:
                 _record("run (예외)", False, repr(exc))
         finally:
             err = hub.stop()
-            if _failures:
+            if len(_failures) > before:
                 print("  --- 허브 stderr ---\n" + err[-2000:])
+        # 바깥에 노출된 허브는 운영자가 켜야만 소유자가 준 주소를 받는다
+        got = {}
+        for name, extra in (("closed", ()), ("opened", ("--allow-wiki-remote",))):
+            out = Hub(tmp / f"{name}.db", bind="0.0.0.0", extra=extra, cmd_prefix=cmd)
+            try:
+                tok = out.call("hub_project_register", {"remote_url": "git@github.com:acme/x.git", "display_name": "x", "callsign": "own-x", "kind": "human"})[1]["token"]
+                st, body, _ = out.call("hub_wiki_remote_set", {"fetch_url": "https://example.invalid/x.git"}, tok)
+                got[name] = (st, body.get("error_code"), out.call("hub_wiki_remote_set", {"fetch_url": ""}, tok)[0])
+            finally:
+                out.stop()
+        _record("case 13 노출된 허브는 원격 읽기를 운영자가 켜야 한다",
+                got == {"closed": (403, "wiki_remote_disabled", 200), "opened": (200, None, 200)}, str(got))
+
+
+def main() -> int:
+    print("=== 허브 위키 (M-036 WBS-36.1 · 36.2 · 36.3) ===")
+    _measure("python", None)
+    with tempfile.TemporaryDirectory(prefix="hubwiki-go-") as d:
+        go_cmd, reason = _resolve_go_hub(Path(d))
+        if go_cmd is None:
+            print(f"    [unmeasured] go 허브 미측정: {reason}")
+        else:
+            _measure("go", go_cmd)
     total = len(_passes) + len(_failures)
     print(f"\n{len(_passes)}/{total} passed")
     if _failures:

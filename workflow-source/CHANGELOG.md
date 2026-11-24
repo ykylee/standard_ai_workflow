@@ -16,6 +16,8 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- feat(hub): let an agent write a project document after a human login approval (e0144e48)
+- feat(hub): switch this repository's source of truth to the homelab hub (d724873d)
 - feat(hub): finish the Go tool set and make setup completeness honest (9043f2f5)
 - feat(hub): serve approval requests as A2A 1.0 tasks (dc583488)
 - feat(hub): allow signing up without a token (c5150883)
@@ -280,6 +282,10 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- test(hub): declare the marker and helper the progress-rule check reads (8c78b7b8)
+- test(hub): require the marker and an unedited hub region in the progress-rule check (40def284)
+- chore: 워크플로우 허브로 옮김 (MIG-0003) (d3dc604c)
+- test: judge 1.x session checks on isolated projects, not this repository (7fb42d8b)
 - docs(hub): record v16 tables as introduced in 3.2.2 (d64a910c)
 - docs(workflow): record v3.2.2 rollout and open the A2A 1.0 transition (cbb0cc5c)
 - docs(hub): call the hub inbox by its name instead of A2A (9682fc4d)

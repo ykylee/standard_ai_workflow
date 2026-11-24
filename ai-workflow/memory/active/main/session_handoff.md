@@ -76,8 +76,6 @@
 - 현재 `in_progress` 작업:
 - TASK-2026-11-24-main-017 프록시 뒤 계정 등록 403 수리와 비밀번호 8자 (v3.2.3)
 - TASK-2026-11-24-main-016 A2A 1.0 전환 요구·설계와 승인 Task 구현
-- TASK-2026-11-24-main-014 에이전트 요청·사람 로그인 승인으로 이관 실행
-- TASK-2026-11-24-main-013 Go 허브 1.x 이관 도구 포팅과 홈랩 셀프 이관
 - TASK-2026-11-24-main-002 프로젝트 지식·결정 공유 시스템
 - TASK-2026-11-23-main-014 사내 Windows V3가 3.0 허브 실행 파일을 악성코드로 격리하는 탐지 조사
 - TASK-2026-11-23-main-006 Go 허브 화면 API 및 PC 중계 HTTP parity
@@ -93,6 +91,8 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-11-24-main-014 에이전트 요청·사람 로그인 승인으로 이관 실행
+- TASK-2026-11-24-main-013 Go 허브 1.x 이관 도구 포팅과 홈랩 셀프 이관
 - TASK-2026-11-24-main-015 v3.2.2 pre-release 및 홈랩 배포
 - TASK-2026-11-24-main-012 허브 관리자 콜사인 삭제와 고아 콜사인 정리
 - TASK-2026-11-24-main-011 Go 허브 hub_setup_confirm 포팅 — 새 환경 부트스트랩 차단 해소
@@ -101,8 +101,6 @@
 - TASK-2026-11-24-main-007 웹 허브 관리자 모드 진입 UX 개선
 - TASK-2026-11-24-main-009 3.2.1 pre-release 및 홈랩 파일럿 배포
 - TASK-2026-11-24-main-010 에이전트 확인 요청 메뉴와 A2A 승인 결과 전달
-- TASK-2026-11-24-main-005 1.x → Hub 전환 뒤 진입 파일의 이전 경로 잔존 수정
-- TASK-2026-11-24-main-004 허브 task 목록 분류·페이지네이션·카드 보기
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

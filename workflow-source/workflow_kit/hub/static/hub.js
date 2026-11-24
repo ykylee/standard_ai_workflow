@@ -167,22 +167,25 @@
     const status = el("div");
     if (account) {
       const linkToken = el("input", { required: true, autocomplete: "off", placeholder: "다른 프로젝트의 승인된 사람 콜사인 토큰" });
+      const joinProject = el("input", { required: true, autocomplete: "off", placeholder: "프로젝트 ID 또는 git 주소", "aria-label": "프로젝트 ID 또는 git 주소" });
+      const joinCallsign = el("input", { required: true, autocomplete: "off", placeholder: "쓸 콜사인 (예: yk-desk)", "aria-label": "쓸 콜사인" });
       return el("section", { class: "card" }, el("h2", {}, "허브 계정"),
         el("p", {}, `${account.display_name} (${account.username})로 로그인됨`),
+        el("form", { class: "row", onsubmit: async (ev) => { ev.preventDefault(); const r = await api("account/join", { method: "POST", body: { project: joinProject.value.trim(), callsign: joinCallsign.value.trim() } }); if (r.status !== 200) { status.replaceChildren(alertBox("bad", errorText(r))); return; } pendingFlash = { kind: "ok", text: `${r.data.joined.callsign}로 참여했다 — 프로젝트 소유자가 승인하면 결정에 답할 수 있다.` }; dirty = false; onDone(); } }, joinProject, joinCallsign, el("button", { type: "submit" }, "프로젝트 참여 요청")),
         el("form", { class: "row", onsubmit: async (ev) => { ev.preventDefault(); const r = await api("account/link", { method: "POST", token: linkToken.value.trim(), forceToken: true, body: {} }); if (r.status !== 200) status.replaceChildren(alertBox("bad", errorText(r))); else { linkToken.value = ""; status.replaceChildren(alertBox("ok", `콜사인을 연결했다: ${r.data.linked.callsign}`)); onDone(); } } }, linkToken, el("button", { type: "submit" }, "콜사인 연결")), status,
         el("button", { class: "ghost", onclick: async () => { const r = await api("account/logout", { method: "POST", body: {} }); if (r.status === 200) { signedInAccount = false; location.hash = "#/"; onDone(); } else status.replaceChildren(alertBox("bad", errorText(r))); } }, "로그아웃"));
     }
     const loginUser = el("input", { required: true, autocomplete: "username", placeholder: "계정 이름" });
     const loginPass = el("input", { required: true, type: "password", autocomplete: "current-password", placeholder: "비밀번호" });
-    const enrollToken = el("input", { required: true, autocomplete: "off", placeholder: "기존 승인된 사람 콜사인 토큰" });
+    const enrollToken = el("input", { autocomplete: "off", placeholder: "사람 콜사인 토큰 (선택 — 넣으면 바로 연결)" });
     const enrollUser = el("input", { required: true, autocomplete: "username", placeholder: "계정 이름" });
     const enrollName = el("input", { required: true, autocomplete: "name", placeholder: "표시 이름" });
     const enrollPass = el("input", { required: true, type: "password", autocomplete: "new-password", minlength: "8", placeholder: "비밀번호 (8자 이상)" });
     return el("section", { class: "card" }, el("h2", {}, "허브 계정 로그인"),
-      el("p", { class: "muted" }, "계정은 이 브라우저에 토큰을 저장하지 않는다. 처음에는 승인된 사람 콜사인 토큰으로 1회 등록한다."),
+      el("p", { class: "muted" }, "처음이면 토큰 없이 바로 가입한다. 가입 뒤 프로젝트에 참여하면 소유자가 승인한다. 이미 사람 콜사인 토큰이 있으면 함께 넣어 바로 연결한다."),
       el("form", { class: "row", onsubmit: async (ev) => { ev.preventDefault(); const r = await api("account/login", { method: "POST", body: { username: loginUser.value, password: loginPass.value } }); if (r.status !== 200) status.replaceChildren(alertBox("bad", errorText(r))); else { signedInAccount = true; dirty = false; onDone(); } } }, loginUser, loginPass, el("button", { type: "submit" }, "로그인")),
-      el("details", {}, el("summary", {}, "계정 최초 등록"),
-        el("form", { class: "row", onsubmit: async (ev) => { ev.preventDefault(); const r = await api("account/enroll", { method: "POST", token: enrollToken.value.trim(), body: { username: enrollUser.value, display_name: enrollName.value, password: enrollPass.value } }); if (r.status !== 200) status.replaceChildren(alertBox("bad", errorText(r))); else { signedInAccount = true; enrollToken.value = ""; dirty = false; onDone(); } } }, enrollToken, enrollUser, enrollName, enrollPass, el("button", { type: "submit" }, "계정 등록"))), status);
+      el("details", {}, el("summary", {}, "새 계정 만들기"),
+        el("form", { class: "row", onsubmit: async (ev) => { ev.preventDefault(); const r = await api("account/enroll", { method: "POST", token: enrollToken.value.trim() || undefined, body: { username: enrollUser.value, display_name: enrollName.value, password: enrollPass.value } }); if (r.status !== 200) status.replaceChildren(alertBox("bad", errorText(r))); else { signedInAccount = true; enrollToken.value = ""; dirty = false; onDone(); } } }, enrollUser, enrollName, enrollPass, enrollToken, el("button", { type: "submit" }, "가입"))), status);
   }
 
   function registerForm(pid, onDone) {

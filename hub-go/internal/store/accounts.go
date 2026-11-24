@@ -66,12 +66,16 @@ func accountPasswordMatches(password, encoded string) bool {
 }
 
 func (s *Store) AccountEnroll(token, username, displayName, password string, now time.Time) (string, HubAccount, map[string]any, error) {
-	p, err := s.Authenticate(token, &now, "")
-	if err != nil {
-		return "", HubAccount{}, nil, err
-	}
-	if p == nil || p.Kind != "callsign" || p.CallsignKind != "human" || !p.HumanApproved {
-		return "", HubAccount{}, nil, Forbidden("승인된 사람 콜사인 토큰으로만 계정을 만들 수 있다")
+	// 토큰 없이 가입할 수 있다 — 가입만으로는 어떤 프로젝트도 열리지 않는다 (연결은 토큰이나 참여 뒤 소유자 승인).
+	var p *Principal
+	var err error
+	if token != "" {
+		if p, err = s.Authenticate(token, &now, ""); err != nil {
+			return "", HubAccount{}, nil, err
+		}
+		if p == nil || p.Kind != "callsign" || p.CallsignKind != "human" || !p.HumanApproved {
+			return "", HubAccount{}, nil, Forbidden("토큰을 넣으려면 승인된 사람 콜사인 토큰이어야 한다")
+		}
 	}
 	username = strings.ToLower(strings.TrimSpace(username))
 	displayName = strings.TrimSpace(displayName)
@@ -99,13 +103,18 @@ func (s *Store) AccountEnroll(token, username, displayName, password string, now
 	}
 	expires := now.Add(accountSessionDays * 24 * time.Hour)
 	_, err = s.withWriteTx(func(tx *sql.Tx) (map[string]any, error) {
-		var linked int
-		err := tx.QueryRow("SELECT COUNT(*) FROM hub_account_callsign WHERE project_id=? AND callsign=?", p.ProjectID, p.Callsign).Scan(&linked)
-		if err != nil {
-			return nil, err
-		}
-		if linked > 0 {
-			return nil, &HubError{Status: 409, Code: "callsign_already_linked", Message: "이 사람 콜사인은 이미 계정에 연결됐다"}
+		if p == nil {
+			if err := signupSlot(tx, now); err != nil {
+				return nil, err
+			}
+		} else {
+			var linked int
+			if err := tx.QueryRow("SELECT COUNT(*) FROM hub_account_callsign WHERE project_id=? AND callsign=?", p.ProjectID, p.Callsign).Scan(&linked); err != nil {
+				return nil, err
+			}
+			if linked > 0 {
+				return nil, &HubError{Status: 409, Code: "callsign_already_linked", Message: "이 사람 콜사인은 이미 계정에 연결됐다"}
+			}
 		}
 		if _, err := tx.Exec("INSERT INTO hub_account(id,username,display_name,password_hash,created_at) VALUES(?,?,?,?,?)", account.ID, username, displayName, passwordHash, db.FormatISO(now)); err != nil {
 			if strings.Contains(strings.ToLower(err.Error()), "unique") {
@@ -113,8 +122,10 @@ func (s *Store) AccountEnroll(token, username, displayName, password string, now
 			}
 			return nil, err
 		}
-		if _, err := tx.Exec("INSERT INTO hub_account_callsign(account_id,project_id,callsign,linked_at) VALUES(?,?,?,?)", account.ID, p.ProjectID, p.Callsign, db.FormatISO(now)); err != nil {
-			return nil, err
+		if p != nil {
+			if _, err := tx.Exec("INSERT INTO hub_account_callsign(account_id,project_id,callsign,linked_at) VALUES(?,?,?,?)", account.ID, p.ProjectID, p.Callsign, db.FormatISO(now)); err != nil {
+				return nil, err
+			}
 		}
 		_, err = tx.Exec("INSERT INTO hub_account_session(token_hash,account_id,created_at,expires_at) VALUES(?,?,?,?)", HashToken(session), account.ID, db.FormatISO(now), db.FormatISO(expires))
 		return nil, err
@@ -122,7 +133,76 @@ func (s *Store) AccountEnroll(token, username, displayName, password string, now
 	if err != nil {
 		return "", HubAccount{}, nil, err
 	}
+	if p == nil {
+		return session, account, map[string]any{"project_id": nil, "callsign": nil}, nil
+	}
 	return session, account, map[string]any{"project_id": p.ProjectID, "callsign": p.Callsign}, nil
+}
+
+const signupsPerHour = 30
+
+// signupSlot limits tokenless sign-ups across the hub; login keys are sha256 hex and cannot collide with this one.
+func signupSlot(tx *sql.Tx, now time.Time) error {
+	const key = "signup:open"
+	var attempts int
+	var started string
+	err := tx.QueryRow("SELECT attempts,window_started_at FROM hub_account_login_attempt WHERE username_hash=?", key).Scan(&attempts, &started)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return err
+	}
+	count, window := 1, db.FormatISO(now)
+	if err == nil {
+		if at, parseErr := time.Parse(time.RFC3339, started); parseErr == nil && now.Sub(at) < time.Hour {
+			count, window = attempts+1, started
+		}
+	}
+	if count > signupsPerHour {
+		return &HubError{Status: 429, Code: "signup_rate_limited", Message: "가입이 많다 — 잠시 뒤 다시 시도한다"}
+	}
+	_, err = tx.Exec("INSERT INTO hub_account_login_attempt(username_hash,attempts,window_started_at,locked_until) VALUES(?,?,?,NULL) ON CONFLICT(username_hash) DO UPDATE SET attempts=excluded.attempts,window_started_at=excluded.window_started_at", key, count, window)
+	return err
+}
+
+// AccountJoin lets a signed-in account join a project as an unapproved human callsign; no token is issued.
+func (s *Store) AccountJoin(accountID, project, callsign string, now time.Time) (map[string]any, error) {
+	pid, callsign := strings.TrimSpace(project), strings.TrimSpace(callsign)
+	if pid == "" {
+		return nil, InvalidField("project", "프로젝트 ID 또는 git 주소")
+	}
+	var n int
+	if err := s.pool.QueryRow("SELECT COUNT(*) FROM project WHERE id=?", pid).Scan(&n); err != nil {
+		return nil, err
+	}
+	if n == 0 {
+		found, err := s.LookupProject(pid)
+		if err != nil {
+			return nil, err
+		}
+		pid, _ = found["project_id"].(string)
+	}
+	if pid == "" {
+		return nil, NotFound("프로젝트가 없다 — ID 나 git 주소를 확인한다")
+	}
+	moved, err := s.ProjectMoved(pid)
+	if err != nil {
+		return nil, err
+	}
+	if moved != "" {
+		return nil, &HubError{Status: 410, Code: "project_moved", Message: "프로젝트가 다른 허브로 이동했다", Detail: map[string]any{"project_id": pid, "to": moved}}
+	}
+	if err := s.pool.QueryRow("SELECT COUNT(*) FROM hub_account_callsign WHERE account_id=? AND project_id=?", accountID, pid).Scan(&n); err != nil {
+		return nil, err
+	}
+	if n > 0 {
+		return nil, &HubError{Status: 409, Code: "already_joined", Message: "이 계정은 이미 그 프로젝트에 연결됐다"}
+	}
+	if _, err := s.RegisterCallsign(Ctx{Now: now, Via: "ui"}, pid, callsign, "human", "허브 계정 참여", "browser"); err != nil {
+		return nil, err
+	}
+	if _, err := s.pool.Exec("INSERT INTO hub_account_callsign(account_id,project_id,callsign,linked_at) VALUES(?,?,?,?)", accountID, pid, callsign, db.FormatISO(now)); err != nil {
+		return nil, err
+	}
+	return map[string]any{"project_id": pid, "callsign": callsign, "human_pending": true}, nil
 }
 
 func (s *Store) AccountLogin(username, password string, now time.Time) (string, HubAccount, error) {

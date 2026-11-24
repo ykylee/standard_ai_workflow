@@ -671,6 +671,56 @@ def case_17_proxy_origin(tmp: Path, impl: str, cmd: list[str] | None) -> None:
         hub.stop()
 
 
+def case_18_open_signup(tmp: Path, impl: str, cmd: list[str] | None) -> None:
+    """토큰 없는 가입 — 가입만으로는 아무 프로젝트도 열리지 않고, 참여하면 승인 전 사람 콜사인, 실행 승인은 소유자만."""
+    db = tmp / f"signup-{impl}.db"
+    hub = Hub(db, cmd_prefix=cmd)
+    try:
+        pid, owner = _project(hub, "signup")
+        post = lambda path, body, cookie="", token=None: _req(hub.base, path, method="POST", body=body, cookie=cookie or None, token=token)  # noqa: E731
+        user = {"username": "new-user", "display_name": "New", "password": "eight-ch"}
+        st, _, head = post("/api/account/enroll", user)
+        cookie = head.get("set-cookie", "").split(";", 1)[0]
+        got: dict[str, Any] = {"signup": st, "dup": post("/api/account/enroll", user)[0],
+                               "bad token": post("/api/account/enroll", {**user, "username": "other"}, token="nope")[0]}
+        agent = hub.call("hub_callsign_register", {"project_id": pid, "callsign": "agent-s", "kind": "agent"})[1]["token"]
+        got["agent token"] = post("/api/account/enroll", {**user, "username": "other"}, token=agent)[0]
+        got["projects"] = _req(hub.base, "/api/projects", cookie=cookie)[1]["projects"]
+        got["read"] = [_req(hub.base, f"/api/projects/{pid}{p}", cookie=cookie)[0] for p in ("", "/tasks", "/callsigns", "/confirmations", "/wiki")]
+        got["register"] = post(f"/api/projects/{pid}/callsigns", {"callsign": "sneaky", "kind": "human"}, cookie)[0]
+        got["admin"] = _req(hub.base, "/api/harness-reports", cookie=cookie)[0]
+        got["join none"] = post("/api/account/join", {"project": pid, "callsign": "new-h"})[0]
+        got["join missing"] = post("/api/account/join", {"project": "https://github.com/no/such", "callsign": "new-h"}, cookie)[0]
+        got["join taken"] = post("/api/account/join", {"project": pid, "callsign": "agent-s"}, cookie)[0]
+        st_j, joined, _ = post("/api/account/join", {"project": pid, "callsign": "new-h"}, cookie)
+        got["join"] = (st_j, joined.get("joined", {}).get("human_pending"), "token" in json.dumps(joined))
+        got["join again"] = post("/api/account/join", {"project": pid, "callsign": "new-h2"}, cookie)[0]
+        me = _req(hub.base, f"/api/projects/{pid}", cookie=cookie)[1]["principal"]
+        got["me"] = (me["role"], me["human_approved"], me["can_manage"])
+        got["confirmations"] = _req(hub.base, f"/api/projects/{pid}/confirmations", cookie=cookie)[0]
+        got["self approve"] = post(f"/api/projects/{pid}/callsigns/new-h/approve", {}, cookie)[0]
+        got["owner approve"] = hub.call("hub_callsign_approve", {"callsign": "new-h"}, owner)[0]
+        me2 = _req(hub.base, f"/api/projects/{pid}", cookie=cookie)[1]["principal"]
+        got["approved me"] = (me2["role"], me2["human_approved"], me2["can_manage"])
+        got["still not owner"] = _req(hub.base, f"/api/projects/{pid}/confirmations", cookie=cookie)[0]
+        import sqlite3  # noqa: PLC0415
+        with sqlite3.connect(db) as c:
+            c.execute("UPDATE hub_account_login_attempt SET attempts = 30 WHERE username_hash = 'signup:open'")
+        got["limit"] = post("/api/account/enroll", {**user, "username": "late"})[0]
+        got["login ok"] = post("/api/account/login", user)[0]
+        with sqlite3.connect(db) as c:
+            c.execute("UPDATE hub_account_login_attempt SET window_started_at = '2000-01-01T00:00:00+00:00' WHERE username_hash = 'signup:open'")
+        got["window"] = post("/api/account/enroll", {**user, "username": "late"})[0]
+        want = {"signup": 200, "dup": 409, "bad token": 403, "agent token": 403, "projects": [], "read": [403] * 5, "register": 403, "admin": 403,
+                "join none": 401, "join missing": 404, "join taken": 409, "join": (200, True, False), "join again": 409,
+                "me": ("editor", False, False), "confirmations": 403, "self approve": 403, "owner approve": 200,
+                "approved me": ("editor", True, False), "still not owner": 403, "limit": 429, "login ok": 200, "window": 200}
+        diff = {k: (got[k], want[k]) for k in want if got[k] != want[k]}
+        _record(f"case 18 (토큰 없는 가입 · 참여 승인 전 · 실행 승인은 소유자만 · 가입 상한) [{impl}]", not diff, f"diff={diff}")
+    finally:
+        hub.stop()
+
+
 def main() -> int:
     print("check_hub_ui")
     with tempfile.TemporaryDirectory(prefix="hub-ui-") as d:
@@ -683,11 +733,13 @@ def main() -> int:
         case_13_14_15(tmp)
         case_16_accounts_confirmations(tmp)
         case_17_proxy_origin(tmp, "python", None)
+        case_18_open_signup(tmp, "python", None)
         go_cmd, reason = _resolve_go_hub(tmp)
         if go_cmd is None:
             print(f"    [unmeasured] go 허브 미측정: {reason}")
         else:
             case_17_proxy_origin(tmp, "go", go_cmd)
+            case_18_open_signup(tmp, "go", go_cmd)
     print(f"PASS {len(_passes)} · FAIL {len(_failures)}")
     for f in _failures:
         print(f"  FAIL {f}")

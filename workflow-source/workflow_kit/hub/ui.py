@@ -146,6 +146,12 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
                     raise unauthorized("허브 계정에 로그인해야 콜사인을 연결할 수 있다")
                 linked = accounts.link(linked_account["id"], _bearer(request) or "", now)
                 return JSONResponse({"account": linked_account, "linked": linked}, headers=headers)
+            elif action == "join":
+                joiner = accounts.account(cookie, now)
+                if not joiner:
+                    raise unauthorized("허브 계정에 로그인해야 프로젝트에 참여할 수 있다")
+                joined = accounts.join(joiner["id"], payload.get("project", ""), payload.get("callsign", ""), now)
+                return JSONResponse({"account": joiner, "joined": joined}, headers=headers)
             elif action == "logout":
                 accounts.logout(cookie, now)
                 session, account = "", None

@@ -1233,6 +1233,27 @@ func (s *Server) handleAccountAPI(w http.ResponseWriter, r *http.Request, now ti
 		}
 		writeJSONResponse(w, http.StatusOK, map[string]any{"account": accountPtr, "linked": linked})
 		return
+	case "join":
+		cookie, cookieErr := r.Cookie("workflow_hub_session")
+		if cookieErr != nil {
+			writeScreenError(w, store.Unauthorized("허브 계정에 로그인해야 프로젝트에 참여할 수 있다"))
+			return
+		}
+		joiner, joinErr := s.cfg.Store.AccountBySession(cookie.Value, now)
+		if joinErr == nil && joiner == nil {
+			joinErr = store.Unauthorized("허브 계정 세션이 만료됐다")
+		}
+		if joinErr != nil {
+			writeScreenError(w, joinErr)
+			return
+		}
+		joined, joinErr := s.cfg.Store.AccountJoin(joiner.ID, stringArg(body, "project"), stringArg(body, "callsign"), now)
+		if joinErr != nil {
+			writeScreenError(w, joinErr)
+			return
+		}
+		writeJSONResponse(w, http.StatusOK, map[string]any{"account": joiner, "joined": joined})
+		return
 	case "logout":
 		if c, e := r.Cookie("workflow_hub_session"); e == nil {
 			err = s.cfg.Store.AccountLogout(c.Value, now)

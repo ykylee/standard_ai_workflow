@@ -12,7 +12,7 @@ PostgreSQL은 Go와 Python 런타임이 함께 지원하는 서버 저장소다.
 참여한다. 하네스는 허브의 원격 MCP(`/mcp`)로 붙고, 셋업이 쓰는 파일은 `.gitignore` 한 줄 · 진입 파일 영역 ·
 하네스 설정 · 토큰 파일(`.workflow-hub/env`, git 제외) 뿐이다.
 
-버전 표시는 런타임 판과 kit 계약판을 구분한다. 현재 Go 허브 pilot과 Python wheel은 모두 **3.2.1**이며, 두 런타임이 구현하는
+버전 표시는 런타임 판과 kit 계약판을 구분한다. 현재 Go 허브 pilot과 Python wheel은 모두 **3.2.2**이며, 두 런타임이 구현하는
 kit 호환 계약은 **2.1.0**이다. 허브 `/healthz` 의 `hub_version`은 런타임, `kit_version`은 호환 계약 판이다.
 `X-Hub-Version` 과 `X-Hub-Kit` 응답 헤더도 같은 구분을 따른다.
 
@@ -211,7 +211,7 @@ python -m workflow_kit hub backup --db ~/workflow-hub/hub.db --out ~/backup/hub-
 
 ### 8.1 3.x pre-release pilot 런타임 선택
 
-Go 허브 pilot과 Python 허브 wheel은 **3.2.1**로 배포된다. 사내 Windows에서는 아래 보안 정책을 먼저 확인하고,
+Go 허브 pilot과 Python 허브 wheel은 **3.2.2**로 배포된다. 사내 Windows에서는 아래 보안 정책을 먼저 확인하고,
 Python 런타임은 별도 프로세스와 DB 사본으로 평가한다.
 
 #### 셋업 전 사내 Windows 확인
@@ -230,7 +230,7 @@ Windows PowerShell 예시 (SQLite 복제본으로 pilot):
 ```powershell
 py -3.11 -m venv "$env:USERPROFILE\workflow-hub\venv-3x"
 $py = "$env:USERPROFILE\workflow-hub\venv-3x\Scripts\python.exe"
-& $py -m pip install 'standard-ai-workflow[hub] @ https://github.com/ykylee/standard_ai_workflow/releases/download/v3.2.1/standard_ai_workflow-3.2.1-py3-none-any.whl'
+& $py -m pip install 'standard-ai-workflow[hub] @ https://github.com/ykylee/standard_ai_workflow/releases/download/v3.2.2/standard_ai_workflow-3.2.2-py3-none-any.whl'
 & $py -m workflow_kit hub serve --db "$env:USERPROFILE\workflow-hub\pilot-copy.db" --bind 127.0.0.1 --port 8770
 ```
 
@@ -240,7 +240,7 @@ $py = "$env:USERPROFILE\workflow-hub\venv-3x\Scripts\python.exe"
 ```sh
 python3 -m venv ~/workflow-hub/venv-3x
 ~/workflow-hub/venv-3x/bin/python -m pip install \
-  'standard-ai-workflow[hub] @ https://github.com/ykylee/standard_ai_workflow/releases/download/v3.2.1/standard_ai_workflow-3.2.1-py3-none-any.whl'
+  'standard-ai-workflow[hub] @ https://github.com/ykylee/standard_ai_workflow/releases/download/v3.2.2/standard_ai_workflow-3.2.2-py3-none-any.whl'
 ~/workflow-hub/venv-3x/bin/python -m workflow_kit hub serve \
   --db ~/workflow-hub/pilot-copy.db --bind 127.0.0.1 --port 8770
 ```
@@ -248,7 +248,7 @@ python3 -m venv ~/workflow-hub/venv-3x
 - Python은 SQLite에 경로를 직접 전달하므로 Go의 `file:` DSN URI 생성 경로를 거치지 않는다.
 - Go와 Python 모두 parity 및 rollback 검증이 끝나기 전까지 운영 DB에 연결하지 않는다. pilot 시에는 각각 독립된 일관된 DB 사본을 쓴다.
 - Go 3.0.0 pre-release는 Windows 경로 DSN 결함이 있어 Windows에서 쓰지 않는다. Go 수정판은 3.0.1 이후 판이다.
-  현재 Go/Python pilot은 3.2.1이며, Windows 사내 환경에서는 V3/EDR 정책에 따라 Python 경로를 우선한다.
+  현재 Go/Python pilot은 3.2.2이며, Windows 사내 환경에서는 V3/EDR 정책에 따라 Python 경로를 우선한다.
 
 ## 9. 허브 간 프로젝트 이전
 
@@ -265,7 +265,7 @@ python3 -m venv ~/workflow-hub/venv-3x
 
 Hub DB 판 13부터 프로젝트별 지식 카탈로그와 결정 변경 기록(DCR)을 제공한다. 기존 Wiki는 유지되고, 수정·삭제 때 revision snapshot을 남긴다. Git 정본 문서는 프로젝트에 등록된 allowlist 경로만 스냅샷으로 동기화한다. Hub가 Git 원격을 읽거나 저장소 파일에 쓰지 않는다.
 
-Go 허브 3.2.1 pilot에서는 전용 MCP 읽기 도구 `hub_wiki_get`, `hub_wiki_list`, `hub_wiki_search`가 아직 포팅되지 않아 `not_implemented_in_go`를 반환한다. Wiki는 `hub_knowledge_search/get` 통합 MCP 경로와 아래 프로젝트 HTTP API로 검색·조회할 수 있다. Python 허브의 전용 MCP 도구는 동작한다.
+Go 허브 3.2.2부터 전용 MCP 읽기 도구 `hub_wiki_get`, `hub_wiki_list`, `hub_wiki_search`가 Python과 같은 결과를 낸다. 1.x 이관(`hub_migrate_*`), 프로젝트 이전(`hub_project_export/import/unseal`), handoff·checkpoint·memory entry, Wiki 가져오기·내보내기·lint, relay 초대 MCP 도구는 Go에 아직 없어 `not_implemented_in_go`를 반환한다.
 
 프로젝트 owner가 MCP 도구 `hub_knowledge_source_register`로 source ID, 등록된 repository key, Markdown allowlist를 등록한다. 이후 세션은 저장소에서 문서를 읽은 뒤 `hub_knowledge_sync`에 commit SHA와 `{path,title,body}` 목록을 넘긴다. `hub_knowledge_search`는 자기 프로젝트의 Git 문서와 Wiki를 함께 검색하며 commit/revision/hash가 포함된 ref를 돌려준다. `hub_knowledge_get`은 ref에 고정된 과거 판도 읽는다. 관리 화면은 **지식** 탭에서 통합 검색, **결정** 탭에서 DCR 상태와 감사 timeline을 보여준다.
 

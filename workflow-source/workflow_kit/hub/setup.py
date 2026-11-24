@@ -322,7 +322,7 @@ class Setup:
                     ci = by_check.get("check_ignore")
                     if ci is not None:
                         ok, why = check_ignore_ok(int(ci.get("rc", 1)), str(ci.get("output", "")))
-                elif row["kind"] in ("env", "entry") or (row["kind"] == "harness" and row["path"] == MCP_JSON):
+                elif row["kind"] in ("env", "entry") or (row["kind"] == "harness" and row["path"]):
                     got = by_path.get(row["path"])
                     if got is not None:
                         ok = got == row["sha256"]

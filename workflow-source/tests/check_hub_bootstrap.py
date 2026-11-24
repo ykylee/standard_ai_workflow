@@ -23,6 +23,7 @@ CHECK_TIMEOUT_S = 300
 # `python -m workflow_kit hub` 로 실제 프로세스를 띄우므로 dispatcher 를 거쳐 kit 전체를 읽는다.
 WATCHES = (
     "workflow-source/workflow_kit/*",
+    "hub-go/*",
     "workflow-source/core/hub_workflow_standard.md",
     "workflow-source/tests/check_hub_core.py",  # 허브 프로세스 도우미(Hub)를 빌려 쓴다
     "workflow-source/pyproject.toml",
@@ -44,7 +45,7 @@ if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from check_hub_core import Hub, _env  # noqa: E402
+from check_hub_core import Hub, _env, _resolve_go_hub  # noqa: E402
 from workflow_kit.bootstrap_lib.harnesses import spec_for  # noqa: E402
 from workflow_kit.bootstrap_lib.harnesses.entry_sections import ENTRY_BUDGET_BYTES  # noqa: E402
 from workflow_kit import __version__ as HUB_VERSION  # noqa: E402
@@ -339,32 +340,45 @@ def case_8_page(hub: Hub, tok: str) -> None:
     _record("case 8 (안내 페이지 — 버전 · 4종 · relay 가이드 · 토큰 없음 · CSP)", ok, f"len={len(body)} setup_len={len(setup)} csp={r.headers.get('Content-Security-Policy')}")
 
 
+def _measure(tmp: Path, cmd: list[str] | None) -> None:
+    impl = tmp.name
+    print(f"  --- [{impl}] ---")
+    tmp.mkdir()
+    db = tmp / "hub.db"
+    before = len(_failures)
+    hub = Hub(db, cmd_prefix=cmd)
+    try:
+        # 예외로 죽어도 어느 case 가 왜 깨졌는지 요약에 남긴다 — 못 돈 case 는 통과가 아니다.
+        try:
+            pid, tok, repo = case_3_to_6(hub, tmp)
+        except Exception as exc:  # noqa: BLE001
+            _record("case 3~6 (셋업)", False, f"예외: {exc!r}")
+            _record("case 7 (세션 시작)", False, "선행 case 3~6 실패로 돌지 못함")
+            _record("case 8 (안내 페이지)", False, "선행 case 3~6 실패로 돌지 못함")
+        else:
+            try:
+                case_7_session(hub, tmp, db, pid, tok, repo)
+            except Exception as exc:  # noqa: BLE001
+                _record("case 7 (세션 시작)", False, f"예외: {exc!r}")
+            case_8_page(hub, tok)
+    finally:
+        err = hub.stop()
+        if len(_failures) > before:
+            print(f"  --- [{impl}] 허브 stderr ---\n" + err[-2000:])
+
+
 def main() -> int:
     print("=== 허브 부트스트랩 · 지침 · 세션 시작 (M-034) ===")
     case_1_single_source()
     case_2_merge()
     with tempfile.TemporaryDirectory(prefix="hubboot-") as d:
-        tmp = Path(d)
-        db = tmp / "hub.db"
-        hub = Hub(db)
-        try:
-            # 예외로 죽어도 어느 case 가 왜 깨졌는지 요약에 남긴다 — 못 돈 case 는 통과가 아니다.
-            try:
-                pid, tok, repo = case_3_to_6(hub, tmp)
-            except Exception as exc:  # noqa: BLE001
-                _record("case 3~6 (셋업)", False, f"예외: {exc!r}")
-                _record("case 7 (세션 시작)", False, "선행 case 3~6 실패로 돌지 못함")
-                _record("case 8 (안내 페이지)", False, "선행 case 3~6 실패로 돌지 못함")
-            else:
-                try:
-                    case_7_session(hub, tmp, db, pid, tok, repo)
-                except Exception as exc:  # noqa: BLE001
-                    _record("case 7 (세션 시작)", False, f"예외: {exc!r}")
-                case_8_page(hub, tok)
-        finally:
-            err = hub.stop()
-            if _failures:
-                print("  --- 허브 stderr ---\n" + err[-2000:])
+        _measure(Path(d) / "python", None)
+        # 같은 계약을 Go 허브에도 잰다 — 홈랩이 실제로 도는 쪽이다 (TASK-2026-11-24-main-011)
+        go_cmd, reason = _resolve_go_hub(Path(d))
+        if go_cmd is None:
+            print(f"    [unmeasured] go 허브 미측정: {reason}")
+        else:
+            _measure(Path(d) / "go", go_cmd)
     total = len(_passes) + len(_failures)
     print(f"\n{len(_passes)}/{total} passed")
     if _failures:

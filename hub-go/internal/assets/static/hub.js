@@ -297,6 +297,7 @@
       return;
     }
     setWho(session.data.principal);
+    adminLink.textContent = "관리 화면";
     if ([reportsRes, peopleRes, registryRes].some((r) => r.status !== 200)) {
       render(el("section", { class: "card" }, alertBox("bad", errorText([reportsRes, peopleRes, registryRes].find((r) => r.status !== 200))))); return;
     }

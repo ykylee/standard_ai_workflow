@@ -74,9 +74,8 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
-- TASK-2026-11-24-main-009 3.2.1 pre-release 및 홈랩 파일럿 배포
-- TASK-2026-11-24-main-008 미지원 하네스 셋업 부트스트랩과 지원 등록
-- TASK-2026-11-24-main-007 웹 허브 관리자 모드 진입 UX 개선
+- TASK-2026-11-24-main-006 Go 허브 전용 Wiki MCP 읽기 도구 parity
+- TASK-2026-11-24-main-011 Go 허브 hub_setup_confirm 포팅 — 새 환경 부트스트랩 차단 해소
 - TASK-2026-11-24-main-002 프로젝트 지식·결정 공유 시스템
 - TASK-2026-11-23-main-014 사내 Windows V3가 3.0 허브 실행 파일을 악성코드로 격리하는 탐지 조사
 - TASK-2026-11-23-main-006 Go 허브 화면 API 및 PC 중계 HTTP parity
@@ -92,6 +91,9 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-11-24-main-008 미지원 하네스 셋업 부트스트랩과 지원 등록
+- TASK-2026-11-24-main-007 웹 허브 관리자 모드 진입 UX 개선
+- TASK-2026-11-24-main-009 3.2.1 pre-release 및 홈랩 파일럿 배포
 - TASK-2026-11-24-main-010 에이전트 확인 요청 메뉴와 A2A 승인 결과 전달
 - TASK-2026-11-24-main-005 1.x → Hub 전환 뒤 진입 파일의 이전 경로 잔존 수정
 - TASK-2026-11-24-main-004 허브 task 목록 분류·페이지네이션·카드 보기
@@ -99,9 +101,6 @@
 - TASK-2026-11-24-main-001 3.1.0 pre-release 및 홈랩 허브 배포
 - TASK-2026-11-23-main-021 허브 release 버전과 kit 호환 버전을 API·페이지에 함께 표시
 - TASK-2026-11-23-main-020 프로젝트 목록 화면에 null 문자열 노출 수정
-- TASK-2026-11-23-main-019 허브 셋업에서 로컬 중계 필요 여부와 상태 확인
-- TASK-2026-11-23-main-022 3단계 작업 카테고리와 roadmap·WBS·테스트 관리 연결
-- TASK-2026-11-23-main-018 홈랩 3.0.1 허브 배포 및 dacpi /workflow 프록시 연결
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

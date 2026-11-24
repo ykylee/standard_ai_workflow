@@ -145,9 +145,18 @@ def test_intake_review() -> int:
             config_step = next(step for step in file_plan["steps"] if step.get("path") == "harness-mcp.json")
             assert file_plan["stage"] == "files"
             assert "${WORKFLOW_HUB_TOKEN}" in config_step["content"]
+            # .mcp.json 이 아닌 승인 설정 파일도 해시로 확인되고 셋업이 끝난다
+            written = [{"path": step["path"], "sha256": step["sha256_after"]} for step in file_plan["steps"]]
+            wrong = [{**item, "sha256": "0" * 64} if item["path"] == "harness-mcp.json" else item for item in written]
+            partial = tools.call(store, "hub_setup_confirm", {
+                "project_id": owner.project_id, "token": owner_data["token"], "files": wrong, "checks": []}, owner_ctx)
+            assert partial["setup_complete"] is False and partial["unconfirmed"][0]["id"] == config_step["id"]
+            finished = tools.call(store, "hub_setup_confirm", {
+                "project_id": owner.project_id, "token": owner_data["token"], "files": written, "checks": []}, owner_ctx)
+            assert finished["setup_complete"] is True, finished
         finally:
             live.stop()
-    return 19
+    return 21
 
 
 if __name__ == "__main__":

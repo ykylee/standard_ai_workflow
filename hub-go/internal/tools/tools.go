@@ -401,6 +401,8 @@ func Call(s *store.Store, name string, rawArgs any, ctx store.Ctx) (result map[s
 			strArg(clean, "question", ""), strArg(clean, "details", ""))
 	case "hub_setup_plan":
 		return setupPlan(s, ctx, clean)
+	case "hub_setup_confirm":
+		return setupConfirm(s, ctx, clean)
 	case "hub_guide_render":
 		return guideRender(s, ctx, strArg(clean, "harness", ""), optStrArg(clean, "current"))
 	case "hub_guide_get":
@@ -446,6 +448,12 @@ func Call(s *store.Store, name string, rawArgs any, ctx store.Ctx) (result map[s
 		}, nil
 	case "hub_wiki_ingest":
 		return s.WikiIngest(ctx, clean["pages"], strArg(clean, "summary", ""), strArg(clean, "request_id", ""))
+	case "hub_wiki_get":
+		return s.WikiGet(ctx, strArg(clean, "path", ""))
+	case "hub_wiki_list":
+		return s.WikiList(ctx, strArg(clean, "prefix", ""))
+	case "hub_wiki_search":
+		return s.WikiSearch(ctx, strArg(clean, "query", ""), intArg(clean, "limit", 20))
 	case "hub_knowledge_source_register":
 		return s.KnowledgeSourceRegister(ctx, strArg(clean, "source_id", ""), strArg(clean, "repo_key", ""), clean["allowlist"])
 	case "hub_knowledge_sync":

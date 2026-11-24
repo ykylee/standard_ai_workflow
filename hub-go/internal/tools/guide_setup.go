@@ -421,6 +421,40 @@ func setupPlan(s *store.Store, ctx store.Ctx, args map[string]any) (map[string]a
 			}
 		}
 	}
+	legacy := []string{}
+	for path, text := range files {
+		if content, ok := text.(string); ok {
+			if hasLegacyEntryMarker(content) {
+				legacy = append(legacy, path)
+			}
+		}
+	}
+	sort.Strings(legacy)
+	var legacyOut any
+	if len(legacy) > 0 {
+		entryUpdateAllowed := migrationComplete
+		if !entryUpdateAllowed {
+			entryUpdateAllowed = true
+			for _, path := range legacy {
+				for _, entry := range entryPaths {
+					if path == entry {
+						entryUpdateAllowed = false
+					}
+				}
+			}
+		}
+		legacyOut = map[string]any{"files": legacy, "migration_complete": migrationComplete, "entry_update_allowed": entryUpdateAllowed,
+			"next": "1.x kit 흔적이 있다 — 전환은 사람이 선택 클라이언트로 한다: python .workflow-hub/hub_client.py migrate plan → (표를 보이고 고른 종류로) migrate import (hub_spec §6.6). 가져오기와 ai-workflow/HUB_MIGRATED.json 표식 커밋 뒤 셋업을 다시 실행하면 진입 안내를 갱신한다"}
+	}
+	relay := map[string]any{"required": false, "config_present": false, "status": nil, "next": "선택 사항 — 현재 셋업에서는 로컬 중계가 필요하지 않음"}
+	if raw := relayScan; raw != nil {
+		required, _ := raw["required"].(bool)
+		config, _ := raw["config_present"].(bool)
+		relay = map[string]any{"required": required, "config_present": config, "status": raw["status"], "next": "선택 사항 — 현재 셋업에서는 로컬 중계가 필요하지 않음"}
+		if required {
+			relay["next"] = "Python 우선: python -m workflow_kit hub relay status → 필요하면 init → allow add → serve"
+		}
+	}
 	var status sql.NullString
 	_ = s.DB().QueryRow("SELECT status FROM setup_step WHERE project_id=? AND callsign=? AND step_id='gitignore'", pid, p.Callsign).Scan(&status)
 	if !status.Valid || status.String != "confirmed" {
@@ -435,7 +469,7 @@ func setupPlan(s *store.Store, ctx store.Ctx, args map[string]any) (map[string]a
 				already = true
 			}
 		}
-		return map[string]any{"stage": "gitignore", "steps": []any{map[string]any{"id": "gitignore", "op": "append_line", "path": ".gitignore", "content": "/.workflow-hub/\n", "already_present": already}, map[string]any{"id": "check_ignore", "op": "run_and_report", "run": []string{"git", "check-ignore", "-v", ".workflow-hub/env"}, "note": "출력과 종료 코드를 hub_setup_confirm 의 checks 로 보낸다"}}, "next": "hub_setup_confirm — 이 단계가 확인되기 전에는 토큰 파일 지시를 내지 않는다 (요구 R4.2)", "legacy_1x": nil, "relay": map[string]any{"required": false, "config_present": false, "status": nil, "next": "선택 사항 — 현재 셋업에서는 로컬 중계가 필요하지 않음"}}, nil
+		return map[string]any{"stage": "gitignore", "steps": []any{map[string]any{"id": "gitignore", "op": "append_line", "path": ".gitignore", "content": "/.workflow-hub/\n", "already_present": already}, map[string]any{"id": "check_ignore", "op": "run_and_report", "run": []string{"git", "check-ignore", "-v", ".workflow-hub/env"}, "note": "출력과 종료 코드를 hub_setup_confirm 의 checks 로 보낸다"}}, "next": "hub_setup_confirm — 이 단계가 확인되기 전에는 토큰 파일 지시를 내지 않는다 (요구 R4.2)", "legacy_1x": legacyOut, "relay": relay}, nil
 	}
 	publicURL := strings.TrimRight(ctx.PublicURL, "/")
 	env := fmt.Sprintf("WORKFLOW_HUB_URL=%s\nWORKFLOW_HUB_PROJECT=%s\nWORKFLOW_HUB_CALLSIGN=%s\nWORKFLOW_HUB_TOKEN=%s\n", publicURL, pid, p.Callsign, token)
@@ -528,40 +562,6 @@ func setupPlan(s *store.Store, ctx store.Ctx, args map[string]any) (map[string]a
 				steps = append(steps, map[string]any{"id": stepID, "op": "write", "path": configPath, "content": content, "sha256_after": digest(content), "note": "관리자가 승인한 MCP Streamable HTTP JSON 프로필. 토큰은 환경 변수 참조만 저장한다."})
 				dynamicConfigsWritten[configPath] = true
 			}
-		}
-	}
-	legacy := []string{}
-	for path, text := range files {
-		if content, ok := text.(string); ok {
-			if hasLegacyEntryMarker(content) {
-				legacy = append(legacy, path)
-			}
-		}
-	}
-	sort.Strings(legacy)
-	var legacyOut any
-	if len(legacy) > 0 {
-		entryUpdateAllowed := migrationComplete
-		if !entryUpdateAllowed {
-			entryUpdateAllowed = true
-			for _, path := range legacy {
-				for _, entry := range entryPaths {
-					if path == entry {
-						entryUpdateAllowed = false
-					}
-				}
-			}
-		}
-		legacyOut = map[string]any{"files": legacy, "migration_complete": migrationComplete, "entry_update_allowed": entryUpdateAllowed,
-			"next": "1.x kit 흔적이 있다 — 전환은 사람이 선택 클라이언트로 한다: python .workflow-hub/hub_client.py migrate plan → (표를 보이고 고른 종류로) migrate import (hub_spec §6.6). 가져오기와 ai-workflow/HUB_MIGRATED.json 표식 커밋 뒤 셋업을 다시 실행하면 진입 안내를 갱신한다"}
-	}
-	relay := map[string]any{"required": false, "config_present": false, "status": nil, "next": "선택 사항 — 현재 셋업에서는 로컬 중계가 필요하지 않음"}
-	if raw := relayScan; raw != nil {
-		required, _ := raw["required"].(bool)
-		config, _ := raw["config_present"].(bool)
-		relay = map[string]any{"required": required, "config_present": config, "status": raw["status"], "next": "선택 사항 — 현재 셋업에서는 로컬 중계가 필요하지 않음"}
-		if required {
-			relay["next"] = "Python 우선: python -m workflow_kit hub relay status → 필요하면 init → allow add → serve"
 		}
 	}
 	return map[string]any{"stage": "files", "steps": steps, "blocked": blocked, "legacy_1x": legacyOut, "relay": relay, "next": "hub_setup_confirm — 쓴 파일의 sha256 과 명령 결과를 보낸다. 끝나면 WORKFLOW_HUB_TOKEN 을 .workflow-hub/env 에서 환경에 올리고 하네스를 다시 연결한다"}, nil

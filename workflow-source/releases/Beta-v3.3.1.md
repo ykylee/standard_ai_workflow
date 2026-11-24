@@ -20,3 +20,20 @@
 
 - 평가용 pre-release다. DB 판은 18 그대로다. Go의 PostgreSQL 프로젝트 이전은 측정하지 않았다.
 - 봉인된 사본으로 되옮길 때 그 사본의 계정 연결·승인은 거둔다.
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-11-24T15:10:04Z)_
+
+- total wiki pages: **104**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

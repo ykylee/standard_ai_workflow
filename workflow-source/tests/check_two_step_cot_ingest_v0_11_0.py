@@ -19,6 +19,7 @@ WATCHES = (
 
 import json
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -395,14 +396,16 @@ def test_ingest_purpose_cli_registered_v0_11_0() -> None:
         before = ""
 
     env = {"PYTHONPATH": str(SOURCE_ROOT), "PATH": __import__("os").environ.get("PATH", "")}
+    outside = tempfile.mkdtemp(prefix="ingest-cli-")
     result = subprocess.run(
         [sys.executable, "-m", "workflow_kit.workflow_kit_cli", "--command=ingest-purpose"],
-        cwd=str(REPO_ROOT),
+        cwd=outside,  # 저장소 밖 — 허브로 옮긴 저장소에서는 이 명령이 거절된다
         env=env,
         capture_output=True,
         text=True,
         timeout=30, encoding="utf-8", errors="replace"
     )
+    shutil.rmtree(outside, ignore_errors=True)
     # state.json 미변경 확인
     if state_path.exists():
         after = state_path.read_text(encoding="utf-8")

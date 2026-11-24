@@ -15,6 +15,7 @@ from __future__ import annotations
 #: 이 검사의 입력 표면 (spec `core/test_impact_tiering_spec.md` §2).
 #: 게이트 채취 실측에서 뽑아 넓은 쪽으로 올렸다 — 좁으면 meta-watch 가 red 로 잡는다.
 WATCHES = (
+    "ai-workflow/HUB_MIGRATED.json",
     "ai-workflow/memory/active/*",
     "workflow-source/pyproject.toml",
     "workflow-source/workflow_kit/*",
@@ -39,6 +40,7 @@ for _entry in (str(SOURCE_ROOT), str(TESTS_ROOT)):
 
 from _session_observer import observe_session_start  # noqa: E402
 
+from workflow_kit.common.hub_marker import find_marker  # noqa: E402
 from workflow_kit.common.read_only_bundle import assess_milestone_progress_payload  # noqa: E402
 from workflow_kit.common.state.roadmap import (  # noqa: E402
     build_session_roadmap_context,
@@ -291,6 +293,11 @@ def test_repo_session_start_reports_roadmap() -> None:
     rc, payload = observe_session_start(REPO_ROOT / "docs" / "PROJECT_PROFILE.md", repo_root=REPO_ROOT)
     after = _memory_status()
     ctx = payload.get("roadmap_context") or {}
+    if find_marker(REPO_ROOT) is not None:
+        # 허브로 옮긴 저장소 — 1.x 로드맵을 복원하지 않고 허브를 가리키며, 여전히 아무것도 쓰지 않는다
+        _record("test_repo_session_start_reports_roadmap",
+                rc == 0 and bool(payload.get("hub_migrated")) and not ctx and before == after, f"rc={rc} {payload.get('hub_migrated')}")
+        return
     ok = (rc == 0 and ctx.get("present") is True and ctx.get("issues_count") == 0
           and before == after)
     _record("test_repo_session_start_reports_roadmap", ok,

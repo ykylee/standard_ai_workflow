@@ -74,8 +74,6 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
-- TASK-2026-11-24-main-019 Go 허브 미구현 도구 10종 포팅
-- TASK-2026-11-24-main-018 허브 셋업 완료 판정·MCP 단계·진입 안내 결함 수리
 - TASK-2026-11-24-main-016 A2A 1.0 전환 요구·설계와 승인 Task 구현
 - TASK-2026-11-24-main-002 프로젝트 지식·결정 공유 시스템
 - TASK-2026-11-23-main-014 사내 Windows V3가 3.0 허브 실행 파일을 악성코드로 격리하는 탐지 조사
@@ -92,6 +90,8 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-11-24-main-019 Go 허브 미구현 도구 10종 포팅
+- TASK-2026-11-24-main-018 허브 셋업 완료 판정·MCP 단계·진입 안내 결함 수리
 - TASK-2026-11-24-main-017 프록시 뒤 계정 등록 403 수리와 비밀번호 8자 (v3.2.3)
 - TASK-2026-11-24-main-014 에이전트 요청·사람 로그인 승인으로 이관 실행
 - TASK-2026-11-24-main-013 Go 허브 1.x 이관 도구 포팅과 홈랩 셀프 이관
@@ -100,8 +100,6 @@
 - TASK-2026-11-24-main-011 Go 허브 hub_setup_confirm 포팅 — 새 환경 부트스트랩 차단 해소
 - TASK-2026-11-24-main-006 Go 허브 전용 Wiki MCP 읽기 도구 parity
 - TASK-2026-11-24-main-008 미지원 하네스 셋업 부트스트랩과 지원 등록
-- TASK-2026-11-24-main-007 웹 허브 관리자 모드 진입 UX 개선
-- TASK-2026-11-24-main-009 3.2.1 pre-release 및 홈랩 파일럿 배포
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

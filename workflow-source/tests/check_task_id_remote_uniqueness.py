@@ -308,7 +308,10 @@ def case_9_session_start_warns_on_collision() -> bool:
         if quiet:
             problems.append(f"원격 없는 저장소에서 소음: {quiet}")
 
-    example = SOURCE_ROOT / "examples" / "acme_delivery_platform"
+    import shutil
+    outside = tempfile.TemporaryDirectory(prefix="idwire-")  # 저장소 밖 — 허브 전환 표식이 판정을 바꾸지 않게
+    example = Path(outside.name) / "acme_delivery_platform"
+    shutil.copytree(SOURCE_ROOT / "examples" / "acme_delivery_platform", example)
     argv = ["session_start",
             "--session-handoff-path", str(example / "session_handoff.md"),
             "--work-backlog-index-path", str(example / "work_backlog.md"),
@@ -329,6 +332,7 @@ def case_9_session_start_warns_on_collision() -> bool:
     if not any("TASK-X-main-001" in w for w in wired):
         problems.append(f"session-start 출력에 충돌 warning 이 없다: {wired}")
     unseen = run_with(kit_git.TaskIdCollisions((), False, "refs/remotes/origin/x", "원격 추적 ref 가 없다"))
+    outside.cleanup()
     if any("task ID" in w for w in unseen):
         problems.append(f"못 봤을 때 소음: {unseen}")
     if problems:

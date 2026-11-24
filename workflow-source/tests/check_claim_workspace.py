@@ -38,6 +38,8 @@ from __future__ import annotations
 #: 이 검사의 입력 표면 (spec `core/test_impact_tiering_spec.md` §2).
 #: 게이트 채취 실측에서 뽑아 넓은 쪽으로 올렸다 — 좁으면 meta-watch 가 red 로 잡는다.
 WATCHES = (
+    "ai-workflow/memory/active/PURPOSE.md",
+    "docs/PROJECT_PROFILE.md",
     "workflow-source/pyproject.toml",
     "workflow-source/workflow_kit/*",
 )
@@ -75,6 +77,16 @@ if TELEMETRY_SKIP_ROOT_ENV in os.environ:
 FAILURES: list[str] = []
 RAN: list[str] = []
 """기록된 case 이름 — 요약의 총 개수는 여기서 파생한다."""
+
+
+def _host_project(tmp: Path) -> Path:
+    """저장소 밖의 프로젝트 하나 (프로필 · PURPOSE 사본) — 실제 저장소의 허브 전환 표식 · 브랜치 상태가 판정을 바꾸지 않게."""
+    root = tmp / "host-project"
+    for rel in ("docs/PROJECT_PROFILE.md", "ai-workflow/memory/active/PURPOSE.md"):
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        (root / rel).write_text((REPO_ROOT / rel).read_text(encoding="utf-8"), encoding="utf-8")
+    (root / "ai-workflow/wiki/concepts").mkdir(parents=True, exist_ok=True)
+    return root / "docs" / "PROJECT_PROFILE.md"
 
 
 def _record(name: str, ok: bool, detail: str = "") -> None:
@@ -193,13 +205,14 @@ def main() -> int:
                 f"status={again['status']}")
 
         # --- 8: 승자는 바로 이어받는다 -------------------------------------
+        profile = _host_project(root)
         started = subprocess.run(
             [sys.executable, str(SESSION_START),
              "--session-handoff-path",
              str(win_repo / "ai-workflow" / "memory" / "active" / BRANCH / "session_handoff.md"),
              "--work-backlog-index-path",
              str(win_repo / "ai-workflow" / "memory" / "active" / BRANCH / "backlog" / f"{TODAY}.md"),
-             "--project-profile-path", str(PROFILE)],
+             "--project-profile-path", str(profile)],
             capture_output=True, text=True, env=platform_env(ENV, win_repo), encoding="utf-8", errors="replace"
         )
         payload = json.loads(started.stdout)

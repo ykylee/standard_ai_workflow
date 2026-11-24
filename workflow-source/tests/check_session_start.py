@@ -5,7 +5,9 @@ from __future__ import annotations
 
 import json
 import subprocess
+import shutil
 import sys
+import tempfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -34,7 +36,14 @@ def run_session_start(*, expect_success: bool, args: list[str]) -> tuple[int, di
 
 
 def main() -> int:
-    example_root = SOURCE_ROOT / "examples" / "acme_delivery_platform"
+    # 저장소 밖 사본으로 잰다 — 이 저장소가 허브로 옮겨져 있어도(HUB_MIGRATED.json) 1.x 판정은 같아야 한다
+    with tempfile.TemporaryDirectory(prefix="session-start-") as tmp:
+        root = Path(tmp) / "acme_delivery_platform"
+        shutil.copytree(SOURCE_ROOT / "examples" / "acme_delivery_platform", root)
+        return _measure(root)
+
+
+def _measure(example_root: Path) -> int:
     latest_backlog = sorted((example_root / "backlog").glob("*.md"))[-1]
 
     _, payload = run_session_start(

@@ -29,10 +29,8 @@
   "session": {
     "current_baseline": "**147차 세션 (2026-11-24, Linux 호스트) — 사람 계정 인증과 에이전트 확인 요청을 Python·Go 허브에 구현.** 승인된 사람 콜사인 토큰으로 1회 등록 후 계정 로그인, 프로젝트 콜사인 연결, 웹 승인/거절 및 A2A 결과 알림을 제공한다. DB migration v16, Origin/쿠키 보호와 로그인 제한 포함. 전체 게이트는 구현 커밋 `8fde5f02`에서 native/slash 각 357/357 PASS; Go 전체, Python 허브 18개, 자산 동기화와 focused mypy도 통과. task done. 세션 종료용 상태 갱신 커밋 이후 게이트를 다시 실행해 push 예정. release/deploy는 미실행. 상세 TASK-2026-11-24-main-010.",
     "current_axis": "**2.x 전면 Go 전환 (M-049~M-056, 2026-11-22 소유자, ADR-035) — M-049~M-056 done (concept · requirements · design · S1 PC 중계 · UI/UX · S2-a judge/1 · S2-b 중앙 허브 코어 · S2-c 세션/오케스트레이션).** 이전 2.0 허브 stabilization M-039 에는 WBS-39.1 macOS · Windows · 대화형 실측과 WBS-39.3 arcturus 이전이 남아 있다. 1.x 는 `release/1.x` 에서 결함 수리만. 이전 축: **로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · ~~[TASK-2026-08-13-main-004] mypy flake 관찰~~ ✅ (66차 close — 33/33 표본, mypy 실패 0).",
-    "current_focus": "TASK-2026-11-24-main-019 Go 허브 미구현 도구 10종 포팅",
+    "current_focus": "TASK-2026-11-24-main-016 A2A 1.0 전환 요구·설계와 승인 Task 구현",
     "in_progress_items": [
-      "TASK-2026-11-24-main-019 Go 허브 미구현 도구 10종 포팅",
-      "TASK-2026-11-24-main-018 허브 셋업 완료 판정·MCP 단계·진입 안내 결함 수리",
       "TASK-2026-11-24-main-016 A2A 1.0 전환 요구·설계와 승인 Task 구현",
       "TASK-2026-11-24-main-002 프로젝트 지식·결정 공유 시스템",
       "TASK-2026-11-23-main-014 사내 Windows V3가 3.0 허브 실행 파일을 악성코드로 격리하는 탐지 조사",
@@ -48,9 +46,12 @@
     ],
     "planned_items": [
       "TASK-2026-11-13-claude-remote-sync-check-234c32-005",
-      "TASK-2026-11-21-main-013"
+      "TASK-2026-11-21-main-013",
+      "TASK-2026-11-24-main-020"
     ],
     "recent_done_items": [
+      "TASK-2026-11-24-main-019 — Go 허브 미구현 도구 10종 포팅",
+      "TASK-2026-11-24-main-018 — 허브 셋업 완료 판정·MCP 단계·진입 안내 결함 수리",
       "TASK-2026-11-24-main-017 — 프록시 뒤 계정 등록 403 수리와 비밀번호 8자 (v3.2.3)",
       "TASK-2026-11-24-main-015 — v3.2.2 pre-release 및 홈랩 배포",
       "TASK-2026-11-24-main-014 — 에이전트 요청·사람 로그인 승인으로 이관 실행",
@@ -58,21 +59,17 @@
       "TASK-2026-11-24-main-012 — 허브 관리자 콜사인 삭제와 고아 콜사인 정리",
       "TASK-2026-11-24-main-011 — Go 허브 hub_setup_confirm 포팅 — 새 환경 부트스트랩 차단 해소",
       "TASK-2026-11-24-main-010 — 에이전트 확인 요청 메뉴와 A2A 승인 결과 전달",
-      "TASK-2026-11-24-main-009 — 3.2.1 pre-release 및 홈랩 파일럿 배포",
-      "TASK-2026-11-24-main-008 — 미지원 하네스 셋업 부트스트랩과 지원 등록",
-      "TASK-2026-11-24-main-007 — 웹 허브 관리자 모드 진입 UX 개선"
+      "TASK-2026-11-24-main-009 — 3.2.1 pre-release 및 홈랩 파일럿 배포"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-11-24.md",
-    "task_count": 19,
+    "task_count": 20,
     "in_progress_items": [
       "TASK-2026-11-24-main-002 — 프로젝트 지식·결정 공유 시스템",
-      "TASK-2026-11-24-main-016 — A2A 1.0 전환 요구·설계와 승인 Task 구현",
-      "TASK-2026-11-24-main-018 — 허브 셋업 완료 판정·MCP 단계·진입 안내 결함 수리",
-      "TASK-2026-11-24-main-019 — Go 허브 미구현 도구 10종 포팅"
+      "TASK-2026-11-24-main-016 — A2A 1.0 전환 요구·설계와 승인 Task 구현"
     ],
     "blocked_items": [],
     "done_items": [
@@ -90,7 +87,9 @@
       "TASK-2026-11-24-main-013 — Go 허브 1.x 이관 도구 포팅과 홈랩 셀프 이관",
       "TASK-2026-11-24-main-014 — 에이전트 요청·사람 로그인 승인으로 이관 실행",
       "TASK-2026-11-24-main-015 — v3.2.2 pre-release 및 홈랩 배포",
-      "TASK-2026-11-24-main-017 — 프록시 뒤 계정 등록 403 수리와 비밀번호 8자 (v3.2.3)"
+      "TASK-2026-11-24-main-017 — 프록시 뒤 계정 등록 403 수리와 비밀번호 8자 (v3.2.3)",
+      "TASK-2026-11-24-main-018 — 허브 셋업 완료 판정·MCP 단계·진입 안내 결함 수리",
+      "TASK-2026-11-24-main-019 — Go 허브 미구현 도구 10종 포팅"
     ]
   },
   "next_documents": [

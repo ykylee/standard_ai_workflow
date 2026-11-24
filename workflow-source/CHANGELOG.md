@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- feat(hub): finish the Go tool set and make setup completeness honest (9043f2f5)
 - feat(hub): serve approval requests as A2A 1.0 tasks (dc583488)
 - feat(hub): allow signing up without a token (c5150883)
 - feat(hub): run migrations through agent request and human login approval (85b9865a)
@@ -279,6 +280,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- docs(hub): record v16 tables as introduced in 3.2.2 (d64a910c)
 - docs(workflow): record v3.2.2 rollout and open the A2A 1.0 transition (cbb0cc5c)
 - docs(hub): call the hub inbox by its name instead of A2A (9682fc4d)
 - docs(workflow): close human confirmation implementation task (190286cb)

@@ -41,6 +41,7 @@ from __future__ import annotations
 #: 게이트 채취 실측에서 뽑아 넓은 쪽으로 올렸다 — 좁으면 meta-watch 가 red 로 잡는다.
 WATCHES = (
     "docs/PROJECT_PROFILE.md",
+    "ai-workflow/memory/active/PURPOSE.md",
     "workflow-source/pyproject.toml",
     "workflow-source/workflow_kit/*",
 )
@@ -70,6 +71,16 @@ AXIS = "seed smoke 축"
 TITLE = "seed smoke task"
 
 FAILURES: list[str] = []
+
+
+def _host_project(tmp: Path) -> Path:
+    """저장소 밖의 프로젝트 하나 (프로필 · PURPOSE 사본) — 실제 저장소의 허브 전환 표식 · 브랜치 상태가 판정을 바꾸지 않게."""
+    root = tmp / "host-project"
+    for rel in ("docs/PROJECT_PROFILE.md", "ai-workflow/memory/active/PURPOSE.md"):
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        (root / rel).write_text((REPO_ROOT / rel).read_text(encoding="utf-8"), encoding="utf-8")
+    (root / "ai-workflow/wiki/concepts").mkdir(parents=True, exist_ok=True)
+    return root / "docs" / "PROJECT_PROFILE.md"
 
 
 def _record(name: str, ok: bool, detail: str = "") -> None:
@@ -103,7 +114,7 @@ def _session_start(branch_dir: Path) -> dict:
         str(SESSION_START),
         "--session-handoff-path", str(branch_dir / "session_handoff.md"),
         "--work-backlog-index-path", str(branch_dir / "backlog" / f"{TODAY}.md"),
-        "--project-profile-path", str(PROFILE),
+        "--project-profile-path", str(_host_project(branch_dir.parents[3])),
     ])
     return json.loads(proc.stdout)
 

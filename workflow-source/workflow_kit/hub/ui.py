@@ -585,6 +585,14 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
             raise forbidden("승인은 이 프로젝트의 소유자 콜사인 토큰으로만 한다")
         return store.approve_callsign(Ctx(now=now, via="ui", principal=p), request.path_params["cs"])
 
+    def post_callsign_delete(request: Request, p: Principal, now: datetime, b: dict[str, Any]) -> dict[str, Any]:
+        """콜사인 삭제 — 허브 관리자만, 활동 없는 콜사인만. ``confirm`` 은 콜사인 이름."""
+        pid = request.path_params["pid"]
+        if p.kind != "admin":
+            raise forbidden("콜사인 삭제는 허브 관리자만 한다")
+        scope(p, pid)
+        return store.delete_callsign(Ctx(now=now, via="ui", principal=p), pid, request.path_params["cs"], str(b.get("confirm") or ""))
+
     def post_callsign(request: Request, p: Principal, now: datetime, b: dict[str, Any]) -> dict[str, Any]:
         """콜사인 등록 (R13.2a) — web · 콜사인 토큰 · admin 이 부를 수 있다. 토큰은 이 응답에서 한 번만."""
         pid = request.path_params["pid"]
@@ -718,6 +726,7 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
         Route("/api/projects/{pid}/callsigns", api(post_callsign, body=True), methods=["POST"]),
         Route("/api/projects/{pid}/callsigns/{cs}", api(get_callsign), methods=["GET"]),
         Route("/api/projects/{pid}/callsigns/{cs}/approve", api(post_approve, body=True), methods=["POST"]),
+        Route("/api/projects/{pid}/callsigns/{cs}/delete", api(post_callsign_delete, body=True), methods=["POST"]),
         Route("/api/projects/{pid}/tasks/{tid}/responses", api(post_response, body=True), methods=["POST"]),
         Route("/api/projects/{pid}/roadmap", api(get_roadmap), methods=["GET"]),
         Route("/api/projects/{pid}/orchestration", api(get_orchestration), methods=["GET"]),

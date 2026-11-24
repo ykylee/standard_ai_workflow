@@ -14,6 +14,7 @@
 8. 이력 — 쓰기마다 한 줄 · 이전/새 값 · request_id 재전송은 다시 쓰지 않음 (R1.5 · R12.2)
 9. MCP 경계 — 토큰 없으면 부트스트랩 묶음만 · 토큰 있으면 전체 · MCP 와 HTTP 가 같은 결과 · MCP 쓰기는 via=mcp (R2.3 · R2.7)
 10. 거두기 — 토큰 401 · 맡던 열린 task 비움 (R4.7)
+12. 관리자 콜사인 삭제 — 활동 없는 것만 · 소유자 거절 · 확인 이름 · 감사 이력 · 다시 등록
 """
 
 from __future__ import annotations
@@ -401,6 +402,55 @@ def case_11_orchestration(hub: Hub, db: Path, impl: str, token_owner: str, token
             f"assignment={assignment_state[0] if assignment_state else None}")
 
 
+def case_12_callsign_delete(hub: Hub, db: Path, impl: str, cmd: list[str], pid: str, owner_token: str) -> None:
+    """관리자 콜사인 삭제 — 토큰을 잃은(활동 없는) 콜사인만, 화면 API 와 CLI 로."""
+    issued = subprocess.run([*cmd, "admin", "--db", str(db), "token", "issue", "--role", "admin", "--name", "cleaner"],
+                            capture_output=True, encoding="utf-8", env=_env(), timeout=60)
+    admin = json.loads(issued.stdout)["token"]
+
+    def post(cs: str, confirm: str, token: str) -> tuple[int, str]:
+        req = urllib.request.Request(f"{hub.base}/api/projects/{pid}/callsigns/{cs}/delete", method="POST",
+                                     data=json.dumps({"confirm": confirm}).encode(),
+                                     headers={"content-type": "application/json", "authorization": f"Bearer {token}"})
+        try:
+            with urllib.request.urlopen(req, timeout=20) as r:
+                return r.status, json.loads(r.read()).get("callsign", "")
+        except urllib.error.HTTPError as e:
+            return e.code, json.loads(e.read()).get("error_code", "")
+
+    def join(cs: str) -> tuple[int, dict[str, Any]]:
+        st, body, _ = hub.call("hub_callsign_register", {"project_id": pid, "callsign": cs, "kind": "agent"})
+        return st, body
+
+    _, orphan = join("orphan-a")
+    hub.call("hub_setup_plan", {"project_id": pid, "token": orphan["token"], "harnesses": ["codex"], "scan": {"files": {}}})
+    _, busy = join("busy-a")
+    hub.call("hub_task_create", {"title": "활동", "wbs_exempt_reason": "삭제 검사 fixture"}, busy["token"])
+    got = {
+        "owner token": post("orphan-a", "orphan-a", owner_token), "no token": post("orphan-a", "orphan-a", "nope")[0],
+        "confirm": post("orphan-a", "other", admin), "owner": post("claude-a", "claude-a", admin),
+        "busy": post("busy-a", "busy-a", admin), "missing": post("ghost-a", "ghost-a", admin),
+        "orphan": post("orphan-a", "orphan-a", admin), "whoami": hub.call("hub_whoami", {}, orphan["token"])[0],
+        "busy alive": hub.call("hub_whoami", {}, busy["token"])[0], "rejoin": join("orphan-a")[0],
+    }
+    cli = subprocess.run([*cmd, "admin", "--db", str(db), "callsign", "delete", "--project", pid, "--callsign", "orphan-a"],
+                         capture_output=True, encoding="utf-8", env=_env(), timeout=60)
+    # 셋업 단계가 남은 거둔 콜사인은 다시 등록할 수 있다 (FK 로 500 이 나지 않는다)
+    _, again = join("again-a")
+    hub.call("hub_setup_plan", {"project_id": pid, "token": again["token"], "harnesses": ["codex"], "scan": {"files": {}}})
+    subprocess.run([*cmd, "admin", "--db", str(db), "callsign", "revoke", "--project", pid, "--callsign", "again-a"],
+                   capture_output=True, env=_env(), timeout=60)
+    got["revoked rejoin"] = join("again-a")[0]
+    want = {"owner token": (403, "forbidden"), "no token": 401, "confirm": (400, "invalid_field"),
+            "owner": (409, "callsign_is_owner"), "busy": (409, "callsign_in_use"), "missing": (404, "not_found"),
+            "orphan": (200, "orphan-a"), "whoami": 401, "busy alive": 200, "rejoin": 200, "revoked rejoin": 200}
+    events = sqlite3.connect(db).execute("SELECT callsign FROM event WHERE target_kind = 'callsign' AND op = 'delete' ORDER BY seq").fetchall()
+    diff = {k: (got[k], want[k]) for k in want if got[k] != want[k]}
+    _record(f"case 12 (관리자 콜사인 삭제 — 활동 없는 것만 · 소유자 · 확인 이름 · 다시 등록) [{impl}]",
+            not diff and cli.returncode == 0 and events == [("admin:cleaner",), ("admin:hub",)],
+            f"diff={diff} cli={cli.returncode}:{cli.stdout[-200:]}{cli.stderr[-200:]} events={events}")
+
+
 def case_4_to_10(tmp: Path, impl: str, cmd_prefix: list[str]) -> None:
     sub = tmp / f"core-{impl}"
     sub.mkdir(parents=True, exist_ok=True)
@@ -535,6 +585,7 @@ def case_4_to_10(tmp: Path, impl: str, cmd_prefix: list[str]) -> None:
                 and after["task"]["assignee"] is None
                 and hub.call("hub_task_get", {"id": t2["task"]["id"]}, tok_a)[1]["task"]["assignee"] is None)
         _record(f"case 10 (거두기 — 토큰 무효 · 맡던 task 비움) [{impl}]", ok10, f"rc={rv.returncode} out={out} whoami={r1}")
+        case_12_callsign_delete(hub, db, impl, cmd_prefix, pid, tok_a)
     finally:
         err = hub.stop()
         if _failures:

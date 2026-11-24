@@ -382,6 +382,25 @@ func (s *Server) handleProjectUIAPI(w http.ResponseWriter, r *http.Request, prin
 		writeJSONResponse(w, http.StatusOK, result)
 		return
 	}
+	if len(parts) == 5 && parts[2] == "callsigns" && parts[4] == "delete" && r.Method == http.MethodPost {
+		if principal.Kind != "admin" {
+			writeScreenError(w, store.Forbidden("콜사인 삭제는 허브 관리자만 한다"))
+			return
+		}
+		body, err := readScreenJSON(r)
+		if err != nil {
+			writeScreenError(w, err)
+			return
+		}
+		confirm, _ := body["confirm"].(string)
+		result, err := s.cfg.Store.DeleteCallsign(store.Ctx{Now: now, Via: "ui", Principal: principal}, pid, parts[3], confirm)
+		if err != nil {
+			writeScreenError(w, err)
+			return
+		}
+		writeJSONResponse(w, http.StatusOK, result)
+		return
+	}
 	if len(parts) == 5 && parts[2] == "callsigns" && parts[4] == "approve" && r.Method == http.MethodPost {
 		if principal.Kind != "callsign" || principal.ProjectID != pid {
 			writeScreenError(w, store.Forbidden("승인은 이 프로젝트의 소유자 콜사인 토큰으로만 한다"))

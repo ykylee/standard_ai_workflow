@@ -13,3 +13,8 @@ var SetupMarkdown string
 
 //go:embed static/*
 var StaticFS embed.FS
+
+// KnownSectionsJSON lists hashes of entry sections past kits generated (title -> hashes).
+//
+//go:embed known_sections.json
+var KnownSectionsJSON []byte

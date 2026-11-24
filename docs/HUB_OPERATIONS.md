@@ -182,6 +182,20 @@ python3 .workflow-hub/hub_client.py migrate import <MIG> all     # 고른 종류
 안내를 `hub_session_start` 경로로 갱신한다. 표준 문안이 수정돼 있으면 자동 변경하지 않고 사람 검토를 요청한다. 표식을 지우면 되돌아간다.
 상세: hub_spec §6.6.
 
+다시 이관하면 이미 있는 항목은 건너뛰고 새 항목만 들인다. 허브에 있는 task의 바뀐 상태를 덮어쓰지 않는다.
+
+### 콜사인 정리
+
+토큰을 잃은 콜사인처럼 등록·셋업 외 활동이 없는 콜사인은 허브 관리자가 지울 수 있다. 관리 화면 `/ui/#/harnesses`의
+**콜사인 정리**에서 이름을 다시 입력해 지우거나 서버에서 CLI를 쓴다.
+
+```sh
+workflow-hub admin --db <DB> callsign delete --project <ID> --callsign <이름>   # Python: python -m workflow_kit hub admin …
+```
+
+이벤트·task·handoff·세션·계정 연결·받은 메시지가 하나라도 있으면 `409 callsign_in_use`로 거절한다 — 이력은 지우지 않으므로
+`callsign revoke`(거두기)를 쓴다. 프로젝트 소유자 콜사인은 지울 수 없다. 삭제는 감사 이력에 `admin:<이름>`으로 남는다.
+
 ## 6. 지침
 
 프로젝트 지침은 허브가 정본이고 진입 파일의 렌더 영역으로 내려간다. 판을 올리는 길은 둘:
@@ -265,7 +279,7 @@ python3 -m venv ~/workflow-hub/venv-3x
 
 Hub DB 판 13부터 프로젝트별 지식 카탈로그와 결정 변경 기록(DCR)을 제공한다. 기존 Wiki는 유지되고, 수정·삭제 때 revision snapshot을 남긴다. Git 정본 문서는 프로젝트에 등록된 allowlist 경로만 스냅샷으로 동기화한다. Hub가 Git 원격을 읽거나 저장소 파일에 쓰지 않는다.
 
-Go 허브 3.2.2부터 전용 MCP 읽기 도구 `hub_wiki_get`, `hub_wiki_list`, `hub_wiki_search`가 Python과 같은 결과를 낸다. 1.x 이관(`hub_migrate_*`), 프로젝트 이전(`hub_project_export/import/unseal`), handoff·checkpoint·memory entry, Wiki 가져오기·내보내기·lint, relay 초대 MCP 도구는 Go에 아직 없어 `not_implemented_in_go`를 반환한다.
+Go 허브 3.2.2부터 Wiki 읽기(`hub_wiki_get/list/search`)·`hub_wiki_import_dir`, 1.x 이관(`hub_migrate_*`), handoff·checkpoint·compact 재개, 프로젝트 문서, memory entry, `hub_state`가 Python과 같은 계약으로 동작한다. 프로젝트 이전(`hub_project_export/import/unseal`), Wiki 내보내기·OKF 가져오기·lint·원격 설정, relay 초대 MCP 도구 10종은 Go에 아직 없어 `not_implemented_in_go`를 반환한다.
 
 프로젝트 owner가 MCP 도구 `hub_knowledge_source_register`로 source ID, 등록된 repository key, Markdown allowlist를 등록한다. 이후 세션은 저장소에서 문서를 읽은 뒤 `hub_knowledge_sync`에 commit SHA와 `{path,title,body}` 목록을 넘긴다. `hub_knowledge_search`는 자기 프로젝트의 Git 문서와 Wiki를 함께 검색하며 commit/revision/hash가 포함된 ref를 돌려준다. `hub_knowledge_get`은 ref에 고정된 과거 판도 읽는다. 관리 화면은 **지식** 탭에서 통합 검색, **결정** 탭에서 DCR 상태와 감사 timeline을 보여준다.
 

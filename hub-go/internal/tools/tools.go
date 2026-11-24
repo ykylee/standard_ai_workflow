@@ -403,6 +403,41 @@ func Call(s *store.Store, name string, rawArgs any, ctx store.Ctx) (result map[s
 		return setupPlan(s, ctx, clean)
 	case "hub_setup_confirm":
 		return setupConfirm(s, ctx, clean)
+	case "hub_migrate_plan":
+		return migratePlan(s, ctx, clean["scan"])
+	case "hub_migrate_import":
+		return migrateImport(s, ctx, clean)
+	case "hub_migrate_marker":
+		return migrateMarker(s, ctx, clean)
+	case "hub_migrate_report":
+		return migrateReport(s, ctx, strArg(clean, "migration_id", ""))
+	case "hub_state":
+		return hubState(s, ctx, strArg(clean, "callsign", ""))
+	case "hub_project_doc_get":
+		return s.ProjectDocGet(ctx, strArg(clean, "name", ""))
+	case "hub_project_doc_put":
+		return s.ProjectDocPut(ctx, strArg(clean, "name", ""), strArg(clean, "body", ""), optIntArg(clean, "expected_version"))
+	case "hub_handoff_get":
+		return s.HandoffGet(ctx, strArg(clean, "callsign", ""))
+	case "hub_handoff_put":
+		handoff, ok := clean["handoff"].(map[string]any)
+		if !ok {
+			return nil, store.InvalidField("handoff", "객체여야 한다")
+		}
+		return s.HandoffPut(ctx, optIntArg(clean, "expected_version"), handoff)
+	case "hub_checkpoint_put":
+		return s.CheckpointPut(ctx, clean["body"])
+	case "hub_compact_resume":
+		return s.CompactResume(ctx, clean["summary_ids"])
+	case "hub_memory_entry_put":
+		return s.MemoryEntryPut(ctx, clean["entry"], intArg(clean, "expected_version", 0))
+	case "hub_memory_entry_get":
+		return s.MemoryEntryGet(ctx, strArg(clean, "id", ""))
+	case "hub_memory_entry_list":
+		return s.MemoryEntryList(ctx)
+	case "hub_wiki_import_dir":
+		overwrite, _ := clean["overwrite"].(bool)
+		return s.WikiImportDir(ctx, clean["files"], strArg(clean, "summary", ""), overwrite, strArg(clean, "request_id", ""))
 	case "hub_guide_render":
 		return guideRender(s, ctx, strArg(clean, "harness", ""), optStrArg(clean, "current"))
 	case "hub_guide_get":

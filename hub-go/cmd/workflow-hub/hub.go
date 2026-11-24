@@ -220,7 +220,7 @@ func cmdAdmin(args []string, stdout, stderr io.Writer) int {
 	}
 	rest := fs.Args()
 	if len(rest) < 2 {
-		fmt.Fprintln(stderr, "hub admin: token {issue|revoke} 또는 callsign revoke 를 지정한다")
+		fmt.Fprintln(stderr, "hub admin: token {issue|revoke} 또는 callsign {revoke|delete} 를 지정한다")
 		return 2
 	}
 
@@ -282,11 +282,11 @@ func cmdAdmin(args []string, stdout, stderr io.Writer) int {
 			return 2
 		}
 	case "callsign":
-		if action != "revoke" {
+		if action != "revoke" && action != "delete" {
 			fmt.Fprintf(stderr, "hub admin callsign: 모르는 동작 %q\n", action)
 			return 2
 		}
-		cfs := newFlagSet("workflow-hub admin callsign revoke", stderr)
+		cfs := newFlagSet("workflow-hub admin callsign "+action, stderr)
 		project := cfs.String("project", "", "프로젝트 ID")
 		callsign := cfs.String("callsign", "", "콜사인")
 		if err := cfs.Parse(subArgs); err != nil {
@@ -296,10 +296,16 @@ func cmdAdmin(args []string, stdout, stderr io.Writer) int {
 			return 2
 		}
 		if strings.TrimSpace(*project) == "" || strings.TrimSpace(*callsign) == "" {
-			fmt.Fprintln(stderr, "hub admin callsign revoke: --project 와 --callsign 이 필수다")
+			fmt.Fprintf(stderr, "hub admin callsign %s: --project 와 --callsign 이 필수다\n", action)
 			return 2
 		}
-		res, err := st.RevokeCallsign(store.Ctx{Now: now, Via: "admin"}, *project, *callsign)
+		adminCtx := store.Ctx{Now: now, Via: "admin"}
+		var res map[string]any
+		if action == "delete" {
+			res, err = st.DeleteCallsign(adminCtx, *project, *callsign, *callsign)
+		} else {
+			res, err = st.RevokeCallsign(adminCtx, *project, *callsign)
+		}
 		if err != nil {
 			return writeHubErrOut(stdout, stderr, err)
 		}

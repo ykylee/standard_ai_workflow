@@ -5,7 +5,7 @@
     hub admin  --db PATH token issue --role {web,admin} --name NAME
     hub admin  --db PATH project export --project ID --out FILE [--seal-to URL] | import --file FILE | seal --project ID --to URL | unseal --project ID
     hub admin  --db PATH token revoke --name NAME
-    hub admin  --db PATH callsign revoke --project ID --callsign NAME
+    hub admin  --db PATH callsign {revoke|delete} --project ID --callsign NAME
     hub admin  --db PATH guide set --project ID --file PATH [--actor NAME]
 
 ``admin`` 은 DB 파일에 직접 접근하는 로컬 명령이다 — 네트워크로 열지 않는다.
@@ -81,9 +81,10 @@ def _parser() -> argparse.ArgumentParser:
     gs.add_argument("--actor", default="hub-admin")
     cs = asub.add_parser("callsign")
     csub = cs.add_subparsers(dest="action", required=True)
-    cr = csub.add_parser("revoke")
-    cr.add_argument("--project", required=True)
-    cr.add_argument("--callsign", required=True)
+    for cs_action in ("revoke", "delete"):  # delete 는 활동이 없는 콜사인만
+        cr = csub.add_parser(cs_action)
+        cr.add_argument("--project", required=True)
+        cr.add_argument("--callsign", required=True)
     # 허브 서버 간 프로젝트 이전 (M-039 WBS-39.4) — 묶음 파일 · 원본 봉인
     pj = asub.add_parser("project", help="허브 간 프로젝트 이전 — export · import · seal · unseal")
     psub = pj.add_subparsers(dest="action", required=True)
@@ -244,7 +245,11 @@ def main(argv: list[str] | None = None) -> int:
                 )
                 print(json.dumps({"status": "ok", **out}, ensure_ascii=False))
             else:
-                out = store.revoke_callsign(Ctx(now=now, via="admin"), args.project, args.callsign)
+                admin_ctx = Ctx(now=now, via="admin")
+                if args.action == "delete":
+                    out = store.delete_callsign(admin_ctx, args.project, args.callsign, args.callsign)
+                else:
+                    out = store.revoke_callsign(admin_ctx, args.project, args.callsign)
                 print(json.dumps({"status": "ok", **out}, ensure_ascii=False))
             return 0
         # serve

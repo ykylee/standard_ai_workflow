@@ -634,7 +634,17 @@ func (s *Store) RegisterCallsign(ctx Ctx, projectID, callsign, kind, label, host
 					Detail:  map[string]any{"callsign": callsign},
 				}
 			}
-			if _, err := tx.Exec("DELETE FROM callsign WHERE project_id = ? AND id = ?", projectID, callsign); err != nil {
+			// 거둔 콜사인의 기록(handoff · 계정 연결)을 새 등록자가 이어받지 않는다.
+			for _, table := range []string{"handoff", "hub_account_callsign"} {
+				var n int
+				if err := tx.QueryRow("SELECT COUNT(*) FROM "+table+" WHERE project_id = ? AND callsign = ?", projectID, callsign).Scan(&n); err != nil {
+					return nil, err
+				}
+				if n > 0 {
+					return nil, &HubError{Status: 409, Code: "callsign_taken", Message: "기록이 남은 거둔 콜사인이다: " + callsign + " — 다른 이름을 쓴다", Detail: map[string]any{"callsign": callsign}}
+				}
+			}
+			if err := removeCallsignRows(tx, projectID, callsign); err != nil {
 				return nil, err
 			}
 		} else if !errors.Is(err, sql.ErrNoRows) {

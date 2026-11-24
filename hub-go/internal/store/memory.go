@@ -153,8 +153,10 @@ func (s *Store) SessionEnd(ctx Ctx, sessionID string, handoff map[string]any, ex
 		progressItems = append(progressItems, map[string]string{"task_id": taskID, "note": note})
 	}
 	return s.withWriteTx(func(tx *sql.Tx) (map[string]any, error) {
-		if err := s.checkOwnSession(tx, p, sessionID); err != nil {
-			return nil, err
+		if sessionID != "" {
+			if err := s.checkOwnSession(tx, p, sessionID); err != nil {
+				return nil, err
+			}
 		}
 		stamp := ctx.Now.Format("2006-01-02 15:04")
 		for _, item := range progressItems {
@@ -179,6 +181,11 @@ func (s *Store) SessionEnd(ctx Ctx, sessionID string, handoff map[string]any, ex
 		out, err := putHandoff(tx, ctx, p, expected, clean)
 		if err != nil {
 			return nil, err
+		}
+		out["progress_written"] = len(progressItems)
+		out["next"] = "커밋 → push. 진입 파일의 허브 렌더 영역이 바뀌었으면 그 변경도 커밋한다 (D10)"
+		if sessionID == "" { // 세션을 등록하지 않은 클라이언트 — handoff · 진행만 쓴다
+			return out, nil
 		}
 		if _, err := tx.Exec("UPDATE session SET status='ended',ended_at=?,waiting_since=NULL,version=version+1 WHERE project_id=? AND id=?", db.FormatISO(ctx.Now), p.ProjectID, sessionID); err != nil {
 			return nil, err
@@ -211,8 +218,6 @@ func (s *Store) SessionEnd(ctx Ctx, sessionID string, handoff map[string]any, ex
 				return nil, err
 			}
 		}
-		out["progress_written"] = len(progressItems)
-		out["next"] = "커밋 → push. 진입 파일의 허브 렌더 영역이 바뀌었으면 그 변경도 커밋한다 (D10)"
 		return out, nil
 	})
 }

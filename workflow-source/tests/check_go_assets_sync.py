@@ -19,6 +19,7 @@ WATCHES = (
     "workflow-source/workflow_kit/*",
 )
 
+import json
 import re
 import sys
 from pathlib import Path
@@ -30,6 +31,7 @@ HUB_GO = REPO_ROOT / "hub-go"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
+from workflow_kit.common._entry_known_sections import KNOWN_GENERATED  # noqa: E402
 from workflow_kit.hub import db as hubdb  # noqa: E402
 from workflow_kit.hub import guide_page as hubguide  # noqa: E402
 from workflow_kit.hub import render as hubrender  # noqa: E402
@@ -96,6 +98,13 @@ def asset_pairs() -> list[tuple[str, bytes, bytes]]:
         "standard_block.md == core/hub_workflow_standard.md",
         go_std.read_bytes() if go_std.is_file() else b"",
         core_block.encode("utf-8"),
+    ))
+
+    go_known = go_assets / "known_sections.json"
+    pairs.append((
+        "known_sections.json",
+        go_known.read_bytes() if go_known.is_file() else b"",
+        (json.dumps({k: sorted(v) for k, v in sorted(KNOWN_GENERATED.items())}, ensure_ascii=False, indent=1) + "\n").encode("utf-8"),
     ))
 
     py_static = py_hub / "static"

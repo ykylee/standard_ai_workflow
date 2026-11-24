@@ -27,10 +27,11 @@
 
 from __future__ import annotations
 
-CHECK_TIMEOUT_S = 300
+CHECK_TIMEOUT_S = 420
 
 WATCHES = (
     "workflow-source/workflow_kit/*",
+    "hub-go/*",
     "workflow-source/pyproject.toml",
     "workflow-source/tests/check_hub_core.py",
     "workflow-source/tests/check_roadmap_gates.py",
@@ -55,7 +56,7 @@ if str(SOURCE_ROOT) not in sys.path:
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import check_roadmap_gates as rg  # noqa: E402
-from check_hub_core import Hub  # noqa: E402
+from check_hub_core import Hub, _resolve_go_hub  # noqa: E402
 from workflow_kit.common import plan_claims, plan_responses  # noqa: E402
 from workflow_kit.common.plan_tasks import read_task_plan  # noqa: E402
 from workflow_kit.hub.migrate1x import COMMANDS, parse_task_file  # noqa: E402
@@ -227,12 +228,12 @@ def corpus_witness() -> tuple[int, list[str]]:
     return len(files), bad
 
 
-def main() -> int:
-    print("check_hub_migrate")
+def _measure(impl: str, cmd: list[str] | None) -> None:
+    print(f"  --- [{impl}] ---")
     with tempfile.TemporaryDirectory(prefix="hub-mig-") as d:
         tmp = Path(d)
         repo = build_repo(tmp)
-        hub = Hub(tmp / "hub.db")
+        hub = Hub(tmp / "hub.db", cmd_prefix=cmd)
         try:
             reg = hub.call("hub_project_register", {"remote_url": "git@github.com:acme/legacy.git", "display_name": "legacy",
                                                      "callsign": "owner-a", "kind": "human"})[1]
@@ -496,6 +497,18 @@ def main() -> int:
                     f"tasks={len(tasks2)} again={c3}/{again2.get('errors')} big={len(body)}:{s_big}/{s_other}")
         finally:
             hub.stop()
+
+
+def main() -> int:
+    print("check_hub_migrate")
+    _measure("python", None)
+    # 홈랩이 도는 쪽은 Go 다 — 같은 계약을 그대로 잰다 (TASK-2026-11-24-main-013)
+    with tempfile.TemporaryDirectory(prefix="hub-mig-go-") as d:
+        go_cmd, reason = _resolve_go_hub(Path(d))
+        if go_cmd is None:
+            print(f"    [unmeasured] go 허브 미측정: {reason}")
+        else:
+            _measure("go", go_cmd)
     print(f"PASS {len(_passes)} · FAIL {len(_failures)}")
     for f in _failures:
         print(f"  FAIL {f}")

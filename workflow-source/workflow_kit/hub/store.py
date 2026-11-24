@@ -369,6 +369,12 @@ class Store:
                                f"이미 쓰는 콜사인이다: {callsign} — 그 환경의 .workflow-hub/env 를 찾거나 다른 이름을 쓴다",
                                {"callsign": callsign})
             if row:
+                # 거둔 콜사인의 기록(handoff · 계정 연결)을 새 등록자가 이어받지 않는다
+                for table in ("handoff", "hub_account_callsign"):
+                    if conn.execute(f"SELECT 1 FROM {table} WHERE project_id = ? AND callsign = ?", (project_id, callsign)).fetchone():
+                        raise HubError(409, "callsign_taken", f"기록이 남은 거둔 콜사인이다: {callsign} — 다른 이름을 쓴다",
+                                       {"callsign": callsign})
+                conn.execute("DELETE FROM setup_step WHERE project_id = ? AND callsign = ?", (project_id, callsign))
                 conn.execute("DELETE FROM callsign WHERE project_id = ? AND id = ?", (project_id, callsign))
             conn.execute(
                 "INSERT INTO callsign (project_id, id, kind, human_approved, role, label, host, token_hash, created_at) "
@@ -464,6 +470,42 @@ class Store:
                 self._event(conn, ctx, project_id, "task", tid, "release", {"assignee": callsign}, {"assignee": None}, "hub")
             self._event(conn, ctx, project_id, "callsign", callsign, "revoke", None, {"released_tasks": released}, "hub")
         return {"callsign": callsign, "released_tasks": released}
+
+    #: 콜사인의 활동으로 세는 것 — 하나라도 있으면 지우지 않는다 (거두기를 쓴다).
+    CALLSIGN_USE: tuple[tuple[str, str], ...] = (
+        ("events", "SELECT COUNT(*) FROM event WHERE project_id = ? AND callsign = ? "
+                   "AND NOT (target_kind = 'callsign' AND target_id = callsign)"),
+        ("tasks", "SELECT COUNT(*) FROM task WHERE project_id = ? AND assignee = ?"),
+        ("handoffs", "SELECT COUNT(*) FROM handoff WHERE project_id = ? AND callsign = ?"),
+        ("sessions", "SELECT COUNT(*) FROM session WHERE project_id = ? AND callsign = ?"),
+        ("accounts", "SELECT COUNT(*) FROM hub_account_callsign WHERE project_id = ? AND callsign = ?"),
+        ("messages", "SELECT COUNT(*) FROM inbox_message WHERE project_id = ? AND to_kind = 'callsign' AND to_id = ?"),
+    )
+
+    def delete_callsign(self, ctx: Ctx, project_id: str, callsign: str, confirm: str) -> dict[str, Any]:
+        """관리자 삭제 — 등록 · 셋업 말고 활동이 없는 콜사인만. 활동이 있으면 409 (이력은 지우지 않는다)."""
+        if ctx.via != "admin" and (ctx.principal is None or ctx.principal.kind != "admin"):
+            raise forbidden("콜사인 삭제는 허브 관리자만 한다")
+        if confirm != callsign:
+            raise invalid_field("confirm", "지울 콜사인 이름을 그대로 적는다")
+        with self.write() as conn:
+            row = conn.execute("SELECT role, kind FROM callsign WHERE project_id = ? AND id = ?", (project_id, callsign)).fetchone()
+            if row is None:
+                raise not_found(f"콜사인이 없다: {project_id}/{callsign}")
+            owner = conn.execute("SELECT 1 FROM project WHERE id = ? AND owner_callsign = ?", (project_id, callsign)).fetchone()
+            if owner or row["role"] == "owner":
+                raise HubError(409, "callsign_is_owner", f"프로젝트 소유자 콜사인은 지울 수 없다: {callsign}", {"callsign": callsign})
+            used = {name: n for name, sql in self.CALLSIGN_USE
+                    if (n := conn.execute(sql, (project_id, callsign)).fetchone()[0])}
+            if used:
+                raise HubError(409, "callsign_in_use", f"활동 기록이 있어 지우지 않는다: {callsign} — 거두기(callsign revoke)를 쓴다",
+                               {"callsign": callsign, "used": used})
+            conn.execute("DELETE FROM setup_step WHERE project_id = ? AND callsign = ?", (project_id, callsign))
+            conn.execute("DELETE FROM callsign WHERE project_id = ? AND id = ?", (project_id, callsign))
+            actor = ctx.principal.name if ctx.principal is not None and ctx.principal.name else "hub"
+            self._event(conn, ctx, project_id, "callsign", callsign, "delete", {"kind": row["kind"], "role": row["role"]},
+                        None, f"admin:{actor}")
+        return {"callsign": callsign, "deleted": True}
 
     # --- task (WBS-33.3) ---------------------------------------------------------
 

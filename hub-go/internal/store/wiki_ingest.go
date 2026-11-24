@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-	"time"
+
+	"github.com/ykylee/standard_ai_workflow/hub-go/internal/db"
 )
 
 var wikiPagePath = regexp.MustCompile(`^(?:[A-Za-z0-9_][A-Za-z0-9_.-]*/)*[A-Za-z0-9_][A-Za-z0-9_.-]*\.md$`)
@@ -108,7 +109,7 @@ func (s *Store) WikiIngest(ctx Ctx, rawPages any, summary, requestID string) (ma
 		pages = append(pages, wikiWrite{path: path, body: body, repo: repo, sha: strings.ToLower(sha), expected: expected, delete: del})
 	}
 	summary = strings.TrimSpace(summary)
-	now := ctx.Now.Format(time.RFC3339Nano)
+	now := db.FormatISO(ctx.Now)
 	return s.Idempotent(ctx, requestID, func(tx *sql.Tx) (map[string]any, error) {
 		versions := map[string]int{}
 		conflicts := []map[string]any{}

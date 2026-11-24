@@ -16,6 +16,7 @@ CHECK_TIMEOUT_S = 240
 
 WATCHES = (
     "workflow-source/workflow_kit/*",
+    "hub-go/*",
     "workflow-source/pyproject.toml",
     "workflow-source/tests/check_hub_core.py",
 )
@@ -33,7 +34,7 @@ if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from check_hub_core import Hub, _env  # noqa: E402
+from check_hub_core import Hub, _env, _resolve_go_hub  # noqa: E402
 from workflow_kit.common.state.builder import build_workflow_state_payload  # noqa: E402
 
 _failures: list[str] = []
@@ -164,12 +165,13 @@ def run(hub: Hub, db: Path, tmp: Path) -> None:
     _record("case 5 (거두기 뒤 읽기 전용 보관 · 세션 시작의 handoff)", ok5, f"start={start['hub'].get('handoff')} {s10}/{arch} {s11}")
 
 
-def main() -> int:
-    print("=== 허브 콜사인별 기억 (M-035 WBS-35.1) ===")
+def _measure(impl: str, cmd: list[str] | None) -> None:
+    print(f"  --- [{impl}] ---")
+    before = len(_failures)
     with tempfile.TemporaryDirectory(prefix="hubmem-") as d:
         tmp = Path(d)
         db = tmp / "hub.db"
-        hub = Hub(db)
+        hub = Hub(db, cmd_prefix=cmd)
         try:
             try:
                 run(hub, db, tmp)
@@ -177,8 +179,19 @@ def main() -> int:
                 _record("run (예외)", False, repr(exc))
         finally:
             err = hub.stop()
-            if _failures:
+            if len(_failures) > before:
                 print("  --- 허브 stderr ---\n" + err[-2000:])
+
+
+def main() -> int:
+    print("=== 허브 콜사인별 기억 (M-035 WBS-35.1) ===")
+    _measure("python", None)
+    with tempfile.TemporaryDirectory(prefix="hubmem-go-") as d:
+        go_cmd, reason = _resolve_go_hub(Path(d))
+        if go_cmd is None:
+            print(f"    [unmeasured] go 허브 미측정: {reason}")
+        else:
+            _measure("go", go_cmd)
     total = len(_passes) + len(_failures)
     print(f"\n{len(_passes)}/{total} passed")
     if _failures:

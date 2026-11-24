@@ -358,7 +358,34 @@
       el("nav", { class: "nav-links" }, el("a", { href: "#/" }, "프로젝트"), el("a", { class: "on", href: "#/harnesses" }, "하네스 검토")),
       el("p", {}, "승인은 사람 명부에 등록된 담당자를 한 명 이상 지정해야 한다."), addPerson,
       el("button", { class: "ghost", onclick: () => { try { localStorage.removeItem(`hub:${hubHost}:admin-token`); } catch (e) { /* 저장소 없음 */ } route(); } }, "관리자 토큰 지우기")),
-      cards.length ? cards : el("section", { class: "card" }, el("p", { class: "muted" }, "대기 중인 제보가 없다.")));
+      cards.length ? cards : el("section", { class: "card" }, el("p", { class: "muted" }, "대기 중인 제보가 없다.")),
+      await callsignCleanup(token));
+  }
+
+  // 관리자 콜사인 정리 — 활동이 없는 것만 지워진다 (허브가 판정한다). 활동이 있으면 사유를 보인다.
+  async function callsignCleanup(token) {
+    const list = await api("projects", { token });
+    if (list.status !== 200) return el("section", { class: "card" }, el("h2", {}, "콜사인 정리"), alertBox("bad", errorText(list)));
+    const blocks = await Promise.all(list.data.projects.map(async (p) => {
+      const r = await api(`projects/${encodeURIComponent(p.id)}/callsigns`, { token });
+      if (r.status !== 200) return el("div", {}, el("h3", {}, p.display_name), alertBox("bad", errorText(r)));
+      const message = el("div");
+      const remove = async (id) => {
+        if (window.prompt(`콜사인을 지운다. 되돌릴 수 없다. 확인하려면 ${id} 를 입력한다.`) !== id) return;
+        const d = await api(`projects/${encodeURIComponent(p.id)}/callsigns/${encodeURIComponent(id)}/delete`, { method: "POST", token, body: { confirm: id } });
+        if (d.status !== 200) { message.replaceChildren(alertBox("bad", errorText(d))); return; }
+        route();
+      };
+      return el("div", {}, el("h3", {}, `${p.display_name} · ${p.id}`), message,
+        el("table", {}, el("thead", {}, el("tr", {}, ...["콜사인", "종류", "등록", "마지막 활동", "셋업", ""].map((h) => el("th", {}, h)))),
+          el("tbody", {}, r.data.callsigns.map((c) => el("tr", { class: c.archived ? "archived" : "" },
+            el("td", {}, c.id, c.archived ? el("span", { class: "muted" }, " (거둠)") : null), el("td", {}, `${c.kind} · ${c.role}`),
+            el("td", {}, when(c.created_at)), el("td", {}, c.last_seen_at ? when(c.last_seen_at) : "—"),
+            el("td", {}, c.setup_complete ? "완료" : "미완료"),
+            el("td", {}, c.role === "owner" ? null : el("button", { class: "danger", "data-delete-callsign": c.id, onclick: () => remove(c.id) }, "삭제")))))));
+    }));
+    return el("section", { class: "card" }, el("h2", {}, "콜사인 정리"),
+      el("p", { class: "muted" }, "등록·셋업 외 활동이 없는 콜사인만 지운다. 활동 기록이 있으면 허브가 거절한다 — 그때는 거두기를 쓴다."), blocks);
   }
 
   // --- 화면: 프로젝트 · KPI · task 목록 --------------------------------------------------

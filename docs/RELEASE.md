@@ -3,7 +3,7 @@
 - 문서 목적: Standard AI Workflow 릴리스 절차 (버전 박기 → 빌드 → 스모크 → GitHub Release attach) 를 한 자리에 정리한다.
 - 범위: 채널 정책, 사전 점검, 빌드, 로컬 smoke, GitHub Release 생성, 트러블슈팅, 회귀 표
 - 대상 독자: 저장소 maintainer (`ykylee`), 릴리스 매니저
-- 상태: beta (v3.2.2 기준 pre-release 준비 중, HomeLab pilot 운영 중; 절차 자체는 v0.5.7+ 부터 정식 도입된 정책 유지)
+- 상태: beta (v3.2.2 기준 pre-release 발행 · HomeLab pilot 운영 중; 절차 자체는 v0.5.7+ 부터 정식 도입된 정책 유지)
 - 현재 package version: 3.2.2 (`workflow-source/pyproject.toml`)
 - 최종 수정일: 2026-11-24
 - 관련 문서: [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md), [./INSTALLATION_AND_USAGE.md](./INSTALLATION_AND_USAGE.md), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md), [workflow-source/releases/](https://github.com/ykylee/standard_ai_workflow/tree/main/workflow-source/releases/)

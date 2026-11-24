@@ -16,6 +16,9 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- feat(hub): run migrations through agent request and human login approval (85b9865a)
+- feat(hub): port 1.x migration to Go and let admins delete unused callsigns (92124377)
+- feat(hub): add human accounts and agent confirmations (8fde5f02)
 - feat(hub): complete v3.2.0 pilot capabilities (d1c67801)
 - feat(hub): add project knowledge and DCR sharing (679927a6)
 - feat(mcp): release modern 2026-07-28 protocol support (ae732239)
@@ -274,6 +277,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- docs(hub): call the hub inbox by its name instead of A2A (9682fc4d)
+- docs(workflow): close human confirmation implementation task (190286cb)
 - Sync embedded Go bootstrap guidance (08c2c3bd)
 - Document all hub MCP workflows in bootstrap guidance (bfc553a5)
 - Prepare workflow hub 3.2.1 prerelease (99866edc)
@@ -887,6 +892,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- fix(hub): port Go setup confirm and wiki reads, prepare 3.2.2 prerelease (0166f0ce)
 - fix(tests): make setup guide cases countable (fbe9c820)
 - fix(release): align smoke and roadmap gates (7fda7fc3)
 - fix(memory): resolve branch names beside version tags (0c57dcd6)

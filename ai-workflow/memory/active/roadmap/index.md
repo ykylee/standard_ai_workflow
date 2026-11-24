@@ -135,3 +135,5 @@
   - path: [`./M-060-unknown-harness-intake.md`](./M-060-unknown-harness-intake.md)
 - **M-061** [implementation] 허브 task 목록 분류·페이지네이션·보기 전환 — status: done
   - path: [`./M-061-hub-task-list-navigation.md`](./M-061-hub-task-list-navigation.md)
+- **M-062** [implementation] 허브 통신의 A2A 1.0 전환 — status: in_progress
+  - path: [`./M-062-a2a-transition.md`](./M-062-a2a-transition.md)

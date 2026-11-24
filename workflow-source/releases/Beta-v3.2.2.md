@@ -29,3 +29,20 @@
 
 - 평가용 pre-release다. Go에서 미포팅 도구(프로젝트 이전, Wiki 내보내기·OKF 가져오기·lint·원격 설정, relay 초대 MCP — 10종)는 `not_implemented_in_go`를 반환한다.
 - 3.2.1 이하에서 시작하면 DB 판 15 → 17 migration이 실행된다. 시작 전에 백업한다.
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-11-24T12:49:46Z)_
+
+- total wiki pages: **103**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

@@ -25,6 +25,7 @@ WATCHES = (
     "workflow-source/pyproject.toml",  # python -m workflow_kit 가 kit 전체를 읽는다
 )
 
+import ast
 import json
 import os
 import subprocess
@@ -167,15 +168,25 @@ def main() -> int:
 
     # 6 한 정본
     literal = hub_marker.MARKER_REL.rsplit("/", 1)[-1]
-    copies = sorted(str(p.relative_to(SOURCE_ROOT)) for p in (SOURCE_ROOT / "workflow_kit").rglob("*.py")
-                    if literal in p.read_text(encoding="utf-8") and p.name != "hub_marker.py")
+    copies = []
+    for path in (SOURCE_ROOT / "workflow_kit").rglob("*.py"):
+        if path.name == "hub_marker.py":
+            continue
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        if any(isinstance(node, ast.Constant) and node.value == hub_marker.MARKER_REL for node in ast.walk(tree)):
+            copies.append(str(path.relative_to(SOURCE_ROOT)))
+    copies.sort()
     try:
         from workflow_kit.hub import migrate1x  # noqa: PLC0415
         hub_same: bool | None = migrate1x.MARKER_PATH is hub_marker.MARKER_REL
     except ImportError:  # release/1.x 에는 허브가 없다 — 허브 쪽 대조는 해당 없음 (통과로 세지 않고 따로 적는다)
         hub_same = None
     print(f"    허브 상수 대조: {'해당 없음 (hub 패키지 없음)' if hub_same is None else hub_same}")
-    ok6 = not copies and hub_same is not False
+    # The downloaded standalone client has to carry its own relative marker path;
+    # all installed Hub code imports the shared constant. Its asset copy is checked
+    # byte-for-byte by check_go_assets_sync.
+    allowed_standalone = ["workflow_kit/hub/client/hub_client.py"]
+    ok6 = copies == allowed_standalone and hub_same is not False
     _record("case 6 (한 정본 — 허브가 같은 상수, 경로 리터럴 사본 0)", ok6, f"사본={copies} hub_same={hub_same}")
 
     print(f"PASS {len(_passes)} · FAIL {len(_failures)}")

@@ -29,6 +29,4 @@ goals: [G1, G3, G5]
 
 ## WBS
 
-- **WBS-61.1** task 목록 API 필터·페이지네이션 계약과 UI 요구 정의 — 산출물: 안정적인 정렬·페이지 메타데이터·필터 선택 규칙
-- **WBS-61.2** Python·Go API 및 웹 UI 구현 — 산출물: roadmap/milestone/WBS/category 필터, 이전/다음 페이지, 표/카드 보기
-- **WBS-61.3** 범위·빈 결과·필터 조합·보기 선호 parity 검증 및 운영 문서 — 산출물: 회귀 검증과 갱신된 운영 안내
+- **WBS-61.1** task 목록 API 필터·페이지네이션 계약, Python·Go 웹 UI 구현 및 parity 검증 — 산출물: roadmap/milestone/WBS/category 필터, 안정 정렬·페이지 메타데이터, 표/카드 보기와 갱신된 운영 안내

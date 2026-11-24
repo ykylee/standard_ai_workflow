@@ -28,6 +28,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import _workbench_fixture as fx  # noqa: E402
+from _hub_entry import hub_entry_problem  # noqa: E402
 
 FAILURES: list[str] = []
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -121,7 +122,8 @@ def case_rules() -> list[str]:
     if "Record progress as you work" not in skill or "--progress-note" not in skill:
         problems.append("backlog-update 스킬에 단계마다 진행을 기록하라는 규칙이 없다")
     claude = (REPO_ROOT / "CLAUDE.md").read_text(encoding="utf-8")
-    if not re.search(r"작업 중: .*--progress-note", claude) and "hub_task_progress" not in claude:
+    by_hub = hub_entry_problem(REPO_ROOT, "CLAUDE.md", claude) is None and "hub_task_progress" in claude
+    if not re.search(r"작업 중: .*--progress-note", claude) and not by_hub:
         problems.append("CLAUDE.md 에 작업 중 진행 기록 규칙이 없다")
     return problems
 

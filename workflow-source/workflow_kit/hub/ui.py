@@ -29,6 +29,8 @@ from workflow_kit.common import plan_claims, plan_responses
 from workflow_kit.common.schemas.roadmap import RoadmapIssue, TaskWbsLink
 from workflow_kit.common.state import roadmap as rm
 from workflow_kit.hub.errors import HubError, forbidden, invalid_field, not_found, unauthorized
+from workflow_kit.hub.account_auth import HubAccounts
+from workflow_kit.hub.confirmations import Confirmations
 from workflow_kit.hub.guide import Guides
 from workflow_kit.hub.harness_intake import HarnessIntake
 from workflow_kit.hub.judge import _NO_TREE, INDEX, Judge, task_lines
@@ -92,6 +94,59 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
     orch = Orchestration(store)
     relays = Relays(store)
     harness_intake = HarnessIntake(store)
+    accounts = HubAccounts(store)
+
+    async def account_endpoint(request: Request) -> Response:
+        headers = {**hub_headers(), **SCREEN_HEADERS, "Cache-Control": "no-store"}
+        try:
+            if request.method != "POST":
+                raise HubError(405, "method_not_allowed", "POST 만 지원한다")
+            origin = request.headers.get("origin", "")
+            expected_host = request.headers.get("host", "")
+            forwarded_proto = request.headers.get("x-forwarded-proto", "").split(",", 1)[0].strip()
+            expected_scheme = forwarded_proto or request.url.scheme
+            if not origin or origin.rstrip("/") != f"{expected_scheme}://{expected_host}":
+                raise HubError(403, "origin_mismatch", "같은 출처의 브라우저 요청만 허용한다")
+            ctype = (request.headers.get("content-type") or "").split(";", 1)[0].strip().lower()
+            if ctype != "application/json":
+                raise HubError(415, "unsupported_media_type", "본문은 application/json 이어야 한다")
+            raw = await request.body()
+            if len(raw) > max_body:
+                raise HubError(413, "payload_too_large", f"본문 상한 {max_body} 바이트")
+            payload = json.loads(raw.decode("utf-8")) if raw.strip() else {}
+            if not isinstance(payload, dict):
+                raise HubError(400, "invalid_json", "본문은 JSON 객체다")
+            now = clock()
+            action = request.path_params["action"]
+            cookie = request.cookies.get("workflow_hub_session")
+            if action == "login":
+                session, account = accounts.login(payload.get("username", ""), payload.get("password", ""), now)
+            elif action == "enroll":
+                session, account = accounts.enroll(_bearer(request) or "", payload.get("username", ""),
+                                                    payload.get("display_name", ""), payload.get("password", ""), now)
+            elif action == "link":
+                linked_account = accounts.account(cookie, now)
+                if not linked_account:
+                    raise unauthorized("허브 계정에 로그인해야 콜사인을 연결할 수 있다")
+                linked = accounts.link(linked_account["id"], _bearer(request) or "", now)
+                return JSONResponse({"account": linked_account, "linked": linked}, headers=headers)
+            elif action == "logout":
+                accounts.logout(cookie, now)
+                session, account = "", None
+            else:
+                raise HubError(404, "not_found", "계정 API 경로가 없다")
+            response = JSONResponse({"account": account}, headers=headers)
+            secure = request.url.scheme == "https" or forwarded_proto == "https"
+            if session:
+                response.set_cookie("workflow_hub_session", session, max_age=30 * 24 * 3600, path="/",
+                                    httponly=True, secure=secure, samesite="strict")
+            else:
+                response.delete_cookie("workflow_hub_session", path="/", httponly=True, secure=secure, samesite="strict")
+            return response
+        except HubError as exc:
+            return JSONResponse(exc.payload(), status_code=exc.status, headers=headers)
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            return JSONResponse(HubError(400, "invalid_json", "본문이 올바른 JSON이 아니다").payload(), status_code=400, headers=headers)
 
     def resolve(request: Request, now: datetime) -> Principal:
         token = _bearer(request)
@@ -100,6 +155,15 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
             if p is None:
                 raise unauthorized("토큰이 틀렸거나 거둔 토큰이다 — 이 브라우저에서 지운 뒤 다시 등록한다")
             return p
+        account = accounts.account(request.cookies.get("workflow_hub_session"), now)
+        if account:
+            pid = request.path_params.get("pid")
+            if pid:
+                linked = accounts.callsign(account["id"], pid, now)
+                if linked:
+                    return linked
+                raise forbidden("이 허브 계정에 해당 프로젝트의 사람 콜사인이 연결되어 있지 않다")
+            return Principal(kind="account", name=account["display_name"])
         if web_token_name:
             p = store.web_principal(web_token_name)
             if p is not None:
@@ -136,6 +200,12 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
                         raise HubError(400, "invalid_json", f"본문이 JSON 이 아니다: {exc}") from exc
                     if not isinstance(payload, dict):
                         raise HubError(400, "invalid_json", "본문은 JSON 객체다")
+                    if request.cookies.get("workflow_hub_session") and not _bearer(request):
+                        origin = request.headers.get("origin", "")
+                        host = request.headers.get("host", "")
+                        proto = request.headers.get("x-forwarded-proto", "").split(",", 1)[0].strip() or request.url.scheme
+                        if not origin or origin.rstrip("/") != f"{proto}://{host}":
+                            raise HubError(403, "origin_mismatch", "같은 출처의 브라우저 요청만 허용한다")
                 now = clock()
 
                 def run() -> dict[str, Any]:
@@ -157,9 +227,14 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
     # --- 읽기 ---------------------------------------------------------------------
 
     def get_session(request: Request, p: Principal, now: datetime, _b: Any) -> dict[str, Any]:
-        return {"principal": _principal_summary(p), "web_token": bool(web_token_name)}
+        account = accounts.account(request.cookies.get("workflow_hub_session"), now)
+        return {"principal": _principal_summary(p), "account": account, "web_token": bool(web_token_name)}
 
     def get_projects(request: Request, p: Principal, now: datetime, _b: Any) -> dict[str, Any]:
+        account = accounts.account(request.cookies.get("workflow_hub_session"), now)
+        if account:
+            rows = [project for pid in accounts.projects(account["id"]) for project in store.projects(pid)]
+            return {"projects": rows, "principal": {"kind": "account", "name": account["display_name"]}, "account": account}
         rows = store.projects(p.project_id if p.kind == "callsign" else None)
         return {"projects": rows, "principal": _principal_summary(p)}
 
@@ -233,6 +308,10 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
         me = _principal_summary(p)
         me["can_answer"] = me["can_answer"] and p.project_id == pid
         me["can_manage"] = me["can_manage"] and p.project_id == pid
+        account = accounts.account(request.cookies.get("workflow_hub_session"), now)
+        if account:
+            me["auth_mode"] = "account"
+            me["account"] = account
         return {"project": project, "principal": me, "summary": _project_summary(pid, v, now)}
 
     def get_tasks(request: Request, p: Principal, now: datetime, _b: Any) -> dict[str, Any]:
@@ -463,6 +542,21 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
             "hosts": hosts,
         }
 
+    def get_confirmations(request: Request, p: Principal, now: datetime, _b: Any) -> dict[str, Any]:
+        pid = request.path_params["pid"]
+        return Confirmations(store).list_pending(Ctx(now=now, via="ui", principal=_own(p, pid)))
+
+    def post_confirmation_decision(request: Request, p: Principal, now: datetime, b: dict[str, Any]) -> dict[str, Any]:
+        pid = request.path_params["pid"]
+        note = b.get("note", "")
+        if not isinstance(note, str):
+            raise invalid_field("note", "문자열")
+        decision = b.get("decision")
+        if not isinstance(decision, str):
+            raise invalid_field("decision", "approve · reject")
+        ctx = Ctx(now=now, via="ui", principal=_own(p, pid))
+        return Confirmations(store).decide(ctx, request.path_params["rid"], decision, note)
+
     # --- 쓰기 ---------------------------------------------------------------------
 
     def _own(p: Principal, pid: str) -> Principal:
@@ -601,6 +695,7 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
         Route("/ui/", static, methods=["GET"]),
         Route("/ui/{name}", static, methods=["GET"]),
         Route("/api/session", api(get_session), methods=["GET"]),
+        Route("/api/account/{action}", account_endpoint, methods=["POST"]),
         Route("/api/projects", api(get_projects), methods=["GET"]),
         Route("/api/harness-reports", api(get_harness_reports), methods=["GET"]),
         Route("/api/harness-reports/{rid}/decision", api(post_harness_decision, body=True), methods=["POST"]),
@@ -626,6 +721,8 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
         Route("/api/projects/{pid}/tasks/{tid}/responses", api(post_response, body=True), methods=["POST"]),
         Route("/api/projects/{pid}/roadmap", api(get_roadmap), methods=["GET"]),
         Route("/api/projects/{pid}/orchestration", api(get_orchestration), methods=["GET"]),
+        Route("/api/projects/{pid}/confirmations", api(get_confirmations), methods=["GET"]),
+        Route("/api/projects/{pid}/confirmations/{rid}", api(post_confirmation_decision, body=True), methods=["POST"]),
         Route("/api/projects/{pid}/orchestration/halt", api(post_orch_halt, body=True), methods=["POST"]),
         Route("/api/projects/{pid}/orchestration/lease", api(post_orch_lease, body=True), methods=["POST"]),
         Route("/api/projects/{pid}/orchestration/approvals/{rid}", api(post_orch_decide, body=True), methods=["POST"]),

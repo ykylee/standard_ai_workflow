@@ -1,0 +1,117 @@
+"""Agent confirmation requests stored and delivered through the A2A inbox."""
+
+from __future__ import annotations
+
+import json
+from typing import Any
+
+from workflow_kit.hub.errors import HubError, invalid_field, not_found
+from workflow_kit.hub.orchestration import Orchestration
+from workflow_kit.hub.store import Ctx, Store, _iso, scan_secrets
+
+
+class Confirmations:
+    def __init__(self, store: Store) -> None:
+        self.store = store
+        self.orch = Orchestration(store)
+
+    def request(self, ctx: Ctx, args: dict[str, Any]) -> dict[str, Any]:
+        title = args.get("title")
+        question = args.get("question")
+        details = args.get("details") or ""
+        if not isinstance(title, str) or not title.strip() or len(title) > 160:
+            raise invalid_field("title", "1~160자 문자열")
+        if not isinstance(question, str) or not question.strip() or len(question) > 2000:
+            raise invalid_field("question", "1~2000자 문자열")
+        if not isinstance(details, str) or len(details) > 4000:
+            raise invalid_field("details", "4000자 이하 문자열")
+        scan_secrets({"title": title, "question": question, "details": details}, "confirmation")
+        p = self.orch._callsign(ctx)
+        callsign = p.callsign
+        if not callsign:
+            raise invalid_field("callsign", "콜사인 토큰이 필요하다")
+        session_id = args.get("session")
+        if not isinstance(session_id, str):
+            raise invalid_field("session", "세션 식별자가 필요하다")
+        with self.store.write() as conn:
+            self.orch._session_row(conn, p, session_id)
+            row = conn.execute("SELECT owner_callsign FROM project WHERE id=?", (p.project_id,)).fetchone()
+            if row is None:
+                raise not_found(f"프로젝트가 없다: {p.project_id}")
+            request_id = self.orch.enqueue(
+                conn, ctx, str(p.project_id), to_kind="callsign", to_id=row["owner_callsign"],
+                kind="approval", body={"request_type": "agent_confirmation", "title": title.strip(),
+                                       "question": question.strip(), "details": details,
+                                       "requested_by": callsign, "requested_by_session": session_id,
+                                       "state": "pending"},
+                from_callsign=callsign, from_session=session_id,
+            )
+            self.store._event(conn, ctx, str(p.project_id), "confirmation_request", request_id, "request", None,
+                              {"state": "pending", "requested_by": callsign})
+        return {"request": {"id": request_id, "state": "pending", "title": title.strip()},
+                "next": "사람이 웹 허브의 확인 요청 메뉴에서 결정할 때까지 대기한다. 결과는 A2A 받은편지함으로 온다."}
+
+    def list_pending(self, ctx: Ctx) -> dict[str, Any]:
+        p = self.orch._need_owner(ctx)
+        if not p.callsign or not p.project_id:
+            raise invalid_field("owner", "프로젝트 사람 소유자 콜사인이 필요하다")
+        with self.store.read() as conn:
+            rows = conn.execute(
+                "SELECT id,from_callsign,from_session,body_json,created_at,state FROM inbox_message "
+                "WHERE project_id=? AND to_kind='callsign' AND to_id=? AND kind='approval' "
+                "AND state IN ('queued','delivered','unacknowledged') ORDER BY created_at DESC LIMIT 200",
+                (p.project_id, p.callsign),
+            ).fetchall()
+        requests = []
+        for row in rows:
+            body = json.loads(row["body_json"])
+            if body.get("request_type") != "agent_confirmation":
+                continue
+            requests.append({"id": row["id"], "requested_by": row["from_callsign"],
+                             "requested_by_session": row["from_session"], "created_at": row["created_at"],
+                             "title": body.get("title", ""), "question": body.get("question", ""),
+                             "details": body.get("details", "")})
+        return {"requests": requests}
+
+    def decide(self, ctx: Ctx, request_id: str, decision: str, note: str = "") -> dict[str, Any]:
+        p = self.orch._need_owner(ctx)
+        if not p.callsign or not p.project_id:
+            raise invalid_field("owner", "프로젝트 사람 소유자 콜사인이 필요하다")
+        if decision not in {"approve", "reject"}:
+            raise invalid_field("decision", "approve · reject")
+        if not isinstance(note, str) or len(note) > 1000:
+            raise invalid_field("note", "1000자 이하 문자열")
+        scan_secrets(note, "note")
+        target_state = "acked" if decision == "approve" else "declined"
+        with self.store.write() as conn:
+            row = conn.execute(
+                "SELECT * FROM inbox_message WHERE project_id=? AND id=? AND to_kind='callsign' AND to_id=? AND kind='approval'",
+                (p.project_id, request_id, p.callsign),
+            ).fetchone()
+            if row is None:
+                raise not_found(f"확인 요청이 없다: {request_id}")
+            body = json.loads(row["body_json"])
+            if body.get("request_type") != "agent_confirmation":
+                raise not_found(f"에이전트 확인 요청이 아니다: {request_id}")
+            if row["state"] in {"acked", "declined"}:
+                if row["state"] == target_state:
+                    return {"request": {"id": request_id, "state": "approved" if decision == "approve" else "rejected"},
+                            "unchanged": True}
+                raise HubError(409, "already_decided", "이미 다른 결정을 내린 요청이다", {"state": row["state"]})
+            if row["state"] == "expired":
+                raise HubError(409, "request_expired", "만료된 확인 요청이다")
+            conn.execute(
+                "UPDATE inbox_message SET state=?,acked_at=?,ack_by_session=?,ack_reason=?,version=version+1 "
+                "WHERE project_id=? AND id=?",
+                (target_state, _iso(ctx.now), "web:" + p.callsign, note, p.project_id, request_id),
+            )
+            state = "approved" if decision == "approve" else "rejected"
+            self.store._event(conn, ctx, str(p.project_id), "confirmation_request", request_id, decision,
+                              {"state": "pending"}, {"state": state, "note": note})
+            reply_id = self.orch.enqueue(
+                conn, ctx, str(p.project_id), to_kind="callsign", to_id=body["requested_by"], kind="note",
+                body={"event": "confirmation_result", "request_id": request_id, "decision": decision,
+                      "state": state, "title": body["title"], "note": note},
+                from_callsign=p.callsign, ref_request=request_id,
+            )
+        return {"request": {"id": request_id, "state": state}, "message_id": reply_id}

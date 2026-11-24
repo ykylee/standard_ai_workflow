@@ -54,6 +54,9 @@ type Principal struct {
 	HumanApproved bool
 	Role          string
 	Name          string
+	AuthMode      string
+	AccountName   string
+	AccountLabel  string
 }
 
 type Ctx struct {

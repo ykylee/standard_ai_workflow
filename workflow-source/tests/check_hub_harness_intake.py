@@ -111,6 +111,12 @@ def test_intake_review() -> int:
                                      "setup_profile": {"kind": "mcp-http-json-v1", "entry_file": "AGENTS.md",
                                                        "mcp_config_path": "harness-mcp.json"}})
             assert decision[0] == 200 and decision[1]["registered"] is True and decision[1]["setup_ready"] is True
+            with store.read() as conn:
+                notices = conn.execute("SELECT body_json FROM inbox_message WHERE project_id=? AND to_kind='callsign' AND to_id=? AND kind='approval'",
+                                       (owner.project_id, owner.callsign)).fetchall()
+            harness_results = [json.loads(row["body_json"]) for row in notices
+                               if json.loads(row["body_json"]).get("event") == "harness_support_result"]
+            assert len(harness_results) == 1 and harness_results[0]["state"] == "approved"
             queue = ui_call("/api/harness-reports?status=approved")
             assert queue[0] == 200 and len(queue[1]["reports"]) == 1
             listing = tools.call(store, "hub_harness_registry_list", {}, owner_ctx)

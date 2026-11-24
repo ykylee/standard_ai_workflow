@@ -396,6 +396,9 @@ func Call(s *store.Store, name string, rawArgs any, ctx store.Ctx) (result map[s
 		return s.HarnessReportList(ctx, strArg(clean, "status", ""), false)
 	case "hub_harness_registry_list":
 		return s.HarnessRegistryList(ctx, false)
+	case "hub_approval_request":
+		return s.ConfirmationRequest(ctx, strArg(clean, "session", ""), strArg(clean, "title", ""),
+			strArg(clean, "question", ""), strArg(clean, "details", ""))
 	case "hub_setup_plan":
 		return setupPlan(s, ctx, clean)
 	case "hub_guide_render":

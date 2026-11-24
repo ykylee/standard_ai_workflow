@@ -559,10 +559,46 @@ CREATE TABLE harness_registry_person (
 );
 """
 
+#: 판 16 — 사람 허브 계정과 콜사인 연결, 브라우저 세션.
+_V16 = """
+CREATE TABLE hub_account (
+    id TEXT PRIMARY KEY,
+    username TEXT NOT NULL UNIQUE,
+    display_name TEXT NOT NULL,
+    password_hash TEXT NOT NULL,
+    active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL
+);
+CREATE TABLE hub_account_callsign (
+    account_id TEXT NOT NULL REFERENCES hub_account(id) ON DELETE CASCADE,
+    project_id TEXT NOT NULL,
+    callsign TEXT NOT NULL,
+    linked_at TEXT NOT NULL,
+    PRIMARY KEY (account_id, project_id, callsign),
+    UNIQUE (project_id, callsign),
+    UNIQUE (account_id, project_id),
+    FOREIGN KEY (project_id, callsign) REFERENCES callsign(project_id, id)
+);
+CREATE TABLE hub_account_session (
+    token_hash TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL REFERENCES hub_account(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    revoked_at TEXT
+);
+CREATE INDEX hub_account_session_account ON hub_account_session(account_id, expires_at);
+CREATE TABLE hub_account_login_attempt (
+    username_hash TEXT PRIMARY KEY,
+    attempts INTEGER NOT NULL,
+    window_started_at TEXT NOT NULL,
+    locked_until TEXT
+);
+"""
+
 #: 판 순서 = 목록 순서. 판 n = ``MIGRATIONS[n-1]`` (SQL 스크립트).
 #: ``executescript`` 는 열린 트랜잭션을 먼저 커밋하므로, 판 하나의 원자성은
 #: 스크립트 **안의** ``BEGIN IMMEDIATE … COMMIT`` 으로 만든다 (:func:`_apply`).
-MIGRATIONS: list[str] = [_V1, _V2, _V3, _V4, _V5, _V6, _V7, _V8, _V9, _V10, _V11, _V12, _V13, _V14, _V15]
+MIGRATIONS: list[str] = [_V1, _V2, _V3, _V4, _V5, _V6, _V7, _V8, _V9, _V10, _V11, _V12, _V13, _V14, _V15, _V16]
 
 
 def latest_version() -> int:

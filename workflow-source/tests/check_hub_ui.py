@@ -75,10 +75,15 @@ def _record(case: str, ok: bool, detail: str = "") -> None:
 
 
 def _req(base: str, path: str, *, token: str | None = None, method: str = "GET", body: Any = None,
-         ctype: str = "application/json", raw: bytes | None = None, follow: bool = True) -> tuple[int, Any, Any]:
+         ctype: str = "application/json", raw: bytes | None = None, follow: bool = True,
+         cookie: str | None = None, origin: str | None = None) -> tuple[int, Any, Any]:
     headers = {}
     if token:
         headers["authorization"] = f"Bearer {token}"
+    if cookie:
+        headers["cookie"] = cookie
+    if path.startswith("/api/account/") or cookie:
+        headers["origin"] = origin if origin is not None else base.rstrip("/")
     data = raw
     if body is not None:
         data = json.dumps(body).encode("utf-8")
@@ -567,6 +572,76 @@ def case_13_14_15(tmp: Path) -> None:
         hub.stop()
 
 
+def case_16_accounts_confirmations(tmp: Path) -> None:
+    db = tmp / "account-confirm.db"
+    hub = Hub(db)
+    try:
+        pid, owner = _project(hub, "account-confirm")
+        pid_b, owner_b = _project(hub, "account-confirm-other", "owner-other")
+        agent = hub.call("hub_callsign_register", {"project_id": pid, "callsign": "agent-ask", "kind": "agent"})[1]["token"]
+        agent_session = hub.call("hub_session_start", {"session": {"harness": "codex", "kind": "worker"}}, agent)[1]["session"]["id"]
+        status, enrolled, headers = _req(hub.base, "/api/account/enroll", method="POST", token=owner,
+                                         body={"username": "project-owner", "display_name": "Project Owner",
+                                               "password": "long-test-password-123"})
+        cookie_header = headers.get("set-cookie", "")
+        session_cookie = cookie_header.split(";", 1)[0]
+        s_link, linked, _ = _req(hub.base, "/api/account/link", method="POST", token=owner_b,
+                                 body={}, cookie=session_cookie)
+        s_projects, projects, _ = _req(hub.base, "/api/projects", cookie=session_cookie)
+        s_account_project, account_project, _ = _req(hub.base, f"/api/projects/{pid}", cookie=session_cookie)
+        s_task, requested = _tool(hub.base, "hub_approval_request", {"session": agent_session, "title": "배포 설정",
+                                  "question": "운영 반영을 진행할까요?", "details": "검증 완료"}, agent)
+        request_id = requested.get("request", {}).get("id", "")
+        s_list, pending, _ = _req(hub.base, f"/api/projects/{pid}/confirmations", cookie=session_cookie)
+        owner_session = hub.call("hub_session_start", {"session": {"harness": "codex"}}, owner)[1]["session"]["id"]
+        s_agent_decide, agent_decide = _tool(hub.base, "hub_inbox_ack", {"session": owner_session,
+                                       "message_id": request_id, "decision": "seen"}, owner)
+        s_csrf, _, _ = _req(hub.base, f"/api/projects/{pid}/confirmations/{request_id}", method="POST",
+                            body={"decision": "approve"}, cookie=session_cookie, origin="https://evil.example")
+        s_decide, approved, _ = _req(hub.base, f"/api/projects/{pid}/confirmations/{request_id}", method="POST",
+                                     body={"decision": "approve", "note": "진행 승인"}, cookie=session_cookie)
+        s_reject_req, rejected_request = _tool(hub.base, "hub_approval_request", {"session": agent_session,
+                                           "title": "운영 비밀 교체", "question": "지금 교체할까요?"}, agent)
+        rejected_id = rejected_request.get("request", {}).get("id", "")
+        s_reject, rejected, _ = _req(hub.base, f"/api/projects/{pid}/confirmations/{rejected_id}", method="POST",
+                                     body={"decision": "reject", "note": "변경 창이 아니다"}, cookie=session_cookie)
+        s_inbox, inbox = _tool(hub.base, "hub_inbox_list", {"session": agent_session}, agent)
+        results = [m for m in inbox.get("messages", []) if m.get("body", {}).get("event") == "confirmation_result"]
+        s_replay, replay, _ = _req(hub.base, f"/api/projects/{pid}/confirmations/{request_id}", method="POST",
+                                   body={"decision": "approve", "note": "진행 승인"}, cookie=session_cookie)
+        s_wrong, _, _ = _req(hub.base, f"/api/projects/{pid}/confirmations", token=agent)
+        s_login, logged, login_headers = _req(hub.base, "/api/account/login", method="POST",
+                                              body={"username": "project-owner", "password": "long-test-password-123"})
+        s_bad_login, _, _ = _req(hub.base, "/api/account/login", method="POST",
+                                 body={"username": "project-owner", "password": "wrong"})
+        for _ in range(7):
+            _req(hub.base, "/api/account/login", method="POST",
+                 body={"username": "project-owner", "password": "wrong"})
+        s_locked, locked, _ = _req(hub.base, "/api/account/login", method="POST",
+                                   body={"username": "project-owner", "password": "wrong"})
+        raw_db = db.read_bytes()
+        ok = (status == 200 and "httponly" in cookie_header.lower() and "samesite=strict" in cookie_header.lower()
+              and s_link == 200 and linked.get("linked", {}).get("project_id") == pid_b
+              and s_projects == 200 and projects.get("principal", {}).get("kind") == "account"
+              and {p["id"] for p in projects["projects"]} == {pid, pid_b}
+              and s_account_project == 200 and account_project.get("principal", {}).get("auth_mode") == "account"
+              and s_task == 200 and s_list == 200 and len(pending.get("requests", [])) == 1
+              and s_agent_decide == 403 and agent_decide.get("error_code") == "human_decision_required"
+              and s_csrf == 403 and s_decide == 200 and approved.get("request", {}).get("state") == "approved"
+              and s_reject_req == 200 and s_reject == 200 and rejected.get("request", {}).get("state") == "rejected"
+              and s_inbox == 200 and len(results) == 2
+              and {m["body"].get("decision") for m in results} == {"approve", "reject"}
+              and s_replay == 200 and replay.get("unchanged") is True
+              and s_wrong == 403 and s_login == 200 and logged.get("account", {}).get("username") == "project-owner"
+              and bool(login_headers.get("set-cookie")) and s_bad_login == 401 and s_locked == 429
+              and locked.get("error_code") == "login_rate_limited"
+              and b"long-test-password-123" not in raw_db and owner.encode() not in raw_db)
+        _record("case 16 (허브 계정 등록/로그인 쿠키 · 확인 요청 결정 · A2A 결과 · 멱등성 · 권한 경계)", ok,
+                f"enroll={status} projects={s_projects} request={s_task}:{requested}/{s_list} decision={s_decide} inbox={s_inbox} replay={s_replay} wrong={s_wrong} login={s_login}/{s_bad_login}")
+    finally:
+        hub.stop()
+
+
 def main() -> int:
     print("check_hub_ui")
     with tempfile.TemporaryDirectory(prefix="hub-ui-") as d:
@@ -577,6 +652,7 @@ def main() -> int:
         case_7_8_9(tmp)
         case_10_11_12(tmp)
         case_13_14_15(tmp)
+        case_16_accounts_confirmations(tmp)
     print(f"PASS {len(_passes)} · FAIL {len(_failures)}")
     for f in _failures:
         print(f"  FAIL {f}")

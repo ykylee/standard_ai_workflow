@@ -10,6 +10,7 @@ from urllib.parse import urlparse
 
 from workflow_kit.hub.errors import HubError, invalid_field, unauthorized
 from workflow_kit.hub.store import Ctx, Principal, Store, _iso, _json, scan_secrets
+from workflow_kit.hub.orchestration import Orchestration
 
 _ID = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$")
 _SAFE_PATH = re.compile(r"^[A-Za-z0-9._/-]{1,160}$")
@@ -247,7 +248,7 @@ class HarnessIntake:
                 raise invalid_field("owner_ids", "등록된 사람 ID의 중복 없는 목록이어야 한다")
         with self.store.write() as conn:
             row = conn.execute(
-                "SELECT project_id,harness_id,report_json,status FROM harness_report WHERE id=?", (report_id,),
+                "SELECT project_id,harness_id,report_json,status,submitted_by FROM harness_report WHERE id=?", (report_id,),
             ).fetchone()
             if row is None:
                 raise HubError(404, "not_found", f"하네스 제보가 없다: {report_id}")
@@ -282,6 +283,13 @@ class HarnessIntake:
                      "setup_profile": setup_support if decision == "approve" else None}
             self.store._event(conn, ctx, row["project_id"], "harness_report", report_id, decision,
                               {"status": "pending"}, after, p.name or "hub-admin")
+            Orchestration(self.store).enqueue(
+                conn, ctx, row["project_id"], to_kind="callsign", to_id=row["submitted_by"], kind="approval",
+                body={"event": "harness_support_result", "report_id": report_id, "harness_id": row["harness_id"],
+                      "decision": decision, "state": "approved" if decision == "approve" else "rejected",
+                      "setup_ready": decision == "approve", "note": note},
+                from_callsign="hub", ref_request=report_id,
+            )
         return {"report_id": report_id, "harness_id": row["harness_id"],
                 "status": "approved" if decision == "approve" else "rejected",
                 "registered": decision == "approve", "setup_ready": decision == "approve",

@@ -31,18 +31,64 @@ func (s *Server) handleUIAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	now := s.cfg.Clock().UTC().Truncate(time.Second)
+	if strings.HasPrefix(r.URL.Path, "/api/account/") {
+		s.handleAccountAPI(w, r, now)
+		return
+	}
 	principal, err := s.screenPrincipal(r, now)
 	if err != nil {
 		writeScreenError(w, err)
 		return
 	}
+	if r.Method == http.MethodPost && bearerToken(r.Header) == "" {
+		if _, cookieErr := r.Cookie("workflow_hub_session"); cookieErr == nil && !sameScreenOrigin(r) {
+			writeScreenError(w, store.Forbidden("같은 출처의 브라우저 요청만 허용한다"))
+			return
+		}
+	}
 	switch r.URL.Path {
 	case "/api/session":
-		writeJSONResponse(w, http.StatusOK, map[string]any{"principal": principalSummary(principal), "web_token": s.cfg.WebTokenName != ""})
+		payload := map[string]any{"principal": principalSummary(principal), "web_token": s.cfg.WebTokenName != ""}
+		if principal.Kind == "account" {
+			account, err := s.cfg.Store.AccountDetails(principal.Name)
+			if err != nil {
+				writeScreenError(w, err)
+				return
+			}
+			payload["account"] = account
+		}
+		writeJSONResponse(w, http.StatusOK, payload)
 	case "/api/projects":
 		pid := ""
 		if principal.Kind == "callsign" {
 			pid = principal.ProjectID
+		}
+		if principal.Kind == "account" {
+			ids, err := s.cfg.Store.AccountProjects(principal.Name)
+			if err != nil {
+				writeScreenError(w, err)
+				return
+			}
+			all := []map[string]any{}
+			for _, id := range ids {
+				rows, err := s.screenProjects(id)
+				if err != nil {
+					writeScreenError(w, err)
+					return
+				}
+				all = append(all, rows...)
+			}
+			account, err := s.cfg.Store.AccountDetails(principal.Name)
+			if err != nil {
+				writeScreenError(w, err)
+				return
+			}
+			me := principalSummary(principal)
+			if account != nil {
+				me["name"] = account.DisplayName
+			}
+			writeJSONResponse(w, http.StatusOK, map[string]any{"projects": all, "principal": me, "account": account})
+			return
 		}
 		projects, listErr := s.screenProjects(pid)
 		if listErr != nil {
@@ -206,6 +252,37 @@ func (s *Server) handleProjectUIAPI(w http.ResponseWriter, r *http.Request, prin
 	}
 	viewer := &store.Principal{Kind: "viewer", ProjectID: pid, Callsign: principal.Callsign, CallsignKind: principal.CallsignKind, HumanApproved: principal.HumanApproved, Role: principal.Role, Name: principal.Name}
 	ctx := store.Ctx{Now: now, Via: "ui", Principal: viewer, PublicURL: s.cfg.PublicURL}
+	if len(parts) == 3 && parts[2] == "confirmations" && r.Method == http.MethodGet {
+		result, err := s.cfg.Store.ConfirmationList(store.Ctx{Now: now, Via: "ui", Principal: principal, PublicURL: s.cfg.PublicURL})
+		if err != nil {
+			writeScreenError(w, err)
+			return
+		}
+		writeJSONResponse(w, http.StatusOK, result)
+		return
+	}
+	if len(parts) == 4 && parts[2] == "confirmations" && r.Method == http.MethodPost {
+		body, err := readScreenJSON(r)
+		if err != nil {
+			writeScreenError(w, err)
+			return
+		}
+		decision, _ := body["decision"].(string)
+		note, _ := body["note"].(string)
+		if _, present := body["note"]; present {
+			if _, ok := body["note"].(string); !ok {
+				writeScreenError(w, store.InvalidField("note", "문자열"))
+				return
+			}
+		}
+		result, err := s.cfg.Store.ConfirmationDecide(store.Ctx{Now: now, Via: "ui", Principal: principal, PublicURL: s.cfg.PublicURL}, parts[3], decision, note)
+		if err != nil {
+			writeScreenError(w, err)
+			return
+		}
+		writeJSONResponse(w, http.StatusOK, result)
+		return
+	}
 	if len(parts) == 2 && r.Method == http.MethodGet {
 		result, err := s.screenProjectSummary(pid, projectRows[0], ctx, principal)
 		if err != nil {
@@ -1300,6 +1377,26 @@ func (s *Server) screenPrincipal(r *http.Request, now time.Time) (*store.Princip
 		}
 		return principal, nil
 	}
+	if cookie, err := r.Cookie("workflow_hub_session"); err == nil {
+		account, accountErr := s.cfg.Store.AccountBySession(cookie.Value, now)
+		if accountErr != nil {
+			return nil, accountErr
+		}
+		if account != nil {
+			parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+			if len(parts) >= 3 && parts[0] == "api" && parts[1] == "projects" {
+				principal, err := s.cfg.Store.AccountCallsign(account.ID, parts[2])
+				if err != nil {
+					return nil, err
+				}
+				if principal == nil {
+					return nil, store.Forbidden("이 허브 계정에 해당 프로젝트의 사람 콜사인이 연결되어 있지 않다")
+				}
+				return principal, nil
+			}
+			return &store.Principal{Kind: "account", Name: account.ID}, nil
+		}
+	}
 	if s.cfg.WebTokenName != "" {
 		principal, err := s.cfg.Store.WebPrincipal(s.cfg.WebTokenName)
 		if err != nil {
@@ -1312,15 +1409,109 @@ func (s *Server) screenPrincipal(r *http.Request, now time.Time) (*store.Princip
 	return nil, store.Unauthorized("토큰이 없다 — 화면 공용 토큰이 꺼져 있다. 콜사인 토큰을 넣는다")
 }
 
+func (s *Server) handleAccountAPI(w http.ResponseWriter, r *http.Request, now time.Time) {
+	if r.Method != http.MethodPost {
+		writeJSONResponse(w, http.StatusMethodNotAllowed, map[string]any{"error_code": "method_not_allowed", "message": "POST 만 지원한다"})
+		return
+	}
+	if !sameScreenOrigin(r) {
+		writeJSONResponse(w, http.StatusForbidden, map[string]any{"error_code": "origin_mismatch", "message": "같은 출처의 브라우저 요청만 허용한다"})
+		return
+	}
+	body, err := readScreenJSON(r)
+	if err != nil {
+		writeScreenError(w, err)
+		return
+	}
+	action := strings.TrimPrefix(r.URL.Path, "/api/account/")
+	var session string
+	var account store.HubAccount
+	switch action {
+	case "login":
+		username, _ := body["username"].(string)
+		password, _ := body["password"].(string)
+		session, account, err = s.cfg.Store.AccountLogin(username, password, now)
+	case "enroll":
+		username, _ := body["username"].(string)
+		display, _ := body["display_name"].(string)
+		password, _ := body["password"].(string)
+		var details map[string]any
+		session, account, details, err = s.cfg.Store.AccountEnroll(bearerToken(r.Header), username, display, password, now)
+		_ = details
+	case "link":
+		cookie, cookieErr := r.Cookie("workflow_hub_session")
+		if cookieErr != nil {
+			writeScreenError(w, store.Unauthorized("허브 계정에 로그인해야 콜사인을 연결할 수 있다"))
+			return
+		}
+		accountPtr, accountErr := s.cfg.Store.AccountBySession(cookie.Value, now)
+		if accountErr != nil {
+			writeScreenError(w, accountErr)
+			return
+		}
+		if accountPtr == nil {
+			writeScreenError(w, store.Unauthorized("허브 계정 세션이 만료됐다"))
+			return
+		}
+		linked, linkErr := s.cfg.Store.AccountLink(accountPtr.ID, bearerToken(r.Header), now)
+		if linkErr != nil {
+			writeScreenError(w, linkErr)
+			return
+		}
+		writeJSONResponse(w, http.StatusOK, map[string]any{"account": accountPtr, "linked": linked})
+		return
+	case "logout":
+		if c, e := r.Cookie("workflow_hub_session"); e == nil {
+			err = s.cfg.Store.AccountLogout(c.Value, now)
+		}
+	default:
+		writeJSONResponse(w, http.StatusNotFound, map[string]any{"error_code": "not_found", "message": "계정 API 경로가 없다"})
+		return
+	}
+	if err != nil {
+		writeScreenError(w, err)
+		return
+	}
+	secure := r.TLS != nil || strings.TrimSpace(strings.Split(r.Header.Get("X-Forwarded-Proto"), ",")[0]) == "https"
+	if action == "logout" {
+		http.SetCookie(w, &http.Cookie{Name: "workflow_hub_session", Value: "", Path: "/", MaxAge: -1, HttpOnly: true, Secure: secure, SameSite: http.SameSiteStrictMode})
+	} else {
+		http.SetCookie(w, &http.Cookie{Name: "workflow_hub_session", Value: session, Path: "/", MaxAge: 30 * 24 * 3600, HttpOnly: true, Secure: secure, SameSite: http.SameSiteStrictMode})
+	}
+	var output any = account
+	if action == "logout" {
+		output = nil
+	}
+	writeJSONResponse(w, http.StatusOK, map[string]any{"account": output})
+}
+
+func sameScreenOrigin(r *http.Request) bool {
+	origin := strings.TrimRight(r.Header.Get("Origin"), "/")
+	scheme := strings.TrimSpace(strings.Split(r.Header.Get("X-Forwarded-Proto"), ",")[0])
+	if scheme == "" {
+		if r.TLS != nil {
+			scheme = "https"
+		} else {
+			scheme = "http"
+		}
+	}
+	return origin != "" && origin == scheme+"://"+r.Host
+}
+
 func principalSummary(p *store.Principal) map[string]any {
 	isOwner := p.Kind == "callsign" && p.CallsignKind == "human" && p.HumanApproved && p.Role == "owner"
-	return map[string]any{
+	result := map[string]any{
 		"kind": p.Kind, "project_id": p.ProjectID, "callsign": nullableString(p.Callsign),
 		"callsign_kind": nullableString(p.CallsignKind), "human_approved": p.HumanApproved,
 		"role": nullableString(p.Role), "name": nullableString(p.Name),
 		"can_answer": p.Kind == "callsign" && p.CallsignKind == "human" && p.HumanApproved,
 		"can_manage": isOwner,
 	}
+	if p.AuthMode == "account" {
+		result["auth_mode"] = "account"
+		result["account"] = map[string]any{"id": "", "username": p.AccountName, "display_name": p.AccountLabel}
+	}
+	return result
 }
 
 func nullableString(s string) any {

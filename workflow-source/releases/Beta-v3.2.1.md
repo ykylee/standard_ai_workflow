@@ -27,3 +27,20 @@
 - 이 판은 평가용 pre-release다. 새 셋업 프로필은 관리자 승인과 책임자 등록을 거친다.
 - GitHub 배포에는 Python wheel/sdist, Go 6개 OS/아키텍처 산출물과 `SHA256SUMS`를 포함한다. kit plugin ZIP은 포함하지 않는다.
 - 홈랩 pilot은 기존 SQLite DB 판 15를 유지하며 새 버전 시작 시 추가 migration이 예상되지 않는다. 자동화 백업과 이전 Go 바이너리를 보존한다.
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-11-24T08:53:44Z)_
+
+- total wiki pages: **103**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

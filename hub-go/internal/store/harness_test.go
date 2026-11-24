@@ -1,6 +1,7 @@
 package store
 
 import (
+	"encoding/json"
 	"path/filepath"
 	"testing"
 	"time"
@@ -82,6 +83,14 @@ func TestHarnessReportReviewAndRegistry(t *testing.T) {
 	}, map[string]any{"kind": "mcp-http-json-v1", "entry_file": "AGENTS.md", "mcp_config_path": "harness-mcp.json"})
 	if err != nil || decision["registered"] != true || decision["setup_ready"] != true {
 		t.Fatalf("decision=%#v err=%v", decision, err)
+	}
+	var noticeBody string
+	if err := s.DB().QueryRow("SELECT body_json FROM inbox_message WHERE project_id=? AND to_kind='callsign' AND to_id=? AND kind='approval'", owner.ProjectID, owner.Callsign).Scan(&noticeBody); err != nil {
+		t.Fatalf("harness decision did not notify submitting callsign: %v", err)
+	}
+	var notice map[string]any
+	if err := json.Unmarshal([]byte(noticeBody), &notice); err != nil || notice["event"] != "harness_support_result" || notice["state"] != "approved" {
+		t.Fatalf("unexpected harness result notification: %#v err=%v", notice, err)
 	}
 	registry, err = s.HarnessRegistryList(ownerCtx, false)
 	if err != nil || len(registry["harnesses"].([]map[string]any)) != 1 || registry["harnesses"].([]map[string]any)[0]["harness_id"] != "new-agent" {

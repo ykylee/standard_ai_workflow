@@ -274,6 +274,10 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Sync embedded Go bootstrap guidance (08c2c3bd)
+- Document all hub MCP workflows in bootstrap guidance (bfc553a5)
+- Prepare workflow hub 3.2.1 prerelease (99866edc)
+- docs(release): record v3.2.0 HomeLab pilot (84f222d2)
 - docs(release): record 3.1.0 deployment evidence (eff1ebd7)
 - release(hub): prepare 3.1.0 prerelease (e61e2e06)
 - test(workflow): follow fixture default branch in memory check (91967155)

@@ -477,8 +477,8 @@ func (s *Store) HarnessReportDecide(ctx Ctx, reportID, decision, note string, ow
 	var harnessID string
 	var approvedSetupProfile map[string]any
 	result, err := s.withWriteTx(func(tx *sql.Tx) (map[string]any, error) {
-		var projectID, reportJSON, status string
-		if err := tx.QueryRow("SELECT project_id,harness_id,report_json,status FROM harness_report WHERE id=?", reportID).Scan(&projectID, &harnessID, &reportJSON, &status); err != nil {
+		var projectID, reportJSON, status, submittedBy string
+		if err := tx.QueryRow("SELECT project_id,harness_id,report_json,status,submitted_by FROM harness_report WHERE id=?", reportID).Scan(&projectID, &harnessID, &reportJSON, &status, &submittedBy); err != nil {
 			if err == sql.ErrNoRows {
 				return nil, NotFound("하네스 제보가 없다: " + reportID)
 			}
@@ -527,6 +527,13 @@ func (s *Store) HarnessReportDecide(ctx Ctx, reportID, decision, note string, ow
 		}
 		pid := projectID
 		if err := s.RecordEvent(tx, ctx, &pid, "harness_report", reportID, decision, map[string]any{"status": "pending"}, map[string]any{"status": approvedStatus, "harness_id": harnessID, "note": note, "setup_profile": approvedSetupProfile}, &p.Name); err != nil {
+			return nil, err
+		}
+		_, err := s.EnqueueMessage(tx, ctx, projectID, "callsign", submittedBy, "approval", map[string]any{
+			"event": "harness_support_result", "report_id": reportID, "harness_id": harnessID,
+			"decision": decision, "state": approvedStatus, "setup_ready": decision == "approve", "note": note,
+		}, "hub", "", false, "")
+		if err != nil {
 			return nil, err
 		}
 		return map[string]any{"report_id": reportID, "harness_id": harnessID, "status": approvedStatus, "registered": decision == "approve", "setup_ready": decision == "approve"}, nil

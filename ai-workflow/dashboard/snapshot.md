@@ -1,7 +1,7 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-11-24T06:01:22Z`
-- tool_version: `3.2.0`
+- generated_at: `2026-11-24T08:53:44Z`
+- tool_version: `3.2.1`
 - workspace_root: `/home/yklee/repos/standard_ai_workflow`
 
 ## Panel 1 — Drift Prevention Status
@@ -14,7 +14,7 @@
 - harness_supported_count: `10`
 - head_commit_date: `2026-11-24`
 - last_updated_delta_days: `0`
-- silent_failing_cycles_count: `0` (측정 cycle 49건)
+- silent_failing_cycles_count: `0` (측정 cycle 50건)
 
 ## Panel 2 — Maturity Distribution
 
@@ -84,11 +84,11 @@
 
 | version | pass | total |
 |---|---|---|
+| Beta-v3.2.1 | 357 | 357 |
 | Beta-v3.2.0 | 357 | 357 |
 | Beta-v3.1.0 | 354 | 354 |
 | Beta-v3.0.1 | 353 | 353 |
 | Beta-v3.0.0 | 353 | 353 |
-| Beta-v2.1.0 | 350 | 350 |
 
 ## Panel 5 — Recent Release Cycle
 
@@ -137,10 +137,10 @@
 
 - phase_15_north_star: `utilization_3tuple (query_diversity / entries_new_30d / distinct_entries_retrieved — ADR-006 W-4; hit_rate 는 보조)`
 - entries_total: `30`
-- telemetry_events_total: `3802`
-- telemetry_total_queries: `3802`
-- telemetry_hit_count: `2027`
-- telemetry_hit_rate: `0.5331`
+- telemetry_events_total: `3831`
+- telemetry_total_queries: `3831`
+- telemetry_hit_count: `2056`
+- telemetry_hit_rate: `0.5367`
 
 ### Entries by merge_state
 
@@ -152,8 +152,8 @@
 
 | source | events |
 |---|---|
-| `backlog-update` | 1188 |
+| `backlog-update` | 1210 |
 | `dispatcher` | 13 |
-| `doc-sync` | 26 |
-| `session-start` | 2575 |
+| `doc-sync` | 32 |
+| `session-start` | 2576 |
 

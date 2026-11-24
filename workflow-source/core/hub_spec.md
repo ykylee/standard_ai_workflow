@@ -105,6 +105,7 @@ python -m workflow_kit hub admin   --db PATH project import --file FILE | seal -
 | `project_alias` | `key` (정규화 주소) · `project_id` · `kind` (`primary`/`alias`) · `added_by` · `added_at` | `key` 유일 | R3.2 · R3.5 · R3.6 |
 | `callsign` | `project_id` · `id` · `kind` (`human`/`agent`) · `human_approved` · `role` (`owner`/`editor`) · `label` · `host` · `token_hash` · `guide_version_seen` · `client_version_seen` · `last_seen_at` · `revoked_at` · `version` | `(project_id, id)` 유일 · `id` 는 `^[a-z][a-z0-9-]{1,30}[a-z0-9]$`, 예약 `hub` | R4.1 · R4.7 · R7.7 · R7.8 · Q3 |
 | `hub_token` | `token_hash` · `role` (`web`/`admin`) · `name` · `created_at` · `revoked_at` | — | R13.2 · R13.2a |
+| `hub_account` · `hub_account_callsign` · `hub_account_session` · `hub_account_login_attempt` | 사람 계정 · 승인된 human 콜사인 연결 · 만료/폐기 가능한 세션 해시 · 로그인 실패 제한 | v16 | 3.2.2 |
 | `task` | `project_id` · `id` · `title` · `status` · `priority` · `assignee` (콜사인, 빈 값 허용) · `branch` · `wbs` · `wbs_exempt_reason` · `description` · `plan_md` · `fields_json` · `progress_note` · `progress_at` · `created_at` · `updated_at` · `version` | `(project_id, id)` 유일 · `status` ∈ 4 값 | R5.1~R5.7 |
 | `task_seq` | `project_id` · `date` · `namespace` · `next` | `(project_id, date, namespace)` | R5.2 |
 | `task_commit` | `project_id` · `task_id` · `sha` · `branch` · `added_by` · `added_at` | — | R5.9 · R10.4 |
@@ -234,7 +235,10 @@ python -m workflow_kit hub admin   --db PATH project import --file FILE | seal -
 ### 4.6 화면 인증 (요구 R13.2 · R13.2a)
 
 - 토큰은 `Authorization: Bearer` 로만 받는다. 쿼리 · 쿠키로 받지 않는다.
-- 화면은 로그인이 없다. 브라우저에서 콜사인을 등록(`hub_callsign_register` 와 같은 함수)해 받은 토큰을 브라우저 저장소 키 `hub:<public_url 호스트>:<project_id>:token` 에 두고 쓰기에 싣는다.
+- 에이전트/MCP 요청은 기존처럼 `Authorization: Bearer` 콜사인 토큰을 쓴다. 사람 웹 사용은 허브 계정(계정 이름 + PBKDF2-HMAC-SHA256 비밀번호)을 쓰며, 최초 등록은 승인된 human 콜사인 토큰을 한 번 제시한다. 계정은 사람 콜사인을 여러 프로젝트에서 연결할 수 있고, 같은 프로젝트의 콜사인은 계정 하나에만 묶인다.
+- 사람 로그인은 30일 만료 세션의 해시만 DB에 저장하고 `HttpOnly; SameSite=Strict` 쿠키로 세션을 전달한다 (`Secure` 는 HTTPS 요청에서 켠다). 로그아웃/만료 세션은 인증되지 않는다. 비밀번호 실패는 계정 이름 기준 8회/15분으로 잠근다.
+- 브라우저 세션 쿠키를 동반한 쓰기 요청은 `Origin` 과 같은 출처인지 확인한다. 계정 이름은 public API 에 노출하지 않고 로그인 실패 응답도 계정 유무를 구분하지 않는다.
+- 기존 콜사인 토큰 브라우저 인증은 하위 호환으로 유지하지만, 사람 사용 가이드와 화면 기본 동작은 계정 로그인을 우선한다. 화면은 계정에 연결된 프로젝트만 나열한다.
 - 토큰 없는 화면 요청은 허브 설정의 **화면 공용 `web` 토큰**이 켜져 있을 때만 `web` 권한(읽기 · 콜사인 등록)으로 돈다 — `hub serve --web-token-name NAME` 또는 앞단 프록시가 '토큰 없는 요청에만' 머리를 붙인다. **기본 꺼짐.**
 - 화면 응답은 `Content-Security-Policy: default-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'` · `Referrer-Policy: same-origin` (워크벤치 선례). 링크 · API 호출은 상대 경로 (R13.4).
 
@@ -247,6 +251,7 @@ python -m workflow_kit hub admin   --db PATH project import --file FILE | seal -
 | `GET /ui` | `307 → ui/` (상대 리다이렉트) |
 | `GET /ui/` · `/ui/hub.js` · `/ui/hub.css` · `/ui/favicon.svg` | 정적 화면 (`hub/static/`) — hash 길(`#/p/<id>` · `#/p/<id>/t/<task>` · `#/p/<id>/events`), DOM 은 textContent 로만 |
 | `GET /api/session` | 이 요청의 주체 (`kind` · 콜사인 · `can_answer`) · 공용 토큰 켜짐 여부 |
+| `POST /api/account/enroll` · `/login` · `/link` · `/logout` | 승인된 human 콜사인으로 첫 등록 · 계정 로그인 · 추가 프로젝트 콜사인 연결 · 세션 폐기. JSON + Origin 검사 |
 | `GET /api/projects` | 프로젝트 목록 + status 별 task 수 — 콜사인 토큰은 자기 프로젝트 하나 |
 | `GET /api/projects/{id}/callsigns` | 콜사인 표 (WBS-37.2) — 콜사인마다 종류 · 승인 · 역할 · 마지막 활동(`last_seen_at`) · 받은 지침 판과 `guide_state` (`current` / `stale` / `never` — 허브 판은 세션 시작과 같은 `render.guide_version`) · 클라이언트 판(`client_version_seen`) · 셋업 끝 여부 · 보관(거둔 콜사인) · handoff 시각 · **맡은 열린 task 와 진행 한 줄** ('지금 누가 무엇을', R5.7) |
 | `GET /api/projects/{id}/callsigns/{cs}` | 표의 줄 + 그 콜사인의 handoff 칸 · version (읽기는 프로젝트 안 누구나 — G3) |
@@ -255,12 +260,13 @@ python -m workflow_kit hub admin   --db PATH project import --file FILE | seal -
 | `POST /api/projects/{id}/callsigns/{cs}/approve` | 사람 콜사인 승인 (`hub_callsign_approve` 와 같은 함수 — 승인된 `human` 소유자만, 그 밖 403) |
 | `GET /api/projects/{id}` · `/tasks` · `/tasks/{task}` · `/events` · `/roadmap` · `/orchestration` | 프로젝트(요약 KPI `summary` 포함) · task 목록(`status` · `roadmap=linked|unlinked` · `milestone` · `wbs` · `category_level_1..3` · `limit` · `offset`, 최근 순, 필터 뒤 `total`·`facets`) · task 상세(계획 원문 · 주장 · 결정 상태 · 열린 결정 · 린트 · 그 task 의 이력 · 커밋) · 프로젝트 이력 · 로드맵 파생 상태 · 2.1 오케스트레이션 현황(세션 5상태·unknown · 배정 · 미전달 · 세션 요청 · 중계 호스트). 목록은 필터/페이지를 URL에 보존하고 표/카드 보기를 제공한다 (M-061) |
 | `POST /api/projects/{id}/orchestration/halt` · `/lease` · `/approvals/{rid}` · `/relays/invite` · `/relays/{hid}/revoke` | 2.1 오케스트레이션 제어(소유자 콜사인 토큰만, `application/json`, `hub/orchestration.py` · `hub/relay.py` 와 같은 함수) |
+| `GET /api/projects/{id}/confirmations` · `POST /api/projects/{id}/confirmations/{rid}` | 승인된 owner 가 사람 확인 요청을 보고 결정한다. `hub_approval_request` 요청은 A2A `confirmation_result` 를 요청 콜사인 받은편지함에 남기며, 승인 자체가 에이전트 작업을 실행하지 않는다. |
 | `POST /api/projects/{id}/callsigns` | 콜사인 등록 (`hub_callsign_register` 와 같은 함수) — 토큰은 이 응답에서 한 번만 |
 | `POST /api/projects/{id}/tasks/{task}/responses` | 결정 답 `{plan_digest, values{D: v}, opened{D: bool}, comments{대상: 글}}` → 허브가 response/1 본문을 **응답자 = 이 콜사인 · `client: hub-ui`** 로 만들어 `hub_plan_respond` 와 같은 함수에 넘긴다. 지문이 다르면 `version_conflict` 409, 선택지 밖 값은 `invalid_field` 400, 받은 시각은 같은 응답자의 앞선 응답보다 늦게 (워크벤치 §6-6 과 같은 단조 규칙) |
 
-**주체** — 머리 토큰이 있으면 그 토큰(틀리면 401), 없으면 `--web-token-name` 이 켠 공용 `web` 토큰(매 요청 확인 — 거두면 즉시 401), 둘 다 없으면 401. 읽기는 권한 확인 뒤 한 프로젝트로 좁힌 `viewer` 주체로 store 의 읽기 함수를 부른다 — `viewer` 는 도구 입구가 받지 않는다. 콜사인 토큰은 자기 프로젝트만 읽는다(남의 프로젝트 403). 쓰기: 등록은 `web` · 콜사인 · `admin`, 결정 답은 그 프로젝트의 콜사인 토큰(§4.5 규칙 — 승인된 `human`)만, `web` 은 403.
+**주체** — 머리 토큰이 있으면 그 토큰(틀리면 401), 없으면 유효한 허브 계정 쿠키를 확인하고 요청 프로젝트에 연결된 사람 콜사인 권한으로 좁힌다. 계정도 없으면 `--web-token-name` 이 켠 공용 `web` 토큰(매 요청 확인 — 거두면 즉시 401), 셋 다 없으면 401. 읽기는 권한 확인 뒤 한 프로젝트로 좁힌 `viewer` 주체로 store 의 읽기 함수를 부른다 — `viewer` 는 도구 입구가 받지 않는다. 콜사인 토큰은 자기 프로젝트만 읽고 계정은 연결된 프로젝트만 읽는다(남의 프로젝트 403). 쓰기는 해당 프로젝트의 사람 콜사인 권한으로 판정한다.
 
-**위조 방지** — 쿠키가 없어 머리 없는 다른 출처 요청은 공용 토큰 권한뿐이다. 그 권한으로 쓸 수 있는 등록까지 막으려고 `/api` 쓰기는 `content-type: application/json` 만 받는다 (다른 출처 폼은 `text/plain` 으로 JSON 을 흉내 낼 수는 있어도 이 머리를 보낼 수 없다) — 아니면 415.
+**위조 방지** — `/api` 쓰기는 `content-type: application/json` 만 받는다 (아니면 415). 계정 세션 쿠키가 붙은 쓰기는 추가로 정확한 `Origin` 일치가 필요하다. 로그인/등록/연결도 같은 Origin 검사를 한다.
 
 **브라우저 저장소** — 키 `hub:<public_url 호스트>:<project_id>:token` (호스트는 `/healthz` 의 `public_url`). 401 이면 '이 브라우저에서 지운 뒤 다시 등록' 을 안내하고, '이 브라우저에서 콜사인 지우기' 는 토큰이 다시 나오지 않는다는 확인을 받는다. 등록 안내는 다음 화면 머리에 실어 다시 그려도 남는다.
 

@@ -14,6 +14,7 @@
 - 단계마다(계획 → 구현 → 검사 → 커밋 · push) `hub_task_progress` 로 진행 한 줄을 남긴다.
 - 커밋하면 `hub_task_link_commit` 으로 task 에 묶는다.
 - 쓰기가 409(`version_conflict`)면 지금 값을 다시 읽고 판단한다 — 덮어쓰지 않는다.
+- 사람 판단은 `hub_approval_request(session, title, question, details?)` 로 요청한다. 웹의 확인 요청 결과를 `hub_wait`/`hub_inbox_list` 에서 확인하고, 승인 범위를 검증해 진행한다. 승인은 실행 권한을 대신하지 않는다.
 
 ### 허브 지식 · 결정 도구
 - 설계 문서와 출처가 고정된 지식은 `hub_knowledge_search` · `hub_knowledge_get` 으로 찾는다. 위키 문서는 `hub_wiki_search` · `hub_wiki_get` · `hub_wiki_list` 로 읽고, 작성·수정 뒤에는 `hub_wiki_lint` 로 점검한다.
@@ -28,6 +29,7 @@
 - 결정 · 계획 · 프로젝트 문서: `hub_guide_get` · `hub_guide_propose` · `hub_guide_decide` · `hub_project_doc_get` · `hub_project_doc_put` · `hub_roadmap_get` · `hub_roadmap_put` · `hub_roadmap_state` · `hub_dcr_create` · `hub_dcr_list` · `hub_dcr_get` · `hub_dcr_decide`.
 - 이전: `hub_migrate_plan` · `hub_migrate_import` · `hub_migrate_marker` · `hub_migrate_report` · `hub_project_export` · `hub_project_unseal` · `hub_project_import`.
 - 오케스트레이션 · 승인 · 중계: `hub_orch_declare` · `hub_orch_transfer` · `hub_orch_release` · `hub_orch_halt` · `hub_orch_assign` · `hub_orch_recall` · `hub_orch_message` · `hub_orch_request_session` · `hub_orch_request_stop` · `hub_approval_decide` · `hub_events` · `hub_relay_invite` · `hub_relay_list` · `hub_relay_revoke`.
+- 사람 확인 요청: `hub_approval_request` 로 질문을 등록한다. 사람은 웹 허브의 확인 요청 메뉴에서 승인/거절하며, 결과는 A2A 받은편지함에 `confirmation_result` 로 도착한다. 승인 결과만 전달하며 작업 실행은 에이전트가 별도로 판단한다.
 - 서버가 제공하는 현재 도구와 입력 스키마는 MCP `tools/list` 가 정본이다. 카탈로그와 다르면 서버 목록을 따르고 문서 누락을 보고한다.
 
 ### 허브 받은편지함

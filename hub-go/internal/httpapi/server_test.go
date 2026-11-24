@@ -119,6 +119,117 @@ func TestHTTPHealthzAndToolsAndLimits(t *testing.T) {
 	}
 }
 
+func TestHubAccountCookieUIAuthentication(t *testing.T) {
+	srv, st := newTestServer(t)
+	now := time.Date(2026, 11, 22, 12, 0, 0, 0, time.UTC)
+	project, err := st.RegisterProject(store.Ctx{Now: now, Via: "test"}, "https://github.com/acme/account-ui", "Account UI", "owner-human", "human", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	pid := project["project_id"].(string)
+	token := project["token"].(string)
+	otherProject, err := st.RegisterProject(store.Ctx{Now: now, Via: "test"}, "https://github.com/acme/account-ui-other", "Account UI Other", "owner-other", "human", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	unauthLink := doReq(t, srv, http.MethodPost, "http://127.0.0.1:8770/api/account/link", otherProject["token"].(string), []byte(`{}`), map[string]string{"Origin": "http://127.0.0.1:8770", "Content-Type": "application/json"})
+	// Linking also requires the account session; an unlogged caller cannot attach a token to an arbitrary account.
+	if unauthLink.Code != http.StatusUnauthorized {
+		t.Fatalf("unauthenticated account link status=%d body=%s", unauthLink.Code, unauthLink.Body.String())
+	}
+	enrollBody := []byte(`{"username":"human.owner","display_name":"Human Owner","password":"long-test-password-123"}`)
+	enroll := doReq(t, srv, http.MethodPost, "http://127.0.0.1:8770/api/account/enroll", token, enrollBody, map[string]string{"Origin": "http://127.0.0.1:8770", "Content-Type": "application/json"})
+	if enroll.Code != http.StatusOK {
+		t.Fatalf("account enroll status=%d body=%s", enroll.Code, enroll.Body.String())
+	}
+	var accountJSON map[string]any
+	if err := json.Unmarshal(enroll.Body.Bytes(), &accountJSON); err != nil {
+		t.Fatal(err)
+	}
+	cookie := enroll.Result().Cookies()
+	if len(cookie) != 1 || !cookie[0].HttpOnly || cookie[0].SameSite != http.SameSiteStrictMode {
+		t.Fatalf("unsafe account cookie: %#v", cookie)
+	}
+	projectReq := httptest.NewRequest(http.MethodGet, "http://127.0.0.1:8770/api/projects", nil)
+	projectReq.AddCookie(cookie[0])
+	projectRec := httptest.NewRecorder()
+	srv.ServeHTTP(projectRec, projectReq)
+	if projectRec.Code != http.StatusOK || !strings.Contains(projectRec.Body.String(), `"kind":"account"`) || !strings.Contains(projectRec.Body.String(), pid) {
+		t.Fatalf("account project list status=%d body=%s", projectRec.Code, projectRec.Body.String())
+	}
+	linkReq := httptest.NewRequest(http.MethodPost, "http://127.0.0.1:8770/api/account/link", strings.NewReader(`{}`))
+	linkReq.Header.Set("Content-Type", "application/json")
+	linkReq.Header.Set("Origin", "http://127.0.0.1:8770")
+	linkReq.Header.Set("Authorization", "Bearer "+otherProject["token"].(string))
+	linkReq.AddCookie(cookie[0])
+	linkRec := httptest.NewRecorder()
+	srv.ServeHTTP(linkRec, linkReq)
+	if linkRec.Code != http.StatusOK || !strings.Contains(linkRec.Body.String(), otherProject["project_id"].(string)) {
+		t.Fatalf("account callsign link status=%d body=%s", linkRec.Code, linkRec.Body.String())
+	}
+	projectReq = httptest.NewRequest(http.MethodGet, "http://127.0.0.1:8770/api/projects/"+pid, nil)
+	projectReq.AddCookie(cookie[0])
+	projectRec = httptest.NewRecorder()
+	srv.ServeHTTP(projectRec, projectReq)
+	if projectRec.Code != http.StatusOK {
+		t.Fatalf("account linked project status=%d body=%s", projectRec.Code, projectRec.Body.String())
+	}
+	if !strings.Contains(projectRec.Body.String(), `"auth_mode":"account"`) {
+		t.Fatalf("project screen did not recognize account login: %s", projectRec.Body.String())
+	}
+	agentReg, err := st.RegisterCallsign(store.Ctx{Now: now, Via: "test"}, pid, "agent-check", "agent", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	agentToken := agentReg["token"].(string)
+	started := doReq(t, srv, http.MethodPost, "/v1/tools/hub_session_start", agentToken, []byte(`{"session":{"harness":"codex","kind":"worker"}}`), nil)
+	var startedJSON map[string]any
+	if err := json.Unmarshal(started.Body.Bytes(), &startedJSON); err != nil || started.Code != http.StatusOK {
+		t.Fatalf("session start=%d %s", started.Code, started.Body.String())
+	}
+	sid := startedJSON["session"].(map[string]any)["id"].(string)
+	requestBody, _ := json.Marshal(map[string]any{"session": sid, "title": "Deploy", "question": "Proceed?"})
+	requested := doReq(t, srv, http.MethodPost, "/v1/tools/hub_approval_request", agentToken, requestBody, nil)
+	var requestedJSON map[string]any
+	if err := json.Unmarshal(requested.Body.Bytes(), &requestedJSON); err != nil || requested.Code != http.StatusOK {
+		t.Fatalf("confirmation request=%d %s", requested.Code, requested.Body.String())
+	}
+	rid := requestedJSON["request"].(map[string]any)["id"].(string)
+	confirmReq := httptest.NewRequest(http.MethodGet, "http://127.0.0.1:8770/api/projects/"+pid+"/confirmations", nil)
+	confirmReq.AddCookie(cookie[0])
+	confirmRec := httptest.NewRecorder()
+	srv.ServeHTTP(confirmRec, confirmReq)
+	if confirmRec.Code != http.StatusOK || !strings.Contains(confirmRec.Body.String(), rid) {
+		t.Fatalf("account confirmation list=%d %s", confirmRec.Code, confirmRec.Body.String())
+	}
+	csrfReq := httptest.NewRequest(http.MethodPost, "http://127.0.0.1:8770/api/projects/"+pid+"/confirmations/"+rid, strings.NewReader(`{"decision":"approve"}`))
+	csrfReq.Header.Set("Content-Type", "application/json")
+	csrfReq.Header.Set("Origin", "https://evil.example")
+	csrfReq.AddCookie(cookie[0])
+	csrfRec := httptest.NewRecorder()
+	srv.ServeHTTP(csrfRec, csrfReq)
+	if csrfRec.Code != http.StatusForbidden {
+		t.Fatalf("cross-origin cookie decision status=%d body=%s", csrfRec.Code, csrfRec.Body.String())
+	}
+	decisionReq := httptest.NewRequest(http.MethodPost, "http://127.0.0.1:8770/api/projects/"+pid+"/confirmations/"+rid, strings.NewReader(`{"decision":"approve"}`))
+	decisionReq.Header.Set("Content-Type", "application/json")
+	decisionReq.Header.Set("Origin", "http://127.0.0.1:8770")
+	decisionReq.AddCookie(cookie[0])
+	decisionRec := httptest.NewRecorder()
+	srv.ServeHTTP(decisionRec, decisionReq)
+	if decisionRec.Code != http.StatusOK || !strings.Contains(decisionRec.Body.String(), `"state":"approved"`) {
+		t.Fatalf("account confirmation decision=%d %s", decisionRec.Code, decisionRec.Body.String())
+	}
+	inbox := doReq(t, srv, http.MethodPost, "/v1/tools/hub_inbox_list", agentToken, []byte(`{"session":"`+sid+`"}`), nil)
+	if inbox.Code != http.StatusOK || !strings.Contains(inbox.Body.String(), "confirmation_result") {
+		t.Fatalf("A2A result=%d %s", inbox.Code, inbox.Body.String())
+	}
+	badOrigin := doReq(t, srv, http.MethodPost, "http://127.0.0.1:8770/api/account/login", "", []byte(`{"username":"human.owner","password":"long-test-password-123"}`), map[string]string{"Origin": "https://evil.example", "Content-Type": "application/json"})
+	if badOrigin.Code != http.StatusForbidden {
+		t.Fatalf("cross-origin account login status=%d", badOrigin.Code)
+	}
+}
+
 func TestHTTPGuidePages(t *testing.T) {
 	srv, _ := newTestServer(t)
 	landing := doReq(t, srv, http.MethodGet, "/", "", nil, nil)

@@ -28,16 +28,16 @@ func openTestStore(t *testing.T) *store.Store {
 }
 
 func TestVisibleToolsAndSchemas(t *testing.T) {
-	if len(ToolOrder) != 85 || len(Tools) != 85 {
-		t.Fatalf("expected 85 tools, got order=%d map=%d", len(ToolOrder), len(Tools))
+	if len(ToolOrder) != 86 || len(Tools) != 86 {
+		t.Fatalf("expected 86 tools, got order=%d map=%d", len(ToolOrder), len(Tools))
 	}
 	anon := VisibleTools(false)
 	if len(anon) != 6 {
 		t.Fatalf("expected 6 bootstrap tools, got %d", len(anon))
 	}
 	authed := VisibleTools(true)
-	if len(authed) != 85 {
-		t.Fatalf("expected 85 callsign tools, got %d", len(authed))
+	if len(authed) != 86 {
+		t.Fatalf("expected 86 callsign tools, got %d", len(authed))
 	}
 	admin := VisibleToolsFor("admin")
 	if len(admin) != 6 {

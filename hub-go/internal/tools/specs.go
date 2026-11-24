@@ -118,6 +118,18 @@ var ToolOrder = []*ToolSpec{
 		Required: []string{},
 	},
 	{
+		Name:        "hub_approval_request",
+		Bundle:      "token",
+		Description: "사람 확인이 필요할 때 요청을 owner에게 전달한다. 웹 허브 확인 요청 메뉴에서 승인/거절하며 결과는 요청 콜사인의 A2A 받은편지함으로 돌아온다. 승인 자체가 작업을 실행하지는 않는다.",
+		Properties: map[string]map[string]any{
+			"session":  map[string]any{"type": "string"},
+			"title":    map[string]any{"type": "string"},
+			"question": map[string]any{"type": "string"},
+			"details":  map[string]any{"type": "string"},
+		},
+		Required: []string{"session", "title", "question"},
+	},
+	{
 		Name: "hub_harness_report", Bundle: "token", Description: "미지원 하네스의 비밀 없는 프로필과 셋업 후보를 제보한다. 허브 관리자가 승인하면 검증된 mcp-http-json-v1 셋업 프로필도 등록한다.",
 		Properties: map[string]map[string]any{"report": {"type": "object"}}, Required: []string{"report"},
 	},

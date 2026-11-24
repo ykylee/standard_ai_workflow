@@ -1,5 +1,5 @@
 // 허브 화면 (hub_spec §4.6 · §4.7 · hub_orchestration_spec §10).
-// 로그인 없음 — 콜사인 토큰을 이 브라우저 저장소에 두고 Bearer 로 싣는다.
+// 사람은 허브 계정 세션 쿠키로 로그인한다. 에이전트 콜사인 토큰 입력도 하위 호환으로 남긴다.
 // 모든 링크 · API 호출은 상대 경로 (R13.4). DOM 은 textContent 로만 만든다 (서버 문자열을 HTML 로 해석하지 않는다).
 "use strict";
 
@@ -11,6 +11,7 @@
   let hubHost = location.host;
   let pendingFlash = null;
   let dirty = false;
+  let signedInAccount = false;
   let noticeNode = null;
 
   // --- 저장소 · 요청 --------------------------------------------------------------
@@ -46,10 +47,10 @@
   async function api(path, opts) {
     opts = opts || {};
     const headers = { "accept": "application/json" };
-    if (opts.token) headers["authorization"] = "Bearer " + opts.token;
+    if (opts.token && (!signedInAccount || opts.forceToken)) headers["authorization"] = "Bearer " + opts.token;
     if (opts.body !== undefined) headers["content-type"] = "application/json";
     const res = await fetch("../api/" + path, {
-      method: opts.method || "GET", headers, credentials: "omit", cache: "no-store",
+      method: opts.method || "GET", headers, credentials: "same-origin", cache: "no-store",
       body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
     });
     let data = null;
@@ -113,6 +114,8 @@
   function setWho(principal) {
     if (!principal) { whoEl.textContent = ""; return; }
     if (principal.kind === "admin") { whoEl.textContent = `허브 관리자 ${principal.name || ""}`; return; }
+    if (principal.kind === "account") { whoEl.textContent = `허브 계정 ${principal.name || ""}`; return; }
+    if (principal.auth_mode === "account") { whoEl.textContent = `허브 계정 ${principal.account?.display_name || principal.name || ""}`; return; }
     if (principal.kind === "callsign") {
       whoEl.textContent = `${principal.callsign} (${principal.callsign_kind}${principal.callsign_kind === "human" && !principal.human_approved ? " · 승인 전" : ""} · ${principal.role})`;
     } else {
@@ -122,7 +125,7 @@
   function errorText(r) {
     const d = r.data || {};
     let msg = `${r.status} ${d.error_code || ""} — ${d.message || ""}`;
-    if (r.status === 401) msg += " · 이 브라우저의 토큰을 지운 뒤 다시 등록하거나 토큰을 넣는다.";
+    if (r.status === 401) msg += " · 허브 계정으로 로그인하거나 유효한 콜사인 토큰을 확인한다.";
     return msg;
   }
 
@@ -131,6 +134,7 @@
     const tabs = [
       ["tasks", "개요 · task", base],
       ["orch", "오케스트레이션", `${base}/orch`],
+      ["confirmations", "확인 요청", `${base}/confirmations`],
       ["roadmap", "로드맵", `${base}/roadmap`],
       ["events", "이력", `${base}/events`],
       ["guide", "지침", `${base}/guide`],
@@ -157,6 +161,28 @@
       dirty = false;
       onDone(r.data.principal.project_id);
     } }, el("label", {}, "토큰 넣기", input), el("button", { type: "submit" }, "이 브라우저에 두기"), msg);
+  }
+
+  function accountPanel(account, onDone) {
+    const status = el("div");
+    if (account) {
+      const linkToken = el("input", { required: true, autocomplete: "off", placeholder: "다른 프로젝트의 승인된 사람 콜사인 토큰" });
+      return el("section", { class: "card" }, el("h2", {}, "허브 계정"),
+        el("p", {}, `${account.display_name} (${account.username})로 로그인됨`),
+        el("form", { class: "row", onsubmit: async (ev) => { ev.preventDefault(); const r = await api("account/link", { method: "POST", token: linkToken.value.trim(), forceToken: true, body: {} }); if (r.status !== 200) status.replaceChildren(alertBox("bad", errorText(r))); else { linkToken.value = ""; status.replaceChildren(alertBox("ok", `콜사인을 연결했다: ${r.data.linked.callsign}`)); onDone(); } } }, linkToken, el("button", { type: "submit" }, "콜사인 연결")), status,
+        el("button", { class: "ghost", onclick: async () => { const r = await api("account/logout", { method: "POST", body: {} }); if (r.status === 200) { signedInAccount = false; location.hash = "#/"; onDone(); } else status.replaceChildren(alertBox("bad", errorText(r))); } }, "로그아웃"));
+    }
+    const loginUser = el("input", { required: true, autocomplete: "username", placeholder: "계정 이름" });
+    const loginPass = el("input", { required: true, type: "password", autocomplete: "current-password", placeholder: "비밀번호" });
+    const enrollToken = el("input", { required: true, autocomplete: "off", placeholder: "기존 승인된 사람 콜사인 토큰" });
+    const enrollUser = el("input", { required: true, autocomplete: "username", placeholder: "계정 이름" });
+    const enrollName = el("input", { required: true, autocomplete: "name", placeholder: "표시 이름" });
+    const enrollPass = el("input", { required: true, type: "password", autocomplete: "new-password", minlength: "12", placeholder: "비밀번호 (12자 이상)" });
+    return el("section", { class: "card" }, el("h2", {}, "허브 계정 로그인"),
+      el("p", { class: "muted" }, "계정은 이 브라우저에 토큰을 저장하지 않는다. 처음에는 승인된 사람 콜사인 토큰으로 1회 등록한다."),
+      el("form", { class: "row", onsubmit: async (ev) => { ev.preventDefault(); const r = await api("account/login", { method: "POST", body: { username: loginUser.value, password: loginPass.value } }); if (r.status !== 200) status.replaceChildren(alertBox("bad", errorText(r))); else { signedInAccount = true; dirty = false; onDone(); } } }, loginUser, loginPass, el("button", { type: "submit" }, "로그인")),
+      el("details", {}, el("summary", {}, "계정 최초 등록"),
+        el("form", { class: "row", onsubmit: async (ev) => { ev.preventDefault(); const r = await api("account/enroll", { method: "POST", token: enrollToken.value.trim(), body: { username: enrollUser.value, display_name: enrollName.value, password: enrollPass.value } }); if (r.status !== 200) status.replaceChildren(alertBox("bad", errorText(r))); else { signedInAccount = true; enrollToken.value = ""; dirty = false; onDone(); } } }, enrollToken, enrollUser, enrollName, enrollPass, el("button", { type: "submit" }, "계정 등록"))), status);
   }
 
   function registerForm(pid, onDone) {
@@ -207,7 +233,7 @@
     }
     const projectList = await api("projects", { token: principal?.kind === "admin" ? adminToken : undefined });
     if (projectList.status === 200) { principal = principal || projectList.data.principal; projectList.data.projects.forEach((p) => seen.set(p.id, p)); }
-    for (const pid of storedProjects()) {
+    if (!signedInAccount) for (const pid of storedProjects()) {
       const r = await api("projects", { token: storedToken(pid) });
       if (r.status === 200) r.data.projects.forEach((p) => seen.set(p.id, p));
       else errors.push(`${pid}: ${errorText(r)}`);
@@ -220,6 +246,7 @@
       el("div", { class: "row" }, ...["in_progress", "blocked", "planned", "done"].map((s) => chip(`${s} ${p.task_counts[s] || 0}`, s))),
       storedToken(p.id) ? el("div", { class: "muted" }, "이 브라우저에 콜사인 토큰 있음") : null));
     render(
+      accountPanel(projectList.status === 200 && projectList.data.principal?.kind === "account" ? projectList.data.account : null, () => route()),
       el("section", { class: "card" }, el("h1", {}, "프로젝트"),
         cards.length ? el("div", { class: "grid" }, cards)
           : el("p", { class: "muted" }, projectList.status === 401
@@ -464,7 +491,9 @@
         el("h1", {}, project.display_name),
         el("div", { class: "row muted" }, el("span", { class: "mono" }, project.id), `소유자 ${project.owner_callsign}`),
         projectNav(pid, "tasks"),
-        principal.kind === "callsign"
+        principal.auth_mode === "account"
+          ? accountPanel(principal.account, route)
+          : principal.kind === "callsign"
           ? el("div", { class: "row" }, forgetButton(pid, route))
           : el("div", {}, el("h2", {}, "이 브라우저의 콜사인"), registerForm(pid, route), tokenForm(() => route()))),
       ...attention,
@@ -658,6 +687,48 @@
     })();
 
     render(leaseCard, unackSection, approvalsSection, sessionsSection, assignSection, hostsSection);
+  }
+
+  async function viewConfirmations(pid) {
+    const token = storedToken(pid);
+    const [project, result] = await Promise.all([
+      api(`projects/${encodeURIComponent(pid)}`, { token }),
+      api(`projects/${encodeURIComponent(pid)}/confirmations`, { token }),
+    ]);
+    const base = `#/p/${encodeURIComponent(pid)}`;
+    setCrumbs([{ text: "프로젝트", href: "#/" },
+      { text: project.status === 200 ? project.data.project.display_name : pid, href: base },
+      { text: "에이전트 확인 요청" }]);
+    setWho(project.status === 200 ? project.data.principal : null);
+    if (result.status !== 200) {
+      render(el("section", { class: "card" }, el("h1", {}, "에이전트 확인 요청"), projectNav(pid, "confirmations"),
+        alertBox("bad", errorText(result))));
+      return;
+    }
+    const requests = result.data.requests || [];
+    const cards = requests.map((req) => {
+      const note = el("textarea", { rows: "2", placeholder: "결정 메모 (선택)" });
+      const decide = (decision) => async () => {
+        const r = await api(`projects/${encodeURIComponent(pid)}/confirmations/${encodeURIComponent(req.id)}`, {
+          method: "POST", token, body: { decision, note: note.value.trim() },
+        });
+        if (r.status !== 200) { pendingFlash = { kind: "bad", text: errorText(r) }; return route(); }
+        pendingFlash = { kind: "ok", text: `요청 ${req.id} ${decision === "approve" ? "승인" : "거절"} — A2A로 결과를 보냈다.` };
+        dirty = false;
+        route();
+      };
+      return el("section", { class: "card" },
+        el("div", { class: "row" }, el("h2", {}, req.title), chip("승인 대기", "blocked")),
+        el("div", { class: "muted" }, `${req.requested_by} · ${req.created_at}`),
+        el("p", {}, req.question), req.details ? el("pre", { class: "wrap" }, req.details) : null,
+        el("div", { class: "row" }, note,
+          el("button", { type: "button", onclick: decide("approve") }, "승인"),
+          el("button", { class: "danger", type: "button", onclick: decide("reject") }, "거절")));
+    });
+    render(el("section", { class: "card" }, el("h1", {}, "에이전트 확인 요청"),
+      el("p", { class: "muted" }, "요청에 답하면 승인 또는 거절 결과가 요청한 콜사인의 A2A 받은편지함으로 전달됩니다. 승인은 요청 내용을 승인하는 결정이며, 작업은 에이전트가 결과를 확인한 뒤 진행합니다."),
+      projectNav(pid, "confirmations")),
+      ...(cards.length ? cards : [el("section", { class: "card muted" }, "대기 중인 에이전트 확인 요청이 없습니다.")]));
   }
 
   // --- 화면: 로드맵 (M-053 WBS-53.1) -----------------------------------------------------
@@ -1147,6 +1218,8 @@
     const sx = keepScroll ? window.scrollX : 0;
     const sy = keepScroll ? window.scrollY : 0;
     if (!keepScroll) dirty = false;
+    const session = await api("session");
+    signedInAccount = session.status === 200 && session.data.principal?.kind === "account";
     const hashUrl = new URL(location.hash.slice(1) || "/", location.href);
     const parts = hashUrl.pathname.replace(/^\/?/, "").replace(/\/$/, "").split("/").map(decodeURIComponent);
     try {
@@ -1155,6 +1228,7 @@
       } else if (parts[0] === "p" && parts[1]) {
         if (parts[2] === "t" && parts[3]) await viewTask(parts[1], parts[3]);
         else if (parts[2] === "orch") await viewOrchestration(parts[1]);
+        else if (parts[2] === "confirmations") await viewConfirmations(parts[1]);
         else if (parts[2] === "roadmap") await viewRoadmap(parts[1]);
         else if (parts[2] === "events") await viewEvents(parts[1]);
         else if (parts[2] === "c" && parts[3]) await viewCallsign(parts[1], parts[3]);

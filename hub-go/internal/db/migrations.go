@@ -520,7 +520,43 @@ CREATE TABLE harness_registry_person (
 );
 `
 
-var Migrations = []string{V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11, V12, V13, V14, V15}
+// V16 is generated from workflow-source/workflow_kit/hub/db.py.
+const V16 = `
+CREATE TABLE hub_account (
+    id TEXT PRIMARY KEY,
+    username TEXT NOT NULL UNIQUE,
+    display_name TEXT NOT NULL,
+    password_hash TEXT NOT NULL,
+    active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL
+);
+CREATE TABLE hub_account_callsign (
+    account_id TEXT NOT NULL REFERENCES hub_account(id) ON DELETE CASCADE,
+    project_id TEXT NOT NULL,
+    callsign TEXT NOT NULL,
+    linked_at TEXT NOT NULL,
+    PRIMARY KEY (account_id, project_id, callsign),
+    UNIQUE (project_id, callsign),
+    UNIQUE (account_id, project_id),
+    FOREIGN KEY (project_id, callsign) REFERENCES callsign(project_id, id)
+);
+CREATE TABLE hub_account_session (
+    token_hash TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL REFERENCES hub_account(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    revoked_at TEXT
+);
+CREATE INDEX hub_account_session_account ON hub_account_session(account_id, expires_at);
+CREATE TABLE hub_account_login_attempt (
+    username_hash TEXT PRIMARY KEY,
+    attempts INTEGER NOT NULL,
+    window_started_at TEXT NOT NULL,
+    locked_until TEXT
+);
+`
+
+var Migrations = []string{V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11, V12, V13, V14, V15, V16}
 
 func LatestVersion() int {
 	return len(Migrations)

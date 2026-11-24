@@ -17,6 +17,7 @@ from typing import Any
 
 from workflow_kit.common.hub_marker import MARKER_REL
 from workflow_kit.hub.errors import HubError, invalid_field, unauthorized, unknown_field
+from workflow_kit.hub.confirmations import Confirmations
 from workflow_kit.hub.guide import Guides
 from workflow_kit.hub.harness_intake import HarnessIntake
 from workflow_kit.hub.judge import Judge
@@ -217,6 +218,10 @@ TOOLS: dict[str, ToolSpec] = {
                   "session": {"type": ["object", "string"],
                               "description": "2.1 — 첫 호출은 {harness, harness_session_id?, kind?, delivery?, resume?} 로 세션 등록, "
                                              "이후(두 번째 호출 포함)는 받은 세션 ID 문자열"}}, (), _session_start),
+        ToolSpec("hub_approval_request", "token",
+                 "사람 확인이 필요할 때 요청을 owner에게 전달한다. 웹 허브 확인 요청 메뉴에서 승인/거절하며 결과는 요청 콜사인의 A2A 받은편지함으로 돌아온다. 승인 자체가 작업을 실행하지는 않는다.",
+                 {"session": _STR, "title": _STR, "question": _STR, "details": _STR},
+                 ("session", "title", "question"), lambda s, c, a: Confirmations(s).request(c, a)),
         ToolSpec("hub_harness_report", "token", "셋업 미지원 하네스의 비밀 없는 프로필 관측과 후보 경로를 검토 대기열에 제보한다. 관리자는 승인 시 검증된 mcp-http-json-v1 셋업 프로필도 함께 등록한다. 제보만으로 허브 설정은 바뀌지 않는다.",
                  {"report": _OBJ}, ("report",), lambda s, c, a: HarnessIntake(s).submit(c, a["report"])),
         ToolSpec("hub_harness_report_list", "token", "이 프로젝트가 제출한 하네스 제보 상태 목록.", {"status": _STR}, (),
@@ -480,7 +485,7 @@ def _transfer() -> Any:
 OWN_SESSION_TOOLS = frozenset({"hub_session_start", "hub_session_update", "hub_wait", "hub_inbox_ack", "hub_inbox_list",
                                "hub_report", "hub_orch_declare", "hub_orch_transfer", "hub_orch_release",
                                "hub_orch_assign", "hub_orch_recall", "hub_orch_message",
-                               "hub_orch_request_session", "hub_orch_request_stop"})
+                               "hub_orch_request_session", "hub_orch_request_stop", "hub_approval_request"})
 #: ``session`` 이 호출자가 아니라 '대상' 인 도구 — 신호를 남기지 않는다.
 TARGET_SESSION_TOOLS = frozenset({"hub_orch_declare", "hub_orch_transfer"})
 #: 스스로 신호를 남기는 도구 (세션 칸을 직접 쓴다).

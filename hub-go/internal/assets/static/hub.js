@@ -97,7 +97,7 @@
     const flash = pendingFlash;
     pendingFlash = null;
     hideRefreshNotice();
-    app.replaceChildren(...(flash ? [alertBox(flash.kind, flash.text)] : []), ...nodes);
+    app.replaceChildren(...(flash ? [alertBox(flash.kind, flash.text)] : []), ...nodes.filter((node) => node !== null && node !== undefined));
   }
   function setCrumbs(items) {
     crumbs.replaceChildren(...items.flatMap((it, i) => [i ? el("span", {}, "›") : null,
@@ -270,6 +270,7 @@
     const rows = tr.status === 200 ? tr.data.tasks.map((t) => el("tr", {},
       el("td", { class: "mono nowrap" }, el("a", { href: `${base}/t/${encodeURIComponent(t.id)}`, title: t.id }, t.id)),
       el("td", { class: "title" }, t.title),
+      el("td", { class: "muted" }, t.fields?.category ? [t.fields.category.level_1, t.fields.category.level_2, t.fields.category.level_3].join(" / ") : "—"),
       el("td", {}, chip(t.status)),
       el("td", {}, t.assignee || "—"),
       el("td", { class: "muted progress" }, t.progress_note ? el("div", { class: "clamp-2", title: t.progress_note }, t.progress_note) : ""),
@@ -290,8 +291,8 @@
           ? el("p", { class: "muted" }, `최근 ${tr.data.tasks.length}개 / 전체 ${tr.data.total}개`) : null,
         tr.status !== 200 ? alertBox("bad", errorText(tr))
           : rows.length ? el("div", { class: "table-wrap" }, el("table", { class: "tasks" },
-              el("colgroup", {}, ["c-id", "c-title", "c-status", "c-who", "c-doing", "c-when"].map((c) => el("col", { class: c }))),
-              el("thead", {}, el("tr", {}, ["ID", "제목", "상태", "맡은 이", "지금 하는 일", "고친 때"].map((h) => el("th", {}, h)))),
+              el("colgroup", {}, ["c-id", "c-title", "c-category", "c-status", "c-who", "c-doing", "c-when"].map((c) => el("col", { class: c }))),
+              el("thead", {}, el("tr", {}, ["ID", "제목", "카테고리", "상태", "맡은 이", "지금 하는 일", "고친 때"].map((h) => el("th", {}, h)))),
               el("tbody", {}, rows)))
           : el("p", { class: "muted" }, "task 가 없다.")));
   }
@@ -901,6 +902,11 @@
           `맡은 이 ${task.assignee || "—"}`, task.wbs ? el("span", { class: "mono" }, task.wbs) : null, `v${task.version}`),
         task.progress_note ? el("p", {}, el("strong", {}, "지금 하는 일 "), task.progress_note, el("span", { class: "muted" }, ` (${task.progress_at || ""})`)) : null,
         task.description ? el("p", {}, task.description) : null,
+        f.category ? el("p", { class: "muted" }, "분류 ", [f.category.level_1, f.category.level_2, f.category.level_3].join(" / ")) : null,
+        f.tests?.length ? el("div", {}, el("h2", {}, "테스트 · 최근 실행"), el("ul", {}, f.tests.map((test) => {
+          const run = test.runs?.at(-1);
+          return el("li", {}, `${test.name}${test.required ? " (필수)" : " (선택)"}: ${run?.status || "미실행"}${run?.summary ? ` — ${run.summary}` : ""}`);
+        }))) : null,
         el("h2", {}, "완료 기준"), list(f.done_criteria),
         f.result ? el("div", {}, el("h2", {}, "결과"), el("p", {}, f.result)) : null,
         f.validation_result ? el("div", {}, el("h2", {}, "검증 결과"), el("p", {}, f.validation_result)) : null,

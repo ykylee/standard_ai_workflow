@@ -3,8 +3,8 @@
 - 문서 목적: Standard AI Workflow를 **소스에서 설치해 개발/검증 환경**으로 쓰는 방법을 안내한다.
 - 범위: 의존성 설치, 패키지 임포트, 스모크 테스트 실행, bootstrap/demo/MCP 실행, 핵심 워크플로우 호출 예시
 - 대상 독자: 워크플로우를 직접 수정·검증하려는 개발자, 패키지 인테그레이션을 시도하는 통합 담당자
-- 상태: beta (v3.0.1 기준; 일부 본문 예시는 v0.5.10 시점 baseline 으로 표기, 동작 자체는 v1.1.6 과 정합)
-- 최종 수정일: 2026-11-23
+- 상태: beta (v3.1.0 기준; 일부 본문 예시는 v0.5.10 시점 baseline 으로 표기, 동작 자체는 v1.1.6 과 정합)
+- 최종 수정일: 2026-11-24
 - 관련 문서: [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [QUICKSTART.md](https://github.com/ykylee/standard_ai_workflow/blob/main/QUICKSTART.md), [./DOCUMENT_INDEX.md](./DOCUMENT_INDEX.md), [./CODE_INDEX.md](./CODE_INDEX.md), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md)
 
 > [!NOTE]
@@ -61,9 +61,9 @@ cd standard_ai_workflow
 > (근거: [`planning/cli-distribution-review-2026-08.md`](./planning/cli-distribution-review-2026-08.md)).
 >
 > ```bash
-> uv tool install https://github.com/ykylee/standard_ai_workflow/releases/download/v3.0.1/standard_ai_workflow-3.0.1-py3-none-any.whl
+> uv tool install https://github.com/ykylee/standard_ai_workflow/releases/download/v3.1.0/standard_ai_workflow-3.1.0-py3-none-any.whl
 > # 또는: pipx install <같은 URL>
-> # 또는 tag 에서 직접: uv tool install "git+https://github.com/ykylee/standard_ai_workflow@v3.0.1#subdirectory=workflow-source"
+> # 또는 tag 에서 직접: uv tool install "git+https://github.com/ykylee/standard_ai_workflow@v3.1.0#subdirectory=workflow-source"
 > wk --help
 > ```
 
@@ -82,7 +82,7 @@ python3 -m pip install -e ".[mcp-sdk,dev]"
 `.[mcp-sdk,dev]` 가 설치하는 것:
 
 - 본 패키지 (`workflow_kit`) — editable link
-- `mcp[cli]>=2.0.0` (extras `mcp-sdk`) — MCP SDK stdio server 사용 시 필요
+- `mcp[cli]>=2.3.0` (extras `mcp-sdk`) — MCP SDK stdio server 사용 시 필요
 - `pytest`, `ruff`, `mypy` (extras `dev`) — 테스트/린트/타입체크
 
 설치 검증:

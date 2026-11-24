@@ -16,3 +16,4 @@ from __future__ import annotations
 
 #: 도구 · HTTP 계약 판 (hub_spec §4.2).
 CONTRACT = "hub/1"
+KIT_COMPAT_VERSION = "2.1.0"

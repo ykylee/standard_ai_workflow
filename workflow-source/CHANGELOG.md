@@ -4,7 +4,7 @@
 - 범위: git log 에서 추출한 release 별 Added / Changed / Fixed 항목.
 - 대상 독자: maintainer, 릴리스 매니저, 외부 consumer
 - 상태: stable (자동 생성물)
-- 최종 수정일: 2026-11-23
+- 최종 수정일: 2026-11-24
 - 관련 문서: [`./releases/`](./releases/) (release note), [`../docs/RELEASE.md`](../docs/RELEASE.md) (릴리스 절차)
 
 All notable changes to this project will be documented in this file.
@@ -12,10 +12,12 @@ All notable changes to this project will be documented in this file.
 본 파일은 `tools/release_pipeline.py changelog-gen` 으로 자동 생성됩니다 (v0.7.14+).
 수동 편집은 다음 생성 시 덮어써진다 — 형식/metadata 변경은 생성기를 고칠 것.
 
-## [Unreleased] - 2026-11-23
+## [Unreleased] - 2026-11-24
 
 ### Added
 
+- feat(mcp): release modern 2026-07-28 protocol support (ae732239)
+- feat(hub): add PostgreSQL backend for Go and Python (152ef811)
 - feat(hub): prepare Go 3.0.0 pre-release pilot (548e8654)
 - feat(hub-go): extend web UI route coverage (b0214862)
 - feat(release): package Go hub assets for 3.0 (2711126a)
@@ -44,12 +46,15 @@ All notable changes to this project will be documented in this file.
 - feat(hub): 하네스 4종 실측(Linux) — Codex 승인 안내 · repo_results 목록 꼴 (M-039 WBS-39.1, TASK-2026-11-21-main-012) (e62963f8)
 - feat(1.x): '허브로 옮김' 표식이 있으면 쓰기 거절 · session-start 는 허브를 가리킨다 (M-038 WBS-38.3 일부, TASK-2026-11-21-main-010) (e58c3221)
 - feat(hub): 1.x 전환 — '허브로 옮김' 표식 쓰기 지시 · 되돌리기 (M-038 WBS-38.2, TASK-2026-11-21-main-009) (9dfb42c5)
-- feat(hub): 1.x 전환 — 감지 · 전환 계획 · 들여오기 (M-038 WBS-38.1, TASK-2026-11-21-main-008) (0bbbfcd3)
-- feat(hub): 허브 화면 — 지침 편집 · 에이전트 제안 승인(D11) · 위키 읽기 (M-037 WBS-37.3, TASK-2026-11-21-main-007) · M-037 done (88523dc9)
-- ... (221 more)
+- ... (223 more)
 
 ### Changed
 
+- release(hub): prepare 3.1.0 prerelease (9a081ca7)
+- test(workflow): follow fixture default branch in memory check (91967155)
+- chore(memory): close v3.0.2 prerelease deployment (3fa256b8)
+- chore(release): sync v3.0.2 metadata (ad9e664a)
+- docs(windows): prefer Python hub on managed PCs (95089177)
 - docs(memory): record 3.0.1 verification progress (b8c0af8c)
 - chore(memory): close Go UI verification session (a5a958a0)
 - chore(memory): record Go UI verification stage (1f8f215d)
@@ -75,15 +80,12 @@ All notable changes to this project will be documented in this file.
 - docs(planning): 허브 오케스트레이션 실측 S 2차 — hook · 신뢰 없는 간접 전달 (도구 응답 편승 · 대기 도구 · 받은편지함 파일) (M-042 WBS-42.1, TASK-2026-11-22-main-004) (b36c65c7)
 - docs(planning): 허브 오케스트레이션 requirements 개설 · 실측 S — Claude Code · Codex 세션 제어 수단 (M-042 WBS-42.1, TASK-2026-11-22-main-003) (36e80f85)
 - docs(planning): 허브 오케스트레이션 concept 종결 — 소유자 O1~O10 권고안 (M-041 done, TASK-2026-11-22-main-001) (569fd7b3)
-- docs(planning): 허브 오케스트레이션 concept 초안 — 중앙 허브 · PC 중계 허브 · 하네스 · 세션, 메인 오케스트레이터 (M-041 WBS-41.1, TASK-2026-11-22-main-001) (a2143e54)
-- chore(memory): 138차 세션 종료 — v2.0.0 · v1.30.0 발행 반영, 후속 task main-027 (발행 산출물 접두사 glob) (1880ae95)
-- docs(release): 두 줄 발행 정책 — 2.x(main) wheel+sdist · latest 규칙 · PEP 440 사전 판, 1.x(release/1.x) 플러그인 zip · --latest=false (R16.6 · R16.7, TASK-2026-11-21-main-026) (5ea567d6)
-- docs(2.0): README 2.0 허브 안내 · 설치 문서 플러그인 채널은 1.x 줄(release/1.x 고정) (M-040 WBS-40.1, TASK-2026-11-21-main-026) (4ac980e7)
-- docs(hub): 2.0.0-beta 발행 범위 확정 · 허브 운영 가이드 (M-040 WBS-40.1, TASK-2026-11-21-main-024) (dfec2494)
-- ... (570 more)
+- ... (575 more)
 
 ### Fixed
 
+- fix(memory): resolve branch names beside version tags (0c57dcd6)
+- fix(hub): align PostgreSQL release metadata (66c8d49f)
 - fix(hub): prepare 3.0.1 Windows DSN and Python fallback (aa84d307)
 - fix(matrix): SDK · 해석기 매트릭스 임시 폴더를 저장소 밖으로 — git 밖 fixture 가 이 저장소 하위가 되던 위양성 (TASK-2026-11-22-main-020) (99901ae8)
 - fix(vscode): 실제 VS Code 실측 — 중계 화면이 비던 것 · 일시정지 버튼이 죽던 것 + .vsix (M-048 WBS-48.1, TASK-2026-11-22-main-016) (423ddfbb)
@@ -112,9 +114,7 @@ All notable changes to this project will be documented in this file.
 - fix(workbench): 실제 브라우저의 폼 POST 가 Origin null 로 403 — Referrer-Policy same-origin (main-007) (0721103a)
 - fix(workbench): --stop 이 기록의 pid 가 그 포트의 주인인지 대조 — 인스턴스 표식 (main-005) (d862b009)
 - fix(mcp): 오류 신호 불일치 둘 — invoke_tool 이 status error 를 rc 0 으로, summarize_git_history 가 git 실패를 커밋 0건으로 (main-002) (85d9596c)
-- fix(gate): 경고 분류기가 /tmp · /var/tmp 경로를 정규화한 뒤 분류해 서드파티 경고를 저장소 경고로 오판하던 결함 (main-001) (f75822ff)
-- fix(memory): 합류 반영이 완료 task 를 archived/ 로만 보내 roadmap 근거를 잃던 결함 — 완료 task 도 모 브랜치로 (7fdf0eb5)
-- ... (256 more)
+- ... (258 more)
 
 ## [2.1.0] - 2026-11-22
 

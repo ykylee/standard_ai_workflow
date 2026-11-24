@@ -1,23 +1,4 @@
 {
-  "status": "ok",
-  "tool_version": "3.0.1",
-  "detected_change_types": [
-    "docs",
-    "ops"
-  ],
-  "recommended_validation_levels": [
-    "release_sensitive"
-  ],
-  "recommended_commands": [
-    {
-      "command": "pytest -q",
-      "reason": "문서 전용 변경이지만 기본 회귀 확인"
-    },
-    {
-      "command": "make lint",
-      "reason": "문서 전용 변경이지만 기본 회귀 확인"
-    }
-  ],
   "commands_requiring_confirmation": [
     {
       "command": "curl http://localhost:8080/health",
@@ -28,15 +9,9 @@
       "reason": "배포/운영 변경과 연계된 실행 확인"
     }
   ],
-  "documentation_checks": [
-    "헬스체크 확인 결과와 롤백 절차 검토 여부를 남긴다.",
-    "운영팀 공지 또는 승인 필요 여부를 확인한다.",
-    "허브 문서, 메타데이터, 관련 링크 무결성을 함께 점검한다.",
-    "운영 허브 링크, 메타데이터, 관련 runbook 링크 무결성을 함께 확인한다.",
-    "헬스체크 확인, 롤백 절차 검토, 운영팀 공지 여부를 함께 점검한다."
-  ],
-  "evidence_expectations": [
-    "문서 변경은 관련 허브 또는 상태 문서 동기화 여부를 기록한다."
+  "confidence_notes": [
+    "프로젝트 프로파일의 기본 명령을 우선 사용해 검증 계획을 구성했다.",
+    "문서 전용 변경에서도 저장소 기본 회귀 확인 명령을 함께 제안했다."
   ],
   "deferred_validation_items": [
     {
@@ -48,19 +23,44 @@
       "suggested_record_path": "/home/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/backlog/2026-04-18.md"
     }
   ],
-  "warnings": [
-    "staging 검증은 사내 VPN 연결 상태에서만 수행 가능하다."
+  "detected_change_types": [
+    "docs",
+    "ops"
   ],
-  "confidence_notes": [
-    "프로젝트 프로파일의 기본 명령을 우선 사용해 검증 계획을 구성했다.",
-    "문서 전용 변경에서도 저장소 기본 회귀 확인 명령을 함께 제안했다."
+  "documentation_checks": [
+    "헬스체크 확인 결과와 롤백 절차 검토 여부를 남긴다.",
+    "운영팀 공지 또는 승인 필요 여부를 확인한다.",
+    "허브 문서, 메타데이터, 관련 링크 무결성을 함께 점검한다.",
+    "운영 허브 링크, 메타데이터, 관련 runbook 링크 무결성을 함께 확인한다.",
+    "헬스체크 확인, 롤백 절차 검토, 운영팀 공지 여부를 함께 점검한다."
+  ],
+  "evidence_expectations": [
+    "문서 변경은 관련 허브 또는 상태 문서 동기화 여부를 기록한다."
+  ],
+  "recommended_commands": [
+    {
+      "command": "pytest -q",
+      "reason": "문서 전용 변경이지만 기본 회귀 확인"
+    },
+    {
+      "command": "make lint",
+      "reason": "문서 전용 변경이지만 기본 회귀 확인"
+    }
+  ],
+  "recommended_validation_levels": [
+    "release_sensitive"
   ],
   "source_context": {
-    "project_profile_path": "/home/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/PROJECT_PROFILE.md",
-    "project_name": "Acme Delivery Platform",
+    "change_summary": "운영 runbook 문서만 수정",
     "changed_files": [
       "docs/operations/runbooks/delivery-sync.md"
     ],
-    "change_summary": "운영 runbook 문서만 수정"
-  }
+    "project_name": "Acme Delivery Platform",
+    "project_profile_path": "/home/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/PROJECT_PROFILE.md"
+  },
+  "status": "ok",
+  "tool_version": "3.1.0",
+  "warnings": [
+    "staging 검증은 사내 VPN 연결 상태에서만 수행 가능하다."
+  ]
 }

@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "project_name": "Standard AI Workflow",
-  "last_updated": "2026-11-23",
+  "last_updated": "2026-11-24",
   "deprecation_cycle_stage": "v0.15.0",
   "milestones": {
     "Phase 1": {
@@ -320,7 +320,7 @@
     "stdio_sdk": {
       "stage": "stable",
       "module": "workflow_kit.server.read_only_mcp_sdk",
-      "sdk_requirement": "mcp>=2.0.0",
+      "sdk_requirement": "mcp>=2.3.0",
       "bridge_during_mcp_missing": "jsonrpc_bridge",
       "promoted_in_release": "v0.11.25 (experimental → stable — historical Connection closed 회귀 해소 + mcp 1.27.0 env 검증)"
     },

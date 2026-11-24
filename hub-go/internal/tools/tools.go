@@ -16,7 +16,7 @@ import (
 const (
 	// Contract is the wire contract version enforced by HTTP and tool arguments.
 	Contract = "hub/1"
-	// KitVersion matches workflow_kit.__version__ emitted in healthz and response headers.
+	// KitVersion is the compatibility contract version emitted in healthz and response headers.
 	KitVersion = store.HubKitVersion
 )
 

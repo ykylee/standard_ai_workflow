@@ -4,7 +4,7 @@
 - 범위: **언어만 바꾼다.** 도구 · HTTP 경로 · DB · 생성물 · 판정 결과는 `hub_spec.md` · `hub_orchestration_spec.md` 그대로 (요구 R25 · R26 · R29). 여기에는 그 계약을 Go 로 지키는 방법만 적는다.
 - 대상 독자: 구현자 (M-052~), 소유자 (DG 결정)
 - 상태: draft (M-051, 2026-11-22) — design 결정 DG1~DG5 **소유자 확정 (권고안 전부)** · ADR-035 Accepted. 구현은 M-052~ (S1 중계부터)
-- 최종 수정일: 2026-11-23
+- 최종 수정일: 2026-11-24
 - 관련 문서: `../../docs/planning/go-port-requirements-2026-11.md` (요구 R25~R35 · 결정 Q1~Q6 — 아래 "요구 R…" · "Q…"), `../../docs/planning/runtime-port-review-2026-11.md` (concept), `./hub_spec.md` (2.0 계약), `./hub_orchestration_spec.md` (2.1 계약), `../../ai-workflow/wiki/decisions/adr-035-go-runtime.md`
 
 ## 1. 불변 조건
@@ -29,7 +29,7 @@ hub-go/
     judgedb/   DB → 판정 입력 조립 (Python `hub/judge.py` 의 DB 쪽 절반)
     render/    진입 파일 렌더 영역 (Python `hub/render.py` + `bootstrap_lib/harnesses` 의 생성기)
     httpapi/   `/healthz` · `/v1/tools` · `/v1/relay` · `/` · `/setup.md` · `/v1/bootstrap` · 머리 · 오류 형식
-    mcpserver/ `go-sdk` streamable HTTP · stateless · JSON (요구 R25.3)
+    mcpserver/ Streamable HTTP · stateless · JSON; MCP `2026-07-28` modern protocol (`server/discover`, per-request metadata, `Mcp-Method`/`Mcp-Name` binding) (요구 R25.3)
     ui/        `/ui/` 정적 파일 · `/api/…` 21개 project 경로 (Python `hub/ui.py`)
     relay/     PC 중계 (Python `workflow_kit/relay/` — S1, §6)
     assets/    내장 자산 (§2.1)
@@ -118,7 +118,7 @@ workflow-hub judge <op>                  # Go 판
 
 ## 7. 빌드 · 배포 (요구 R31)
 
-- 대상 6: linux · darwin · windows × amd64 · arm64, `CGO_ENABLED=0 -trimpath -ldflags "-s -w -X main.version=<판>"`. 판은 `workflow-source/pyproject.toml` 의 판과 같다 (S4 전까지 판 정본 하나).
+- 대상 6: linux · darwin · windows × amd64 · arm64, `CGO_ENABLED=0 -trimpath -ldflags "-s -w -X main.version=<판>"`. 판은 `workflow-source/pyproject.toml` 의 판과 같다 (S4 전까지 판 정본 하나). `hub_version`/MCP `serverInfo.version` 은 이 런타임 판이고, `kit_version`/`X-Hub-Kit` 은 호환 계약판이다.
 - SQLite 파일 경로는 OS 별 절대 경로를 `file:` URI로 바꿀 때 드라이브 경로를 `file:///C:/...` 로 직렬화한다. Windows 경로를 `file:C:/...` 로 내면 상대 URI가 되므로 금지하고, Windows 드라이브 · 공백 · 비ASCII 경로를 회귀 검사한다.
 - 산출물: `workflow-hub-<판>-<os>-<arch>[.exe]` + `SHA256SUMS`. 발행 도구(`release_pipeline`)의 `dist` 가 Go 빌드를 부르고, `release` 가 asset 으로 싣는다. 발행 게이트는 바이너리 · 체크섬 존재를 본다 (요구 R32.3).
 - Windows Go 실행 파일은 아직 서명하지 않는다. 2026-11-23 사내 Windows AhnLab V3 격리 보고가 접수됐지만 파일명·탐지명·해시가 없어 원인이나 오탐 여부는 미판정이다. 셋업은 사내/보안 관리 Windows 또는 환경 불명에서 Python 런타임만 권하고, Go 선택은 보안 담당자 확인 뒤로 미룬다 (`TASK-2026-11-23-main-014`).

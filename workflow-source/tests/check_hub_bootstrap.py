@@ -47,6 +47,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from check_hub_core import Hub, _env  # noqa: E402
 from workflow_kit.bootstrap_lib.harnesses import spec_for  # noqa: E402
 from workflow_kit.bootstrap_lib.harnesses.entry_sections import ENTRY_BUDGET_BYTES  # noqa: E402
+from workflow_kit import __version__ as HUB_VERSION  # noqa: E402
 from workflow_kit.hub import render  # noqa: E402
 
 _failures: list[str] = []
@@ -165,7 +166,11 @@ def case_3_to_6(hub: Hub, tmp: Path) -> tuple[str, str, Path]:
     _, repo = _make_clone(tmp, "setup")
     pid, tok = _register(hub, "git@github.com:acme/demo.git", "claude-a")
     # 3 — 정상 셋업
-    st1, plan1, _ = hub.call("hub_setup_plan", {"project_id": pid, "token": tok, "harnesses": HARNESSES, "scan": _scan(repo)})
+    relay_scan = {"required": True, "config_present": True,
+                  "status": {"registered": True, "paused": False, "allow": ["repo"]}}
+    st1, plan1, _ = hub.call("hub_setup_plan", {"project_id": pid, "token": tok, "harnesses": HARNESSES,
+                                                  "scan": {**_scan(repo), "relay": relay_scan}})
+    relay_check = plan1.get("relay") == {**relay_scan, "next": "Python 우선: python -m workflow_kit hub relay status → 필요하면 init → allow add → serve"}
     stage1_has_token = tok in json.dumps(plan1, ensure_ascii=False)
     files1, checks1 = _apply(repo, plan1.get("steps", []))
     st2, conf1, _ = hub.call("hub_setup_confirm", {"project_id": pid, "token": tok, "files": files1, "checks": checks1})
@@ -181,7 +186,7 @@ def case_3_to_6(hub: Hub, tmp: Path) -> tuple[str, str, Path]:
     token_in_repo_files = [f for f in committed_files if tok in (repo / f).read_text(encoding="utf-8")]
     ignored = subprocess.run(["git", "status", "--porcelain", "--ignored", ".workflow-hub"], cwd=repo,
                              capture_output=True, encoding="utf-8").stdout
-    ok3 = (st1 == 200 and plan1.get("stage") == "gitignore" and not stage1_has_token
+    ok3 = (st1 == 200 and relay_check and plan1.get("stage") == "gitignore" and not stage1_has_token
            and st2 == 200 and conf1.get("confirmed") == ["gitignore"] and not conf1.get("setup_complete")
            and plan2.get("stage") == "files" and "env" in ids2
            and all(f"entry:{h}" in ids2 for h in HARNESSES) and "harness:mcp-json" in ids2 and "harness:codex" in ids2
@@ -326,9 +331,12 @@ def case_7_session(hub: Hub, tmp: Path, db: Path, pid: str, tok: str, repo: Path
 def case_8_page(hub: Hub, tok: str) -> None:
     r = urllib.request.urlopen(hub.base + "/", timeout=10)
     body = r.read().decode("utf-8")
-    ok = (all(h in body for h in HARNESSES) and "wfh_" not in body and tok not in body
+    setup = urllib.request.urlopen(hub.base + "/setup.md", timeout=10).read().decode("utf-8")
+    ok = (all(h in body for h in HARNESSES) and f"Hub {HUB_VERSION}" in body and "kit 호환 2.1.0" in body
+          and "wfh_" not in body and tok not in body and "Hub " + HUB_VERSION in setup
+          and "PC 로컬 중계" in setup and "--relay" in setup and "python -m workflow_kit hub relay status" in setup
           and "default-src 'none'" in (r.headers.get("Content-Security-Policy") or "") and "/mcp" in body)
-    _record("case 8 (안내 페이지 — 4종 · 토큰 없음 · CSP)", ok, f"len={len(body)} csp={r.headers.get('Content-Security-Policy')}")
+    _record("case 8 (안내 페이지 — 버전 · 4종 · relay 가이드 · 토큰 없음 · CSP)", ok, f"len={len(body)} setup_len={len(setup)} csp={r.headers.get('Content-Security-Policy')}")
 
 
 def main() -> int:

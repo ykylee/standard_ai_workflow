@@ -31,6 +31,7 @@ var BigBodyTools = map[string]int{
 // Config configures the HTTP server router.
 type Config struct {
 	Store        *store.Store
+	HubVersion   string
 	PublicURL    string
 	Exposure     string
 	WebTokenName string
@@ -45,6 +46,9 @@ type Server struct {
 
 // New constructs a configured HTTP handler for workflow-hub.
 func New(cfg Config) *Server {
+	if cfg.HubVersion == "" {
+		cfg.HubVersion = "dev"
+	}
 	if cfg.Exposure == "" {
 		cfg.Exposure = "loopback"
 	}
@@ -53,9 +57,10 @@ func New(cfg Config) *Server {
 	}
 	s := &Server{cfg: cfg, mux: http.NewServeMux()}
 	mcp := &mcpserver.Server{
-		Store:     cfg.Store,
-		PublicURL: cfg.PublicURL,
-		Clock:     cfg.Clock,
+		Store:      cfg.Store,
+		HubVersion: cfg.HubVersion,
+		PublicURL:  cfg.PublicURL,
+		Clock:      cfg.Clock,
 	}
 	s.mux.HandleFunc("GET /healthz", s.handleHealthz)
 	s.mux.HandleFunc("GET /{$}", s.handleGuidePage)
@@ -81,6 +86,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (s *Server) writeHubHeaders(w http.ResponseWriter) {
 	ver, _ := s.cfg.Store.DBVersion()
 	w.Header().Set("X-Hub-Kit", tools.KitVersion)
+	w.Header().Set("X-Hub-Version", s.cfg.HubVersion)
 	w.Header().Set("X-Hub-Contract", tools.Contract)
 	w.Header().Set("X-Hub-Db", fmt.Sprintf("%d", ver))
 }
@@ -112,6 +118,7 @@ func (s *Server) handleHealthz(w http.ResponseWriter, _ *http.Request) {
 	}
 	writeJSONResponse(w, http.StatusOK, map[string]any{
 		"ok":          true,
+		"hub_version": s.cfg.HubVersion,
 		"kit_version": tools.KitVersion,
 		"contract":    tools.Contract,
 		"db_version":  ver,

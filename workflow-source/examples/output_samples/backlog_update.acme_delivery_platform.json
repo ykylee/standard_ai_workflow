@@ -1,10 +1,8 @@
 {
-  "status": "ok",
-  "tool_version": "3.0.1",
-  "operation_type": "update_entry",
-  "target_backlog_path": "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/backlog/2026-04-18.md",
-  "task_id": "TASK-021",
-  "task_found": true,
+  "apply_status": "applied",
+  "created_paths": [
+    "/Users/yklee/.minimax/agents/mavis/workspace/.opencode/tmp/tmpci5a9owl/project/main/backlog/2026-04-18.md"
+  ],
   "draft_entry": [
     "## TASK-021 배송 상태 동기화 실패 대응 절차 문서 정리",
     "",
@@ -35,10 +33,6 @@
     "- 후속 작업:",
     "- "
   ],
-  "status_recommendation": {
-    "value": "in_progress",
-    "reason": "입력된 상태와 현재 작업 브리핑 기준으로 가장 보수적인 상태를 제안한다."
-  },
   "fields_requiring_confirmation": [
     "담당",
     "호스트명",
@@ -50,24 +44,30 @@
     "남은 리스크",
     "후속 작업"
   ],
-  "warnings": [],
-  "index_update_note": null,
   "handoff_update_note": "상태 변화가 handoff 에 반영되어야 하는지 확인한다.",
-  "validation_note": null,
+  "index_update_note": null,
+  "operation_type": "update_entry",
   "source_context": {
-    "project_profile_path": "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/PROJECT_PROFILE.md",
     "daily_backlog_exists": true,
-    "existing_task_count": 1
+    "existing_task_count": 1,
+    "project_profile_path": "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/PROJECT_PROFILE.md"
   },
-  "apply_status": "applied",
-  "created_paths": [
-    "/Users/yklee/.minimax/agents/mavis/workspace/.opencode/tmp/tmpci5a9owl/project/main/backlog/2026-04-18.md"
-  ],
   "state_cache_status": "refreshed",
+  "status": "ok",
+  "status_recommendation": {
+    "reason": "입력된 상태와 현재 작업 브리핑 기준으로 가장 보수적인 상태를 제안한다.",
+    "value": "in_progress"
+  },
+  "target_backlog_path": "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/backlog/2026-04-18.md",
+  "task_found": true,
+  "task_id": "TASK-021",
+  "tool_version": "3.1.0",
   "updated_paths": [
     "/Users/yklee/.minimax/agents/mavis/workspace/.opencode/tmp/tmpci5a9owl/project/work_backlog.md",
     "/Users/yklee/.minimax/agents/mavis/workspace/.opencode/tmp/tmpci5a9owl/project/main/session_handoff.md"
   ],
+  "validation_note": null,
+  "warnings": [],
   "written_paths": [
     "/Users/yklee/.minimax/agents/mavis/workspace/.opencode/tmp/tmpci5a9owl/project/main/backlog/2026-04-18.md",
     "/Users/yklee/.minimax/agents/mavis/workspace/.opencode/tmp/tmpci5a9owl/project/work_backlog.md",

@@ -4,13 +4,17 @@
 - 범위: 설치 · SQLite/PostgreSQL 선택 · 띄우기 · 노출과 공개 주소 · 토큰 · 프로젝트 셋업 안내 · 지침 · 백업과 복원 · 판 올리기 · 허브 간 이전 · 점검
 - 대상 독자: 허브 관리자, 저장소 관리자
 - 상태: beta
-- 최종 수정일: 2026-11-23
+- 최종 수정일: 2026-11-24
 - 관련 문서: [`../workflow-source/core/hub_spec.md`](../workflow-source/core/hub_spec.md) (계약 정본), [`planning/workflow-hub-requirements-2026-11.md`](./planning/workflow-hub-requirements-2026-11.md) (요구 · 실측 §16), [`RELEASE.md`](./RELEASE.md)
 
 허브는 **프로세스 하나와 SQLite 파일 또는 PostgreSQL 데이터베이스 하나**다. SQLite는 기본·테스트 저장소이고,
 PostgreSQL은 Go와 Python 런타임이 함께 지원하는 서버 저장소다. 작업 환경(저장소 · 하네스)은 kit 을 깔지 않는다 — 허브 주소 하나로
 참여한다. 하네스는 허브의 원격 MCP(`/mcp`)로 붙고, 셋업이 쓰는 파일은 `.gitignore` 한 줄 · 진입 파일 영역 ·
 하네스 설정 · 토큰 파일(`.workflow-hub/env`, git 제외) 뿐이다.
+
+버전 표시는 런타임 판과 kit 계약판을 구분한다. 현재 Go 허브 pilot과 Python wheel은 모두 **3.1.0**이며, 두 런타임이 구현하는
+kit 호환 계약은 **2.1.0**이다. 허브 `/healthz` 의 `hub_version`은 런타임, `kit_version`은 호환 계약 판이다.
+`X-Hub-Version` 과 `X-Hub-Kit` 응답 헤더도 같은 구분을 따른다.
 
 ## 1. 설치
 
@@ -106,6 +110,10 @@ Python 허브의 프로젝트 묶음 export/import도 PostgreSQL에서 동작한
 - 새로 합류한 `human` 콜사인은 소유자가 승인하기 전까지 `agent` 권한이다 — 화면의 콜사인 표 또는
   `hub_callsign_approve`.
 
+### 작업 분류 · roadmap/WBS · 테스트
+
+task `fields` 에 프로젝트가 정하는 3단계 `category: {level_1, level_2, level_3}` 를 기록한다. roadmap milestone/WBS 연결은 task의 `wbs` 를 사용하며 기존 roadmap_state v1 진척 계산을 유지한다. `tests` 는 `{id, name, required, runs:[{status, summary?, run_at?, commit_sha?}]}` 배열로 정의와 실행 이력을 함께 관리한다. 세션이 로컬에서 실제 테스트를 실행하고 결과를 `hub_task_update` 로 기록한다. 허브는 명령을 실행하지 않는다. task 종료 시 필수 테스트의 가장 최근 실행이 모두 `passed` 여야 하며, 선택 테스트는 완료 게이트에 포함되지 않는다.
+
 ### 1.x 저장소의 전환
 
 1.x kit 를 쓰던 저장소는 셋업이 `legacy_1x` 로 알린다 — 셋업만으로는 1.x 기록이 허브에 들어오지 않는다.
@@ -147,8 +155,8 @@ python -m workflow_kit hub backup --db ~/workflow-hub/hub.db --out ~/backup/hub-
 
 ### 8.1 3.x pre-release pilot 런타임 선택
 
-3.x pilot 은 Go 바이너리를 제공하고 Python wheel 에도 기존 Python 허브를 유지한다. Windows에서 Go 런타임 문제가
-나면 같은 pilot 판의 Python 허브를 별도 프로세스와 DB 사본으로 평가할 수 있다.
+Go 허브 pilot과 Python 허브 wheel은 **3.1.0**로 배포된다. 사내 Windows에서는 아래 보안 정책을 먼저 확인하고,
+Python 런타임은 별도 프로세스와 DB 사본으로 평가한다.
 
 #### 셋업 전 사내 Windows 확인
 
@@ -166,7 +174,7 @@ Windows PowerShell 예시 (SQLite 복제본으로 pilot):
 ```powershell
 py -3.11 -m venv "$env:USERPROFILE\workflow-hub\venv-3x"
 $py = "$env:USERPROFILE\workflow-hub\venv-3x\Scripts\python.exe"
-& $py -m pip install 'standard-ai-workflow[hub] @ https://github.com/ykylee/standard_ai_workflow/releases/download/v3.0.1/standard_ai_workflow-3.0.1-py3-none-any.whl'
+& $py -m pip install 'standard-ai-workflow[hub] @ https://github.com/ykylee/standard_ai_workflow/releases/download/v3.1.0/standard_ai_workflow-3.1.0-py3-none-any.whl'
 & $py -m workflow_kit hub serve --db "$env:USERPROFILE\workflow-hub\pilot-copy.db" --bind 127.0.0.1 --port 8770
 ```
 
@@ -176,31 +184,15 @@ $py = "$env:USERPROFILE\workflow-hub\venv-3x\Scripts\python.exe"
 ```sh
 python3 -m venv ~/workflow-hub/venv-3x
 ~/workflow-hub/venv-3x/bin/python -m pip install \
-  'standard-ai-workflow[hub] @ https://github.com/ykylee/standard_ai_workflow/releases/download/v3.0.1/standard_ai_workflow-3.0.1-py3-none-any.whl'
+  'standard-ai-workflow[hub] @ https://github.com/ykylee/standard_ai_workflow/releases/download/v3.1.0/standard_ai_workflow-3.1.0-py3-none-any.whl'
 ~/workflow-hub/venv-3x/bin/python -m workflow_kit hub serve \
   --db ~/workflow-hub/pilot-copy.db --bind 127.0.0.1 --port 8770
 ```
 
 - Python은 SQLite에 경로를 직접 전달하므로 Go의 `file:` DSN URI 생성 경로를 거치지 않는다.
 - Go와 Python 모두 parity 및 rollback 검증이 끝나기 전까지 운영 DB에 연결하지 않는다. pilot 시에는 각각 독립된 일관된 DB 사본을 쓴다.
-- 3.0.0 pre-release는 Windows 경로 DSN 결함이 있어 Windows에서는 사용하지 않는다. 수정판은 3.0.1이다.
-
-### 8.1 3.x pre-release pilot 런타임 선택
-
-3.x pilot 은 Go 바이너리를 제공하고 Python wheel 에도 기존 Python 허브를 유지한다. Windows에서 Go 런타임 문제가
-나면 같은 pilot 판의 Python 허브를 별도 프로세스와 DB 사본으로 평가할 수 있다.
-
-```sh
-python3 -m venv ~/workflow-hub/venv-3x
-~/workflow-hub/venv-3x/bin/python -m pip install \
-  'standard-ai-workflow[hub] @ https://github.com/ykylee/standard_ai_workflow/releases/download/v3.0.1/standard_ai_workflow-3.0.1-py3-none-any.whl'
-~/workflow-hub/venv-3x/bin/python -m workflow_kit hub serve \
-  --db ~/workflow-hub/pilot-copy.db --bind 127.0.0.1 --port 8770
-```
-
-- Python은 SQLite에 경로를 직접 전달하므로 Go의 `file:` DSN URI 생성 경로를 거치지 않는다.
-- Go와 Python 모두 parity 및 rollback 검증이 끝나기 전까지 운영 DB에 연결하지 않는다. pilot 시에는 각각 독립된 일관된 DB 사본을 쓴다.
-- 3.0.0 pre-release는 Windows 경로 DSN 결함이 있어 Windows에서는 사용하지 않는다. 수정판은 3.0.1이다.
+- Go 3.0.0 pre-release는 Windows 경로 DSN 결함이 있어 Windows에서 쓰지 않는다. Go 수정판은 3.0.1 이후 판이다.
+  현재 Go/Python pilot은 3.1.0이며, Windows 사내 환경에서는 V3/EDR 정책에 따라 Python 경로를 우선한다.
 
 ## 9. 허브 간 프로젝트 이전
 
@@ -215,6 +207,13 @@ python3 -m venv ~/workflow-hub/venv-3x
 
 ## 10. 점검
 
-- `GET /healthz` → `{ok, kit_version, contract, db_version, exposure, public_url, web_token}`.
+- `GET /healthz` → `{ok, hub_version, kit_version, contract, db_version, exposure, public_url, web_token}`. `hub_version`은 허브 런타임 판, `kit_version`은 kit 호환 판이다. MCP initialize의 `serverInfo.version` 도 런타임 판을 나타낸다.
+
+### PC 로컬 중계 셋업
+
+`/setup.md` 는 에이전트에게 이 PC의 하네스 세션을 원격으로 시작할 필요가 있는지 확인시킨다. 필요한 경우 bootstrap에
+`--relay` 를 주면 기존 등록 파일과 Python `relay status` 결과를 허브의 셋업 계획에 포함한다. 관리형 Windows는
+Go 실행 파일 대신 `python -m workflow_kit hub relay status`, `init`, `allow add`, `serve` 명령을 쓴다.
+
 - 화면 `/ui/` — 프로젝트 · task · 이력 · 콜사인 표(누가 무엇을 · 받은 지침 판 · 셋업 끝 여부).
 - 프로젝트마다 이력(`event`)이 남는다 — 누가(콜사인) · 어디서(`mcp` / `http` / `admin`) · 무엇을.

@@ -4,7 +4,7 @@
 - 범위: descriptor 단일 출처, JSON-RPC fixture 기준선, SDK 승격 시 유지/변경 필드, 검증 경로
 - 대상 독자: MCP server 구현자, 하네스 적용 담당자, AI workflow 설계자
 - 상태: draft
-- 최종 수정일: 2026-08-05
+- 최종 수정일: 2026-11-24
 - 관련 문서: `./prototype_promotion_scope.md`, `../mcp_servers/read_only_bundle.md`, `../schemas/README.md`, `../workflow_kit/README.md`
 
 ## 1. 목적
@@ -150,10 +150,10 @@ python3 tests/check_read_only_harness_mcp_examples.py
 [`../tests/check_mcp_apply_mode_criterion.py`](../tests/check_mcp_apply_mode_criterion.py)
 가 아래를 실제로 실행해 증명을 요구하고, 미달이면 red 다.
 
-1. **공식 MCP 클라이언트 왕복.** `mcp` SDK 의 `ClientSession` 으로 `initialize` →
-   `tools/list` → `tools/call` 이 성공한다. 손수 만든 JSON-RPC 로는 안 된다 —
-   `check_bootstrap_mcp_roundtrip.py` 는 stdin/stdout 에 JSON 을 직접 쓰므로 *우리
-   구현끼리의 대화* 이고, 하네스 호환성을 증명하지 못한다.
+1. **공식 MCP 클라이언트 왕복.** `mcp` SDK 의 `Client(auto)` 가
+   `server/discover` 로 `2026-07-28` 을 협상한 뒤 `tools/list` → `tools/call` 을
+   성공시킨다. 손수 만든 JSON-RPC 로는 안 된다 — bootstrap smoke 는 transport envelope
+   와 emit 설정을 추가로 확인하며, 공식 SDK round-trip 은 apply-mode 검사에서 잰다.
 2. **emit 되는 command 로 뜬다.** bootstrap 이 실제로 내보내는 `command`/`args`/`env`
    그대로, 그리고 **`mcp` extra 가 없는 인터프리터** 에서 뜬다. 하네스가 spawn 하는
    것은 `python3` 이고 거기에 SDK 가 있다는 보장이 없다.
@@ -163,11 +163,11 @@ shim 을 `PYTHONPATH` 앞에 붙여 extra 없는 환경을 재현한다. `mcp` �
 optional dep 의존은 못 잡는다). `mcp` SDK 가 없으면 이 검사는 **skip 이 아니라 fail**
 이다 — 안 잰 것은 통과가 아니다.
 
-**현재 판정 (2026-08-05 실측)**
+**현재 판정 (2026-11-23 실측)**
 
 | bridge | `transport_phase` | 기준 1·2 | `apply_mode` |
 | --- | --- | --- | --- |
-| `jsonrpc-bridge` | `jsonrpc_draft` | ✅ `tools/list` 13종 + `tools/call` 성공 | **`active_ok`** |
+| `jsonrpc-bridge` | `jsonrpc_draft` | ✅ modern `tools/list` 12종 + `tools/call` 성공 | **`active_ok`** |
 | `stdio-sdk` | `official_sdk` | ❌ `McpError: Connection closed` (SDK 부재) | `manual_review_only` |
 
 `stdio-sdk` 가 `manual_review_only` 인 것은 **성숙도가 아니라 의존성** 때문이다.

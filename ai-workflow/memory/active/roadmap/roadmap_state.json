@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "generated_by": "workflow_kit.common.state.roadmap.generate_roadmap_state",
-  "generated_at": "2026-11-23",
+  "generated_at": "2026-11-24",
   "milestones": [
     {
       "id": "M-001",
@@ -2599,6 +2599,69 @@
       "wbs_ref": "exempt",
       "exempt_reason": "기존 WBS-6.1 release milestone은 done이고 M-039는 2.0 안정화에 남아 있으나 Go 3.0 릴리즈 준비를 포괄하는 현재 roadmap leaf가 없다. 이번 점검만 임시 exempt로 등록하며, 실제 발행 전에 roadmap 범위를 정리한다.",
       "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-11-23-main-004.md"
+    },
+    {
+      "task_id": "TASK-2026-11-23-main-015",
+      "task_status": "done",
+      "wbs_ref": "exempt",
+      "exempt_reason": "MCP SDK minimum-version maintenance follow-up; no active roadmap leaf covers dependency baseline updates",
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-11-23-main-015.md"
+    },
+    {
+      "task_id": "TASK-2026-11-23-main-016",
+      "task_status": "done",
+      "wbs_ref": "exempt",
+      "exempt_reason": "MCP 2026-07-28 protocol migration spans existing Go/Python server boundaries; no active roadmap leaf covers the cross-runtime lifecycle change",
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-11-23-main-016.md"
+    },
+    {
+      "task_id": "TASK-2026-11-23-main-017",
+      "task_status": "done",
+      "wbs_ref": "exempt",
+      "exempt_reason": "운영 배치 결정 검토이며 현재 로드맵에 배포 대상 선택 leaf가 없음",
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-11-23-main-017.md"
+    },
+    {
+      "task_id": "TASK-2026-11-23-main-018",
+      "task_status": "done",
+      "wbs_ref": "exempt",
+      "exempt_reason": "3.0.1 prerelease pilot deployment and home-lab proxy route do not have a dedicated roadmap leaf",
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-11-23-main-018.md"
+    },
+    {
+      "task_id": "TASK-2026-11-23-main-019",
+      "task_status": "done",
+      "wbs_ref": "exempt",
+      "exempt_reason": "허브 로컬 중계 셋업 통합은 현재 로드맵에 전용 leaf가 없다",
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-11-23-main-019.md"
+    },
+    {
+      "task_id": "TASK-2026-11-23-main-020",
+      "task_status": "done",
+      "wbs_ref": "exempt",
+      "exempt_reason": "허브 UI 결함 수리는 현재 로드맵에 전용 leaf가 없다",
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-11-23-main-020.md"
+    },
+    {
+      "task_id": "TASK-2026-11-23-main-021",
+      "task_status": "done",
+      "wbs_ref": "exempt",
+      "exempt_reason": "Hub runtime/kit metadata 분리는 현재 roadmap에 전용 leaf가 없다",
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-11-23-main-021.md"
+    },
+    {
+      "task_id": "TASK-2026-11-23-main-022",
+      "task_status": "done",
+      "wbs_ref": "exempt",
+      "exempt_reason": "현재 M-057 안정화 WBS는 Go/Python parity와 플랫폼 shadow 검증이며, 3단계 작업 분류 및 테스트 관리 기능 도입을 다루지 않아 별도 범위로 추적한다.",
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-11-23-main-022.md"
+    },
+    {
+      "task_id": "TASK-2026-11-24-main-001",
+      "task_status": "in_progress",
+      "wbs_ref": "exempt",
+      "exempt_reason": "기존 M-057 shadow 안정화 WBS 범위를 넘어서는 3.1.0 공개 릴리스와 홈랩 운영 배포다.",
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-11-24-main-001.md"
     }
   ],
   "issues": []

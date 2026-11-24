@@ -377,9 +377,23 @@ def _agy_registered(url: list[str]) -> bool:
                for cols in (line.split() for line in out["output"].splitlines()))
 
 
-def _scan() -> dict[str, Any]:
+def _scan(relay_required: bool = False) -> dict[str, Any]:
     paths = (".gitignore", "CLAUDE.md", "AGENTS.md", "MiniMax.md", "ANTIGRAVITY.md", ".mcp.json")
-    return {"files": {p: (Path(p).read_text(encoding="utf-8") if Path(p).is_file() else None) for p in paths}}
+    relay_home = Path(os.environ.get("WORKFLOW_HUB_RELAY_HOME", Path.home() / ".config" / "workflow-hub"))
+    relay_config = relay_home / "relay.json"
+    status: Any = None
+    if relay_required:
+        checked = _run([sys.executable, "-m", "workflow_kit", "hub", "relay", "status"])
+        if checked["rc"] == 0:
+            try:
+                raw = json.loads(checked["output"])
+                status = {key: raw.get(key) for key in ("registered", "paused", "allow", "hub", "name")}
+            except (TypeError, json.JSONDecodeError):
+                status = {"error": "status 응답 JSON 해석 실패"}
+        else:
+            status = {"error": "Python relay status 확인 실패", "rc": checked["rc"]}
+    return {"files": {p: (Path(p).read_text(encoding="utf-8") if Path(p).is_file() else None) for p in paths},
+            "relay": {"required": relay_required, "config_present": relay_config.is_file(), "status": status}}
 
 
 def _bootstrap_out(payload: dict[str, Any], rc: int) -> int:
@@ -403,6 +417,7 @@ def cmd_bootstrap(argv: list[str]) -> int:
     ap.add_argument("--callsign", required=True)
     ap.add_argument("--kind", default="agent", choices=("human", "agent"))
     ap.add_argument("--name", default="")
+    ap.add_argument("--relay", action="store_true", help="이 PC의 하네스를 허브가 실행해야 할 때 중계 상태도 점검")
     ap.add_argument("--label", default="")
     a = ap.parse_args(argv)
     base = a.hub.rstrip("/")
@@ -455,11 +470,13 @@ def cmd_bootstrap(argv: list[str]) -> int:
         pending: list[dict[str, Any]] = []
         for_agent: list[dict[str, Any]] = []
         legacy: Any = None
+        relay_advice: Any = None
         for _ in range(3):
-            st, plan = _http(base, "hub_setup_plan", {**base_args, "scan": _scan()})
+            st, plan = _http(base, "hub_setup_plan", {**base_args, "scan": _scan(a.relay)})
             if st != 200:
                 return _bootstrap_out({"status": "plan_failed", "http": st, **plan, "project_id": project_id, **joined}, 1)
             legacy = plan.get("legacy_1x") or legacy
+            relay_advice = plan.get("relay") or relay_advice
             files: list[dict[str, str]] = []
             checks: list[dict[str, Any]] = []
             for s in plan["steps"]:
@@ -518,6 +535,7 @@ def cmd_bootstrap(argv: list[str]) -> int:
     out = {"status": "complete" if complete else "partial", "hub": base, "project_id": project_id,
            "callsign": a.callsign, **joined, "confirmed": done, "for_agent": for_agent, "pending": pending,
            "legacy_1x": legacy,
+           "relay": relay_advice,
            "next": ("셋업 완료 — .workflow-hub/env 의 WORKFLOW_HUB_TOKEN 을 환경에 올리고 하네스를 다시 시작한 뒤 hub_session_start"
                     if complete else
                     "for_agent 의 파일을 내용 그대로 쓰고(하네스가 승인을 물으면 사람이 답한다) 이 명령을 다시 부른다. "

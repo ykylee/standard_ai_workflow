@@ -2,8 +2,8 @@
 
 ## 왜 이 파일이 있는가
 
-mcp 를 쓰는 표면 둘은 v2 API 를 사용한다. 개발·배포 하한을 v2.0.0 으로 올렸고,
-로컬 매트릭스는 하한과 현재 확인된 v2 최신판을 별도 venv 에서 직접 밟는다.
+mcp 를 쓰는 표면 둘은 v2 API 를 사용한다. 공식 최신 안정판 v2.3.0 을
+개발·배포 최소 지원판으로 삼고, 로컬 매트릭스가 그 버전을 별도 venv 에서 직접 밟는다.
 
 그래서 이 파일이 두 가지를 한 곳에 적는다:
 
@@ -36,7 +36,6 @@ from pathlib import Path
 from workflow_kit.common.paths import matrix_tmp_root, venv_executable
 
 ROLE_FLOOR = "floor"
-ROLE_LATEST_2X = "latest-2x"
 
 
 @dataclass(frozen=True)
@@ -50,23 +49,11 @@ class PinnedVersion:
 
 PINNED_VERSIONS: tuple[PinnedVersion, ...] = (
     PinnedVersion(
-        version="2.0.0",
+        version="2.3.0",
         role=ROLE_FLOOR,
         reason=(
-            "소유자 기준: MCP Python SDK 최소 요구 버전을 v2.0.0 으로 올린다. "
-            "1.x 의존성은 지원하지 않는다."
-        ),
-    ),
-    PinnedVersion(
-        version="2.3.0",
-        role=ROLE_LATEST_2X,
-        reason=(
-            "현재 확인된 2.x 최신판(2026-10-02). 허브 MCP 경로(`check_hub_core` case 9)를 "
-            "여기서 밟는다 (TASK-2026-11-22-main-022). 2.x 이전 판은 지원하지 않는다."
-            " 2.0.0 은 `mcp.server.fastmcp` 를 없앴고 (lowlevel decorator 는 "
-            "`add_request_handler` 로 — §2.41, §2.43), 2.1.1 은 그 모듈을 되살리되 "
-            "`FastMCP` 심볼만 없다 — CI mypy-strict(부동 최신)만 red 가 되고 "
-            "이전 개발 pin에서는 이 차이를 놓쳤던 2026-08-28 사건의 재현 자리다."
+            "공식 MCP Python SDK 최신 안정판(2026-10-02 확인). "
+            "최소 지원판으로 지정하고 허브 MCP 경로(`check_hub_core` case 9)를 실측한다."
         ),
     ),
 )
@@ -221,8 +208,8 @@ def run_local_matrix(
     ## 왜 필요한가
 
     매트릭스가 CI 에만 있던 시절 **"로컬 green → CI red" 가 구조적으로 발생했다.**
-    개발 venv pin(2.3.0)뿐 아니라 최소 지원판(2.0.0)에서도 실제 API를 밟는다.
-    SDK 1.x 는 지원 대상에서 제외한다.
+    개발 venv pin이자 최소 지원판인 2.3.0에서 실제 API를 밟는다.
+    그보다 이전 SDK는 지원 대상에서 제외한다.
 
     버전 목록은 이 파일의 `PINNED_VERSIONS` 에서 읽는다.
 
@@ -233,7 +220,7 @@ def run_local_matrix(
     ## 한계 (과장하지 않는다)
 
     - `extra` 는 `dev,release` 만 깐다. `mcp` 는 버전을 고정해 따로 깐다 —
-      `mcp-sdk` extra 를 쓰면 상한이 없어 매번 최신을 집어 매트릭스가 무의미해진다.
+      지원 하한과 검증판이 같아야 한다.
     """
     versions = [pinned.version for pinned in PINNED_VERSIONS]
     if only_version is not None:

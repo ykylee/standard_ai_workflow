@@ -56,6 +56,10 @@ from workflow_kit.common import plan_claims, plan_responses  # noqa: E402
 
 STATIC = SOURCE_ROOT / "workflow_kit" / "hub" / "static"
 
+HUB_JS = (STATIC / "hub.js").read_text(encoding="utf-8")
+if "nodes.filter((node) => node !== null && node !== undefined)" not in HUB_JS:
+    raise SystemExit("root render must discard null/undefined nodes before replaceChildren")
+
 _failures: list[str] = []
 _passes: list[str] = []
 

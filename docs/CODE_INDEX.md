@@ -4,7 +4,7 @@
 - 범위: 소스 코드 구조, 기술 스택, 핵심 모듈 설명
 - 대상 독자: 개발자, AI 에이전트
 - 상태: stable
-- 최종 수정일: 2026-11-23
+- 최종 수정일: 2026-11-24
 - 관련 문서: [./DOCUMENT_INDEX.md](./DOCUMENT_INDEX.md), [./INSTALLATION_AND_USAGE.md](./INSTALLATION_AND_USAGE.md), [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md)
 
 이 문서는 `Standard AI Workflow` 저장소의 코드 구조와 핵심 컴포넌트를 안내합니다 (**v1.0.0-beta** 기준). Phase 위치: **Phase 1–11 done, Phase 12 in_progress** (운영 지능화 + deprecation 안정화, v1.0.0 진입 평가 준비). 정식 status SSOT: [`workflow-source/core/maturity_matrix.json`](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/maturity_matrix.json).
@@ -34,7 +34,7 @@
 │   ├── global-snippets/            # 하네스 전역 비침투적 snippet 예시
 │   ├── releases/                   # Beta v0.5.0 ~ v0.15.18 누적 릴리스 노트
 │   ├── MEMORY_GOVERNANCE.md        # AI 메모리 문서 표준
-│   └── pyproject.toml              # 패키지 매니페스트 (version 3.0.1)
+│   └── pyproject.toml              # 패키지 매니페스트 (version 3.1.0)
 │
 ├── .claude-plugin/marketplace.json # 이 저장소가 곧 marketplace — **생성물**
 ├── plugin/                         # 공유 payload + 하네스 어댑터 — **생성물** (손 편집 금지)
@@ -74,8 +74,8 @@
 ├── dist/                           # 빌드 산출물 (.gitignore)
 │   └── harnesses/                  # codex, opencode 패키지
 ├── .codex/                         # Codex 설정 예시
-├── requirements.txt                # pydantic>=2, anyio>=4, mcp>=1
-├── requirements-dev.txt            # mcp[cli]==1.27.0
+├── requirements.txt                # pydantic>=2, anyio>=4, mcp>=2.3
+├── requirements-dev.txt            # mcp[cli]==2.3.0
 ├── .github/workflows/             # mkdocs(문서 배포) · consumer-metrics-digest(주간 집계) — 테스트 CI 는 없다
 ├── AGENTS.md                       # Codex 진입 규칙 (bootstrap 생성)
 └── README.md                       # 저장소 홈
@@ -147,7 +147,7 @@ v0.5.2+ 리팩터. 6-module 패키지:
 | Language | Python 3.10+ (3.11+ 권장) |
 | Schema/Contracts | Pydantic v2 |
 | Async | anyio >= 4.0 |
-| Agent Protocol | MCP (Model Context Protocol) Python SDK `mcp[cli]` >= 1.0 |
+| Agent Protocol | MCP (Model Context Protocol) Python SDK `mcp[cli]` >= 2.3.0 |
 | Package Build | setuptools >= 68 + wheel |
 | Linting | ruff (line-length 100, py310) |
 | Type Checking | mypy (strict, 109 file clean, py310, **FULL strict 도달 v0.11.18**) |

@@ -131,6 +131,7 @@ func cmdServe(args []string, stdout, stderr io.Writer) int {
 	}
 	srv := httpapi.New(httpapi.Config{
 		Store:        st,
+		HubVersion:   version,
 		PublicURL:    pub,
 		Exposure:     exposure,
 		WebTokenName: *webTokenName,

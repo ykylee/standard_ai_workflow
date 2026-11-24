@@ -1,5 +1,4 @@
 pydantic>=2.0.0
 anyio>=4.0.0
-# 상한 없음 — mcp 를 쓰는 표면 2곳이 모두 1.x/2.x 를 해석한다.
-# 근거와 재확인 방법은 workflow-source/pyproject.toml 의 mcp-sdk extra 참조.
-mcp>=1.0.0
+# MCP SDK 2.3.0을 최소 지원 버전으로 사용한다.
+mcp>=2.3.0

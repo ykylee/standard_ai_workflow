@@ -301,7 +301,7 @@ var ToolOrder = []*ToolSpec{
 			"wbs_exempt_reason": map[string]any{"type": "string"},
 			"description":       map[string]any{"type": "string"},
 			"plan_md":           map[string]any{"type": "string", "description": "1.x task 파일의 Plan 절 원문 (DS2)"},
-			"fields":            map[string]any{"type": "object", "description": "affected_documents · done_criteria · result · risks · follow_up · validation_result · next_step"},
+			"fields":            map[string]any{"type": "object", "description": "표준 task 필드 외 category={level_1,level_2,level_3}, tests=[{id,name,required,runs:[{status:passed|failed|skipped,summary,run_at,commit_sha}]}]. 실행은 세션이 하고 결과를 기록한다."},
 			"request_id":        map[string]any{"type": "string", "description": "멱등 키 — 같은 값으로 다시 보내면 처음 결과를 돌려준다"},
 		},
 		Required: []string{"title"},

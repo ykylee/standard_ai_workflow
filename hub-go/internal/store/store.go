@@ -41,6 +41,8 @@ var (
 		"follow_up":          true,
 		"validation_result":  true,
 		"next_step":          true,
+		"category":           true,
+		"tests":              true,
 	}
 )
 
@@ -871,6 +873,46 @@ func ValidateTaskFields(values map[string]any) error {
 				Code:    "unknown_field",
 				Message: "fields 의 모르는 칸: " + strings.Join(extra, ", "),
 				Detail:  map[string]any{"fields": extra},
+			}
+		}
+		if raw, has := fm["category"]; has {
+			cat, ok := raw.(map[string]any)
+			if !ok || len(cat) != 3 {
+				return InvalidField("fields.category", "level_1 · level_2 · level_3 문자열이 모두 필요하다")
+			}
+			for _, level := range []string{"level_1", "level_2", "level_3"} {
+				v, ok := cat[level].(string)
+				if !ok || strings.TrimSpace(v) == "" {
+					return InvalidField("fields.category", "level_1 · level_2 · level_3 문자열이 모두 필요하다")
+				}
+			}
+		}
+		if raw, has := fm["tests"]; has {
+			tests, ok := raw.([]any)
+			if !ok {
+				return InvalidField("fields.tests", "테스트 정의 배열이어야 한다")
+			}
+			seen := map[string]bool{}
+			for _, item := range tests {
+				test, ok := item.(map[string]any)
+				id, idOK := test["id"].(string)
+				name, nameOK := test["name"].(string)
+				_, requiredOK := test["required"].(bool)
+				if !ok || !idOK || strings.TrimSpace(id) == "" || !nameOK || strings.TrimSpace(name) == "" || !requiredOK || seen[id] {
+					return InvalidField("fields.tests", "각 테스트는 고유한 id, name, required가 필요하다")
+				}
+				seen[id] = true
+				runs, _ := test["runs"].([]any)
+				if _, hasRuns := test["runs"]; hasRuns && runs == nil {
+					return InvalidField("fields.tests.runs", "status는 passed · failed · skipped 중 하나여야 한다")
+				}
+				for _, rawRun := range runs {
+					run, ok := rawRun.(map[string]any)
+					status, statusOK := run["status"].(string)
+					if !ok || !statusOK || (status != "passed" && status != "failed" && status != "skipped") {
+						return InvalidField("fields.tests.runs", "status는 passed · failed · skipped 중 하나여야 한다")
+					}
+				}
 			}
 		}
 	}

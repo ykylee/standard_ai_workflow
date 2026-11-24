@@ -228,6 +228,12 @@ class Judge:
             if status != "done":
                 raise _gate("validation_result_required", "done 은 검증 결과가 있어야 닫힌다 — 검증하지 않은 결과를 done 으로 두지 않는다",
                             warns)
+            tests = before["fields"].get("tests", [])
+            pending = [test.get("id", "?") for test in tests if test.get("required") and
+                       (not test.get("runs") or test["runs"][-1].get("status") != "passed")]
+            if pending:
+                raise _gate("required_tests_not_passed", "필수 테스트의 최신 실행 결과가 passed 여야 닫힌다",
+                            [f"미통과 필수 테스트: {', '.join(pending)}"])
             fields = dict(before["fields"])
             fields["validation_result"] = validation_result
             new_plan, warnings = self.enforce(conn, pid, task_id, new_plan_md=before["plan_md"],

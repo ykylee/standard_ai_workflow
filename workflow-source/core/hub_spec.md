@@ -4,7 +4,7 @@
 - 범위: `python -m workflow_kit hub …` 명령, 허브가 여는 경로(`/mcp` · `/v1/…` · 화면 · `/healthz` · `/v1/bootstrap`), SQLite/PostgreSQL 스키마, 허브 MCP 도구, 쓰기 지시 형식, 진입 파일 렌더 영역, 1.x 들여오기 매핑. 화면의 구체 디자인은 M-037, 선택 클라이언트의 명령 세부는 M-034 가 정한다.
 - 대상 독자: 구현자(M-033~M-039), workflow 설계자, 소유자 (DS 결정)
 - 상태: draft (ADR-033 accepted 2026-11-21 — M-032 design 완료, DS1~DS9 소유자 확정. 구현은 M-033~M-039)
-- 최종 수정일: 2026-11-22
+- 최종 수정일: 2026-11-24
 - 관련 문서: `./hub_postgresql_spec.md` (backend · migration · import contract), `../../docs/planning/workflow-hub-requirements-2026-11.md` (요구 R0~R16 · 실측 §16 — 아래에서 "요구 R…" · "실측 §16.n"), `../../docs/planning/workflow-hub-review-2026-11.md` (concept), `../../ai-workflow/wiki/decisions/adr-033-workflow-hub.md`, `./claim_plan_spec.md`, `./plan_workbench_spec.md`, `./compact_relay_spec.md`, `./roadmap_milestone_wbs_spec.md`, `./stable_guarantee.md`
 
 > **결정 근거는 concept · ADR-033 에, 요구와 실측은 requirements 에 있다.** 이 문서는 *계약* 만 적는다.
@@ -71,7 +71,7 @@ python -m workflow_kit hub admin   --db PATH project import --file FILE | seal -
 
 ### 2.3 의존 (DS1)
 
-허브 쪽 설치는 `workflow_kit[hub]` — MCP 공식 SDK `mcp>=2.0.0` (streamable HTTP 서버) 와 ASGI 서버를 쓴다. SDK v2 API (`add_request_handler`, HTTP 요청은 `ctx.request`)로 조립한다. 최소판 2.0.0 과 개발 검증판 2.3.0 에서 허브 MCP 경로를 밟는다 (TASK-2026-11-22-main-022; §16.3). 작업 환경은 이 의존을 갖지 않는다 (R0.4).
+허브 쪽 설치는 `workflow_kit[hub]` — MCP 공식 SDK `mcp>=2.3.0` (streamable HTTP 서버) 와 ASGI 서버를 쓴다. SDK v2 API (`add_request_handler`, HTTP 요청은 `ctx.request`)로 조립하며 MCP `2026-07-28` modern protocol 을 기본으로 사용한다. Go 허브도 같은 판의 `server/discover`, 요청별 metadata, HTTP routing headers 를 구현한다. 작업 환경은 이 의존을 갖지 않는다 (R0.4).
 
 ## 3. 스키마 · 이관 (WBS-32.1)
 
@@ -122,6 +122,7 @@ python -m workflow_kit hub admin   --db PATH project import --file FILE | seal -
 | `migration_1x` | `project_id` · `id` (`MIG-<4자리>`) · `at` · `callsign` · `status` (`planned`/`importing`/`done`) · `plan_json` · `report_json` (누적) | `(project_id, id)` — 판 8 (M-038 WBS-38.1) | R14 |
 
 - **task 의 칸 (DS2)** — 1.x task 파일의 Description 칸은 구조 칼럼과 `fields_json` (영향 문서 · 완료 기준 · 결과 · 위험 · 후속 · 검증 결과)에, **`## 🧭 Plan` 절은 `plan_md` 에 1.x 원문 그대로** 둔다. 판정 함수가 줄 목록을 받기 때문이다 (실측 §16.1 1 · 3a). 내보내기(R15)는 같은 칸에서 1.x 파일을 다시 만든다.
+- **분류 · 테스트 (M-058)** — `fields.category` 는 `level_1` · `level_2` · `level_3` 문자열을 갖는 프로젝트 task의 3단계 분류다. `wbs` 는 roadmap milestone/WBS leaf와 task를 연결하고 기존 roadmap_state v1 진척 계산을 유지한다. `fields.tests` 는 `{id,name,required,runs:[{status,summary?,run_at?,commit_sha?}]}` 배열이며 실행은 세션이 저장소에서 수행하고 결과만 허브에 기록한다. task 종료는 필수 테스트마다 가장 최근 run이 `passed`일 때만 허용한다. 선택 테스트는 완료를 막지 않는다.
 - **ID 네임스페이스 (DS3)** — 새 task ID 는 `TASK-<UTC 날짜>-<콜사인>-<NNN>`. 1.x 의 브랜치 slug 자리에 콜사인이 들어간다. 들여온 task 는 원래 ID 그대로 (R5.2).
 - **로드맵 · 위키는 1.x 원문 텍스트** — 파싱 함수가 텍스트를 받는다 (`parse_milestone_text` · 실측 §16.1 5a). 위키 lint 는 페이지를 임시 디렉터리에 펼쳐 1.x 검사를 돈다 (§6.7).
 
@@ -147,7 +148,7 @@ python -m workflow_kit hub admin   --db PATH project import --file FILE | seal -
 
 | 경로 | 인증 | 몫 |
 |---|---|---|
-| `GET /healthz` | 없음 | `{ok, kit_version, contract, db_version, exposure}` (R1.6 · R13.3) |
+| `GET /healthz` | 없음 | `{ok, hub_version, kit_version, contract, db_version, exposure}` (R1.6 · R13.3) |
 | `/mcp` | Bearer (부트스트랩 묶음은 없음) | MCP streamable HTTP (R2.1) |
 | `POST /v1/tools/<name>` | 같음 | **MCP 도구와 같은 함수 · 같은 인자 · 같은 결과** (DS5 · R2.7) |
 | `GET /v1/bootstrap` | 없음 | 선택 클라이언트 원문 (`text/x-python`, 머리 `X-Hub-Client-Version` · `X-Hub-Client-Sha256`) (R2.7) |
@@ -157,7 +158,7 @@ python -m workflow_kit hub admin   --db PATH project import --file FILE | seal -
 
 ### 4.2 판 협상 (요구 R0.6 · R1.6)
 
-- 모든 응답 머리: `X-Hub-Kit` (kit 판) · `X-Hub-Contract` (`hub/1`) · `X-Hub-Db` (DB 판) · `X-Hub-Guide` (프로젝트가 정해진 요청이면 지침 판).
+- 모든 응답 머리: `X-Hub-Version` (허브 런타임 판) · `X-Hub-Kit` (kit 호환 판) · `X-Hub-Contract` (`hub/1`) · `X-Hub-Db` (DB 판) · `X-Hub-Guide` (프로젝트가 정해진 요청이면 지침 판). MCP `serverInfo.version` 도 허브 런타임 판을 싣는다.
 - 요청은 `contract` 를 실을 수 있다 (MCP: 도구 인자 · HTTP: 머리 `X-Hub-Contract`). 허브가 모르는 값이면 `unknown_contract` 400. 없으면 `hub/1` 로 본다.
 - 선택 클라이언트는 `X-Hub-Client: hub-client/<판>` 을 싣고, 허브가 받아들이는 판 범위 밖이면 `client_outdated` 400 + 갱신 경로.
 - 도구 이름 · 인자를 바꿀 때는 G4 (§17.1 의 2.0판) — 한 판 동안 옛 이름을 받고 결과에 `deprecated` 경고를 싣고, 다음 판에서 지운다.
@@ -291,9 +292,10 @@ python -m workflow_kit hub admin   --db PATH project import --file FILE | seal -
 2. 에이전트가 `git remote get-url origin` (없으면 원격 목록) 을 읽어 `hub_project_lookup`.
 3. 없으면 `hub_project_register`, 있으면 `hub_callsign_register` → 토큰.
 4. 에이전트가 `hub_setup_plan` 에 **저장소 훑기 결과**를 실어 부른다. 훑은 파일에 1.x kit 표식(`setup.LEGACY_1X_MARKERS`)이 있으면 응답의 `legacy_1x` 가 그 파일과 전환 안내(선택 클라이언트 `migrate plan`)를 싣는다 — 셋업은 전환을 하지 않는다 (테스트베드 §16.6). 훑기는 허브가 정한 명령 목록(에이전트가 실행): 진입 파일 4종의 존재 · 머리 줄, `ai-workflow/` 의 1.x 흔적 (§6.6), `.gitignore` 의 해당 줄. 1.x 흔적이 있으면 결과에 전환 계획이 같이 온다.
-5. 지시 순서: ① `.gitignore` `append_line` + `check-ignore` 확인 → ② (확인 통과 시에만) `.workflow-hub/env` `write` (모드 600 — Windows 는 사실대로 보고, R4.3) → ③ 진입 파일 렌더 영역 → ④ 하네스 설정 조각 (환경 변수 참조 · Antigravity 는 사용자 범위) → ⑤ 사람에게 '하네스를 다시 연결' 안내.
-6. `hub_setup_confirm` 이 모두 확인되면 콜사인의 셋업 상태 = 완료. 확인 안 된 단계가 있으면 '미완료' 그대로 (R2.4).
-7. **가이드 페이지 길** (M-039 WBS-39.1 · 소유자 2026-11-21) — 사람이 에이전트에게 `/setup.md` 를 읽게 하면 1 의 MCP 등록 없이도 끝까지 간다: 페이지가 선택 클라이언트 `hub_client.py bootstrap <허브> --harness <h> --callsign <c> --kind <k>` 를 쓰게 한다. 클라이언트가 2~6 을 HTTP 로 한 번에 한다 — 원격 조회(없으면 로컬 키 등록) · 합류 · 지시 실행 · 확인. **토큰은 출력하지 않는다** (env 에만, 다시 부르면 env 로 이어 간다). 하네스의 안전 장치를 지나야 하는 단계(`HANDOFF_STEPS` — `.mcp.json` · Antigravity 사용자 범위 평문 토큰)는 쓰지 않고 `for_agent` · `pending` 으로 넘긴다 — 에이전트가 자기 도구로 쓰고(사람 승인) 다시 부르면 sha256 으로 확인. Codex 등록 명령은 클라이언트가 실행한다. Antigravity 는 사람이 등록한 뒤 다시 부르면 `agy mcp list` (헤더 비표시) 의 이름 · 주소 · `enabled` 로 확인한다. 1.x 흔적(`legacy_1x`)이 있으면 진입 파일을 쓰지 않는다. git 저장소가 아니면 `not_git_repo` 로 멈춘다 (빈 폴더면 페이지가 `git init` 을 시킨다). Python 이 없으면 페이지의 HTTP 직접 절차.
+5. 세션은 허브 원격 MCP(`/mcp`)로 직접 통신한다. PC 로컬 중계는 이 통신에 필요하지 않으며, 허브가 PC의 Claude Code/Codex 세션을 실행해야 할 때만 선택해 설치한다. 중계를 선택하면 `hub_setup_plan` 의 `scan.relay` 에 필요 여부와 토큰 없는 상태 결과를 싣는다.
+6. 지시 순서: ① `.gitignore` `append_line` + `check-ignore` 확인 → ② (확인 통과 시에만) `.workflow-hub/env` `write` (모드 600 — Windows 는 사실대로 보고, R4.3) → ③ 진입 파일 렌더 영역 → ④ 하네스 설정 조각 (환경 변수 참조 · Antigravity 는 사용자 범위) → ⑤ 사람에게 '하네스를 다시 연결' 안내.
+7. `hub_setup_confirm` 이 모두 확인되면 콜사인의 셋업 상태 = 완료. 확인 안 된 단계가 있으면 '미완료' 그대로 (R2.4).
+8. **가이드 페이지 길** (M-039 WBS-39.1 · 소유자 2026-11-21) — 사람이 에이전트에게 `/setup.md` 를 읽게 하면 하네스 MCP 등록 없이도 끝까지 간다: 페이지가 선택 클라이언트 `hub_client.py bootstrap <허브> --harness <h> --callsign <c> --kind <k>` 를 쓰게 한다. 클라이언트가 2~7 을 HTTP 로 한 번에 한다 — 원격 조회(없으면 로컬 키 등록) · 합류 · 지시 실행 · 확인. **토큰은 출력하지 않는다** (env 에만, 다시 부르면 env 로 이어 간다). 하네스의 안전 장치를 지나야 하는 단계(`HANDOFF_STEPS` — `.mcp.json` · Antigravity 사용자 범위 평문 토큰)는 쓰지 않고 `for_agent` · `pending` 으로 넘긴다 — 에이전트가 자기 도구로 쓰고(사람 승인) 다시 부르면 sha256 으로 확인. Codex 등록 명령은 클라이언트가 실행한다. Antigravity 는 사람이 등록한 뒤 다시 부르면 `agy mcp list` (헤더 비표시) 의 이름 · 주소 · `enabled` 로 확인한다. 1.x 흔적(`legacy_1x`)이 있으면 진입 파일을 쓰지 않는다. git 저장소가 아니면 `not_git_repo` 로 멈춘다 (빈 폴더면 페이지가 `git init` 을 시킨다). Python 이 없으면 페이지의 HTTP 직접 절차.
 
 ### 6.2 세션 시작 확인 (요구 R10 · Q5)
 

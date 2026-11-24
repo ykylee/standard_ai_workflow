@@ -220,6 +220,31 @@ def case_4_done_parity(hub: Hub) -> None:
             f"open {hub_open}/{v1_open} novalid {hub_novalid}/{v1_novalid} answer {st3} close {st4}/{v1_answered} warn={closed.get('warnings')}")
 
 
+def case_5_category_test_gate(hub: Hub) -> None:
+    tok = _hub_project(hub, "category-tests")
+    fields = {
+        "category": {"level_1": "제품", "level_2": "허브", "level_3": "저장소"},
+        "tests": [
+            {"id": "required", "name": "필수 회귀", "required": True, "runs": [{"status": "failed", "summary": "초기 실패"}]},
+            {"id": "optional", "name": "선택 검사", "required": False, "runs": []},
+        ],
+    }
+    st, created, _ = hub.call("hub_task_create", {"title": "분류 및 테스트", "fields": fields}, tok)
+    assert st == 200, created
+    task = created["task"]
+    missing = hub.call("hub_task_close", {"id": task["id"], "expected_version": task["version"], "validation_result": "로컬 검사 기록"}, tok)[1]
+    failed_gate = missing.get("detail", {}).get("kit_error_code") == "required_tests_not_passed"
+    passed_tests = [dict(fields["tests"][0], runs=fields["tests"][0]["runs"] + [{"status": "passed", "summary": "통과"}]), fields["tests"][1]]
+    st2, updated, _ = hub.call("hub_task_update", {"id": task["id"], "expected_version": task["version"],
+                                                    "values": {"fields": {"tests": passed_tests}}}, tok)
+    st3, closed, _ = hub.call("hub_task_close", {"id": task["id"], "expected_version": updated["task"]["version"],
+                                                  "validation_result": "필수 테스트 통과"}, tok)
+    invalid, bad, _ = hub.call("hub_task_create", {"title": "잘못된 분류", "fields": {"category": {"level_1": "한 단계"}}}, tok)
+    ok = failed_gate and st2 == 200 and st3 == 200 and closed["task"]["status"] == "done" and invalid == 400
+    _record("case 5 (3단계 분류 · 필수 테스트 최신 run 게이트 · 선택 테스트 무관)", ok,
+            f"gate={missing.get('detail')} update={st2} close={st3} bad_category={invalid}/{bad.get('message')}")
+
+
 def case_5_lint(hub: Hub) -> None:
     tok = _hub_project(hub, "lint")
     st, out, _ = hub.call("hub_task_create", {"title": "나쁜 계획", "plan_md": PLAN_BAD, "fields": {"done_criteria": CRITERIA}}, tok)
@@ -283,7 +308,8 @@ def main() -> int:
         hub = Hub(tmp / "hub.db")
         try:
             for fn, args in ((case_1_wbs_parity, (hub, tmp)), (case_2_roadmap_write, (hub, tmp)),
-                             (case_3_derive_parity, (hub, tmp)), (case_4_done_parity, (hub,)), (case_5_lint, (hub,)),
+                             (case_3_derive_parity, (hub, tmp)), (case_4_done_parity, (hub,)),
+                             (case_5_category_test_gate, (hub,)), (case_5_lint, (hub,)),
                              (case_6_responses, (hub,)), (case_7_removal, (hub,))):
                 try:
                     fn(*args)  # type: ignore[operator]

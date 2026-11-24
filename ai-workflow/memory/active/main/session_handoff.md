@@ -73,6 +73,7 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
+- TASK-2026-11-24-main-001 3.1.0 pre-release 및 홈랩 허브 배포
 - TASK-2026-11-23-main-014 사내 Windows V3가 3.0 허브 실행 파일을 악성코드로 격리하는 탐지 조사
 - TASK-2026-11-23-main-006 Go 허브 화면 API 및 PC 중계 HTTP parity
 - TASK-2026-11-23-main-005 Go 허브 Linux 테스트베드 실전 shadow 검증
@@ -87,16 +88,16 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-11-23-main-021 허브 release 버전과 kit 호환 버전을 API·페이지에 함께 표시
+- TASK-2026-11-23-main-020 프로젝트 목록 화면에 null 문자열 노출 수정
+- TASK-2026-11-23-main-019 허브 셋업에서 로컬 중계 필요 여부와 상태 확인
+- TASK-2026-11-23-main-022 3단계 작업 카테고리와 roadmap·WBS·테스트 관리 연결
+- TASK-2026-11-23-main-018 홈랩 3.0.1 허브 배포 및 dacpi /workflow 프록시 연결
+- TASK-2026-11-23-main-017 허브 배포 위치 검토: 개발 호스트 vs 홈랩
+- TASK-2026-11-23-main-016 MCP 전체 최신 2026-07-28 프로토콜 전환
+- TASK-2026-11-23-main-015 MCP Python SDK 최소 버전을 최신 안정판 2.3.0으로 상향
 - TASK-2026-11-23-main-013 PostgreSQL 운영 안내와 격리 양 런타임 pilot 검증
 - TASK-2026-11-23-main-012 Go·Python SQLite→PostgreSQL 데이터 복사 및 정합성 검증 구현
-- TASK-2026-11-23-main-011 Go·Python 허브 PostgreSQL backend 및 versioned schema migration 구현
-- TASK-2026-11-23-main-009 MCP Python SDK 최소 버전을 2.x로 상향
-- TASK-2026-11-23-main-010 허브 PostgreSQL 백엔드와 SQLite 데이터 이관 설계
-- TASK-2026-11-23-main-008 Go 허브 Windows SQLite DSN 절대 경로 수정
-- TASK-2026-11-23-main-007 Go 허브 3.0.0 pre-release 발행 및 Linux 격리 pilot
-- TASK-2026-11-23-main-004 3.0.0 Go 런타임 릴리즈 준비 점검
-- TASK-2026-11-23-main-003 세션·오케스트레이션 Python/Go 실사용 차분 검사
-- TASK-2026-11-23-main-002 Go 허브 오케스트레이터 lease · 배정 · 승인 포팅
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

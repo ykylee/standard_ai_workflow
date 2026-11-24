@@ -708,6 +708,29 @@ func (j *JudgeBridge) TaskClose(ctx store.Ctx, taskID string, expectedVersion in
 			return nil, gateError("validation_result_required", "done 은 검증 결과가 있어야 닫힌다 — 검증하지 않은 결과를 done 으로 두지 않는다", warns)
 		}
 		bf, _ := before["fields"].(map[string]any)
+		if rawTests, ok := bf["tests"].([]any); ok {
+			var pending []string
+			for _, rawTest := range rawTests {
+				test, ok := rawTest.(map[string]any)
+				if !ok || test["required"] != true {
+					continue
+				}
+				runs, _ := test["runs"].([]any)
+				lastStatus := ""
+				if len(runs) > 0 {
+					if lastRun, ok := runs[len(runs)-1].(map[string]any); ok {
+						lastStatus, _ = lastRun["status"].(string)
+					}
+				}
+				if lastStatus != "passed" {
+					id, _ := test["id"].(string)
+					pending = append(pending, id)
+				}
+			}
+			if len(pending) > 0 {
+				return nil, gateError("required_tests_not_passed", "필수 테스트의 최신 실행 결과가 passed 여야 닫힌다", []string{"미통과 필수 테스트: " + strings.Join(pending, ", ")})
+			}
+		}
 		fields := make(map[string]any, len(bf)+1)
 		for k, v := range bf {
 			fields[k] = v

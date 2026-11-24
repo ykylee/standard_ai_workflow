@@ -43,6 +43,7 @@ SHA_PATTERN = re.compile(r"^[0-9a-f]{7,40}$")
 #: task 의 ``fields_json`` 이 받는 칸 (1.x task 파일의 Description 칸 — hub_spec §3.3 DS2).
 TASK_FIELD_KEYS = frozenset({
     "affected_documents", "done_criteria", "result", "risks", "follow_up", "validation_result", "next_step",
+    "category", "tests",
 })
 
 
@@ -500,6 +501,32 @@ class Store:
             if extra:
                 raise HubError(400, "unknown_field", f"fields 의 모르는 칸: {', '.join(sorted(extra))}",
                                {"fields": sorted(extra)})
+            if "category" in fields:
+                category = fields["category"]
+                levels = ("level_1", "level_2", "level_3")
+                if not isinstance(category, dict) or set(category) != set(levels) or any(
+                    not isinstance(category.get(level), str) or not category[level].strip() for level in levels
+                ):
+                    raise invalid_field("fields.category", "level_1 · level_2 · level_3 문자열이 모두 필요하다")
+            if "tests" in fields:
+                tests = fields["tests"]
+                if not isinstance(tests, list):
+                    raise invalid_field("fields.tests", "테스트 정의 배열이어야 한다")
+                seen: set[str] = set()
+                for test in tests:
+                    if not isinstance(test, dict) or not isinstance(test.get("id"), str) or not test["id"].strip():
+                        raise invalid_field("fields.tests", "각 테스트에 id가 필요하다")
+                    if test["id"] in seen:
+                        raise invalid_field("fields.tests", f"중복 테스트 id: {test['id']}")
+                    seen.add(test["id"])
+                    if not isinstance(test.get("name"), str) or not test["name"].strip() or not isinstance(test.get("required"), bool):
+                        raise invalid_field("fields.tests", "각 테스트에 name 문자열과 required 불리언이 필요하다")
+                    runs = test.get("runs", [])
+                    if not isinstance(runs, list) or any(
+                        not isinstance(run, dict) or run.get("status") not in ("passed", "failed", "skipped")
+                        for run in runs
+                    ):
+                        raise invalid_field("fields.tests.runs", "status는 passed · failed · skipped 중 하나여야 한다")
         for key in ("branch", "wbs", "wbs_exempt_reason", "description", "plan_md"):
             if key in values and not isinstance(values[key], str):
                 raise invalid_field(key, "문자열이어야 한다")

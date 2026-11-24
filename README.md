@@ -4,8 +4,8 @@
 - 범위: 2.0 허브 · 2.1 허브 오케스트레이션(PC 중계 · VS Code 확장 껍데기) · 1.x 독립 kit 유지보수 줄 · 저장소 구조 · 개발과 검증
 - 대상 독자: 허브 관리자, 허브를 쓰는 저장소 주인, AI 에이전트 설계자, 이 저장소 기여자
 - 상태: beta (2.0 허브 2.0.0 — 계약 보장 전)
-- 최종 수정일: 2026-11-22
-- 버전: v3.0.1 (Go 허브 pre-release pilot; package: standard-ai-workflow 3.0.1, runtime `__version__` = 3.0.1, latest tag **v3.0.1**. GitHub 안정판 latest 는 **v2.1.0** 유지)
+- 최종 수정일: 2026-11-24
+- 버전: v3.1.0 (Go 허브 pre-release pilot; package: standard-ai-workflow 3.1.0, runtime `__version__` = 3.1.0, latest tag **v3.1.0**. GitHub 안정판 latest 는 **v2.1.0** 유지)
 - 관련 문서: [`docs/HUB_OPERATIONS.md`](./docs/HUB_OPERATIONS.md), [`workflow-source/core/hub_spec.md`](./workflow-source/core/hub_spec.md), [`workflow-source/core/hub_orchestration_spec.md`](./workflow-source/core/hub_orchestration_spec.md), [`docs/INSTALLATION_AND_USAGE.md`](./docs/INSTALLATION_AND_USAGE.md), [`docs/LOCAL_GATE.md`](./docs/LOCAL_GATE.md)
 
 ## 1. 한눈에

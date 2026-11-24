@@ -172,7 +172,7 @@ def _task_update(store: Store, ctx: Ctx, a: dict[str, Any]) -> dict[str, Any]:
 _TASK_PROPS: dict[str, dict[str, Any]] = {
     "title": _STR, "status": _STR, "priority": _STR, "branch": _STR, "wbs": _STR, "wbs_exempt_reason": _STR,
     "description": _STR, "plan_md": {"type": "string", "description": "1.x task 파일의 Plan 절 원문 (DS2)"},
-    "fields": {"type": "object", "description": "affected_documents · done_criteria · result · risks · follow_up · validation_result · next_step"},
+    "fields": {"type": "object", "description": "표준 task 필드 외 category={level_1,level_2,level_3}, tests=[{id,name,required,runs:[{status:passed|failed|skipped,summary,run_at,commit_sha}]}]. 실행은 세션이 하고 결과를 기록한다."},
 }
 
 TOOLS: dict[str, ToolSpec] = {
@@ -190,7 +190,8 @@ TOOLS: dict[str, ToolSpec] = {
                  ("project_id", "callsign", "kind"), _register_callsign),
         ToolSpec("hub_setup_plan", "bootstrap",
                  "셋업 쓰기 지시 — .gitignore 확인 전에는 토큰 파일 지시가 나오지 않는다. token 은 등록 응답의 것 (DS4). "
-                 "harnesses: claude-code · codex · minimax-code · antigravity. scan.files: 경로 → 지금 내용(없으면 null) — "
+                 "harnesses: claude-code · codex · minimax-code · antigravity. scan.files: 경로 → 지금 내용(없으면 null); "
+                 "scan.relay: 선택형 {required, config_present, status} 로 PC 중계 필요성과 상태 확인 — "
                  ".gitignore · 진입 파일 · .mcp.json.",
                  {"project_id": _STR, "token": _STR, "harnesses": _ARR, "scan": _OBJ},
                  ("project_id", "token", "harnesses"), _setup_plan),

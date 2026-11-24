@@ -27,8 +27,8 @@ from starlette.responses import HTMLResponse, JSONResponse, Response
 from starlette.routing import Route
 from starlette.types import Receive, Scope, Send
 
-from workflow_kit import __version__ as KIT_VERSION
-from workflow_kit.hub import CONTRACT
+from workflow_kit import __version__ as HUB_VERSION
+from workflow_kit.hub import CONTRACT, KIT_COMPAT_VERSION
 from workflow_kit.hub import tools as hubtools
 from workflow_kit.hub.errors import HubError
 from workflow_kit.hub.orchestration import WAIT_CAP_S, Orchestration
@@ -61,7 +61,8 @@ def _bearer(headers: Any) -> str | None:
 
 
 def _hub_headers(store: Store) -> dict[str, str]:
-    return {"X-Hub-Kit": KIT_VERSION, "X-Hub-Contract": CONTRACT, "X-Hub-Db": str(store.db_version())}
+    return {"X-Hub-Version": HUB_VERSION, "X-Hub-Kit": KIT_COMPAT_VERSION,
+            "X-Hub-Contract": CONTRACT, "X-Hub-Db": str(store.db_version())}
 
 
 def build_app(store: Store, *, public_url: str, exposure: str = "loopback", clock: Clock = utc_now,
@@ -72,7 +73,7 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
     """
     # 제네릭 인자 수 · 모델 키워드 이름이 mcp 1.x 와 2.x 에서 다르다 (2.x: `Server[L]`, `structured_content`) — 서버는 Any 로
     # 받고, 결과 모델은 **wire 이름**(camelCase)으로 `model_validate` 해 두 판에서 같은 코드가 타입 검사를 지난다 (main-022).
-    server: Any = Server("workflow-hub", version=KIT_VERSION)
+    server: Any = Server("workflow-hub", version=HUB_VERSION, instructions=f"kit compatibility {KIT_COMPAT_VERSION}")
 
     def principal_from_request(req: Any) -> tuple[Principal | None, bool]:
         token = _bearer(req.headers) if req is not None else None
@@ -208,7 +209,8 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
 
     async def healthz(request: Request) -> Response:
         return JSONResponse(
-            {"ok": True, "kit_version": KIT_VERSION, "contract": CONTRACT, "db_version": store.db_version(),
+            {"ok": True, "hub_version": HUB_VERSION, "kit_version": KIT_COMPAT_VERSION,
+             "contract": CONTRACT, "db_version": store.db_version(),
              "exposure": exposure, "public_url": public_url, "web_token": bool(web_token_name)},
             headers=_hub_headers(store),
         )

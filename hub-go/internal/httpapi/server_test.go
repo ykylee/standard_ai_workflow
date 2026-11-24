@@ -29,10 +29,11 @@ func newTestServer(t *testing.T) (*Server, *store.Store) {
 	}
 	t.Cleanup(func() { _ = st.Close() })
 	srv := New(Config{
-		Store:     st,
-		PublicURL: "http://127.0.0.1:8770",
-		Exposure:  "loopback",
-		Clock:     func() time.Time { return now },
+		Store:      st,
+		HubVersion: "3.1.0",
+		PublicURL:  "http://127.0.0.1:8770",
+		Exposure:   "loopback",
+		Clock:      func() time.Time { return now },
 	})
 	return srv, st
 }
@@ -58,12 +59,12 @@ func TestHTTPHealthzAndToolsAndLimits(t *testing.T) {
 	if hz.Code != http.StatusOK {
 		t.Fatalf("/healthz status=%d body=%s", hz.Code, hz.Body.String())
 	}
-	if hz.Header().Get("X-Hub-Contract") != "hub/1" || hz.Header().Get("X-Hub-Kit") != "2.1.0" {
+	if hz.Header().Get("X-Hub-Contract") != "hub/1" || hz.Header().Get("X-Hub-Kit") != "2.1.0" || hz.Header().Get("X-Hub-Version") != "3.1.0" {
 		t.Fatalf("missing hub headers: %#v", hz.Header())
 	}
 	var hzJSON map[string]any
 	_ = json.Unmarshal(hz.Body.Bytes(), &hzJSON)
-	if hzJSON["ok"] != true || hzJSON["exposure"] != "loopback" {
+	if hzJSON["ok"] != true || hzJSON["exposure"] != "loopback" || hzJSON["hub_version"] != "3.1.0" || hzJSON["kit_version"] != "2.1.0" {
 		t.Fatalf("unexpected healthz JSON: %#v", hzJSON)
 	}
 
@@ -127,7 +128,7 @@ func TestHTTPGuidePages(t *testing.T) {
 	if landing.Header().Get("Content-Security-Policy") != "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'" || landing.Header().Get("Referrer-Policy") != "same-origin" {
 		t.Fatalf("landing security headers missing: %#v", landing.Header())
 	}
-	for _, want := range []string{"http://127.0.0.1:8770/setup.md", "claude-code", "codex", "minimax-code", "antigravity", "CLAUDE.md", "AGENTS.md", "MiniMax.md", "ANTIGRAVITY.md", "${WORKFLOW_HUB_TOKEN}"} {
+	for _, want := range []string{"http://127.0.0.1:8770/setup.md", "Hub 3.1.0", "kit 호환 2.1.0", "claude-code", "codex", "minimax-code", "antigravity", "CLAUDE.md", "AGENTS.md", "MiniMax.md", "ANTIGRAVITY.md", "${WORKFLOW_HUB_TOKEN}"} {
 		if !strings.Contains(landing.Body.String(), want) {
 			t.Errorf("landing page is missing %q", want)
 		}
@@ -137,7 +138,7 @@ func TestHTTPGuidePages(t *testing.T) {
 	if setup.Code != http.StatusOK || !strings.Contains(setup.Header().Get("Content-Type"), "text/markdown") {
 		t.Fatalf("setup guide code=%d content-type=%q", setup.Code, setup.Header().Get("Content-Type"))
 	}
-	for _, want := range []string{"토큰을 출력 · 기록하지 않는다", "커밋 · push 는 하지 않는다", "hub_setup_plan", "hub_setup_confirm", "Python 이 없을 때", "claude mcp add", "codex mcp add", "agy mcp add", "MiniMax.md"} {
+	for _, want := range []string{"Hub 3.1.0", "kit 호환 2.1.0", "토큰을 출력 · 기록하지 않는다", "커밋 · push 는 하지 않는다", "hub_setup_plan", "hub_setup_confirm", "--relay", "PC 로컬 중계", "python -m workflow_kit hub relay status", "Python 이 없을 때", "claude mcp add", "codex mcp add", "agy mcp add", "MiniMax.md"} {
 		if !strings.Contains(setup.Body.String(), want) {
 			t.Errorf("setup guide is missing %q", want)
 		}

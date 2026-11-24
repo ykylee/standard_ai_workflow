@@ -23,7 +23,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-from workflow_kit import __version__ as KIT_VERSION
+from workflow_kit.hub import KIT_COMPAT_VERSION as KIT_VERSION
 from workflow_kit.bootstrap_lib.harnesses import spec_for
 from workflow_kit.bootstrap_lib.harnesses.entry_sections import ENTRY_BUDGET_BYTES
 from workflow_kit.hub.errors import HubError

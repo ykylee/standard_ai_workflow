@@ -750,7 +750,7 @@ REVERT_WARNING = ("허브 쪽 기록(task · handoff · 위키 …)은 지우지
 
 def marker_content(public_url: str, project_id: str, mig: str, migrated_at: str, from_kit: list[str]) -> str:
     """표식 본문 — 같은 전환이면 언제 내도 같은 바이트 (멱등 · sha256 대조)."""
-    from workflow_kit import __version__ as kit
+    from workflow_kit.hub import KIT_COMPAT_VERSION as kit
 
     body = {"format": MARKER_FORMAT, "hub": public_url, "project_id": project_id, "migration_id": mig,
             "migrated_at": migrated_at, "kit_version": kit, "from_kit_versions": from_kit,

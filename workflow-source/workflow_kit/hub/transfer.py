@@ -22,7 +22,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from workflow_kit import __version__ as KIT_VERSION
+from workflow_kit.hub import KIT_COMPAT_VERSION as KIT_VERSION
 from workflow_kit.hub import db as hubdb
 from workflow_kit.hub.errors import HubError, not_found
 from workflow_kit.hub.store import Ctx, Store, _iso, _json

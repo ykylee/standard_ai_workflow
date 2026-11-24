@@ -131,7 +131,7 @@ class Setup:
         files = scan.get("files") or {}
         if not isinstance(files, dict):
             raise invalid_field("scan.files", "경로 → 내용(없으면 null) 객체")
-        extra = set(scan) - {"files"}
+        extra = set(scan) - {"files", "relay"}
         if extra:
             raise HubError(400, "unknown_field", f"scan 의 모르는 칸: {', '.join(sorted(extra))}", {"fields": sorted(extra)})
         legacy = sorted(path for path, text in files.items()
@@ -140,6 +140,16 @@ class Setup:
                      "next": "1.x kit 흔적이 있다 — 전환은 사람이 선택 클라이언트로 한다: "
                              "python .workflow-hub/hub_client.py migrate plan → (표를 보이고 고른 종류로) migrate import "
                              "(hub_spec §6.6). 셋업만으로는 1.x 기록이 허브에 들어오지 않는다"} if legacy else None
+        relay_scan = scan.get("relay") or {"required": False}
+        if not isinstance(relay_scan, dict) or set(relay_scan) - {"required", "config_present", "status"}:
+            raise invalid_field("scan.relay", "{required, config_present, status} 객체")
+        if not isinstance(relay_scan.get("required", False), bool):
+            raise invalid_field("scan.relay.required", "boolean")
+        relay_advice = {"required": relay_scan.get("required", False),
+                        "config_present": bool(relay_scan.get("config_present", False)),
+                        "status": relay_scan.get("status"),
+                        "next": "Python 우선: python -m workflow_kit hub relay status → 필요하면 init → allow add → serve"
+                        if relay_scan.get("required") else "선택 사항 — 현재 셋업에서는 로컬 중계가 필요하지 않음"}
         with self.store.write() as conn:
             done = {k: r["status"] for k, r in self._steps(conn, p).items()}
             if done.get("gitignore") != "confirmed":
@@ -156,6 +166,7 @@ class Setup:
                     ],
                     "next": "hub_setup_confirm — 이 단계가 확인되기 전에는 토큰 파일 지시를 내지 않는다 (요구 R4.2)",
                     "legacy_1x": legacy_1x,
+                    "relay": relay_advice,
                 }
             steps: list[dict[str, Any]] = []
             blocked: list[dict[str, Any]] = []
@@ -211,6 +222,7 @@ class Setup:
                 "blocked": blocked,
                 # 1.x 흔적 (요구 R14.1) — 셋업은 전환을 하지 않는다. 사람에게 알리고 클라이언트 전환으로 안내한다.
                 "legacy_1x": legacy_1x,
+                "relay": relay_advice,
                 "next": "hub_setup_confirm — 쓴 파일의 sha256 과 명령 결과를 보낸다. 끝나면 "
                         f"`{TOKEN_ENV}` 를 .workflow-hub/env 에서 환경에 올리고 하네스를 다시 연결한다",
             }

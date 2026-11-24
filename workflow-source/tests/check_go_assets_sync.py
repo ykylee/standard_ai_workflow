@@ -76,7 +76,9 @@ def asset_pairs() -> list[tuple[str, bytes, bytes]]:
     pairs.append(("hub_client.py", go_client.read_bytes() if go_client.is_file() else b"", py_client.read_bytes()))
 
     go_setup = go_assets / "setup.md"
-    py_setup = hubguide.render_setup_md("{{BASE}}").replace(hubguide.KIT_VERSION, "{{KIT_VERSION}}")
+    py_setup = (hubguide.render_setup_md("{{BASE}}")
+                .replace(hubguide.HUB_VERSION, "{{HUB_VERSION}}")
+                .replace(hubguide.KIT_VERSION, "{{KIT_VERSION}}"))
     pairs.append((
         "setup.md",
         go_setup.read_bytes() if go_setup.is_file() else b"",

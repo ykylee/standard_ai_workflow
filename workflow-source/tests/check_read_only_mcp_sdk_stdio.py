@@ -22,8 +22,7 @@ from typing import Any
 
 try:
     import anyio
-    from mcp import ClientSession
-    from mcp.client.stdio import StdioServerParameters, stdio_client
+    from mcp import Client, StdioServerParameters
     HAS_MCP_SDK = True
 except ImportError:
     HAS_MCP_SDK = False
@@ -59,46 +58,48 @@ async def run_stdio_smoke() -> None:
         },
     )
 
-    async with stdio_client(server) as (read_stream, write_stream):
-        async with ClientSession(read_stream, write_stream) as session:
-            initialize = await session.initialize()
-            if _field(initialize, "server_info", "serverInfo").name != "workflow_read_only_bundle":
-                raise AssertionError("Expected stdio SDK server to expose read-only bundle server name.")
+    async with Client(server) as session:
+        if _field(session, "protocol_version", "protocolVersion") != "2026-07-28":
+            raise AssertionError(
+                f"Expected modern MCP protocol, got {_field(session, 'protocol_version', 'protocolVersion')!r}."
+            )
+        server_info = _field(session, "server_info", "serverInfo")
+        if server_info is None or server_info.name != "workflow_read_only_bundle":
+            raise AssertionError("Expected modern server/discover to expose the read-only bundle identity.")
 
-            tools_result = await session.list_tools()
-            if len(tools_result.tools) < 6:
-                raise AssertionError(f"Expected at least six read-only tools over stdio SDK session, got {len(tools_result.tools)}.")
-            latest_backlog = next((tool for tool in tools_result.tools if tool.name == "latest_backlog"), None)
-            if latest_backlog is None:
-                raise AssertionError("Expected latest_backlog tool over stdio SDK session.")
-            if latest_backlog.annotations is None or _field(
-                latest_backlog.annotations, "read_only_hint", "readOnlyHint"
-            ) is not True:
-                raise AssertionError("Expected latest_backlog tool to remain read-only annotated.")
+        tools_result = await session.list_tools()
+        if len(tools_result.tools) < 6:
+            raise AssertionError(f"Expected at least six read-only tools over stdio SDK session, got {len(tools_result.tools)}.")
+        latest_backlog = next((tool for tool in tools_result.tools if tool.name == "latest_backlog"), None)
+        if latest_backlog is None:
+            raise AssertionError("Expected latest_backlog tool over stdio SDK session.")
+        if latest_backlog.annotations is None or _field(
+            latest_backlog.annotations, "read_only_hint", "readOnlyHint"
+        ) is not True:
+            raise AssertionError("Expected latest_backlog tool to remain read-only annotated.")
 
-            create_backlog_entry = next((tool for tool in tools_result.tools if tool.name == "create_backlog_entry"), None)
-            if create_backlog_entry is None:
-                raise AssertionError("Expected create_backlog_entry tool over stdio SDK session.")
+        create_backlog_entry = next((tool for tool in tools_result.tools if tool.name == "create_backlog_entry"), None)
+        if create_backlog_entry is None:
+            raise AssertionError("Expected create_backlog_entry tool over stdio SDK session.")
 
-            latest_backlog_payload = {
-                "work_backlog_index_path": str(SOURCE_ROOT / "examples" / "acme_delivery_platform" / "work_backlog.md")
-            }
-            call_result = await session.call_tool("latest_backlog", latest_backlog_payload)
-            if _field(call_result, "is_error", "isError"):
-                raise AssertionError("Expected latest_backlog stdio SDK call to succeed.")
-            call_structured = _field(call_result, "structured_content", "structuredContent")
-            if call_structured is None or call_structured["status"] != "ok":
-                raise AssertionError("Expected stdio SDK call to preserve structuredContent.")
+        latest_backlog_payload = {
+            "work_backlog_index_path": str(SOURCE_ROOT / "examples" / "acme_delivery_platform" / "work_backlog.md")
+        }
+        call_result = await session.call_tool("latest_backlog", latest_backlog_payload)
+        if _field(call_result, "is_error", "isError"):
+            raise AssertionError("Expected latest_backlog stdio SDK call to succeed.")
+        call_structured = _field(call_result, "structured_content", "structuredContent")
+        if call_structured is None or call_structured["status"] != "ok":
+            raise AssertionError("Expected stdio SDK call to preserve structuredContent.")
 
-            schema_error = await session.call_tool("check_doc_metadata", {})
-            if not _field(schema_error, "is_error", "isError"):
-                raise AssertionError("Expected invalid check_doc_metadata payload to surface as tool error.")
-            error_structured = _field(schema_error, "structured_content", "structuredContent")
-            if error_structured is None:
-                raise AssertionError("Expected failing stdio SDK call to preserve structuredContent.")
-            if error_structured["error_code"] != "invalid_tool_payload_schema":
-                raise AssertionError("Expected schema-invalid stdio SDK call to preserve entrypoint error code.")
-
+        schema_error = await session.call_tool("check_doc_metadata", {})
+        if not _field(schema_error, "is_error", "isError"):
+            raise AssertionError("Expected invalid check_doc_metadata payload to surface as tool error.")
+        error_structured = _field(schema_error, "structured_content", "structuredContent")
+        if error_structured is None:
+            raise AssertionError("Expected failing stdio SDK call to preserve structuredContent.")
+        if error_structured["error_code"] != "invalid_tool_payload_schema":
+            raise AssertionError("Expected schema-invalid stdio SDK call to preserve entrypoint error code.")
 
 def main() -> int:
     if not HAS_MCP_SDK:

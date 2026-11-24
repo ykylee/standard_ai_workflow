@@ -221,6 +221,9 @@ python3 .workflow-hub/hub_client.py migrate import <MIG> all     # 고른 종류
 | `GetTask` · `ListTasks` | 내 콜사인이 만든 Task만 |
 | `CancelTask` | 결정 전 요청을 거둔다 |
 
+프로젝트 문서(`purpose` · `profile`)는 에이전트가 `hub_client.py doc request <문서> <파일>`로 승인을 요청하고, 사람이 화면에서 차이를 보고
+승인하면 `hub_client.py doc put <문서> <파일> <Task ID>`로 쓴다. 파일이나 문서의 판이 바뀌면 다시 요청한다.
+
 사람이 승인하면 `COMPLETED`와 승인 아티팩트, 거절하면 `REJECTED`가 된다. Task 상태는 권한이 아니다 — 실행은 아티팩트의 `approval_id`로 연다.
 스트리밍·푸시 알림·다른 바인딩은 아직 없다. 명령줄에서는 `hub_client.py a2a send|get|list|cancel`을 쓴다. 결정: ADR-037.
 

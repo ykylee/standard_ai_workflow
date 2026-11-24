@@ -1,9 +1,12 @@
 package store
 
 import (
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
 	"sort"
 	"time"
@@ -14,14 +17,82 @@ import (
 // 사람이 웹에서 로그인해 여는 실행 승인 — Python hub/approval_grants.py 와 같은 계약.
 // 대상에 묶이고 만료되며 한 번 쓰면 끝난다. 받은편지함 상태는 권한 근거가 아니다.
 
-const approvalActionForm = "{type: migrate_import, migration_id, kinds} · {type: migrate_marker, migration_id, marker: issue|revert}"
+const approvalActionForm = "{type: migrate_import, migration_id, kinds} · {type: migrate_marker, migration_id, marker: issue|revert} · {type: project_doc_put, name, body, expected_version}"
+
+func docSHA(body string) string {
+	sum := sha256.Sum256([]byte(body))
+	return hex.EncodeToString(sum[:])
+}
+
+// briefSummary drops the document bodies: only the approval screen shows them.
+func briefSummary(raw string) (map[string]any, error) {
+	var out map[string]any
+	if err := json.Unmarshal([]byte(raw), &out); err != nil {
+		return nil, err
+	}
+	delete(out, "base")
+	delete(out, "proposed")
+	return out, nil
+}
+
+// prepareDocPut binds a project document write to its exact body and version, keeping the body for the human to read.
+func prepareDocPut(tx *sql.Tx, projectID string, action map[string]any) (map[string]any, map[string]any, error) {
+	rawName, okName := action["name"]
+	rawBody, okBody := action["body"]
+	rawVersion, okVersion := action["expected_version"]
+	if !okName || !okBody || !okVersion || len(action) != 4 {
+		return nil, nil, InvalidField("action", approvalActionForm)
+	}
+	name, _ := rawName.(string)
+	body, _ := rawBody.(string)
+	if err := checkDoc(name, body); err != nil {
+		return nil, nil, err
+	}
+	expected, ok := wholeNumber(rawVersion)
+	if !ok {
+		return nil, nil, InvalidField("action.expected_version", "정수 (새 문서는 0)")
+	}
+	if err := ScanSecrets(body, "action.body"); err != nil {
+		return nil, nil, err
+	}
+	var base string
+	var current int
+	err := tx.QueryRow("SELECT body_md,version FROM project_doc WHERE project_id=? AND name=?", projectID, name).Scan(&base, &current)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return nil, nil, err
+	}
+	if expected != current {
+		return nil, nil, &HubError{Status: 409, Code: "version_conflict", Message: fmt.Sprintf("version 이 다르다 — 지금 %d", current), Detail: map[string]any{"current_version": current}}
+	}
+	sha := docSHA(body)
+	return map[string]any{"type": "project_doc_put", "name": name, "expected_version": expected, "sha256": sha},
+		map[string]any{"name": name, "version": current, "sha256": sha, "base": base, "proposed": body}, nil
+}
+
+func wholeNumber(v any) (int, bool) {
+	switch n := v.(type) {
+	case int:
+		return n, true
+	case int64:
+		return int(n), true
+	case float64:
+		return int(n), n == float64(int(n))
+	case json.Number:
+		i, err := n.Int64()
+		return int(i), err == nil
+	}
+	return 0, false
+}
 
 var approvalKinds = []string{"tasks", "archive", "handoff", "roadmap", "wiki", "memory_index", "checkpoint", "guide_draft", "plan_responses", "project_docs"}
 
 func prepareApproval(tx *sql.Tx, projectID string, raw any) (map[string]any, map[string]any, error) {
 	action, ok := raw.(map[string]any)
-	mig, okMig := action["migration_id"].(string)
 	kind, _ := action["type"].(string)
+	if kind == "project_doc_put" {
+		return prepareDocPut(tx, projectID, action)
+	}
+	mig, okMig := action["migration_id"].(string)
 	extra := map[string]string{"migrate_import": "kinds", "migrate_marker": "marker"}[kind]
 	_, okExtra := action[extra]
 	if !ok || !okMig || extra == "" || !okExtra || len(action) != 3 {

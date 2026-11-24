@@ -29,6 +29,16 @@ func checkDocName(name string) error {
 	return nil
 }
 
+func checkDoc(name, body string) error {
+	if err := checkDocName(name); err != nil {
+		return err
+	}
+	if strings.TrimSpace(body) == "" || len(body) > projectDocMax {
+		return InvalidField("body", "비지 않은 문자열 · 192KB 이하")
+	}
+	return nil
+}
+
 // ProjectDocGet reads purpose or profile; a missing document has version 0.
 func (s *Store) ProjectDocGet(ctx Ctx, name string) (map[string]any, error) {
 	p, err := NeedReader(ctx)
@@ -50,16 +60,27 @@ func (s *Store) ProjectDocGet(ctx Ctx, name string) (map[string]any, error) {
 	return map[string]any{"name": name, "body": body, "version": version, "updated_by": by, "updated_at": at}, nil
 }
 
-// ProjectDocPut writes a project document; only an approved human may.
-func (s *Store) ProjectDocPut(ctx Ctx, name, body string, expected *int) (map[string]any, error) {
+// ProjectDocPut writes a project document; an approved human may, or a callsign holding a login approval for this body and version.
+func (s *Store) ProjectDocPut(ctx Ctx, name, body string, expected *int, approvalID string) (map[string]any, error) {
 	p, err := NeedCallsign(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if p.CallsignKind != "human" || !p.HumanApproved {
-		return nil, Forbidden("프로젝트 문서는 승인된 human 콜사인이 쓴다")
+	if err := checkDoc(name, body); err != nil {
+		return nil, err
 	}
-	return s.putProjectDoc(ctx, p, name, body, expected)
+	if approvalID != "" {
+		var version any
+		if expected != nil {
+			version = *expected
+		}
+		if _, err := s.ApprovalAuthorize(ctx, approvalID, "project_doc_put", map[string]any{"name": name, "expected_version": version, "sha256": docSHA(body)}); err != nil {
+			return nil, err
+		}
+	} else if p.CallsignKind != "human" || !p.HumanApproved {
+		return nil, Forbidden("프로젝트 문서는 승인된 human 콜사인이 쓰거나, action=project_doc_put 으로 로그인 승인받은 approval_id 가 필요하다")
+	}
+	return s.putProjectDoc(ctx, p, name, body, expected, approvalID)
 }
 
 // ProjectDocImport writes a new document for an already authorized migration (owner or login approval).
@@ -69,15 +90,12 @@ func (s *Store) ProjectDocImport(ctx Ctx, name, body string) (map[string]any, er
 		return nil, err
 	}
 	zero := 0
-	return s.putProjectDoc(ctx, p, name, body, &zero)
+	return s.putProjectDoc(ctx, p, name, body, &zero, "")
 }
 
-func (s *Store) putProjectDoc(ctx Ctx, p *Principal, name, body string, expected *int) (map[string]any, error) {
-	if err := checkDocName(name); err != nil {
+func (s *Store) putProjectDoc(ctx Ctx, p *Principal, name, body string, expected *int, approvalID string) (map[string]any, error) {
+	if err := checkDoc(name, body); err != nil {
 		return nil, err
-	}
-	if strings.TrimSpace(body) == "" || len(body) > projectDocMax {
-		return nil, InvalidField("body", "비지 않은 문자열 · 192KB 이하")
 	}
 	if err := ScanSecrets(body, "body"); err != nil {
 		return nil, err
@@ -94,7 +112,14 @@ func (s *Store) putProjectDoc(ctx Ctx, p *Principal, name, body string, expected
 		if _, err := tx.Exec("INSERT INTO project_doc (project_id,name,body_md,version,updated_by,updated_at) VALUES (?,?,?,1,?,?) ON CONFLICT(project_id,name) DO UPDATE SET body_md=excluded.body_md,version=project_doc.version+1,updated_by=excluded.updated_by,updated_at=excluded.updated_at", p.ProjectID, name, body, p.Callsign, db.FormatISO(ctx.Now)); err != nil {
 			return nil, err
 		}
-		if err := s.RecordEvent(tx, ctx, &p.ProjectID, "project_doc", name, "put", map[string]any{"version": current}, map[string]any{"version": current + 1}, nil); err != nil {
+		after := map[string]any{"version": current + 1}
+		if approvalID != "" {
+			if err := ApprovalConsume(tx, ctx, p.ProjectID, approvalID); err != nil {
+				return nil, err
+			}
+			after["approval_id"] = approvalID
+		}
+		if err := s.RecordEvent(tx, ctx, &p.ProjectID, "project_doc", name, "put", map[string]any{"version": current}, after, nil); err != nil {
 			return nil, err
 		}
 		return map[string]any{"name": name, "version": current + 1}, nil

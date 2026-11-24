@@ -13,6 +13,8 @@
     python .workflow-hub/hub_client.py migrate request <MIG> <종류,…|all>  # 소유자가 아니면 — 웹 로그인 승인을 요청한다
     python .workflow-hub/hub_client.py migrate import <MIG> <종류,…|all> <A2A Task|approval_id>  # 승인받은 뒤 들인다
     python .workflow-hub/hub_client.py a2a send <제목> <질문> | get <Task> | list | cancel <Task>   # A2A 1.0 승인 요청
+    python .workflow-hub/hub_client.py doc request <purpose|profile> <파일>            # 문서 쓰기 승인을 요청한다 (사람 로그인)
+    python .workflow-hub/hub_client.py doc put <purpose|profile> <파일> <A2A Task>    # 승인받은 본문을 쓴다
     python .workflow-hub/hub_client.py move <대상 허브 주소> <초대 코드>   # 허브 간 이전 (소유자) — 봉인 · 뜨기 · 들이기 · 주소 바꾸기
     python .workflow-hub/hub_client.py bootstrap <허브 주소> --harness <h> --callsign <c> [--kind human|agent] [--name <표시 이름>]
                                                     # 빈 환경 부트스트랩 — 등록(또는 합류) · 셋업 지시 실행 · 확인 (토큰은 env 에만)
@@ -314,6 +316,43 @@ def _approval_of(task_id: str) -> tuple[str, dict[str, Any]]:
             if found:
                 return str(found), out
     return "", {"http": status, "state": task.get("status", {}).get("state"), **({"error": out["error"]} if "error" in out else {})}
+
+
+def cmd_doc(action: str, name: str, file: str, task_id: str = "") -> int:
+    """프로젝트 문서 쓰기 — 승인은 본문 · 판에 묶인다. 파일을 고쳤으면 다시 요청한다."""
+    try:
+        body = Path(file).read_bytes().decode("utf-8")
+    except (OSError, UnicodeDecodeError) as e:
+        print(json.dumps({"status": "error", "message": f"파일을 읽지 못했다: {e}"}, ensure_ascii=False))
+        return 2
+    try:
+        status, now = _post("hub_project_doc_get", {"name": name})
+        if status != 200:
+            print(json.dumps({"http": status, **now}, ensure_ascii=False, indent=1))
+            return 1
+        if action == "request":
+            data = {"title": f"프로젝트 문서 {name} 갱신", "question": f"{name} 문서를 {now['version'] + 1}판으로 바꿀까요?",
+                    "action": {"type": "project_doc_put", "name": name, "body": body, "expected_version": now["version"]}}
+            status, out = _a2a("SendMessage", {"message": {"messageId": f"hc-{secrets.token_hex(12)}", "role": "ROLE_USER",
+                                                           "parts": [{"data": data, "mediaType": "application/json"}]}})
+            task = out.get("result", {}).get("task")
+            if status != 200 or not task:
+                print(json.dumps({"http": status, **out}, ensure_ascii=False, indent=1))
+                return 1
+            print(json.dumps({"http": status, "task_id": task["id"], "state": task["status"]["state"],
+                              "approve_at": task["status"]["message"]["parts"][1]["data"]["approval_url"],
+                              "then": f"hub_client.py doc put {name} {file} {task['id']}"}, ensure_ascii=False, indent=1))
+            return 0
+        approval, why = _approval_of(task_id) if task_id.startswith("A2A-") else (task_id, {})
+        if not approval:
+            print(json.dumps({"status": "not_approved", **why}, ensure_ascii=False))
+            return 1
+        status, out = _post("hub_project_doc_put", {"name": name, "body": body, "expected_version": now["version"], "approval_id": approval})
+    except Unreachable as e:
+        print(json.dumps({"status": "unreachable", "reason": str(e)}, ensure_ascii=False))
+        return 3
+    print(json.dumps({"http": status, **out}, ensure_ascii=False, indent=1))
+    return 0 if status == 200 else 1
 
 
 def cmd_migrate_import(mig: str, kinds_arg: str, approval_id: str = "") -> int:
@@ -667,6 +706,8 @@ def main(argv: list[str]) -> int:
         return cmd_move(rest[0], rest[1])
     if cmd == "migrate" and rest[:1] == ["plan"]:
         return cmd_migrate_plan()
+    if cmd == "doc" and (rest[:1] == ["request"] and len(rest) == 3 or rest[:1] == ["put"] and len(rest) == 4):
+        return cmd_doc(*rest)
     if cmd == "a2a" and rest:
         return cmd_a2a(rest[0], rest[1:])
     if cmd == "migrate" and len(rest) == 3 and rest[0] == "request":

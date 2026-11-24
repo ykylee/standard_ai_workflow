@@ -219,7 +219,7 @@ TOOLS: dict[str, ToolSpec] = {
                               "description": "2.1 — 첫 호출은 {harness, harness_session_id?, kind?, delivery?, resume?} 로 세션 등록, "
                                              "이후(두 번째 호출 포함)는 받은 세션 ID 문자열"}}, (), _session_start),
         ToolSpec("hub_approval_request", "token",
-                 "사람 확인이 필요할 때 요청을 owner에게 전달한다. 웹 허브 확인 요청 메뉴에서 승인/거절하며 결과는 요청 콜사인의 허브 받은편지함으로 돌아온다. 승인 자체가 작업을 실행하지는 않는다. action 을 실으면 (migrate_import · migrate_marker) 사람이 계정 로그인으로 승인한 뒤 그 실행에만 쓰는 approval_id 가 된다.",
+                 "사람 확인이 필요할 때 요청을 owner에게 전달한다. 웹 허브 확인 요청 메뉴에서 승인/거절하며 결과는 요청 콜사인의 허브 받은편지함으로 돌아온다. 승인 자체가 작업을 실행하지는 않는다. action 을 실으면 (migrate_import · migrate_marker · project_doc_put) 사람이 계정 로그인으로 승인한 뒤 그 실행에만 쓰는 approval_id 가 된다.",
                  {"session": _STR, "title": _STR, "question": _STR, "details": _STR, "action": _OBJ},
                  ("session", "title", "question"), lambda s, c, a: Confirmations(s).request(c, a)),
         ToolSpec("hub_harness_report", "token", "셋업 미지원 하네스의 비밀 없는 프로필 관측과 후보 경로를 검토 대기열에 제보한다. 관리자는 승인 시 검증된 mcp-http-json-v1 셋업 프로필도 함께 등록한다. 제보만으로 허브 설정은 바뀌지 않는다.",
@@ -271,9 +271,9 @@ TOOLS: dict[str, ToolSpec] = {
         ToolSpec("hub_project_doc_get", "token", "프로젝트 문서 (name=purpose · profile — 1.x 의 PURPOSE.md · PROJECT_PROFILE.md).",
                  {"name": _STR}, ("name",), lambda s, c, a: Memory(s).doc_get(c, a["name"])),
         ToolSpec("hub_project_doc_put", "token",
-                 "프로젝트 문서를 쓴다 — 승인된 human 만. expected_version 이 다르면 409 (새 문서는 0). 상태 요약의 목적 · 프로젝트 칸이 여기서 나온다.",
-                 {"name": _STR, "body": _STR, "expected_version": _INT}, ("name", "body"),
-                 lambda s, c, a: Memory(s).doc_put(c, a["name"], a["body"], a.get("expected_version"))),
+                 "프로젝트 문서를 쓴다 — 승인된 human, 또는 로그인 승인받은 approval_id (action=project_doc_put, 같은 본문 · 판). expected_version 이 다르면 409 (새 문서는 0). 상태 요약의 목적 · 프로젝트 칸이 여기서 나온다.",
+                 {"name": _STR, "body": _STR, "expected_version": _INT, "approval_id": _STR}, ("name", "body"),
+                 lambda s, c, a: Memory(s).doc_put(c, a["name"], a["body"], a.get("expected_version"), approval_id=a.get("approval_id"))),
         ToolSpec("hub_project_export", "token",
                  "허브 간 이전 — 소유자가 자기 프로젝트 묶음을 뜬다. seal_to(새 허브 주소)를 주면 먼저 봉인한다 (그 뒤 410). "
                  "묶음은 크다 — 선택 클라이언트(hub_client.py move)가 나른다.",

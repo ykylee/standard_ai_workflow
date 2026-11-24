@@ -416,7 +416,7 @@ func Call(s *store.Store, name string, rawArgs any, ctx store.Ctx) (result map[s
 	case "hub_project_doc_get":
 		return s.ProjectDocGet(ctx, strArg(clean, "name", ""))
 	case "hub_project_doc_put":
-		return s.ProjectDocPut(ctx, strArg(clean, "name", ""), strArg(clean, "body", ""), optIntArg(clean, "expected_version"))
+		return s.ProjectDocPut(ctx, strArg(clean, "name", ""), strArg(clean, "body", ""), optIntArg(clean, "expected_version"), strArg(clean, "approval_id", ""))
 	case "hub_handoff_get":
 		return s.HandoffGet(ctx, strArg(clean, "callsign", ""))
 	case "hub_handoff_put":

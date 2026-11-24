@@ -19,6 +19,7 @@ from typing import Any
 
 from workflow_kit.common.paths import HANDOFF_FILENAME, memory_active_dir, path_in_active
 from workflow_kit.common.project_docs import TASK_ID_PATTERN
+from workflow_kit.hub import approval_grants
 from workflow_kit.hub.errors import HubError, forbidden, invalid_field, not_found
 from workflow_kit.hub.store import Ctx, Store, _iso, _json, scan_secrets
 
@@ -29,6 +30,13 @@ _LIST_KEYS = ("in_progress", "blocked", "recent_done", "next", "risks")
 _STR_KEYS = ("baseline", "focus")
 _TASK_ID = re.compile(TASK_ID_PATTERN)
 _IDENT = re.compile(r"`([^`]{2,80})`")
+
+
+def check_doc(name: Any, body: Any) -> None:
+    if name not in PROJECT_DOCS:
+        raise invalid_field("name", " · ".join(PROJECT_DOCS))
+    if not isinstance(body, str) or not body.strip() or len(body.encode("utf-8")) > 192 * 1024:
+        raise invalid_field("body", "비지 않은 문자열 · 192KB 이하")
 
 
 def _validate_sections(sections: Any) -> dict[str, Any]:
@@ -75,15 +83,15 @@ class Memory:
                 "updated_at": row["updated_at"]}
 
     def doc_put(self, ctx: Ctx, name: str, body: str, expected_version: int | None, *, actor: str | None = None,
-                conn: sqlite3.Connection | None = None) -> dict[str, Any]:
-        """프로젝트 문서 쓰기 — 승인된 human 만 (지침과 같은 기준: 모든 환경의 방향을 바꾼다). 새 문서는 0."""
+                conn: sqlite3.Connection | None = None, approval_id: str | None = None) -> dict[str, Any]:
+        """프로젝트 문서 쓰기 — 승인된 human, 또는 이 본문 · 판을 로그인 승인받은 콜사인 (모든 환경의 방향을 바꾼다). 새 문서는 0."""
         p = self.store._need_callsign(ctx)
-        if conn is None and (p.callsign_kind != "human" or not p.human_approved):
-            raise forbidden("프로젝트 문서는 승인된 human 콜사인이 쓴다")
-        if name not in PROJECT_DOCS:
-            raise invalid_field("name", " · ".join(PROJECT_DOCS))
-        if not isinstance(body, str) or not body.strip() or len(body.encode("utf-8")) > 192 * 1024:
-            raise invalid_field("body", "비지 않은 문자열 · 192KB 이하")
+        check_doc(name, body)
+        if approval_id:
+            approval_grants.authorize(self.store, ctx, approval_id, "project_doc_put", name=name,
+                                      expected_version=expected_version, sha256=approval_grants.doc_sha(body))
+        elif conn is None and (p.callsign_kind != "human" or not p.human_approved):
+            raise forbidden("프로젝트 문서는 승인된 human 콜사인이 쓰거나, action=project_doc_put 으로 로그인 승인받은 approval_id 가 필요하다")
         scan_secrets(body, "body")
 
         def do(c: sqlite3.Connection) -> dict[str, Any]:
@@ -95,7 +103,11 @@ class Memory:
                       "ON CONFLICT(project_id, name) DO UPDATE SET body_md = excluded.body_md, version = project_doc.version + 1, "
                       "updated_by = excluded.updated_by, updated_at = excluded.updated_at",
                       (p.project_id, name, body, actor or p.callsign, _iso(ctx.now)))
-            self.store._event(c, ctx, p.project_id, "project_doc", name, "put", {"version": current}, {"version": current + 1})
+            after: dict[str, Any] = {"version": current + 1}
+            if approval_id:
+                approval_grants.consume(c, ctx, str(p.project_id), approval_id)
+                after["approval_id"] = approval_id
+            self.store._event(c, ctx, p.project_id, "project_doc", name, "put", {"version": current}, after)
             return {"name": name, "version": current + 1}
 
         if conn is not None:

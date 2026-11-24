@@ -202,7 +202,7 @@ class A2A:
         if note:
             data["note"] = note
         if r["action"]:
-            data["action"] = {"params": json.loads(r["params_json"]), "summary": json.loads(r["summary_json"])}
+            data["action"] = {"params": json.loads(r["params_json"]), "summary": approval_grants.brief(json.loads(r["summary_json"]))}
         task: dict[str, Any] = {
             "id": r["id"], "contextId": r["context_id"],
             "status": {"state": f"TASK_STATE_{state}", "timestamp": _ms(at), "message": {

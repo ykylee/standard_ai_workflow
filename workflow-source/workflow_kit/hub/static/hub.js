@@ -754,10 +754,11 @@
         el("div", { class: "muted" }, `${req.requested_by} · ${req.created_at}`),
         req.action ? el("section", { class: "card", "data-action": req.action.type },
           el("h3", {}, "승인하면 허용되는 실행 (허브가 계산)"),
+          ...(req.action.type === "project_doc_put" ? docPutCard(req) : [
           el("p", {}, `${{ migrate_import: "1.x 기록 들여오기", migrate_marker: "'허브로 옮김' 표식" }[req.action.type] || req.action.type} · ${req.action.summary.migration_id}`),
           el("p", { class: "muted" }, `요청 콜사인 ${req.requested_by}에게만, 승인 뒤 24시간, 한 번. 브랜치 ${req.action.summary.branch} · ${String(req.action.summary.head).slice(0, 8)} · 미커밋 파일 ${req.action.summary.uncommitted}개`),
           req.action.summary.files ? el("ul", {}, Object.entries(req.action.summary.files).map(([k, n]) => el("li", {}, `${k}: ${n}개 파일`))) : null,
-          req.action.summary.marker ? el("p", {}, `표식 동작: ${req.action.summary.marker}`) : null,
+          req.action.summary.marker ? el("p", {}, `표식 동작: ${req.action.summary.marker}`) : null]),
           actingAccount ? null : alertBox("warn", "이 승인은 허브 계정 로그인이 필요하다. 홈에서 계정으로 로그인한 뒤 승인한다.")) : null,
         el("p", { class: "muted" }, "요청한 에이전트의 설명"), el("p", {}, req.question), req.details ? el("pre", { class: "wrap" }, req.details) : null,
         el("div", { class: "row" }, note,
@@ -768,6 +769,50 @@
       el("p", { class: "muted" }, "요청에 답하면 승인 또는 거절 결과가 요청한 콜사인의 허브 받은편지함으로 전달됩니다. 승인은 요청 내용을 승인하는 결정이며, 작업은 에이전트가 결과를 확인한 뒤 진행합니다."),
       projectNav(pid, "confirmations")),
       ...(cards.length ? cards : [el("section", { class: "card muted" }, "대기 중인 에이전트 확인 요청이 없습니다.")]));
+  }
+
+  // 승인할 문서 본문 — 허브가 보관한 요청 본문과 요청 때 판의 줄 단위 차이. 자르지 않는다.
+  function lineDiff(before, after) {
+    const a = before ? before.split("\n") : [], b = after ? after.split("\n") : [];
+    let s = 0, t = 0;
+    while (s < a.length && s < b.length && a[s] === b[s]) s += 1;
+    while (t < a.length - s && t < b.length - s && a[a.length - 1 - t] === b[b.length - 1 - t]) t += 1;
+    const x = a.slice(s, a.length - t), y = b.slice(s, b.length - t), out = a.slice(0, s).map((l) => [" ", l]);
+    if (x.length * y.length > 4e6) {
+      x.forEach((l) => out.push(["-", l])); y.forEach((l) => out.push(["+", l]));
+    } else {
+      const w = y.length + 1, m = new Uint32Array((x.length + 1) * w);
+      for (let i = x.length - 1; i >= 0; i -= 1) for (let j = y.length - 1; j >= 0; j -= 1) {
+        m[i * w + j] = x[i] === y[j] ? m[(i + 1) * w + j + 1] + 1 : Math.max(m[(i + 1) * w + j], m[i * w + j + 1]);
+      }
+      let i = 0, j = 0;
+      while (i < x.length || j < y.length) {
+        if (i < x.length && j < y.length && x[i] === y[j]) { out.push([" ", x[i]]); i += 1; j += 1; }
+        else if (i < x.length && (j >= y.length || m[(i + 1) * w + j] >= m[i * w + j + 1])) { out.push(["-", x[i]]); i += 1; }
+        else { out.push(["+", y[j]]); j += 1; }
+      }
+    }
+    return out.concat(a.slice(a.length - t).map((l) => [" ", l]));
+  }
+
+  function docPutCard(req) {
+    const d = req.action.summary;
+    const rows = lineDiff(d.base, d.proposed);
+    const near = new Set();
+    rows.forEach(([mark], i) => { if (mark !== " ") for (let k = i - 2; k <= i + 2; k += 1) near.add(k); });
+    const body = [];
+    rows.forEach(([mark, text], i) => {
+      if (near.has(i)) body.push(el("span", { class: mark === "+" ? "diff-add" : mark === "-" ? "diff-del" : "" }, `${mark} ${text}\n`));
+      else if (near.has(i - 1) || i === 0) body.push(el("span", { class: "muted" }, "⋯ 같은 줄\n"));
+    });
+    const changed = rows.filter(([mark]) => mark !== " ");
+    return [
+      el("p", {}, `프로젝트 문서 쓰기 · ${d.name} · ${d.version}판 → ${d.version + 1}판`),
+      el("p", { class: "muted" }, `요청 콜사인 ${req.requested_by}에게만, 승인 뒤 24시간, 아래 본문 그대로 한 번. 그 사이 문서가 바뀌면 쓸 수 없다. sha256 ${d.sha256.slice(0, 12)}`),
+      el("p", {}, `추가 ${changed.filter(([mark]) => mark === "+").length}줄 · 삭제 ${changed.filter(([mark]) => mark === "-").length}줄`),
+      changed.length ? el("pre", { class: "wrap", "data-doc-diff": d.name }, body) : el("p", { class: "muted" }, "줄 차이가 없다."),
+      el("details", {}, el("summary", {}, "새 본문 전체"), el("pre", { class: "wrap" }, d.proposed)),
+    ];
   }
 
   // --- 화면: 로드맵 (M-053 WBS-53.1) -----------------------------------------------------

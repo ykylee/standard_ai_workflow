@@ -120,7 +120,7 @@ var ToolOrder = []*ToolSpec{
 	{
 		Name:        "hub_approval_request",
 		Bundle:      "token",
-		Description: "사람 확인이 필요할 때 요청을 owner에게 전달한다. 웹 허브 확인 요청 메뉴에서 승인/거절하며 결과는 요청 콜사인의 허브 받은편지함으로 돌아온다. 승인 자체가 작업을 실행하지는 않는다. action 을 실으면 (migrate_import · migrate_marker) 사람이 계정 로그인으로 승인한 뒤 그 실행에만 쓰는 approval_id 가 된다.",
+		Description: "사람 확인이 필요할 때 요청을 owner에게 전달한다. 웹 허브 확인 요청 메뉴에서 승인/거절하며 결과는 요청 콜사인의 허브 받은편지함으로 돌아온다. 승인 자체가 작업을 실행하지는 않는다. action 을 실으면 (migrate_import · migrate_marker · project_doc_put) 사람이 계정 로그인으로 승인한 뒤 그 실행에만 쓰는 approval_id 가 된다.",
 		Properties: map[string]map[string]any{
 			"session":  map[string]any{"type": "string"},
 			"title":    map[string]any{"type": "string"},
@@ -254,11 +254,12 @@ var ToolOrder = []*ToolSpec{
 	{
 		Name:        "hub_project_doc_put",
 		Bundle:      "token",
-		Description: "프로젝트 문서를 쓴다 — 승인된 human 만. expected_version 이 다르면 409 (새 문서는 0). 상태 요약의 목적 · 프로젝트 칸이 여기서 나온다.",
+		Description: "프로젝트 문서를 쓴다 — 승인된 human, 또는 로그인 승인받은 approval_id (action=project_doc_put, 같은 본문 · 판). expected_version 이 다르면 409 (새 문서는 0). 상태 요약의 목적 · 프로젝트 칸이 여기서 나온다.",
 		Properties: map[string]map[string]any{
 			"name":             map[string]any{"type": "string"},
 			"body":             map[string]any{"type": "string"},
 			"expected_version": map[string]any{"type": "integer"},
+			"approval_id":      map[string]any{"type": "string"},
 		},
 		Required: []string{"name", "body"},
 	},

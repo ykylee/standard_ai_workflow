@@ -300,6 +300,49 @@ def case_11_web_approval(hub: Hub, db: Path, repo: Path, impl: str) -> None:
     got["marker revert"] = hub.call("hub_migrate_marker", {"migration_id": mig, "action": "revert", "approval_id": mk}, agent)[0]
     got["marker confirm"] = hub.call("hub_migrate_marker", {"migration_id": mig, "action": "confirm", "approval_id": mk,
                                                              "sha256": issued["steps"][0]["sha256_after"]}, agent)[1].get("confirmed")
+    # 프로젝트 문서 쓰기 — 본문 · 판 · 콜사인에 묶임 (TASK-2026-11-24-claude-plex-001)
+    new = PURPOSE + "\n바꾼 줄\n"
+    put = lambda tok_, **kw: (lambda r: (r[0], r[1].get("error_code", "")))(hub.call("hub_project_doc_put", {"name": "purpose", "body": new, "expected_version": 1, **kw}, tok_))  # noqa: E731
+    doc_act = {"type": "project_doc_put", "name": "purpose", "body": new, "expected_version": 1}
+    got["doc bad"] = [ask(a)[0] for a in ({**doc_act, "x": 1}, {**doc_act, "name": "nope"}, {**doc_act, "body": " "},
+                                          {**doc_act, "expected_version": True}, {**doc_act, "expected_version": 0},
+                                          {**doc_act, "body": agent}, {"type": "project_doc_put"})]
+    def a2a(body: str) -> str:  # 도구 층의 비밀 검사를 지나지 않는 길
+        msg = {"messageId": f"m-{len(body)}", "role": "ROLE_USER", "parts": [{"data": {"title": "문서", "question": "쓸까요?", "action": {**doc_act, "body": body}}}]}
+        req = urllib.request.Request(hub.base + "/a2a", method="POST", data=json.dumps({"jsonrpc": "2.0", "id": 1, "method": "SendMessage", "params": {"message": msg}}).encode(),
+                                     headers={"content-type": "application/json", "a2a-version": "1.0", "authorization": f"Bearer {agent}"})
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                return r.read().decode()
+        except urllib.error.HTTPError as e:
+            return e.read().decode()
+
+    leak, sent = a2a(new + agent), a2a(new)
+    got["doc a2a secret"] = ("TASK_STATE_AUTH_REQUIRED" in leak, "TASK_STATE_AUTH_REQUIRED" in sent)
+    status_part = json.dumps(json.loads(sent)["result"]["task"]["status"], ensure_ascii=False) if got["doc a2a secret"][1] else ""
+    got["doc a2a brief"] = ("sha256" in status_part, "proposed" in status_part)
+    with sqlite3.connect(db) as c:
+        got["doc a2a stored"] = c.execute("SELECT COUNT(*) FROM a2a_task WHERE message_json LIKE '%' || ? || '%'", (agent,)).fetchone()[0]
+    did = ask(doc_act)[1]["approval_id"]
+    shown_doc = next(r["action"] for r in web(f"/api/projects/{pid}/confirmations", cookie=cookie, method="GET")[1]["requests"] if r["id"] == did)
+    got["doc shown"] = (shown_doc["summary"]["base"], shown_doc["summary"]["proposed"], shown_doc["summary"]["version"], shown_doc["params"]["expected_version"])
+    got["doc none"], got["doc pending"] = put(agent), put(agent, approval_id=did)
+    got["doc owner token"] = decide(did, "approve", token=owner)
+    decide(did, "approve", cookie=cookie)
+    got["doc rival"], got["doc body"] = put(rival, approval_id=did), put(agent, approval_id=did, body=new + "x")
+    got["doc version"], got["doc name"] = put(agent, approval_id=did, expected_version=2), put(agent, approval_id=did, name="profile")
+    got["doc no version"] = (lambda r: (r[0], r[1].get("error_code")))(hub.call("hub_project_doc_put", {"name": "purpose", "body": new, "approval_id": did}, agent))
+    got["doc as import"] = hub.call("hub_migrate_marker", {"migration_id": mig, "action": "issue", "approval_id": did}, agent)[1].get("error_code")
+    got["doc ok"], got["doc reuse"] = put(agent, approval_id=did), put(agent, approval_id=did)
+    after = hub.call("hub_project_doc_get", {"name": "purpose"}, agent)[1]
+    got["doc after"] = (after["body"], after["version"], after["updated_by"])
+    stale = ask({**doc_act, "body": new + "y", "expected_version": 2})[1]["approval_id"]
+    decide(stale, "approve", cookie=cookie)
+    hub.call("hub_project_doc_put", {"name": "purpose", "body": new + "사람", "expected_version": 2}, owner)
+    got["doc stale"] = put(agent, approval_id=stale, body=new + "y", expected_version=2)
+    with sqlite3.connect(db) as c:
+        got["doc audit"] = json.loads(c.execute("SELECT after_json FROM event WHERE project_id = ? AND target_kind = 'project_doc' AND target_id = 'purpose' "
+                                                "AND callsign = 'agent-w' ORDER BY seq DESC", (pid,)).fetchone()[0]) == {"version": 2, "approval_id": did}
     # 거절 · 만료 · 승인자 자격 — 두 번째 계획으로
     mig = hub.call("hub_migrate_plan", {"scan": run_commands(repo)}, agent)[1]["migration_id"]
     act["migration_id"] = mig
@@ -324,6 +367,11 @@ def case_11_web_approval(hub: Hub, db: Path, repo: Path, impl: str) -> None:
     want = {"bad type": 400, "extra key": 400, "bad kind": 400, "no plan": 404, "marker early": 409,
             "shown": ("migrate_import", n, ["project_docs", "tasks"]), "none": (403, "forbidden"), "pending": (403, "approval_pending"),
             "agent decides": 403, "owner token decides": (403, "account_login_required"), "cross origin": 401, "login approves": (200, ""),
+            "doc bad": [400, 400, 400, 400, 409, 400, 400], "doc a2a secret": (False, True), "doc a2a brief": (True, False), "doc a2a stored": 0, "doc shown": (PURPOSE, new, 1, 1), "doc none": (403, "forbidden"),
+            "doc pending": (403, "approval_pending"), "doc owner token": (403, "account_login_required"), "doc rival": (403, "approval_mismatch"),
+            "doc body": (403, "approval_mismatch"), "doc version": (403, "approval_mismatch"), "doc name": (403, "approval_mismatch"),
+            "doc no version": (403, "approval_mismatch"), "doc as import": "approval_mismatch", "doc ok": (200, ""),
+            "doc reuse": (403, "approval_used"), "doc after": (new, 2, "agent-w"), "doc stale": (409, "version_conflict"), "doc audit": True,
             "rival": (403, "approval_mismatch"), "wider": (403, "approval_mismatch"), "narrower": (403, "approval_mismatch"),
             "batch": (200, ""), "final": (200, ""), "reuse": (403, "approval_used"), "docs": 1, "marker none": 403, "marker issue": 200,
             "marker revert": 403, "marker confirm": True, "login rejects": (200, ""), "rejected": (403, "approval_rejected"),

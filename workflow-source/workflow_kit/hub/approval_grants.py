@@ -7,23 +7,57 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import sqlite3
 from datetime import timedelta
 from typing import Any
 
 from workflow_kit.hub.errors import HubError, forbidden, invalid_field, not_found
-from workflow_kit.hub.store import Ctx, Principal, Store, _iso, _json
+from workflow_kit.hub.store import Ctx, Principal, Store, _iso, _json, scan_secrets
 
 GRANT_HOURS = 24
 MARKER_SCOPE = {"issue": ("issue", "confirm"), "revert": ("revert", "confirm_revert")}
-ACTION_FORM = "{type: migrate_import, migration_id, kinds} · {type: migrate_marker, migration_id, marker: issue|revert}"
+ACTION_FORM = ("{type: migrate_import, migration_id, kinds} · {type: migrate_marker, migration_id, marker: issue|revert} · "
+               "{type: project_doc_put, name, body, expected_version}")
+#: 요약 가운데 본문 — 승인 화면만 본다 (A2A · 도구 응답에는 싣지 않는다).
+BODY_KEYS = ("base", "proposed")
+
+
+def doc_sha(body: str) -> str:
+    return hashlib.sha256(body.encode("utf-8")).hexdigest()
+
+
+def brief(summary: dict[str, Any]) -> dict[str, Any]:
+    return {k: v for k, v in summary.items() if k not in BODY_KEYS}
+
+
+def _prepare_doc(conn: sqlite3.Connection, project_id: str, raw: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    """프로젝트 문서 쓰기 — 사람이 볼 본문을 허브가 보관하고 sha256 · 판에 묶는다."""
+    from workflow_kit.hub.memory import check_doc
+
+    if set(raw) != {"type", "name", "body", "expected_version"}:
+        raise invalid_field("action", ACTION_FORM)
+    name, body, expected = raw["name"], raw["body"], raw["expected_version"]
+    check_doc(name, body)
+    if not isinstance(expected, int) or isinstance(expected, bool):
+        raise invalid_field("action.expected_version", "정수 (새 문서는 0)")
+    scan_secrets(body, "action.body")
+    row = conn.execute("SELECT body_md, version FROM project_doc WHERE project_id = ? AND name = ?", (project_id, name)).fetchone()
+    current = row["version"] if row else 0
+    if expected != current:
+        raise HubError(409, "version_conflict", f"version 이 다르다 — 지금 {current}", {"current_version": current})
+    sha = doc_sha(body)
+    return ({"type": "project_doc_put", "name": name, "expected_version": expected, "sha256": sha},
+            {"name": name, "version": current, "sha256": sha, "base": row["body_md"] if row else "", "proposed": body})
 
 
 def prepare(conn: sqlite3.Connection, project_id: str, raw: Any) -> tuple[dict[str, Any], dict[str, Any]]:
     """요청한 실행 → (묶을 값, 화면에 보일 요약). 대상이 없거나 지금 할 수 없으면 거절한다."""
     from workflow_kit.hub.migrate1x import KINDS
 
+    if isinstance(raw, dict) and raw.get("type") == "project_doc_put":
+        return _prepare_doc(conn, project_id, raw)
     if not isinstance(raw, dict) or not isinstance(raw.get("migration_id"), str):
         raise invalid_field("action", ACTION_FORM)
     kind, mig = raw.get("type"), raw["migration_id"]
@@ -121,4 +155,4 @@ def consume(conn: sqlite3.Connection, ctx: Ctx, project_id: str, approval_id: st
                  (_iso(ctx.now), project_id, approval_id))
 
 
-__all__ = ["GRANT_HOURS", "MARKER_SCOPE", "authorize", "consume", "decide", "insert", "prepare", "summaries", "withdraw"]
+__all__ = ["GRANT_HOURS", "MARKER_SCOPE", "authorize", "brief", "consume", "decide", "doc_sha", "insert", "prepare", "summaries", "withdraw"]

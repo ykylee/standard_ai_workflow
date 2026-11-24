@@ -105,7 +105,11 @@ func a2aTask(ctx Ctx, r a2aRow, history *int, artifacts bool) map[string]any {
 		data["note"] = r.note.String
 	}
 	if r.action.String != "" {
-		data["action"] = map[string]any{"params": json.RawMessage(r.params.String), "summary": json.RawMessage(r.summary.String)}
+		summary, err := briefSummary(r.summary.String)
+		if err != nil {
+			summary = map[string]any{}
+		}
+		data["action"] = map[string]any{"params": json.RawMessage(r.params.String), "summary": summary}
 	}
 	task := map[string]any{"id": r.id, "contextId": r.context, "status": map[string]any{
 		"state": "TASK_STATE_" + state, "timestamp": a2aMillis(at), "message": map[string]any{

@@ -50,7 +50,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-- release(hub): prepare 3.1.0 prerelease (9a081ca7)
+- release(hub): prepare 3.1.0 prerelease (e61e2e06)
 - test(workflow): follow fixture default branch in memory check (91967155)
 - chore(memory): close v3.0.2 prerelease deployment (3fa256b8)
 - chore(release): sync v3.0.2 metadata (ad9e664a)

@@ -73,7 +73,6 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
-- TASK-2026-11-24-main-001 3.1.0 pre-release 및 홈랩 허브 배포
 - TASK-2026-11-23-main-014 사내 Windows V3가 3.0 허브 실행 파일을 악성코드로 격리하는 탐지 조사
 - TASK-2026-11-23-main-006 Go 허브 화면 API 및 PC 중계 HTTP parity
 - TASK-2026-11-23-main-005 Go 허브 Linux 테스트베드 실전 shadow 검증
@@ -88,6 +87,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-11-24-main-001 3.1.0 pre-release 및 홈랩 허브 배포
 - TASK-2026-11-23-main-021 허브 release 버전과 kit 호환 버전을 API·페이지에 함께 표시
 - TASK-2026-11-23-main-020 프로젝트 목록 화면에 null 문자열 노출 수정
 - TASK-2026-11-23-main-019 허브 셋업에서 로컬 중계 필요 여부와 상태 확인
@@ -97,7 +97,6 @@
 - TASK-2026-11-23-main-016 MCP 전체 최신 2026-07-28 프로토콜 전환
 - TASK-2026-11-23-main-015 MCP Python SDK 최소 버전을 최신 안정판 2.3.0으로 상향
 - TASK-2026-11-23-main-013 PostgreSQL 운영 안내와 격리 양 런타임 pilot 검증
-- TASK-2026-11-23-main-012 Go·Python SQLite→PostgreSQL 데이터 복사 및 정합성 검증 구현
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

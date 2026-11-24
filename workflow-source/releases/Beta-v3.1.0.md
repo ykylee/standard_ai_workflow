@@ -22,3 +22,20 @@
 
 - 이 판은 평가용 pre-release다. 운영 DB를 전환하기 전에 일관된 복제본으로 검증한다.
 - 실제 Windows/macOS native 실행과 전체 Go/Python shadow parity는 이 release 노트의 검증 범위가 아니다.
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-11-24T00:43:11Z)_
+
+- total wiki pages: **102**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

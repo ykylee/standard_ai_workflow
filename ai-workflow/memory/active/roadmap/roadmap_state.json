@@ -2658,7 +2658,7 @@
     },
     {
       "task_id": "TASK-2026-11-24-main-001",
-      "task_status": "in_progress",
+      "task_status": "done",
       "wbs_ref": "exempt",
       "exempt_reason": "기존 M-057 shadow 안정화 WBS 범위를 넘어서는 3.1.0 공개 릴리스와 홈랩 운영 배포다.",
       "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-11-24-main-001.md"

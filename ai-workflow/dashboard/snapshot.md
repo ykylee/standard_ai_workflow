@@ -1,20 +1,20 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-11-23T07:35:49Z`
-- tool_version: `3.0.1`
+- generated_at: `2026-11-24T00:43:10Z`
+- tool_version: `3.1.0`
 - workspace_root: `/home/yklee/repos/standard_ai_workflow`
 
 ## Panel 1 — Drift Prevention Status
 
 - guard_status: `pass`
 - guard_cases: `7 / 7`
-- maturity_last_updated: `2026-11-23`
-- maturity_surface_changed_at: `2026-11-23`
+- maturity_last_updated: `2026-11-24`
+- maturity_surface_changed_at: `2026-11-24`
 - maturity_stale: `False` (source: `maturity_surface_commit`)
 - harness_supported_count: `10`
-- head_commit_date: `2026-11-23`
+- head_commit_date: `2026-11-24`
 - last_updated_delta_days: `0`
-- silent_failing_cycles_count: `0` (측정 cycle 47건)
+- silent_failing_cycles_count: `0` (측정 cycle 48건)
 
 ## Panel 2 — Maturity Distribution
 
@@ -75,39 +75,39 @@
 
 ## Panel 4 — Smoke Trend
 
-- cumulative_total: `353`
-- cumulative_pass: `353`
+- cumulative_total: `354`
+- cumulative_pass: `354`
 - cumulative_pass_rate: `1.0000`
-- smoke_files_count: `353`
+- smoke_files_count: `354`
 
 ### Recent release smoke counts
 
 | version | pass | total |
 |---|---|---|
+| Beta-v3.1.0 | 354 | 354 |
 | Beta-v3.0.1 | 353 | 353 |
 | Beta-v3.0.0 | 353 | 353 |
 | Beta-v2.1.0 | 350 | 350 |
 | Beta-v2.0.0 | 346 | 346 |
-| Beta-v1.29.0 | 333 | 333 |
 
 ## Panel 5 — Recent Release Cycle
 
-- items_total: `28`
+- items_total: `40`
 - top_n: `10`
 - confidence: `fresh=10`
 
 ### Timeline (preview, first 120 char)
 
-- [0] TASK-2026-11-23-main-004 — 3.0.0 Go 런타임 릴리즈 준비 점검  `[fresh]`
-- [1] TASK-2026-11-23-main-003 — 세션·오케스트레이션 Python/Go 실사용 차분 검사  `[fresh]`
-- [2] TASK-2026-11-23-main-002 — Go 허브 오케스트레이터 lease · 배정 · 승인 포팅  `[fresh]`
-- [3] TASK-2026-11-23-main-001 — Go 허브 세션 · 받은편지함 · 오케스트레이션 포팅 1 — 세션/인박스 저장 계층  `[fresh]`
-- [4] TASK-2026-11-22-main-041 — hub-go tools · mcpserver · httpapi · workflow-hub CLI 및 Go/Python 적합성 테스트 (M-055 WBS-55.3)  `[fresh]`
-- [5] TASK-2026-11-22-main-040 — hub-go/internal/store 저장 계층 구현 (M-055 WBS-55.2)  `[fresh]`
-- [6] TASK-2026-11-22-main-039 — hub-go/internal/db · assets · check_go_assets_sync 구현 (M-055 WBS-55.1)  `[fresh]`
-- [7] TASK-2026-11-22-main-038 — judge/1 corpus 및 check_judge_parity 차분 검사 구현 (M-054 WBS-54.3)  `[fresh]`
-- [8] TASK-2026-11-22-main-037 — wbs.gate · roadmap.derive · handoff.parse · state.build 순수 판정 구현 (M-054 WBS-54.2)  `[fresh]`
-- [9] TASK-2026-11-22-main-036 — judge/1 CLI 프로토콜 + plan.lint · plan.states · task.status 순수 판정 구현 (M-054 WBS-54.1)  `[fresh]`
+- [0] TASK-2026-11-23-main-022 — 3단계 작업 카테고리와 roadmap·WBS·테스트 관리 연결  `[fresh]`
+- [1] TASK-2026-11-23-main-021 — 허브 release 버전과 kit 호환 버전을 API·페이지에 함께 표시  `[fresh]`
+- [2] TASK-2026-11-23-main-020 — 프로젝트 목록 화면에 null 문자열 노출 수정  `[fresh]`
+- [3] TASK-2026-11-23-main-019 — 허브 셋업에서 로컬 중계 필요 여부와 상태 확인  `[fresh]`
+- [4] TASK-2026-11-23-main-018 — 홈랩 3.0.1 허브 배포 및 dacpi /workflow 프록시 연결  `[fresh]`
+- [5] TASK-2026-11-23-main-017 — 허브 배포 위치 검토: 개발 호스트 vs 홈랩  `[fresh]`
+- [6] TASK-2026-11-23-main-016 — MCP 전체 최신 2026-07-28 프로토콜 전환  `[fresh]`
+- [7] TASK-2026-11-23-main-015 — MCP Python SDK 최소 버전을 최신 안정판 2.3.0으로 상향  `[fresh]`
+- [8] TASK-2026-11-23-main-013 — PostgreSQL 운영 안내와 격리 양 런타임 pilot 검증  `[fresh]`
+- [9] TASK-2026-11-23-main-012 — Go·Python SQLite→PostgreSQL 데이터 복사 및 정합성 검증 구현  `[fresh]`
 
 ## Panel 6 — Multi-Agent Concurrent Write Conflict
 
@@ -137,10 +137,10 @@
 
 - phase_15_north_star: `utilization_3tuple (query_diversity / entries_new_30d / distinct_entries_retrieved — ADR-006 W-4; hit_rate 는 보조)`
 - entries_total: `30`
-- telemetry_events_total: `3665`
-- telemetry_total_queries: `3665`
-- telemetry_hit_count: `1890`
-- telemetry_hit_rate: `0.5157`
+- telemetry_events_total: `3749`
+- telemetry_total_queries: `3749`
+- telemetry_hit_count: `1974`
+- telemetry_hit_rate: `0.5265`
 
 ### Entries by merge_state
 
@@ -152,8 +152,8 @@
 
 | source | events |
 |---|---|
-| `backlog-update` | 1081 |
+| `backlog-update` | 1148 |
 | `dispatcher` | 13 |
-| `doc-sync` | 11 |
-| `session-start` | 2560 |
+| `doc-sync` | 19 |
+| `session-start` | 2569 |
 

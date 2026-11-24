@@ -46,7 +46,7 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **147차 세션 (2026-11-24, Linux 호스트) — 사람 계정 인증과 에이전트 확인 요청을 Python·Go 허브에 구현.** 승인된 사람 콜사인 토큰으로 1회 등록 후 계정 로그인, 프로젝트 콜사인 연결, 웹 승인/거절 및 A2A 결과 알림을 제공한다. DB migration v16, Origin/쿠키 보호와 로그인 제한 포함. `go test ./...`, Python `check_hub*.py` 18개, 자산 동기화 3/3, `node --check`, `compileall`, `git diff --check` 통과. 전체 2축 게이트 미실행, release/deploy 미실행. 다음은 커밋 후 clean-tree 전체 게이트, 통과 시 push. 상세 TASK-2026-11-24-main-010.
+- 현재 기준선: **147차 세션 (2026-11-24, Linux 호스트) — 사람 계정 인증과 에이전트 확인 요청을 Python·Go 허브에 구현.** 승인된 사람 콜사인 토큰으로 1회 등록 후 계정 로그인, 프로젝트 콜사인 연결, 웹 승인/거절 및 A2A 결과 알림을 제공한다. DB migration v16, Origin/쿠키 보호와 로그인 제한 포함. 전체 게이트는 구현 커밋 `8fde5f02`에서 native/slash 각 357/357 PASS; Go 전체, Python 허브 18개, 자산 동기화와 focused mypy도 통과. task done. 세션 종료용 상태 갱신 커밋 이후 게이트를 다시 실행해 push 예정. release/deploy는 미실행. 상세 TASK-2026-11-24-main-010.
 - 이전 기준선: **146차 세션 (2026-11-24, Linux 호스트) — `fbe9c820` main push 완료, GitHub `v3.2.0` pre-release 발행, stable latest는 `v2.1.0`. HomeLab `192.168.0.38`에 `workflow-hub-3.2.0.service` enabled/active, DB schema v15; 이전 DB 백업은 `/home/yklee/workflow-hub/backups/hub.db.pre-v3.2.0-20261124.sqlite`, v3.1.0 unit/binary는 rollback용 보존. M-059 live MCP·HTTP 확인 중 Go direct Wiki MCP read 3도구 미구현을 발견해 TASK-2026-11-24-main-006 planned. 상세는 TASK-2026-11-24-main-002·006.
 - 직전 기준선: **139차 말 (2026-11-22, Linux 호스트) — 발행 없음, 정본 v2.0.0 + 2.1 오케스트레이션 미발행 (main `HEAD`).** 2.1 축: 중앙 허브 · PC 중계 · 하네스 · 세션 — concept `docs/planning/hub-orchestration-review-2026-11.md` · 요구 `hub-orchestration-requirements-2026-11.md` (실측 §1.2 · §1.4 · §1.5) · 스펙 `workflow-source/core/hub_orchestration_spec.md` · ADR-034 Accepted. 코드: `hub/orchestration.py` · `hub/relay.py` (DB 판 12) · `workflow_kit/relay/` (`python -m workflow_kit hub relay …`) · `editors/vscode/`. 검사 `check_hub_orch` 10 · `check_hub_orch_assign` 9 · `check_hub_relay` 10 · `check_vscode_shell` 6 (각각 되주입). 검증 간소화 기간 — `--changed` + 스모크 뒤 `--no-verify` push, 전량 게이트는 발행 때. release/1.x 에 이식 4건 push.
 - 그 이전 기준선: **138차 말 (2026-11-21, Linux 호스트) — v2.0.0 (2.0 허브, 베타 표기) · v1.30.0 (1.x 안내 판) 발행.** GitHub latest = v2.0.0. main 은 kit 플러그인 채널을 내지 않는다 (`KIT_PLUGIN_CHANNEL`, R16.6) — 이 호스트 Claude Code 채널은 `../standard_ai_workflow-1x` (Folder) 로 옮김. 판 번호는 정수 (2.0.0b1 은 키트 16곳이 깨져 소유자가 정수로 정함). 운영 가이드 `docs/HUB_OPERATIONS.md`, 두 줄 발행 정책 RELEASE.md §1.1. 게이트: main 346×2 (20c61a09) · 1.x 336×2 (24ca6ae3).
@@ -74,7 +74,6 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
-- TASK-2026-11-24-main-010 에이전트 확인 요청 메뉴와 A2A 승인 결과 전달
 - TASK-2026-11-24-main-009 3.2.1 pre-release 및 홈랩 파일럿 배포
 - TASK-2026-11-24-main-008 미지원 하네스 셋업 부트스트랩과 지원 등록
 - TASK-2026-11-24-main-007 웹 허브 관리자 모드 진입 UX 개선
@@ -93,6 +92,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-11-24-main-010 에이전트 확인 요청 메뉴와 A2A 승인 결과 전달
 - TASK-2026-11-24-main-005 1.x → Hub 전환 뒤 진입 파일의 이전 경로 잔존 수정
 - TASK-2026-11-24-main-004 허브 task 목록 분류·페이지네이션·카드 보기
 - TASK-2026-11-24-main-003 미등록 하네스 제보와 승인 등록 흐름
@@ -102,12 +102,11 @@
 - TASK-2026-11-23-main-019 허브 셋업에서 로컬 중계 필요 여부와 상태 확인
 - TASK-2026-11-23-main-022 3단계 작업 카테고리와 roadmap·WBS·테스트 관리 연결
 - TASK-2026-11-23-main-018 홈랩 3.0.1 허브 배포 및 dacpi /workflow 프록시 연결
-- TASK-2026-11-23-main-017 허브 배포 위치 검토: 개발 호스트 vs 홈랩
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
 
-- (2026-11-24) TASK-2026-11-24-main-010 구현 완료, 집중 검사 통과. 현재 트리는 변경 상태이며 종료 절차에서 커밋 후 `CLAUDE.md`의 clean-tree 2축 게이트를 실행해야 한다. 게이트 통과 전 push 금지. migration v16이 포함되며, pre-release와 HomeLab 적용은 별도 후속 작업으로 남긴다.
+- (2026-11-24) TASK-2026-11-24-main-010 done. 구현 커밋 `8fde5f02`의 clean-tree 전체 게이트 native/slash 각 357/357 PASS. 최초 게이트가 찾은 mypy와 문서 스탬프 결함을 수정한 뒤 통과했다. 세션 종료용 메모리 갱신 커밋 후 clean-tree 게이트를 다시 실행하고 통과 시 push한다. v3.2.2 pre-release와 HomeLab 적용은 별도 작업이며 아직 실행하지 않았다.
 
 - (2026-11-24) TASK-2026-11-24-main-002: v3.2.0 pre-release를 발행하고 `fbe9c820`을 main에 push했다. 전체 게이트 native/slash 각각 357/357 PASS, release asset 9개와 SHA-256 검증 완료. HomeLab Go 서비스는 schema v15로 migrate되어 `/healthz` direct/proxy 모두 3.2.0을 보고하며 자동 시작 enabled, 구 3.1.0 rollback unit과 DB backup을 보존한다. MCP initialize 2025-11-25·85 tools, 통합 knowledge search 79 hits·Hub Wiki revision get, HTTP Wiki search/page/ref 200, owner callsign과 익명 DCR 접근 거절을 확인했다. DCR 데이터가 없어 승인/거절 변경은 실측하지 않았다. 전용 Go MCP `hub_wiki_get/list/search`가 not_implemented_in_go인 gap은 운영 문서·release note에 기록하고 TASK-2026-11-24-main-006/WBS-59.4로 분리했다.
 

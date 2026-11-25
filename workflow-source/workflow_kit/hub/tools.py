@@ -571,4 +571,9 @@ def call(store: Store, name: str, args: dict[str, Any], ctx: Ctx) -> dict[str, A
         return result
     if name == "hub_session_start" and isinstance(result.get("session"), dict):
         session = result["session"]["id"]  # 방금 등록한 세션 — 쌓여 있던 메시지가 첫 응답에 실린다
-    return orch.attach(ctx, session, result)
+    result = orch.attach(ctx, session, result)
+    if session is None:
+        return result
+    from workflow_kit.hub.a2a_peer import attach as attach_peer  # noqa: PLC0415
+
+    return attach_peer(store, ctx, result)

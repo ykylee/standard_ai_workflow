@@ -386,6 +386,14 @@ func Call(s *store.Store, name string, rawArgs any, ctx store.Ctx) (result map[s
 		if len(messages) > 0 {
 			result["hub_inbox"] = map[string]any{"for_session": sessionID, "messages": messages, "remaining": inbox["remaining"]}
 		}
+		peer, err := s.PeerTake(ctx)
+		if err != nil {
+			result, callErr = nil, err
+			return
+		}
+		if peer != nil {
+			result["a2a_messages"] = peer
+		}
 	}()
 	jb := &JudgeBridge{Store: s}
 

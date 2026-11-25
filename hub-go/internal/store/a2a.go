@@ -171,6 +171,13 @@ func (s *Store) A2AGet(ctx Ctx, params map[string]any) (map[string]any, error) {
 	if err != nil {
 		return nil, err
 	}
+	if strings.HasPrefix(id, "A2M-") {
+		row, err := peerOne(s.pool, p, id)
+		if err != nil {
+			return nil, err
+		}
+		return row.task(ctx, history, true)
+	}
 	row, err := a2aOne(s.pool, p, id)
 	if err != nil {
 		return nil, err
@@ -232,9 +239,26 @@ func (s *Store) A2AList(ctx Ctx, params map[string]any) (map[string]any, error) 
 	if err != nil {
 		return nil, err
 	}
-	keep := []a2aRow{}
+	peers, err := peerRows(s.pool, p, "")
+	if err != nil {
+		return nil, err
+	}
+	type entry struct {
+		id, context, state, at string
+		view                   func() (map[string]any, error)
+	}
+	all := []entry{}
 	for _, r := range rows {
 		state, at := r.state()
+		all = append(all, entry{r.id, r.context, state, at, func() (map[string]any, error) { return a2aTask(ctx, r, history, artifacts), nil }})
+	}
+	for _, r := range peers {
+		state, at := r.state(ctx.Now)
+		all = append(all, entry{r.id, r.context, state, at, func() (map[string]any, error) { return r.task(ctx, history, artifacts) }})
+	}
+	keep := []entry{}
+	for _, r := range all {
+		state, at := r.state, r.at
 		if (text[0] != "" && r.context != text[0]) || (status != "" && "TASK_STATE_"+state != status) {
 			continue
 		}
@@ -246,10 +270,8 @@ func (s *Store) A2AList(ctx Ctx, params map[string]any) (map[string]any, error) 
 		keep = append(keep, r)
 	}
 	sort.Slice(keep, func(i, j int) bool {
-		_, a := keep[i].state()
-		_, b := keep[j].state()
-		if a != b {
-			return a > b
+		if keep[i].at != keep[j].at {
+			return keep[i].at > keep[j].at
 		}
 		return keep[i].id > keep[j].id
 	})
@@ -260,7 +282,11 @@ func (s *Store) A2AList(ctx Ctx, params map[string]any) (map[string]any, error) 
 	end := start + limit
 	tasks := []map[string]any{}
 	for i := start; i < end && i < len(keep); i++ {
-		tasks = append(tasks, a2aTask(ctx, keep[i], history, artifacts))
+		task, err := keep[i].view()
+		if err != nil {
+			return nil, err
+		}
+		tasks = append(tasks, task)
 	}
 	next := ""
 	if end < len(keep) {
@@ -375,6 +401,14 @@ func (s *Store) A2ASend(ctx Ctx, params map[string]any) (map[string]any, error) 
 	if message["role"] != "ROLE_USER" {
 		return nil, a2aBad("message.role: ROLE_USER")
 	}
+	metadata, _ := message["metadata"].(map[string]any)
+	spec := metadata[A2APeerExtension]
+	if strings.HasPrefix(ids[2], "A2M-") {
+		if spec != nil {
+			return nil, a2aBad("taskId 와 peer-message 의 to 를 함께 싣지 않는다")
+		}
+		return s.peerReply(ctx, p, message, ids[0], ids[2], ids[1], history)
+	}
 	if ids[2] != "" {
 		row, err := a2aOne(s.pool, p, ids[2])
 		if err != nil {
@@ -384,6 +418,9 @@ func (s *Store) A2ASend(ctx Ctx, params map[string]any) (map[string]any, error) 
 			return nil, a2aBad("contextId 가 그 Task 의 것과 다르다")
 		}
 		return nil, &A2AError{"UNSUPPORTED_OPERATION", "승인 Task 에는 이어서 보낼 수 없다 — 사람이 화면에서 결정한다. 거두려면 CancelTask"}
+	}
+	if spec != nil {
+		return s.peerSend(ctx, p, message, spec, ids[0], ids[1], history)
 	}
 	fields, err := a2aContent(message)
 	if err != nil {
@@ -471,6 +508,9 @@ func (s *Store) A2ACancel(ctx Ctx, params map[string]any) (map[string]any, error
 	id, err := a2aStr(params, "id", 256)
 	if err != nil {
 		return nil, err
+	}
+	if strings.HasPrefix(id, "A2M-") {
+		return s.peerCancel(ctx, p, id)
 	}
 	return s.withWriteTx(func(tx *sql.Tx) (map[string]any, error) {
 		row, err := a2aOne(tx, p, id)

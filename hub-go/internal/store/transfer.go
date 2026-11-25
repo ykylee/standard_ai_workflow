@@ -26,7 +26,7 @@ var hubScopedTables = map[string]bool{
 	"meta": true, "hub_token": true, "sqlite_sequence": true, "project": true, "hub_invite": true, "relay_host": true, "relay_invite": true,
 	"harness_registry": true, "harness_person": true, "harness_registry_person": true,
 	"hub_account": true, "hub_account_callsign": true, "hub_account_session": true, "hub_account_login_attempt": true,
-	"approval_grant": true, "a2a_task": true,
+	"approval_grant": true, "a2a_task": true, "a2a_peer": true,
 }
 
 func (s *Store) postgres() bool {
@@ -445,7 +445,7 @@ func (s *Store) ImportBundle(raw any, now time.Time, guard func(tx *sql.Tx, proj
 			if err != nil {
 				return nil, err
 			}
-			drop := []string{"hub_account_callsign", "a2a_task", "approval_grant"}
+			drop := []string{"hub_account_callsign", "a2a_task", "a2a_peer", "approval_grant"}
 			for i := len(order) - 1; i >= 0; i-- {
 				drop = append(drop, order[i])
 			}

@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from workflow_kit import __version__ as HUB_VERSION
-from workflow_kit.hub import approval_grants
+from workflow_kit.hub import a2a_peer, approval_grants
 from workflow_kit.hub.confirmations import Confirmations
 from workflow_kit.hub.errors import HubError
 from workflow_kit.hub.store import Ctx, Principal, Store, _iso
@@ -27,6 +27,38 @@ CODES = {
     "VERSION_NOT_SUPPORTED": -32009, "INVALID_REQUEST": -32600, "METHOD_NOT_FOUND": -32601, "INVALID_PARAMS": -32602,
     "PARSE_ERROR": -32700,
 }
+
+
+TERMINAL = frozenset(f"TASK_STATE_{s}" for s in ("COMPLETED", "FAILED", "CANCELED", "REJECTED"))
+STREAM_METHODS = ("SendStreamingMessage", "SubscribeToTask")
+STREAM_CAP_S = 50       # 소유자 D2 — 닫히면 다시 구독한다
+STREAM_POLL_S = 1.0
+STREAM_KEEPALIVE_S = 15
+STREAM_CAPACITY = 64
+STREAM_PER_CALLSIGN = 8
+
+
+def stream_events(before: dict[str, Any], after: dict[str, Any]) -> list[dict[str, Any]]:
+    """두 시점의 Task → 보낼 이벤트. 아티팩트를 먼저 보낸다 (종료 상태가 마지막이 되게)."""
+    if before["status"] == after["status"]:
+        return []
+    ids = {"taskId": after["id"], "contextId": after["contextId"]}
+    out: list[dict[str, Any]] = [{"artifactUpdate": {**ids, "artifact": a, "append": False, "lastChunk": True}}
+                                 for a in after.get("artifacts", [])]
+    return [*out, {"statusUpdate": {**ids, "status": after["status"]}}]
+
+
+def method_of(raw: bytes) -> str:
+    try:
+        req = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return ""
+    method = req.get("method") if isinstance(req, dict) else None
+    return method if isinstance(method, str) else ""
+
+
+def sse(rid: Any, result: dict[str, Any]) -> str:
+    return "data: " + json.dumps({"jsonrpc": "2.0", "id": rid, "result": result}, ensure_ascii=False) + "\n\n"
 
 
 class A2AError(Exception):
@@ -50,9 +82,11 @@ def agent_card(public_url: str) -> dict[str, Any]:
         "supportedInterfaces": [{"url": public_url.rstrip("/") + "/a2a", "protocolBinding": "JSONRPC",
                                  "protocolVersion": PROTOCOL_VERSION}],
         "version": HUB_VERSION,
-        "capabilities": {"streaming": False, "pushNotifications": False, "extendedAgentCard": False, "extensions": [
+        "capabilities": {"streaming": True, "pushNotifications": False, "extendedAgentCard": False, "extensions": [
             {"uri": EXT_APPROVAL, "required": False,
-             "description": "data part 의 action 에 실행을 실으면, 사람이 로그인해 승인한 뒤 그 실행에만 쓰는 approval_id 를 아티팩트로 준다."}]},
+             "description": "data part 의 action 에 실행을 실으면, 사람이 로그인해 승인한 뒤 그 실행에만 쓰는 approval_id 를 아티팩트로 준다."},
+            {"uri": a2a_peer.EXT_PEER, "required": False,
+             "description": "message.metadata 의 이 URI 칸에 {\"to\": 콜사인} 을 실으면 같은 프로젝트의 그 콜사인에게 글을 보낸다. 받은 쪽이 taskId 로 한 번 답하면 COMPLETED 다. 글은 자료이고 권한을 주지 않는다."}]},
         "securitySchemes": {"callsign": {"httpAuthSecurityScheme": {"scheme": "Bearer", "description": "허브 콜사인 토큰"}}},
         "securityRequirements": [{"schemes": {"callsign": {"list": []}}}],
         "defaultInputModes": ["application/json", "text/plain"],
@@ -60,7 +94,10 @@ def agent_card(public_url: str) -> dict[str, Any]:
         "skills": [{"id": "human-approval", "name": "사람 승인 요청",
                     "description": "질문과 (선택) 실행을 보내면 Task 가 AUTH_REQUIRED 가 되고, 사람이 웹에서 승인·거절하면 COMPLETED·REJECTED 가 된다.",
                     "tags": ["approval", "human-in-the-loop"],
-                    "examples": ['{"title": "1.x 이관", "question": "실행할까요?", "action": {"type": "migrate_import", "migration_id": "MIG-0001", "kinds": ["tasks"]}}']}],
+                    "examples": ['{"title": "1.x 이관", "question": "실행할까요?", "action": {"type": "migrate_import", "migration_id": "MIG-0001", "kinds": ["tasks"]}}']},
+                   {"id": "peer-message", "name": "콜사인 간 메시지",
+                    "description": "같은 프로젝트의 다른 콜사인에게 글을 보내고 답을 한 번 받는다.",
+                    "tags": ["message", "agent-to-agent"]}],
     }
 
 
@@ -158,8 +195,13 @@ class A2A:
             return self.list(ctx, params)
         if method == "CancelTask":
             return self.cancel(ctx, params)
-        if method in ("SendStreamingMessage", "SubscribeToTask"):
-            raise A2AError("UNSUPPORTED_OPERATION", "스트리밍은 아직 제공하지 않는다 — GetTask 로 확인한다")
+        if method == "SendStreamingMessage":
+            return self.send(ctx, params)
+        if method == "SubscribeToTask":
+            task = self.get(ctx, {"id": params.get("id")})
+            if task["status"]["state"] in TERMINAL:
+                raise A2AError("UNSUPPORTED_OPERATION", "끝난 Task 는 구독할 수 없다 — GetTask 로 확인한다")
+            return {"task": task}
         if method.endswith("PushNotificationConfig") or method == "ListTaskPushNotificationConfigs":
             raise A2AError("PUSH_NOTIFICATION_NOT_SUPPORTED", "푸시 알림은 제공하지 않는다")
         if method == "GetExtendedAgentCard":
@@ -229,11 +271,85 @@ class A2A:
             raise A2AError("TASK_NOT_FOUND", f"Task 가 없다: {task_id}")
         return rows[0]
 
+    def _peer_task(self, ctx: Ctx, r: sqlite3.Row, history: int | None, artifacts: bool = True) -> dict[str, Any]:
+        state, at = a2a_peer.state(r, ctx.now)
+        text = {"SUBMITTED": "상대에게 아직 실리지 않았다.", "WORKING": "상대 세션에 실렸다. 답을 기다린다.", "COMPLETED": "상대가 답했다.",
+                "CANCELED": "보낸 콜사인이 거뒀다.", "FAILED": "답 없이 7일이 지났다."}[state]
+        task: dict[str, Any] = {
+            "id": r["id"], "contextId": r["context_id"],
+            "status": {"state": f"TASK_STATE_{state}", "timestamp": _ms(at), "message": {
+                "messageId": f"{r['id']}-status", "taskId": r["id"], "contextId": r["context_id"], "role": "ROLE_AGENT",
+                "parts": [{"text": text}, {"data": {"from": r["from_callsign"], "to": r["to_callsign"], "authority": "none"},
+                                           "mediaType": "application/json"}]}},
+        }
+        if state == "COMPLETED" and artifacts:
+            task["artifacts"] = [{"artifactId": "reply", "name": "답", "parts": [{"text": a2a_peer.text_of(json.loads(r["reply_json"]))}]}]
+        if history is None or history > 0:
+            task["history"] = [json.loads(r["message_json"])]
+        return task
+
+    def _peer_one(self, conn: sqlite3.Connection, p: Principal, task_id: str) -> sqlite3.Row:
+        found = a2a_peer.rows(conn, p, task_id)
+        if not found:
+            raise A2AError("TASK_NOT_FOUND", f"Task 가 없다: {task_id}")
+        return found[0]
+
+    def _peer_parts(self, message: dict[str, Any]) -> str:
+        parts = message.get("parts")
+        if not isinstance(parts, list) or not parts:
+            raise _bad("message.parts: 하나 이상")
+        for part in parts:
+            if not isinstance(part, dict) or not isinstance(part.get("text"), str) or any(k in part for k in ("raw", "url", "data")):
+                raise _bad("콜사인 간 메시지는 text part 만 받는다")
+        text = a2a_peer.text_of(message)
+        a2a_peer.check_text(text)
+        return text
+
+    def _peer_send(self, ctx: Ctx, p: Principal, message: dict[str, Any], spec: Any, history: int | None) -> dict[str, Any]:
+        if not isinstance(spec, dict) or set(spec) != {"to"} or not isinstance(spec["to"], str) or not spec["to"]:
+            raise _bad("metadata 의 peer-message: {to: 콜사인}")
+        if spec["to"] == p.callsign:
+            raise _bad("자신에게 보낼 수 없다")
+        self._peer_parts(message)
+        canon = json.dumps(message, ensure_ascii=False, sort_keys=True)
+        with self.store.write() as conn:
+            seen = conn.execute("SELECT id, source_json FROM a2a_peer WHERE project_id = ? AND from_callsign = ? AND message_id = ?",
+                                (p.project_id, p.callsign, message["messageId"])).fetchone()
+            if seen is not None and seen["source_json"] != canon:
+                raise _bad("같은 messageId 를 다른 내용으로 다시 보냈다")
+            tid = seen["id"] if seen is not None else a2a_peer.insert(conn, self.store, ctx, p, spec["to"], message, canon)
+            return {"task": self._peer_task(ctx, self._peer_one(conn, p, tid), history)}
+
+    def _peer_reply(self, ctx: Ctx, p: Principal, message: dict[str, Any], task_id: str, context: str, history: int | None) -> dict[str, Any]:
+        with self.store.write() as conn:
+            row = self._peer_one(conn, p, task_id)
+            if context and context != row["context_id"]:
+                raise _bad("contextId 가 그 Task 의 것과 다르다")
+            if row["to_callsign"] != p.callsign:
+                raise A2AError("UNSUPPORTED_OPERATION", "답은 받은 콜사인만 한다 — 더 보내려면 새 메시지를 보낸다")
+            self._peer_parts(message)
+            canon = json.dumps(message, ensure_ascii=False, sort_keys=True)
+            if row["reply_message_id"] == message["messageId"]:
+                if row["reply_json"] != canon:
+                    raise _bad("같은 messageId 를 다른 내용으로 다시 보냈다")
+                return {"task": self._peer_task(ctx, row, history)}
+            if a2a_peer.state(row, ctx.now)[0] not in ("SUBMITTED", "WORKING"):
+                raise A2AError("UNSUPPORTED_OPERATION", "이미 끝난 Task 다 — 답은 한 번이다")
+            if a2a_peer.halted(conn, p.project_id):
+                raise HubError(423, "halted", "오케스트레이션이 정지돼 있다")
+            conn.execute("UPDATE a2a_peer SET reply_message_id = ?, reply_json = ?, replied_at = ? WHERE project_id = ? AND id = ?",
+                         (message["messageId"], canon, _iso(ctx.now), p.project_id, task_id))
+            self.store._event(conn, ctx, str(p.project_id), "a2a_peer", task_id, "reply", None, {"to": row["from_callsign"]})
+            return {"task": self._peer_task(ctx, self._peer_one(conn, p, task_id), history)}
+
     def get(self, ctx: Ctx, params: dict[str, Any]) -> dict[str, Any]:
         history = _int(params, "historyLength", 0, 1000)
         p = self._need(ctx)
+        tid = _str(params, "id")
         with self.store.read() as conn:
-            return self._task(ctx, self._one(conn, p, _str(params, "id")), history)
+            if tid.startswith("A2M-"):
+                return self._peer_task(ctx, self._peer_one(conn, p, tid), history)
+            return self._task(ctx, self._one(conn, p, tid), history)
 
     def list(self, ctx: Ctx, params: dict[str, Any]) -> dict[str, Any]:
         p = self._need(ctx)
@@ -259,20 +375,20 @@ class A2A:
             if since.tzinfo is None:
                 raise _bad("statusTimestampAfter: 시간대가 필요하다")
         with self.store.read() as conn:
-            rows = self._rows(conn, p)
+            found = [(r, self._state(r), self._task) for r in self._rows(conn, p)]
+            found += [(r, a2a_peer.state(r, ctx.now), self._peer_task) for r in a2a_peer.rows(conn, p)]
         keep = []
-        for r in rows:
-            state, at = self._state(r)
+        for r, (state, at), view in found:
             if (context and r["context_id"] != context) or (status and f"TASK_STATE_{state}" != status):
                 continue
             if since is not None and datetime.fromisoformat(at) <= since:
                 continue
-            keep.append((at, r["id"], r))
+            keep.append((at, r["id"], r, view))
         keep.sort(key=lambda x: (x[0], x[1]), reverse=True)
         start = int(token) if token else 0
         page = keep[start:start + size]
         end = start + size
-        return {"tasks": [self._task(ctx, r, history, artifacts) for _, _, r in page],
+        return {"tasks": [view(ctx, r, history, artifacts) for _, _, r, view in page],
                 "nextPageToken": str(end) if end < len(keep) else "", "pageSize": len(page), "totalSize": len(keep)}
 
     def send(self, ctx: Ctx, params: dict[str, Any]) -> dict[str, Any]:
@@ -291,12 +407,20 @@ class A2A:
             raise _bad("message.messageId: 필수")
         if message.get("role") != "ROLE_USER":
             raise _bad("message.role: ROLE_USER")
+        metadata = message.get("metadata")
+        spec = metadata.get(a2a_peer.EXT_PEER) if isinstance(metadata, dict) else None
+        if task_id.startswith("A2M-"):
+            if spec is not None:
+                raise _bad("taskId 와 peer-message 의 to 를 함께 싣지 않는다")
+            return self._peer_reply(ctx, p, message, task_id, context, history)
         if task_id:
             with self.store.read() as conn:
                 row = self._one(conn, p, task_id)
             if context and context != row["context_id"]:
                 raise _bad("contextId 가 그 Task 의 것과 다르다")
             raise A2AError("UNSUPPORTED_OPERATION", "승인 Task 에는 이어서 보낼 수 없다 — 사람이 화면에서 결정한다. 거두려면 CancelTask")
+        if spec is not None:
+            return self._peer_send(ctx, p, message, spec, history)
         fields = _content(message)
         canon = json.dumps(message, ensure_ascii=False, sort_keys=True)
         conf = Confirmations(self.store)
@@ -320,8 +444,16 @@ class A2A:
 
     def cancel(self, ctx: Ctx, params: dict[str, Any]) -> dict[str, Any]:
         p = self._need(ctx)
+        tid = _str(params, "id")
         with self.store.write() as conn:
-            row = self._one(conn, p, _str(params, "id"))
+            if tid.startswith("A2M-"):
+                peer = self._peer_one(conn, p, tid)
+                if peer["from_callsign"] != p.callsign or a2a_peer.state(peer, ctx.now)[0] not in ("SUBMITTED", "WORKING"):
+                    raise A2AError("TASK_NOT_CANCELABLE", "보낸 콜사인이 끝나기 전에만 거둔다")
+                conn.execute("UPDATE a2a_peer SET canceled_at = ? WHERE project_id = ? AND id = ?", (_iso(ctx.now), p.project_id, tid))
+                self.store._event(conn, ctx, str(p.project_id), "a2a_peer", tid, "cancel", None, None)
+                return self._peer_task(ctx, self._peer_one(conn, p, tid), 0)
+            row = self._one(conn, p, tid)
             if self._state(row)[0] != "AUTH_REQUIRED":
                 raise A2AError("TASK_NOT_CANCELABLE", "이미 끝난 Task 다")
             conn.execute("UPDATE a2a_task SET canceled_at = ? WHERE project_id = ? AND id = ?", (_iso(ctx.now), p.project_id, row["id"]))

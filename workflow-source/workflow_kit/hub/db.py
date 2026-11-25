@@ -660,10 +660,34 @@ CREATE TABLE idea_entry (
 );
 """
 
+_V20 = """
+CREATE TABLE a2a_peer (
+    project_id TEXT NOT NULL REFERENCES project(id),
+    id TEXT NOT NULL,
+    context_id TEXT NOT NULL,
+    from_callsign TEXT NOT NULL,
+    to_callsign TEXT NOT NULL,
+    message_id TEXT NOT NULL,
+    source_json TEXT NOT NULL,
+    message_json TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    canceled_at TEXT,
+    delivered_at TEXT,
+    last_delivered_at TEXT,
+    delivery_count INTEGER NOT NULL DEFAULT 0,
+    reply_message_id TEXT NOT NULL DEFAULT '',
+    reply_json TEXT NOT NULL DEFAULT '',
+    replied_at TEXT,
+    PRIMARY KEY (project_id, id),
+    UNIQUE (project_id, from_callsign, message_id)
+);
+CREATE INDEX a2a_peer_to ON a2a_peer (project_id, to_callsign);
+"""
+
 #: 판 순서 = 목록 순서. 판 n = ``MIGRATIONS[n-1]`` (SQL 스크립트).
 #: ``executescript`` 는 열린 트랜잭션을 먼저 커밋하므로, 판 하나의 원자성은
 #: 스크립트 **안의** ``BEGIN IMMEDIATE … COMMIT`` 으로 만든다 (:func:`_apply`).
-MIGRATIONS: list[str] = [_V1, _V2, _V3, _V4, _V5, _V6, _V7, _V8, _V9, _V10, _V11, _V12, _V13, _V14, _V15, _V16, _V17, _V18, _V19]
+MIGRATIONS: list[str] = [_V1, _V2, _V3, _V4, _V5, _V6, _V7, _V8, _V9, _V10, _V11, _V12, _V13, _V14, _V15, _V16, _V17, _V18, _V19, _V20]
 
 
 def latest_version() -> int:

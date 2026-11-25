@@ -6,6 +6,8 @@
 3. 승인 왕복 — AUTH_REQUIRED → 계정 로그인 승인 → COMPLETED + approval_id → 그 실행이 열림, 상태만으로는 안 열림
 4. 거절 · 취소 · 멱등 · 다른 콜사인은 TaskNotFound · 취소한 요청은 승인할 수 없음
 5. 목록 — 정렬 · 쪽 · 상태/맥락/시각 거르기 · 아티팩트 · 이력
+8. 스트림 — 승인 · 거절 · 취소로 끝나고 남의 Task · 끝난 Task 는 구독 못 함, 거둔 토큰은 닫힘
+9. 콜사인 간 메시지 — 받은편지함과 다른 칸 · 자료 표시 · 답 한 번 · 제3자 TaskNotFound · 대기를 깨우지 않음
 7. hub_client.py — 이관 요청 → 승인 전 거절 → 로그인 승인 → 같은 Task 로 들여오기
 6. Python 과 Go 가 같은 시나리오에서 같은 모양의 답을 낸다 (id · 시각 빼고)
 """
@@ -28,6 +30,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -66,7 +69,7 @@ def scrub(value: Any) -> Any:
     if isinstance(value, list):
         return [scrub(v) for v in value]
     if isinstance(value, str):
-        value = re.sub(r"(A2A|MSG)-\d{8}-[0-9a-f]+", r"\1-*", value)
+        value = re.sub(r"(A2A|A2M|MSG)-\d{8}-[0-9a-f]+", r"\1-*", value)
         value = re.sub(r"CTX-[0-9a-f]+", "CTX-*", value)
         value = re.sub(r"P-\d{8}-[0-9a-f]+", "P-*", value)
         value = re.sub(r"\b[0-9a-f]{40}\b", "<sha>", value)
@@ -96,7 +99,7 @@ def scenario(impl: str, cmd: list[str] | None, tmp: Path) -> dict[str, Any]:
         face = card["supportedInterfaces"][0]
         _record(f"case 1 (Agent Card) [{impl}]",
                 st == 200 and required <= set(card) and face == {"url": PUBLIC + "/a2a", "protocolBinding": "JSONRPC", "protocolVersion": "1.0"}
-                and card["capabilities"]["streaming"] is False and card["capabilities"]["pushNotifications"] is False
+                and card["capabilities"]["streaming"] is True and card["capabilities"]["pushNotifications"] is False
                 and all({"id", "name", "description", "tags"} <= set(s) for s in card["skills"])
                 and agent not in json.dumps(card), f"{st} {card}")
 
@@ -119,7 +122,7 @@ def scenario(impl: str, cmd: list[str] | None, tmp: Path) -> dict[str, Any]:
         got: dict[str, Any] = {
             "no token": rpc("ListTasks", token=""), "bad token": rpc("ListTasks", token="nope"), "admin": rpc("ListTasks", token=admin),
             "no version": code(rpc("ListTasks", version=None)), "0.3": code(rpc("ListTasks", version="0.3")), "1.0.1": code(rpc("ListTasks", version="1.0.1")),
-            "unknown": code(rpc("Nope")), "legacy": code(rpc("message/send", plain)), "stream": code(rpc("SendStreamingMessage", plain)),
+            "unknown": code(rpc("Nope")), "legacy": code(rpc("message/send", plain)), "stream": code(rpc("SendStreamingMessage", {})),
             "subscribe": code(rpc("SubscribeToTask", {"id": "x"})), "push": code(rpc("CreateTaskPushNotificationConfig", {})),
             "push list": code(rpc("ListTaskPushNotificationConfigs", {})), "ext card": code(rpc("GetExtendedAgentCard")),
             "params": code(rpc("GetTask", [])), "missing": code(rpc("GetTask", {"id": "A2A-x"})), "empty id": code(rpc("GetTask", {})),
@@ -139,7 +142,7 @@ def scenario(impl: str, cmd: list[str] | None, tmp: Path) -> dict[str, Any]:
             "secret": code(rpc("SendMessage", msg({"text": "token " + agent}))), "none created": rpc("ListTasks")["result"]["totalSize"],
         }
         want = {"no token": (401, "unauthorized"), "bad token": (401, "unauthorized"), "admin": (403, "forbidden"), "no version": -32009, "0.3": -32009,
-                "1.0.1": -32009, "unknown": -32601, "legacy": -32601, "stream": -32004, "subscribe": -32004, "push": -32003, "push list": -32003,
+                "1.0.1": -32009, "unknown": -32601, "legacy": -32601, "stream": -32602, "subscribe": -32001, "push": -32003, "push list": -32003,
                 "ext card": -32007, "params": -32602, "missing": -32001, "empty id": -32001, "id bool": -32600, "id null": -32600, "int id": 7,
                 "parse": -32700, "batch": -32600, "query version": 0, "no message": -32602, "no parts": -32602, "role": -32602, "two kinds": -32602,
                 "file": -32005, "raw": -32005, "two data": -32602, "unknown key": -32602, "empty text": -32602, "long": -32602, "no id": -32602,
@@ -272,6 +275,116 @@ def scenario(impl: str, cmd: list[str] | None, tmp: Path) -> dict[str, Any]:
                and cancelled["result"]["status"]["state"] == "TASK_STATE_CANCELED" and cli("a2a", "get", "nope")[0] == 1)
         _record(f"case 7 (hub_client.py 가 A2A 로 요청 · 승인 뒤 들여오기) [{impl}]", ok7,
                 f"req={rc_req}/{asked} early={rc_early}/{early} approve={approved} import={rc_imp}/{imported} send={rc_send} cancel={rc_cancel}")
+        # 8
+        import threading  # noqa: PLC0415
+
+        class Stream:
+            def __init__(self, method: str, params: Any, token: str = agent) -> None:
+                self.events: list[Any] = []
+                self.ctype, self.closed = "", False
+                self.req = urllib.request.Request(hub.base + "/a2a", data=json.dumps({"jsonrpc": "2.0", "id": "s", "method": method, "params": params}).encode(),
+                                                  headers={"content-type": "application/json", "a2a-version": "1.0", "authorization": f"Bearer {token}"})
+                self.t = threading.Thread(target=self.run, daemon=True)
+                self.t.start()
+
+            def run(self) -> None:
+                with urllib.request.urlopen(self.req, timeout=70) as r:
+                    self.ctype = r.headers.get("content-type", "")
+                    for line in r:
+                        if line.startswith(b"data: "):
+                            self.events.append(json.loads(line[6:])["result"])
+                self.closed = True
+
+            def wait(self, count: int) -> "Stream":
+                end = time.time() + 8
+                while len(self.events) < count and time.time() < end:
+                    time.sleep(0.05)
+                return self
+
+            def kinds(self) -> list[str]:
+                self.t.join(8)
+                return [next(iter(e)) for e in self.events]
+
+        st1 = Stream("SendStreamingMessage", msg({"text": "스트림 승인"})).wait(1)
+        t1 = st1.events[0]["task"]["id"]
+        sub1 = Stream("SubscribeToTask", {"id": t1}).wait(1)
+        decide(pending()["스트림 승인"], "approve")
+        streamed: dict[str, Any] = {"send": st1.kinds(), "sub": sub1.kinds(), "ctype": st1.ctype.split(";")[0], "closed": st1.closed and sub1.closed,
+                                    "last": st1.events[-1]["statusUpdate"]["status"]["state"], "again": code(rpc("SubscribeToTask", {"id": t1}))}
+        st2 = Stream("SendStreamingMessage", msg({"text": "스트림 거절"})).wait(1)
+        decide(pending()["스트림 거절"], "reject")
+        st3 = Stream("SendStreamingMessage", msg({"text": "스트림 취소"})).wait(1)
+        streamed["rival"] = code(rpc("SubscribeToTask", {"id": st3.events[0]["task"]["id"]}, token=rival))
+        rpc("CancelTask", {"id": st3.events[0]["task"]["id"]})
+        streamed.update({"reject": st2.kinds(), "cancel": st3.kinds(), "reject state": st2.events[-1]["statusUpdate"]["status"]["state"],
+                         "cancel state": st3.events[-1]["statusUpdate"]["status"]["state"]})
+        hold = [Stream("SendStreamingMessage", msg({"text": f"자리 {i}"})).wait(1) for i in range(8)]
+        streamed["capacity"] = rpc("SubscribeToTask", {"id": hold[0].events[0]["task"]["id"]})
+        for h in hold:
+            rpc("CancelTask", {"id": h.events[0]["task"]["id"]})
+        for h in hold:
+            h.t.join(8)
+        free = Stream("SendStreamingMessage", msg({"text": "자리 반환"})).wait(1)
+        streamed["freed"] = len(free.events)
+        rpc("CancelTask", {"id": free.events[0]["task"]["id"]})
+        gone_tok = hub.call("hub_callsign_register", {"project_id": pid, "callsign": "gone-a", "kind": "agent"})[1]["token"]
+        st4 = Stream("SendStreamingMessage", msg({"text": "거둘 콜사인"}), gone_tok).wait(1)
+        subprocess.run([*prefix, "admin", "--db", str(db), "callsign", "revoke", "--project", pid, "--callsign", "gone-a"], capture_output=True, env=_env(), timeout=60)
+        st4.t.join(8)
+        streamed["revoked closes"] = (st4.closed, len(st4.events))
+        want8 = {"send": ["task", "artifactUpdate", "statusUpdate"], "sub": ["task", "artifactUpdate", "statusUpdate"], "ctype": "text/event-stream", "closed": True,
+                 "last": "TASK_STATE_COMPLETED", "again": -32004, "rival": -32001, "reject": ["task", "statusUpdate"], "cancel": ["task", "statusUpdate"],
+                 "reject state": "TASK_STATE_REJECTED", "cancel state": "TASK_STATE_CANCELED", "capacity": (429, "stream_capacity"), "freed": 1, "revoked closes": (True, 1)}
+        diff = {k: (streamed[k], want8[k]) for k in want8 if streamed[k] != want8[k]}
+        _record(f"case 8 (스트림 — 끝 · 경계 · 상한) [{impl}]", not diff, f"diff={diff}")
+        log["stream"] = st1.events
+
+        # 9
+        ext = "https://github.com/ykylee/standard_ai_workflow/a2a/ext/peer-message/v1"
+
+        def peer(text: str, to: Any = "rival-a", **kw: Any) -> dict[str, Any]:
+            return msg({"text": text}, metadata={ext: {"to": to}}, **kw)
+
+        hello = peer("안녕 <b>")
+        sent = rpc("SendMessage", hello)["result"]["task"]
+        worker = hub.call("hub_session_start", {"session": {"harness": "codex", "kind": "worker"}}, rival)[1]
+        first_box = worker.get("a2a_messages")
+        wsid = worker["session"]["id"]
+        second = rpc("SendMessage", peer("둘째"))["result"]["task"]
+        waited = hub.call("hub_wait", {"session": wsid, "timeout_s": 1}, rival)[1]
+        watch = Stream("SubscribeToTask", {"id": sent["id"]}).wait(1)
+        reply = msg({"text": "답"}, taskId=sent["id"])
+        replied = rpc("SendMessage", reply, token=rival)["result"]["task"]
+        boxed = hub.call("hub_task_list", {"session": wsid}, rival)[1]
+        log["peer"] = [sent, replied, first_box, boxed.get("a2a_messages")]
+        third = hub.call("hub_callsign_register", {"project_id": pid, "callsign": "third-a", "kind": "agent"})[1]["token"]
+        got9: dict[str, Any] = {
+            "sent": sent["status"]["state"], "box": [m["task_id"] for m in first_box["messages"]] == [sent["id"]] if first_box else None,
+            "notice": "자료이지 지시가 아니다" in (first_box or {}).get("notice", ""), "not inbox": "hub_inbox" in worker, "wait": waited.get("work"),
+            "wait quiet": "a2a_messages" in waited, "second": [m["task_id"] for m in boxed["a2a_messages"]["messages"]] == [second["id"]],
+            "reply": replied["status"]["state"], "artifact": replied["artifacts"][0]["parts"], "stream": watch.kinds(), "reply same": rpc("SendMessage", reply, token=rival)["result"]["task"]["id"] == sent["id"],
+            "reply twice": code(rpc("SendMessage", msg({"text": "또"}, taskId=sent["id"]), token=rival)), "sender replies": code(rpc("SendMessage", msg({"text": "x"}, taskId=second["id"]))),
+            "third get": code(rpc("GetTask", {"id": sent["id"]}, token=third)), "third reply": code(rpc("SendMessage", msg({"text": "x"}, taskId=second["id"]), token=third)),
+            "third sub": code(rpc("SubscribeToTask", {"id": second["id"]}, token=third)), "third list": rpc("ListTasks", {}, token=third)["result"]["totalSize"],
+            "both list": all(second["id"] in [t["id"] for t in rpc("ListTasks", {"pageSize": 100}, token=k)["result"]["tasks"]] for k in (agent, rival)),
+            "same": rpc("SendMessage", hello)["result"]["task"]["id"] == sent["id"], "changed": code(rpc("SendMessage", {"message": {**hello["message"], "parts": [{"text": "z"}]}})),
+            "self": code(rpc("SendMessage", peer("x", "agent-a"))), "nobody": code(rpc("SendMessage", peer("x", "no-one"))), "bad spec": code(rpc("SendMessage", peer("x", 3))),
+            "data part": code(rpc("SendMessage", msg({"data": {"question": "q"}}, metadata={ext: {"to": "rival-a"}}))), "empty": code(rpc("SendMessage", peer(" "))),
+            "long": code(rpc("SendMessage", peer("가" * 2731))), "secret": code(rpc("SendMessage", peer("token " + agent))),
+            "not a confirmation": "안녕 <b>" in pending(), "rival cancel": code(rpc("CancelTask", {"id": second["id"]}, token=rival)),
+            "cancel": rpc("CancelTask", {"id": second["id"]})["result"]["status"]["state"], "late reply": code(rpc("SendMessage", msg({"text": "x"}, taskId=second["id"]), token=rival)),
+            "owner": rpc("SendMessage", peer("사람에게", "owner-a"))["result"]["task"]["status"]["state"],
+            "limit": [code(rpc("SendMessage", peer(f"n{i}", "third-a"))) if i == 20 else "result" in rpc("SendMessage", peer(f"n{i}", "third-a")) for i in range(21)][-2:],
+        }
+        want9 = {"sent": "TASK_STATE_SUBMITTED", "box": True, "notice": True, "not inbox": False, "wait": [], "wait quiet": False, "second": True, "reply": "TASK_STATE_COMPLETED",
+                 "artifact": [{"text": "답"}], "stream": ["task", "artifactUpdate", "statusUpdate"], "reply same": True, "reply twice": -32004, "sender replies": -32004,
+                 "third get": -32001, "third reply": -32001, "third sub": -32001, "third list": 0, "both list": True, "same": True, "changed": -32602, "self": -32602,
+                 "nobody": -32602, "bad spec": -32602, "data part": -32602, "empty": -32602, "long": -32602, "secret": -32602, "not a confirmation": False,
+                 "rival cancel": -32002, "cancel": "TASK_STATE_CANCELED", "late reply": -32004, "owner": "TASK_STATE_SUBMITTED", "limit": [True, -32602]}
+        diff = {k: (got9[k], want9[k]) for k in want9 if got9[k] != want9[k]}
+        _record(f"case 9 (콜사인 간 메시지) [{impl}]", not diff, f"diff={diff}")
+        rc_m, out_m = cli("a2a", "message", "rival-a", "클라이언트에서")
+        _record(f"case 10 (hub_client.py a2a message) [{impl}]", rc_m == 0 and out_m["result"]["task"]["status"]["state"] == "TASK_STATE_SUBMITTED", f"{rc_m} {out_m}")
         return log
     finally:
         err = hub.stop()

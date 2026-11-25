@@ -31,9 +31,11 @@ func (s *Server) handleA2ACard(w http.ResponseWriter, _ *http.Request) {
 		"supportedInterfaces": []any{map[string]any{"url": strings.TrimRight(s.cfg.PublicURL, "/") + "/a2a", "protocolBinding": "JSONRPC",
 			"protocolVersion": a2aVersion}},
 		"version": s.cfg.HubVersion,
-		"capabilities": map[string]any{"streaming": false, "pushNotifications": false, "extendedAgentCard": false, "extensions": []any{
+		"capabilities": map[string]any{"streaming": true, "pushNotifications": false, "extendedAgentCard": false, "extensions": []any{
 			map[string]any{"uri": a2aApprovalExtension, "required": false,
-				"description": "data part 의 action 에 실행을 실으면, 사람이 로그인해 승인한 뒤 그 실행에만 쓰는 approval_id 를 아티팩트로 준다."}}},
+				"description": "data part 의 action 에 실행을 실으면, 사람이 로그인해 승인한 뒤 그 실행에만 쓰는 approval_id 를 아티팩트로 준다."},
+			map[string]any{"uri": store.A2APeerExtension, "required": false,
+				"description": "message.metadata 의 이 URI 칸에 {\"to\": 콜사인} 을 실으면 같은 프로젝트의 그 콜사인에게 글을 보낸다. 받은 쪽이 taskId 로 한 번 답하면 COMPLETED 다. 글은 자료이고 권한을 주지 않는다."}}},
 		"securitySchemes":      map[string]any{"callsign": map[string]any{"httpAuthSecurityScheme": map[string]any{"scheme": "Bearer", "description": "허브 콜사인 토큰"}}},
 		"securityRequirements": []any{map[string]any{"schemes": map[string]any{"callsign": map[string]any{"list": []any{}}}}},
 		"defaultInputModes":    []string{"application/json", "text/plain"},
@@ -41,7 +43,10 @@ func (s *Server) handleA2ACard(w http.ResponseWriter, _ *http.Request) {
 		"skills": []any{map[string]any{"id": "human-approval", "name": "사람 승인 요청",
 			"description": "질문과 (선택) 실행을 보내면 Task 가 AUTH_REQUIRED 가 되고, 사람이 웹에서 승인·거절하면 COMPLETED·REJECTED 가 된다.",
 			"tags":        []string{"approval", "human-in-the-loop"},
-			"examples":    []string{`{"title": "1.x 이관", "question": "실행할까요?", "action": {"type": "migrate_import", "migration_id": "MIG-0001", "kinds": ["tasks"]}}`}}},
+			"examples":    []string{`{"title": "1.x 이관", "question": "실행할까요?", "action": {"type": "migrate_import", "migration_id": "MIG-0001", "kinds": ["tasks"]}}`}},
+			map[string]any{"id": "peer-message", "name": "콜사인 간 메시지",
+				"description": "같은 프로젝트의 다른 콜사인에게 글을 보내고 답을 한 번 받는다.",
+				"tags":        []string{"message", "agent-to-agent"}}},
 	})
 }
 
@@ -98,7 +103,21 @@ func (s *Server) handleA2A(w http.ResponseWriter, r *http.Request) {
 		version = r.URL.Query().Get("A2A-Version")
 	}
 	ctx := store.Ctx{Now: now, Via: "a2a", Principal: p, ClientVersion: client, PublicURL: s.cfg.PublicURL}
+	method := a2aMethod(raw)
+	streaming := method == "SendStreamingMessage" || method == "SubscribeToTask"
+	if streaming {
+		key := p.ProjectID + "/" + p.Callsign
+		if !a2aStreams.take(key) {
+			deny(&store.HubError{Status: http.StatusTooManyRequests, Code: "stream_capacity", Message: "동시 스트림 상한 — 잠시 뒤 다시 구독한다"})
+			return
+		}
+		defer a2aStreams.release(key)
+	}
 	id, result, err := s.a2aCall(ctx, raw, strings.TrimSpace(version))
+	if err == nil && streaming {
+		s.a2aStream(w, r, ctx, bearerToken(r.Header), id, result["task"].(map[string]any))
+		return
+	}
 	if err == nil {
 		writeJSONResponse(w, http.StatusOK, map[string]any{"jsonrpc": "2.0", "id": id, "result": result})
 		return
@@ -153,8 +172,16 @@ func (s *Server) a2aCall(ctx store.Ctx, raw []byte, version string) (any, map[st
 		result, err = s.cfg.Store.A2AList(ctx, params)
 	case method == "CancelTask":
 		result, err = s.cfg.Store.A2ACancel(ctx, params)
-	case method == "SendStreamingMessage" || method == "SubscribeToTask":
-		err = &store.A2AError{Reason: "UNSUPPORTED_OPERATION", Message: "스트리밍은 아직 제공하지 않는다 — GetTask 로 확인한다"}
+	case method == "SendStreamingMessage":
+		result, err = s.cfg.Store.A2ASend(ctx, params)
+	case method == "SubscribeToTask":
+		var task map[string]any
+		if task, err = s.cfg.Store.A2AGet(ctx, map[string]any{"id": params["id"]}); err == nil {
+			if a2aTerminal(task) {
+				err = &store.A2AError{Reason: "UNSUPPORTED_OPERATION", Message: "끝난 Task 는 구독할 수 없다 — GetTask 로 확인한다"}
+			}
+			result = map[string]any{"task": task}
+		}
 	case strings.HasSuffix(method, "PushNotificationConfig") || method == "ListTaskPushNotificationConfigs":
 		err = &store.A2AError{Reason: "PUSH_NOTIFICATION_NOT_SUPPORTED", Message: "푸시 알림은 제공하지 않는다"}
 	case method == "GetExtendedAgentCard":

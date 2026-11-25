@@ -13,6 +13,7 @@ var callsignUse = [][2]string{
 	{"sessions", "SELECT COUNT(*) FROM session WHERE project_id=? AND callsign=?"},
 	{"accounts", "SELECT COUNT(*) FROM hub_account_callsign WHERE project_id=? AND callsign=?"},
 	{"messages", "SELECT COUNT(*) FROM inbox_message WHERE project_id=? AND to_kind='callsign' AND to_id=?"},
+	{"a2a_messages", "SELECT COUNT(*) FROM a2a_peer WHERE project_id=? AND to_callsign=?"},
 }
 
 func removeCallsignRows(tx *sql.Tx, projectID, callsign string) error {

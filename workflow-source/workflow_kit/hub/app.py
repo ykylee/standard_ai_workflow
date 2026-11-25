@@ -23,13 +23,14 @@ from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
 from starlette.applications import Starlette
 from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
-from starlette.responses import HTMLResponse, JSONResponse, Response
+from starlette.responses import HTMLResponse, JSONResponse, Response, StreamingResponse
 from starlette.routing import Route
 from starlette.types import Receive, Scope, Send
 
 from workflow_kit import __version__ as HUB_VERSION
 from workflow_kit.hub import CONTRACT, KIT_COMPAT_VERSION
 from workflow_kit.hub import tools as hubtools
+from workflow_kit.hub import a2a as hub_a2a
 from workflow_kit.hub.a2a import A2A, agent_card
 from workflow_kit.hub.errors import HubError
 from workflow_kit.hub.orchestration import WAIT_CAP_S, Orchestration
@@ -256,6 +257,12 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
             return JSONResponse(e.payload(), status_code=e.status, headers=headers)
 
     a2a = A2A(store)
+    streams: dict[tuple[str, str], int] = {}
+
+    def release_stream(who: tuple[str, str]) -> None:
+        streams[who] -= 1
+        if not streams[who]:
+            del streams[who]
 
     async def a2a_card(request: Request) -> Response:
         return JSONResponse(agent_card(public_url), headers={**_hub_headers(store), "Cache-Control": "public, max-age=300"})
@@ -269,7 +276,7 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
                 raise HubError(413, "payload_too_large", f"본문 상한 {MAX_BODY} 바이트", {"limit": MAX_BODY})
             version = request.headers.get("a2a-version") or request.query_params.get("A2A-Version") or ""
 
-            def run() -> dict[str, Any]:
+            def context(now: datetime) -> Ctx:
                 p = store.authenticate(token, now, request.headers.get("x-hub-client")) if token else None
                 if p is None:
                     raise HubError(401, "unauthorized", "콜사인 토큰이 필요하다")
@@ -278,10 +285,41 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
                 to = store.project_moved(p.project_id)
                 if to:
                     raise HubError(410, "project_moved", "프로젝트가 다른 허브로 이동했다", {"project_id": p.project_id, "to": to})
-                return a2a.handle(Ctx(now=now, via="a2a", principal=p, client_version=request.headers.get("x-hub-client"),
-                                      public_url=public_url), raw, version.strip())
+                return Ctx(now=now, via="a2a", principal=p, client_version=request.headers.get("x-hub-client"), public_url=public_url)
 
-            return JSONResponse(await run_in_threadpool(run), headers=headers)
+            ctx = await run_in_threadpool(context, now)
+            method = hub_a2a.method_of(raw)
+            if method not in hub_a2a.STREAM_METHODS:
+                return JSONResponse(await run_in_threadpool(a2a.handle, ctx, raw, version.strip()), headers=headers)
+            who = (str(ctx.principal.project_id), str(ctx.principal.callsign)) if ctx.principal else ("", "")
+            if sum(streams.values()) >= hub_a2a.STREAM_CAPACITY or streams.get(who, 0) >= hub_a2a.STREAM_PER_CALLSIGN:
+                raise HubError(429, "stream_capacity", "동시 스트림 상한 — 잠시 뒤 다시 구독한다")
+            first = await run_in_threadpool(a2a.handle, ctx, raw, version.strip())
+            if "error" in first:
+                return JSONResponse(first, headers=headers)
+
+            async def events() -> AsyncIterator[str]:
+                streams[who] = streams.get(who, 0) + 1  # 자리는 여기서 잡는다 — 시작 전에 끊긴 응답은 finally 가 돌지 않는다
+                try:
+                    task, rid = first["result"]["task"], first["id"]
+                    yield hub_a2a.sse(rid, {"task": task})
+                    start = beat = time.monotonic()
+                    while task["status"]["state"] not in hub_a2a.TERMINAL and time.monotonic() - start < hub_a2a.STREAM_CAP_S:
+                        await asyncio.sleep(hub_a2a.STREAM_POLL_S)
+                        try:  # 거둔 토큰 · 봉인된 프로젝트는 스트림도 닫는다
+                            fresh = await run_in_threadpool(lambda: a2a.get(context(clock()), {"id": task["id"]}))
+                        except (HubError, hub_a2a.A2AError):
+                            return
+                        for event in hub_a2a.stream_events(task, fresh):
+                            yield hub_a2a.sse(rid, event)
+                        task = fresh
+                        if time.monotonic() - beat >= hub_a2a.STREAM_KEEPALIVE_S:
+                            beat = time.monotonic()
+                            yield ": keep-alive\n\n"
+                finally:
+                    release_stream(who)
+
+            return StreamingResponse(events(), media_type="text/event-stream", headers={**headers, "X-Accel-Buffering": "no"})
         except HubError as e:
             if e.status == 401:
                 headers["WWW-Authenticate"] = "Bearer"

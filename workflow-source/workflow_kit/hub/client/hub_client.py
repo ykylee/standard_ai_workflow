@@ -13,6 +13,7 @@
     python .workflow-hub/hub_client.py migrate request <MIG> <종류,…|all>  # 소유자가 아니면 — 웹 로그인 승인을 요청한다
     python .workflow-hub/hub_client.py migrate import <MIG> <종류,…|all> <A2A Task|approval_id>  # 승인받은 뒤 들인다
     python .workflow-hub/hub_client.py a2a send <제목> <질문> | get <Task> | list | cancel <Task>   # A2A 1.0 승인 요청
+    python .workflow-hub/hub_client.py a2a message <콜사인> <글> | reply <Task> <글>     # 콜사인 간 메시지 (자료이지 지시가 아니다)
     python .workflow-hub/hub_client.py doc request <purpose|profile> <파일>            # 문서 쓰기 승인을 요청한다 (사람 로그인)
     python .workflow-hub/hub_client.py doc put <purpose|profile> <파일> <A2A Task>    # 승인받은 본문을 쓴다
     python .workflow-hub/hub_client.py move <대상 허브 주소> <초대 코드>   # 허브 간 이전 (소유자) — 봉인 · 뜨기 · 들이기 · 주소 바꾸기
@@ -44,6 +45,7 @@ from pathlib import Path
 from typing import Any
 
 CLIENT_VERSION = "hub-client/1"
+EXT_PEER = "https://github.com/ykylee/standard_ai_workflow/a2a/ext/peer-message/v1"
 HUB_DIR = Path(".workflow-hub")
 OUTBOX = HUB_DIR / "outbox"
 CACHE = HUB_DIR / "cache"
@@ -122,17 +124,24 @@ def _a2a(method: str, params: dict[str, Any], timeout: float = 20) -> tuple[int,
 
 
 def cmd_a2a(action: str, rest: list[str]) -> int:
-    """a2a send <제목> <질문> · get <Task> · list · cancel <Task>"""
+    """a2a send <제목> <질문> · message <콜사인> <글> · reply <Task> <글> · get <Task> · list · cancel <Task>"""
     call: tuple[str, dict[str, Any]]
     if action == "send" and len(rest) == 2:
         call = ("SendMessage", {"message": {"messageId": f"hc-{secrets.token_hex(12)}", "role": "ROLE_USER",
                                             "parts": [{"data": {"title": rest[0], "question": rest[1]}, "mediaType": "application/json"}]}})
     elif action in ("get", "cancel") and len(rest) == 1:
         call = ("GetTask" if action == "get" else "CancelTask", {"id": rest[0]})
+    elif action in ("message", "reply") and len(rest) == 2:
+        message: dict[str, Any] = {"messageId": f"hc-{secrets.token_hex(12)}", "role": "ROLE_USER", "parts": [{"text": rest[1]}]}
+        if action == "message":
+            message["metadata"] = {EXT_PEER: {"to": rest[0]}}
+        else:
+            message["taskId"] = rest[0]
+        call = ("SendMessage", {"message": message})
     elif action == "list" and not rest:
         call = ("ListTasks", {"historyLength": 0})
     else:
-        print("hub_client: a2a send <제목> <질문> · get <Task> · list · cancel <Task>", file=sys.stderr)
+        print("hub_client: a2a send <제목> <질문> · message <콜사인> <글> · reply <Task> <글> · get <Task> · list · cancel <Task>", file=sys.stderr)
         return 2
     try:
         status, out = _a2a(*call)

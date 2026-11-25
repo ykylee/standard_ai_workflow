@@ -121,6 +121,7 @@ python -m workflow_kit hub admin   --db PATH project import --file FILE | seal -
 | `knowledge_source` · `knowledge_revision` | 프로젝트 Git 원본/allowlist · path · commit SHA · content SHA-256 · 불변 Markdown body/revision | 프로젝트 범위. Git 원격 fetch 없이 호출자가 전달한 snapshot만 받는다 — 판 13 | ADR-036 |
 | `decision_change` · `decision_event` | DCR proposal · target refs/base revisions · state/version · reviewer · decision · ADR path/hash · append-only timeline | `(project_id,id)` · 결정 변화와 감사 event — 판 13 | ADR-036 |
 | `idea` · `idea_entry` | 상태(`new`/`reviewing`/`replied`/`adopted`/`kept`/`closed`) · 작성자 · `added_via`(`web`/`agent`) · `human_asked` · 맡은 콜사인과 기한 · 연결 task · version / 줄기(`idea`/`ask`/`reply`) | `(project_id, id)` `IDEA-<4자리>` · 원문은 고치지 않는다 — 판 19 | 3.4.0 |
+| `a2a_peer` | 콜사인 간 A2A 메시지 — 보낸 · 받는 콜사인 · 맥락 · 원문 · 실림 횟수 · 답 · 거둠 시각 (상태는 저장하지 않고 파생) | `(project_id, id)` `A2M-…` · 보낸 콜사인의 `messageId` 유일 · 허브 간 이전에서 뺀다 — 판 20 | A2A A2 |
 | `wiki_ingest` | `project_id` · `id` (`ING-<5자리>`) · `seq` · `callsign` · `at` · `log_line` · `pages_json` | `(project_id, seq)` 유일 — 거절된 묶음은 번호를 먹지 않는다 | R8.2 |
 | `memory_entry` | `project_id` · `id` · `body_json` (1.x `MemoryEntry` 로 검증한 그대로) · `version` · `updated_by` · `updated_at` | `(project_id, id)` — 판 6 | R8.1 (E5) |
 | `event` | `seq` (자동 증가) · `project_id` · `at` · `callsign` · `target_kind` · `target_id` · `op` · `before_json` · `after_json` · `via` (`mcp`/`http`/`client`) · `client_version` | 추가만 | R1.5 · R5.10 · R2.7 |

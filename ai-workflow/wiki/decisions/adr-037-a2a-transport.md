@@ -6,7 +6,7 @@ decided_at: 2026-11-24
 alternatives_considered: [keep-mcp-inbox, sdk-server, replace-mcp-immediately, rest-or-grpc-binding]
 related_pages: [decisions/adr-034-hub-orchestration, decisions/adr-035-go-runtime]
 created: 2026-11-24
-updated: 2026-11-24
+updated: 2026-11-25
 r9_skip: true
 ---
 
@@ -31,8 +31,11 @@ r9_skip: true
 6. `A2A-Version` 이 없거나 `1.0` 이 아니면 `-32009` 다 (없는 경우는 규격에 없어 0.3 으로 본다).
 7. 기존 MCP 통신 도구는 전환이 끝날 때까지 병행한다. 작업 배정은 중개 확장을 따로 설계한다.
 
+8. (2026-11-25) 같은 프로젝트의 콜사인은 누구나 메시지를 주고받는다. 글은 자료이고 권한을 주지 않으며, 받은편지함과 다른 칸(`a2a_messages`)으로 전달하고 대기를 깨우지 않는다. 답은 Task당 한 번이다.
+9. (2026-11-25) 스트림은 SSE이고 한 연결 50초에서 닫는다. 토큰을 다시 확인하며 흐른다.
+
 ## Consequences
 
 - A2A 클라이언트(공식 Python `a2a-sdk` 1.3.1 · Go `a2a-go` v2.9.0)가 그대로 붙는다.
-- 스트리밍 · 푸시 · HTTP+JSON · gRPC 는 아직 없다. 카드는 구현한 능력만 선언한다.
+- 푸시 · HTTP+JSON · gRPC 는 아직 없다. 카드는 구현한 능력만 선언한다.
 - 공개 허브에 새 입구가 생긴다 — 카드 밖은 콜사인 토큰이 있어야 한다.

@@ -105,7 +105,11 @@
     const flash = pendingFlash;
     pendingFlash = null;
     hideRefreshNotice();
-    app.replaceChildren(...(flash ? [alertBox(flash.kind, flash.text)] : []), ...nodes.filter((node) => node !== null && node !== undefined));
+    // 배열을 그대로 넘기면 '[object HTMLElement]' 글자가 된다 — 펼쳐서 넣는다. 자동 갱신은 펼쳐 둔 접기를 닫지 않는다.
+    const open = new Set([...app.querySelectorAll("details[data-keep][open]")].map((d) => d.dataset.keep));
+    app.replaceChildren(...(flash ? [alertBox(flash.kind, flash.text)] : []),
+      ...nodes.flat(Infinity).filter((node) => node !== null && node !== undefined && node !== false));
+    app.querySelectorAll("details[data-keep]").forEach((d) => { if (open.has(d.dataset.keep)) d.open = true; });
   }
   function setCrumbs(items) {
     crumbs.replaceChildren(...items.flatMap((it, i) => [i ? el("span", {}, "›") : null,
@@ -538,6 +542,15 @@
           : listView, pagination));
   }
 
+  function messageBody(body) {
+    if (typeof body === "string") return el("div", {}, body);
+    const b = body || {};
+    const text = ["title", "text", "question", "summary", "message", "note"].map((k) => b[k]).filter((v) => typeof v === "string" && v);
+    const state = typeof b.state === "string" ? b.state : typeof b.decision === "string" ? b.decision : "";
+    return el("div", {}, state ? chip(state, "planned") : null, text.map((v) => el("div", {}, v)),
+      !text.length && Object.keys(b).length ? el("pre", { class: "wrap" }, JSON.stringify(b, null, 1)) : null);
+  }
+
   // --- 화면: 오케스트레이션 (M-053 WBS-53.1) -----------------------------------------------
 
   async function viewOrchestration(pid) {
@@ -599,7 +612,7 @@
         orch ? el("div", { class: "row" }, "오케스트레이터 ", el("strong", {}, orch.callsign),
           el("span", { class: "mono muted" }, orch.session), "만료 ", when(orch.expires_at))
           : el("p", { class: "muted" }, "지정된 오케스트레이터가 없다."),
-        controls.length ? el("div", { class: "row" }, controls) : el("p", { class: "muted" }, "정지 · lease 지정 · 승인은 이 프로젝트의 승인된 owner 콜사인 토큰으로만 한다."),
+        controls.length ? el("div", { class: "row" }, controls) : el("p", { class: "muted" }, "정지 · lease 지정 · 승인은 이 프로젝트의 소유자가 한다 — 허브 계정으로 로그인하거나 승인된 owner 콜사인 토큰을 쓴다."),
         msg);
     })();
 
@@ -634,7 +647,7 @@
     const approvalsSection = el("section", { class: "card" },
       el("h2", {}, `세션 승인 대기 (${pendingReqs.length})`),
       pendingReqs.length ? pendingReqs.map(reqCard) : el("p", { class: "muted" }, "승인 대기 중인 요청이 없다."),
-      otherReqs.length ? el("details", {}, el("summary", {}, `이전 요청 기록 (${otherReqs.length})`),
+      otherReqs.length ? el("details", { "data-keep": "orch-old" }, el("summary", {}, `이전 요청 기록 (${otherReqs.length})`),
         el("div", {}, otherReqs.map(reqCard))) : null);
 
     const sessCountsRow = el("div", { class: "row" },
@@ -659,8 +672,12 @@
 
     const unackSection = d.unacknowledged.length ? el("section", { class: "card" },
       el("h2", {}, `미확인 메시지 unacknowledged (${d.unacknowledged.length})`),
-      d.unacknowledged.map((m) => alertBox("warn",
-        `${m.id} → ${m.to_kind}:${m.to_id} (${m.kind}${m.ref_task ? ` · ${m.ref_task}` : ""}) · 경로 ${m.delivered_via || "—"}`))) : null;
+      el("p", { class: "muted" }, "받는 세션이 hub_inbox_ack 로 확인하면 사라진다."),
+      d.unacknowledged.map((m) => el("div", { class: "decision" },
+        el("div", { class: "row" }, el("span", { class: "mono muted" }, m.id), chip(m.kind, "planned"),
+          `${m.to_kind}:${m.to_id}`, m.ref_task ? el("a", { class: "mono", href: `${base}/t/${encodeURIComponent(m.ref_task)}` }, m.ref_task) : null,
+          el("span", { class: "muted" }, `경로 ${m.delivered_via || "—"} · `, when(m.created_at))),
+        messageBody(m.body)))) : null;
 
     const assignRows = d.assignments.map((a) => el("tr", {},
       el("td", { class: "mono nowrap" }, el("a", { href: `${base}/t/${encodeURIComponent(a.task_id)}` }, a.task_id)),
@@ -811,7 +828,7 @@
       el("p", { class: "muted" }, `요청 콜사인 ${req.requested_by}에게만, 승인 뒤 24시간, 아래 본문 그대로 한 번. 그 사이 문서가 바뀌면 쓸 수 없다. sha256 ${d.sha256.slice(0, 12)}`),
       el("p", {}, `추가 ${changed.filter(([mark]) => mark === "+").length}줄 · 삭제 ${changed.filter(([mark]) => mark === "-").length}줄`),
       changed.length ? el("pre", { class: "wrap", "data-doc-diff": d.name }, body) : el("p", { class: "muted" }, "줄 차이가 없다."),
-      el("details", {}, el("summary", {}, "새 본문 전체"), el("pre", { class: "wrap" }, d.proposed)),
+      el("details", { "data-keep": `doc-${req.id}` }, el("summary", {}, "새 본문 전체"), el("pre", { class: "wrap" }, d.proposed)),
     ];
   }
 
@@ -839,7 +856,7 @@
         el("p", { class: "muted" }, r.data.reason || "로드맵이 없다.")));
       return;
     }
-    const msCards = st.milestones.map((m) => el("section", { class: "card" },
+    const card = (m) => el("section", { class: "card" },
       el("div", { class: "row" }, el("strong", { class: "mono" }, m.id), chip(m.sdlc_phase, "planned"),
         chip(`선언 ${m.declared_status}`, m.declared_status), chip(`파생 ${m.derived_status}`, m.derived_status),
         m.id === st.current_milestone_id ? chip("현재 마일스톤", "in_progress") : null),
@@ -847,15 +864,19 @@
       el("div", { class: "meter" },
         el("div", { class: "muted" }, `WBS leaf ${m.done_leaves} / ${m.total_leaves} (${Math.round((m.progress || 0) * 100)}%)`),
         el("progress", { value: m.progress || 0, max: 1 })),
-      m.wbs && m.wbs.length ? el("ul", { class: "wbs-list" }, m.wbs.map((w) => renderWbsNode(base, w))) : null));
+      m.wbs && m.wbs.length ? el("ul", { class: "wbs-list" }, m.wbs.map((w) => renderWbsNode(base, w))) : null);
+    const isDone = (m) => m.derived_status === "done" && m.declared_status === "done";
+    const open = st.milestones.filter((m) => !isDone(m)).sort((a, b) => (b.id === st.current_milestone_id) - (a.id === st.current_milestone_id));
+    const done = st.milestones.filter(isDone).reverse();
     render(
       el("section", { class: "card" }, el("h1", {}, "로드맵"), projectNav(pid, "roadmap"),
-        el("div", { class: "row muted" }, `마일스톤 ${st.milestones.length}개`,
+        el("div", { class: "row muted" }, `마일스톤 ${st.milestones.length}개 (열림 ${open.length} · 완료 ${done.length})`,
           st.current_milestone_id ? ` · 현재 ${st.current_milestone_id}` : "",
           st.exempt_tasks ? ` · exempt ${st.exempt_tasks.length}건` : "")),
       st.issues && st.issues.length ? el("section", { class: "card" }, el("h2", {}, `로드맵 경고 (${st.issues.length})`),
         el("ul", {}, st.issues.map((i) => el("li", {}, el("span", { class: "mono" }, i.code), ` — ${i.detail}`)))) : null,
-      msCards);
+      open.map(card),
+      done.length ? el("details", { class: "card", "data-keep": "rm-done" }, el("summary", {}, `완료한 마일스톤 (${done.length})`), done.map(card)) : null);
   }
 
   // --- 콜사인 표 · 콜사인 화면 (WBS-37.2) ------------------------------------------------

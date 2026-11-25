@@ -4,7 +4,7 @@
 - 범위: git log 에서 추출한 release 별 Added / Changed / Fixed 항목.
 - 대상 독자: maintainer, 릴리스 매니저, 외부 consumer
 - 상태: stable (자동 생성물)
-- 최종 수정일: 2026-11-24
+- 최종 수정일: 2026-11-25
 - 관련 문서: [`./releases/`](./releases/) (release note), [`../docs/RELEASE.md`](../docs/RELEASE.md) (릴리스 절차)
 
 All notable changes to this project will be documented in this file.
@@ -282,6 +282,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- chore(release): prepare 3.3.2 (5553139b)
 - test(hub): declare the marker and helper the progress-rule check reads (8c78b7b8)
 - test(hub): require the marker and an unedited hub region in the progress-rule check (40def284)
 - chore: 워크플로우 허브로 옮김 (MIG-0003) (d3dc604c)

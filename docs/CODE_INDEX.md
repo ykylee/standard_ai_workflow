@@ -24,7 +24,7 @@
 │   ├── mcp_servers/                # 8+ MCP 서버 프로토타입 + lib/
 │   ├── scripts/                    # 부트스트랩, export, generate, demo, ... 엔트리
 │   ├── tools/                      # check_packaging.py 등 운영 도구 (v0.5.8+)
-│   ├── tests/                      # 358개 check_*.py 스모크 (2026-11-24 기준)
+│   ├── tests/                      # 359개 check_*.py 스모크 (2026-11-25 기준)
 │   ├── schemas/                    # JSON 스키마, 출력 샘플 계약, transport descriptor
 │   ├── examples/                   # E2E 데모, 도입 예시, MCP config 5종, 출력 샘플
 │   ├── harnesses/                  # 10개 지원 하네스 오버레이 + 공통 문서/템플릿
@@ -34,7 +34,7 @@
 │   ├── global-snippets/            # 하네스 전역 비침투적 snippet 예시
 │   ├── releases/                   # Beta v0.5.0 ~ v0.15.18 누적 릴리스 노트
 │   ├── MEMORY_GOVERNANCE.md        # AI 메모리 문서 표준
-│   └── pyproject.toml              # 패키지 매니페스트 (version 3.3.2)
+│   └── pyproject.toml              # 패키지 매니페스트 (version 3.3.3)
 │
 ├── .claude-plugin/marketplace.json # 이 저장소가 곧 marketplace — **생성물**
 ├── plugin/                         # 공유 payload + 하네스 어댑터 — **생성물** (손 편집 금지)

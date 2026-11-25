@@ -96,7 +96,7 @@ func (s *Server) screenOrchestration(pid string, principal *store.Principal, now
 			unackRows.Close()
 			return nil, err
 		}
-		var body map[string]any
+		var body any // 본문은 객체가 아닐 수 있다 (옛 문자열 메시지)
 		if err := json.Unmarshal([]byte(bodyJSON), &body); err != nil {
 			unackRows.Close()
 			return nil, err

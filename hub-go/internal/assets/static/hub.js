@@ -672,12 +672,21 @@
 
     const unackSection = d.unacknowledged.length ? el("section", { class: "card" },
       el("h2", {}, `미확인 메시지 unacknowledged (${d.unacknowledged.length})`),
-      el("p", { class: "muted" }, "받는 세션이 hub_inbox_ack 로 확인하면 사라진다."),
+      el("p", { class: "muted" }, "10분 안에 확인하지 않은 메시지다. 받는 쪽이 hub_inbox_ack(decision=seen) 로 읽음 처리하거나 소유자가 정리하면 사라진다. 정리는 배정·승인 상태를 바꾸지 않는다."),
       d.unacknowledged.map((m) => el("div", { class: "decision" },
         el("div", { class: "row" }, el("span", { class: "mono muted" }, m.id), chip(m.kind, "planned"),
           `${m.to_kind}:${m.to_id}`, m.ref_task ? el("a", { class: "mono", href: `${base}/t/${encodeURIComponent(m.ref_task)}` }, m.ref_task) : null,
           el("span", { class: "muted" }, `경로 ${m.delivered_via || "—"} · `, when(m.created_at))),
-        messageBody(m.body)))) : null;
+        messageBody(m.body),
+        m.kind === "approval" && m.body && m.body.request_type === "agent_confirmation"
+          ? el("a", { href: `${base}/confirmations` }, "확인 요청에서 결정")
+          : canManage ? el("button", { type: "button", class: "ghost", onclick: async () => {
+            const res = await api(`projects/${encodeURIComponent(pid)}/orchestration/messages/${encodeURIComponent(m.id)}/close`, {
+              method: "POST", token: storedToken(pid), body: {} });
+            pendingFlash = res.status === 200 ? { kind: "ok", text: `${m.id} 를 정리했다.` } : { kind: "bad", text: errorText(res) };
+            dirty = false;
+            route();
+          } }, "읽음으로 정리") : null))) : null;
 
     const assignRows = d.assignments.map((a) => el("tr", {},
       el("td", { class: "mono nowrap" }, el("a", { href: `${base}/t/${encodeURIComponent(a.task_id)}` }, a.task_id)),
@@ -767,19 +776,19 @@
         route();
       };
       return el("section", { class: "card" },
-        el("div", { class: "row" }, el("h2", {}, req.title), chip("승인 대기", "blocked")),
+        el("div", { class: "row" }, el("h2", { class: "exact" }, reveal(req.title)), staleDoc(req) ? chip("낡은 요청", "unack") : chip("승인 대기", "blocked")),
         el("div", { class: "muted" }, `${req.requested_by} · ${req.created_at}`),
         req.action ? el("section", { class: "card", "data-action": req.action.type },
           el("h3", {}, "승인하면 허용되는 실행 (허브가 계산)"),
           ...(req.action.type === "project_doc_put" ? docPutCard(req) : [
           el("p", {}, `${{ migrate_import: "1.x 기록 들여오기", migrate_marker: "'허브로 옮김' 표식" }[req.action.type] || req.action.type} · ${req.action.summary.migration_id}`),
-          el("p", { class: "muted" }, `요청 콜사인 ${req.requested_by}에게만, 승인 뒤 24시간, 한 번. 브랜치 ${req.action.summary.branch} · ${String(req.action.summary.head).slice(0, 8)} · 미커밋 파일 ${req.action.summary.uncommitted}개`),
+          el("p", { class: "muted" }, `요청 콜사인 ${req.requested_by}에게만, 승인 뒤 24시간, 한 번. 브랜치 `, reveal(req.action.summary.branch), ` · ${String(req.action.summary.head).slice(0, 8)} · 미커밋 파일 ${req.action.summary.uncommitted}개`),
           req.action.summary.files ? el("ul", {}, Object.entries(req.action.summary.files).map(([k, n]) => el("li", {}, `${k}: ${n}개 파일`))) : null,
           req.action.summary.marker ? el("p", {}, `표식 동작: ${req.action.summary.marker}`) : null]),
           actingAccount ? null : alertBox("warn", "이 승인은 허브 계정 로그인이 필요하다. 홈에서 계정으로 로그인한 뒤 승인한다.")) : null,
-        el("p", { class: "muted" }, "요청한 에이전트의 설명"), el("p", {}, req.question), req.details ? el("pre", { class: "wrap" }, req.details) : null,
+        el("p", { class: "muted" }, "요청한 에이전트의 설명"), el("p", { class: "exact" }, reveal(req.question)), req.details ? el("pre", { class: "wrap exact" }, reveal(req.details)) : null,
         el("div", { class: "row" }, note,
-          el("button", { type: "button", disabled: Boolean(req.action) && !actingAccount, onclick: decide("approve") }, "승인"),
+          el("button", { type: "button", disabled: (Boolean(req.action) && !actingAccount) || staleDoc(req), onclick: decide("approve") }, "승인"),
           el("button", { class: "danger", type: "button", onclick: decide("reject") }, "거절")));
     });
     render(el("section", { class: "card" }, el("h1", {}, "에이전트 확인 요청"),
@@ -787,6 +796,19 @@
       projectNav(pid, "confirmations")),
       ...(cards.length ? cards : [el("section", { class: "card muted" }, "대기 중인 에이전트 확인 요청이 없습니다.")]));
   }
+
+  // 보이지 않거나 글자 순서를 뒤집는 문자를 드러낸다 — 사람이 본 글과 쓰일 글이 같아야 한다.
+  const HIDDEN_CHARS = /(?![\n\t ])[\p{C}\p{Z}\p{Default_Ignorable_Code_Point}\u2800]/gu;
+  function reveal(text) {
+    const s = String(text ?? ""), out = [];
+    let at = 0;
+    for (const m of s.matchAll(HIDDEN_CHARS)) {
+      out.push(s.slice(at, m.index), el("mark", { class: "hidden-char" }, `U+${m[0].codePointAt(0).toString(16).toUpperCase().padStart(4, "0")}`));
+      at = m.index + m[0].length;
+    }
+    return [...out, s.slice(at)];
+  }
+  const hiddenCount = (text) => (String(text ?? "").match(HIDDEN_CHARS) || []).length;
 
   // 승인할 문서 본문 — 허브가 보관한 요청 본문과 요청 때 판의 줄 단위 차이. 자르지 않는다.
   function lineDiff(before, after) {
@@ -812,6 +834,8 @@
     return out.concat(a.slice(a.length - t).map((l) => [" ", l]));
   }
 
+  const staleDoc = (req) => req.action?.type === "project_doc_put" && req.action.current_version !== req.action.summary.version;
+
   function docPutCard(req) {
     const d = req.action.summary;
     const rows = lineDiff(d.base, d.proposed);
@@ -819,7 +843,7 @@
     rows.forEach(([mark], i) => { if (mark !== " ") for (let k = i - 2; k <= i + 2; k += 1) near.add(k); });
     const body = [];
     rows.forEach(([mark, text], i) => {
-      if (near.has(i)) body.push(el("span", { class: mark === "+" ? "diff-add" : mark === "-" ? "diff-del" : "" }, `${mark} ${text}\n`));
+      if (near.has(i)) body.push(el("span", { class: mark === "+" ? "diff-add" : mark === "-" ? "diff-del" : "" }, `${mark} `, reveal(text), "\n"));
       else if (near.has(i - 1) || i === 0) body.push(el("span", { class: "muted" }, "⋯ 같은 줄\n"));
     });
     const changed = rows.filter(([mark]) => mark !== " ");
@@ -827,8 +851,10 @@
       el("p", {}, `프로젝트 문서 쓰기 · ${d.name} · ${d.version}판 → ${d.version + 1}판`),
       el("p", { class: "muted" }, `요청 콜사인 ${req.requested_by}에게만, 승인 뒤 24시간, 아래 본문 그대로 한 번. 그 사이 문서가 바뀌면 쓸 수 없다. sha256 ${d.sha256.slice(0, 12)}`),
       el("p", {}, `추가 ${changed.filter(([mark]) => mark === "+").length}줄 · 삭제 ${changed.filter(([mark]) => mark === "-").length}줄`),
-      changed.length ? el("pre", { class: "wrap", "data-doc-diff": d.name }, body) : el("p", { class: "muted" }, "줄 차이가 없다."),
-      el("details", { "data-keep": `doc-${req.id}` }, el("summary", {}, "새 본문 전체"), el("pre", { class: "wrap" }, d.proposed)),
+      staleDoc(req) ? alertBox("warn", `낡은 요청 — 문서가 지금 ${req.action.current_version}판이라 승인해도 쓸 수 없다. 거절하고 다시 요청받는다.`) : null,
+      hiddenCount(d.proposed) ? alertBox("warn", `새 본문에 보이지 않는 문자 ${hiddenCount(d.proposed)}개 — U+… 로 표시했다.`) : null,
+      changed.length ? el("pre", { class: "wrap exact", "data-doc-diff": d.name }, body) : el("p", { class: "muted" }, "줄 차이가 없다."),
+      el("details", { "data-keep": `doc-${req.id}` }, el("summary", {}, "새 본문 전체"), el("pre", { class: "wrap exact" }, reveal(d.proposed))),
     ];
   }
 

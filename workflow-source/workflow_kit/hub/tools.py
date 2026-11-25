@@ -293,7 +293,7 @@ TOOLS: dict[str, ToolSpec] = {
         ToolSpec("hub_task_create", "token", "task 를 만든다 — ID 는 TASK-<날짜>-<콜사인>-<NNN> (DS3). done 으로 만들 수 없다.",
                  {**_TASK_PROPS, "request_id": _REQ_ID}, ("title",), _task_create),
         ToolSpec("hub_task_update", "token",
-                 "task 칸을 고친다 — expected_version 이 다르면 409. 계획(plan_md)은 1.x 계약으로 린트 · 결정 상태 재계산. "
+                 "task 칸(values: title · status · priority · branch · wbs · wbs_exempt_reason · description · plan_md · fields)을 고친다 — expected_version 이 다르면 409. 계획(plan_md)은 1.x 계약으로 린트 · 결정 상태 재계산. "
                  "decision_states: {D<n>: answered:<value>|proposed}. 열린 결정을 걷으면 note 필수. done 은 hub_task_close.",
                  {"id": _STR, "expected_version": _INT, "values": _OBJ, "decision_states": _OBJ, "note": _STR,
                   "request_id": _REQ_ID},
@@ -423,7 +423,7 @@ TOOLS: dict[str, ToolSpec] = {
                  "(call_again=true 면 다시 부른다). kind=worker 세션만 (사람이 보는 세션은 꺼짐).",
                  {"session": _STR, "timeout_s": _INT}, ("session",), _wait_sync),
         ToolSpec("hub_inbox_ack", "token",
-                 "받은편지함 메시지 확인 — accept(배정 수락) · decline(거절 + reason) · seen(읽음). 같은 메시지에 다시 보내도 한 번.",
+                 "받은편지함 메시지 확인 — accept(배정 수락) · decline(거절 + reason) · seen(읽음 — 10분 지난 미확인 메시지도 정리). 같은 메시지에 다시 보내도 한 번.",
                  {"session": _STR, "message_id": _STR, "decision": _STR, "reason": _STR, "request_id": _REQ_ID},
                  ("session", "message_id", "decision"), lambda s, c, a: Orchestration(s).ack(c, a)),
         ToolSpec("hub_inbox_list", "token", "받은편지함 읽기 (상태를 바꾸지 않는다) — session 을 주면 그 세션 앞까지.",

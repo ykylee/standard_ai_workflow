@@ -653,6 +653,10 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
         return relays.decide(Ctx(now=now, via="ui", principal=_own(p, pid)),
                              {"request_id": rid, "decision": b.get("decision"), "note": note})
 
+    def post_orch_message_close(request: Request, p: Principal, now: datetime, _b: Any) -> dict[str, Any]:
+        pid = request.path_params["pid"]
+        return orch.close_message(Ctx(now=now, via="ui", principal=_own(p, pid)), request.path_params["mid"])
+
     def post_orch_relay_invite(request: Request, p: Principal, now: datetime, _b: Any) -> dict[str, Any]:
         pid = request.path_params["pid"]
         public = str(request.base_url).rstrip("/")
@@ -757,6 +761,7 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
         Route("/api/projects/{pid}/orchestration/halt", api(post_orch_halt, body=True), methods=["POST"]),
         Route("/api/projects/{pid}/orchestration/lease", api(post_orch_lease, body=True), methods=["POST"]),
         Route("/api/projects/{pid}/orchestration/approvals/{rid}", api(post_orch_decide, body=True), methods=["POST"]),
+        Route("/api/projects/{pid}/orchestration/messages/{mid}/close", api(post_orch_message_close, body=True), methods=["POST"]),
         Route("/api/projects/{pid}/orchestration/relays/invite", api(post_orch_relay_invite, body=True), methods=["POST"]),
         Route("/api/projects/{pid}/orchestration/relays/{hid}/revoke", api(post_orch_relay_revoke, body=True), methods=["POST"]),
     ]

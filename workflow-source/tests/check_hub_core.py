@@ -451,6 +451,50 @@ def case_12_callsign_delete(hub: Hub, db: Path, impl: str, cmd: list[str], pid: 
             f"diff={diff} cli={cli.returncode}:{cli.stdout[-200:]}{cli.stderr[-200:]} events={events}")
 
 
+def case_13_account_password(hub: Hub, db: Path, impl: str, cmd: list[str]) -> None:
+    """운영자 비밀번호 재설정 — stdin 으로만 받고, 로그인 · 잠금이 풀리고, 비밀번호가 출력 · DB 에 남지 않는다."""
+    old, new = "old-pass-word-1", "새-pass-word-2"
+
+    def req(path: str, body: dict[str, Any] | None, cookie: str = "") -> tuple[int, str]:
+        r = urllib.request.Request(hub.base + path, method="POST" if body is not None else "GET", data=json.dumps(body).encode() if body is not None else None,
+                                   headers={"content-type": "application/json", "origin": hub.base, "cookie": cookie})
+        try:
+            with urllib.request.urlopen(r, timeout=20) as resp:
+                return resp.status, (resp.headers.get("set-cookie") or "").split(";", 1)[0]
+        except urllib.error.HTTPError as exc:
+            return exc.code, ""
+
+    def cli(user: str, stdin: str, *extra: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run([*cmd, "admin", "--db", str(db), "account", "password", "--username", user, *extra], input=stdin,
+                              capture_output=True, encoding="utf-8", env=_env(), timeout=60)
+
+    _, cookie = req("/api/account/enroll", {"username": "pw-user", "display_name": "P", "password": old})
+    _, other = req("/api/account/enroll", {"username": "pw-other", "display_name": "O", "password": old})
+
+    def accounts(cs: str) -> int:
+        return sqlite3.connect(db).execute("SELECT COUNT(*) FROM hub_account_session s JOIN hub_account a ON a.id = s.account_id WHERE a.username = ?", (cs,)).fetchone()[0]
+
+    for _ in range(8):
+        req("/api/account/login", {"username": "pw-user", "password": "wrong-password"})
+    locked = req("/api/account/login", {"username": "pw-user", "password": old})[0]
+    short, ghost, argv = cli("pw-user", "short\n"), cli("pw-ghost", new + "\n"), cli("pw-user", "", new)
+    kept = accounts("pw-user")
+    done = cli("PW-User", new + "\r\n")
+    got = {"locked": locked, "short": short.returncode != 0, "ghost": ghost.returncode != 0, "argv": argv.returncode != 0, "kept": kept,
+           "done": done.returncode, "sessions": accounts("pw-user"), "other": accounts("pw-other"),
+           "old": req("/api/account/login", {"username": "pw-user", "password": old})[0],
+           "new": req("/api/account/login", {"username": "pw-user", "password": new})[0]}
+    want = {"locked": 429, "short": True, "ghost": True, "argv": True, "kept": 1, "done": 0, "sessions": 0, "other": 1, "old": 401, "new": 200}
+    events = sqlite3.connect(db).execute("SELECT callsign, target_id, op, after_json FROM event WHERE target_kind = 'hub_account'").fetchall()
+    event = [(c, t, o, json.loads(x)) for c, t, o, x in events]
+    with sqlite3.connect(db) as c:
+        dump = "\n".join(c.iterdump())
+    said = "".join(r.stdout + r.stderr for r in (done, short, ghost, argv))
+    _record(f"case 13 (계정 비밀번호 재설정 — stdin · 세션 · 잠금 해제 · 남지 않음) [{impl}]",
+            got == want and cookie != "" and other != "" and event == [("admin:hub", "pw-user", "reset_password", {"sessions_ended": 1})] and new not in dump + said,
+            f"got={got} event={event} {done.stdout[-200:]}{done.stderr[-200:]}")
+
+
 def case_4_to_10(tmp: Path, impl: str, cmd_prefix: list[str]) -> None:
     sub = tmp / f"core-{impl}"
     sub.mkdir(parents=True, exist_ok=True)
@@ -586,6 +630,7 @@ def case_4_to_10(tmp: Path, impl: str, cmd_prefix: list[str]) -> None:
                 and hub.call("hub_task_get", {"id": t2["task"]["id"]}, tok_a)[1]["task"]["assignee"] is None)
         _record(f"case 10 (거두기 — 토큰 무효 · 맡던 task 비움) [{impl}]", ok10, f"rc={rv.returncode} out={out} whoami={r1}")
         case_12_callsign_delete(hub, db, impl, cmd_prefix, pid, tok_a)
+        case_13_account_password(hub, db, impl, cmd_prefix)
     finally:
         err = hub.stop()
         if _failures:

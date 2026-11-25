@@ -8,6 +8,7 @@ Chrome headless 의 ``--dump-dom`` 으로 그린다 (Python 허브 · Go 허브 
 1. 화면 목록 — hub.js 의 ``view*`` 함수가 하나도 빠짐없이 아래 표에 있다
 2. 전 화면 — ``[object `` · JS 오류 · '불러오는 중' · 오류 알림이 없고 그 화면의 내용이 있다
 3. 로드맵 — 열린 마일스톤이 먼저, 완료는 접기 안
+5. 확인 요청 — 문서 차이가 줄마다 맞고, 보이지 않는 문자를 드러내고, 낡은 요청의 승인 단추를 끈다 · 미확인 메시지 정리
 4. 오케스트레이션 — 미확인 메시지 본문(객체 · 문자열), 계정 로그인 소유자의 승인 · 정지 · 거두기 · lease · 초대 버튼이 실제로 동작
 """
 
@@ -41,6 +42,13 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import check_hub_ui as ui  # noqa: E402
 from check_hub_core import Hub, _resolve_go_hub  # noqa: E402
+
+DOC_OLD = "\n".join(["머리", *(f"앞{i}" for i in range(6)), "옛 줄", "가운데", "지울 줄", *(f"뒤{i}" for i in range(6)), ""])
+DOC_NEW = "\n".join(["머리", *(f"앞{i}" for i in range(6)), "새 줄 <script>1</script>", "가운데", *(f"뒤{i}" for i in range(6)),
+                     "끝\u202e문\u2028단\u0000값\u200b\u3164\u00a0\U000e0041", ""])
+# 화면이 보여야 할 차이 — 줄 앞 표시까지 그대로. 앞뒤 두 줄만, 나머지는 접는다.
+DIFF = ["⋯ 같은 줄", "  앞4", "  앞5", "- 옛 줄", "+ 새 줄 <script>1</script>", "  가운데", "- 지울 줄", "  뒤0", "  뒤1", "⋯ 같은 줄", "  뒤4", "  뒤5",
+        "+ 끝U+202E문U+2028단U+0000값U+200BU+3164U+00A0U+E0041", "  "]
 
 _fails: list[str] = []
 _count = 0
@@ -166,9 +174,13 @@ def seed(hub: Hub, db: Path, impl: str) -> dict[str, str]:
     must("hub_task_close", {"id": t1["id"], "expected_version": t1["version"], "validation_result": "확인"}, owner)
     roadmap(1, "done")  # done 선언은 task 가 끝난 뒤 (그 전에는 WBS 게이트가 task 를 막는다)
     must("hub_approval_request", {"session": sw, "title": "확인 부탁", "question": "할까요?"}, bot)
-    must("hub_project_doc_put", {"name": "purpose", "body": "같은 줄\n옛 줄\n", "expected_version": 0}, owner)
+    must("hub_project_doc_put", {"name": "purpose", "body": DOC_OLD, "expected_version": 0}, owner)
+    must("hub_project_doc_put", {"name": "profile", "body": "옛 프로필\n", "expected_version": 0}, owner)
     must("hub_approval_request", {"session": sw, "title": "문서", "question": "쓸까요?", "action": {
-        "type": "project_doc_put", "name": "purpose", "body": "같은 줄\n새 줄 <script>1</script>\n", "expected_version": 1}}, bot)
+        "type": "project_doc_put", "name": "purpose", "body": DOC_NEW, "expected_version": 1}}, bot)
+    must("hub_approval_request", {"session": sw, "title": "제\u202e목", "question": "질\u200b문", "details": "설\u2066명", "action": {
+        "type": "project_doc_put", "name": "profile", "body": "새 프로필\n", "expected_version": 1}}, bot)
+    must("hub_project_doc_put", {"name": "profile", "body": "그 사이 바뀜\n", "expected_version": 1}, owner)  # 요청을 낡게 한다
     st, _, _ = ui._req(hub.base, f"/api/projects/{pid}/orchestration/lease", token=owner, method="POST", body={"action": "declare", "session": so})
     assert st == 200
     _, inv, _ = ui._req(hub.base, f"/api/projects/{pid}/orchestration/relays/invite", token=owner, method="POST", body={})
@@ -187,7 +199,7 @@ def seed(hub: Hub, db: Path, impl: str) -> dict[str, str]:
     found = must("hub_knowledge_search", {"query": "위키"}, owner)
     ref = next((str(x.get("ref")) for x in found.get("results") or found.get("hits") or []), "")
     from urllib.parse import quote
-    return {"pid": pid, "tid": tid, "ref": quote(ref, safe=""), "cookie": head.get("set-cookie", "").split(";", 1)[0], "host": host}
+    return {"owner": owner, "bot": bot, "pid": pid, "tid": tid, "ref": quote(ref, safe=""), "cookie": head.get("set-cookie", "").split(";", 1)[0], "host": host}
 
 
 def measure(impl: str, cmd: list[str] | None, exe: str, tmp: Path) -> None:
@@ -215,7 +227,30 @@ def measure(impl: str, cmd: list[str] | None, exe: str, tmp: Path) -> None:
         _record(f"[{impl}] 오케스트레이션 — 메시지 본문", all(x in orch for x in ("알림 제목", "본문이 보인다", "문자열 본문")))
         conf = doms["viewConfirmations"]
         _record(f"[{impl}] 확인 요청 — 문서 차이", all(x in conf for x in (
-            'class="diff-del">- 옛 줄', 'class="diff-add">+ 새 줄 &lt;script&gt;', "1판 → 2판", 'data-doc-diff="purpose"')))
+            'class="diff-del">- 옛 줄', 'class="diff-add">+ 새 줄 &lt;script&gt;', "1판 → 2판", 'data-doc-diff="purpose"', "추가 2줄 · 삭제 2줄")))
+        pre = re.search(r'<pre[^>]*data-doc-diff="purpose"[^>]*>(.*?)</pre>', conf, re.S)
+        shown = html.unescape(re.sub(r"<[^>]+>", "", pre[1])).removesuffix("\n").split("\n") if pre else []
+        _record(f"[{impl}] 확인 요청 — 차이가 줄마다 맞다", shown == DIFF, f"{shown}")
+        raw = [f"U+{ord(ch):04X}" for ch in "\u202e\u2028\u0000\u200b\u3164\u00a0\U000e0041\u2066" if ch in html.unescape(conf)]
+        marks = [conf.count(f">{u}</mark>") for u in ("U+202E", "U+2028", "U+0000", "U+200B", "U+3164", "U+00A0", "U+E0041", "U+2066")]
+        _record(f"[{impl}] 확인 요청 — 보이지 않는 문자를 드러낸다 (본문 · 제목 · 질문 · 설명)",
+                not raw and marks == [3, 2, 2, 3, 2, 2, 2, 1] and "보이지 않는 문자 7개" in conf, f"{raw} {marks}")
+        cards = {t: c for c in re.findall(r'<section class="card">.*?(?=<section class="card"><div class="row"><h2|$)', conf, re.S)
+                 for t in ("purpose", "profile") if f'data-doc-diff="{t}"' in c}
+        approve = {t: re.search(r'<button type="button"([^>]*)>승인<', c) for t, c in cards.items()}
+        _record(f"[{impl}] 확인 요청 — 낡은 요청은 알리고 승인 단추를 끈다", {t: bool(m and "disabled" in m[1]) for t, m in approve.items()} == {"purpose": False, "profile": True}
+                and ["낡은 요청 — 문서가 지금 2판" in cards.get(t, "") for t in ("purpose", "profile")] == [False, True], f"{ {t: m and m[0] for t, m in approve.items()} }")
+        close = f"/api/projects/{env['pid']}/orchestration/messages/{{}}/close"
+        mid = f"MSG-20261122-{'a' * 12}"
+        pending = next(r["id"] for r in ui._req(hub.base, f"/api/projects/{env['pid']}/confirmations", token=env["owner"])[1]["requests"])
+        codes = [ui._req(hub.base, close.format(m), method="POST", token=t, body={})[0] for m, t in (
+            (mid, env["bot"]), ("MSG-20261122-cccccccccccc", env["owner"]), (pending, env["owner"]))]
+        _record(f"[{impl}] 미확인 정리 — 비소유자 403 · 없는 것 404 · 사람 확인 요청 403", codes == [403, 404, 403], f"{codes}")
+        dom = draw(exe, tmp, port, f"p/{env['pid']}/orch", "읽음으로 정리")
+        with sqlite3.connect(db) as c:
+            left = c.execute("SELECT state, ack_by_session FROM inbox_message WHERE id LIKE 'MSG-20261122-%' ORDER BY state").fetchall()
+        again = ui._req(hub.base, close.format(mid if "aaaa" not in dom else f"MSG-20261122-{'b' * 12}"), method="POST", token=env["owner"], body={})[0]
+        _record(f"[{impl}] 미확인 정리 — 소유자 단추", sorted(left)[0] == ("acked", "web:owner-a") and [x[0] for x in left] == ["acked", "unacknowledged"] and again == 409, f"{left} {again}")
         acts = ["승인", "거절", "세션 인계 (transfer)", "전체 정지 (halt)", "정지 풀기 (resume)", "거두기", "lease 해제", "오케스트레이터 지정", "중계 초대 코드 발급"]
         dom = draw(exe, tmp, port, f"p/{env['pid']}/orch", "|".join(acts), 16000)
         with sqlite3.connect(db) as c:

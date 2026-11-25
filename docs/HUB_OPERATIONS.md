@@ -4,7 +4,7 @@
 - 범위: 설치 · SQLite/PostgreSQL 선택 · 띄우기 · 노출과 공개 주소 · 토큰 · 프로젝트 셋업 안내 · 지침 · 백업과 복원 · 판 올리기 · 허브 간 이전 · 점검
 - 대상 독자: 허브 관리자, 저장소 관리자
 - 상태: beta
-- 최종 수정일: 2026-11-24
+- 최종 수정일: 2026-11-25
 - 관련 문서: [`../workflow-source/core/hub_spec.md`](../workflow-source/core/hub_spec.md) (계약 정본), [`planning/workflow-hub-requirements-2026-11.md`](./planning/workflow-hub-requirements-2026-11.md) (요구 · 실측 §16), [`RELEASE.md`](./RELEASE.md)
 
 허브는 **프로세스 하나와 SQLite 파일 또는 PostgreSQL 데이터베이스 하나**다. SQLite는 기본·테스트 저장소이고,
@@ -12,7 +12,7 @@ PostgreSQL은 Go와 Python 런타임이 함께 지원하는 서버 저장소다.
 참여한다. 하네스는 허브의 원격 MCP(`/mcp`)로 붙고, 셋업이 쓰는 파일은 `.gitignore` 한 줄 · 진입 파일 영역 ·
 하네스 설정 · 토큰 파일(`.workflow-hub/env`, git 제외) 뿐이다.
 
-버전 표시는 런타임 판과 kit 계약판을 구분한다. 현재 Go 허브 pilot과 Python wheel은 모두 **3.3.3**이며, 두 런타임이 구현하는
+버전 표시는 런타임 판과 kit 계약판을 구분한다. 현재 Go 허브 pilot과 Python wheel은 모두 **3.3.4**이며, 두 런타임이 구현하는
 kit 호환 계약은 **2.1.0**이다. 허브 `/healthz` 의 `hub_version`은 런타임, `kit_version`은 호환 계약 판이다.
 `X-Hub-Version` 과 `X-Hub-Kit` 응답 헤더도 같은 구분을 따른다.
 
@@ -239,6 +239,21 @@ workflow-hub admin --db <DB> callsign delete --project <ID> --callsign <이름> 
 이벤트·task·handoff·세션·계정 연결·받은 메시지가 하나라도 있으면 `409 callsign_in_use`로 거절한다 — 이력은 지우지 않으므로
 `callsign revoke`(거두기)를 쓴다. 프로젝트 소유자 콜사인은 지울 수 없다. 삭제는 감사 이력에 `admin:<이름>`으로 남는다.
 
+### 허브 계정 비밀번호 재설정
+
+서버 운영자가 DB 가 있는 곳에서 새 비밀번호를 정한다. 비밀번호는 인자로 받지 않는다 — 터미널에서 가린 채 두 번, 파이프면 stdin 한 줄.
+
+```sh
+workflow-hub admin --db <DB> account password --username <계정>   # Python: python -m workflow_kit hub admin …
+```
+
+그 계정의 로그인은 모두 풀리고 로그인 잠금도 풀린다. 감사 이력에는 사실만 남는다(비밀번호·해시 없음).
+
+### 미확인 메시지 정리
+
+전달 뒤 10분 안에 확인하지 않은 메시지는 오케스트레이션 화면에 남는다. 받은 콜사인은 `hub_inbox_ack(decision="seen")`,
+소유자는 화면의 **읽음으로 정리**로 지운다. 배정·승인 상태는 바뀌지 않는다. 사람 확인 요청은 확인 요청 화면에서만 결정한다.
+
 ## 6. 지침
 
 프로젝트 지침은 허브가 정본이고 진입 파일의 렌더 영역으로 내려간다. 판을 올리는 길은 둘:
@@ -268,7 +283,7 @@ python -m workflow_kit hub backup --db ~/workflow-hub/hub.db --out ~/backup/hub-
 
 ### 8.1 3.x pre-release pilot 런타임 선택
 
-Go 허브 pilot과 Python 허브 wheel은 **3.3.3**로 배포된다. 사내 Windows에서는 아래 보안 정책을 먼저 확인하고,
+Go 허브 pilot과 Python 허브 wheel은 **3.3.4**로 배포된다. 사내 Windows에서는 아래 보안 정책을 먼저 확인하고,
 Python 런타임은 별도 프로세스와 DB 사본으로 평가한다.
 
 #### 셋업 전 사내 Windows 확인
@@ -287,7 +302,7 @@ Windows PowerShell 예시 (SQLite 복제본으로 pilot):
 ```powershell
 py -3.11 -m venv "$env:USERPROFILE\workflow-hub\venv-3x"
 $py = "$env:USERPROFILE\workflow-hub\venv-3x\Scripts\python.exe"
-& $py -m pip install 'standard-ai-workflow[hub] @ https://github.com/ykylee/standard_ai_workflow/releases/download/v3.3.3/standard_ai_workflow-3.3.3-py3-none-any.whl'
+& $py -m pip install 'standard-ai-workflow[hub] @ https://github.com/ykylee/standard_ai_workflow/releases/download/v3.3.4/standard_ai_workflow-3.3.4-py3-none-any.whl'
 & $py -m workflow_kit hub serve --db "$env:USERPROFILE\workflow-hub\pilot-copy.db" --bind 127.0.0.1 --port 8770
 ```
 
@@ -297,7 +312,7 @@ $py = "$env:USERPROFILE\workflow-hub\venv-3x\Scripts\python.exe"
 ```sh
 python3 -m venv ~/workflow-hub/venv-3x
 ~/workflow-hub/venv-3x/bin/python -m pip install \
-  'standard-ai-workflow[hub] @ https://github.com/ykylee/standard_ai_workflow/releases/download/v3.3.3/standard_ai_workflow-3.3.3-py3-none-any.whl'
+  'standard-ai-workflow[hub] @ https://github.com/ykylee/standard_ai_workflow/releases/download/v3.3.4/standard_ai_workflow-3.3.4-py3-none-any.whl'
 ~/workflow-hub/venv-3x/bin/python -m workflow_kit hub serve \
   --db ~/workflow-hub/pilot-copy.db --bind 127.0.0.1 --port 8770
 ```
@@ -305,7 +320,7 @@ python3 -m venv ~/workflow-hub/venv-3x
 - Python은 SQLite에 경로를 직접 전달하므로 Go의 `file:` DSN URI 생성 경로를 거치지 않는다.
 - Go와 Python 모두 parity 및 rollback 검증이 끝나기 전까지 운영 DB에 연결하지 않는다. pilot 시에는 각각 독립된 일관된 DB 사본을 쓴다.
 - Go 3.0.0 pre-release는 Windows 경로 DSN 결함이 있어 Windows에서 쓰지 않는다. Go 수정판은 3.0.1 이후 판이다.
-  현재 Go/Python pilot은 3.3.3이며, Windows 사내 환경에서는 V3/EDR 정책에 따라 Python 경로를 우선한다.
+  현재 Go/Python pilot은 3.3.4이며, Windows 사내 환경에서는 V3/EDR 정책에 따라 Python 경로를 우선한다.
 
 ## 9. 허브 간 프로젝트 이전
 

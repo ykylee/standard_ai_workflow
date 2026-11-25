@@ -189,6 +189,23 @@ func decideApproval(tx *sql.Tx, ctx Ctx, p *Principal, requestID string, approve
 }
 
 func (s *Store) pendingApprovals(projectID string) (map[string]any, error) {
+	versions := map[string]int{}
+	docs, err := s.pool.Query("SELECT name,version FROM project_doc WHERE project_id=?", projectID)
+	if err != nil {
+		return nil, err
+	}
+	defer docs.Close()
+	for docs.Next() {
+		var name string
+		var version int
+		if err := docs.Scan(&name, &version); err != nil {
+			return nil, err
+		}
+		versions[name] = version
+	}
+	if err := docs.Err(); err != nil {
+		return nil, err
+	}
 	rows, err := s.pool.Query("SELECT id,action,params_json,summary_json FROM approval_grant WHERE project_id=? AND state='pending'", projectID)
 	if err != nil {
 		return nil, err
@@ -200,7 +217,17 @@ func (s *Store) pendingApprovals(projectID string) (map[string]any, error) {
 		if err := rows.Scan(&id, &action, &params, &summary); err != nil {
 			return nil, err
 		}
-		out[id] = map[string]any{"type": action, "params": json.RawMessage(params), "summary": json.RawMessage(summary)}
+		item := map[string]any{"type": action, "params": json.RawMessage(params), "summary": json.RawMessage(summary)}
+		if action == "project_doc_put" { // 화면이 낡은 요청을 가린다
+			var bound struct {
+				Name string `json:"name"`
+			}
+			if err := json.Unmarshal([]byte(params), &bound); err != nil {
+				return nil, err
+			}
+			item["current_version"] = versions[bound.Name]
+		}
+		out[id] = item
 	}
 	return out, rows.Err()
 }

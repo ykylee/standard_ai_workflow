@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -18,6 +19,7 @@ import (
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/db"
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/httpapi"
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/store"
+	"golang.org/x/term"
 )
 
 func utcNow() time.Time {
@@ -207,6 +209,32 @@ func cmdMigrate(args []string, stdout, stderr io.Writer) int {
 	return 0
 }
 
+// readNewPassword prompts twice without echo on a terminal, else reads one stdin line. Never from arguments.
+func readNewPassword(stderr io.Writer) (string, error) {
+	fd := int(os.Stdin.Fd())
+	if !term.IsTerminal(fd) {
+		line, err := bufio.NewReader(os.Stdin).ReadString('\n')
+		if err != nil && err != io.EOF {
+			return "", err
+		}
+		return strings.TrimRight(line, "\r\n"), nil
+	}
+	var typed [2]string
+	for i, prompt := range []string{"새 비밀번호 (8자 이상): ", "다시 입력: "} {
+		fmt.Fprint(stderr, prompt)
+		b, err := term.ReadPassword(fd)
+		fmt.Fprintln(stderr)
+		if err != nil {
+			return "", err
+		}
+		typed[i] = string(b)
+	}
+	if typed[0] != typed[1] {
+		return "", store.InvalidField("password", "두 입력이 다르다 — 바꾸지 않았다")
+	}
+	return typed[0], nil
+}
+
 func cmdAdmin(args []string, stdout, stderr io.Writer) int {
 	fs := newFlagSet("workflow-hub admin", stderr)
 	dbPath := fs.String("db", "", "허브 SQLite DB 경로")
@@ -222,7 +250,7 @@ func cmdAdmin(args []string, stdout, stderr io.Writer) int {
 	}
 	rest := fs.Args()
 	if len(rest) < 2 {
-		fmt.Fprintln(stderr, "hub admin: token {issue|revoke} 또는 callsign {revoke|delete} 를 지정한다")
+		fmt.Fprintln(stderr, "hub admin: token {issue|revoke} · callsign {revoke|delete} · account password 를 지정한다")
 		return 2
 	}
 
@@ -308,6 +336,37 @@ func cmdAdmin(args []string, stdout, stderr io.Writer) int {
 		} else {
 			res, err = st.RevokeCallsign(adminCtx, *project, *callsign)
 		}
+		if err != nil {
+			return writeHubErrOut(stdout, stderr, err)
+		}
+		out := map[string]any{"status": "ok"}
+		for k, v := range res {
+			out[k] = v
+		}
+		writeJSONOut(stdout, out)
+		return 0
+	case "account":
+		if action != "password" {
+			fmt.Fprintf(stderr, "hub admin account: 모르는 동작 %q\n", action)
+			return 2
+		}
+		afs := newFlagSet("workflow-hub admin account password", stderr)
+		username := afs.String("username", "", "계정 이름")
+		if err := afs.Parse(subArgs); err != nil {
+			if err == flag.ErrHelp {
+				return 0
+			}
+			return 2
+		}
+		if strings.TrimSpace(*username) == "" || afs.NArg() > 0 {
+			fmt.Fprintln(stderr, "hub admin account password: --username 만 받는다 (비밀번호는 터미널 입력 또는 stdin 한 줄)")
+			return 2
+		}
+		password, err := readNewPassword(stderr)
+		if err != nil {
+			return writeHubErrOut(stdout, stderr, err)
+		}
+		res, err := st.AccountResetPassword(*username, password, now)
 		if err != nil {
 			return writeHubErrOut(stdout, stderr, err)
 		}

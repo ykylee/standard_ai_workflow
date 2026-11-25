@@ -6,6 +6,7 @@
     hub admin  --db PATH project export --project ID --out FILE [--seal-to URL] | import --file FILE | seal --project ID --to URL | unseal --project ID
     hub admin  --db PATH token revoke --name NAME
     hub admin  --db PATH callsign {revoke|delete} --project ID --callsign NAME
+    hub admin  --db PATH account password --username NAME   (비밀번호는 터미널 입력 또는 stdin 한 줄)
     hub admin  --db PATH guide set --project ID --file PATH [--actor NAME]
 
 ``admin`` 은 DB 파일에 직접 접근하는 로컬 명령이다 — 네트워크로 열지 않는다.
@@ -15,6 +16,7 @@
 from __future__ import annotations
 
 import argparse
+import getpass
 import ipaddress
 import json
 import sys
@@ -76,6 +78,10 @@ def _parser() -> argparse.ArgumentParser:
     ti.add_argument("--name", required=True)
     tr = tsub.add_parser("revoke")
     tr.add_argument("--name", required=True)
+    ac = asub.add_parser("account")
+    acsub = ac.add_subparsers(dest="action", required=True)
+    ap = acsub.add_parser("password", help="허브 계정 비밀번호 재설정 — 비밀번호는 인자로 받지 않는다")
+    ap.add_argument("--username", required=True)
     gd = asub.add_parser("guide")
     gsub = gd.add_subparsers(dest="action", required=True)
     gs = gsub.add_parser("set", help="프로젝트 지침 새 판 (제안 · 승인 흐름은 M-037)")
@@ -116,6 +122,18 @@ def _parser() -> argparse.ArgumentParser:
     return p
 
 
+def _read_new_password() -> str:
+    """터미널이면 가린 채 두 번, 아니면 stdin 한 줄. 인자로는 받지 않는다 (셸 기록 · ps 에 남는다)."""
+    from workflow_kit.hub.errors import invalid_field
+
+    if not sys.stdin.isatty():
+        return sys.stdin.buffer.readline().decode("utf-8").rstrip("\r\n")
+    first = getpass.getpass("새 비밀번호 (8자 이상): ")
+    if first != getpass.getpass("다시 입력: "):
+        raise invalid_field("password", "두 입력이 다르다 — 바꾸지 않았다")
+    return first
+
+
 def main(argv: list[str] | None = None) -> int:
     force_utf8_stdio()
     raw = list(sys.argv[1:] if argv is None else argv)
@@ -124,7 +142,10 @@ def main(argv: list[str] | None = None) -> int:
         from workflow_kit.relay.cli import main as relay_main
 
         return relay_main(raw[1:])
-    args = _parser().parse_args(argv)
+    args, unknown = _parser().parse_known_args(argv)
+    if unknown:  # 값을 되뇌지 않는다 — 비밀번호를 인자로 준 실수가 로그에 남는다
+        print(f"hub: 모르는 인자 {len(unknown)}개", file=sys.stderr)
+        return 2
     try:
         from workflow_kit.hub import db as hubdb
         from workflow_kit.hub.errors import HubError
@@ -237,6 +258,11 @@ def main(argv: list[str] | None = None) -> int:
                             {"status": "ok", **t.unseal(args.project, now)}, ensure_ascii=False
                         )
                     )
+            elif args.what == "account":
+                from workflow_kit.hub.account_auth import HubAccounts
+
+                out = HubAccounts(store).reset_password(args.username, _read_new_password(), now)
+                print(json.dumps({"status": "ok", **out}, ensure_ascii=False))
             elif args.what == "guide":
                 from workflow_kit.hub.setup import Setup
 

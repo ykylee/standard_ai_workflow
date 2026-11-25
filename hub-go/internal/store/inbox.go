@@ -278,6 +278,15 @@ func (s *Store) InboxAck(ctx Ctx, sessionID, messageID, decision, reason, reques
 			return nil, err
 		}
 		mine := (m.toKind == "session" && m.toID == sessionID) || (m.toKind == "callsign" && m.toID == p.Callsign)
+		tidy := m.state == "unacknowledged" && decision == "seen"
+		if !mine && tidy && m.toKind == "session" {
+			// 받은 세션이 끝났으면 같은 콜사인의 다른 세션이 정리한다.
+			var n int
+			if err := tx.QueryRow("SELECT COUNT(*) FROM session WHERE project_id=? AND id=? AND callsign=? AND status='ended'", p.ProjectID, m.toID, p.Callsign).Scan(&n); err != nil {
+				return nil, err
+			}
+			mine = n > 0
+		}
 		if !mine {
 			return nil, &HubError{Status: 403, Code: "message_not_yours", Message: "이 세션 · 콜사인 앞 메시지가 아니다"}
 		}
@@ -290,8 +299,8 @@ func (s *Store) InboxAck(ctx Ctx, sessionID, messageID, decision, reason, reques
 			}
 			return nil, &HubError{Status: 409, Code: "already_acked", Message: "이미 확인한 메시지다", Detail: map[string]any{"state": m.state, "by_session": m.ackBySession}}
 		}
-		if m.state == "unacknowledged" || m.state == "expired" {
-			return nil, &HubError{Status: 409, Code: "ack_too_late", Message: "확인 상한(10분)이 지나 오케스트레이터에게 되돌아간 메시지다", Detail: map[string]any{"state": m.state}}
+		if (m.state == "unacknowledged" || m.state == "expired") && !tidy {
+			return nil, &HubError{Status: 409, Code: "ack_too_late", Message: "확인 상한(10분)이 지난 메시지다 — 수락 · 거절은 못 하고 decision=seen 으로 정리만 한다", Detail: map[string]any{"state": m.state}}
 		}
 		if m.kind == "assignment" && (decision == "accept" || decision == "decline") {
 			var taskID, assignmentSession, assignmentState string
@@ -333,6 +342,41 @@ func (s *Store) InboxAck(ctx Ctx, sessionID, messageID, decision, reason, reques
 			return nil, err
 		}
 		return map[string]any{"message_id": messageID, "state": target}, nil
+	})
+}
+
+// CloseMessage lets the owner tidy an unacknowledged message; assignments and approvals keep their state.
+func (s *Store) CloseMessage(ctx Ctx, messageID string) (map[string]any, error) {
+	p, err := needOwner(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return s.withWriteTx(func(tx *sql.Tx) (map[string]any, error) {
+		var kind, state, raw string
+		err := tx.QueryRow("SELECT kind,state,body_json FROM inbox_message WHERE project_id=? AND id=?", p.ProjectID, messageID).Scan(&kind, &state, &raw)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, NotFound("메시지가 없다: " + messageID)
+		}
+		if err != nil {
+			return nil, err
+		}
+		var body any // 본문은 객체가 아닐 수 있다 (옛 문자열 메시지)
+		if err := json.Unmarshal([]byte(raw), &body); err != nil {
+			return nil, err
+		}
+		if doc, ok := body.(map[string]any); ok && kind == "approval" && doc["request_type"] == "agent_confirmation" {
+			return nil, &HubError{Status: 403, Code: "human_decision_required", Message: "사람이 웹 허브의 확인 요청 메뉴에서 결정해야 한다"}
+		}
+		if state != "unacknowledged" {
+			return nil, &HubError{Status: 409, Code: "not_unacknowledged", Message: "미확인 상태의 메시지만 정리한다", Detail: map[string]any{"state": state}}
+		}
+		if _, err := tx.Exec("UPDATE inbox_message SET state='acked',acked_at=?,ack_by_session=?,ack_reason=?,version=version+1 WHERE project_id=? AND id=?", db.FormatISO(ctx.Now), "web:"+p.Callsign, "소유자 정리", p.ProjectID, messageID); err != nil {
+			return nil, err
+		}
+		if err := s.RecordEvent(tx, ctx, &p.ProjectID, "inbox_message", messageID, "close", map[string]any{"state": state}, map[string]any{"state": "acked"}, nil); err != nil {
+			return nil, err
+		}
+		return map[string]any{"message_id": messageID, "state": "acked"}, nil
 	})
 }
 

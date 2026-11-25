@@ -10,6 +10,7 @@
 3. 상태 5값 — idle · working(열린 배정) · waiting · unknown(신호 15분 초과, idle 로 안 셈) · ended
 4. 편승 — 실을 것 없으면 칸 없음(2.0 응답과 같음) · 3건 · remaining · 8KB · 콜사인 주소는 session 없는 호출에도 · 세션 시작 첫 응답
 5. 실림 ≠ 소비 — 60초 안 재전달 없음 · 60초 뒤 ack 안 된 것만 다시(redelivery 표시) · 10분 unacknowledged · 늦은 ack 409
+11. 미확인 정리 — seen 만 · 끝난 세션 것은 같은 콜사인 · 산 세션 것은 403
 6. 수신 확인 — 같은 결정 멱등 · 다른 결정 409 · 남의 메시지 403 · decline
 7. 대기 권한 — interactive 는 wait_disabled · 에이전트의 allow_wait 켜기 403 · 승인 human 은 켬 · 연속 70회 wait_budget
 8. 2.0 호환 — 2.0 도구의 필수 인자 그대로 · 선택 인자 session 만 더함 · 모르는 인자는 여전히 거절
@@ -188,6 +189,19 @@ def case_4_5_6(e: Env) -> None:
     e.call("hub_task_list", {"session": s}, "agent-a", at11)
     states = {r["id"]: r["state"] for r in e.call("hub_inbox_list", {"session": s}, "agent-a", at11)["messages"]}
     late = e.err("hub_inbox_ack", {"session": s, "message_id": ids[1], "decision": "accept"}, "agent-a", at11)
+    # 정리 — seen 만 받고, 끝난 세션 앞 메시지는 같은 콜사인의 다른 세션이 정리한다
+    tidy = e.call("hub_inbox_ack", {"session": s, "message_id": ids[1], "decision": "seen"}, "agent-a", at11)
+    other = e.session("agent-a", harness_session_id="pig-2")
+    ack_other = {"session": other, "message_id": ids[2], "decision": "seen"}
+    alive = e.err("hub_inbox_ack", ack_other, "agent-a", at11)
+    tmp = e.session("agent-a", harness_session_id="pig-3", kind="worker")
+    gone = e.send("session", tmp, {"n": "gone"}, at11)
+    with e.store.write() as conn:
+        conn.execute("UPDATE inbox_message SET state = 'unacknowledged' WHERE id = ?", (gone,))
+        conn.execute("UPDATE session SET status = 'ended' WHERE id = ?", (tmp,))
+    tidied = e.call("hub_inbox_ack", {"session": other, "message_id": gone, "decision": "seen"}, "agent-a", at11)
+    _record("case 11 (미확인 정리 — seen · 끝난 세션 것은 같은 콜사인 · 산 세션 것은 403)",
+            tidy["state"] == "acked" and alive == "message_not_yours" and tidied["state"] == "acked", f"{tidy} {alive} {tidied}")
     ok5 = (ids[0] not in again_ids and again_ids == ids[1:4] and flagged and states[ids[0]] == "acked"
            and all(states[i] == "unacknowledged" for i in ids[1:]) and late == "ack_too_late")
     _record("case 5 (실림 ≠ 소비 — 60초 재전달 · ack 된 것 제외 · 10분 unacknowledged · 늦은 ack)", ok5,

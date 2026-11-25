@@ -205,6 +205,48 @@ func (s *Store) AccountJoin(accountID, project, callsign string, now time.Time) 
 	return map[string]any{"project_id": pid, "callsign": callsign, "human_pending": true}, nil
 }
 
+// AccountResetPassword is the operator path (hub admin): it ends every login session and clears the login lock.
+func (s *Store) AccountResetPassword(username, password string, now time.Time) (map[string]any, error) {
+	username = strings.ToLower(strings.TrimSpace(username))
+	if n := len([]rune(password)); n < 8 || n > 256 {
+		return nil, InvalidField("password", "8~256자")
+	}
+	encoded, err := accountPasswordHash(password)
+	if err != nil {
+		return nil, err
+	}
+	return s.withWriteTx(func(tx *sql.Tx) (map[string]any, error) {
+		var id string
+		err := tx.QueryRow("SELECT id FROM hub_account WHERE username=? AND active=1", username).Scan(&id)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, NotFound("계정이 없다: " + username)
+		}
+		if err != nil {
+			return nil, err
+		}
+		if _, err := tx.Exec("UPDATE hub_account SET password_hash=? WHERE id=?", encoded, id); err != nil {
+			return nil, err
+		}
+		res, err := tx.Exec("DELETE FROM hub_account_session WHERE account_id=?", id)
+		if err != nil {
+			return nil, err
+		}
+		ended, err := res.RowsAffected()
+		if err != nil {
+			return nil, err
+		}
+		sum := sha256.Sum256([]byte(username))
+		if _, err := tx.Exec("DELETE FROM hub_account_login_attempt WHERE username_hash=?", hex.EncodeToString(sum[:])); err != nil {
+			return nil, err
+		}
+		actor := "admin:hub"
+		if err := s.RecordEvent(tx, Ctx{Now: now, Via: "admin"}, nil, "hub_account", username, "reset_password", nil, map[string]any{"sessions_ended": ended}, &actor); err != nil {
+			return nil, err
+		}
+		return map[string]any{"username": username, "sessions_ended": ended}, nil
+	})
+}
+
 func (s *Store) AccountLogin(username, password string, now time.Time) (string, HubAccount, error) {
 	username = strings.ToLower(strings.TrimSpace(username))
 	usernameHash := HashToken(username)

@@ -120,9 +120,15 @@ def withdraw(conn: sqlite3.Connection, ctx: Ctx, project_id: str, request_id: st
 
 
 def summaries(conn: sqlite3.Connection, project_id: str) -> dict[str, dict[str, Any]]:
-    return {r["id"]: {"type": r["action"], "params": json.loads(r["params_json"]), "summary": json.loads(r["summary_json"])}
-            for r in conn.execute("SELECT id, action, params_json, summary_json FROM approval_grant "
-                                  "WHERE project_id = ? AND state = 'pending'", (project_id,))}
+    out: dict[str, dict[str, Any]] = {}
+    versions = {r["name"]: r["version"] for r in conn.execute("SELECT name, version FROM project_doc WHERE project_id = ?", (project_id,))}
+    for r in conn.execute("SELECT id, action, params_json, summary_json FROM approval_grant "
+                          "WHERE project_id = ? AND state = 'pending'", (project_id,)):
+        item = {"type": r["action"], "params": json.loads(r["params_json"]), "summary": json.loads(r["summary_json"])}
+        if r["action"] == "project_doc_put":  # 화면이 낡은 요청을 가린다
+            item["current_version"] = versions.get(item["params"]["name"], 0)
+        out[r["id"]] = item
+    return out
 
 
 def authorize(store: Store, ctx: Ctx, approval_id: Any, action: str, **want: Any) -> Principal:

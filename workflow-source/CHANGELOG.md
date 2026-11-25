@@ -12,7 +12,7 @@ All notable changes to this project will be documented in this file.
 본 파일은 `tools/release_pipeline.py changelog-gen` 으로 자동 생성됩니다 (v0.7.14+).
 수동 편집은 다음 생성 시 덮어써진다 — 형식/metadata 변경은 생성기를 고칠 것.
 
-## [Unreleased] - 2026-11-24
+## [Unreleased] - 2026-11-25
 
 ### Added
 
@@ -282,6 +282,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- test(hub): keep the screen check parseable on the floor interpreter (2ac0e34f)
 - chore(release): prepare 3.3.2 (5553139b)
 - test(hub): declare the marker and helper the progress-rule check reads (8c78b7b8)
 - test(hub): require the marker and an unedited hub region in the progress-rule check (40def284)
@@ -904,6 +905,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- fix(hub): order open milestones by progress and close the screen check's blind spots (87020a96)
+- fix(hub): render the roadmap screen and measure every screen in a real browser (47acac90)
 - fix(hub): accept a proxy-rewritten Origin scheme only for same-origin fetches (fad70a78)
 - fix(hub): accept the configured public origin behind a proxy, allow 8-char passwords (8f0aa8f7)
 - fix(hub): port Go setup confirm and wiki reads, prepare 3.2.2 prerelease (0166f0ce)

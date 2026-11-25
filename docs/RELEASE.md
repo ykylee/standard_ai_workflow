@@ -3,9 +3,9 @@
 - 문서 목적: Standard AI Workflow 릴리스 절차 (버전 박기 → 빌드 → 스모크 → GitHub Release attach) 를 한 자리에 정리한다.
 - 범위: 채널 정책, 사전 점검, 빌드, 로컬 smoke, GitHub Release 생성, 트러블슈팅, 회귀 표
 - 대상 독자: 저장소 maintainer (`ykylee`), 릴리스 매니저
-- 상태: beta (v3.3.3 기준 pre-release 발행 · HomeLab pilot 운영 중; 절차 자체는 v0.5.7+ 부터 정식 도입된 정책 유지)
-- 현재 package version: 3.3.3 (`workflow-source/pyproject.toml`)
-- 최종 수정일: 2026-11-24
+- 상태: beta (v3.3.4 기준 pre-release 발행 · HomeLab pilot 운영 중; 절차 자체는 v0.5.7+ 부터 정식 도입된 정책 유지)
+- 현재 package version: 3.3.4 (`workflow-source/pyproject.toml`)
+- 최종 수정일: 2026-11-25
 - 관련 문서: [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md), [./INSTALLATION_AND_USAGE.md](./INSTALLATION_AND_USAGE.md), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md), [workflow-source/releases/](https://github.com/ykylee/standard_ai_workflow/tree/main/workflow-source/releases/)
 
 > **최종 갱신**: 2026-07-18 (회귀 표를 v0.15.15 까지 확장하고 `release_pipeline.py` 자동화 경로 반영)
@@ -51,6 +51,7 @@
 - **3.3.1**은 Go 미구현 도구 10종 포팅과 셋업 완료 판정·프로젝트 이전 경계 결함을 고친 pilot patch다. DB 판은 18 그대로다.
 - **3.3.2**는 프로젝트 문서 쓰기를 로그인 승인받은 에이전트에게 여는 pilot patch다. DB 판은 18 그대로다.
 - **3.3.3**은 로드맵 화면 고장과 오케스트레이션 화면을 고치고 전 화면 렌더 검사를 더한 pilot patch다. DB 판은 18 그대로다.
+- **3.3.4**는 승인 화면을 강화하고 미확인 메시지 정리와 계정 비밀번호 재설정을 더한 pilot patch다. DB 판은 18 그대로다.
 - **같은 날 두 줄을 낼 때 (2.0.0 + 1.30.0)**: 1.x 를 먼저 낸다 — 그때는 원격에 2.x 가 없어 1.30.0 이 잠시 latest 가
   된다. 이어 2.0.0 이 latest 를 가져간다. 순서를 바꾸면 1.30.0 은 처음부터 `--latest=false` 다. 어느 쪽이든 끝 상태는
   같다 — 끝난 뒤 `gh release list` 로 latest 가 2.x 인지 본다.
@@ -542,7 +543,7 @@ gh release edit "v<X>.<Y>.<Z>" --repo "$REPO" --draft=false
 
 - [릴리스 노트 디렉토리](https://github.com/ykylee/standard_ai_workflow/tree/main/workflow-source/releases/)
 - [릴리스 노트 v3.2.0](./../workflow-source/releases/Beta-v3.2.0.md)
-- [현재 릴리스 노트 v3.3.3](./../workflow-source/releases/Beta-v3.3.3.md)
+- [현재 릴리스 노트 v3.3.4](./../workflow-source/releases/Beta-v3.3.4.md)
 - [이전 릴리스 노트 v3.1.0](./../workflow-source/releases/Beta-v3.1.0.md)
 - [Python wheel 릴리스 자산 v3.2.0](https://github.com/ykylee/standard_ai_workflow/releases/tag/v3.2.0)
 - [Maturity Matrix](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/maturity_matrix.json)

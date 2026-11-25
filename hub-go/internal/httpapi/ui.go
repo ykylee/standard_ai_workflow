@@ -596,6 +596,19 @@ func (s *Server) handleProjectUIAPI(w http.ResponseWriter, r *http.Request, prin
 		writeJSONResponse(w, http.StatusOK, result)
 		return
 	}
+	if len(parts) == 6 && parts[2] == "orchestration" && parts[3] == "messages" && parts[5] == "close" && r.Method == http.MethodPost {
+		if _, err := readScreenJSON(r); err != nil {
+			writeScreenError(w, err)
+			return
+		}
+		result, err := s.cfg.Store.CloseMessage(store.Ctx{Now: now, Via: "ui", Principal: principal}, parts[4])
+		if err != nil {
+			writeScreenError(w, err)
+			return
+		}
+		writeJSONResponse(w, http.StatusOK, result)
+		return
+	}
 	if len(parts) == 5 && parts[2] == "orchestration" && parts[3] == "relays" && parts[4] == "invite" && r.Method == http.MethodPost {
 		if _, err := readScreenJSON(r); err != nil {
 			writeScreenError(w, err)

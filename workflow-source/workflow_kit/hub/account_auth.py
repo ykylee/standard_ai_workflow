@@ -157,6 +157,23 @@ class HubAccounts:
                          (hash_token(session), row["id"], _iso(now), _iso(now + timedelta(days=SESSION_DAYS))))
         return session, {"id": row["id"], "username": row["username"], "display_name": row["display_name"]}
 
+    def reset_password(self, username: str, password: str, now: datetime) -> dict[str, Any]:
+        """운영자(서버의 ``hub admin``)가 비밀번호를 새로 정한다 — 로그인 세션 전부와 로그인 잠금을 푼다."""
+        username = username.strip().lower()
+        if len(password) < 8 or len(password) > 256:
+            raise invalid_field("password", "8~256자")
+        encoded = _password_hash(password)
+        with self.store.write() as conn:
+            row = conn.execute("SELECT id FROM hub_account WHERE username=? AND active=1", (username,)).fetchone()
+            if row is None:
+                raise not_found(f"계정이 없다: {username}")
+            conn.execute("UPDATE hub_account SET password_hash=? WHERE id=?", (encoded, row["id"]))
+            ended = conn.execute("DELETE FROM hub_account_session WHERE account_id=?", (row["id"],)).rowcount
+            conn.execute("DELETE FROM hub_account_login_attempt WHERE username_hash=?", (hashlib.sha256(username.encode()).hexdigest(),))
+            self.store._event(conn, Ctx(now=now, via="admin"), None, "hub_account", username, "reset_password", None,
+                              {"sessions_ended": ended}, callsign="admin:hub")
+        return {"username": username, "sessions_ended": ended}
+
     def link(self, account_id: str, token: str, now: datetime) -> dict[str, Any]:
         principal = self.store.authenticate(token, now)
         if not principal or principal.kind != "callsign" or principal.callsign_kind != "human" or not principal.human_approved:

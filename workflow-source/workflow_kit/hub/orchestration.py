@@ -340,6 +340,10 @@ class Orchestration:
                 raise not_found(f"메시지가 없다: {a['message_id']}")
             mine = (m["to_kind"] == "session" and m["to_id"] == a["session"]) or \
                    (m["to_kind"] == "callsign" and m["to_id"] == p.callsign)
+            tidy = m["state"] == "unacknowledged" and decision == "seen"
+            if not mine and tidy and m["to_kind"] == "session":  # 받은 세션이 끝났으면 같은 콜사인의 다른 세션이 정리한다
+                mine = conn.execute("SELECT 1 FROM session WHERE project_id = ? AND id = ? AND callsign = ? AND status = 'ended'",
+                                    (p.project_id, m["to_id"], p.callsign)).fetchone() is not None
             if not mine:
                 raise HubError(403, "message_not_yours", "이 세션 · 콜사인 앞 메시지가 아니다")
             message_body = json.loads(m["body_json"])
@@ -350,8 +354,8 @@ class Orchestration:
                     return {"message_id": m["id"], "state": m["state"], "unchanged": True}  # 멱등 (DO13)
                 raise HubError(409, "already_acked", "이미 확인한 메시지다",
                                {"state": m["state"], "by_session": m["ack_by_session"]})
-            if m["state"] in ("unacknowledged", "expired"):
-                raise HubError(409, "ack_too_late", "확인 상한(10분)이 지나 오케스트레이터에게 되돌아간 메시지다",
+            if m["state"] in ("unacknowledged", "expired") and not tidy:
+                raise HubError(409, "ack_too_late", "확인 상한(10분)이 지난 메시지다 — 수락 · 거절은 못 하고 decision=seen 으로 정리만 한다",
                                {"state": m["state"]})
             if m["kind"] == "assignment" and decision in ("accept", "decline"):
                 self._ack_assignment(conn, ctx, p, m, a["session"], decision, reason)
@@ -365,6 +369,25 @@ class Orchestration:
             return {"message_id": m["id"], "state": target}
 
         return self.store.idempotent(ctx, a.get("request_id"), do)
+
+    def close_message(self, ctx: Ctx, message_id: str) -> dict[str, Any]:
+        """소유자가 미확인 메시지를 정리한다 — 배정 · 승인 상태는 바꾸지 않는다."""
+        p = self._need_owner(ctx)
+        with self.store.write() as conn:
+            m = conn.execute("SELECT * FROM inbox_message WHERE project_id = ? AND id = ?", (p.project_id, message_id)).fetchone()
+            if m is None:
+                raise not_found(f"메시지가 없다: {message_id}")
+            body = json.loads(m["body_json"])
+            if m["kind"] == "approval" and isinstance(body, dict) and body.get("request_type") == "agent_confirmation":
+                raise HubError(403, "human_decision_required", "사람이 웹 허브의 확인 요청 메뉴에서 결정해야 한다")
+            if m["state"] != "unacknowledged":
+                raise HubError(409, "not_unacknowledged", "미확인 상태의 메시지만 정리한다", {"state": m["state"]})
+            conn.execute("UPDATE inbox_message SET state = 'acked', acked_at = ?, ack_by_session = ?, ack_reason = ?, "
+                         "version = version + 1 WHERE project_id = ? AND id = ?",
+                         (_iso(ctx.now), f"web:{p.callsign}", "소유자 정리", p.project_id, message_id))
+            self.store._event(conn, ctx, p.project_id, "inbox_message", message_id, "close",
+                              {"state": "unacknowledged"}, {"state": "acked"})
+        return {"message_id": message_id, "state": "acked"}
 
     def inbox_list(self, ctx: Ctx, a: dict[str, Any]) -> dict[str, Any]:
         """받은편지함 읽기 — 상태를 바꾸지 않는다 (편승을 못 받는 경로의 보조, 스펙 §5)."""

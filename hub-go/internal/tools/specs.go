@@ -337,7 +337,7 @@ var ToolOrder = []*ToolSpec{
 	{
 		Name:        "hub_task_update",
 		Bundle:      "token",
-		Description: "task 칸을 고친다 — expected_version 이 다르면 409. 계획(plan_md)은 1.x 계약으로 린트 · 결정 상태 재계산. decision_states: {D<n>: answered:<value>|proposed}. 열린 결정을 걷으면 note 필수. done 은 hub_task_close.",
+		Description: "task 칸(values: title · status · priority · branch · wbs · wbs_exempt_reason · description · plan_md · fields)을 고친다 — expected_version 이 다르면 409. 계획(plan_md)은 1.x 계약으로 린트 · 결정 상태 재계산. decision_states: {D<n>: answered:<value>|proposed}. 열린 결정을 걷으면 note 필수. done 은 hub_task_close.",
 		Properties: map[string]map[string]any{
 			"id":               map[string]any{"type": "string"},
 			"expected_version": map[string]any{"type": "integer"},
@@ -687,7 +687,7 @@ var ToolOrder = []*ToolSpec{
 	{
 		Name:        "hub_inbox_ack",
 		Bundle:      "token",
-		Description: "받은편지함 메시지 확인 — accept(배정 수락) · decline(거절 + reason) · seen(읽음). 같은 메시지에 다시 보내도 한 번.",
+		Description: "받은편지함 메시지 확인 — accept(배정 수락) · decline(거절 + reason) · seen(읽음 — 10분 지난 미확인 메시지도 정리). 같은 메시지에 다시 보내도 한 번.",
 		Properties: map[string]map[string]any{
 			"session":    map[string]any{"type": "string"},
 			"message_id": map[string]any{"type": "string"},

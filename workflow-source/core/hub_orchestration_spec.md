@@ -4,7 +4,7 @@
 - 범위: 2.0 허브(`hub_spec.md`)에 **더하는** 것만. 2.0 의 표 · 도구 · 인자 · 응답 칸은 바꾸지 않는다 (요구 R24.1).
 - 대상 독자: 구현자 (M-044~), workflow 설계자, 소유자 (DO 결정)
 - 상태: draft (M-043 WBS-43.1 · 43.2, 2026-11-22 — ADR-034 accepted, design 결정 DO1~DO13 소유자 확정. 구현은 M-044~)
-- 최종 수정일: 2026-11-24
+- 최종 수정일: 2026-11-25
 - 관련 문서: `../../docs/planning/hub-orchestration-requirements-2026-11.md` (요구 R17~R24 · 실측 §1 — 아래 "요구 R…" · "실측 §1.n"), `../../docs/planning/hub-orchestration-review-2026-11.md` (concept), `../../ai-workflow/wiki/decisions/adr-034-hub-orchestration.md`, `./hub_spec.md` (2.0 계약 — 아래 "2.0 §n"), `./hub_workflow_standard.md`
 
 > 결정 근거는 concept · ADR-034 에, 요구와 실측은 requirements 에 있다. 이 문서는 *계약* 만 적는다. design 이 새로 정한 것은 `DO…` 이고 §15 에 모았다.
@@ -292,7 +292,8 @@ class Adapter(Protocol):
 | 410 | `session_ended` | 끝난 세션으로 호출 |
 | 403 | `message_not_yours` | 이 세션 · 콜사인 앞이 아닌 메시지를 ack |
 | 409 | `already_acked` | 이미 다른 결정 · 다른 세션이 확인한 메시지 (같은 결정 · 같은 세션은 멱등 — `unchanged`) |
-| 409 | `ack_too_late` | 10분 미확인으로 `unacknowledged` 가 된 메시지를 ack |
+| 409 | `ack_too_late` | 10분 미확인으로 `unacknowledged` 가 된 메시지를 수락 · 거절 (`seen` 은 정리로 받는다) |
+| 409 | `not_unacknowledged` | 소유자 정리(`POST …/orchestration/messages/{id}/close`) 대상이 미확인이 아님 |
 
 ## 13. 검증 (구현이 더할 검사)
 

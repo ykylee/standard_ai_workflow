@@ -2,7 +2,10 @@ module github.com/ykylee/standard_ai_workflow/hub-go
 
 go 1.26.8
 
-require modernc.org/sqlite v1.62.0
+require (
+	golang.org/x/term v0.46.0
+	modernc.org/sqlite v1.62.0
+)
 
 require (
 	github.com/dustin/go-humanize v1.1.0 // indirect

@@ -12,7 +12,7 @@
     "task_name": "운영 허브 링크 무결성 재점검"
   },
   "status": "error",
-  "tool_version": "3.3.3",
+  "tool_version": "3.3.4",
   "warnings": [
     "프로젝트 프로파일 경로를 다시 확인해야 한다."
   ]

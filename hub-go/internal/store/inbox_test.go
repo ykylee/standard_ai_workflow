@@ -131,3 +131,63 @@ func TestWaitAndReport(t *testing.T) {
 		t.Fatalf("report inbox=%#v err=%v", inbox, err)
 	}
 }
+
+func TestInboxTidyUnacknowledged(t *testing.T) {
+	now := testNow()
+	path := filepath.Join(t.TempDir(), "hub.db")
+	if _, err := db.OpenDB(path, now); err != nil {
+		t.Fatal(err)
+	}
+	st, err := New(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	reg, err := st.RegisterProject(Ctx{Now: now, Via: "test"}, "https://github.com/acme/tidy-test", "tidy", "owner-human", "human", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, err := st.Authenticate(reg["token"].(string), &now, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := Ctx{Now: now, Via: "http", Principal: p}
+	live, other, ended := "S-20261122-a1b2c3d4", "S-20261122-b1b2c3d4", "S-20261122-c1b2c3d4"
+	for sid, status := range map[string]string{live: "active", other: "active", ended: "ended"} {
+		if _, err := st.DB().Exec(`INSERT INTO session (project_id,id,callsign,harness,kind,status,delivery_json,last_signal_at,started_at)
+			VALUES (?,?,?,?,?,?,?,?,?)`, p.ProjectID, sid, p.Callsign, "codex", "worker", status, `["piggyback"]`, db.FormatISO(now), db.FormatISO(now)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	late := func(sid string) string {
+		var id string
+		if _, err := st.WriteTx(func(tx *sql.Tx) (map[string]any, error) {
+			var err error
+			if id, err = st.EnqueueMessage(tx, ctx, p.ProjectID, "session", sid, "note", map[string]any{"text": "x"}, p.Callsign, "", false, ""); err != nil {
+				return nil, err
+			}
+			_, err = tx.Exec("UPDATE inbox_message SET state='unacknowledged' WHERE id=?", id)
+			return nil, err
+		}); err != nil {
+			t.Fatal(err)
+		}
+		return id
+	}
+	code := func(sid, mid, decision string) string {
+		_, err := st.InboxAck(ctx, sid, mid, decision, "", "")
+		if err == nil {
+			return "ok"
+		}
+		return err.(*HubError).Code
+	}
+	mine, gone := late(live), late(ended)
+	for _, c := range []struct{ sid, mid, decision, want string }{
+		{live, mine, "accept", "ack_too_late"}, {live, mine, "decline", "ack_too_late"},
+		{other, mine, "seen", "message_not_yours"}, {live, mine, "seen", "ok"},
+		{other, gone, "accept", "message_not_yours"}, {other, gone, "seen", "ok"},
+	} {
+		if got := code(c.sid, c.mid, c.decision); got != c.want {
+			t.Fatalf("%v: got %s", c, got)
+		}
+	}
+}

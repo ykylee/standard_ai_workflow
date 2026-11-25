@@ -866,7 +866,10 @@
         el("progress", { value: m.progress || 0, max: 1 })),
       m.wbs && m.wbs.length ? el("ul", { class: "wbs-list" }, m.wbs.map((w) => renderWbsNode(base, w))) : null);
     const isDone = (m) => m.derived_status === "done" && m.declared_status === "done";
-    const open = st.milestones.filter((m) => !isDone(m)).sort((a, b) => (b.id === st.current_milestone_id) - (a.id === st.current_milestone_id));
+    const open = st.milestones.filter((m) => !isDone(m));
+    // 현재 → 진행 중(선언이나 파생) → 나머지 (같은 무리 안은 로드맵 순서 그대로)
+    const rank = (m) => m.id === st.current_milestone_id ? 0 : [m.declared_status, m.derived_status].includes("in_progress") ? 1 : 2;
+    open.sort((a, b) => rank(a) - rank(b));
     const done = st.milestones.filter(isDone).reverse();
     render(
       el("section", { class: "card" }, el("h1", {}, "로드맵"), projectNav(pid, "roadmap"),

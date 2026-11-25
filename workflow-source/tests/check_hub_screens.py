@@ -58,7 +58,8 @@ window.addEventListener('error',e=>document.documentElement.dataset.err=(documen
 window.addEventListener('unhandledrejection',e=>document.documentElement.dataset.err=(document.documentElement.dataset.err||'')+String(e.reason)+';');
 window.confirm=()=>true;
 (async()=>{const acts=new URL(location.href).searchParams.get('acts');if(!acts)return;const z=t=>new Promise(r=>setTimeout(r,t));await z(1500);const log=[];
-for(const a of acts.split('|')){const b=[...document.querySelectorAll('button')].find(x=>x.textContent===a&&!x.disabled);log.push(a+(b?'':':없음'));if(b){b.click();await z(900);}}
+for(const a of acts.split('|')){if(a[0]==='@'){const d=document.querySelector('[data-keep="'+a.slice(1)+'"]');d.open=true;d.dataset.old='1';await z(10500);
+if(!document.querySelector('[data-old]'))document.documentElement.dataset.renders='1';continue;}const b=[...document.querySelectorAll('button')].find(x=>x.textContent===a&&!x.disabled);log.push(a+(b?'':':없음'));if(b){b.click();await z(900);}}
 document.documentElement.dataset.acts=log.join('|');})();
 </script>"""
 
@@ -106,14 +107,14 @@ def proxy(hub: Hub, cookie: str) -> ThreadingHTTPServer:
     return srv
 
 
-def draw(exe: str, tmp: Path, port: int, route: str, acts: str = "") -> str:
+def draw(exe: str, tmp: Path, port: int, route: str, acts: str = "", budget: int = 9500) -> str:
     from urllib.parse import quote
 
     url = f"http://127.0.0.1:{port}/ui/{'?acts=' + quote(acts) if acts else ''}#/{route}"
     with tempfile.TemporaryDirectory(prefix="chrome-", dir=tmp, ignore_cleanup_errors=True) as prof:
         r = subprocess.run([exe, "--headless=new", "--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage", "--no-first-run",
                             "--password-store=basic", "--disable-background-networking", "--no-proxy-server",  # 키링(D-Bus) 25초 대기를 피한다
-                            f"--user-data-dir={prof}", "--virtual-time-budget=9500", "--dump-dom", url],
+                            f"--user-data-dir={prof}", f"--virtual-time-budget={budget}", "--dump-dom", url],
                            capture_output=True, encoding="utf-8", errors="replace", timeout=90)
     return r.stdout
 
@@ -148,15 +149,15 @@ def seed(hub: Hub, db: Path, impl: str) -> dict[str, str]:
     must("hub_wiki_ingest", {"pages": [{"path": "topics/one.md", "body": "---\ntitle: 위키 한 장\n---\n\n# 위키 한 장\n\n본문\n", "expected_version": 0}], "summary": "한 장"}, owner)
     dcr = must("hub_dcr_create", {"title": "결정 하나", "rationale": "이유", "proposal": "제안", "target_refs": []}, bot)
     assert dcr
-    miles = [("M-001", "끝난 마일스톤", 1), ("M-002", "열린 마일스톤", 2)]
+    miles = [("M-001", "끝난 마일스톤", 1), ("M-003", "예정 마일스톤", 2), ("M-002", "열린 마일스톤", 3), ("M-004", "병렬 마일스톤", 4)]
 
     def roadmap(version: int, first: str) -> None:
-        status = {"M-001": first, "M-002": "in_progress"}
+        status = {"M-001": first, "M-002": "in_progress", "M-003": "planned", "M-004": "in_progress"}
         must("hub_roadmap_put", {"path": "index.md", "expected_version": version, "body": "# Roadmap — s\n\n## Milestones\n\n" + "".join(
             f"- **{i}** [implementation] {t} — status: {status[i]}\n  - path: [`./{i}-x.md`](./{i}-x.md)\n" for i, t, _ in miles)}, owner)
         for i, t, n in miles:
             must("hub_roadmap_put", {"path": f"{i}-x.md", "expected_version": version, "body": f"---\nid: {i}\ntitle: {t}\nsdlc_phase: implementation\nstatus: {status[i]}\n"
-                                     f"order: {n}\nparallel_allowed: [M-001, M-002]\ndeliverables: []\n---\n\n# {i}\n\n## WBS\n\n- **WBS-{n}.1** 작업 {n}\n"}, owner)
+                                     f"order: {n}\nparallel_allowed: [M-001, M-002, M-003, M-004]\ndeliverables: []\n---\n\n# {i}\n\n## WBS\n\n- **WBS-{n}.1** 작업 {n}\n"}, owner)
 
     roadmap(0, "in_progress")
     t1 = must("hub_task_create", {"title": "끝난 일", "wbs": "M-001/WBS-1.1", "fields": {"done_criteria": ["끝"]}}, owner)["task"]
@@ -175,7 +176,8 @@ def seed(hub: Hub, db: Path, impl: str) -> dict[str, str]:
                                  data=json.dumps({"invite": inv["invite"], "name": "pc", "harnesses": ["fake"]}).encode())
     with urllib.request.urlopen(reg, timeout=20) as r:
         host = json.loads(r.read())["host_id"]
-    must("hub_orch_request_session", {"session": so, "host_id": host, "dir_alias": "w", "harness": "fake"}, owner)
+    for alias in ("w1", "w2"):
+        must("hub_orch_request_session", {"session": so, "host_id": host, "dir_alias": alias, "harness": "fake"}, owner)
     must("hub_orch_assign", {"session": so, "task_id": tid, "to_session": sw}, owner)
     with sqlite3.connect(db) as c:
         for n, body in (("a", {"title": "알림 제목", "text": "본문이 보인다"}), ("b", "문자열 본문")):
@@ -203,22 +205,27 @@ def measure(impl: str, cmd: list[str] | None, exe: str, tmp: Path) -> None:
             _record(f"[{impl}] {view}", not bad, " · ".join(bad))
         rm = doms["viewRoadmap"]
         fold = rm.find('data-keep="rm-done"')
+        at = [rm.find(f"<h2>{t} 마일스톤") for t in ("열린", "병렬", "예정", "끝난")]
+        _record(f"[{impl}] 로드맵 — 현재 · 진행 중 · 예정 · 완료 순", at[0] > 0 and at == sorted(at), f"{at}")
+        kept = draw(exe, tmp, port, f"p/{env['pid']}/roadmap", "@rm-done", 14000)
+        folds = re.findall(r'<details[^>]*data-keep="rm-done"[^>]*>', kept)
+        _record(f"[{impl}] 자동 갱신이 펼친 접기를 닫지 않는다", len(folds) == 1 and " open" in folds[0] and 'data-renders="1"' in kept, f"{folds}")
         _record(f"[{impl}] 로드맵 — 열린 것 먼저 · 완료는 접기", 0 < rm.find("<h2>열린 마일스톤") < fold < rm.find("<h2>끝난 마일스톤"), f"접기 {fold}")
         orch = doms["viewOrchestration"]
         _record(f"[{impl}] 오케스트레이션 — 메시지 본문", all(x in orch for x in ("알림 제목", "본문이 보인다", "문자열 본문")))
         conf = doms["viewConfirmations"]
         _record(f"[{impl}] 확인 요청 — 문서 차이", all(x in conf for x in (
             'class="diff-del">- 옛 줄', 'class="diff-add">+ 새 줄 &lt;script&gt;', "1판 → 2판", 'data-doc-diff="purpose"')))
-        acts = ["승인", "전체 정지 (halt)", "정지 풀기 (resume)", "거두기", "lease 해제", "오케스트레이터 지정", "중계 초대 코드 발급"]
-        dom = draw(exe, tmp, port, f"p/{env['pid']}/orch", "|".join(acts))
+        acts = ["승인", "거절", "세션 인계 (transfer)", "전체 정지 (halt)", "정지 풀기 (resume)", "거두기", "lease 해제", "오케스트레이터 지정", "중계 초대 코드 발급"]
+        dom = draw(exe, tmp, port, f"p/{env['pid']}/orch", "|".join(acts), 16000)
         with sqlite3.connect(db) as c:
-            state = (c.execute("SELECT state, decided_by FROM session_request").fetchone(), c.execute("SELECT revoked_at IS NOT NULL FROM relay_host").fetchone()[0],
+            state = (sorted(c.execute("SELECT state, decided_by FROM session_request").fetchall()), c.execute("SELECT revoked_at IS NOT NULL FROM relay_host").fetchone()[0],
                      c.execute("SELECT COUNT(*) FROM orchestrator_lease").fetchone()[0],
                      [r[0] for r in c.execute("SELECT op FROM event WHERE target_kind = 'orchestrator_lease' ORDER BY seq")])
         done = re.search(r'data-acts="([^"]*)"', dom)
-        ok = bool(done) and html.unescape(done[1]) == "|".join(acts) and "1회용 초대 코드" in dom and state[0] == ("approved", "owner-a") and state[1:3] == (1, 1)
+        ok = bool(done) and html.unescape(done[1]) == "|".join(acts) and "1회용 초대 코드" in dom and state[0] == [("approved", "owner-a"), ("rejected", "owner-a")] and state[1:3] == (1, 1)
         ops = state[3]
-        ok = ok and ops[0] == "declare" and ops[-1] == "declare" and "release" in ops and len([o for o in ops if o not in ("declare", "release")]) == 2
+        ok = ok and ops[0] == "declare" and ops[-1] == "declare" and "release" in ops and "transfer" in ops and len([o for o in ops if o not in ("declare", "release", "transfer")]) == 2
         _record(f"[{impl}] 오케스트레이션 — 계정 로그인 소유자 조작", ok, f"{done and done[1]} {state}")
     finally:
         if srv:
@@ -229,11 +236,14 @@ def measure(impl: str, cmd: list[str] | None, exe: str, tmp: Path) -> None:
 
 def main() -> int:
     print("check_hub_screens")
-    views = set(re.findall(r"async function (view\w+)\(", ui.HUB_JS))
+    route = ui.HUB_JS[ui.HUB_JS.index("async function route("):]  # 길에서 부르는 것이 정본 — 정의 방식(함수 · const)에 기대지 않는다
+    views = set(re.findall(r"await (\w+)\((?:parts|\))", route)) | set(re.findall(r"(?:function\s+|const\s+)(view[A-Z]\w*)\s*(?:=\s*async\b|\()", ui.HUB_JS))
     _record("화면 목록이 hub.js 와 같다", views == set(SCREENS), f"{sorted(views ^ set(SCREENS))}")
+    missed: list[str] = []
     exe = browser()
     if exe is None:
         print("    [unmeasured] 화면 미측정: Chrome · Chromium 이 없다")
+        missed.append("브라우저")
     else:
         with tempfile.TemporaryDirectory(prefix="hub-screens-", ignore_cleanup_errors=True) as d:
             tmp = Path(d)
@@ -241,9 +251,12 @@ def main() -> int:
             go_cmd, reason = _resolve_go_hub(tmp)
             if go_cmd is None:
                 print(f"    [unmeasured] go 허브 미측정: {reason}")
+                missed.append("go 허브")
+                if reason.startswith("go build"):  # 도구가 없는 것과 코드가 깨진 것은 다르다
+                    _record("go 허브 빌드", False, reason[:200])
             else:
                 measure("go", go_cmd, exe, tmp)
-    print(f"{_count - len(_fails)}/{_count} PASS")
+    print(f"{_count - len(_fails)}/{_count} PASS{f' · 미측정 {len(missed)} ({", ".join(missed)})' if missed else ''}")
     return 1 if _fails else 0
 
 

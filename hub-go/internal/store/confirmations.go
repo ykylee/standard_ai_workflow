@@ -104,10 +104,11 @@ func (s *Store) ConfirmationList(ctx Ctx) (map[string]any, error) {
 		if err := rows.Scan(&id, &fromCallsign, &fromSession, &raw, &created); err != nil {
 			return nil, err
 		}
-		body := map[string]any{}
-		if err := json.Unmarshal([]byte(raw), &body); err != nil {
+		var parsed any
+		if err := json.Unmarshal([]byte(raw), &parsed); err != nil {
 			return nil, err
 		}
+		body, _ := parsed.(map[string]any) // 객체가 아니면 확인 요청이 아니다
 		if body["request_type"] != "agent_confirmation" {
 			continue
 		}
@@ -148,10 +149,11 @@ func (s *Store) ConfirmationDecide(ctx Ctx, requestID, decision, note string) (m
 		if err != nil {
 			return nil, err
 		}
-		body := map[string]any{}
-		if err := json.Unmarshal([]byte(raw), &body); err != nil {
+		var parsed any
+		if err := json.Unmarshal([]byte(raw), &parsed); err != nil {
 			return nil, err
 		}
+		body, _ := parsed.(map[string]any) // 객체가 아니면 확인 요청이 아니다
 		if body["request_type"] != "agent_confirmation" {
 			return nil, NotFound("에이전트 확인 요청이 아니다: " + requestID)
 		}

@@ -16,7 +16,7 @@ import (
 
 // cmdAdminProject mirrors `hub admin project {export|import|seal|unseal|invite}` of the Python hub.
 func cmdAdminProject(st *store.Store, dbPath, action string, args []string, now time.Time, stdout, stderr io.Writer) int {
-	fs := newFlagSet("workflow-hub admin project "+action, stderr)
+	fs := newAdminFlagSet("workflow-hub admin project", stderr)
 	project := fs.String("project", "", "프로젝트 ID")
 	out := fs.String("out", "", "묶음 파일")
 	sealTo := fs.String("seal-to", "", "새 허브 주소 — 주면 봉인한 뒤 묶음을 뜬다")
@@ -103,7 +103,7 @@ func cmdAdminProject(st *store.Store, dbPath, action string, args []string, now 
 			res["note"] = "코드는 지금 한 번만 보인다 — 소유자에게 전한다"
 		}
 	default:
-		fmt.Fprintf(stderr, "hub admin project: 모르는 동작 %q\n", action)
+		fmt.Fprintln(stderr, "hub admin project: 모르는 동작 (export · import · seal · unseal · invite)")
 		return 2
 	}
 	if err != nil {

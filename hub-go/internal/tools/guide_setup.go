@@ -298,6 +298,9 @@ func UnifiedDiff(old, next, from, to string) string {
 			out.WriteByte(mark)
 			out.WriteString(strings.TrimSuffix(line, "\n"))
 			out.WriteByte('\n')
+			if !strings.HasSuffix(line, "\n") {
+				out.WriteString("\\ No newline at end of file\n")
+			}
 		}
 	}
 	origin := func(n int) int {

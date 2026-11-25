@@ -21,6 +21,8 @@ import (
 const accountPasswordRounds = 310000
 const accountSessionDays = 30
 
+var accountSessionToken = NewToken // 시험이 로그인 확인과 세션 열기 사이에 끼어든다
+
 var accountNamePattern = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]{2,63}$`)
 
 type HubAccount struct {
@@ -312,7 +314,7 @@ func (s *Store) AccountLogin(username, password string, now time.Time) (string, 
 
 // openAccountSession opens a session only while the checked password hash is still current, so a reset in between wins.
 func (s *Store) openAccountSession(accountID, checkedHash string, now time.Time) (string, error) {
-	session, err := NewToken()
+	session, err := accountSessionToken()
 	if err != nil {
 		return "", err
 	}

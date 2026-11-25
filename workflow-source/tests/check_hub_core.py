@@ -479,16 +479,19 @@ def case_13_account_password(hub: Hub, db: Path, impl: str, cmd: list[str]) -> N
     locked = req("/api/account/login", {"username": "pw-user", "password": old})[0]
     short, ghost, argv = cli("pw-user", "short\n"), cli("pw-ghost", new + "\n"), cli("pw-user", "", new)
     slips = [subprocess.run([*cmd, "admin", "--db", str(db), "account", *x], input="", capture_output=True, encoding="utf-8", env=_env(), timeout=60)
-             for x in ([new], ["password", f"-p{new}"], ["password", f"--password={new}"], ["password", "--username", "pw-user", f"-{new}"])]
+             for x in ([new], ["password", f"--help={new}"], ["password", f"-p{new}"], ["password", f"--password={new}"], ["password", "--username", "pw-user", f"-{new}"])]
+    slips += [subprocess.run([*cmd, "admin", "--db", str(db), *x], input="", capture_output=True, encoding="utf-8", env=_env(), timeout=60)
+              for x in (["--password", new, "account", "password", "--username", "pw-user"], [f"-p{new}", "account", "password"], [new], ["password", new],
+                        ["token", new], ["callsign", new], ["project", new], ["token", "issue", f"-{new}"])]
     raw = subprocess.run([*cmd, "admin", "--db", str(db), "account", "password", "--username", "pw-user"], input=b"\xff\xfebadutf8pass\n",
                          capture_output=True, env=_env(), timeout=60)
     kept = accounts("pw-user")
     done = cli("PW-User", new + "\r\n")
-    got = {"locked": locked, "short": short.returncode != 0, "ghost": ghost.returncode != 0, "argv": argv.returncode != 0, "slips": [r.returncode for r in slips], "utf8": raw.returncode == 1 and b"Traceback" not in raw.stderr, "kept": kept,
+    got = {"locked": locked, "short": short.returncode != 0, "ghost": ghost.returncode != 0, "argv": argv.returncode != 0, "slips": {r.returncode for r in slips[2:]}, "utf8": raw.returncode == 1 and b"Traceback" not in raw.stderr, "kept": kept,
            "done": done.returncode, "sessions": accounts("pw-user"), "other": accounts("pw-other"),
            "old": req("/api/account/login", {"username": "pw-user", "password": old})[0],
            "new": req("/api/account/login", {"username": "pw-user", "password": new})[0]}
-    want = {"locked": 429, "short": True, "ghost": True, "argv": True, "slips": [2] * 4, "utf8": True, "kept": 1, "done": 0, "sessions": 0, "other": 1, "old": 401, "new": 200}
+    want = {"locked": 429, "short": True, "ghost": True, "argv": True, "slips": {2}, "utf8": True, "kept": 1, "done": 0, "sessions": 0, "other": 1, "old": 401, "new": 200}
     events = sqlite3.connect(db).execute("SELECT callsign, target_id, op, after_json FROM event WHERE target_kind = 'hub_account'").fetchall()
     event = [(c, t, o, json.loads(x)) for c, t, o, x in events]
     with sqlite3.connect(db) as c:
@@ -496,31 +499,63 @@ def case_13_account_password(hub: Hub, db: Path, impl: str, cmd: list[str]) -> N
     if impl == "python":  # 확인과 세션 열기 사이에 재설정이 끼면 옛 비밀번호로는 열리지 않는다 (Go 는 accounts_test.go)
         from workflow_kit.hub import account_auth
 
-        accts, real = account_auth.HubAccounts(Store(db)), account_auth._password_matches
+        accts, real = account_auth.HubAccounts(Store(db)), account_auth.new_token
 
-        def slow(password: str, encoded: str) -> bool:
-            ok = real(password, encoded)
-            accts._checked = encoded  # type: ignore[attr-defined]
-            return ok
+        def reset_first() -> str:
+            accts.reset_password("pw-user", "third-pass-word-3", datetime.now(timezone.utc))
+            return real()
 
-        account_auth._password_matches = slow
+        account_auth.new_token = reset_first
         try:
             accts.login("pw-user", new, datetime.now(timezone.utc))
-        finally:
-            account_auth._password_matches = real
-        uid = sqlite3.connect(db).execute("SELECT id FROM hub_account WHERE username = 'pw-user'").fetchone()[0]
-        accts.reset_password("pw-user", "third-pass-word-3", datetime.now(timezone.utc))
-        try:
-            accts._open_session(uid, accts._checked, datetime.now(timezone.utc))  # type: ignore[attr-defined]
             got["race"] = "열렸다"
         except HubError as exc:
             got["race"] = exc.status
+        finally:
+            account_auth.new_token = real
         want["race"] = 401
         got["sessions"] += accounts("pw-user")
     said = "".join(r.stdout + r.stderr for r in (done, short, ghost, argv, *slips))
     _record(f"case 13 (계정 비밀번호 재설정 — stdin · 세션 · 잠금 해제 · 남지 않음) [{impl}]",
             got == want and cookie != "" and other != "" and event == [("admin:hub", "pw-user", "reset_password", {"sessions_ended": 1})] and new not in dump + said,
             f"got={got} event={event} {done.stdout[-200:]}{done.stderr[-200:]}")
+
+
+def case_14_guide_diff() -> None:
+    """지침 제안의 차이가 아무것도 숨기지 않는다 — 차이에서 두 본문을 되살린다 (Go 는 guide_diff_test.go)."""
+    import random
+
+    from workflow_kit.hub.guide import unified
+
+    rnd, bad = random.Random(7), []
+    for _ in range(4000):
+        old, new = ("\n".join(rnd.choice(["a", "b", "", "c\r", "d ", "e\u2028f"]) for _ in range(rnd.randrange(12))) + rnd.choice(["", "\n"]) for _ in "12")
+        lines = unified(old, new, "v1", "v2").split("\n")[:-1]
+        src, pos, a, b = (old[:-1] if old.endswith("\n") else old).split("\n") if old else [], 0, [], []
+        src = [x + "\n" for x in src]
+        if src and not old.endswith("\n"):
+            src[-1] = src[-1][:-1]
+        for i, line in enumerate(lines[2:], 2):
+            if line.startswith("@@"):
+                spec = line.split()[1][1:].split(",")
+                start = int(spec[0]) - (0 if spec[1:] == ["0"] else 1)
+                a += src[pos:start]
+                b += src[pos:start]
+                pos = start
+                continue
+            if line.startswith("\\ "):
+                continue
+            text = line[1:] + ("" if i + 1 < len(lines) and lines[i + 1].startswith("\\ ") else "\n")
+            if line[0] in " -":
+                a.append(text)
+                pos += 1
+            if line[0] in " +":
+                b.append(text)
+        a += src[pos:]
+        b += src[pos:]
+        if ("".join(a), "".join(b)) != (old, new) or (not lines) != (old == new):
+            bad.append((old, new))
+    _record("case 14 (지침 차이가 아무것도 숨기지 않는다)", not bad, f"{len(bad)} {bad[:2]!r}")
 
 
 def case_4_to_10(tmp: Path, impl: str, cmd_prefix: list[str]) -> None:
@@ -676,6 +711,7 @@ def main() -> int:
     with tempfile.TemporaryDirectory(prefix="hubcore-") as d:
         tmp = Path(d)
         case_1_gitkey()
+        case_14_guide_diff()
         case_2_migration(tmp)
         if mode in ("python", "both"):
             case_3_backup(tmp, "python", py_cmd)

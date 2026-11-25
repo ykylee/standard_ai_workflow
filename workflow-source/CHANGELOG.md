@@ -906,6 +906,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- fix(hub): show Go guide proposal diffs, reveal hidden characters on the remaining approvals, harden inbox and password reset (3.3.5) (d932f489)
 - fix(hub): order open milestones by progress and close the screen check's blind spots (87020a96)
 - fix(hub): render the roadmap screen and measure every screen in a real browser (47acac90)
 - fix(hub): accept a proxy-rewritten Origin scheme only for same-origin fetches (fad70a78)

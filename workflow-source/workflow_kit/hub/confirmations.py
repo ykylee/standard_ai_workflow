@@ -86,7 +86,7 @@ class Confirmations:
         requests = []
         for row in rows:
             body = json.loads(row["body_json"])
-            if body.get("request_type") != "agent_confirmation":
+            if not isinstance(body, dict) or body.get("request_type") != "agent_confirmation":
                 continue
             requests.append({"id": row["id"], "requested_by": row["from_callsign"],
                              "requested_by_session": row["from_session"], "created_at": row["created_at"],
@@ -112,7 +112,7 @@ class Confirmations:
             if row is None:
                 raise not_found(f"확인 요청이 없다: {request_id}")
             body = json.loads(row["body_json"])
-            if body.get("request_type") != "agent_confirmation":
+            if not isinstance(body, dict) or body.get("request_type") != "agent_confirmation":
                 raise not_found(f"에이전트 확인 요청이 아니다: {request_id}")
             if row["state"] in {"acked", "declined"}:
                 if row["state"] == target_state:

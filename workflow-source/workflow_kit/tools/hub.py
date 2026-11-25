@@ -21,6 +21,7 @@ import ipaddress
 import json
 import sys
 from pathlib import Path
+from typing import NoReturn
 
 from workflow_kit.common.stdio import force_utf8_stdio
 
@@ -34,8 +35,18 @@ def _is_loopback(bind: str) -> bool:
         return False
 
 
+class _Parser(argparse.ArgumentParser):
+    """``admin`` 아래 오류는 틀린 값을 되뇌지 않는다 — 비밀번호를 엉뚱한 자리에 준 실수가 로그에 남지 않게."""
+
+    def error(self, message: str) -> NoReturn:
+        if " admin" in self.prog:
+            self.print_usage(sys.stderr)
+            self.exit(2, f"{self.prog}: 인자가 맞지 않다 (값은 보이지 않는다)\n")
+        super().error(message)
+
+
 def _parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(
+    p = _Parser(
         prog="python -m workflow_kit hub", description="워크플로우 허브 (2.0) 서버"
     )
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -79,8 +90,6 @@ def _parser() -> argparse.ArgumentParser:
     tr = tsub.add_parser("revoke")
     tr.add_argument("--name", required=True)
     ac = asub.add_parser("account")
-    # argparse 는 틀린 값을 오류문에 되뇐다 — 비밀번호를 엉뚱한 자리에 준 실수가 로그에 남지 않게 한다
-    setattr(ac, "error", lambda _m: ac.exit(2, "hub admin account password --username <계정> — 비밀번호는 터미널 입력 또는 stdin 한 줄로만 받는다\n"))
     acsub = ac.add_subparsers(dest="action", required=True)
     ap = acsub.add_parser("password", help="허브 계정 비밀번호 재설정 — 비밀번호는 인자로 받지 않는다")
     ap.add_argument("--username", required=True)

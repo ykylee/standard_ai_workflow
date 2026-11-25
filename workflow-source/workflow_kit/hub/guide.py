@@ -34,8 +34,17 @@ def check_renderable(project_id: str, display: str, body: str) -> None:
 
 
 def _diff_lines(body: str) -> list[str]:
-    """줄바꿈(\\n)으로만 나누고 끝 줄에도 붙인다 — 마지막 줄의 -/+ 가 한 줄로 붙어 보이지 않게."""
-    return [f"{line}\n" for line in body.removesuffix("\n").split("\n")] if body else []
+    """줄바꿈(\\n)으로만 나눈다. 끝에 줄바꿈이 없으면 표시를 붙여 그 차이도 보이게 한다."""
+    if not body:
+        return []
+    lines = [f"{line}\n" for line in body.removesuffix("\n").split("\n")]
+    if not body.endswith("\n"):
+        lines[-1] += "\\ No newline at end of file\n"
+    return lines
+
+
+def unified(old: str, new: str, old_name: str, new_name: str) -> str:
+    return "".join(difflib.unified_diff(_diff_lines(old), _diff_lines(new), fromfile=old_name, tofile=new_name))
 
 
 class Guides:
@@ -67,9 +76,7 @@ class Guides:
                 "SELECT version, body_md FROM guide WHERE project_id = ?", (pid,))}
         for prop in proposals:
             base = bodies.get(prop["base_version"], "")
-            prop["diff"] = "".join(difflib.unified_diff(
-                _diff_lines(base), _diff_lines(prop["body_md"]),
-                fromfile=f"v{prop['base_version']}", tofile=prop["id"]))
+            prop["diff"] = unified(base, prop["body_md"], f"v{prop['base_version']}", prop["id"])
             prop["stale"] = prop["status"] == "open" and prop["base_version"] != version
         return {"version": version, "guide_version": render.guide_version(version), "body": body,
                 "history": history, "proposals": proposals}

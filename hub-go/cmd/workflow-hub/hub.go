@@ -61,6 +61,19 @@ func newFlagSet(name string, stderr io.Writer) *flag.FlagSet {
 	return fs
 }
 
+// newAdminFlagSet reports misuse without echoing the arguments: a password given in the wrong place must not reach a log.
+func newAdminFlagSet(name string, stderr io.Writer) *flag.FlagSet {
+	fs := flag.NewFlagSet(name, flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	fs.Usage = func() {
+		fs.SetOutput(stderr)
+		fmt.Fprintf(stderr, "Usage of %s:\n", name)
+		fs.PrintDefaults()
+		fs.SetOutput(io.Discard)
+	}
+	return fs
+}
+
 func cmdServe(args []string, stdout, stderr io.Writer) int {
 	fs := newFlagSet("workflow-hub serve", stderr)
 	dbPath := fs.String("db", "", "허브 SQLite DB 경로")
@@ -238,7 +251,7 @@ func readNewPassword(stderr io.Writer) (string, error) {
 }
 
 func cmdAdmin(args []string, stdout, stderr io.Writer) int {
-	fs := newFlagSet("workflow-hub admin", stderr)
+	fs := newAdminFlagSet("workflow-hub admin", stderr)
 	dbPath := fs.String("db", "", "허브 SQLite DB 경로")
 	if err := fs.Parse(args); err != nil {
 		if err == flag.ErrHelp {
@@ -272,7 +285,7 @@ func cmdAdmin(args []string, stdout, stderr io.Writer) int {
 	case "token":
 		switch action {
 		case "issue":
-			tfs := newFlagSet("workflow-hub admin token issue", stderr)
+			tfs := newAdminFlagSet("workflow-hub admin token issue", stderr)
 			role := tfs.String("role", "", "토큰 역할 (web|admin)")
 			name := tfs.String("name", "", "토큰 이름")
 			if err := tfs.Parse(subArgs); err != nil {
@@ -292,7 +305,7 @@ func cmdAdmin(args []string, stdout, stderr io.Writer) int {
 			writeJSONOut(stdout, map[string]any{"status": "ok", "name": *name, "role": *role, "token": tok})
 			return 0
 		case "revoke":
-			tfs := newFlagSet("workflow-hub admin token revoke", stderr)
+			tfs := newAdminFlagSet("workflow-hub admin token revoke", stderr)
 			name := tfs.String("name", "", "토큰 이름")
 			if err := tfs.Parse(subArgs); err != nil {
 				if err == flag.ErrHelp {
@@ -310,15 +323,15 @@ func cmdAdmin(args []string, stdout, stderr io.Writer) int {
 			writeJSONOut(stdout, map[string]any{"status": "ok", "revoked": *name})
 			return 0
 		default:
-			fmt.Fprintf(stderr, "hub admin token: 모르는 동작 %q\n", action)
+			fmt.Fprintln(stderr, "hub admin token: issue · revoke 중 하나")
 			return 2
 		}
 	case "callsign":
 		if action != "revoke" && action != "delete" {
-			fmt.Fprintf(stderr, "hub admin callsign: 모르는 동작 %q\n", action)
+			fmt.Fprintln(stderr, "hub admin callsign: revoke · delete 중 하나")
 			return 2
 		}
-		cfs := newFlagSet("workflow-hub admin callsign "+action, stderr)
+		cfs := newAdminFlagSet("workflow-hub admin callsign "+action, stderr)
 		project := cfs.String("project", "", "프로젝트 ID")
 		callsign := cfs.String("callsign", "", "콜사인")
 		if err := cfs.Parse(subArgs); err != nil {
@@ -352,7 +365,7 @@ func cmdAdmin(args []string, stdout, stderr io.Writer) int {
 			fmt.Fprintln(stderr, accountPasswordUsage) // 값을 되뇌지 않는다 — 비밀번호를 인자로 준 실수가 로그에 남는다
 			return 2
 		}
-		afs := newFlagSet("workflow-hub admin account password", io.Discard)
+		afs := newAdminFlagSet("workflow-hub admin account password", io.Discard)
 		username := afs.String("username", "", "계정 이름")
 		if err := afs.Parse(subArgs); err != nil {
 			fmt.Fprintln(stderr, accountPasswordUsage)
@@ -382,7 +395,7 @@ func cmdAdmin(args []string, stdout, stderr io.Writer) int {
 	case "project":
 		return cmdAdminProject(st, *dbPath, action, subArgs, now, stdout, stderr)
 	default:
-		fmt.Fprintf(stderr, "hub admin %s %s: Go 허브에 아직 포팅되지 않았다\n", what, action)
+		fmt.Fprintln(stderr, "hub admin: 모르는 대상이거나 Go 허브에 아직 포팅되지 않았다 (token · callsign · account · project)")
 		return 2
 	}
 }

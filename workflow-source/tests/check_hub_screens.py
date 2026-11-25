@@ -199,6 +199,10 @@ def seed(hub: Hub, db: Path, impl: str) -> dict[str, str]:
             c.execute("INSERT INTO inbox_message (project_id,id,to_kind,to_id,from_callsign,from_session,from_orchestrator,kind,body_json,ref_task,state,"
                       "delivered_via,delivered_at,created_at) VALUES (?,?,'session',?,'owner-a',?,1,'note',?,?,'unacknowledged','piggyback',?,?)",
                       (pid, f"MSG-20261122-{n * 12}", sw, so, json.dumps(body, ensure_ascii=False), tid, "2026-11-22T00:00:00+00:00", "2026-11-22T00:00:00+00:00"))
+    with sqlite3.connect(db) as c:  # 객체가 아닌 본문의 approval 이 확인 요청 화면을 막지 않는다
+        for n, raw in (("d", '"글"'), ("e", "[1]")):
+            c.execute("INSERT INTO inbox_message (project_id,id,to_kind,to_id,from_callsign,from_session,from_orchestrator,kind,body_json,state,created_at) "
+                      "VALUES (?,?,'callsign','owner-a','bot-a','',0,'approval',?,'queued',?)", (pid, f"MSG-20261121-{n * 12}", raw, "2026-11-21T00:00:00+00:00"))
     found = must("hub_knowledge_search", {"query": "위키"}, owner)
     ref = next((str(x.get("ref")) for x in found.get("results") or found.get("hits") or []), "")
     from urllib.parse import quote
@@ -250,6 +254,8 @@ def measure(impl: str, cmd: list[str] | None, exe: str, tmp: Path) -> None:
         approve = {t: re.search(r'<button type="button"([^>]*)>승인<', c) for t, c in cards.items()}
         _record(f"[{impl}] 확인 요청 — 낡은 요청은 알리고 승인 단추를 끈다", {t: bool(m and "disabled" in m[1]) for t, m in approve.items()} == {"purpose": False, "profile": True}
                 and ["낡은 요청 — 문서가 지금 2판" in cards.get(t, "") for t in ("purpose", "profile")] == [False, True], f"{ {t: m and m[0] for t, m in approve.items()} }")
+        odd = [ui._req(hub.base, f"/api/projects/{env['pid']}/confirmations/MSG-20261121-{n * 12}", method="POST", token=env["owner"], body={"decision": "approve"})[0] for n in "de"]
+        _record(f"[{impl}] 확인 요청 — 객체가 아닌 본문은 404", odd == [404, 404], f"{odd}")
         close = f"/api/projects/{env['pid']}/orchestration/messages/{{}}/close"
         mid = f"MSG-20261122-{'a' * 12}"
         pending = next(r["id"] for r in ui._req(hub.base, f"/api/projects/{env['pid']}/confirmations", token=env["owner"])[1]["requests"])

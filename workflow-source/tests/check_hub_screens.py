@@ -256,7 +256,8 @@ def main() -> int:
                     _record("go 허브 빌드", False, reason[:200])
             else:
                 measure("go", go_cmd, exe, tmp)
-    print(f"{_count - len(_fails)}/{_count} PASS{f' · 미측정 {len(missed)} ({", ".join(missed)})' if missed else ''}")
+    note = f" · 미측정 {len(missed)} ({', '.join(missed)})" if missed else ""
+    print(f"{_count - len(_fails)}/{_count} PASS{note}")
     return 1 if _fails else 0
 
 

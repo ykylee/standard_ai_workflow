@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- feat(hub): stream A2A tasks and let callsigns message each other (f7f08192)
 - feat(hub): add the idea box — people jot ideas, agents review read-only and reply (3.4.0) (c4d4c64b)
 - feat(hub): reveal hidden characters in approvals, tidy late messages, reset account passwords (3.3.4) (676418d4)
 - feat(hub): let an agent write a project document after a human login approval (e0144e48)
@@ -284,6 +285,9 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- docs: stamp the code index for 3.5.0 (39be63fa)
+- chore(release): prepare 3.5.0 (918b44a3)
+- chore(hub): refresh the rendered hub rules and keep the files generated while publishing 3.4.0 (5edc65b8)
 - test(hub): keep the screen check parseable on the floor interpreter (2ac0e34f)
 - chore(release): prepare 3.3.2 (5553139b)
 - test(hub): declare the marker and helper the progress-rule check reads (8c78b7b8)

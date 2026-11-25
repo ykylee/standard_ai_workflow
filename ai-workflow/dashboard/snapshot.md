@@ -1,7 +1,7 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-11-25T08:35:16Z`
-- tool_version: `3.4.0`
+- generated_at: `2026-11-25T23:00:16Z`
+- tool_version: `3.5.0`
 - workspace_root: `/home/yklee/repos/standard_ai_workflow`
 
 ## Panel 1 — Drift Prevention Status
@@ -14,7 +14,7 @@
 - harness_supported_count: `10`
 - head_commit_date: `2026-11-25`
 - last_updated_delta_days: `0`
-- silent_failing_cycles_count: `0` (측정 cycle 60건)
+- silent_failing_cycles_count: `0` (측정 cycle 61건)
 
 ## Panel 2 — Maturity Distribution
 
@@ -84,11 +84,11 @@
 
 | version | pass | total |
 |---|---|---|
+| Beta-v3.5.0 | 360 | 360 |
 | Beta-v3.4.0 | 360 | 360 |
 | Beta-v3.3.5 | 359 | 359 |
 | Beta-v3.3.4 | 359 | 359 |
 | Beta-v3.3.3 | 359 | 359 |
-| Beta-v3.3.2 | 358 | 358 |
 
 ## Panel 5 — Recent Release Cycle
 

@@ -18,3 +18,20 @@
 
 - 평가용 pre-release다. **DB 판이 19 → 20으로 오른다** — 3.4.x 실행 파일은 이관된 DB를 열지 못하므로 되돌리려면 배포 전 백업을 쓴다.
 - 메시지 원문을 보는 화면은 없다. 7일 만료 · 정지 중 차단 · 50초 상한 닫힘 · PostgreSQL은 재지 않았다.
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-11-25T23:00:16Z)_
+
+- total wiki pages: **104**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

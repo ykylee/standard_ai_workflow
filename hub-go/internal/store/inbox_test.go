@@ -181,6 +181,36 @@ func TestInboxTidyUnacknowledged(t *testing.T) {
 		return err.(*HubError).Code
 	}
 	mine, gone := late(live), late(ended)
+	// 남의 콜사인은 끝난 세션 앞 메시지도 닫지 못한다 · 객체가 아닌 본문도 나열 · 확인한다.
+	other2, err := st.RegisterCallsign(ctx, p.ProjectID, "agent-b", "agent", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	thief, err := st.Authenticate(other2["token"].(string), &now, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.DB().Exec(`INSERT INTO session (project_id,id,callsign,harness,kind,delivery_json,last_signal_at,started_at)
+		VALUES (?,?,?,?,?,?,?,?)`, p.ProjectID, "S-20261122-d1b2c3d4", "agent-b", "codex", "worker", `["piggyback"]`, db.FormatISO(now), db.FormatISO(now)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.InboxAck(Ctx{Now: now, Via: "http", Principal: thief}, "S-20261122-d1b2c3d4", gone, "seen", "", ""); err == nil || err.(*HubError).Code != "message_not_yours" {
+		t.Fatalf("theft: %v", err)
+	}
+	for _, raw := range []string{`"글"`, `[1]`} {
+		for _, kind := range []string{"note", "approval"} {
+			mid := late(live)
+			if _, err := st.DB().Exec("UPDATE inbox_message SET kind=?,body_json=? WHERE id=?", kind, raw, mid); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := st.InboxList(ctx, live, ""); err != nil {
+				t.Fatalf("%s %s: %v", kind, raw, err)
+			}
+			if got := code(live, mid, "seen"); got != "ok" {
+				t.Fatalf("%s %s: %s", kind, raw, got)
+			}
+		}
+	}
 	for _, c := range []struct{ sid, mid, decision, want string }{
 		{live, mine, "accept", "ack_too_late"}, {live, mine, "decline", "ack_too_late"},
 		{other, mine, "seen", "message_not_yours"}, {live, mine, "seen", "ok"},

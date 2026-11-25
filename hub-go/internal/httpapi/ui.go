@@ -856,6 +856,23 @@ func (s *Server) screenGuide(pid string, principal *store.Principal) (map[string
 		return nil, err
 	}
 	rows.Close()
+	bodies := map[int]string{}
+	gr, err := db.Query("SELECT version,body_md FROM guide WHERE project_id=?", pid)
+	if err != nil {
+		return nil, err
+	}
+	defer gr.Close()
+	for gr.Next() {
+		var v int
+		var text string
+		if err := gr.Scan(&v, &text); err != nil {
+			return nil, err
+		}
+		bodies[v] = text
+	}
+	if err := gr.Err(); err != nil {
+		return nil, err
+	}
 	proposals := []map[string]any{}
 	pr, err := db.Query("SELECT id,base_version,body_md,note,proposed_by,proposed_at,status,decided_by,decided_at,applied_version FROM guide_proposal WHERE project_id=? ORDER BY proposed_at DESC,id DESC LIMIT 100", pid)
 	if err != nil {
@@ -869,7 +886,7 @@ func (s *Server) screenGuide(pid string, principal *store.Principal) (map[string
 			pr.Close()
 			return nil, err
 		}
-		item := map[string]any{"id": id, "base_version": base, "body_md": proposalBody, "note": note, "proposed_by": by, "proposed_at": at, "status": status, "decided_by": nil, "decided_at": nil, "applied_version": nil, "diff": "", "stale": status == "open" && base != version}
+		item := map[string]any{"id": id, "base_version": base, "body_md": proposalBody, "note": note, "proposed_by": by, "proposed_at": at, "status": status, "decided_by": nil, "decided_at": nil, "applied_version": nil, "diff": tools.UnifiedDiff(bodies[base], proposalBody, "v"+strconv.Itoa(base), id), "stale": status == "open" && base != version}
 		if decided.Valid {
 			item["decided_by"] = decided.String
 		}

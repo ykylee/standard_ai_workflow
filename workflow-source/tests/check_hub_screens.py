@@ -65,6 +65,8 @@ PROBE = """<script>
 window.addEventListener('error',e=>document.documentElement.dataset.err=(document.documentElement.dataset.err||'')+e.message+';');
 window.addEventListener('unhandledrejection',e=>document.documentElement.dataset.err=(document.documentElement.dataset.err||'')+String(e.reason)+';');
 window.confirm=()=>true;
+setInterval(()=>{const x=[...document.querySelectorAll('.exact')].map(e=>getComputedStyle(e).unicodeBidi+'/'+getComputedStyle(e).whiteSpace);
+if(x.length)document.documentElement.dataset.exact=[...new Set(x)].join(',');},400);
 (async()=>{const acts=new URL(location.href).searchParams.get('acts');if(!acts)return;const z=t=>new Promise(r=>setTimeout(r,t));await z(1500);const log=[];
 for(const a of acts.split('|')){if(a[0]==='@'){const d=document.querySelector('[data-keep="'+a.slice(1)+'"]');d.open=true;d.dataset.old='1';await z(10500);
 if(!document.querySelector('[data-old]'))document.documentElement.dataset.renders='1';continue;}const b=[...document.querySelectorAll('button')].find(x=>x.textContent===a&&!x.disabled);log.push(a+(b?'':':없음'));if(b){b.click();await z(900);}}
@@ -181,6 +183,7 @@ def seed(hub: Hub, db: Path, impl: str) -> dict[str, str]:
     must("hub_approval_request", {"session": sw, "title": "제\u202e목", "question": "질\u200b문", "details": "설\u2066명", "action": {
         "type": "project_doc_put", "name": "profile", "body": "새 프로필\n", "expected_version": 1}}, bot)
     must("hub_project_doc_put", {"name": "profile", "body": "그 사이 바뀜\n", "expected_version": 1}, owner)  # 요청을 낡게 한다
+    must("hub_guide_propose", {"base_version": must("hub_guide_get", {}, bot)["version"], "body": "# 지침\n\n새 규\u202e칙\n", "note": "메\u200b모"}, bot)
     st, _, _ = ui._req(hub.base, f"/api/projects/{pid}/orchestration/lease", token=owner, method="POST", body={"action": "declare", "session": so})
     assert st == 200
     _, inv, _ = ui._req(hub.base, f"/api/projects/{pid}/orchestration/relays/invite", token=owner, method="POST", body={})
@@ -189,10 +192,10 @@ def seed(hub: Hub, db: Path, impl: str) -> dict[str, str]:
     with urllib.request.urlopen(reg, timeout=20) as r:
         host = json.loads(r.read())["host_id"]
     for alias in ("w1", "w2"):
-        must("hub_orch_request_session", {"session": so, "host_id": host, "dir_alias": alias, "harness": "fake"}, owner)
+        must("hub_orch_request_session", {"session": so, "host_id": host, "dir_alias": alias, "harness": "fake", "prompt": "지\u202e시  두칸\ufffc"}, owner)
     must("hub_orch_assign", {"session": so, "task_id": tid, "to_session": sw}, owner)
     with sqlite3.connect(db) as c:
-        for n, body in (("a", {"title": "알림 제목", "text": "본문이 보인다"}), ("b", "문자열 본문")):
+        for n, body in (("a", {"title": "알림 제목", "text": "본문이 보인다\u200b"}), ("b", "문자열 본문\u2066")):
             c.execute("INSERT INTO inbox_message (project_id,id,to_kind,to_id,from_callsign,from_session,from_orchestrator,kind,body_json,ref_task,state,"
                       "delivered_via,delivered_at,created_at) VALUES (?,?,'session',?,'owner-a',?,1,'note',?,?,'unacknowledged','piggyback',?,?)",
                       (pid, f"MSG-20261122-{n * 12}", sw, so, json.dumps(body, ensure_ascii=False), tid, "2026-11-22T00:00:00+00:00", "2026-11-22T00:00:00+00:00"))
@@ -225,6 +228,13 @@ def measure(impl: str, cmd: list[str] | None, exe: str, tmp: Path) -> None:
         _record(f"[{impl}] 로드맵 — 열린 것 먼저 · 완료는 접기", 0 < rm.find("<h2>열린 마일스톤") < fold < rm.find("<h2>끝난 마일스톤"), f"접기 {fold}")
         orch = doms["viewOrchestration"]
         _record(f"[{impl}] 오케스트레이션 — 메시지 본문", all(x in orch for x in ("알림 제목", "본문이 보인다", "문자열 본문")))
+        _record(f"[{impl}] 오케스트레이션 — 지시문 · 메시지의 보이지 않는 문자", [orch.count(f">{u}</mark>") for u in ("U+202E", "U+FFFC", "U+200B", "U+2066")] == [2, 2, 1, 1])
+        _record(f"[{impl}] 오케스트레이션 — 정리 안내문", "세션이 끝났으면 같은 콜사인" in orch and "hub_inbox_ack(decision=seen)" in orch and "읽음으로 정리" in orch)
+        guide = doms["viewGuide"]
+        _record(f"[{impl}] 지침 제안 — 보이지 않는 문자", guide.count(">U+202E</mark>") == 1 and guide.count(">U+200B</mark>") == 1
+                and re.search(r'<pre class="diff exact">[^<]*\+새 규<mark', guide) is not None)
+        exact = {v: re.findall(r'data-exact="([^"]*)"', doms[v])[:1] for v in ("viewConfirmations", "viewOrchestration", "viewGuide")}
+        _record(f"[{impl}] 승인 글은 저장된 순서 · 공백 그대로", all(x == ["bidi-override/pre-wrap"] for x in exact.values()), f"{exact}")
         conf = doms["viewConfirmations"]
         _record(f"[{impl}] 확인 요청 — 문서 차이", all(x in conf for x in (
             'class="diff-del">- 옛 줄', 'class="diff-add">+ 새 줄 &lt;script&gt;', "1판 → 2판", 'data-doc-diff="purpose"', "추가 2줄 · 삭제 2줄")))

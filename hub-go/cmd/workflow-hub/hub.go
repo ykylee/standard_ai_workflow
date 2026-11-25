@@ -209,6 +209,8 @@ func cmdMigrate(args []string, stdout, stderr io.Writer) int {
 	return 0
 }
 
+const accountPasswordUsage = "hub admin account password --username <계정> — 비밀번호는 터미널 입력 또는 stdin 한 줄로만 받는다"
+
 // readNewPassword prompts twice without echo on a terminal, else reads one stdin line. Never from arguments.
 func readNewPassword(stderr io.Writer) (string, error) {
 	fd := int(os.Stdin.Fd())
@@ -347,19 +349,20 @@ func cmdAdmin(args []string, stdout, stderr io.Writer) int {
 		return 0
 	case "account":
 		if action != "password" {
-			fmt.Fprintf(stderr, "hub admin account: 모르는 동작 %q\n", action)
+			fmt.Fprintln(stderr, accountPasswordUsage) // 값을 되뇌지 않는다 — 비밀번호를 인자로 준 실수가 로그에 남는다
 			return 2
 		}
-		afs := newFlagSet("workflow-hub admin account password", stderr)
+		afs := newFlagSet("workflow-hub admin account password", io.Discard)
 		username := afs.String("username", "", "계정 이름")
 		if err := afs.Parse(subArgs); err != nil {
+			fmt.Fprintln(stderr, accountPasswordUsage)
 			if err == flag.ErrHelp {
 				return 0
 			}
 			return 2
 		}
 		if strings.TrimSpace(*username) == "" || afs.NArg() > 0 {
-			fmt.Fprintln(stderr, "hub admin account password: --username 만 받는다 (비밀번호는 터미널 입력 또는 stdin 한 줄)")
+			fmt.Fprintln(stderr, accountPasswordUsage)
 			return 2
 		}
 		password, err := readNewPassword(stderr)

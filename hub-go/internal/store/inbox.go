@@ -27,7 +27,7 @@ const (
 type inboxMessage struct {
 	id, toKind, toID, fromCallsign, fromSession, kind string
 	fromOrchestrator                                  bool
-	body                                              map[string]any
+	body                                              any // 객체가 아닐 수 있다 (문자열 · 배열 메시지)
 	refTask, state, deliveredVia, ackBySession        string
 	deliveredAt, lastDeliveredAt, createdAt           sql.NullString
 	deliveryCount                                     int
@@ -290,7 +290,7 @@ func (s *Store) InboxAck(ctx Ctx, sessionID, messageID, decision, reason, reques
 		if !mine {
 			return nil, &HubError{Status: 403, Code: "message_not_yours", Message: "이 세션 · 콜사인 앞 메시지가 아니다"}
 		}
-		if m.kind == "approval" && m.body["request_type"] == "agent_confirmation" {
+		if doc, ok := m.body.(map[string]any); ok && m.kind == "approval" && doc["request_type"] == "agent_confirmation" {
 			return nil, &HubError{Status: 403, Code: "human_decision_required", Message: "사람이 웹 허브 확인 요청 메뉴에서 결정해야 한다"}
 		}
 		if m.state == "acked" || m.state == "declined" {

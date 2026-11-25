@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- feat(hub): reveal hidden characters in approvals, tidy late messages, reset account passwords (3.3.4) (676418d4)
 - feat(hub): let an agent write a project document after a human login approval (e0144e48)
 - feat(hub): switch this repository's source of truth to the homelab hub (d724873d)
 - feat(hub): finish the Go tool set and make setup completeness honest (9043f2f5)

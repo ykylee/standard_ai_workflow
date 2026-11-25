@@ -543,12 +543,12 @@
   }
 
   function messageBody(body) {
-    if (typeof body === "string") return el("div", {}, body);
+    if (typeof body === "string") return el("div", { class: "exact" }, reveal(body));
     const b = body || {};
     const text = ["title", "text", "question", "summary", "message", "note"].map((k) => b[k]).filter((v) => typeof v === "string" && v);
     const state = typeof b.state === "string" ? b.state : typeof b.decision === "string" ? b.decision : "";
-    return el("div", {}, state ? chip(state, "planned") : null, text.map((v) => el("div", {}, v)),
-      !text.length && Object.keys(b).length ? el("pre", { class: "wrap" }, JSON.stringify(b, null, 1)) : null);
+    return el("div", {}, state ? chip(state, "planned") : null, text.map((v) => el("div", { class: "exact" }, reveal(v))),
+      !text.length && Object.keys(b).length ? el("pre", { class: "wrap exact" }, reveal(JSON.stringify(b, null, 1))) : null);
   }
 
   // --- 화면: 오케스트레이션 (M-053 WBS-53.1) -----------------------------------------------
@@ -637,7 +637,7 @@
       return el("div", { class: "decision" },
         el("div", { class: "row" }, el("strong", { class: "mono" }, req.id), chip(req.kind, "planned"), chip(req.state, req.state),
           `호스트 ${req.host_id}`, `· 요청 ${req.requested_by} · `, when(req.created_at)),
-        el("div", {}, detailText),
+        el("div", { class: "exact" }, reveal(detailText)),
         req.decided_by ? el("div", { class: "muted" }, `결정 ${req.decided_by} · `, when(req.decided_at)) : null,
         req.result && Object.keys(req.result).length ? el("div", { class: "mono muted" }, JSON.stringify(req.result)) : null,
         req.state === "pending_approval" && canManage ? el("div", { class: "row" }, note, decideBtn("approve", "승인"), decideBtn("reject", "거절", "ghost")) : null,
@@ -672,7 +672,7 @@
 
     const unackSection = d.unacknowledged.length ? el("section", { class: "card" },
       el("h2", {}, `미확인 메시지 unacknowledged (${d.unacknowledged.length})`),
-      el("p", { class: "muted" }, "10분 안에 확인하지 않은 메시지다. 받는 쪽이 hub_inbox_ack(decision=seen) 로 읽음 처리하거나 소유자가 정리하면 사라진다. 정리는 배정·승인 상태를 바꾸지 않는다."),
+      el("p", { class: "muted" }, "10분 안에 확인하지 않은 메시지다. 받은 세션이나 콜사인(세션이 끝났으면 같은 콜사인)이 hub_inbox_ack(decision=seen) 로 읽음 처리하거나 소유자가 정리하면 사라진다. 정리는 배정·승인 상태를 바꾸지 않는다."),
       d.unacknowledged.map((m) => el("div", { class: "decision" },
         el("div", { class: "row" }, el("span", { class: "mono muted" }, m.id), chip(m.kind, "planned"),
           `${m.to_kind}:${m.to_id}`, m.ref_task ? el("a", { class: "mono", href: `${base}/t/${encodeURIComponent(m.ref_task)}` }, m.ref_task) : null,
@@ -798,7 +798,7 @@
   }
 
   // 보이지 않거나 글자 순서를 뒤집는 문자를 드러낸다 — 사람이 본 글과 쓰일 글이 같아야 한다.
-  const HIDDEN_CHARS = /(?![\n\t ])[\p{C}\p{Z}\p{Default_Ignorable_Code_Point}\u2800]/gu;
+  const HIDDEN_CHARS = /(?![\n\t ])[\p{C}\p{Z}\p{Default_Ignorable_Code_Point}\u2800\u2D7F\uFFFC\u{1107F}\u{13441}\u{13442}\u{16FE4}\u{1D159}]/gu;
   function reveal(text) {
     const s = String(text ?? ""), out = [];
     let at = 0;
@@ -1022,9 +1022,9 @@
         `${prop.proposed_by} · `, when(prop.proposed_at), ` · 기준 v${prop.base_version}`,
         prop.applied_version ? ` → v${prop.applied_version}` : null,
         prop.decided_by && prop.decided_by !== prop.proposed_by ? ` · 결정 ${prop.decided_by}` : null),
-      prop.note ? el("div", {}, prop.note) : null,
+      prop.note ? el("div", { class: "exact" }, reveal(prop.note)) : null,
       prop.stale ? alertBox("warn", "기준 판이 지금 판이 아니다 — 승인할 수 없다. 새 판 위에서 다시 제안해야 한다.") : null,
-      el("details", { open: open || undefined }, el("summary", {}, "바뀐 줄"), el("pre", { class: "diff" }, prop.diff || "(차이 없음)")),
+      el("details", { open: open || undefined }, el("summary", {}, "바뀐 줄"), el("pre", { class: "diff exact" }, prop.diff ? reveal(prop.diff) : "(차이 없음)")),
       open && canDecide ? el("div", { class: "row" },
         el("button", { type: "button", onclick: decide(true), disabled: prop.stale || undefined }, "승인"),
         el("button", { type: "button", class: "ghost", onclick: decide(false) }, "거절")) : null);

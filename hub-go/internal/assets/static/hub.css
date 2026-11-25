@@ -152,5 +152,5 @@ input[type=search] { border: 1px solid var(--line); border-radius: 8px; padding:
 }
 .diff-add { background: rgba(46, 160, 67, .18); }
 .diff-del { background: rgba(218, 54, 51, .18); }
-.exact { direction: ltr; unicode-bidi: bidi-override; }
+.exact { direction: ltr; unicode-bidi: bidi-override; white-space: pre-wrap; }
 .hidden-char { padding: 0 2px; border-radius: 3px; background: #b3261e; color: #fff; font-size: .85em; }

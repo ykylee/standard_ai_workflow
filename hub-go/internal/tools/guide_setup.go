@@ -256,7 +256,7 @@ func guideGet(s *store.Store, ctx store.Ctx) (map[string]any, error) {
 			return nil, err
 		}
 		baseBody := guideBodies[base]
-		proposals = append(proposals, map[string]any{"id": id, "base_version": base, "body_md": proposalBody, "note": note, "proposed_by": by, "proposed_at": at, "status": status, "decided_by": nullable(decidedBy), "decided_at": nullable(decidedAt), "applied_version": nullableInt(applied), "diff": unifiedDiff(baseBody, proposalBody, fmt.Sprintf("v%d", base), id), "stale": status == "open" && base != version})
+		proposals = append(proposals, map[string]any{"id": id, "base_version": base, "body_md": proposalBody, "note": note, "proposed_by": by, "proposed_at": at, "status": status, "decided_by": nullable(decidedBy), "decided_at": nullable(decidedAt), "applied_version": nullableInt(applied), "diff": UnifiedDiff(baseBody, proposalBody, fmt.Sprintf("v%d", base), id), "stale": status == "open" && base != version})
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -276,35 +276,43 @@ func nullableInt(v sql.NullInt64) any {
 	}
 	return v.Int64
 }
-func unifiedDiff(old, next, from, to string) string {
+
+// UnifiedDiff shows the changed span with three context lines (one hunk).
+func UnifiedDiff(old, next, from, to string) string {
 	if old == next {
 		return ""
 	}
-	oldLines, nextLines := diffLines(old), diffLines(next)
-	var b strings.Builder
-	oldStart, nextStart := 1, 1
-	if len(oldLines) == 0 {
-		oldStart = 0
+	a, b := diffLines(old), diffLines(next)
+	head, tail := 0, 0
+	for head < len(a) && head < len(b) && a[head] == b[head] {
+		head++
 	}
-	if len(nextLines) == 0 {
-		nextStart = 0
+	for tail < len(a)-head && tail < len(b)-head && a[len(a)-1-tail] == b[len(b)-1-tail] {
+		tail++
 	}
-	fmt.Fprintf(&b, "--- %s\n+++ %s\n@@ -%d,%d +%d,%d @@\n", from, to, oldStart, len(oldLines), nextStart, len(nextLines))
-	for _, line := range oldLines {
-		b.WriteByte('-')
-		b.WriteString(line)
-		if !strings.HasSuffix(line, "\n") {
-			b.WriteByte('\n')
+	start := max(0, head-3)
+	keep := max(0, tail-3)
+	var out strings.Builder
+	write := func(mark byte, lines []string) {
+		for _, line := range lines {
+			out.WriteByte(mark)
+			out.WriteString(strings.TrimSuffix(line, "\n"))
+			out.WriteByte('\n')
 		}
 	}
-	for _, line := range nextLines {
-		b.WriteByte('+')
-		b.WriteString(line)
-		if !strings.HasSuffix(line, "\n") {
-			b.WriteByte('\n')
+	origin := func(n int) int {
+		if n == 0 {
+			return 0
 		}
+		return start + 1
 	}
-	return b.String()
+	oldLen, newLen := len(a)-keep-start, len(b)-keep-start
+	fmt.Fprintf(&out, "--- %s\n+++ %s\n@@ -%d,%d +%d,%d @@\n", from, to, origin(oldLen), oldLen, origin(newLen), newLen)
+	write(' ', a[start:head])
+	write('-', a[head:len(a)-tail])
+	write('+', b[head:len(b)-tail])
+	write(' ', a[len(a)-tail:len(a)-keep])
+	return out.String()
 }
 
 func diffLines(text string) []string {

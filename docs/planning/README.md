@@ -4,7 +4,7 @@
 - 범위: 계획 문서 목록과, 현재 진척·성숙도·발행 이력의 정본 위치
 - 대상 독자: 프로젝트 매니저, 저장소 maintainer, 멀티 에이전트 운영자
 - 상태: stable
-- 최종 수정일: 2026-10-05
+- 최종 수정일: 2026-11-25
 - 관련 문서: [../PROJECT_PROFILE.md](../PROJECT_PROFILE.md), [../RELEASE.md](../RELEASE.md), [../INSTALLATION_AND_USAGE.md](../INSTALLATION_AND_USAGE.md), [../../workflow-source/core/workflow_kit_roadmap.md](../../workflow-source/core/workflow_kit_roadmap.md), [../../workflow-source/core/maturity_matrix.json](../../workflow-source/core/maturity_matrix.json)
 
 > 이 문서는 **계획 문서의 입구**다. 현재 진척을 손으로 요약하지 않는다 — 정본을 가리킨다.
@@ -36,6 +36,10 @@
 외부 reference 는 concept 만 흡수한다 (코드 차용 없음 — `PURPOSE.md` scope).
 
 - [`ai-native-sdlc-playbook-review-2026-10.md`](./ai-native-sdlc-playbook-review-2026-10.md) — Anthropic "The AI-native SDLC playbook" 정리 + 적용 후보 (TASK-2026-10-05-main-001, 소유자 결정 대기)
+
+## 4. 허브 기능 검토
+
+- [`idea-box-concept-2026-11.md`](./idea-box-concept-2026-11.md) — 아이디어 박스 concept (소유자 결정 대기)
 
 ## 다음에 읽을 문서
 

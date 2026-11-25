@@ -347,7 +347,7 @@ class Orchestration:
             if not mine:
                 raise HubError(403, "message_not_yours", "이 세션 · 콜사인 앞 메시지가 아니다")
             message_body = json.loads(m["body_json"])
-            if m["kind"] == "approval" and message_body.get("request_type") == "agent_confirmation":
+            if m["kind"] == "approval" and isinstance(message_body, dict) and message_body.get("request_type") == "agent_confirmation":
                 raise HubError(403, "human_decision_required", "사람이 웹 허브의 확인 요청 메뉴에서 결정해야 한다")
             if m["state"] in ("acked", "declined"):
                 if m["state"] == target and m["ack_by_session"] == a["session"]:

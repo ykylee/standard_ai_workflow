@@ -79,6 +79,8 @@ def _parser() -> argparse.ArgumentParser:
     tr = tsub.add_parser("revoke")
     tr.add_argument("--name", required=True)
     ac = asub.add_parser("account")
+    # argparse 는 틀린 값을 오류문에 되뇐다 — 비밀번호를 엉뚱한 자리에 준 실수가 로그에 남지 않게 한다
+    setattr(ac, "error", lambda _m: ac.exit(2, "hub admin account password --username <계정> — 비밀번호는 터미널 입력 또는 stdin 한 줄로만 받는다\n"))
     acsub = ac.add_subparsers(dest="action", required=True)
     ap = acsub.add_parser("password", help="허브 계정 비밀번호 재설정 — 비밀번호는 인자로 받지 않는다")
     ap.add_argument("--username", required=True)
@@ -127,7 +129,10 @@ def _read_new_password() -> str:
     from workflow_kit.hub.errors import invalid_field
 
     if not sys.stdin.isatty():
-        return sys.stdin.buffer.readline().decode("utf-8").rstrip("\r\n")
+        try:
+            return sys.stdin.buffer.readline().decode("utf-8").rstrip("\r\n")
+        except UnicodeDecodeError:
+            raise invalid_field("password", "UTF-8 이 아니다") from None
     first = getpass.getpass("새 비밀번호 (8자 이상): ")
     if first != getpass.getpass("다시 입력: "):
         raise invalid_field("password", "두 입력이 다르다 — 바꾸지 않았다")

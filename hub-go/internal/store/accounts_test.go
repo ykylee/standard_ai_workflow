@@ -129,4 +129,24 @@ func TestAccountEnrollmentLoginAndConfirmationInbox(t *testing.T) {
 	if _, _, _, err := s.AccountEnroll(ownerToken, "second.user", "Second", "long-test-password-123", now); err == nil {
 		t.Fatal("callsign enrolled twice")
 	}
+	var checked string
+	if err := s.pool.QueryRow("SELECT password_hash FROM hub_account WHERE id=?", account.ID).Scan(&checked); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.openAccountSession(account.ID, checked, now); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.AccountResetPassword("owner.one", "bad\xff-password", now); err == nil {
+		t.Fatal("invalid UTF-8 password accepted")
+	}
+	if _, err := s.AccountResetPassword("owner.one", "another-password-9", now); err != nil {
+		t.Fatal(err)
+	}
+	// 확인과 세션 열기 사이에 재설정이 끼면 옛 비밀번호로는 열리지 않는다.
+	if _, err := s.openAccountSession(account.ID, checked, now); err == nil {
+		t.Fatal("stale password check opened a session")
+	}
+	if _, _, err := s.AccountLogin("owner.one", "another-password-9", now); err != nil {
+		t.Fatal(err)
+	}
 }

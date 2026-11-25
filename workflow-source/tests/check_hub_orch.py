@@ -10,6 +10,7 @@
 3. 상태 5값 — idle · working(열린 배정) · waiting · unknown(신호 15분 초과, idle 로 안 셈) · ended
 4. 편승 — 실을 것 없으면 칸 없음(2.0 응답과 같음) · 3건 · remaining · 8KB · 콜사인 주소는 session 없는 호출에도 · 세션 시작 첫 응답
 5. 실림 ≠ 소비 — 60초 안 재전달 없음 · 60초 뒤 ack 안 된 것만 다시(redelivery 표시) · 10분 unacknowledged · 늦은 ack 409
+12. 객체가 아닌 본문(문자열 · 배열)도 나열 · 확인한다
 11. 미확인 정리 — seen 만 · 끝난 세션 것은 같은 콜사인 · 산 세션 것은 403
 6. 수신 확인 — 같은 결정 멱등 · 다른 결정 409 · 남의 메시지 403 · decline
 7. 대기 권한 — interactive 는 wait_disabled · 에이전트의 allow_wait 켜기 403 · 승인 human 은 켬 · 연속 70회 wait_budget
@@ -200,8 +201,19 @@ def case_4_5_6(e: Env) -> None:
         conn.execute("UPDATE inbox_message SET state = 'unacknowledged' WHERE id = ?", (gone,))
         conn.execute("UPDATE session SET status = 'ended' WHERE id = ?", (tmp,))
     tidied = e.call("hub_inbox_ack", {"session": other, "message_id": gone, "decision": "seen"}, "agent-a", at11)
-    _record("case 11 (미확인 정리 — seen · 끝난 세션 것은 같은 콜사인 · 산 세션 것은 403)",
-            tidy["state"] == "acked" and alive == "message_not_yours" and tidied["state"] == "acked", f"{tidy} {alive} {tidied}")
+    stolen = e.send("session", tmp, {"n": "stolen"}, at11)
+    shapes = [e.send("callsign", "agent-a", {}, at11) for _ in range(4)]
+    with e.store.write() as conn:
+        conn.execute("UPDATE inbox_message SET state = 'unacknowledged' WHERE id = ?", (stolen,))
+        for mid, kind, raw in zip(shapes, ("note", "approval", "note", "approval"), ('"글"', '"글"', '[1]', '[1]')):
+            conn.execute("UPDATE inbox_message SET kind = ?, body_json = ? WHERE id = ?", (kind, raw, mid))
+    thief = e.session("agent-b", harness_session_id="pig-4")
+    theft = e.err("hub_inbox_ack", {"session": thief, "message_id": stolen, "decision": "seen"}, "agent-b", at11)
+    bodies = {m["id"]: m["body"] for m in e.call("hub_inbox_list", {}, "agent-a", at11)["messages"]}
+    acked = [e.call("hub_inbox_ack", {"session": other, "message_id": m, "decision": "seen"}, "agent-a", at11)["state"] for m in shapes]
+    _record("case 12 (객체가 아닌 본문도 나열 · 확인한다)", [bodies[m] for m in shapes] == ["글", "글", [1], [1]] and acked == ["acked"] * 4, f"{acked}")
+    _record("case 11 (미확인 정리 — seen · 끝난 세션 것은 같은 콜사인 · 산 세션 것과 남의 콜사인은 403)",
+            theft == "message_not_yours" and tidy["state"] == "acked" and alive == "message_not_yours" and tidied["state"] == "acked", f"{tidy} {alive} {tidied}")
     ok5 = (ids[0] not in again_ids and again_ids == ids[1:4] and flagged and states[ids[0]] == "acked"
            and all(states[i] == "unacknowledged" for i in ids[1:]) and late == "ack_too_late")
     _record("case 5 (실림 ≠ 소비 — 60초 재전달 · ack 된 것 제외 · 10분 unacknowledged · 늦은 ack)", ok5,

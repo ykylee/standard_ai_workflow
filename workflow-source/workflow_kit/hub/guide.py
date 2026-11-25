@@ -33,6 +33,11 @@ def check_renderable(project_id: str, display: str, body: str) -> None:
         render.render_region(harness, project_id, display, body, 0)
 
 
+def _diff_lines(body: str) -> list[str]:
+    """줄바꿈(\\n)으로만 나누고 끝 줄에도 붙인다 — 마지막 줄의 -/+ 가 한 줄로 붙어 보이지 않게."""
+    return [f"{line}\n" for line in body.removesuffix("\n").split("\n")] if body else []
+
+
 class Guides:
     def __init__(self, store: Store) -> None:
         self.store = store
@@ -63,7 +68,7 @@ class Guides:
         for prop in proposals:
             base = bodies.get(prop["base_version"], "")
             prop["diff"] = "".join(difflib.unified_diff(
-                base.splitlines(keepends=True), prop["body_md"].splitlines(keepends=True),
+                _diff_lines(base), _diff_lines(prop["body_md"]),
                 fromfile=f"v{prop['base_version']}", tofile=prop["id"]))
             prop["stale"] = prop["status"] == "open" and prop["base_version"] != version
         return {"version": version, "guide_version": render.guide_version(version), "body": body,

@@ -14,7 +14,7 @@
     "work_backlog_index_path": "/abs/path/work_backlog.md"
   },
   "status": "error",
-  "tool_version": "3.3.4",
+  "tool_version": "3.3.5",
   "warnings": [
     "프로젝트 프로파일 또는 선택 입력 경로를 다시 확인해야 한다."
   ]

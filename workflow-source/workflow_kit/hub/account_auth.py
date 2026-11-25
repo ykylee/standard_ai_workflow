@@ -151,11 +151,20 @@ class HubAccounts:
             raise unauthorized("계정 이름 또는 비밀번호가 맞지 않는다")
         if row is None:
             raise unauthorized("계정 이름 또는 비밀번호가 맞지 않는다")
+        session = self._open_session(row["id"], row["password_hash"], now)
+        return session, {"id": row["id"], "username": row["username"], "display_name": row["display_name"]}
+
+    def _open_session(self, account_id: str, checked_hash: str, now: datetime) -> str:
+        """확인한 비밀번호가 아직 그 계정의 것일 때만 세션을 연다 — 사이에 재설정이 끼면 거절."""
         session = new_token()
         with self.store.write() as conn:
-            conn.execute("INSERT INTO hub_account_session(token_hash,account_id,created_at,expires_at) VALUES(?,?,?,?)",
-                         (hash_token(session), row["id"], _iso(now), _iso(now + timedelta(days=SESSION_DAYS))))
-        return session, {"id": row["id"], "username": row["username"], "display_name": row["display_name"]}
+            opened = conn.execute(
+                "INSERT INTO hub_account_session(token_hash,account_id,created_at,expires_at) SELECT ?,id,?,? FROM hub_account "
+                "WHERE id=? AND password_hash=? AND active=1",
+                (hash_token(session), _iso(now), _iso(now + timedelta(days=SESSION_DAYS)), account_id, checked_hash)).rowcount
+        if opened != 1:
+            raise unauthorized("계정 이름 또는 비밀번호가 맞지 않는다")
+        return session
 
     def reset_password(self, username: str, password: str, now: datetime) -> dict[str, Any]:
         """운영자(서버의 ``hub admin``)가 비밀번호를 새로 정한다 — 로그인 세션 전부와 로그인 잠금을 푼다."""

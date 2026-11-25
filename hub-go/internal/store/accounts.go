@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/db"
 )
@@ -208,7 +209,7 @@ func (s *Store) AccountJoin(accountID, project, callsign string, now time.Time) 
 // AccountResetPassword is the operator path (hub admin): it ends every login session and clears the login lock.
 func (s *Store) AccountResetPassword(username, password string, now time.Time) (map[string]any, error) {
 	username = strings.ToLower(strings.TrimSpace(username))
-	if n := len([]rune(password)); n < 8 || n > 256 {
+	if n := len([]rune(password)); n < 8 || n > 256 || !utf8.ValidString(password) {
 		return nil, InvalidField("password", "8~256자")
 	}
 	encoded, err := accountPasswordHash(password)
@@ -302,12 +303,35 @@ func (s *Store) AccountLogin(username, password string, now time.Time) (string, 
 	if denied {
 		return "", HubAccount{}, Unauthorized("계정 이름 또는 비밀번호가 맞지 않는다")
 	}
-	session, err := NewToken()
+	session, err := s.openAccountSession(account.ID, encoded, now)
 	if err != nil {
 		return "", HubAccount{}, err
 	}
-	_, err = s.pool.Exec("INSERT INTO hub_account_session(token_hash,account_id,created_at,expires_at) VALUES(?,?,?,?)", HashToken(session), account.ID, db.FormatISO(now), db.FormatISO(now.Add(accountSessionDays*24*time.Hour)))
-	return session, account, err
+	return session, account, nil
+}
+
+// openAccountSession opens a session only while the checked password hash is still current, so a reset in between wins.
+func (s *Store) openAccountSession(accountID, checkedHash string, now time.Time) (string, error) {
+	session, err := NewToken()
+	if err != nil {
+		return "", err
+	}
+	_, err = s.withWriteTx(func(tx *sql.Tx) (map[string]any, error) {
+		res, err := tx.Exec("INSERT INTO hub_account_session(token_hash,account_id,created_at,expires_at) SELECT ?,id,?,? FROM hub_account WHERE id=? AND password_hash=? AND active=1", HashToken(session), db.FormatISO(now), db.FormatISO(now.Add(accountSessionDays*24*time.Hour)), accountID, checkedHash)
+		if err != nil {
+			return nil, err
+		}
+		if n, err := res.RowsAffected(); err != nil {
+			return nil, err
+		} else if n != 1 {
+			return nil, Unauthorized("계정 이름 또는 비밀번호가 맞지 않는다")
+		}
+		return nil, nil
+	})
+	if err != nil {
+		return "", err
+	}
+	return session, nil
 }
 
 func (s *Store) AccountLink(accountID, token string, now time.Time) (map[string]any, error) {

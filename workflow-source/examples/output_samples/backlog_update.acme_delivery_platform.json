@@ -61,7 +61,7 @@
   "target_backlog_path": "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/backlog/2026-04-18.md",
   "task_found": true,
   "task_id": "TASK-021",
-  "tool_version": "3.3.5",
+  "tool_version": "3.4.0",
   "updated_paths": [
     "/Users/yklee/.minimax/agents/mavis/workspace/.opencode/tmp/tmpci5a9owl/project/work_backlog.md",
     "/Users/yklee/.minimax/agents/mavis/workspace/.opencode/tmp/tmpci5a9owl/project/main/session_handoff.md"

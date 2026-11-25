@@ -301,8 +301,8 @@ func TestMCPAuthAndToolParity(t *testing.T) {
 	var authResp map[string]any
 	_ = json.Unmarshal(listAuth.Body.Bytes(), &authResp)
 	toolsAuth := authResp["result"].(map[string]any)["tools"].([]any)
-	if len(toolsAuth) != 86 {
-		t.Fatalf("expected 86 callsign tools, got %d", len(toolsAuth))
+	if len(toolsAuth) != 91 {
+		t.Fatalf("expected 91 callsign tools, got %d", len(toolsAuth))
 	}
 
 	startRec := postMCP(t, srv, tok, map[string]any{

@@ -594,7 +594,37 @@ CREATE TABLE a2a_task (
 );
 `
 
-var Migrations = []string{V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11, V12, V13, V14, V15, V16, V17, V18}
+// V19 is generated from workflow-source/workflow_kit/hub/db.py.
+const V19 = `
+CREATE TABLE idea (
+    project_id TEXT NOT NULL REFERENCES project(id),
+    id TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('new', 'reviewing', 'replied', 'adopted', 'kept', 'closed')),
+    author TEXT NOT NULL,
+    added_via TEXT NOT NULL CHECK (added_via IN ('web', 'agent')),
+    human_asked INTEGER NOT NULL DEFAULT 0,
+    claimed_by TEXT,
+    claim_until TEXT,
+    task_id TEXT,
+    version INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (project_id, id)
+);
+CREATE TABLE idea_entry (
+    project_id TEXT NOT NULL,
+    idea_id TEXT NOT NULL,
+    seq INTEGER NOT NULL,
+    kind TEXT NOT NULL CHECK (kind IN ('idea', 'ask', 'reply')),
+    author TEXT NOT NULL,
+    at TEXT NOT NULL,
+    body_json TEXT NOT NULL,
+    PRIMARY KEY (project_id, idea_id, seq),
+    FOREIGN KEY (project_id, idea_id) REFERENCES idea(project_id, id)
+);
+`
+
+var Migrations = []string{V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11, V12, V13, V14, V15, V16, V17, V18, V19}
 
 func LatestVersion() int {
 	return len(Migrations)

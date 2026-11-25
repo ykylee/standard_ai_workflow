@@ -34,6 +34,7 @@ import sys
 import tempfile
 import threading
 import urllib.error
+import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -57,7 +58,7 @@ _count = 0
 SCREENS: dict[str, tuple[str, str]] = {
     "viewProjects": ("", "screens-demo"), "viewHarnesses": ("harnesses", "하네스"), "viewProject": ("p/{pid}", "결정 있는 task"),
     "viewOrchestration": ("p/{pid}/orch", "본문이 보인다"), "viewConfirmations": ("p/{pid}/confirmations", "확인 부탁"),
-    "viewRoadmap": ("p/{pid}/roadmap", "열린 마일스톤"), "viewCallsign": ("p/{pid}/c/bot-a", "bot-a"), "viewGuide": ("p/{pid}/guide", "지침"),
+    "viewIdeas": ("p/{pid}/ideas", "적어 둔 생각"), "viewRoadmap": ("p/{pid}/roadmap", "열린 마일스톤"), "viewCallsign": ("p/{pid}/c/bot-a", "bot-a"), "viewGuide": ("p/{pid}/guide", "지침"),
     "viewWiki": ("p/{pid}/w", "위키 한 장"), "viewKnowledge": ("p/{pid}/k/{ref}", "위키 한 장"), "viewDcrs": ("p/{pid}/dcr", "결정 하나"),
     "viewWikiPage": ("p/{pid}/wp/topics%2Fone.md", "위키 한 장"), "viewTask": ("p/{pid}/t/{tid}", "답이 반영된다"), "viewEvents": ("p/{pid}/events", "register"),
 }
@@ -69,7 +70,9 @@ setInterval(()=>{const x=[...document.querySelectorAll('.exact')].map(e=>getComp
 if(x.length)document.documentElement.dataset.exact=[...new Set(x)].join(',');},400);
 (async()=>{const acts=new URL(location.href).searchParams.get('acts');if(!acts)return;const z=t=>new Promise(r=>setTimeout(r,t));await z(1500);const log=[];
 for(const a of acts.split('|')){if(a[0]==='@'){const d=document.querySelector('[data-keep="'+a.slice(1)+'"]');d.open=true;d.dataset.old='1';await z(10500);
-if(!document.querySelector('[data-old]'))document.documentElement.dataset.renders='1';continue;}const b=[...document.querySelectorAll('button')].find(x=>x.textContent===a&&!x.disabled);log.push(a+(b?'':':없음'));if(b){b.click();await z(900);}}
+if(!document.querySelector('[data-old]'))document.documentElement.dataset.renders='1';continue;}
+if(a[0]==='~'){const [l,v]=a.slice(1).split('=');const f=document.querySelector('[aria-label="'+l+'"]');f.value=v;f.dispatchEvent(new Event('input',{bubbles:true}));continue;}const b=[...document.querySelectorAll('button')].find(x=>x.textContent===a&&!x.disabled);log.push(a+(b?'':':없음'));if(b){b.click();await z(900);}}
+const kept=document.querySelector('textarea[aria-label="아이디어"]');if(kept&&kept.value)document.documentElement.dataset.kept=kept.value.length;
 document.documentElement.dataset.acts=log.join('|');})();
 </script>"""
 
@@ -89,6 +92,15 @@ def browser() -> str | None:
 def proxy(hub: Hub, cookie: str) -> ThreadingHTTPServer:
     class H(BaseHTTPRequestHandler):
         def _go(self) -> None:
+            if self.path.startswith("/narrow?"):  # 휴대폰 폭 — Chrome 창은 500px 아래로 줄지 않는다
+                page = (b"<!doctype html><iframe width=360 height=800 src='/ui/" + urllib.parse.unquote(self.path[8:]).encode() + b"'></iframe><script>setTimeout(()=>{const d="
+                        b"document.querySelector('iframe').contentDocument.documentElement;document.body.dataset.w=d.scrollWidth+'/'+d.clientWidth;"
+                        b"document.body.dataset.text=d.innerText},4000)</script>")
+                self.send_response(200)
+                self.send_header("content-type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(page)
+                return
             size = int(self.headers.get("content-length") or 0)
             headers = {k: v for k, v in self.headers.items() if k.lower() in ("accept", "content-type", "authorization", "sec-fetch-site")}
             headers["cookie"] = cookie
@@ -117,10 +129,12 @@ def proxy(hub: Hub, cookie: str) -> ThreadingHTTPServer:
     return srv
 
 
-def draw(exe: str, tmp: Path, port: int, route: str, acts: str = "", budget: int = 9500) -> str:
+def draw(exe: str, tmp: Path, port: int, route: str, acts: str = "", budget: int = 9500, narrow: bool = False) -> str:
     from urllib.parse import quote
 
     url = f"http://127.0.0.1:{port}/ui/{'?acts=' + quote(acts) if acts else ''}#/{route}"
+    if narrow:
+        url = f"http://127.0.0.1:{port}/narrow?{quote('#/' + route)}"
     with tempfile.TemporaryDirectory(prefix="chrome-", dir=tmp, ignore_cleanup_errors=True) as prof:
         r = subprocess.run([exe, "--headless=new", "--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage", "--no-first-run",
                             "--password-store=basic", "--disable-background-networking", "--no-proxy-server",  # 키링(D-Bus) 25초 대기를 피한다
@@ -170,6 +184,7 @@ def seed(hub: Hub, db: Path, impl: str) -> dict[str, str]:
                                      f"order: {n}\nparallel_allowed: [M-001, M-002, M-003, M-004]\ndeliverables: []\n---\n\n# {i}\n\n## WBS\n\n- **WBS-{n}.1** 작업 {n}\n"}, owner)
 
     roadmap(0, "in_progress")
+    must("hub_idea_add", {"body": "적어 둔 생각"}, bot)
     t1 = must("hub_task_create", {"title": "끝난 일", "wbs": "M-001/WBS-1.1", "fields": {"done_criteria": ["끝"]}}, owner)["task"]
     must("hub_task_claim", {"id": t1["id"]}, owner)
     t1 = must("hub_task_get", {"id": t1["id"]}, owner)["task"]

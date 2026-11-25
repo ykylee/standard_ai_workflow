@@ -40,7 +40,7 @@ func (s *Server) handleUIAPI(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.Method == http.MethodPost && bearerToken(r.Header) == "" {
 		if _, cookieErr := r.Cookie("workflow_hub_session"); cookieErr == nil && !s.screenOrigin(r).ok {
-			writeScreenError(w, store.Forbidden("같은 출처의 브라우저 요청만 허용한다"))
+			writeScreenError(w, &store.HubError{Status: http.StatusForbidden, Code: "origin_mismatch", Message: "같은 출처의 브라우저 요청만 허용한다"})
 			return
 		}
 	}
@@ -250,6 +250,15 @@ func (s *Server) handleProjectUIAPI(w http.ResponseWriter, r *http.Request, prin
 	}
 	viewer := &store.Principal{Kind: "viewer", ProjectID: pid, Callsign: principal.Callsign, CallsignKind: principal.CallsignKind, HumanApproved: principal.HumanApproved, Role: principal.Role, Name: principal.Name}
 	ctx := store.Ctx{Now: now, Via: "ui", Principal: viewer, PublicURL: s.cfg.PublicURL}
+	if (len(parts) == 3 || len(parts) == 4) && parts[2] == "ideas" {
+		result, err := s.screenIdeas(r, parts, ctx, store.Ctx{Now: now, Via: "ui", Principal: principal})
+		if err != nil {
+			writeScreenError(w, err)
+			return
+		}
+		writeJSONResponse(w, http.StatusOK, result)
+		return
+	}
 	if len(parts) == 3 && parts[2] == "confirmations" && r.Method == http.MethodGet {
 		result, err := s.cfg.Store.ConfirmationList(store.Ctx{Now: now, Via: "ui", Principal: principal, PublicURL: s.cfg.PublicURL})
 		if err != nil {

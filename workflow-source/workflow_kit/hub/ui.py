@@ -34,6 +34,7 @@ from workflow_kit.hub.account_auth import HubAccounts
 from workflow_kit.hub.confirmations import Confirmations
 from workflow_kit.hub.guide import Guides
 from workflow_kit.hub.harness_intake import HarnessIntake
+from workflow_kit.hub.ideas import Ideas
 from workflow_kit.hub.judge import _NO_TREE, INDEX, Judge, task_lines
 from workflow_kit.hub.knowledge import Knowledge
 from workflow_kit.hub.memory import Memory
@@ -568,6 +569,20 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
         pid = request.path_params["pid"]
         return Confirmations(store).list_pending(Ctx(now=now, via="ui", principal=_own(p, pid)))
 
+    def get_ideas(request: Request, p: Principal, now: datetime, _b: Any) -> dict[str, Any]:
+        return Ideas(store).list_ideas(Ctx(now=now, via="ui", principal=scope(p, request.path_params["pid"])), request.query_params.get("status"))
+
+    def get_idea(request: Request, p: Principal, now: datetime, _b: Any) -> dict[str, Any]:
+        return Ideas(store).get(Ctx(now=now, via="ui", principal=scope(p, request.path_params["pid"])), request.path_params["iid"])
+
+    def post_idea(request: Request, p: Principal, now: datetime, b: dict[str, Any]) -> dict[str, Any]:
+        ctx = Ctx(now=now, via="ui", principal=_own(p, request.path_params["pid"]))
+        return Ideas(store).add(ctx, b.get("body"), b.get("request_id"), web=True)
+
+    def post_idea_action(request: Request, p: Principal, now: datetime, b: dict[str, Any]) -> dict[str, Any]:
+        ctx = Ctx(now=now, via="ui", principal=_own(p, request.path_params["pid"]))
+        return Ideas(store).act(ctx, request.path_params["iid"], b)
+
     def post_confirmation_decision(request: Request, p: Principal, now: datetime, b: dict[str, Any]) -> dict[str, Any]:
         pid = request.path_params["pid"]
         note = b.get("note", "")
@@ -756,6 +771,10 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
         Route("/api/projects/{pid}/tasks/{tid}/responses", api(post_response, body=True), methods=["POST"]),
         Route("/api/projects/{pid}/roadmap", api(get_roadmap), methods=["GET"]),
         Route("/api/projects/{pid}/orchestration", api(get_orchestration), methods=["GET"]),
+        Route("/api/projects/{pid}/ideas", api(get_ideas), methods=["GET"]),
+        Route("/api/projects/{pid}/ideas", api(post_idea, body=True), methods=["POST"]),
+        Route("/api/projects/{pid}/ideas/{iid}", api(get_idea), methods=["GET"]),
+        Route("/api/projects/{pid}/ideas/{iid}", api(post_idea_action, body=True), methods=["POST"]),
         Route("/api/projects/{pid}/confirmations", api(get_confirmations), methods=["GET"]),
         Route("/api/projects/{pid}/confirmations/{rid}", api(post_confirmation_decision, body=True), methods=["POST"]),
         Route("/api/projects/{pid}/orchestration/halt", api(post_orch_halt, body=True), methods=["POST"]),

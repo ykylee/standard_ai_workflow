@@ -138,6 +138,7 @@
     const tabs = [
       ["tasks", "개요 · task", base],
       ["orch", "오케스트레이션", `${base}/orch`],
+      ["ideas", "아이디어", `${base}/ideas`],
       ["confirmations", "확인 요청", `${base}/confirmations`],
       ["roadmap", "로드맵", `${base}/roadmap`],
       ["events", "이력", `${base}/events`],
@@ -797,6 +798,105 @@
       ...(cards.length ? cards : [el("section", { class: "card muted" }, "대기 중인 에이전트 확인 요청이 없습니다.")]));
   }
 
+  // --- 화면: 아이디어 박스 — 사람이 적고 에이전트가 회신한다 -------------------------------------
+
+  const IDEA_STATUS = { new: ["검토 대기", "planned"], reviewing: ["검토 중", "in_progress"], replied: ["회신 도착", "open"],
+    adopted: ["task 로 만듦", "done"], kept: ["보관", "ended"], closed: ["닫음", "ended"] };
+  const IDEA_VERDICT = { do: "하자", conditional: "조건부", hold: "보류", exists: "이미 있음", question: "질문" };
+  const ideaChip = (status) => chip(...(IDEA_STATUS[status] || [status, "unknown"]));
+
+  async function viewIdeas(pid, id) {
+    const token = storedToken(pid);
+    const root = `projects/${encodeURIComponent(pid)}`;
+    const base = `#/p/${encodeURIComponent(pid)}`;
+    const [project, result] = await Promise.all([api(root, { token }), api(`${root}/ideas${id ? `/${encodeURIComponent(id)}` : ""}`, { token })]);
+    const principal = project.status === 200 ? project.data.principal : null;
+    setCrumbs([{ text: "프로젝트", href: "#/" }, { text: project.status === 200 ? project.data.project.display_name : pid, href: base },
+      id ? { text: "아이디어", href: `${base}/ideas` } : { text: "아이디어" }, ...(id ? [{ text: id }] : [])]);
+    setWho(principal);
+    const head = (title, ...rest) => el("section", { class: "card" }, el("h1", {}, title), projectNav(pid, "ideas"), ...rest);
+    if (result.status !== 200) { render(head("아이디어", alertBox("bad", errorText(result)))); return; }
+    const canWrite = principal?.auth_mode === "account" && principal.callsign_kind === "human" && principal.human_approved;
+    const readOnly = canWrite ? null : alertBox("warn", "적고 처리하려면 허브 계정으로 로그인한 승인된 사람이어야 한다.");
+    render(...(id ? ideaDetail(pid, root, base, result.data.idea, canWrite, readOnly, head) : ideaList(root, base, result.data, canWrite, readOnly, head)));
+  }
+
+  function ideaList(root, base, data, canWrite, readOnly, head) {
+    const text = el("textarea", { rows: "4", placeholder: "떠오른 생각을 대충 적는다", "aria-label": "아이디어" });
+    const msg = el("div");
+    const send = el("button", { type: "submit" }, "적어 두기");
+    let key = "", sent = "";
+    const form = el("form", { onsubmit: async (ev) => {
+      ev.preventDefault();
+      if (!text.value.trim()) { msg.replaceChildren(alertBox("bad", "내용을 적는다.")); return; }
+      if (!key || sent !== text.value) { key = `web-${Date.now()}-${Math.random().toString(36).slice(2)}`; sent = text.value; }  // 같은 글의 재시도는 한 번만 적힌다
+      send.disabled = true;
+      try {
+        const r = await api(`${root}/ideas`, { method: "POST", body: { body: text.value, request_id: key } });
+        if (r.status !== 200) { msg.replaceChildren(alertBox("bad", errorText(r))); return; }  // 적던 글은 그대로 둔다
+      } catch (e) { msg.replaceChildren(alertBox("bad", "허브에 닿지 않는다 — 글은 그대로 있다. 다시 누른다.")); return; } finally { send.disabled = false; }
+      pendingFlash = { kind: "ok", text: "적어 두었다 — 다음에 에이전트 세션이 열릴 때 검토해 회신한다." };
+      dirty = false;
+      route();
+    } }, text, el("div", { class: "row" }, send), msg);
+    const groups = [["회신 도착", ["replied"]], ["검토 대기", ["new", "reviewing"]], ["처리됨", ["adopted", "kept", "closed"]]];
+    const item = (i) => el("li", {}, el("a", { href: `${base}/ideas/${encodeURIComponent(i.id)}`, class: "exact" }, reveal(i.excerpt)), el("div", { class: "muted" },
+      ideaChip(i.status), i.verdict ? ` ${IDEA_VERDICT[i.verdict]} · ` : " ", i.id, ` · ${i.author}${i.added_via === "agent" ? " (에이전트가 적음)" : ""} · `, when(i.updated_at),
+      i.claimed_by ? ` · ${i.claimed_by}` : "", i.task_id ? el("a", { href: `${base}/t/${encodeURIComponent(i.task_id)}` }, ` ${i.task_id}`) : null));
+    return [head("아이디어", el("p", { class: "muted" }, "대충 적어 두면 에이전트가 검토해 회신한다. 회신은 다음 에이전트 세션이 열릴 때 나온다."), readOnly, canWrite ? form : null),
+      ...groups.map(([label, states]) => {
+        const rows = data.ideas.filter((i) => states.includes(i.status));
+        const list = rows.length ? el("ul", { class: "hits" }, rows.map(item)) : el("p", { class: "muted" }, "없음");
+        return el("section", { class: "card" }, label === "처리됨" ? el("details", { "data-keep": "ideas-done" }, el("summary", {}, `${label} ${rows.length}`), list)
+          : [el("h2", {}, `${label} ${rows.length}`), list]);
+      }),
+      data.total > data.ideas.length ? el("p", { class: "muted" }, `전체 ${data.total}건 가운데 ${data.ideas.length}건만 보인다.`) : null];
+  }
+
+  function ideaDetail(pid, root, base, idea, canWrite, readOnly, head) {
+    const msg = el("div");
+    const act = (body, done) => async () => {
+      let r;
+      try { r = await api(`${root}/ideas/${encodeURIComponent(idea.id)}`, { method: "POST", body: { expected_version: idea.version, ...body() } }); }
+      catch (e) { msg.replaceChildren(alertBox("bad", "허브에 닿지 않는다 — 적던 글은 그대로 있다.")); return; }
+      if (r.status !== 200) { msg.replaceChildren(alertBox("bad", errorText(r) + (r.data?.error_code === "version_conflict" ? " · 새로고침해 바뀐 내용을 본 뒤 다시 한다 (적던 글을 먼저 복사해 둔다)." : ""))); return; }
+      pendingFlash = { kind: "ok", text: done(r.data) };
+      dirty = false;
+      route();
+    };
+    const part = (label, value) => value ? [el("div", { class: "muted" }, label), el("div", { class: "exact" }, reveal(value))] : [];
+    const entry = (e) => el("section", { class: "card", "data-idea-entry": e.kind },
+      el("div", { class: "row" }, el("strong", {}, { idea: "아이디어", ask: "더 묻기", reply: "회신" }[e.kind]), e.kind === "reply" ? chip(IDEA_VERDICT[e.verdict] || e.verdict, "answered") : null,
+        el("span", { class: "muted" }, `${e.author} · `, when(e.at))),
+      ...(e.kind !== "reply" ? [el("div", { class: "exact" }, reveal(e.body))] : [
+        ...part("이렇게 이해했다", e.understood), ...part("이유", e.reason), ...part("예상 범위", e.scope), ...part("다음 한 걸음", e.next),
+        e.refs.length ? [el("div", { class: "muted" }, "근거"), el("ul", {}, e.refs.map((x) => el("li", { class: "exact" }, reveal(x))))] : null,
+        ...part("확인하지 않은 것", e.unverified)]));
+    const out = [head(idea.id, el("div", { class: "row" }, ideaChip(idea.status), idea.claimed_by ? el("span", { class: "muted" }, `${idea.claimed_by} 검토 중`) : null,
+      idea.added_via === "agent" ? chip("에이전트가 적음", "unack") : null, idea.task_id ? el("a", { href: `${base}/t/${encodeURIComponent(idea.task_id)}` }, idea.task_id) : null),
+      idea.added_via === "agent" && !idea.asked_by_human ? el("p", { class: "muted" }, "에이전트가 대신 적었다. 사람이 더 묻기를 보내야 세션 시작의 검토 대기에 오른다.") : null, readOnly),
+      ...idea.entries.map(entry)];
+    if (!canWrite || idea.status === "adopted") return out;
+    const ask = el("textarea", { rows: "3", placeholder: "덧붙이거나 더 물을 것", "aria-label": "더 묻기" });
+    const draft = [...idea.entries].reverse().find((e) => e.kind === "reply" && e.draft)?.draft || {};
+    const title = el("input", { type: "text", "aria-label": "task 제목" }), wbs = el("input", { type: "text", "aria-label": "WBS", placeholder: "M-007/WBS-7.2" });
+    const exempt = el("input", { type: "text", "aria-label": "WBS 면제 사유" }), done = el("textarea", { rows: "4", "aria-label": "완료 기준" });
+    title.value = draft.title || ""; wbs.value = draft.wbs || ""; done.value = (draft.done_criteria || []).join("\n");
+    const hidden = hiddenCount([draft.title, draft.wbs, ...(draft.done_criteria || [])].join(""));
+    const lines = () => done.value.split("\n").map((s) => s.trim()).filter(Boolean);
+    return [...out, el("section", { class: "card" }, el("h2", {}, "처리"), msg, ask,
+      el("div", { class: "row" }, el("button", { type: "button", onclick: act(() => ({ action: "ask", body: ask.value }), () => "보냈다 — 다시 검토 대기다.") }, "더 묻기"),
+        el("button", { type: "button", class: "ghost", onclick: act(() => ({ action: "keep" }), () => "보관했다.") }, "보관"),
+        el("button", { type: "button", class: "ghost", onclick: act(() => ({ action: "close" }), () => "닫았다.") }, "닫기"))),
+    el("section", { class: "card" }, el("h2", {}, "task 로 만들기"),
+      el("p", { class: "muted" }, draft.title ? `회신이 채운 초안이다. 고쳐서 등록한다. 원문은 task 설명에 그대로 들어간다.` : "원문은 task 설명에 그대로 들어간다."),
+      hidden ? [alertBox("warn", `초안에 보이지 않는 문자 ${hidden}개 — 아래처럼 들어 있다.`), el("pre", { class: "wrap exact" }, reveal([draft.title, draft.wbs, ...(draft.done_criteria || [])].join("\n")))] : null,
+      el("div", { class: "task-filters" }, el("label", {}, "제목", title), el("label", {}, "WBS", wbs), el("label", {}, "WBS 면제 사유 (WBS 가 없을 때)", exempt)),
+      el("label", { class: "idea-done" }, "완료 기준 (한 줄에 하나)", done),
+      el("div", { class: "row" }, el("button", { type: "button", onclick: act(() => ({ action: "adopt", title: title.value.trim(), wbs: wbs.value.trim() || (exempt.value.trim() ? "exempt" : ""),
+        ...(exempt.value.trim() ? { wbs_exempt_reason: exempt.value.trim() } : {}), done_criteria: lines() }), (d) => `${d.task.id} 로 만들었다.`) }, "task 로 등록")))];
+  }
+
   // 보이지 않거나 글자 순서를 뒤집는 문자를 드러낸다 — 사람이 본 글과 쓰일 글이 같아야 한다.
   const HIDDEN_CHARS = /(?![\n\t ])[\p{C}\p{Z}\p{Default_Ignorable_Code_Point}\u2800\u2D7F\uFFFC\u{1107F}\u{13441}\u{13442}\u{16FE4}\u{1D159}]/gu;
   function reveal(text) {
@@ -1363,6 +1463,7 @@
         if (parts[2] === "t" && parts[3]) await viewTask(parts[1], parts[3]);
         else if (parts[2] === "orch") await viewOrchestration(parts[1]);
         else if (parts[2] === "confirmations") await viewConfirmations(parts[1]);
+        else if (parts[2] === "ideas") await viewIdeas(parts[1], parts[3] || "");
         else if (parts[2] === "roadmap") await viewRoadmap(parts[1]);
         else if (parts[2] === "events") await viewEvents(parts[1]);
         else if (parts[2] === "c" && parts[3]) await viewCallsign(parts[1], parts[3]);

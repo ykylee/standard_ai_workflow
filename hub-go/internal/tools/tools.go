@@ -517,6 +517,16 @@ func Call(s *store.Store, name string, rawArgs any, ctx store.Ctx) (result map[s
 		return s.KnowledgeSearch(ctx, strArg(clean, "query", ""), intArg(clean, "limit", 20))
 	case "hub_knowledge_get":
 		return s.KnowledgeGet(ctx, strArg(clean, "ref", ""))
+	case "hub_idea_add":
+		return s.IdeaAdd(ctx, clean["body"], clean["request_id"], false)
+	case "hub_idea_list":
+		return s.IdeaList(ctx, clean["status"])
+	case "hub_idea_get":
+		return s.IdeaGet(ctx, strArg(clean, "id", ""))
+	case "hub_idea_claim":
+		return s.IdeaClaim(ctx, strArg(clean, "id", ""))
+	case "hub_idea_reply":
+		return s.IdeaReply(ctx, clean)
 	case "hub_dcr_create":
 		return s.DCRCreate(ctx, strArg(clean, "title", ""), strArg(clean, "rationale", ""), strArg(clean, "proposal", ""), clean["target_refs"])
 	case "hub_dcr_decide":
@@ -614,7 +624,13 @@ func Call(s *store.Store, name string, rawArgs any, ctx store.Ctx) (result map[s
 		if err != nil {
 			return nil, err
 		}
-		if spec, ok := clean["session"].(map[string]any); ok {
+		spec, isSpec := clean["session"].(map[string]any)
+		if hub, ok := out["hub"].(map[string]any); ok && clean["repo_results"] == nil && spec["kind"] != "worker" {
+			if hub["ideas"], err = s.IdeaWaiting(ctx); err != nil {
+				return nil, err
+			}
+		}
+		if isSpec {
 			session, err := s.RegisterSession(ctx, spec)
 			if err != nil {
 				return nil, err

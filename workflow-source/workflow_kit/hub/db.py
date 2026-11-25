@@ -631,10 +631,39 @@ CREATE TABLE a2a_task (
 );
 """
 
+_V19 = """
+CREATE TABLE idea (
+    project_id TEXT NOT NULL REFERENCES project(id),
+    id TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('new', 'reviewing', 'replied', 'adopted', 'kept', 'closed')),
+    author TEXT NOT NULL,
+    added_via TEXT NOT NULL CHECK (added_via IN ('web', 'agent')),
+    human_asked INTEGER NOT NULL DEFAULT 0,
+    claimed_by TEXT,
+    claim_until TEXT,
+    task_id TEXT,
+    version INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (project_id, id)
+);
+CREATE TABLE idea_entry (
+    project_id TEXT NOT NULL,
+    idea_id TEXT NOT NULL,
+    seq INTEGER NOT NULL,
+    kind TEXT NOT NULL CHECK (kind IN ('idea', 'ask', 'reply')),
+    author TEXT NOT NULL,
+    at TEXT NOT NULL,
+    body_json TEXT NOT NULL,
+    PRIMARY KEY (project_id, idea_id, seq),
+    FOREIGN KEY (project_id, idea_id) REFERENCES idea(project_id, id)
+);
+"""
+
 #: 판 순서 = 목록 순서. 판 n = ``MIGRATIONS[n-1]`` (SQL 스크립트).
 #: ``executescript`` 는 열린 트랜잭션을 먼저 커밋하므로, 판 하나의 원자성은
 #: 스크립트 **안의** ``BEGIN IMMEDIATE … COMMIT`` 으로 만든다 (:func:`_apply`).
-MIGRATIONS: list[str] = [_V1, _V2, _V3, _V4, _V5, _V6, _V7, _V8, _V9, _V10, _V11, _V12, _V13, _V14, _V15, _V16, _V17, _V18]
+MIGRATIONS: list[str] = [_V1, _V2, _V3, _V4, _V5, _V6, _V7, _V8, _V9, _V10, _V11, _V12, _V13, _V14, _V15, _V16, _V17, _V18, _V19]
 
 
 def latest_version() -> int:

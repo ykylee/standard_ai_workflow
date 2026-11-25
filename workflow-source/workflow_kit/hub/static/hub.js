@@ -822,7 +822,7 @@
     if (result.status !== 200) { render(head("아이디어", alertBox("bad", errorText(result)))); return; }
     const canWrite = principal?.auth_mode === "account" && principal.callsign_kind === "human" && principal.human_approved;
     const readOnly = canWrite ? null : alertBox("warn", "적고 처리하려면 허브 계정으로 로그인한 승인된 사람이어야 한다.");
-    render(...(id ? ideaDetail(pid, root, base, result.data.idea, canWrite, readOnly, head) : ideaList(root, base, result.data, canWrite, readOnly, head)));
+    render(...(id ? ideaDetail(`${principal?.callsign}/${pid}/${id}`, root, base, result.data.idea, canWrite, readOnly, head) : ideaList(root, base, result.data, canWrite, readOnly, head)));
   }
 
   function ideaList(root, base, data, canWrite, readOnly, head) {
@@ -835,11 +835,12 @@
       if (!text.value.trim()) { msg.replaceChildren(alertBox("bad", "내용을 적는다.")); return; }
       if (!key || sent !== text.value) { key = `web-${Date.now()}-${Math.random().toString(36).slice(2)}`; sent = text.value; }  // 같은 글의 재시도는 한 번만 적힌다
       send.disabled = true;
-      text.readOnly = true;
+      text.readOnly = true;  // 성공하면 다시 그릴 때까지 잠근다 — 그 사이 쓴 글이 두 번 적히지 않게
+      const unlock = () => { send.disabled = false; text.readOnly = false; };
       try {
         const r = await api(`${root}/ideas`, { method: "POST", body: { body: text.value, request_id: key } });
-        if (r.status !== 200) { msg.replaceChildren(alertBox("bad", errorText(r))); return; }  // 적던 글은 그대로 둔다
-      } catch (e) { msg.replaceChildren(alertBox("bad", "허브에 닿지 않는다 — 글은 그대로 있다. 다시 누른다.")); return; } finally { send.disabled = false; text.readOnly = false; }
+        if (r.status !== 200) { unlock(); msg.replaceChildren(alertBox("bad", errorText(r))); return; }  // 적던 글은 그대로 둔다
+      } catch (e) { unlock(); msg.replaceChildren(alertBox("bad", "허브에 닿지 않는다 — 글은 그대로 있다. 다시 누른다.")); return; }
       pendingFlash = { kind: "ok", text: "적어 두었다 — 다음에 에이전트 세션이 열릴 때 검토해 회신한다." };
       dirty = false;
       route();
@@ -859,22 +860,20 @@
   }
 
   const ideaDrafts = new Map();  // 아이디어마다 적던 글 — 다른 처리를 눌러 다시 그려도 남는다
-  function ideaDetail(pid, root, base, idea, canWrite, readOnly, head) {
+  function ideaDetail(key, root, base, idea, canWrite, readOnly, head) {
     const msg = el("div");
-    const typed = ideaDrafts.get(`${pid}/${idea.id}`) || {};
-    const remember = (name, field, initial) => {
-      field.value = typed[name] ?? initial;
-      field.addEventListener("input", () => { typed[name] = field.value; ideaDrafts.set(`${pid}/${idea.id}`, typed); });
-      return field;
-    };
+    const typed = ideaDrafts.get(key) || {};
+    ideaDrafts.set(key, typed);
+    const reply = [...idea.entries].reverse().find((e) => e.kind === "reply" && e.draft);
+    const draft = reply?.draft || {};
     const act = (body, done, sent) => async (ev) => {
       const fields = [...app.querySelectorAll("textarea, input")], button = ev.currentTarget;
       const lock = (on) => { button.disabled = on; fields.forEach((f) => { f.readOnly = on; }); };
       lock(true);
       let r;
       try { r = await api(`${root}/ideas/${encodeURIComponent(idea.id)}`, { method: "POST", body: { expected_version: idea.version, ...body() } }); }
-      catch (e) { msg.replaceChildren(alertBox("bad", "허브에 닿지 않는다 — 적던 글은 그대로 있다.")); return; } finally { lock(false); }
-      if (r.status !== 200) { msg.replaceChildren(alertBox("bad", errorText(r) + (r.data?.error_code === "version_conflict" ? " · 새로고침해 바뀐 내용을 본 뒤 다시 한다 (적던 글은 남는다)." : ""))); return; }
+      catch (e) { lock(false); msg.replaceChildren(alertBox("bad", "허브에 닿지 않는다 — 적던 글은 그대로 있다.")); return; }
+      if (r.status !== 200) { lock(false); msg.replaceChildren(alertBox("bad", errorText(r) + (r.data?.error_code === "version_conflict" ? " · 새로고침해 바뀐 내용을 본 뒤 다시 한다 (적던 글은 남는다)." : ""))); return; }
       (sent || []).forEach((name) => delete typed[name]);
       pendingFlash = { kind: "ok", text: done(r.data) };
       dirty = false;
@@ -894,12 +893,22 @@
       ...idea.entries.map(entry)];
     if (!canWrite || idea.status === "adopted") return out;
     const ask = el("textarea", { rows: "3", placeholder: "덧붙이거나 더 물을 것", "aria-label": "더 묻기" });
-    const draft = [...idea.entries].reverse().find((e) => e.kind === "reply" && e.draft)?.draft || {};
     const title = el("input", { type: "text", "aria-label": "task 제목" }), wbs = el("input", { type: "text", "aria-label": "WBS", placeholder: "M-007/WBS-7.2" });
     const exempt = el("input", { type: "text", "aria-label": "WBS 면제 사유" }), done = el("textarea", { rows: "4", "aria-label": "완료 기준" });
-    remember("title", title, draft.title || ""); remember("wbs", wbs, draft.wbs || ""); remember("exempt", exempt, "");
-    remember("done", done, (draft.done_criteria || []).join("\n")); remember("ask", ask, "");
-    const hidden = hiddenCount([draft.title, draft.wbs, ...(draft.done_criteria || [])].join(""));
+    const form = { title: draft.title || "", wbs: draft.wbs || "", exempt: "", done: (draft.done_criteria || []).join("\n"), ...typed.form };
+    const boxes = { title, wbs, exempt, done }, hiddenNote = el("div");
+    const check = () => {  // 초안이 아니라 등록될 칸의 값을 센다
+      const all = Object.values(boxes).map((f) => f.value).join("\n"), n = hiddenCount(all);
+      hiddenNote.replaceChildren(...(n ? [alertBox("warn", `등록할 내용에 보이지 않는 문자 ${n}개 — 아래처럼 들어 있다.`), el("pre", { class: "wrap exact" }, reveal(all))] : []));
+    };
+    Object.entries(boxes).forEach(([name, f]) => {
+      f.value = form[name];
+      f.addEventListener("input", () => { typed.form = Object.fromEntries(Object.entries(boxes).map(([k, b]) => [k, b.value])); typed.base ??= reply?.seq ?? 0; check(); });
+    });
+    check();
+    ask.value = typed.ask || "";
+    ask.addEventListener("input", () => { typed.ask = ask.value; });
+    const newer = typed.form && typed.base !== (reply?.seq ?? 0);
     const lines = () => done.value.split("\n").map((s) => s.trim()).filter(Boolean);
     return [...out, el("section", { class: "card" }, el("h2", {}, "처리"), msg, ask,
       el("div", { class: "row" }, el("button", { type: "button", onclick: act(() => ({ action: "ask", body: ask.value }), () => "보냈다 — 다시 검토 대기다.", ["ask"]) }, "더 묻기"),
@@ -907,7 +916,8 @@
         el("button", { type: "button", class: "ghost", onclick: act(() => ({ action: "close" }), () => "닫았다.") }, "닫기"))),
     el("section", { class: "card" }, el("h2", {}, "task 로 만들기"),
       el("p", { class: "muted" }, draft.title ? `회신이 채운 초안이다. 고쳐서 등록한다. 원문은 task 설명에 그대로 들어간다.` : "원문은 task 설명에 그대로 들어간다."),
-      hidden ? [alertBox("warn", `초안에 보이지 않는 문자 ${hidden}개 — 아래처럼 들어 있다.`), el("pre", { class: "wrap exact" }, reveal([draft.title, draft.wbs, ...(draft.done_criteria || [])].join("\n")))] : null,
+      newer ? alertBox("warn", "그 사이 새 회신의 초안이 왔다. 아래는 전에 고치던 내용이다.", el("button", { type: "button", class: "ghost", onclick: () => { delete typed.form; delete typed.base; dirty = false; route(); } }, "새 초안으로 바꾸기")) : null,
+      hiddenNote,
       el("div", { class: "task-filters" }, el("label", {}, "제목", title), el("label", {}, "WBS", wbs), el("label", {}, "WBS 면제 사유 (WBS 가 없을 때)", exempt)),
       el("label", { class: "idea-done" }, "완료 기준 (한 줄에 하나)", done),
       el("div", { class: "row" }, el("button", { type: "button", onclick: act(() => ({ action: "adopt", title: title.value.trim(), wbs: wbs.value.trim() || (exempt.value.trim() ? "exempt" : ""),

@@ -66,7 +66,10 @@ def http(base: str, path: str, body: Any = None, *, token: str = "", cookie: str
 
 def scrub(v: Any) -> Any:
     if isinstance(v, dict):
-        return {k: scrub(x) for k, x in v.items()}
+        out = {k: scrub(x) for k, x in v.items()}
+        if isinstance(out.get("ideas"), list):  # 같은 초에 든 변경끼리의 순서는 실행 속도에 달린다
+            out["ideas"] = sorted(out["ideas"], key=lambda i: str(i["id"]))
+        return out
     if isinstance(v, list):
         return [scrub(x) for x in v]
     return re.sub(r"P-\d{8}-[0-9a-f]+", "P-*", re.sub(r"\d{4}-\d\d-\d\dT[\d:.]+(?:Z|\+00:00)", "<time>", re.sub(r"TASK-\d{4}-\d\d-\d\d", "TASK-*", v))) if isinstance(v, str) else v
@@ -239,7 +242,7 @@ def scenario(impl: str, cmd: list[str] | None, tmp: Path) -> list[Any]:
         hub.call("hub_idea_claim", {"id": nid}, bot)
         hub.call("hub_idea_reply", {**good, "id": nid, "expected_version": 2, "reason": "이\u200b유", "draft": {"title": "초\u202e안", "wbs": "M-001/WBS-1.1", "done_criteria": ["가", "나"]}}, bot)
         dom = scr.draw(exe, tmp, port, f"p/{pid}/ideas/{nid}")
-        shown = not scr.problems(dom, "회신") and dom.count(">U+200B</mark>") == 1 and dom.count(">U+202E</mark>") == 1 and "초안에 보이지 않는 문자 1개" in dom and 'data-exact="bidi-override/pre-wrap"' in dom
+        shown = not scr.problems(dom, "회신") and dom.count(">U+200B</mark>") == 1 and dom.count(">U+202E</mark>") == 1 and "등록할 내용에 보이지 않는 문자 1개" in dom and 'data-exact="bidi-override/pre-wrap"' in dom
         _record(f"case 6 (회신 · 보이지 않는 문자) [{impl}]", shown, f"{scr.problems(dom, '회신')}")
         dom1 = scr.draw(exe, tmp, port, f"p/{pid}/ideas/IDEA-0001")
         _record(f"case 6 (원문의 보이지 않는 문자 · 등록된 것은 처리 단추 없음) [{impl}]", dom1.count(">U+200B</mark>") == 1 and dom1.count(">U+202E</mark>") == 1 and "task 로 등록" not in dom1)

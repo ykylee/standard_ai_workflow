@@ -3,7 +3,7 @@
 - 문서 목적: 승인과 에이전트 통신을 표준 A2A(Agent2Agent) 1.0 으로 옮기는 범위 · 요구 · 계약 · 열린 결정을 정한다.
 - 범위: 허브 A2A 서버(Python · Go), 승인 Task, 에이전트 간 메시지, 작업 배정. MCP 의 기억 · 지식 · task 도구는 대상이 아니다.
 - 대상 독자: 소유자, 허브 구현자
-- 상태: accepted — A1 · A2 구현 (ADR-037)
+- 상태: accepted — A1 · A2 구현, A3 미룸 · A4 유지 결정 (ADR-037)
 - 최종 수정일: 2026-11-25
 - 관련 문서: `../../workflow-source/core/hub_orchestration_spec.md`, `../../workflow-source/core/hub_spec.md`, `./plan-workbench-review-2026-11.md`
 
@@ -71,6 +71,28 @@ A2 (소유자 2026-11-25, TASK-2026-11-25-claude-plex-011):
 
 - **A2-D1** 같은 프로젝트의 콜사인은 **누구나** 서로 메시지를 보낸다. 글은 자료로만 표시하고 받은편지함과 섞지 않는다.
 - **A2-D2** 스트림 한 연결의 상한은 **50초**다.
+
+## 5.1 A3 · A4 검토 (2026-11-25 — 소유자 결정: 권장안)
+
+홈랩 허브 이력 실측(2026-11-25): `assignment` · `orchestrator_lease` · `session_request` · `relay_host` 이벤트 **0건**, 받은편지함 메시지 21건(대부분 승인 요청).
+배정 · 오케스트레이터 · PC 중계는 출시 뒤 한 번도 쓰이지 않았다.
+
+- **A3-D1 배정을 A2A 로 옮길 것인가.** 배정은 오케스트레이터가 `hub_orch_assign` 으로 세션에 주고, 받은 세션이 `hub_inbox_ack(accept)` 로 task 를 claim 한다.
+  A2A 로 옮기면 배정 = Task(`SUBMITTED` → 수락 `WORKING` → 보고 `COMPLETED`)가 되지만, 받는 세션은 A2A 서버가 아니라 허브에서 가져가므로 표준 밖 확장이 필요하다.
+  - `defer`(권장): 쓰는 이가 생길 때까지 미룬다. 지금 옮기면 쓰는 이 없는 두 번째 경로를 두 런타임에 유지하게 된다.
+  - `extension`: 허브 중개 배정 확장을 설계 · 구현한다.
+- **A4-D2 기존 MCP 통신 도구(`hub_approval_request` · `hub_orch_message` · `hub_inbox_*`)를 은퇴할 것인가.**
+  - `keep`(권장): 남긴다. MCP 만 말하는 하네스 세션이 승인을 요청하는 유일한 길이고, A2A 와 같은 저장소 · 같은 함수를 쓰므로 두 벌 상태가 생기지 않는다.
+    A2A 는 다른 벤더 · 하네스 밖 클라이언트의 입구로 둔다.
+  - `retire`: 승인 · 메시지는 A2A 로만 받고 MCP 도구를 거둔다 (하네스가 `hub_client.py` 를 써야 한다).
+
+**결정 (소유자 2026-11-25, TASK-2026-11-25-claude-plex-012):** A3-D1 = `defer`, A4-D2 = `keep`. M-062 는 이것으로 완료한다.
+
+재검토 조건 — 하나라도 생기면 다시 연다:
+
+- 배정 · 오케스트레이터 · PC 중계가 실제로 쓰인다 (홈랩 이력의 `assignment` · `orchestrator_lease` · `relay_host` 이벤트가 0이 아니다).
+- 하네스 밖의 A2A 클라이언트(다른 벤더 에이전트)가 일을 받아야 한다.
+- MCP 통신 도구와 A2A 의 응답이 갈라진다 (`check_hub_a2a` 가 잡는다).
 
 ## 6. 위험
 

@@ -624,18 +624,26 @@ func Call(s *store.Store, name string, rawArgs any, ctx store.Ctx) (result map[s
 		if err != nil {
 			return nil, err
 		}
-		spec, isSpec := clean["session"].(map[string]any)
-		if hub, ok := out["hub"].(map[string]any); ok && clean["repo_results"] == nil && spec["kind"] != "worker" {
-			if hub["ideas"], err = s.IdeaWaiting(ctx); err != nil {
-				return nil, err
-			}
-		}
-		if isSpec {
+		sid, _ := clean["session"].(string)
+		if spec, ok := clean["session"].(map[string]any); ok {
 			session, err := s.RegisterSession(ctx, spec)
 			if err != nil {
 				return nil, err
 			}
 			out["session"] = session
+			sid, _ = session["id"].(string)
+		}
+		// 일하는 세션(worker)에는 아이디어를 싣지 않는다 — 인자가 아니라 등록된 종류를 본다
+		if hub, ok := out["hub"].(map[string]any); ok && clean["repo_results"] == nil {
+			kind, err := s.SessionKind(ctx, sid)
+			if err != nil {
+				return nil, err
+			}
+			if kind != "worker" {
+				if hub["ideas"], err = s.IdeaWaiting(ctx); err != nil {
+					return nil, err
+				}
+			}
 		}
 		return out, nil
 	case "hub_session_end":

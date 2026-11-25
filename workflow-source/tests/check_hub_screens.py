@@ -71,7 +71,10 @@ if(x.length)document.documentElement.dataset.exact=[...new Set(x)].join(',');},4
 (async()=>{const acts=new URL(location.href).searchParams.get('acts');if(!acts)return;const z=t=>new Promise(r=>setTimeout(r,t));await z(1500);const log=[];
 for(const a of acts.split('|')){if(a[0]==='@'){const d=document.querySelector('[data-keep="'+a.slice(1)+'"]');d.open=true;d.dataset.old='1';await z(10500);
 if(!document.querySelector('[data-old]'))document.documentElement.dataset.renders='1';continue;}
+if(a[0]==='!'){const [l,v]=a.slice(1).split('=');const g=window.fetch;window.fetch=async(...x)=>{const r=await g(...x);const f=document.querySelector('[aria-label="'+l+'"]');
+if(f&&!f.value){f.value=v;f.dispatchEvent(new Event('input',{bubbles:true}));}await z(300);return r;};await z(11500);continue;}
 if(a[0]==='~'){const [l,v]=a.slice(1).split('=');const f=document.querySelector('[aria-label="'+l+'"]');f.value=v;f.dispatchEvent(new Event('input',{bubbles:true}));continue;}const b=[...document.querySelectorAll('button')].find(x=>x.textContent===a&&!x.disabled);log.push(a+(b?'':':없음'));if(b){b.click();await z(900);}}
+const tt=document.querySelector('[aria-label="task 제목"]');if(tt)document.documentElement.dataset.title=tt.value;
 const kept=document.querySelector('textarea[aria-label="아이디어"]');if(kept&&kept.value)document.documentElement.dataset.kept=kept.value.length;
 document.documentElement.dataset.acts=log.join('|');})();
 </script>"""

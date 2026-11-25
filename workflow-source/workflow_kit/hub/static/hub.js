@@ -96,12 +96,16 @@
       "쓰거나 펼쳐 둔 내용이 있어 자동 새로고침을 잠시 멈췄다 — 최신 상태를 보려면 새로고침을 누른다.", btn);
     document.body.insertBefore(noticeNode, app);
   }
+  let renderedHash = null;
   function markDirty() { dirty = true; }
 
   app.addEventListener("input", markDirty);
   app.addEventListener("change", markDirty);
 
   function render(...nodes) {
+    // 요청이 오가는 동안 쓰기 시작했으면 같은 화면을 다시 그리지 않는다 — 적던 글을 지우지 않게.
+    if (dirty && renderedHash === location.hash) { showRefreshNotice(); return; }
+    renderedHash = location.hash;
     const flash = pendingFlash;
     pendingFlash = null;
     hideRefreshNotice();
@@ -831,10 +835,11 @@
       if (!text.value.trim()) { msg.replaceChildren(alertBox("bad", "내용을 적는다.")); return; }
       if (!key || sent !== text.value) { key = `web-${Date.now()}-${Math.random().toString(36).slice(2)}`; sent = text.value; }  // 같은 글의 재시도는 한 번만 적힌다
       send.disabled = true;
+      text.readOnly = true;
       try {
         const r = await api(`${root}/ideas`, { method: "POST", body: { body: text.value, request_id: key } });
         if (r.status !== 200) { msg.replaceChildren(alertBox("bad", errorText(r))); return; }  // 적던 글은 그대로 둔다
-      } catch (e) { msg.replaceChildren(alertBox("bad", "허브에 닿지 않는다 — 글은 그대로 있다. 다시 누른다.")); return; } finally { send.disabled = false; }
+      } catch (e) { msg.replaceChildren(alertBox("bad", "허브에 닿지 않는다 — 글은 그대로 있다. 다시 누른다.")); return; } finally { send.disabled = false; text.readOnly = false; }
       pendingFlash = { kind: "ok", text: "적어 두었다 — 다음에 에이전트 세션이 열릴 때 검토해 회신한다." };
       dirty = false;
       route();
@@ -853,13 +858,24 @@
       data.total > data.ideas.length ? el("p", { class: "muted" }, `전체 ${data.total}건 가운데 ${data.ideas.length}건만 보인다.`) : null];
   }
 
+  const ideaDrafts = new Map();  // 아이디어마다 적던 글 — 다른 처리를 눌러 다시 그려도 남는다
   function ideaDetail(pid, root, base, idea, canWrite, readOnly, head) {
     const msg = el("div");
-    const act = (body, done) => async () => {
+    const typed = ideaDrafts.get(`${pid}/${idea.id}`) || {};
+    const remember = (name, field, initial) => {
+      field.value = typed[name] ?? initial;
+      field.addEventListener("input", () => { typed[name] = field.value; ideaDrafts.set(`${pid}/${idea.id}`, typed); });
+      return field;
+    };
+    const act = (body, done, sent) => async (ev) => {
+      const fields = [...app.querySelectorAll("textarea, input")], button = ev.currentTarget;
+      const lock = (on) => { button.disabled = on; fields.forEach((f) => { f.readOnly = on; }); };
+      lock(true);
       let r;
       try { r = await api(`${root}/ideas/${encodeURIComponent(idea.id)}`, { method: "POST", body: { expected_version: idea.version, ...body() } }); }
-      catch (e) { msg.replaceChildren(alertBox("bad", "허브에 닿지 않는다 — 적던 글은 그대로 있다.")); return; }
-      if (r.status !== 200) { msg.replaceChildren(alertBox("bad", errorText(r) + (r.data?.error_code === "version_conflict" ? " · 새로고침해 바뀐 내용을 본 뒤 다시 한다 (적던 글을 먼저 복사해 둔다)." : ""))); return; }
+      catch (e) { msg.replaceChildren(alertBox("bad", "허브에 닿지 않는다 — 적던 글은 그대로 있다.")); return; } finally { lock(false); }
+      if (r.status !== 200) { msg.replaceChildren(alertBox("bad", errorText(r) + (r.data?.error_code === "version_conflict" ? " · 새로고침해 바뀐 내용을 본 뒤 다시 한다 (적던 글은 남는다)." : ""))); return; }
+      (sent || []).forEach((name) => delete typed[name]);
       pendingFlash = { kind: "ok", text: done(r.data) };
       dirty = false;
       route();
@@ -881,11 +897,12 @@
     const draft = [...idea.entries].reverse().find((e) => e.kind === "reply" && e.draft)?.draft || {};
     const title = el("input", { type: "text", "aria-label": "task 제목" }), wbs = el("input", { type: "text", "aria-label": "WBS", placeholder: "M-007/WBS-7.2" });
     const exempt = el("input", { type: "text", "aria-label": "WBS 면제 사유" }), done = el("textarea", { rows: "4", "aria-label": "완료 기준" });
-    title.value = draft.title || ""; wbs.value = draft.wbs || ""; done.value = (draft.done_criteria || []).join("\n");
+    remember("title", title, draft.title || ""); remember("wbs", wbs, draft.wbs || ""); remember("exempt", exempt, "");
+    remember("done", done, (draft.done_criteria || []).join("\n")); remember("ask", ask, "");
     const hidden = hiddenCount([draft.title, draft.wbs, ...(draft.done_criteria || [])].join(""));
     const lines = () => done.value.split("\n").map((s) => s.trim()).filter(Boolean);
     return [...out, el("section", { class: "card" }, el("h2", {}, "처리"), msg, ask,
-      el("div", { class: "row" }, el("button", { type: "button", onclick: act(() => ({ action: "ask", body: ask.value }), () => "보냈다 — 다시 검토 대기다.") }, "더 묻기"),
+      el("div", { class: "row" }, el("button", { type: "button", onclick: act(() => ({ action: "ask", body: ask.value }), () => "보냈다 — 다시 검토 대기다.", ["ask"]) }, "더 묻기"),
         el("button", { type: "button", class: "ghost", onclick: act(() => ({ action: "keep" }), () => "보관했다.") }, "보관"),
         el("button", { type: "button", class: "ghost", onclick: act(() => ({ action: "close" }), () => "닫았다.") }, "닫기"))),
     el("section", { class: "card" }, el("h2", {}, "task 로 만들기"),

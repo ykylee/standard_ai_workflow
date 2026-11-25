@@ -138,11 +138,13 @@ def _session_start(store: Store, ctx: Ctx, a: dict[str, Any]) -> dict[str, Any]:
     if isinstance(client, dict) and isinstance(session_arg, dict) and isinstance(session_arg.get("harness"), str):
         client.setdefault("harness", session_arg["harness"])
     result = SessionStart(_setup(ctx, store)).run(ctx, a.get("repo_results"), client or None)
-    if a.get("repo_results") is None and not (isinstance(session_arg, dict) and session_arg.get("kind") == "worker"):
-        result["hub"]["ideas"] = Ideas(store).waiting(ctx)  # 일하는 세션(worker)에는 싣지 않는다 — 본 작업을 밀지 않게
     # 2.1 — ``session`` 객체면 세션 등록 · 이어 붙임 (스펙 §4-1). 문자열(받은 ID)은 call() 의 공통 경로가 다룬다.
     if isinstance(a.get("session"), dict):
         result["session"] = Orchestration(store).register(ctx, a["session"])
+    if a.get("repo_results") is None:  # 일하는 세션(worker)에는 싣지 않는다 — 인자가 아니라 등록된 종류를 본다
+        sid = result["session"]["id"] if isinstance(result.get("session"), dict) else session_arg
+        if Orchestration(store).session_kind(ctx, sid) != "worker":
+            result["hub"]["ideas"] = Ideas(store).waiting(ctx)
     return result
 
 

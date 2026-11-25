@@ -415,3 +415,17 @@ func (s *Store) SessionList(ctx Ctx, callsign, statusFilter string) (map[string]
 	unknown := counts["unknown"]
 	return map[string]any{"sessions": views, "counts": counts, "unknown": unknown, "orchestrator": lease}, nil
 }
+
+// SessionKind returns the registered kind, or "" for an unknown session.
+func (s *Store) SessionKind(ctx Ctx, id string) (string, error) {
+	p, err := NeedCallsign(ctx)
+	if err != nil || id == "" {
+		return "", err
+	}
+	var kind string
+	err = s.DB().QueryRow("SELECT kind FROM session WHERE project_id=? AND id=?", p.ProjectID, id).Scan(&kind)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", nil
+	}
+	return kind, err
+}

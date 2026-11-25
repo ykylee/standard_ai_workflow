@@ -92,6 +92,14 @@ class Orchestration:
 
     # --- 세션 (스펙 §4 · §7.1) ----------------------------------------------------
 
+    def session_kind(self, ctx: Ctx, session_id: Any) -> str:
+        p = ctx.principal
+        if p is None or not isinstance(session_id, str):
+            return ""
+        with self.store.read() as conn:
+            row = conn.execute("SELECT kind FROM session WHERE project_id=? AND id=?", (p.project_id, session_id)).fetchone()
+        return str(row["kind"]) if row else ""
+
     def register(self, ctx: Ctx, spec: Any) -> dict[str, Any]:
         """``hub_session_start(session={…})`` — 세션을 만들거나 이어 붙인다 (스펙 §4-1)."""
         p = self._callsign(ctx)

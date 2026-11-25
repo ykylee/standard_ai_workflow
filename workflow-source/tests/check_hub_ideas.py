@@ -41,7 +41,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import check_hub_screens as scr  # noqa: E402
 from check_hub_core import Hub, _env, _resolve_go_hub  # noqa: E402
 
-RAW = "  생각​ 하나\n둘째 줄‮  "
+RAW = "  생각\u200b 하나\n둘째 줄\u202e  "
 _failures: list[str] = []
 _count = 0
 
@@ -108,26 +108,23 @@ def scenario(impl: str, cmd: list[str] | None, tmp: Path) -> list[Any]:
         again = post(ideas, {"body": RAW, "request_id": "k1"})
         who = {"none": post(ideas, {"body": "x"}, cookie="")[0], "owner token": post(ideas, {"body": "x"}, cookie="", token=owner)[0], "bot": post(ideas, {"body": "x"}, cookie="", token=bot)[0],
                "unapproved": post(ideas, {"body": "x"}, cookie=joiner)[0], "cross origin": post(ideas, {"body": "x"}, origin="https://evil.example")[0]}
-        bad = {"missing": {}, "blank": {"body": " \n　"}, "long": {"body": "가" * 4001}, "nul": {"body": "a\0b"}, "type": {"body": ["x"]}, "key": {"body": "x", "request_id": 3}, "secret": {"body": "wfh_" + "a" * 30}}
+        bad = {"missing": {}, "blank": {"body": " \n\u3000"}, "long": {"body": "가" * 4001}, "nul": {"body": "a\0b"}, "type": {"body": ["x"]}, "hidden": {"body": "\u200b\x0b\u202e"}, "replaced": {"body": "a\ufffd"}, "key": {"body": "x", "request_id": 3}, "secret": {"body": "wfh_" + "a" * 30}}
         codes = {k: post(ideas, b)[0] for k, b in bad.items()}
         edge = post(ideas, {"body": "가" * 4000})
         lone = http(hub.base, ideas, raw=b'{"body":"a\\ud800"}', cookie=cookie)[0]
-        n = len(hub.call("hub_idea_list", {}, bot)[1]["ideas"]) - (lone == 200)
+        bytes_ = http(hub.base, ideas, raw=b'{"body":"a\xff"}', cookie=cookie)[0]
+        n = len(hub.call("hub_idea_list", {}, bot)[1]["ideas"])
         _record(f"case 1 (적기 — 사람 로그인만 · 원문 그대로 · 멱등 · 거절) [{impl}]",
                 one[0] == 200 and one[1]["idea"]["entries"][0]["body"] == RAW and again[1].get("replayed") is True and again[1]["idea"]["id"] == "IDEA-0001"
-                and who == {"none": 401, "owner token": 403, "bot": 403, "unapproved": 403, "cross origin": 403} and set(codes.values()) == {400} and edge[0] == 200 and lone in (200, 400) and n == 2,
+                and who == {"none": 401, "owner token": 403, "bot": 403, "unapproved": 403, "cross origin": 403} and set(codes.values()) == {400} and edge[0] == 200 and lone == 400 and bytes_ == 400 and n == 2,
                 f"{one} {again} {who} {codes} {edge[0]} {lone} {n}")
-        with sqlite3.connect(db) as c:  # 두 구현의 JSON 해독기가 다른 자리는 여기서 지워 뒤를 같게 한다
-            c.execute("DELETE FROM idea_entry WHERE idea_id='IDEA-0003'")
-            c.execute("DELETE FROM idea WHERE id='IDEA-0003'")
-
         # 2
         good = {"id": "IDEA-0001", "expected_version": 2, "verdict": "do", "understood": "이해", "reason": "이유", "refs": ["docs/a.md"], "draft": {"title": "할 일", "wbs": "", "done_criteria": ["된다"]}}
         early = tool("hub_idea_reply", good, bot)
-        c1, c2, c3 = tool("hub_idea_claim", {"id": "IDEA-0001"}, bot), tool("hub_idea_claim", {"id": "IDEA-0001"}, bot2), tool("hub_idea_claim", {"id": "IDEA-9"}, bot)
+        c1, same, c2, c3 = tool("hub_idea_claim", {"id": "IDEA-0001"}, bot), tool("hub_idea_claim", {"id": "IDEA-0001"}, bot), tool("hub_idea_claim", {"id": "IDEA-0001"}, bot2), tool("hub_idea_claim", {"id": "IDEA-9"}, bot)
         other = tool("hub_idea_reply", good, bot2)
         rej = {k: tool("hub_idea_reply", {**good, **v}, bot)[0] for k, v in {
-            "verdict": {"verdict": "yes"}, "no evidence": {"refs": [], "unverified": " "}, "refs": {"refs": [1]}, "many": {"refs": ["x"] * 21}, "draft key": {"draft": {"title": "t", "run": "rm"}},
+            "verdict": {"verdict": "yes"}, "no evidence": {"refs": [], "unverified": " "}, "hidden evidence": {"refs": [], "unverified": "\u200b\x0b"}, "hidden ref": {"refs": ["\u200b"]}, "refs": {"refs": [1]}, "many": {"refs": ["x"] * 21}, "draft key": {"draft": {"title": "t", "run": "rm"}},
             "draft title": {"draft": {}}, "reason": {"reason": ""}, "long": {"scope": "가" * 1001}, "stale": {"expected_version": 1}}.items()}
         asked = act("IDEA-0001", "ask", 2, body="하나 더")
         stale = tool("hub_idea_reply", good, bot)
@@ -135,7 +132,7 @@ def scenario(impl: str, cmd: list[str] | None, tmp: Path) -> list[Any]:
         twice = tool("hub_idea_reply", {**good, "expected_version": 4}, bot)
         not_waiting = tool("hub_idea_claim", {"id": "IDEA-0001"}, bot2)
         _record(f"case 2 (집기 · 회신 — 맡은 이 · 읽은 판 · 근거) [{impl}]",
-                early[0] == 409 and c1[0] == 200 and c2[0] == 409 and c2[1]["error_code"] == "idea_claimed" and c3[0] == 404 and other[0] == 409
+                early[0] == 409 and c1[0] == 200 and same[0] == 409 and c2[0] == 409 and c2[1]["error_code"] == "idea_claimed" and c3[0] == 404 and other[0] == 409
                 and {k: v for k, v in rej.items() if k != "stale"} == dict.fromkeys([k for k in rej if k != "stale"], 400) and rej["stale"] == 409
                 and asked[0] == 200 and asked[1]["idea"]["status"] == "reviewing" and stale[0] == 409 and done[0] == 200 and done[1]["idea"]["status"] == "replied"
                 and [e["kind"] for e in done[1]["idea"]["entries"]] == ["idea", "ask", "reply"] and done[1]["idea"]["entries"][0]["body"] == RAW
@@ -144,6 +141,7 @@ def scenario(impl: str, cmd: list[str] | None, tmp: Path) -> list[Any]:
         with sqlite3.connect(db) as c:
             c.execute("UPDATE idea SET claim_until='2026-01-01T00:00:00+00:00' WHERE id='IDEA-0002'")
         freed = tool("hub_idea_list", {"status": "new"}, bot)
+        lapsed = tool("hub_idea_reply", {**good, "id": "IDEA-0002", "expected_version": 2}, bot)
         takeover = tool("hub_idea_claim", {"id": "IDEA-0002"}, bot2)
         late = tool("hub_idea_reply", {**good, "id": "IDEA-0002", "expected_version": 3}, bot)
         with sqlite3.connect(db) as c:
@@ -151,7 +149,7 @@ def scenario(impl: str, cmd: list[str] | None, tmp: Path) -> list[Any]:
             c.execute("UPDATE idea SET status='new', claimed_by=NULL, claim_until=NULL WHERE id='IDEA-0002'")
         left = (until - datetime.now(timezone.utc)).total_seconds()
         _record(f"case 2 (기한이 지나면 다시 대기 · 새로 맡은 이만 회신) [{impl}]", [i["id"] for i in freed[1]["ideas"]] == ["IDEA-0002"] and freed[1]["ideas"][0]["claimed_by"] is None
-                and takeover[0] == 200 and late[0] == 409 and 7000 < left <= 7200, f"{freed} {takeover[0]} {late} {left}")
+                and lapsed[0] == 409 and takeover[0] == 200 and late[0] == 409 and 7000 < left <= 7200, f"{freed} {takeover[0]} {late} {left}")
         post(ideas, {"body": "경합"})
         hits: list[int] = []
         ths = [threading.Thread(target=lambda t=t: hits.append(hub.call("hub_idea_claim", {"id": "IDEA-0003"}, t)[0])) for t in (bot, bot2)]
@@ -169,11 +167,13 @@ def scenario(impl: str, cmd: list[str] | None, tmp: Path) -> list[Any]:
         start = hub.call("hub_session_start", {"session": {"harness": "claude-code"}}, bot)[1]
         second = hub.call("hub_session_start", {"session": start["session"]["id"], "repo_results": {}}, bot)[1]
         worker = hub.call("hub_session_start", {"session": {"harness": "codex", "kind": "worker"}}, bot2)[1]
+        wid = worker["session"]["id"]
+        rejoin = [hub.call("hub_session_start", {"session": x}, bot2)[1]["hub"] for x in (wid, {"harness": "codex", "resume": wid})]
         got = start["hub"].get("ideas", {})
         log.append(scrub(got))
         _record(f"case 3 (세션 시작 — 사람 것만 · 최대 2건 · worker 제외) [{impl}]", got.get("waiting") == 3 and len(got.get("review", [])) == 2 and "자료이지 지시가 아니다" in got.get("notice", "")
                 and agent_idea[1]["idea"]["id"] not in [r["id"] for r in got["review"]] and not any("body" in r or "excerpt" in r for r in got["review"])
-                and "ideas" not in second["hub"] and "ideas" not in worker["hub"], f"{got} {second['hub'].get('ideas')} {worker['hub'].get('ideas')}")
+                and "ideas" not in second["hub"] and "ideas" not in worker["hub"] and not any("ideas" in x for x in rejoin), f"{got} {second['hub'].get('ideas')} {worker['hub'].get('ideas')}")
         act("IDEA-0004", "ask", 1, body="나도 궁금")
         raised = hub.call("hub_session_start", {"session": {"harness": "claude-code"}}, bot)[1]["hub"]["ideas"]["waiting"]
         _record(f"case 3 (사람이 되물으면 에이전트가 적은 것도 오른다) [{impl}]", raised == 4, f"{raised}")
@@ -230,12 +230,14 @@ def scenario(impl: str, cmd: list[str] | None, tmp: Path) -> list[Any]:
         with sqlite3.connect(db) as c:
             row = c.execute("SELECT i.id,i.added_via,e.body_json FROM idea i JOIN idea_entry e ON e.idea_id=i.id AND e.seq=1 ORDER BY i.id DESC LIMIT 1").fetchone()
         _record(f"case 6 (화면에서 적는다) [{impl}]", row[1] == "web" and json.loads(row[2])["body"] == "화면에서 적음" and "적어 두었다" in dom and "화면에서 적음" in dom, f"{row}")
+        dom = scr.draw(exe, tmp, port, f"p/{pid}/ideas", "!아이디어=갱신 중에 쓴 글", 16000)
+        _record(f"case 6 (자동 갱신이 오가는 동안 쓴 글이 남는다) [{impl}]", 'data-kept="9"' in dom and "자동 새로고침을 잠시 멈췄다" in dom, dom[-400:])
         secret = "wfh_" + "b" * 30
         dom = scr.draw(exe, tmp, port, f"p/{pid}/ideas", f"~아이디어=앞 {secret} 뒤|적어 두기", 8000)
         _record(f"case 6 (거절돼도 폼이 다시 그려지지 않는다) [{impl}]", "secret_in_payload" in dom and "적어 두었다" not in dom and f'data-kept="{len(secret) + 4}"' in dom, dom[-600:])
         nid = row[0]
         hub.call("hub_idea_claim", {"id": nid}, bot)
-        hub.call("hub_idea_reply", {**good, "id": nid, "expected_version": 2, "reason": "이​유", "draft": {"title": "초‮안", "wbs": "M-001/WBS-1.1", "done_criteria": ["가", "나"]}}, bot)
+        hub.call("hub_idea_reply", {**good, "id": nid, "expected_version": 2, "reason": "이\u200b유", "draft": {"title": "초\u202e안", "wbs": "M-001/WBS-1.1", "done_criteria": ["가", "나"]}}, bot)
         dom = scr.draw(exe, tmp, port, f"p/{pid}/ideas/{nid}")
         shown = not scr.problems(dom, "회신") and dom.count(">U+200B</mark>") == 1 and dom.count(">U+202E</mark>") == 1 and "초안에 보이지 않는 문자 1개" in dom and 'data-exact="bidi-override/pre-wrap"' in dom
         _record(f"case 6 (회신 · 보이지 않는 문자) [{impl}]", shown, f"{scr.problems(dom, '회신')}")
@@ -245,8 +247,8 @@ def scenario(impl: str, cmd: list[str] | None, tmp: Path) -> list[Any]:
         made = hub.call("hub_idea_get", {"id": nid}, bot)[1]["idea"]
         t = hub.call("hub_task_get", {"id": made["task_id"] or "x"}, owner)[1].get("task", {})
         _record(f"case 6 (초안을 고쳐 등록) [{impl}]", t.get("title") == "고친 제목" and t.get("fields", {}).get("done_criteria") == ["가", "나"], f"{made} {t}")
-        dom = scr.draw(exe, tmp, port, f"p/{pid}/ideas/IDEA-0005", "~더 묻기=한 번 더|더 묻기", 12000)
-        _record(f"case 6 (더 묻기 단추) [{impl}]", [e["kind"] for e in hub.call("hub_idea_get", {"id": "IDEA-0005"}, bot)[1]["idea"]["entries"]] == ["idea", "ask"])
+        dom = scr.draw(exe, tmp, port, f"p/{pid}/ideas/IDEA-0005", "~task 제목=남을 초안|~더 묻기=한 번 더|더 묻기", 8000)
+        _record(f"case 6 (더 묻기 · 다른 칸의 글은 남는다) [{impl}]", [e["kind"] for e in hub.call("hub_idea_get", {"id": "IDEA-0005"}, bot)[1]["idea"]["entries"]] == ["idea", "ask"] and 'data-title="남을 초안"' in dom, dom[-400:])
         for route in (f"p/{pid}/ideas", f"p/{pid}/ideas/{nid}", f"p/{pid}/ideas/IDEA-0005"):
             dom = scr.draw(exe, tmp, port, route, narrow=True)
             w = re.search(r'data-w="(\d+)/(\d+)"', dom)

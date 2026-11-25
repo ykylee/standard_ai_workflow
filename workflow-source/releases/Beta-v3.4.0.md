@@ -18,3 +18,20 @@
 
 - 평가용 pre-release다. **DB 판이 18 → 19로 오른다** — 3.3.x 실행 파일은 이관된 DB를 열지 못하므로 되돌리려면 배포 전 백업을 쓴다.
 - 허브는 LLM을 부르지 않는다. 회신은 에이전트 세션이 열릴 때 나온다. 검토 세션이 규칙(읽기만)을 지키는지는 하네스별로 재지 않았다.
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-11-25T08:35:16Z)_
+
+- total wiki pages: **104**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

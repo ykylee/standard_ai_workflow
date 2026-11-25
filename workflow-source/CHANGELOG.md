@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- feat(hub): add the idea box — people jot ideas, agents review read-only and reply (3.4.0) (c4d4c64b)
 - feat(hub): reveal hidden characters in approvals, tidy late messages, reset account passwords (3.3.4) (676418d4)
 - feat(hub): let an agent write a project document after a human login approval (e0144e48)
 - feat(hub): switch this repository's source of truth to the homelab hub (d724873d)
@@ -906,6 +907,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- fix(hub): warn on the values that will be registered, lock idea forms until redrawn, steady the idea check (b6362667)
+- fix(hub): keep ideas away from resumed workers, hold claims per idea, and never redraw over typing (0d927328)
 - fix(hub): never echo misplaced admin arguments, show newline-only guide changes, keep odd approvals off the screen (5b7f8d35)
 - fix(hub): show Go guide proposal diffs, reveal hidden characters on the remaining approvals, harden inbox and password reset (3.3.5) (d932f489)
 - fix(hub): order open milestones by progress and close the screen check's blind spots (87020a96)

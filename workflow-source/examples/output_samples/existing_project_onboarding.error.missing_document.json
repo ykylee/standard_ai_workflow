@@ -12,6 +12,6 @@
     "work_backlog_index_path": "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/work_backlog.md"
   },
   "status": "error",
-  "tool_version": "3.4.0",
+  "tool_version": "3.5.0",
   "warnings": []
 }

@@ -237,6 +237,8 @@ def seed(hub: Hub, db: Path, impl: str) -> dict[str, str]:
     return {"owner": owner, "bot": bot, "pid": pid, "tid": tid, "ref": quote(ref, safe=""), "cookie": head.get("set-cookie", "").split(";", 1)[0], "host": host}
 
 
+APPROVE_TILES = {"확인 요청", "중계 승인", "결정 변경(DCR)", "지침 제안"}
+REVIEW_TILES = {"열린 결정 task", "막힌 task"}
 RAW_STATUS = {"in_progress", "planned", "blocked", "done", "working", "idle", "waiting", "ended", "unknown"}
 
 
@@ -246,13 +248,21 @@ def overview_cases(impl: str, exe: str, tmp: Path, port: int, hub: Hub, env: dic
     pid = env["pid"]
     want = len(ui._req(hub.base, f"/api/projects/{pid}/confirmations", token=env["owner"])[1]["requests"])
     summary = ui._req(hub.base, f"/api/projects/{pid}", token=env["owner"])[1]["summary"]
-    tiles = {m[2]: (m[1], int(m[3])) for m in re.finditer(r'<a class="need" href="([^"]*)" data-decide="([^"]*)"><span class="n">(\d+)</span>', ov)}
+    tiles = {m[2]: (m[1], int(m[3])) for m in re.finditer(r'<a class="(?:need|look)" href="([^"]*)" data-decide="([^"]*)"><span class="n">(\d+)</span>', ov)}
     first = (summary.get("open_decision_task_ids") or [""])[0]
     ok = (tiles.get("확인 요청") == (f"#/p/{pid}/confirmations", want) and want > 0
           and tiles.get("열린 결정 task") == (f"#/p/{pid}/t/{first}", summary["open_decision_tasks"]) and first
           and tiles.get("결정 변경(DCR)", ("", 0))[0] == f"#/p/{pid}/dcr" and tiles.get("지침 제안", ("", 0))[0] == f"#/p/{pid}/guide"
           and ov.find('id="decide-h"') < ov.find('id="rail-h"') < ov.find('id="tasks-h"'))
     _record(f"[{impl}] 개요 — 사람이 결정할 일: 수는 각 화면 API 와 같고 그 화면으로 간다 · 결정 → 진척 → task 순", bool(ok), f"{tiles} want={want} first={first}")
+    # 두 묶음 (TASK-2026-11-26-claude-plex-013) — 승인할 것(주황 need)이 먼저, 살펴볼 것(무채색 look)이 뒤, 묶음당 4칸 이하
+    ia, ir, end = ov.find('data-group="approve"'), ov.find('data-group="review"'), ov.find('id="rail-h"')
+    grouped = {k: re.findall(r'<a class="(need|look)[^"]*" href="[^"]*" data-decide="([^"]*)"', ov[a:b]) for k, a, b in (("approve", ia, ir), ("review", ir, end))}
+    _record(f"[{impl}] 개요 — 결정 두 묶음: 승인할 것(실행 경계) 먼저 · 살펴볼 것 뒤, 묶음당 4칸 이하",
+            0 < ia < ir < end and 0 < len(grouped["approve"]) <= 4 and 0 < len(grouped["review"]) <= 4
+            and all(c == "need" and l in APPROVE_TILES for c, l in grouped["approve"])
+            and all(c == "look" and l in REVIEW_TILES for c, l in grouped["review"]) and "승인할 것" in ov[ia:ir] and "살펴볼 것" in ov[ir:end],
+            f"{grouped} at={ia},{ir},{end}")
     rail = re.search(r'<div class="rail"[^>]*>(.*?)</div>', ov, re.S)
     segs = re.findall(r'<a role="listitem"[^>]*class="([^"]*)"', rail[1]) if rail else []
     _record(f"[{impl}] 개요 — 진척 띠: 마일스톤마다 한 칸 · 현재 하나", len(segs) == 4 and sum("current" in c for c in segs) == 1, f"{segs}")
@@ -275,12 +285,12 @@ def overview_cases(impl: str, exe: str, tmp: Path, port: int, hub: Hub, env: dic
     assert st2 == 200, out2  # 열린 결정 task 가 둘이면 타일은 한 task 가 아니라 목록으로 간다
     many = ui._req(hub.base, f"/api/projects/{pid}", token=env["owner"])[1]["summary"]["open_decision_task_ids"]
     ov2 = html.unescape(draw(exe, tmp, port, f"p/{pid}"))
-    tile2 = re.search(r'<a class="need" href="([^"]*)" data-decide="열린 결정 task">', ov2)
+    tile2 = re.search(r'<a class="look" href="([^"]*)" data-decide="열린 결정 task">', ov2)
     lst = html.unescape(draw(exe, tmp, port, f"p/{pid}?decisions=open"))
     titles = [ui._req(hub.base, f"/api/projects/{pid}/tasks/{t}", token=env["owner"])[1]["task"]["title"] for t in many]
     _record(f"[{impl}] '열린 결정 task' 둘 이상 — 타일이 목록으로, 목록엔 그 task 만", len(many) == 2 and bool(tile2) and tile2[1] == f"#/p/{pid}?decisions=open"
             and all(t in lst for t in titles) and "답이 필요한 결정이 있는 task" in lst and lst.count('<td class="t-title">') == 2
-            and ">필터 해제</a>" in lst and re.search(r'class="need on"[^>]*data-decide="열린 결정 task" aria-current="true"', lst) is not None, f"{many} tile={tile2 and tile2[1]}")
+            and ">필터 해제</a>" in lst and re.search(r'class="look on"[^>]*data-decide="열린 결정 task" aria-current="true"', lst) is not None, f"{many} tile={tile2 and tile2[1]}")
     ev = html.unescape(doms["viewEvents"])
     raw_ops = sorted({m for m in re.findall(r'<td class="t-title"><span title="([a-z_]+)">([^<]*)</span>', ev) if m[0] == m[1]})
     _record(f"[{impl}] 이력 — 동작명이 영어 원문만으로 나오지 않는다", not raw_ops and "<td class=\"t-title\">" in ev, f"{raw_ops}")
@@ -288,7 +298,7 @@ def overview_cases(impl: str, exe: str, tmp: Path, port: int, hub: Hub, env: dic
     _record(f"[{impl}] 360px 탭 — 9개 모두 보인다 (숨은 탭 0)", bool(nav) and nav[1] == "9" and nav[2] == "0", f"nav={nav and nav.groups()}")
 
 
-def dcr_cases(impl: str, exe: str, tmp: Path, port: int, hub: Hub, env: dict[str, str]) -> None:
+def dcr_cases(impl: str, exe: str, tmp: Path, port: int, hub: Hub, env: dict[str, str], doms: dict[str, str]) -> None:
     """DCR 을 웹에서 승인 · 거절한다 (TASK-2026-11-26-claude-plex-011) — 근거 없으면 막고, 비소유자는 403."""
     pid = env["pid"]
     st, out, _ = hub.call("hub_dcr_create", {"title": "거절할 결정", "rationale": "이유", "proposal": "제안", "target_refs": []}, env["bot"])
@@ -298,6 +308,11 @@ def dcr_cases(impl: str, exe: str, tmp: Path, port: int, hub: Hub, env: dict[str
     blank = draw(exe, tmp, port, f"p/{pid}/dcr/{yes}", "승인", 12000)  # 근거 없이 누르면 막힌다
     still = ui._req(hub.base, f"/api/projects/{pid}/dcr/{yes}", token=env["owner"])[1]["status"]
     _record(f"[{impl}] DCR — 근거 없이 승인하면 막는다", still == "open" and "판단 근거를 적어야" in html.unescape(blank), f"status={still}")
+    # 결정 메모 칸은 화면마다 같은 모양 (TASK-2026-11-26-claude-plex-013) — 꼬리표 달린 여러 줄 칸 하나 + 승인 · 거절, 한 줄 입력 없음
+    forms = {v: (len(re.findall(r'<div class="decide-form"><label class="field">[^<]*<textarea', d)), d.count(">거절</button>"),
+                 len(re.findall(r'<input type="text"[^>]*메모', d)))
+             for v, d in (("확인 요청", doms["viewConfirmations"]), ("중계 승인", doms["viewOrchestration"]), ("DCR", blank))}
+    _record(f"[{impl}] 결정 메모 — 확인 요청 · 중계 승인 · DCR 이 같은 모양", all(f > 0 and f == r and t == 0 for f, r, t in forms.values()), f"{forms}")
     draw(exe, tmp, port, f"p/{pid}/dcr/{yes}", "~판단 근거=화면에서 승인한다|승인", 12000)
     draw(exe, tmp, port, f"p/{pid}/dcr/{no}", "~판단 근거=범위가 맞지 않는다|거절", 12000)
     got = {k: ui._req(hub.base, f"/api/projects/{pid}/dcr/{v}", token=env["owner"])[1] for k, v in (("yes", yes), ("no", no))}
@@ -341,7 +356,7 @@ def measure(impl: str, cmd: list[str] | None, exe: str, tmp: Path) -> None:
             bad = problems(doms[view], want)
             _record(f"[{impl}] {view}", not bad, " · ".join(bad))
         overview_cases(impl, exe, tmp, port, hub, env, doms)
-        dcr_cases(impl, exe, tmp, port, hub, env)
+        dcr_cases(impl, exe, tmp, port, hub, env, doms)
         answer_cases(impl, exe, tmp, port, hub, env, doms)
         rm = doms["viewRoadmap"]
         fold = rm.find('data-keep="rm-done"')

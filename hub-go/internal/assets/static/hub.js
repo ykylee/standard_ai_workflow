@@ -106,6 +106,37 @@
     ? el("span", { class: "chip " + (cls || text), title: text }, STATUS_LABEL[text])
     : el("span", { class: "chip " + (cls || text) }, text);
   const alertBox = (kind, text, ...extra) => el("div", { class: "alert " + kind, role: kind === "bad" ? "alert" : "status" }, text, ...extra);
+  // 사람이 승인 · 거절하는 자리는 모두 같은 모양이다 — 꼬리표 달린 메모 칸 · 그 아래 설명 · 승인 / 거절 · 결과 자리.
+  // onDecide(decision, memoText, msg, memo) — 화면마다 보내는 곳만 다르다.
+  let memoSeq = 0;
+  const decisionForm = ({ required = false, hint = "", name = "", approveLabel = "승인", approveDisabled = false, onDecide }) => {
+    const hintId = `memo-hint-${++memoSeq}`;
+    const label = required ? "판단 근거" : "결정 메모";
+    const memo = el("textarea", { rows: "2", required: required || undefined, "aria-label": name ? `${label} — ${name}` : label,
+      "aria-describedby": hint ? hintId : null });
+    const msg = el("div");
+    // 보내는 동안 두 단추를 끄고 자동 새로고침을 멈춘다 — 두 번 누름 · 요청 도중 다시 그리기를 막는다
+    const go = (decision) => async () => {
+      const node = msg.parentNode;
+      for (const b of buttons) b.disabled = true;
+      node?.setAttribute("aria-busy", "true");
+      dirty = true;
+      msg.replaceChildren(el("span", { class: "muted" }, "보내는 중…"));
+      try { await onDecide(decision, memo.value.trim(), msg, memo); }
+      finally {
+        node?.removeAttribute("aria-busy");
+        buttons[0].disabled = Boolean(approveDisabled);
+        buttons[1].disabled = false;
+        if (msg.textContent === "보내는 중…") msg.replaceChildren();
+      }
+    };
+    const buttons = [el("button", { type: "button", disabled: approveDisabled || undefined, onclick: go("approve") }, approveLabel),
+      el("button", { type: "button", class: "danger", onclick: go("reject") }, "거절")];
+    return el("div", { class: "decide-form" },
+      el("label", { class: "field" }, `${label} (${required ? "필수" : "선택"})`, memo),
+      hint ? el("p", { class: "muted", id: hintId }, hint) : null,
+      el("div", { class: "row" }, ...buttons), msg);
+  };
 
   function hideRefreshNotice() {
     if (noticeNode) { noticeNode.remove(); noticeNode = null; }
@@ -513,28 +544,37 @@
     const totalTasks = Object.values(tc).reduce((a, b) => a + b, 0);
 
     const counted = (r, pick) => r.status === 200 ? pick(r.data) : null;
-    const decisions = [
-      ["확인 요청", counted(conf, (d) => (d.requests || []).length), `${base}/confirmations`, "에이전트가 승인을 기다린다"],
-      ["중계 승인", sum.pending_approvals || 0, `${base}/orch?focus=approvals`, "세션 띄우기 · 멈춤"],
-      ["열린 결정 task", sum.open_decision_tasks || 0, (sum.open_decision_task_ids || []).length === 1
-        ? `${base}/t/${encodeURIComponent(sum.open_decision_task_ids[0])}` : `${base}?decisions=open`, "그 task 에서 답한다"],
-      ["결정 변경(DCR)", counted(dcr, (d) => (d.dcrs || []).filter((x) => x.status === "open").length), `${base}/dcr`, "승인 · 거절"],
-      ["지침 제안", counted(guide, (d) => (d.proposals || []).filter((x) => x.status === "open").length), `${base}/guide`, "새 판으로 올릴지"],
-      ["막힌 task", tc.blocked || 0, `${base}/s/blocked`, "풀 사람이 필요하다"],
+    // 두 묶음 — 승인하면 실행 · 확정되는 것(되돌리기 어렵다, 주황)과 답하거나 풀어야 진행되는 것(무채색). 급한 묶음이 먼저다.
+    const groups = [
+      { key: "approve", title: "승인할 것", hint: "승인하면 실행되거나 확정된다", tile: "need", items: [
+        ["확인 요청", counted(conf, (d) => (d.requests || []).length), `${base}/confirmations`, "에이전트가 기다린다"],
+        ["중계 승인", sum.pending_approvals || 0, `${base}/orch?focus=approvals`, "세션 띄우기 · 멈춤"],
+        ["결정 변경(DCR)", counted(dcr, (d) => (d.dcrs || []).filter((x) => x.status === "open").length), `${base}/dcr`, "승인 · 거절"],
+        ["지침 제안", counted(guide, (d) => (d.proposals || []).filter((x) => x.status === "open").length), `${base}/guide`, "새 판으로 올릴지"]] },
+      { key: "review", title: "살펴볼 것", hint: "답하거나 풀어야 일이 진행된다", tile: "look", items: [
+        ["열린 결정 task", sum.open_decision_tasks || 0, (sum.open_decision_task_ids || []).length === 1
+          ? `${base}/t/${encodeURIComponent(sum.open_decision_task_ids[0])}` : `${base}?decisions=open`, "그 task 에서 답한다"],
+        ["막힌 task", tc.blocked || 0, `${base}/s/blocked`, "풀 사람이 필요하다"]] },
     ];
-    const need = decisions.filter(([, n]) => n);
+    const decisions = groups.flatMap((g) => g.items);
     const unread = decisions.filter(([, n]) => n === null);
+    const shown = groups.map((g) => ({ ...g, need: g.items.filter(([, n]) => n) })).filter((g) => g.need.length);
+    const groupTotal = (g) => g.need.reduce((a, [, n]) => a + n, 0);
     const decideRow = el("section", { "aria-labelledby": "decide-h" },
       el("div", { class: "decide-head" }, el("h2", { id: "decide-h" }, "사람이 결정할 일"),
-        el("span", { class: "muted" }, need.length ? `${need.reduce((a, [, n]) => a + n, 0)}건` : "지금 없음",
+        el("span", { class: "muted" }, shown.length ? shown.map((g) => `${g.title} ${groupTotal(g)}건`).join(" · ") : "지금 없음",
           unread.length ? ` · 확인 못 함: ${unread.map(([l]) => l).join(", ")} (이 계정에 권한이 없다)` : "",
           // 확인 요청 · 중계 승인을 알린 메시지도 섞여 있다 — 결정 수에 더하지 않는다 (같은 일을 두 번 세지 않는다).
           (sum.unacknowledged || 0) > 0 ? [" · ", el("a", { href: `${base}/orch` }, `읽지 않은 에이전트 메시지 ${sum.unacknowledged}건`)] : null)),
-      need.length
-        ? el("div", { class: "decide" }, need.map(([label, n, href, what]) =>
-          el("a", { class: "need" + (decisionMode && label === "열린 결정 task" ? " on" : ""), href, "data-decide": label,
-            "aria-current": decisionMode && label === "열린 결정 task" ? "true" : null },
-            el("span", { class: "n" }, String(n)), el("span", {}, label), el("span", { class: "what" }, what))))
+      shown.length
+        ? el("div", { class: "decide-groups" + (shown.length === 1 ? " one" : "") }, shown.map((g) =>
+          el("div", { class: "decide-group", "data-group": g.key, role: "group", "aria-labelledby": `dg-${g.key}` },
+            el("h3", { id: `dg-${g.key}` }, g.title, el("span", { class: "muted" }, g.hint)),
+            el("div", { class: `decide c-${g.need.length}` }, g.need.map(([label, n, href, what]) => {
+              const on = decisionMode && label === "열린 결정 task";
+              return el("a", { class: g.tile + (on ? " on" : ""), href, "data-decide": label, "aria-current": on ? "true" : null },
+                el("span", { class: "n" }, String(n)), el("span", {}, label), el("span", { class: "what" }, what));
+            })))))
         : el("div", { class: "decide-clear" }, "모든 결정이 처리됐다. 새 요청이 오면 여기에 먼저 보인다."));
 
     const attention = [];
@@ -776,27 +816,21 @@
       const detailText = req.kind === "stop"
         ? `대상 세션 ${target.session || "—"}${target.reason ? ` · 사유: ${target.reason}` : ""}`
         : `별칭 ${target.dir_alias || "—"} · 하네스 ${target.harness || "—"} · 권한 ${target.permission_mode || "default"}${target.prompt ? ` · 지시: ${target.prompt}` : ""}`;
-      const note = el("input", { type: "text", placeholder: "결정 메모 (선택)", "aria-label": `${req.id} 메모` });
-      const msg = el("div");
-      const decideBtn = (decision, label, cls) => el("button", {
-        type: "button", class: cls || "",
-        onclick: async () => {
-          const res = await api(`projects/${encodeURIComponent(pid)}/orchestration/approvals/${encodeURIComponent(req.id)}`, {
-            method: "POST", token: storedToken(pid), body: { decision, note: note.value } });
-          if (res.status !== 200) { msg.replaceChildren(alertBox("bad", errorText(res))); return; }
-          dirty = false;
-          pendingFlash = { kind: "ok", text: `${req.id} 를 ${decision === "approve" ? "승인" : "거절"}했다.` };
-          route();
-        },
-      }, label);
+      const form = decisionForm({ name: req.id, hint: "메모는 결과와 함께 요청한 쪽에 간다.", onDecide: async (decision, note, msg) => {
+        const res = await api(`projects/${encodeURIComponent(pid)}/orchestration/approvals/${encodeURIComponent(req.id)}`, {
+          method: "POST", token: storedToken(pid), body: { decision, note } });
+        if (res.status !== 200) { dirty = true; msg.replaceChildren(alertBox("bad", errorText(res))); return; }
+        dirty = false;
+        pendingFlash = { kind: "ok", text: `${req.id} 를 ${decision === "approve" ? "승인" : "거절"}했다.` };
+        route();
+      } });
       return el("div", { class: "decision" },
         el("div", { class: "row" }, el("strong", { class: "mono" }, req.id), chip(req.kind, "planned"), chip(req.state, req.state),
           `PC ${req.host_id}`, `· 요청 ${req.requested_by} · `, when(req.created_at)),
         el("div", { class: "exact" }, reveal(detailText)),
         req.decided_by ? el("div", { class: "muted" }, `결정 ${req.decided_by} · `, when(req.decided_at)) : null,
         req.result && Object.keys(req.result).length ? el("div", { class: "mono muted" }, JSON.stringify(req.result)) : null,
-        req.state === "pending_approval" && canManage ? el("div", { class: "row" }, note, decideBtn("approve", "승인"), decideBtn("reject", "거절", "danger")) : null,
-        msg);
+        req.state === "pending_approval" && canManage ? form : null);
     };
 
     const approvalsSection = el("section", { class: "card" },
@@ -938,12 +972,12 @@
     const requests = result.data.requests || [];
     const actingAccount = project.status === 200 && project.data.principal?.auth_mode === "account";
     const cards = requests.map((req) => {
-      const note = el("textarea", { rows: "2", placeholder: "결정 메모 (선택)" });
-      const decide = (decision) => async () => {
+      const decide = async (decision, note, msg) => {
         const r = await api(`projects/${encodeURIComponent(pid)}/confirmations/${encodeURIComponent(req.id)}`, {
-          method: "POST", token, body: { decision, note: note.value.trim() },
+          method: "POST", token, body: { decision, note },
         });
-        if (r.status !== 200) { pendingFlash = { kind: "bad", text: errorText(r) }; return route(); }
+        // 오류는 그 카드 안에 — 다시 그리지 않으니 적던 메모가 남는다
+        if (r.status !== 200) { dirty = true; msg.replaceChildren(alertBox("bad", errorText(r))); return; }
         pendingFlash = { kind: "ok", text: `요청 ${req.id} ${decision === "approve" ? "승인" : "거절"} — 허브 받은편지함으로 결과를 보냈다.` };
         dirty = false;
         route();
@@ -963,9 +997,8 @@
           req.action.summary.marker ? el("p", {}, `표식 동작: ${req.action.summary.marker}`) : null]),
           actingAccount ? null : alertBox("warn", "이 승인은 허브 계정 로그인이 필요하다. 홈에서 계정으로 로그인한 뒤 승인한다.")) : null,
         el("p", { class: "muted" }, "요청한 에이전트의 설명"), el("p", { class: "exact" }, reveal(req.question)), req.details ? el("pre", { class: "wrap exact" }, reveal(req.details)) : null,
-        el("div", { class: "row" }, note,
-          el("button", { type: "button", disabled: (Boolean(req.action) && !actingAccount) || staleDoc(req), onclick: decide("approve") }, "승인"),
-          el("button", { class: "danger", type: "button", onclick: decide("reject") }, "거절")));
+        decisionForm({ name: req.id, hint: "메모는 결과와 함께 요청한 에이전트에게 간다.",
+          approveDisabled: (Boolean(req.action) && !actingAccount) || staleDoc(req), onDecide: decide }));
     });
     render(el("section", { class: "card" }, el("h1", {}, "에이전트 확인 요청"),
       el("p", { class: "muted" }, "승인하거나 거절하면 결과가 요청한 에이전트의 받은편지함으로 간다. 에이전트는 결과를 확인한 뒤에 일을 이어 간다."),
@@ -1494,13 +1527,11 @@
       const d = r.data;
       let decideBox = null;
       if (d.status === "open" && canDecide) {
-        const why = el("textarea", { rows: "3", required: true, "aria-label": "판단 근거", "aria-describedby": "dcr-why-hint" });
-        const msg = el("div");
-        const decide = (decision) => async () => {
+        const decide = async (decision, why, msg, memo) => {
           // 오류는 자동 새로고침이 지우지 않게 한다 (dirty — 읽기 전에 사라지면 왜 막혔는지 모른다).
-          if (!why.value.trim()) { dirty = true; msg.replaceChildren(alertBox("bad", "판단 근거를 적어야 결정할 수 있다 — 근거는 ADR 과 감사 기록에 남는다.")); why.focus(); return; }
+          if (!why) { dirty = true; msg.replaceChildren(alertBox("bad", "판단 근거를 적어야 결정할 수 있다 — 근거는 ADR 과 감사 기록에 남는다.")); memo.focus(); return; }
           const res = await api(`projects/${encodeURIComponent(pid)}/dcr/${encodeURIComponent(d.id)}/decision`, {
-            method: "POST", token, body: { decision, rationale: why.value.trim(), expected_version: d.version } });
+            method: "POST", token, body: { decision, rationale: why, expected_version: d.version } });
           if (res.status !== 200) {
             dirty = true;
             const code = res.data?.error_code;
@@ -1516,10 +1547,8 @@
         };
         decideBox = el("section", { class: "decide-box", "aria-labelledby": "dcr-decide-h" },
           el("h2", { id: "dcr-decide-h" }, "결정"),
-          el("label", { class: "field" }, "판단 근거 (필수)", why),
-          el("p", { class: "muted", id: "dcr-why-hint" }, "승인하면 결정 기록(ADR)이 허브 위키 decisions/ 에 바로 남고, 거절해도 근거가 감사 기록에 남는다."),
-          el("div", { class: "row" }, el("button", { type: "button", onclick: decide("approve") }, "승인"),
-            el("button", { type: "button", class: "danger", onclick: decide("reject") }, "거절")), msg);
+          decisionForm({ required: true, onDecide: decide,
+            hint: "승인하면 결정 기록(ADR)이 허브 위키 decisions/ 에 바로 남고, 거절해도 근거가 감사 기록에 남는다." }));
       } else if (d.status === "open") {
         decideBox = el("p", { class: "muted" }, "승인 · 거절은 이 프로젝트의 소유자가 한다 — 허브 계정으로 로그인한 승인된 소유자에게 단추가 보인다.");
       }

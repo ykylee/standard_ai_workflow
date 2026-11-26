@@ -85,6 +85,15 @@ main { max-width: 76rem; margin: 0 auto; padding: var(--sp-5); display: grid; ga
 .decide .need .n, .decide .need .what { color: var(--warn); }
 .decide .need:hover { background: var(--warn-soft); filter: brightness(.98); }
 .decide .need.on { outline: 2px solid var(--warn); outline-offset: -2px; }
+/* 살펴볼 것 — 사람이 답해야 하지만 실행 경계는 아니다: 무채색, 숫자만 굵게 */
+.decide .look .n { color: var(--ink); }
+.decide .look .what { color: var(--ink-2); }
+.decide .look.on { outline: 2px solid var(--ink); outline-offset: -2px; }
+.decide-groups { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: var(--sp-3); }
+.decide-groups.one { grid-template-columns: minmax(0, 1fr); }
+.decide-group { display: grid; gap: var(--sp-1); grid-template-rows: auto 1fr; }
+.decide-group h3 { margin: 0; font-size: var(--fs-sm); font-weight: 600; color: var(--ink-2); display: flex; gap: var(--sp-2); align-items: baseline; flex-wrap: wrap; }
+.decide-group h3 .muted { font-weight: 400; }
 .clear-filter { margin-left: var(--sp-3); font-size: var(--fs-sm); font-weight: 400; }
 /* 고정 머리 막대 밑으로 숨지 않게 — 이동한 자리의 제목이 보인다 */
 [id] { scroll-margin-top: 5rem; }
@@ -178,7 +187,11 @@ progress::-moz-progress-bar { background: var(--rail-done); border-radius: 2px; 
 .row { display: flex; gap: var(--sp-2); flex-wrap: wrap; align-items: center; }
 label { display: inline-flex; gap: var(--sp-1); align-items: center; }
 label.field { display: inline-grid; gap: 0; font-size: var(--fs-sm); color: var(--ink-2); font-weight: 600; }
-label.field > input { font-size: var(--fs-md); font-weight: 400; color: var(--ink); }
+label.field > input, label.field > textarea { font-size: var(--fs-md); font-weight: 400; color: var(--ink); }
+/* 승인 · 거절 자리 — 확인 요청 · 중계 승인 · DCR 이 같은 모양 */
+.decide-form { display: grid; gap: var(--sp-2); max-width: 44rem; }
+.decide-form label.field { display: grid; }
+.decide-form p { margin: 0; }
 form.row { align-items: end; }
 input:not([type]), input[type=text], input[type=password], input[type=search], select, textarea { border: 1px solid var(--field); border-radius: var(--r-md); padding: 6px var(--sp-2);
   background: var(--surface); color: var(--ink); }
@@ -243,7 +256,12 @@ details.account[open] { display: grid; gap: var(--sp-2); }
   /* 탭은 숨기지 않는다 — 줄을 바꿔 모두 보인다 */
   .nav-links { margin: var(--sp-2) calc(-1 * var(--sp-4)) var(--sp-3); padding: 0 var(--sp-4); flex-wrap: wrap; }
   .nav-links a { white-space: nowrap; padding: var(--sp-2); }
+  .decide-groups { grid-template-columns: minmax(0, 1fr); gap: var(--sp-2); }
+  .decide-group h3 .muted { display: none; }
   .decide { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .decide.c-1 { grid-template-columns: minmax(0, 1fr); }
+  .decide.c-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .decide.c-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .decide > a, .decide > div { padding: var(--sp-2) var(--sp-3); min-height: 44px; }
   .decide .n { font-size: var(--fs-lg); }
   .decide .what { display: none; }

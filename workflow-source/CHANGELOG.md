@@ -296,6 +296,10 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- chore(release): prepare 3.12.1 (3585628e)
+- chore(entry): move shared rules into the hub project guide (GP-0005) (09298c51)
+- chore(entry): move AGENTS.md (Codex) to the hub — drop 1.x rules, add the rendered hub region (9d7f4592)
+- chore(release): keep the files generated while publishing 3.12.0 (8b79fc16)
 - chore(release): prepare 3.12.0 (512ff253)
 - chore(hub): re-render the CLAUDE.md hub region from 3.11.0 (standard 2.5) (307cafc9)
 - chore(release): keep the files generated while publishing 3.11.0 (e1d0d708)
@@ -948,6 +952,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- fix(hub,relay): rescore P3 — 44px buttons, glossary on every head, current milestone label, neutral idle chip, session cap in words (42cfce7f)
+- fix(hub,relay): rescore P2 — one milestone order, one DCR name, empty 'now' falls back, relay results near the button (96dd6a8e)
 - fix(workbench): read-only once the repository moved to the hub; Korean status words; drop accent stripes (1311ab06)
 - fix(hub): name the requester by callsign; keep the orchestration header on top; no split Korean words on phones (416cfb97)
 - fix(hub): approval cards say who wants what on which PC; smaller rescore items (1ffed66d)

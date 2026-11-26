@@ -292,6 +292,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- chore(release): prepare 3.9.1 (ed943595)
+- chore(release): keep the files generated while publishing 3.9.0 (5abd9e8b)
 - chore(release): prepare 3.9.0 (31a486ec)
 - chore(release): keep the files generated while publishing 3.8.0 (df1f4c59)
 - chore(release): prepare 3.8.0 (ec90067b)
@@ -933,6 +935,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- fix(hub): fold the progress rail so dozens of milestones fit a phone screen (e3f22f58)
+- fix(hub): split human decisions into approve and review groups; one decision-memo form (9ade3aa4)
 - fix(hub): put people's approvals first and close the remaining readability gaps (e91679ac)
 - fix(hub): never answer an unseen plan decision; send logged-out project links to login (1c9c555d)
 - fix(hub): let an idea draft carry a WBS exempt reason so "task 로 등록" passes the gate (84a0081a)

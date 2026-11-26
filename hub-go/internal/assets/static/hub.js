@@ -258,14 +258,14 @@
       el("div", { class: "row" }, ...["in_progress", "blocked", "planned", "done"].map((s) => chip(`${s} ${p.task_counts[s] || 0}`, s))),
       storedToken(p.id) ? el("div", { class: "muted" }, "이 브라우저에 콜사인 토큰 있음") : null));
     render(
-      accountPanel(projectList.status === 200 && projectList.data.principal?.kind === "account" ? projectList.data.account : null, () => route()),
+      accountPanel(projectList.status === 200 && projectList.data.account ? projectList.data.account : null, () => route()),
       el("section", { class: "card" }, el("h1", {}, "프로젝트"),
         cards.length ? el("div", { class: "grid" }, cards)
           : el("p", { class: "muted" }, projectList.status === 401
             ? "토큰 없는 화면 읽기가 꺼져 있다 (허브 기본). 콜사인 토큰을 넣으면 그 프로젝트가 보인다."
             : "등록된 프로젝트가 없다.")),
       el("section", { class: "card admin-entry" }, el("div", {}, el("h2", {}, "허브 전체 관리"),
-        el("p", { class: "muted" }, "하네스 등록 제보를 검토하고 사람 담당자 명부를 관리합니다. 관리자 토큰이 필요합니다.")),
+        el("p", { class: "muted" }, "하네스 등록 제보를 검토하고 사람 담당자 명부 · 계정 관리자 권한을 관리합니다. 관리자 토큰 또는 관리자 계정이 필요합니다.")),
         el("a", { class: "admin-entry-button", href: "#/harnesses" }, principal?.kind === "admin" ? "관리 화면 열기" : "관리자 로그인")),
       errors.length ? el("section", { class: "card" }, errors.map((e) => alertBox("bad", e))) : null,
       el("section", { class: "card" }, el("h2", {}, "이 브라우저에 콜사인 토큰 넣기"), tokenForm(() => route())));
@@ -274,12 +274,15 @@
   async function viewHarnesses() {
     setCrumbs([{ text: "프로젝트", href: "#/" }, { text: "하네스 등록 검토" }]);
     const token = storedAdminToken();
-    if (!token) {
+    // 관리자 권한이 있는 계정으로 로그인했으면 토큰 없이 쿠키 세션으로 연다 (admin 토큰과 같은 권한).
+    const accountSession = token ? null : await api("session");
+    const viaAccount = accountSession?.status === 200 && accountSession.data.principal.kind === "admin";
+    if (!token && !viaAccount) {
       const input = el("input", { type: "password", autocomplete: "off", placeholder: "hub admin 토큰", "aria-label": "hub admin 토큰" });
       const message = el("div");
       setWho(null); adminLink.textContent = "관리자 로그인";
       render(el("section", { class: "card" }, el("h1", {}, "허브 관리자 로그인"),
-        el("p", {}, "허브 관리자 토큰으로 하네스 제보를 검토하고 사람 담당자 명부를 관리한다."),
+        el("p", {}, "허브 관리자 토큰으로 하네스 제보를 검토하고 사람 담당자 명부를 관리한다. 관리자 권한을 받은 허브 계정으로 로그인했다면 토큰 없이 열린다."),
         el("h2", {}, "관리자 토큰 발급"),
         el("p", { class: "muted" }, "토큰은 허브 서버에서 한 번 발급한다. Python 또는 Go 허브 터미널에서 실행한다."),
         el("pre", {}, "Python: python -m workflow_kit hub admin --db <DB 경로> token issue --role admin --name <이름>\nGo: workflow-hub admin --db <DB 경로> token issue --role admin --name <이름>"),
@@ -298,9 +301,9 @@
         } }, el("label", {}, "관리자 토큰", input), el("button", { type: "submit" }, "관리자 모드로 로그인"), message)));
       return;
     }
-    const [session, reportsRes, peopleRes, registryRes] = await Promise.all([
+    const [session, reportsRes, peopleRes, registryRes, accountsRes] = await Promise.all([
       api("session", { token }), api("harness-reports?status=pending", { token }),
-      api("harness-people", { token }), api("harness-registry", { token })]);
+      api("harness-people", { token }), api("harness-registry", { token }), api("accounts", { token })]);
     if (session.status !== 200 || session.data.principal.kind !== "admin") {
       const invalid = session.status === 401 || session.status === 403 || session.status === 200;
       if (invalid) { try { localStorage.removeItem(`hub:${hubHost}:admin-token`); } catch (e) { /* 저장소 없음 */ } }
@@ -310,8 +313,8 @@
     }
     setWho(session.data.principal);
     adminLink.textContent = "관리 화면";
-    if ([reportsRes, peopleRes, registryRes].some((r) => r.status !== 200)) {
-      render(el("section", { class: "card" }, alertBox("bad", errorText([reportsRes, peopleRes, registryRes].find((r) => r.status !== 200))))); return;
+    if ([reportsRes, peopleRes, registryRes, accountsRes].some((r) => r.status !== 200)) {
+      render(el("section", { class: "card" }, alertBox("bad", errorText([reportsRes, peopleRes, registryRes, accountsRes].find((r) => r.status !== 200))))); return;
     }
     const people = peopleRes.data.people || [];
     const registry = new Map((registryRes.data.harnesses || []).map((h) => [h.harness_id, h]));
@@ -369,9 +372,32 @@
     render(el("section", { class: "card" }, el("h1", {}, "하네스 제보 검토"),
       el("nav", { class: "nav-links" }, el("a", { href: "#/" }, "프로젝트"), el("a", { class: "on", href: "#/harnesses" }, "하네스 검토")),
       el("p", {}, "승인은 사람 명부에 등록된 담당자를 한 명 이상 지정해야 한다."), addPerson,
-      el("button", { class: "ghost", onclick: () => { try { localStorage.removeItem(`hub:${hubHost}:admin-token`); } catch (e) { /* 저장소 없음 */ } route(); } }, "관리자 토큰 지우기")),
+      token ? el("button", { class: "ghost", onclick: () => { try { localStorage.removeItem(`hub:${hubHost}:admin-token`); } catch (e) { /* 저장소 없음 */ } route(); } }, "관리자 토큰 지우기") : null),
       cards.length ? cards : el("section", { class: "card" }, el("p", { class: "muted" }, "대기 중인 제보가 없다.")),
+      accountAdmins(accountsRes.data.accounts || [], token),
       await callsignCleanup(token));
+  }
+
+  // 계정 관리자 권한 — 관리자(토큰 또는 관리자 계정)가 주고 거둔다. 거두면 그 계정의 다음 요청부터 일반 계정이다.
+  function accountAdmins(accounts, token) {
+    const message = el("div");
+    const toggle = async (a) => {
+      const verb = a.is_admin ? "거둔다" : "준다";
+      if (!window.confirm(`${a.display_name} (${a.username}) 계정에 허브 관리자 권한을 ${verb}.`)) return;
+      const r = await api(`accounts/${encodeURIComponent(a.username)}/admin`, { method: "POST", token, body: { admin: !a.is_admin } });
+      if (r.status !== 200) { message.replaceChildren(alertBox("bad", errorText(r))); return; }
+      dirty = false; route();
+    };
+    return el("section", { class: "card" }, el("h2", {}, "계정 관리자 권한"),
+      el("p", { class: "muted" }, "관리자 계정은 로그인만으로 이 관리 화면을 admin 토큰과 같은 권한으로 연다. 첫 관리자는 서버에서 `hub admin account admin --username <계정> --grant` 로 정한다."),
+      message,
+      accounts.length ? el("table", {}, el("thead", {}, el("tr", {}, ...["계정", "표시 이름", "관리자", "가입", ""].map((h) => el("th", {}, h)))),
+        el("tbody", {}, accounts.map((a) => el("tr", { class: a.active ? "" : "archived" },
+          el("td", { class: "mono" }, a.username), el("td", {}, a.display_name), el("td", {}, a.is_admin ? "관리자" : "—"),
+          el("td", {}, when(a.created_at)),
+          el("td", {}, a.active ? el("button", { class: a.is_admin ? "danger" : "", "data-account-admin": a.username, onclick: () => toggle(a) },
+            a.is_admin ? "관리자 거두기" : "관리자 주기") : null)))))
+        : el("p", { class: "muted" }, "가입한 계정이 없다."));
   }
 
   // 관리자 콜사인 정리 — 활동이 없는 것만 지워진다 (허브가 판정한다). 활동이 있으면 사유를 보인다.

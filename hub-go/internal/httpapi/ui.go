@@ -54,6 +54,13 @@ func (s *Server) handleUIAPI(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			payload["account"] = account
+		} else if principal.Kind == "admin" && principal.AuthMode == "account" {
+			account, err := s.sessionAccount(r, now)
+			if err != nil {
+				writeScreenError(w, err)
+				return
+			}
+			payload["account"] = account
 		}
 		writeJSONResponse(w, http.StatusOK, payload)
 	case "/api/projects":
@@ -93,10 +100,34 @@ func (s *Server) handleUIAPI(w http.ResponseWriter, r *http.Request) {
 			writeScreenError(w, listErr)
 			return
 		}
-		writeJSONResponse(w, http.StatusOK, map[string]any{"projects": projects, "principal": principalSummary(principal)})
+		payload := map[string]any{"projects": projects, "principal": principalSummary(principal)}
+		if principal.Kind == "admin" && principal.AuthMode == "account" {
+			account, err := s.sessionAccount(r, now)
+			if err != nil {
+				writeScreenError(w, err)
+				return
+			}
+			payload["account"] = account
+		}
+		writeJSONResponse(w, http.StatusOK, payload)
+	case "/api/accounts":
+		if principal.Kind != "admin" {
+			writeScreenError(w, store.Forbidden(adminOnlyMessage))
+			return
+		}
+		if r.Method != http.MethodGet {
+			writeJSONResponse(w, http.StatusMethodNotAllowed, map[string]any{"error_code": "method_not_allowed", "message": "GET 만 지원한다", "detail": map[string]any{}})
+			return
+		}
+		list, err := s.cfg.Store.AccountList()
+		if err != nil {
+			writeScreenError(w, err)
+			return
+		}
+		writeJSONResponse(w, http.StatusOK, map[string]any{"accounts": list})
 	case "/api/harness-reports":
 		if principal.Kind != "admin" {
-			writeScreenError(w, store.Forbidden("허브 관리자 웹 토큰만 하네스 제보를 검토할 수 있다"))
+			writeScreenError(w, store.Forbidden(adminOnlyMessage))
 			return
 		}
 		if r.Method != http.MethodGet {
@@ -111,7 +142,7 @@ func (s *Server) handleUIAPI(w http.ResponseWriter, r *http.Request) {
 		writeJSONResponse(w, http.StatusOK, result)
 	case "/api/harness-people":
 		if principal.Kind != "admin" {
-			writeScreenError(w, store.Forbidden("허브 관리자 웹 토큰만 사람 명부를 관리할 수 있다"))
+			writeScreenError(w, store.Forbidden(adminOnlyMessage))
 			return
 		}
 		ctx := store.Ctx{Now: now, Via: "ui", Principal: principal}
@@ -143,7 +174,7 @@ func (s *Server) handleUIAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	case "/api/harness-registry":
 		if principal.Kind != "admin" {
-			writeScreenError(w, store.Forbidden("허브 관리자 웹 토큰만 전역 등록부를 조회할 수 있다"))
+			writeScreenError(w, store.Forbidden(adminOnlyMessage))
 			return
 		}
 		if r.Method != http.MethodGet {
@@ -157,6 +188,10 @@ func (s *Server) handleUIAPI(w http.ResponseWriter, r *http.Request) {
 		}
 		writeJSONResponse(w, http.StatusOK, result)
 	default:
+		if rest, ok := strings.CutPrefix(r.URL.Path, "/api/accounts/"); ok && strings.HasSuffix(rest, "/admin") && strings.Count(rest, "/") == 1 {
+			s.handleAccountAdminUIAPI(w, r, principal, strings.TrimSuffix(rest, "/admin"), now)
+			return
+		}
 		if strings.HasPrefix(r.URL.Path, "/api/harness-reports/") {
 			s.handleHarnessDecisionUIAPI(w, r, principal, now)
 			return
@@ -165,9 +200,54 @@ func (s *Server) handleUIAPI(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+const adminOnlyMessage = "허브 관리자(admin 토큰 또는 관리자 계정)만 할 수 있다"
+
+// sessionAccount is the logged-in account behind the browser's session cookie (nil when there is none).
+func (s *Server) sessionAccount(r *http.Request, now time.Time) (*store.HubAccount, error) {
+	cookie, err := r.Cookie("workflow_hub_session")
+	if err != nil {
+		return nil, nil
+	}
+	return s.cfg.Store.AccountBySession(cookie.Value, now)
+}
+
+func (s *Server) handleAccountAdminUIAPI(w http.ResponseWriter, r *http.Request, principal *store.Principal, username string, now time.Time) {
+	if principal.Kind != "admin" {
+		writeScreenError(w, store.Forbidden(adminOnlyMessage))
+		return
+	}
+	if r.Method != http.MethodPost {
+		writeJSONResponse(w, http.StatusMethodNotAllowed, map[string]any{"error_code": "method_not_allowed", "message": "POST 만 지원한다", "detail": map[string]any{}})
+		return
+	}
+	body, err := readScreenJSON(r)
+	if err != nil {
+		writeScreenError(w, err)
+		return
+	}
+	admin, ok := body["admin"].(bool)
+	if !ok {
+		writeScreenError(w, store.InvalidField("admin", "true · false"))
+		return
+	}
+	actor := "admin:" + principal.Name
+	if principal.AuthMode == "account" {
+		actor = "account:" + principal.AccountName
+	}
+	if decoded, err := url.PathUnescape(username); err == nil {
+		username = decoded
+	}
+	result, err := s.cfg.Store.AccountSetAdmin(username, admin, now, actor)
+	if err != nil {
+		writeScreenError(w, err)
+		return
+	}
+	writeJSONResponse(w, http.StatusOK, result)
+}
+
 func (s *Server) handleHarnessDecisionUIAPI(w http.ResponseWriter, r *http.Request, principal *store.Principal, now time.Time) {
 	if principal.Kind != "admin" {
-		writeScreenError(w, store.Forbidden("허브 관리자 웹 토큰만 하네스 제보를 결정할 수 있다"))
+		writeScreenError(w, store.Forbidden(adminOnlyMessage))
 		return
 	}
 	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/harness-reports/"), "/")
@@ -1194,16 +1274,27 @@ func (s *Server) screenPrincipal(r *http.Request, now time.Time) (*store.Princip
 			return nil, accountErr
 		}
 		if account != nil {
+			// 관리자 계정 = admin 토큰과 같은 권한. 프로젝트 화면은 연결된 사람 콜사인을 먼저 쓴다 (승인 · 응답은 콜사인의 일).
+			var admin *store.Principal
+			if account.IsAdmin {
+				admin = &store.Principal{Kind: "admin", Name: account.DisplayName, AuthMode: "account", AccountName: account.Username, AccountLabel: account.DisplayName}
+			}
 			parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
 			if len(parts) >= 3 && parts[0] == "api" && parts[1] == "projects" {
 				principal, err := s.cfg.Store.AccountCallsign(account.ID, parts[2])
 				if err != nil {
 					return nil, err
 				}
-				if principal == nil {
-					return nil, store.Forbidden("이 허브 계정에 해당 프로젝트의 사람 콜사인이 연결되어 있지 않다")
+				if principal != nil {
+					return principal, nil
 				}
-				return principal, nil
+				if admin != nil {
+					return admin, nil
+				}
+				return nil, store.Forbidden("이 허브 계정에 해당 프로젝트의 사람 콜사인이 연결되어 있지 않다")
+			}
+			if admin != nil {
+				return admin, nil
 			}
 			return &store.Principal{Kind: "account", Name: account.ID}, nil
 		}

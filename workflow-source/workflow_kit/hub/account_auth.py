@@ -206,10 +206,39 @@ class HubAccounts:
         if not token:
             return None
         with self.store.read() as conn:
-            row = conn.execute("SELECT a.id,a.username,a.display_name FROM hub_account_session s JOIN hub_account a ON a.id=s.account_id "
+            row = conn.execute("SELECT a.id,a.username,a.display_name,a.is_admin FROM hub_account_session s "
+                               "JOIN hub_account a ON a.id=s.account_id "
                                "WHERE s.token_hash=? AND s.revoked_at IS NULL AND s.expires_at>? AND a.active=1",
                                (hash_token(token), _iso(now))).fetchone()
-        return dict(row) if row else None
+        if not row:
+            return None
+        return {**dict(row), "is_admin": bool(row["is_admin"])}
+
+    def list_accounts(self) -> list[dict[str, Any]]:
+        """허브 관리자용 계정 목록 — 비밀번호 해시 · 세션은 싣지 않는다."""
+        with self.store.read() as conn:
+            return [{**dict(r), "is_admin": bool(r["is_admin"]), "active": bool(r["active"])} for r in conn.execute(
+                "SELECT username,display_name,is_admin,active,created_at FROM hub_account ORDER BY username")]
+
+    def set_admin(self, username: str, admin: object, now: datetime, actor: str) -> dict[str, Any]:
+        """계정에 허브 관리자 권한을 주거나 거둔다 — admin 토큰과 같은 권한이 그 계정의 로그인 세션에 열린다.
+
+        거두면 다음 요청부터 일반 계정이다 (세션을 끊지 않는다 — 권한은 요청마다 DB 에서 읽는다). ``actor`` 는 이벤트의
+        행위자: 서버 CLI 는 ``admin:hub``, 화면은 ``admin:<토큰 이름>`` 또는 ``account:<계정 이름>``."""
+        if not isinstance(admin, bool):
+            raise invalid_field("admin", "true · false")
+        username = username.strip().lower() if isinstance(username, str) else ""
+        with self.store.write() as conn:
+            row = conn.execute("SELECT id,is_admin FROM hub_account WHERE username=? AND active=1", (username,)).fetchone()
+            if row is None:
+                raise not_found(f"계정이 없다: {username}")
+            was = bool(row["is_admin"])
+            if was != admin:
+                conn.execute("UPDATE hub_account SET is_admin=? WHERE id=?", (1 if admin else 0, row["id"]))
+                self.store._event(conn, Ctx(now=now, via="admin"), None, "hub_account", username,
+                                  "grant_admin" if admin else "revoke_admin", {"is_admin": was}, {"is_admin": admin},
+                                  callsign=actor)
+        return {"username": username, "is_admin": admin, "changed": was != admin}
 
     def callsign(self, account_id: str, project_id: str, now: datetime) -> Principal | None:
         with self.store.read() as conn:

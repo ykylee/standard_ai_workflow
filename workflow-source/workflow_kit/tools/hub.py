@@ -7,6 +7,8 @@
     hub admin  --db PATH token revoke --name NAME
     hub admin  --db PATH callsign {revoke|delete} --project ID --callsign NAME
     hub admin  --db PATH account password --username NAME   (비밀번호는 터미널 입력 또는 stdin 한 줄)
+    hub admin  --db PATH account admin --username NAME {--grant|--revoke}   (계정에 허브 관리자 권한)
+    hub admin  --db PATH account list
     hub admin  --db PATH guide set --project ID --file PATH [--actor NAME]
 
 ``admin`` 은 DB 파일에 직접 접근하는 로컬 명령이다 — 네트워크로 열지 않는다.
@@ -93,6 +95,12 @@ def _parser() -> argparse.ArgumentParser:
     acsub = ac.add_subparsers(dest="action", required=True)
     ap = acsub.add_parser("password", help="허브 계정 비밀번호 재설정 — 비밀번호는 인자로 받지 않는다")
     ap.add_argument("--username", required=True)
+    aa = acsub.add_parser("admin", help="계정에 허브 관리자 권한을 주거나 거둔다 — admin 토큰과 같은 권한")
+    aa.add_argument("--username", required=True)
+    aag = aa.add_mutually_exclusive_group(required=True)
+    aag.add_argument("--grant", action="store_true")
+    aag.add_argument("--revoke", action="store_true")
+    acsub.add_parser("list", help="허브 계정 목록 (관리자 여부 포함)")
     gd = asub.add_parser("guide")
     gsub = gd.add_subparsers(dest="action", required=True)
     gs = gsub.add_parser("set", help="프로젝트 지침 새 판 (제안 · 승인 흐름은 M-037)")
@@ -275,7 +283,12 @@ def main(argv: list[str] | None = None) -> int:
             elif args.what == "account":
                 from workflow_kit.hub.account_auth import HubAccounts
 
-                out = HubAccounts(store).reset_password(args.username, _read_new_password(), now)
+                if args.action == "admin":
+                    out = HubAccounts(store).set_admin(args.username, bool(args.grant), now, "admin:hub")
+                elif args.action == "list":
+                    out = {"accounts": HubAccounts(store).list_accounts()}
+                else:
+                    out = HubAccounts(store).reset_password(args.username, _read_new_password(), now)
                 print(json.dumps({"status": "ok", **out}, ensure_ascii=False))
             elif args.what == "guide":
                 from workflow_kit.hub.setup import Setup

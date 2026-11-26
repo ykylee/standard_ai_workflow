@@ -730,6 +730,76 @@ def case_18_open_signup(tmp: Path, impl: str, cmd: list[str] | None) -> None:
         hub.stop()
 
 
+def case_19_account_admin(tmp: Path, impl: str, cmd: list[str] | None) -> None:
+    """계정 관리자 권한 — 서버 CLI 로 첫 관리자, 관리자 계정은 admin 토큰과 같은 관리 화면, 화면에서 주고 거둠, 거두면 즉시."""
+    db = tmp / f"account-admin-{impl}.db"
+    hub = Hub(db, cmd_prefix=cmd)
+    prefix = list(cmd) if cmd is not None else [sys.executable, "-m", "workflow_kit", "hub"]
+
+    def admin_cli(*args: str) -> tuple[int, Any]:
+        cp = subprocess.run([*prefix, "admin", "--db", str(db), "account", *args], capture_output=True,
+                            encoding="utf-8", env=_env(), timeout=60)
+        try:
+            return cp.returncode, json.loads(cp.stdout.strip().splitlines()[-1])
+        except (ValueError, IndexError):
+            return cp.returncode, {"stdout": cp.stdout[-300:], "stderr": cp.stderr[-300:]}
+
+    try:
+        pid, _owner = _project(hub, "account-admin")
+        post = lambda path, body, cookie: _req(hub.base, path, method="POST", body=body, cookie=cookie)  # noqa: E731
+
+        def enroll(name: str) -> str:
+            st, _, head = post("/api/account/enroll", {"username": name, "display_name": name.title(), "password": "eight-ch"}, None)
+            assert st == 200, (name, st)
+            return head.get("set-cookie", "").split(";", 1)[0]
+
+        boss, plain = enroll("boss"), enroll("plain")
+        kind = lambda cookie: _req(hub.base, "/api/session", cookie=cookie)[1].get("principal", {}).get("kind")  # noqa: E731
+        got: dict[str, Any] = {
+            "before kind": kind(boss), "before accounts": _req(hub.base, "/api/accounts", cookie=boss)[0],
+            "before reports": _req(hub.base, "/api/harness-reports", cookie=boss)[0],
+            "before project": _req(hub.base, f"/api/projects/{pid}/callsigns", cookie=boss)[0],
+            "cli usage": admin_cli("admin", "--username", "boss")[0] != 0,
+            "cli missing": admin_cli("admin", "--username", "nobody", "--grant")[1].get("error_code"),
+        }
+        rc, granted = admin_cli("admin", "--username", "boss", "--grant")
+        got["cli grant"] = (rc, granted.get("is_admin"), granted.get("changed"))
+        got["cli again"] = admin_cli("admin", "--username", "BOSS", "--grant")[1].get("changed")
+        got["cli list"] = sorted((a["username"], a["is_admin"]) for a in admin_cli("list")[1].get("accounts", []))
+        session = _req(hub.base, "/api/session", cookie=boss)[1]
+        got["after kind"] = (session.get("principal", {}).get("kind"), (session.get("account") or {}).get("username"))
+        st_acc, accs, _ = _req(hub.base, "/api/accounts", cookie=boss)
+        got["accounts"] = (st_acc, sorted((a["username"], a["is_admin"]) for a in accs.get("accounts", [])),
+                           "password" in json.dumps(accs))
+        got["reports"] = _req(hub.base, "/api/harness-reports", cookie=boss)[0]
+        st_p, projects, _ = _req(hub.base, "/api/projects", cookie=boss)
+        got["projects"] = (st_p, [p["id"] for p in projects.get("projects", [])], (projects.get("account") or {}).get("username"))
+        got["project"] = _req(hub.base, f"/api/projects/{pid}/callsigns", cookie=boss)[0]
+        got["plain forbidden"] = post("/api/accounts/boss/admin", {"admin": False}, plain)[0]
+        got["bad body"] = post("/api/accounts/plain/admin", {"admin": "yes"}, boss)[0]
+        got["unknown"] = post("/api/accounts/nobody/admin", {"admin": True}, boss)[0]
+        got["grant plain"] = post("/api/accounts/plain/admin", {"admin": True}, boss)[:2][0]
+        got["plain kind"] = kind(plain)
+        got["revoke boss"] = post("/api/accounts/boss/admin", {"admin": False}, plain)[0]
+        got["boss now"] = (kind(boss), _req(hub.base, "/api/accounts", cookie=boss)[0], _req(hub.base, "/api/harness-reports", cookie=boss)[0])
+        with sqlite3.connect(db) as conn:
+            got["events"] = [tuple(r) for r in conn.execute(
+                "SELECT target_id, op, callsign FROM event WHERE target_kind = 'hub_account' AND op LIKE '%admin' ORDER BY seq")]
+        want = {"before kind": "account", "before accounts": 403, "before reports": 403, "before project": 403,
+                "cli usage": True, "cli missing": "not_found", "cli grant": (0, True, True), "cli again": False,
+                "cli list": [("boss", True), ("plain", False)], "after kind": ("admin", "boss"),
+                "accounts": (200, [("boss", True), ("plain", False)], False), "reports": 200,
+                "projects": (200, [pid], "boss"), "project": 200, "plain forbidden": 403, "bad body": 400, "unknown": 404,
+                "grant plain": 200, "plain kind": "admin", "revoke boss": 200, "boss now": ("account", 403, 403),
+                "events": [("boss", "grant_admin", "admin:hub"), ("plain", "grant_admin", "account:boss"),
+                           ("boss", "revoke_admin", "account:plain")]}
+        diff = {k: (got[k], want[k]) for k in want if got[k] != want[k]}
+        _record(f"case 19 (계정 관리자 권한 — CLI 첫 부여 · admin 토큰과 같은 관리 화면 · 화면에서 주고 거둠 · 즉시 반영) [{impl}]",
+                not diff, f"diff={diff}")
+    finally:
+        hub.stop()
+
+
 def main() -> int:
     print("check_hub_ui")
     with tempfile.TemporaryDirectory(prefix="hub-ui-") as d:
@@ -743,12 +813,14 @@ def main() -> int:
         case_16_accounts_confirmations(tmp)
         case_17_proxy_origin(tmp, "python", None)
         case_18_open_signup(tmp, "python", None)
+        case_19_account_admin(tmp, "python", None)
         go_cmd, reason = _resolve_go_hub(tmp)
         if go_cmd is None:
             print(f"    [unmeasured] go 허브 미측정: {reason}")
         else:
             case_17_proxy_origin(tmp, "go", go_cmd)
             case_18_open_signup(tmp, "go", go_cmd)
+            case_19_account_admin(tmp, "go", go_cmd)
     print(f"PASS {len(_passes)} · FAIL {len(_failures)}")
     for f in _failures:
         print(f"  FAIL {f}")

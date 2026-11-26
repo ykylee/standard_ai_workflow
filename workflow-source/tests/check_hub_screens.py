@@ -296,6 +296,19 @@ def measure(impl: str, cmd: list[str] | None, exe: str, tmp: Path) -> None:
         ops = state[3]
         ok = ok and ops[0] == "declare" and ops[-1] == "declare" and "release" in ops and "transfer" in ops and len([o for o in ops if o not in ("declare", "release", "transfer")]) == 2
         _record(f"[{impl}] 오케스트레이션 — 계정 로그인 소유자 조작", ok, f"{done and done[1]} {state}")
+        # 관리자 계정 — 쿠키 세션만으로 관리 화면이 열리고, 계정 권한 단추가 실브라우저에서 같은 출처 POST 로 동작한다
+        with sqlite3.connect(db) as c:
+            c.execute("UPDATE hub_account SET is_admin = 1")
+            admins = c.execute("SELECT COUNT(*) FROM hub_account").fetchone()[0]
+        dom = draw(exe, tmp, port, "harnesses")
+        bad = problems(dom, "계정 관리자 권한") + (["로그인 양식이 떴다"] if "관리자 모드로 로그인" in dom else [])
+        _record(f"[{impl}] 관리자 계정 — 토큰 없이 관리 화면 · 계정 권한 표", not bad, " · ".join(bad))
+        dom = draw(exe, tmp, port, "harnesses", "관리자 거두기", 12000)
+        with sqlite3.connect(db) as c:
+            left = c.execute("SELECT COUNT(*) FROM hub_account WHERE is_admin = 1").fetchone()[0]
+        done = re.search(r'data-acts="([^"]*)"', dom)
+        _record(f"[{impl}] 관리자 계정 — 화면 단추로 권한 거두기", bool(done) and html.unescape(done[1]) == "관리자 거두기"
+                and admins >= 1 and left == admins - 1, f"{done and done[1]} admins={admins} left={left}")
     finally:
         if srv:
             srv.shutdown()

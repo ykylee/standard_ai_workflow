@@ -148,7 +148,7 @@ def _measure(label: str) -> None:
             tid = fill(a, tok, "A")
             # 허브 전역 표(계정 연결 · 실행 승인)를 심어 둔다 — 묶음에 실리면 안 된다
             with sqlite3.connect(db_a) as c:
-                c.execute("INSERT INTO hub_account VALUES ('acct_x', 'x', 'X', 'h', 1, '2026-01-01T00:00:00+00:00')")
+                c.execute("INSERT INTO hub_account (id, username, display_name, password_hash, active, created_at) VALUES ('acct_x', 'x', 'X', 'h', 1, '2026-01-01T00:00:00+00:00')")
                 c.execute("INSERT INTO hub_account_callsign VALUES ('acct_x', ?, 'owner-a', '2026-01-01T00:00:00+00:00')", (pid,))
                 c.execute("INSERT INTO approval_grant (id, project_id, action, params_json, summary_json, requested_by, state, created_at) "
                           "VALUES ('MSG-x', ?, 'migrate_import', '{}', '{}', 'owner-a', 'approved', '2026-01-01T00:00:00+00:00')", (pid,))

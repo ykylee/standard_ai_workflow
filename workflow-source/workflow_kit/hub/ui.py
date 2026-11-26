@@ -183,13 +183,18 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
             return p
         account = accounts.account(request.cookies.get("workflow_hub_session"), now)
         if account:
+            # 관리자 계정 = admin 토큰과 같은 권한. 프로젝트 화면은 연결된 사람 콜사인을 먼저 쓴다 (승인 · 응답은 콜사인의 일).
+            admin = Principal(kind="admin", name=account["display_name"], auth_mode="account",
+                              account_name=account["username"]) if account["is_admin"] else None
             pid = request.path_params.get("pid")
             if pid:
                 linked = accounts.callsign(account["id"], pid, now)
                 if linked:
                     return linked
+                if admin:
+                    return admin
                 raise forbidden("이 허브 계정에 해당 프로젝트의 사람 콜사인이 연결되어 있지 않다")
-            return Principal(kind="account", name=account["display_name"])
+            return admin or Principal(kind="account", name=account["display_name"])
         if web_token_name:
             p = store.web_principal(web_token_name)
             if p is not None:
@@ -255,6 +260,8 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
 
     def get_projects(request: Request, p: Principal, now: datetime, _b: Any) -> dict[str, Any]:
         account = accounts.account(request.cookies.get("workflow_hub_session"), now)
+        if account and p.kind == "admin" and p.auth_mode == "account":
+            return {"projects": store.projects(None), "principal": _principal_summary(p), "account": account}
         if account:
             rows = [project for pid in accounts.projects(account["id"]) for project in store.projects(pid)]
             return {"projects": rows, "principal": {"kind": "account", "name": account["display_name"]}, "account": account}
@@ -263,7 +270,18 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
 
     def _admin_only(p: Principal) -> None:
         if p.kind != "admin":
-            raise forbidden("허브 관리자 웹 토큰만 하네스 제보를 검토할 수 있다")
+            raise forbidden("허브 관리자(admin 토큰 또는 관리자 계정)만 할 수 있다")
+
+    def _actor(p: Principal) -> str:
+        return f"account:{p.account_name}" if p.auth_mode == "account" else f"admin:{p.name}"
+
+    def get_accounts(request: Request, p: Principal, now: datetime, _b: Any) -> dict[str, Any]:
+        _admin_only(p)
+        return {"accounts": accounts.list_accounts()}
+
+    def post_account_admin(request: Request, p: Principal, now: datetime, b: dict[str, Any]) -> dict[str, Any]:
+        _admin_only(p)
+        return accounts.set_admin(request.path_params["username"], b.get("admin"), now, _actor(p))
 
     def get_harness_reports(request: Request, p: Principal, now: datetime, _b: Any) -> dict[str, Any]:
         _admin_only(p)
@@ -746,6 +764,8 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
         Route("/api/session", api(get_session), methods=["GET"]),
         Route("/api/account/{action}", account_endpoint, methods=["POST"]),
         Route("/api/projects", api(get_projects), methods=["GET"]),
+        Route("/api/accounts", api(get_accounts), methods=["GET"]),
+        Route("/api/accounts/{username}/admin", api(post_account_admin, body=True), methods=["POST"]),
         Route("/api/harness-reports", api(get_harness_reports), methods=["GET"]),
         Route("/api/harness-reports/{rid}/decision", api(post_harness_decision, body=True), methods=["POST"]),
         Route("/api/harness-people", api(get_harness_people), methods=["GET"]),

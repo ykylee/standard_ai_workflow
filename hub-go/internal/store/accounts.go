@@ -29,6 +29,7 @@ type HubAccount struct {
 	ID          string `json:"id"`
 	Username    string `json:"username"`
 	DisplayName string `json:"display_name"`
+	IsAdmin     bool   `json:"is_admin"`
 }
 
 func accountPasswordHash(password string) (string, error) {
@@ -250,6 +251,57 @@ func (s *Store) AccountResetPassword(username, password string, now time.Time) (
 	})
 }
 
+// AccountList is the hub-admin view of accounts — never password hashes or sessions.
+func (s *Store) AccountList() ([]map[string]any, error) {
+	rows, err := s.pool.Query("SELECT username,display_name,is_admin,active,created_at FROM hub_account ORDER BY username")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []map[string]any{}
+	for rows.Next() {
+		var username, display, created string
+		var admin, active int
+		if err := rows.Scan(&username, &display, &admin, &active, &created); err != nil {
+			return nil, err
+		}
+		out = append(out, map[string]any{"username": username, "display_name": display, "is_admin": admin != 0, "active": active != 0, "created_at": created})
+	}
+	return out, rows.Err()
+}
+
+// AccountSetAdmin grants or revokes hub-admin rights on an account: its login session then carries the same rights as
+// an admin token. Revoking takes effect on the next request — rights are read from the DB per request, sessions stay.
+// actor is the event author: admin:hub (server CLI), admin:<token name> or account:<username> (screen).
+func (s *Store) AccountSetAdmin(username string, admin bool, now time.Time, actor string) (map[string]any, error) {
+	username = strings.ToLower(strings.TrimSpace(username))
+	return s.withWriteTx(func(tx *sql.Tx) (map[string]any, error) {
+		var id string
+		var was int
+		err := tx.QueryRow("SELECT id,is_admin FROM hub_account WHERE username=? AND active=1", username).Scan(&id, &was)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, NotFound("계정이 없다: " + username)
+		}
+		if err != nil {
+			return nil, err
+		}
+		changed := (was != 0) != admin
+		if changed {
+			value, op := 0, "revoke_admin"
+			if admin {
+				value, op = 1, "grant_admin"
+			}
+			if _, err := tx.Exec("UPDATE hub_account SET is_admin=? WHERE id=?", value, id); err != nil {
+				return nil, err
+			}
+			if err := s.RecordEvent(tx, Ctx{Now: now, Via: "admin"}, nil, "hub_account", username, op, map[string]any{"is_admin": was != 0}, map[string]any{"is_admin": admin}, &actor); err != nil {
+				return nil, err
+			}
+		}
+		return map[string]any{"username": username, "is_admin": admin, "changed": changed}, nil
+	})
+}
+
 func (s *Store) AccountLogin(username, password string, now time.Time) (string, HubAccount, error) {
 	username = strings.ToLower(strings.TrimSpace(username))
 	usernameHash := HashToken(username)
@@ -375,7 +427,9 @@ func (s *Store) AccountBySession(token string, now time.Time) (*HubAccount, erro
 		return nil, nil
 	}
 	var a HubAccount
-	err := s.pool.QueryRow("SELECT a.id,a.username,a.display_name FROM hub_account_session s JOIN hub_account a ON a.id=s.account_id WHERE s.token_hash=? AND s.revoked_at IS NULL AND s.expires_at>? AND a.active=1", HashToken(token), db.FormatISO(now)).Scan(&a.ID, &a.Username, &a.DisplayName)
+	var admin int
+	err := s.pool.QueryRow("SELECT a.id,a.username,a.display_name,a.is_admin FROM hub_account_session s JOIN hub_account a ON a.id=s.account_id WHERE s.token_hash=? AND s.revoked_at IS NULL AND s.expires_at>? AND a.active=1", HashToken(token), db.FormatISO(now)).Scan(&a.ID, &a.Username, &a.DisplayName, &admin)
+	a.IsAdmin = admin != 0
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -420,7 +474,9 @@ func (s *Store) AccountProjects(accountID string) ([]string, error) {
 
 func (s *Store) AccountDetails(accountID string) (*HubAccount, error) {
 	var a HubAccount
-	err := s.pool.QueryRow("SELECT id,username,display_name FROM hub_account WHERE id=? AND active=1", accountID).Scan(&a.ID, &a.Username, &a.DisplayName)
+	var admin int
+	err := s.pool.QueryRow("SELECT id,username,display_name,is_admin FROM hub_account WHERE id=? AND active=1", accountID).Scan(&a.ID, &a.Username, &a.DisplayName, &admin)
+	a.IsAdmin = admin != 0
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}

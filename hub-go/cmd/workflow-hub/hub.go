@@ -224,6 +224,49 @@ func cmdMigrate(args []string, stdout, stderr io.Writer) int {
 
 const accountPasswordUsage = "hub admin account password --username <계정> — 비밀번호는 터미널 입력 또는 stdin 한 줄로만 받는다"
 
+const accountAdminUsage = "hub admin account admin --username <계정> {--grant|--revoke} · hub admin account list"
+
+// cmdAdminAccountAdmin grants or revokes hub-admin rights on an account, or lists accounts (Python `hub admin account`).
+func cmdAdminAccountAdmin(st *store.Store, action string, subArgs []string, now time.Time, stdout, stderr io.Writer) int {
+	if action == "list" {
+		if len(subArgs) > 0 {
+			fmt.Fprintln(stderr, accountAdminUsage)
+			return 2
+		}
+		list, err := st.AccountList()
+		if err != nil {
+			return writeHubErrOut(stdout, stderr, err)
+		}
+		writeJSONOut(stdout, map[string]any{"status": "ok", "accounts": list})
+		return 0
+	}
+	afs := newAdminFlagSet("workflow-hub admin account admin", io.Discard)
+	username := afs.String("username", "", "계정 이름")
+	grant := afs.Bool("grant", false, "관리자 권한을 준다")
+	revoke := afs.Bool("revoke", false, "관리자 권한을 거둔다")
+	if err := afs.Parse(subArgs); err != nil {
+		fmt.Fprintln(stderr, accountAdminUsage)
+		if err == flag.ErrHelp {
+			return 0
+		}
+		return 2
+	}
+	if strings.TrimSpace(*username) == "" || afs.NArg() > 0 || *grant == *revoke {
+		fmt.Fprintln(stderr, accountAdminUsage)
+		return 2
+	}
+	res, err := st.AccountSetAdmin(*username, *grant, now, "admin:hub")
+	if err != nil {
+		return writeHubErrOut(stdout, stderr, err)
+	}
+	out := map[string]any{"status": "ok"}
+	for k, v := range res {
+		out[k] = v
+	}
+	writeJSONOut(stdout, out)
+	return 0
+}
+
 // readNewPassword prompts twice without echo on a terminal, else reads one stdin line. Never from arguments.
 func readNewPassword(stderr io.Writer) (string, error) {
 	fd := int(os.Stdin.Fd())
@@ -265,7 +308,7 @@ func cmdAdmin(args []string, stdout, stderr io.Writer) int {
 	}
 	rest := fs.Args()
 	if len(rest) < 2 {
-		fmt.Fprintln(stderr, "hub admin: token {issue|revoke} · callsign {revoke|delete} · account password 를 지정한다")
+		fmt.Fprintln(stderr, "hub admin: token {issue|revoke} · callsign {revoke|delete} · account {password|admin|list} 를 지정한다")
 		return 2
 	}
 
@@ -361,6 +404,9 @@ func cmdAdmin(args []string, stdout, stderr io.Writer) int {
 		writeJSONOut(stdout, out)
 		return 0
 	case "account":
+		if action == "admin" || action == "list" {
+			return cmdAdminAccountAdmin(st, action, subArgs, now, stdout, stderr)
+		}
 		if action != "password" {
 			fmt.Fprintln(stderr, accountPasswordUsage) // 값을 되뇌지 않는다 — 비밀번호를 인자로 준 실수가 로그에 남는다
 			return 2

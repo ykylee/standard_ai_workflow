@@ -16,6 +16,73 @@ var sessionIDPattern = regexp.MustCompile(`^S-\d{8}-[0-9a-f]{8}$`)
 
 const sessionSignalStale = 15 * time.Minute
 
+// sessionExpire — 신호 끊김이 이만큼 이어지면 허브가 ended 로 만료한다 (TASK-2026-11-26-claude-plex-019, Python SESSION_EXPIRE).
+const sessionExpire = 24 * time.Hour
+
+// expireSessions — 마지막 신호가 24시간을 넘은 세션을 ended 로 바꾸고(이벤트 expire, callsign hub) 열린 배정을
+// session_expired 로 되돌린다. 15분 뒤 unknown 으로 보이기만 하던 세션이 목록에 영영 남던 것을 정리한다.
+func (s *Store) expireSessions(tx *sql.Tx, ctx Ctx, projectID string) error {
+	rows, err := tx.Query("SELECT id,last_signal_at FROM session WHERE project_id=? AND status!='ended' AND last_signal_at<=? ORDER BY id",
+		projectID, db.FormatISO(ctx.Now.Add(-sessionExpire)))
+	if err != nil {
+		return err
+	}
+	type stale struct{ id, last string }
+	found := []stale{}
+	for rows.Next() {
+		var x stale
+		if err := rows.Scan(&x.id, &x.last); err != nil {
+			_ = rows.Close()
+			return err
+		}
+		found = append(found, x)
+	}
+	if err := rows.Err(); err != nil {
+		_ = rows.Close()
+		return err
+	}
+	if err := rows.Close(); err != nil {
+		return err
+	}
+	hub := "hub"
+	for _, x := range found {
+		if _, err := tx.Exec("UPDATE session SET status='ended',ended_at=?,waiting_since=NULL,version=version+1 WHERE project_id=? AND id=?",
+			db.FormatISO(ctx.Now), projectID, x.id); err != nil {
+			return err
+		}
+		if err := s.RecordEvent(tx, ctx, &projectID, "session", x.id, "expire", map[string]any{"last_signal_at": x.last},
+			map[string]any{"status": "ended", "reason": "no_signal_24h"}, &hub); err != nil {
+			return err
+		}
+		arows, err := tx.Query("SELECT task_id FROM assignment WHERE project_id=? AND session_id=? AND state IN ('offered','accepted')", projectID, x.id)
+		if err != nil {
+			return err
+		}
+		tasks := []string{}
+		for arows.Next() {
+			var t string
+			if err := arows.Scan(&t); err != nil {
+				_ = arows.Close()
+				return err
+			}
+			tasks = append(tasks, t)
+		}
+		if err := arows.Err(); err != nil {
+			_ = arows.Close()
+			return err
+		}
+		if err := arows.Close(); err != nil {
+			return err
+		}
+		for _, t := range tasks {
+			if err := s.returnOfferedAssignment(tx, ctx, projectID, t, "session_expired"); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func sessionStatus(status, waiting string, lastSignal sql.NullString, now time.Time, openAssignments int) string {
 	if status == "ended" {
 		return "ended"
@@ -199,12 +266,12 @@ func chooseSessionGuideVersion(tx *sql.Tx, projectID, sessionID, requested strin
 func sessionView(q interface {
 	QueryRow(string, ...any) *sql.Row
 }, projectID, sessionID string, now time.Time) (map[string]any, error) {
-	var callsign, harness, harnessSession, kind, deliveryJSON, status, lastSignal, waiting, started string
+	var callsign, harness, harnessSession, kind, deliveryJSON, status, lastSignal, waiting, started, endedAt string
 	var allowWait, reviewIdeas int
 	err := q.QueryRow(`SELECT callsign, harness, harness_session_id, kind, allow_wait, delivery_json,
-		status, last_signal_at, COALESCE(waiting_since, ''), started_at, review_ideas FROM session WHERE project_id=? AND id=?`,
+		status, last_signal_at, COALESCE(waiting_since, ''), started_at, review_ideas, COALESCE(ended_at, '') FROM session WHERE project_id=? AND id=?`,
 		projectID, sessionID).Scan(&callsign, &harness, &harnessSession, &kind, &allowWait, &deliveryJSON,
-		&status, &lastSignal, &waiting, &started, &reviewIdeas)
+		&status, &lastSignal, &waiting, &started, &reviewIdeas, &endedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -226,6 +293,23 @@ func sessionView(q interface {
 		view["harness_session_id"] = harnessSession
 	} else {
 		view["harness_session_id"] = nil
+	}
+	// 끝난 까닭 — 세션이 끝냈나(ended), 신호가 끊겨 허브가 만료했나(expired). 끝나지 않았으면 null.
+	view["ended_at"], view["end_reason"] = nil, nil
+	if status == "ended" {
+		if endedAt != "" {
+			view["ended_at"] = endedAt
+		}
+		var one int
+		switch err := q.QueryRow("SELECT 1 FROM event WHERE project_id=? AND target_kind='session' AND target_id=? AND op='expire' LIMIT 1",
+			projectID, sessionID).Scan(&one); {
+		case err == nil:
+			view["end_reason"] = "expired"
+		case errors.Is(err, sql.ErrNoRows):
+			view["end_reason"] = "ended"
+		default:
+			return nil, err
+		}
 	}
 	return view, nil
 }
@@ -376,6 +460,11 @@ func (s *Store) SessionUpdate(ctx Ctx, id string, values map[string]any) (map[st
 func (s *Store) SessionList(ctx Ctx, callsign, statusFilter string) (map[string]any, error) {
 	p, err := NeedReader(ctx)
 	if err != nil {
+		return nil, err
+	}
+	if _, err := s.withWriteTx(func(tx *sql.Tx) (map[string]any, error) {
+		return nil, s.expireSessions(tx, ctx, p.ProjectID)
+	}); err != nil {
 		return nil, err
 	}
 	query := "SELECT id, callsign FROM session WHERE project_id=?"

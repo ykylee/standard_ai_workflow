@@ -283,3 +283,6 @@ details.account[open] { display: grid; gap: var(--sp-2); }
   .rail .lbl, .rail .lbl-id, .rail .current .lbl { display: none; }
 }
 .halt-row { justify-content: space-between; margin-top: var(--sp-3); padding-top: var(--sp-3); border-top: 1px solid var(--line); }
+/* 끝난 세션 묶음 — 살아 있는 세션 표 아래 접어 둔다 (TASK-2026-11-26-claude-plex-019) */
+.ended-sessions { margin-top: var(--sp-3); }
+.ended-sessions > summary { cursor: pointer; color: var(--ink-2); font-weight: 600; }

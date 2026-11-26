@@ -134,6 +134,9 @@ func (s *Store) returnOfferedAssignment(tx *sql.Tx, ctx Ctx, projectID, taskID, 
 }
 
 func (s *Store) expireInbox(tx *sql.Tx, ctx Ctx, projectID string) error {
+	if err := s.expireSessions(tx, ctx, projectID); err != nil {
+		return err
+	}
 	rows, err := tx.Query("SELECT id FROM inbox_message WHERE project_id=? AND state='delivered' AND delivered_at<=?", projectID, db.FormatISO(ctx.Now.Add(-inboxUnacknowledged)))
 	if err != nil {
 		return err

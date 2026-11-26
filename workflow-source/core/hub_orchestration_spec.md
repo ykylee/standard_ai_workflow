@@ -155,6 +155,12 @@ hook 이 신뢰된 환경에서만: Claude `Stop` (block + reason) · `UserPromp
 | `idle` | 마지막 신호 ≤ 15분 · 열린 배정 없음, 또는 중계 보고가 `idle` |
 | `unknown` | 그 밖 (신호 > 15분) — 목록 · 화면에 수를 따로 |
 
+**신호 끊김 만료 (TASK-2026-11-26-claude-plex-019)**: 마지막 신호가 **24시간**을 넘은 끝나지 않은 세션은 허브가 `ended` 로 바꾼다 —
+게으른 판정이라 세션 목록 · 받은편지함 편승을 읽을 때 한다(Python `SESSION_EXPIRE` · Go `sessionExpire`). `ended_at` 을 쓰고 이벤트
+`op=expire`(callsign `hub`)를 남기며, 그 세션의 열린 배정은 `session_expired` 로 오케스트레이터에게 되돌린다. 만료된 세션의 이후 호출은
+410 `session_ended` — 세션 시작으로 새 세션을 연다. 세션 보기에는 `ended_at` · `end_reason`(`ended` 스스로 끝냄 · `expired` 만료 · 끝나지
+않았으면 null)이 실린다. 화면의 세션 표는 끝나지 않은 세션만 보이고, 끝난 세션은 접힌 '끝난 세션 N' 묶음에 까닭과 함께 둔다.
+
 ### 7.2 lease (요구 R19.2)
 
 - 만료 15분. 오케스트레이터 세션의 **모든** 호출(`session` 인자 있는)이 `expires_at = now + 15분` 으로 갱신한다 — 별도 갱신 도구 없음.

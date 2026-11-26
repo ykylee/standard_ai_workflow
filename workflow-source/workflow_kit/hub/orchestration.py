@@ -29,6 +29,7 @@ ACK_DECISIONS = {"accept": "acked", "seen": "acked", "decline": "declined"}
 DELIVERY_PATHS = ("piggyback", "wait", "file", "adapter", "hook")
 
 SIGNAL_STALE = timedelta(minutes=15)       # 상태 unknown (요구 R17.3)
+SESSION_EXPIRE = timedelta(hours=24)       # 신호 끊김이 이만큼 이어지면 허브가 ended 로 만료 (TASK-2026-11-26-claude-plex-019)
 REDELIVER_AFTER = timedelta(seconds=60)    # 실림 ≠ 소비 (DO13)
 UNACK_AFTER = timedelta(minutes=10)        # 미확인 (요구 R18.8)
 PIGGYBACK_MAX = 3                          # 편승 상한 (요구 R18.2 · Q4)
@@ -189,6 +190,11 @@ class Orchestration:
             "allow_wait": bool(row["allow_wait"]), "delivery": json.loads(row["delivery_json"]),
             "status": self.status(row, ctx.now, open_n), "last_signal_at": row["last_signal_at"],
             "open_assignments": open_n, "started_at": row["started_at"], "review_ideas": bool(row["review_ideas"]),
+            "ended_at": row["ended_at"] if row["status"] == "ended" else None,
+            # 끝난 까닭 — 세션이 끝냈나(ended), 신호가 끊겨 허브가 만료했나(expired). 끝나지 않았으면 null.
+            "end_reason": None if row["status"] != "ended" else "expired" if conn.execute(
+                "SELECT 1 FROM event WHERE project_id = ? AND target_kind = 'session' AND target_id = ? AND op = 'expire' LIMIT 1",
+                (row["project_id"], row["id"])).fetchone() else "ended",
         }
 
     @staticmethod
@@ -234,6 +240,8 @@ class Orchestration:
 
     def session_list(self, ctx: Ctx, a: dict[str, Any]) -> dict[str, Any]:
         p = self.store._need_reader(ctx)
+        with self.store.write() as conn:
+            self._expire_sessions(conn, ctx, str(p.project_id))
         with self.store.read() as conn:
             q, args = "SELECT * FROM session WHERE project_id = ?", [p.project_id]
             if a.get("callsign"):
@@ -276,8 +284,26 @@ class Orchestration:
                           {"to": f"{to_kind}:{to_id}", "kind": kind}, callsign=from_callsign)
         return mid
 
+    def _expire_sessions(self, conn: sqlite3.Connection, ctx: Ctx, project_id: str) -> None:
+        """마지막 신호가 24시간을 넘은 세션 → ``ended`` (게으른 판정). 열린 배정은 오케스트레이터에게 되돌린다.
+
+        15분이 지나면 ``unknown`` 으로 보이기만 하던 세션(하네스가 세션 끝을 알리지 못하고 죽은 것)이 목록에 영영 남았다
+        (TASK-2026-11-26-claude-plex-019). 만료된 세션의 이후 호출은 410 ``session_ended`` 다."""
+        cutoff = _iso(ctx.now - SESSION_EXPIRE)
+        rows = conn.execute("SELECT id, last_signal_at FROM session WHERE project_id = ? AND status != 'ended' "
+                            "AND last_signal_at <= ? ORDER BY id", (project_id, cutoff)).fetchall()
+        for r in rows:
+            conn.execute("UPDATE session SET status = 'ended', ended_at = ?, waiting_since = NULL, version = version + 1 "
+                         "WHERE project_id = ? AND id = ?", (_iso(ctx.now), project_id, r["id"]))
+            self.store._event(conn, ctx, project_id, "session", r["id"], "expire", {"last_signal_at": r["last_signal_at"]},
+                              {"status": "ended", "reason": "no_signal_24h"}, callsign="hub")
+            for a in conn.execute("SELECT task_id FROM assignment WHERE project_id = ? AND session_id = ? "
+                                  "AND state IN ('offered', 'accepted')", (project_id, r["id"])).fetchall():
+                self._return(conn, ctx, project_id, a["task_id"], "session_expired")
+
     def _expire(self, conn: sqlite3.Connection, ctx: Ctx, project_id: str) -> None:
         """처음 실린 지 10분 넘게 ack 가 없는 메시지 → ``unacknowledged`` (요구 R18.8, 게으른 판정 DO7)."""
+        self._expire_sessions(conn, ctx, project_id)
         cutoff = _iso(ctx.now - UNACK_AFTER)
         rows = conn.execute("SELECT id FROM inbox_message WHERE project_id = ? AND state = 'delivered' AND delivered_at <= ?",
                             (project_id, cutoff)).fetchall()

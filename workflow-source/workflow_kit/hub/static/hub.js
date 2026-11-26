@@ -100,7 +100,7 @@
     register: "등록", approve: "승인", reject: "거절", declare: "지정", transfer: "넘김", delete: "지움", archive: "보관", respond: "응답",
     enqueue: "보낼 줄에 넣음", request: "요청", offer: "제안함", put: "씀", propose: "제안", issue: "발급", decide: "결정", ack: "읽음",
     assign: "배정", recall: "거둬들임", halt: "정지", resume: "정지 풀기", revoke: "거둠", invite: "초대", accept: "수락", decline: "거절함",
-    report: "보고", ingest: "위키에 넣음", seen: "봄", reply: "회신", add: "추가", claim_idea: "맡음", start: "시작", end: "끝냄", wait: "기다림" };
+    report: "보고", ingest: "위키에 넣음", seen: "봄", reply: "회신", add: "추가", claim_idea: "맡음", start: "시작", end: "끝냄", wait: "기다림", expire: "만료" };
   const viaLabel = (v) => VIA_LABEL[v] || v;
   const chip = (text, cls) => STATUS_LABEL[text]
     ? el("span", { class: "chip " + (cls || text), title: text }, STATUS_LABEL[text])
@@ -872,7 +872,11 @@
       ...["working", "waiting", "idle", "ended"].map((st) => chip(`${statusLabel(st)} ${sc[st] || 0}`, st)),
       chip(`${statusLabel("unknown")} ${d.unknown_sessions || 0}`, (d.unknown_sessions || 0) > 0 ? "unknown" : "planned"));
 
-    const sessRows = d.sessions.map((s) => el("tr", {},
+    // 살아 있는 세션은 표로, 끝난 세션은 접힌 묶음으로 — 신호가 24시간 끊긴 세션은 허브가 만료해 끝난 쪽으로 간다 (TASK-2026-11-26-claude-plex-019)
+    const liveSessions = d.sessions.filter((s) => s.status !== "ended");
+    const endedSessions = d.sessions.filter((s) => s.status === "ended")
+      .sort((a, b) => String(b.ended_at || "").localeCompare(String(a.ended_at || "")));
+    const sessRows = liveSessions.map((s) => el("tr", {},
       el("td", {}, el("a", { href: `${base}/c/${encodeURIComponent(s.callsign)}` }, s.callsign), s.orchestrator ? " " : null, s.orchestrator ? chip("오케스트레이터", "approved") : null,
         el("span", { class: "t-id" }, s.id)),
       el("td", {}, s.harness || "—", s.kind === "worker" ? " (자동 작업 세션)" : ""),
@@ -882,11 +886,24 @@
       el("td", { class: "mono muted" }, s.host_id || "로컬/직접"),
       el("td", { class: "muted nowrap" }, when(s.last_signal_at))));
 
+    const endedRows = endedSessions.map((s) => el("tr", {},
+      el("td", {}, el("a", { href: `${base}/c/${encodeURIComponent(s.callsign)}` }, s.callsign), el("span", { class: "t-id" }, s.id)),
+      el("td", {}, s.harness || "—"),
+      el("td", {}, s.end_reason === "expired" ? chip("신호 끊겨 만료", "unknown") : chip("끝냄", "ended")),
+      el("td", { class: "muted nowrap" }, when(s.last_signal_at)),
+      el("td", { class: "muted nowrap" }, s.ended_at ? when(s.ended_at) : "—")));
     const sessionsSection = el("section", { class: "card" },
-      el("h2", {}, `세션 (${d.sessions.length})`), sessCountsRow,
-      d.sessions.length ? el("div", { class: "table-wrap" }, el("table", {},
+      el("h2", {}, `세션 (${liveSessions.length})`), sessCountsRow,
+      liveSessions.length ? el("div", { class: "table-wrap" }, el("table", {},
         el("thead", {}, el("tr", {}, ["콜사인 · 세션", "하네스", "상태", "전달", "열린 배정", "호스트", "마지막 신호"].map((h) => el("th", { scope: "col" }, h)))),
-        el("tbody", {}, sessRows))) : el("p", { class: "muted" }, "등록된 세션이 없다."));
+        el("tbody", {}, sessRows))) : el("p", { class: "muted" }, "지금 살아 있는 세션이 없다."),
+      el("p", { class: "muted" }, "신호가 15분 끊기면 '신호 끊김', 24시간 끊기면 허브가 만료해 끝난 세션으로 옮긴다 — 맡던 배정은 오케스트레이터에게 돌아간다."),
+      endedSessions.length ? el("details", { class: "ended-sessions", "data-keep": "orch-ended" },
+        el("summary", {}, `끝난 세션 ${endedSessions.length}`,
+          el("span", { class: "muted" }, ` — 끝냄 ${endedSessions.filter((s) => s.end_reason !== "expired").length} · 신호 끊겨 만료 ${endedSessions.filter((s) => s.end_reason === "expired").length}`)),
+        el("div", { class: "table-wrap" }, el("table", {},
+          el("thead", {}, el("tr", {}, ["콜사인 · 세션", "하네스", "끝난 까닭", "마지막 신호", "끝난 때"].map((h) => el("th", { scope: "col" }, h)))),
+          el("tbody", {}, endedRows)))) : null);
 
     const isConfirmNote = (m) => m.kind === "approval" && m.body && m.body.request_type === "agent_confirmation";
     const closable = d.unacknowledged.filter((m) => !isConfirmNote(m));

@@ -171,6 +171,11 @@ def run(e: Env) -> None:
     m10 = e.call("hub_orch_assign", {"session": orch, "task_id": t10, "to_session": w1}, "agent-a", later)["assignment"]["message_id"]
     e.call("hub_inbox_ack", {"session": w1, "message_id": m10, "decision": "accept"}, "agent-b", later)
     day = later + timedelta(hours=25)
+    # 살아 있지만 진척이 없는 세션 — 중간에 신호는 온다. 신호까지 24시간 끊기면 세션 자체가 만료된다
+    # (TASK-2026-11-26-claude-plex-019 — 그것은 check_hub_orch case 13 이 잰다).
+    half = later + timedelta(hours=12)
+    e.call("hub_task_list", {"session": w1}, "agent-b", half)
+    e.call("hub_task_list", {"session": orch}, "agent-a", half)
     e.call("hub_task_list", {"session": w1}, "agent-b", day)
     _record("case 6 (회수 · 세션 끝 · 24시간 진척 없음 → returned)",
             rc["state"] == "returned" and len(released) == 1 and _assignment(e, t9)["state"] == "returned"

@@ -17,6 +17,8 @@
 8. 2.0 호환 — 2.0 도구의 필수 인자 그대로 · 선택 인자 session 만 더함 · 모르는 인자는 여전히 거절
 9. 대기 async (실제 프로세스, HTTP) — 대기 중 투입 → 곧 응답 · 상한 빈 응답 · 동시 대기 45개(> 스레드 풀 40) 동안 다른 도구 즉시 응답
 10. 대기 MCP 경로 (실제 프로세스) — MCP 로 부른 hub_wait 가 메시지를 받는다
+13. 신호 끊김 만료 — 23시간은 unknown 그대로 · 25시간이면 ended(end_reason=expired · 이벤트 expire by hub) · 열린 배정은
+    session_expired 로 되돌림 · 그 세션의 이후 호출 410 · 스스로 끝낸 세션은 end_reason=ended (TASK-2026-11-26-claude-plex-019)
 """
 
 from __future__ import annotations
@@ -165,6 +167,32 @@ def case_2_3(e: Env) -> None:
           and later["unknown"] >= 1 and "idle" not in {by_id.get(s1)}
           and {s["status"] for s in st["idle"]["sessions"] if s["id"] == s1} == {"idle"})
     _record("case 3 (상태 5값 · unknown 은 idle 로 안 셈)", ok, f"working={working} waiting={waiting} later={by_id}")
+
+
+def case_13(tmp: Path) -> None:
+    e = Env(tmp / "expire.db")
+    old = e.session("agent-a", kind="worker")
+    fresh = e.session("agent-b", T0 + timedelta(hours=2), kind="worker")
+    done = e.session("owner-h", harness_session_id="h-done")
+    e.call("hub_session_end", {"session": done, "handoff": {"focus": "끝"}}, "owner-h")
+    with e.store.write() as c:
+        c.execute("INSERT INTO assignment (project_id, task_id, session_id, callsign, message_id, state, offered_at) "
+                  "VALUES (?, 'T-exp', ?, 'agent-a', 'M-exp', 'accepted', ?)", (e.pid, old, T0.isoformat()))
+    before = {s["id"]: s for s in e.call("hub_session_list", {}, "owner-h", T0 + timedelta(hours=23))["sessions"]}
+    at = T0 + timedelta(hours=25)
+    after = {s["id"]: s for s in e.call("hub_session_list", {}, "owner-h", at)["sessions"]}
+    with e.store.read() as c:
+        ret = c.execute("SELECT state, return_reason FROM assignment WHERE project_id = ? AND task_id = 'T-exp'", (e.pid,)).fetchone()
+        ev = c.execute("SELECT callsign FROM event WHERE project_id = ? AND target_kind = 'session' AND target_id = ? AND op = 'expire'",
+                       (e.pid, old)).fetchall()
+    gone = e.err("hub_task_list", {"session": old}, "agent-a", at)
+    ok = (before[old]["status"] == "unknown" and before[old]["end_reason"] is None
+          and after[old]["status"] == "ended" and after[old]["end_reason"] == "expired" and after[old]["ended_at"]
+          and after[fresh]["status"] == "unknown" and after[done]["end_reason"] == "ended"
+          and tuple(ret) == ("returned", "session_expired") and [r[0] for r in ev] == ["hub"] and gone == "session_ended")
+    _record("case 13 (신호 끊김 24시간 만료 — 23h 그대로 · 25h ended/expired · 배정 되돌림 · 410 · 스스로 끝냄은 ended)", ok,
+            f"before={before[old]['status']} after={after[old]} fresh={after[fresh]['status']} done={after[done]['end_reason']} "
+            f"ret={tuple(ret) if ret else None} ev={[r[0] for r in ev]} gone={gone}")
 
 
 def case_4_5_6(e: Env) -> None:
@@ -373,6 +401,10 @@ def main() -> int:
                 fn(e)
             except Exception as exc:  # noqa: BLE001 — 예외도 판정으로
                 _record(f"{name} (예외)", False, repr(exc))
+        try:
+            case_13(tmp)
+        except Exception as exc:  # noqa: BLE001
+            _record("case 13 (예외)", False, repr(exc))
         try:
             case_9_10(tmp)
         except Exception as exc:  # noqa: BLE001

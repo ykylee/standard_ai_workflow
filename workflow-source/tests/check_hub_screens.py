@@ -36,6 +36,7 @@ import threading
 import urllib.error
 import urllib.parse
 import urllib.request
+from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -234,6 +235,11 @@ def seed(hub: Hub, db: Path, impl: str) -> dict[str, str]:
             c.execute("INSERT INTO inbox_message (project_id,id,to_kind,to_id,from_callsign,from_session,from_orchestrator,kind,body_json,ref_task,state,"
                       "delivered_via,delivered_at,created_at) VALUES (?,?,'session',?,'owner-a',?,1,'note',?,?,'unacknowledged','piggyback',?,?)",
                       (pid, f"MSG-20261122-{n * 12}", sw, so, json.dumps(body, ensure_ascii=False), tid, "2026-11-22T00:00:00+00:00", "2026-11-22T00:00:00+00:00"))
+    with sqlite3.connect(db) as c:  # 신호가 이틀 끊긴 세션(허브가 만료) · 스스로 끝낸 세션 — 세션 표 밖 접힌 묶음으로 간다
+        old = (datetime.now(timezone.utc) - timedelta(days=2)).isoformat(timespec="seconds")
+        for sid, status in (("S-20261120-0000dead", "active"), ("S-20261120-0000done", "ended")):
+            c.execute("INSERT INTO session (project_id,id,callsign,harness,harness_session_id,kind,status,last_signal_at,started_at,ended_at) "
+                      "VALUES (?,?,'bot-a','codex',?,'worker',?,?,?,?)", (pid, sid, sid, status, old, old, old if status == "ended" else None))
     with sqlite3.connect(db) as c:  # 객체가 아닌 본문의 approval 이 확인 요청 화면을 막지 않는다
         for n, raw in (("d", '"글"'), ("e", "[1]")):
             c.execute("INSERT INTO inbox_message (project_id,id,to_kind,to_id,from_callsign,from_session,from_orchestrator,kind,body_json,state,created_at) "
@@ -426,6 +432,15 @@ def measure(impl: str, cmd: list[str] | None, exe: str, tmp: Path) -> None:
                 and re.search(r'<label class="field wide">계획 전체 주석 \(선택\)<textarea', task_dom) is not None
                 and "결정 대기" not in html.unescape(doms["viewDcrs"]),
                 f"nav@{at_nav} lead@{at_lead}")
+        # 끝난 세션은 살아 있는 세션 표 밖 접힌 묶음 — 신호가 24시간 끊긴 세션은 허브가 만료 (TASK-2026-11-26-claude-plex-019)
+        live_table = orch.split('class="ended-sessions"', 1)[0]
+        ended_box = orch.split('class="ended-sessions"', 1)[1] if 'class="ended-sessions"' in orch else ""
+        _record(f"[{impl}] 오케스트레이션 — 끝난 세션은 접힌 묶음 · 신호 끊겨 만료 / 끝냄 구분",
+                "S-20261120-0000dead" not in live_table and "S-20261120-0000done" not in live_table
+                and "S-20261120-0000dead" in ended_box and "S-20261120-0000done" in ended_box
+                and "신호 끊겨 만료 1" in html.unescape(ended_box) and re.search(r'<details class="ended-sessions"[^>]*>', orch) is not None
+                and " open" not in (re.search(r'<details class="ended-sessions"[^>]*>', orch) or [""])[0],
+                f"live_has={[x for x in ('dead', 'done') if 'S-20261120-0000' + x in live_table]} box={html.unescape(ended_box)[:300]!r}")
         _record(f"[{impl}] 오케스트레이션 — 정리 안내문", "세션이 끝났으면 같은 콜사인" in orch and "읽음으로 표시" in orch and "hub_" not in re.sub(r"<[^>]+>", "", orch.split("<body", 1)[-1]) and "읽음으로 정리" in orch)
         guide = doms["viewGuide"]
         _record(f"[{impl}] 지침 제안 — 보이지 않는 문자", guide.count(">U+202E</mark>") == 1 and guide.count(">U+200B</mark>") == 1

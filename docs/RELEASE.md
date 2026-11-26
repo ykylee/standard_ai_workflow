@@ -3,9 +3,9 @@
 - 문서 목적: Standard AI Workflow 릴리스 절차 (버전 박기 → 빌드 → 스모크 → GitHub Release attach) 를 한 자리에 정리한다.
 - 범위: 채널 정책, 사전 점검, 빌드, 로컬 smoke, GitHub Release 생성, 트러블슈팅, 회귀 표
 - 대상 독자: 저장소 maintainer (`ykylee`), 릴리스 매니저
-- 상태: beta (v3.5.0 기준 pre-release 발행 · HomeLab pilot 운영 중; 절차 자체는 v0.5.7+ 부터 정식 도입된 정책 유지)
-- 현재 package version: 3.5.0 (`workflow-source/pyproject.toml`)
-- 최종 수정일: 2026-11-25
+- 상태: beta (v3.5.1 기준 pre-release 발행 · HomeLab pilot 운영 중; 절차 자체는 v0.5.7+ 부터 정식 도입된 정책 유지)
+- 현재 package version: 3.5.1 (`workflow-source/pyproject.toml`)
+- 최종 수정일: 2026-11-26
 - 관련 문서: [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md), [./INSTALLATION_AND_USAGE.md](./INSTALLATION_AND_USAGE.md), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md), [workflow-source/releases/](https://github.com/ykylee/standard_ai_workflow/tree/main/workflow-source/releases/)
 
 > **최종 갱신**: 2026-07-18 (회귀 표를 v0.15.15 까지 확장하고 `release_pipeline.py` 자동화 경로 반영)
@@ -55,6 +55,7 @@
 - **3.3.5**는 남은 승인 화면과 받은편지함 · 비밀번호 경계를 고치고 Go 지침 제안의 빈 차이를 고친 pilot patch다. DB 판은 18 그대로다.
 - **3.4.0**은 아이디어 박스(사람이 적고 에이전트가 회신)를 더한 pilot minor다. DB 판은 19다 — 3.3.x로 되돌리려면 배포 전 백업이 필요하다.
 - **3.5.0**은 A2A 스트림과 콜사인 간 메시지를 더한 pilot minor다. DB 판은 20이다 — 3.4.x로 되돌리려면 배포 전 백업이 필요하다.
+- **3.5.1**은 Claude Code 가 허브 MCP 에 셸 환경 변수 없이 `.workflow-hub/env` 의 콜사인 토큰으로 붙게 한 pilot patch다(`headersHelper` · `hub_client.py mcp-headers`). DB 판은 20 그대로다.
 - **같은 날 두 줄을 낼 때 (2.0.0 + 1.30.0)**: 1.x 를 먼저 낸다 — 그때는 원격에 2.x 가 없어 1.30.0 이 잠시 latest 가
   된다. 이어 2.0.0 이 latest 를 가져간다. 순서를 바꾸면 1.30.0 은 처음부터 `--latest=false` 다. 어느 쪽이든 끝 상태는
   같다 — 끝난 뒤 `gh release list` 로 latest 가 2.x 인지 본다.
@@ -546,7 +547,7 @@ gh release edit "v<X>.<Y>.<Z>" --repo "$REPO" --draft=false
 
 - [릴리스 노트 디렉토리](https://github.com/ykylee/standard_ai_workflow/tree/main/workflow-source/releases/)
 - [릴리스 노트 v3.2.0](./../workflow-source/releases/Beta-v3.2.0.md)
-- [현재 릴리스 노트 v3.5.0](./../workflow-source/releases/Beta-v3.5.0.md)
+- [현재 릴리스 노트 v3.5.1](./../workflow-source/releases/Beta-v3.5.1.md)
 - [이전 릴리스 노트 v3.1.0](./../workflow-source/releases/Beta-v3.1.0.md)
 - [Python wheel 릴리스 자산 v3.2.0](https://github.com/ykylee/standard_ai_workflow/releases/tag/v3.2.0)
 - [Maturity Matrix](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/maturity_matrix.json)

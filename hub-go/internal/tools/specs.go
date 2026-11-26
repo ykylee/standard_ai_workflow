@@ -549,7 +549,7 @@ var ToolOrder = []*ToolSpec{
 		Properties: map[string]map[string]any{"id": {"type": "string"}}, Required: []string{"id"},
 	},
 	{
-		Name: "hub_idea_reply", Bundle: "token", Description: "맡은 아이디어에 회신한다. verdict = do · conditional · hold · exists · question. 근거(refs)나 확인하지 않은 것(unverified) 가운데 하나는 필수. draft {title, wbs, done_criteria[]} 는 사람이 고쳐 등록할 task 초안.",
+		Name: "hub_idea_reply", Bundle: "token", Description: "맡은 아이디어에 회신한다. verdict = do · conditional · hold · exists · question. 근거(refs)나 확인하지 않은 것(unverified) 가운데 하나는 필수. draft {title, wbs, wbs_exempt_reason, done_criteria[]} 는 사람이 고쳐 등록할 task 초안 (wbs 가 exempt 면 wbs_exempt_reason 필수).",
 		Properties: map[string]map[string]any{"id": {"type": "string"}, "expected_version": {"type": "integer"}, "verdict": {"type": "string"}, "understood": {"type": "string"}, "reason": {"type": "string"}, "refs": {"type": "array"}, "scope": {"type": "string"}, "next": {"type": "string"}, "unverified": {"type": "string"}, "draft": {"type": "object"}}, Required: []string{"id", "expected_version", "verdict", "understood", "reason"},
 	},
 	{

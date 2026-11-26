@@ -383,7 +383,7 @@ TOOLS: dict[str, ToolSpec] = {
         ToolSpec("hub_idea_claim", "token", "검토 대기 아이디어를 맡는다 (2시간) — 다른 콜사인이 맡고 있으면 409. 읽기만 해 hub_idea_reply 로 회신한다.",
                  {"id": _STR}, ("id",),
                  lambda s, c, a: Ideas(s).claim(c, a["id"])),
-        ToolSpec("hub_idea_reply", "token", "맡은 아이디어에 회신한다. verdict = do · conditional · hold · exists · question. 근거(refs)나 확인하지 않은 것(unverified) 가운데 하나는 필수. draft {title, wbs, done_criteria[]} 는 사람이 고쳐 등록할 task 초안.",
+        ToolSpec("hub_idea_reply", "token", "맡은 아이디어에 회신한다. verdict = do · conditional · hold · exists · question. 근거(refs)나 확인하지 않은 것(unverified) 가운데 하나는 필수. draft {title, wbs, wbs_exempt_reason, done_criteria[]} 는 사람이 고쳐 등록할 task 초안 (wbs 가 exempt 면 wbs_exempt_reason 필수).",
                  {"id": _STR, "expected_version": _INT, "verdict": _STR, "understood": _STR, "reason": _STR, "refs": _ARR, "scope": _STR, "next": _STR, "unverified": _STR, "draft": _OBJ}, ("id", "expected_version", "verdict", "understood", "reason",),
                  lambda s, c, a: Ideas(s).reply(c, a)),
         ToolSpec("hub_wiki_lint", "token",

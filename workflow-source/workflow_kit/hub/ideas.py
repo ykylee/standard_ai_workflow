@@ -53,10 +53,16 @@ def _texts(value: Any, field: str, limit: int, required: bool = False) -> list[s
 def _draft(value: Any) -> dict[str, Any] | None:
     if value is None:
         return None
-    if not isinstance(value, dict) or set(value) - {"title", "wbs", "done_criteria"}:
-        raise invalid_field("draft", "{title, wbs?, done_criteria?}")
-    return {"title": _text(value.get("title"), "draft.title", 200), "wbs": _text(value.get("wbs"), "draft.wbs", 200, False),
-            "done_criteria": _texts(value.get("done_criteria"), "draft.done_criteria", 500)}
+    if not isinstance(value, dict) or set(value) - {"title", "wbs", "wbs_exempt_reason", "done_criteria"}:
+        raise invalid_field("draft", "{title, wbs?, wbs_exempt_reason?, done_criteria?}")
+    title = _text(value.get("title"), "draft.title", 200)
+    wbs = _text(value.get("wbs"), "draft.wbs", 200, False)
+    reason = _text(value.get("wbs_exempt_reason"), "draft.wbs_exempt_reason", 500, False)
+    done = _texts(value.get("done_criteria"), "draft.done_criteria", 500)
+    # 로드맵 밖 초안은 사유까지 실어야 사람이 그대로 등록할 수 있다 — WBS 게이트가 사유 없는 exempt 를 거절한다
+    if wbs.strip() == "exempt" and _blank(reason):
+        raise invalid_field("draft.wbs_exempt_reason", "draft.wbs 가 exempt 면 면제 사유가 필수다")
+    return {"title": title, "wbs": wbs, "wbs_exempt_reason": reason, "done_criteria": done}
 
 
 class Ideas:

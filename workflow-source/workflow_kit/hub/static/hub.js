@@ -885,6 +885,15 @@
       data.total > data.ideas.length ? el("p", { class: "muted" }, `전체 ${data.total}건 가운데 ${data.ideas.length}건만 보인다.`) : null];
   }
 
+  // 허브 WBS 게이트의 거절을 이 화면의 칸 이름으로 말한다 (게이트 문구는 CLI 옵션으로 설명한다)
+  function ideaGateText(r) {
+    const warn = r.data?.error_code === "gate_denied" ? (r.data.detail?.warnings || []) : [];
+    if (warn.includes("exempt_reason_required")) return "WBS 가 exempt(로드맵 밖)면 'WBS 면제 사유' 칸을 채운다.";
+    if (warn.includes("wbs_required")) return "이 프로젝트는 로드맵이 있어 WBS 가 필요하다 — 'WBS' 칸에 M-NNN/WBS-N.N 을 적거나, 로드맵 밖이면 'WBS 면제 사유' 를 적는다.";
+    if (warn.includes("wbs_ref_format")) return "'WBS' 칸은 M-NNN/WBS-N.N 꼴이다 (예: M-007/WBS-7.2).";
+    return "";
+  }
+
   const ideaDrafts = new Map();  // 아이디어마다 적던 글 — 다른 처리를 눌러 다시 그려도 남는다
   function ideaDetail(key, root, base, idea, canWrite, readOnly, head) {
     const msg = el("div");
@@ -899,7 +908,7 @@
       let r;
       try { r = await api(`${root}/ideas/${encodeURIComponent(idea.id)}`, { method: "POST", body: { expected_version: idea.version, ...body() } }); }
       catch (e) { lock(false); msg.replaceChildren(alertBox("bad", "허브에 닿지 않는다 — 적던 글은 그대로 있다.")); return; }
-      if (r.status !== 200) { lock(false); msg.replaceChildren(alertBox("bad", errorText(r) + (r.data?.error_code === "version_conflict" ? " · 새로고침해 바뀐 내용을 본 뒤 다시 한다 (적던 글은 남는다)." : ""))); return; }
+      if (r.status !== 200) { lock(false); msg.replaceChildren(alertBox("bad", ideaGateText(r) || errorText(r) + (r.data?.error_code === "version_conflict" ? " · 새로고침해 바뀐 내용을 본 뒤 다시 한다 (적던 글은 남는다)." : ""))); return; }
       (sent || []).forEach((name) => delete typed[name]);
       pendingFlash = { kind: "ok", text: done(r.data) };
       dirty = false;
@@ -921,7 +930,7 @@
     const ask = el("textarea", { rows: "3", placeholder: "덧붙이거나 더 물을 것", "aria-label": "더 묻기" });
     const title = el("input", { type: "text", "aria-label": "task 제목" }), wbs = el("input", { type: "text", "aria-label": "WBS", placeholder: "M-007/WBS-7.2" });
     const exempt = el("input", { type: "text", "aria-label": "WBS 면제 사유" }), done = el("textarea", { rows: "4", "aria-label": "완료 기준" });
-    const form = { title: draft.title || "", wbs: draft.wbs || "", exempt: "", done: (draft.done_criteria || []).join("\n"), ...typed.form };
+    const form = { title: draft.title || "", wbs: draft.wbs || "", exempt: draft.wbs_exempt_reason || "", done: (draft.done_criteria || []).join("\n"), ...typed.form };
     const boxes = { title, wbs, exempt, done }, hiddenNote = el("div");
     const check = () => {  // 초안이 아니라 등록될 칸의 값을 센다
       const all = Object.values(boxes).map((f) => f.value).join("\n"), n = hiddenCount(all);
@@ -936,6 +945,8 @@
     ask.addEventListener("input", () => { typed.ask = ask.value; });
     const newer = typed.form && typed.base !== (reply?.seq ?? 0);
     const lines = () => done.value.split("\n").map((s) => s.trim()).filter(Boolean);
+    const adopt = act(() => ({ action: "adopt", title: title.value.trim(), wbs: wbs.value.trim() || (exempt.value.trim() ? "exempt" : ""),
+      ...(exempt.value.trim() ? { wbs_exempt_reason: exempt.value.trim() } : {}), done_criteria: lines() }), (d) => `${d.task.id} 로 만들었다.`);
     return [...out, el("section", { class: "card" }, el("h2", {}, "처리"), msg, ask,
       el("div", { class: "row" }, el("button", { type: "button", onclick: act(() => ({ action: "ask", body: ask.value }), () => "보냈다 — 다시 검토 대기다.", ["ask"]) }, "더 묻기"),
         el("button", { type: "button", class: "ghost", onclick: act(() => ({ action: "keep" }), () => "보관했다.") }, "보관"),
@@ -946,8 +957,15 @@
       hiddenNote,
       el("div", { class: "task-filters" }, el("label", {}, "제목", title), el("label", {}, "WBS", wbs), el("label", {}, "WBS 면제 사유 (WBS 가 없을 때)", exempt)),
       el("label", { class: "idea-done" }, "완료 기준 (한 줄에 하나)", done),
-      el("div", { class: "row" }, el("button", { type: "button", onclick: act(() => ({ action: "adopt", title: title.value.trim(), wbs: wbs.value.trim() || (exempt.value.trim() ? "exempt" : ""),
-        ...(exempt.value.trim() ? { wbs_exempt_reason: exempt.value.trim() } : {}), done_criteria: lines() }), (d) => `${d.task.id} 로 만들었다.`) }, "task 로 등록")))];
+      el("div", { class: "row" }, el("button", { type: "button", onclick: (ev) => {
+        // 로드맵 밖(exempt)은 사유가 있어야 허브 WBS 게이트를 지난다 — 보내기 전에 그 칸을 가리킨다
+        if (wbs.value.trim() === "exempt" && !exempt.value.trim()) {
+          msg.replaceChildren(alertBox("bad", "WBS 가 exempt(로드맵 밖)면 'WBS 면제 사유' 칸을 채운다 — 아직 보내지 않았다."));
+          exempt.focus();
+          return undefined;
+        }
+        return adopt(ev);
+      } }, "task 로 등록")))];
   }
 
   // 보이지 않거나 글자 순서를 뒤집는 문자를 드러낸다 — 사람이 본 글과 쓰일 글이 같아야 한다.

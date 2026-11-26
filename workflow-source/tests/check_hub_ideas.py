@@ -128,7 +128,10 @@ def scenario(impl: str, cmd: list[str] | None, tmp: Path) -> list[Any]:
         other = tool("hub_idea_reply", good, bot2)
         rej = {k: tool("hub_idea_reply", {**good, **v}, bot)[0] for k, v in {
             "verdict": {"verdict": "yes"}, "no evidence": {"refs": [], "unverified": " "}, "hidden evidence": {"refs": [], "unverified": "\u200b\x0b"}, "hidden ref": {"refs": ["\u200b"]}, "refs": {"refs": [1]}, "many": {"refs": ["x"] * 21}, "draft key": {"draft": {"title": "t", "run": "rm"}},
-            "draft title": {"draft": {}}, "reason": {"reason": ""}, "long": {"scope": "가" * 1001}, "stale": {"expected_version": 1}}.items()}
+            "draft title": {"draft": {}}, "reason": {"reason": ""}, "long": {"scope": "가" * 1001}, "stale": {"expected_version": 1},
+            # 사유 없는 로드맵 밖 초안은 사람이 그대로 등록할 수 없다 (2026-11-26 운영 422) — 회신 때 거절한다
+            "exempt draft": {"draft": {"title": "t", "wbs": "exempt"}}, "exempt blank": {"draft": {"title": "t", "wbs": "exempt", "wbs_exempt_reason": " \u3000"}},
+            "exempt reason type": {"draft": {"title": "t", "wbs": "exempt", "wbs_exempt_reason": 3}}}.items()}
         asked = act("IDEA-0001", "ask", 2, body="하나 더")
         stale = tool("hub_idea_reply", good, bot)
         done = tool("hub_idea_reply", {**good, "expected_version": 3}, bot)
@@ -196,11 +199,14 @@ def scenario(impl: str, cmd: list[str] | None, tmp: Path) -> list[Any]:
         ok = act("IDEA-0001", "adopt", 4, title="할 일", done_criteria=["된다"], wbs="M-001/WBS-1.1")
         task = hub.call("hub_task_get", {"id": ok[1]["task"]["id"]}, owner)[1]["task"] if ok[0] == 200 else {}
         after = [act("IDEA-0001", "adopt", 5, title="t", done_criteria=["d"], wbs="M-001/WBS-1.1")[0], act("IDEA-0001", "ask", 5, body="x")[0], act("IDEA-0001", "close", 5)[0]]
+        noreason = act("IDEA-0003", "adopt", 1, title="밖", done_criteria=["d"], wbs="exempt")
         exempt = act("IDEA-0003", "adopt", 1, title="밖", done_criteria=["d"], wbs="exempt", wbs_exempt_reason="로드맵 밖")
         _record(f"case 4 (처리 — 사람만 · 게이트 거절이면 그대로 · task 등록은 한 번) [{impl}]", deny == [403, 403, 401] * 4 and badact == [400, 400, 400, 409, 404, 400, 400, 400, 400] and gate[0] == 422 and held["status"] == "replied"
                 and held["version"] == 4 and stale_adopt == 409 and mid == before and ok[0] == 200 and ok[1]["idea"]["status"] == "adopted" and ok[1]["idea"]["task_id"] == task.get("id")
                 and task.get("description") == "아이디어 IDEA-0001\n\n" + RAW and task.get("fields", {}).get("done_criteria") == ["된다"] and task.get("wbs") == "M-001/WBS-1.1" and task.get("created_by") == "owner-a" and task.get("status") == "planned"
-                and after == [409, 409, 409] and exempt[0] == 200, f"{deny} {badact} {gate} {held['status']} {stale_adopt} {ok} {task} {after} {exempt}")
+                and after == [409, 409, 409] and exempt[0] == 200
+                and noreason[0] == 422 and noreason[1].get("detail", {}).get("warnings") == ["exempt_reason_required"],
+                f"{deny} {badact} {gate} {held['status']} {stale_adopt} {ok} {task} {after} {exempt} {noreason}")
         k = [act("IDEA-0002", "keep", 3), act("IDEA-0002", "ask", 4, body="다시"), act("IDEA-0002", "close", 5)]
         tool("hub_idea_list", {}, bot)
         tool("hub_idea_list", {"status": "nope"}, bot)
@@ -250,6 +256,23 @@ def scenario(impl: str, cmd: list[str] | None, tmp: Path) -> list[Any]:
         made = hub.call("hub_idea_get", {"id": nid}, bot)[1]["idea"]
         t = hub.call("hub_task_get", {"id": made["task_id"] or "x"}, owner)[1].get("task", {})
         _record(f"case 6 (초안을 고쳐 등록) [{impl}]", t.get("title") == "고친 제목" and t.get("fields", {}).get("done_criteria") == ["가", "나"], f"{made} {t}")
+        post(ideas, {"body": "로드맵 밖 일"})
+        oid = hub.call("hub_idea_list", {}, bot)[1]["ideas"]
+        oid = max(i["id"] for i in oid)
+        v = hub.call("hub_idea_claim", {"id": oid}, bot)[1]["idea"]["version"]
+        hub.call("hub_idea_reply", {**good, "id": oid, "expected_version": v, "draft": {"title": "밖의 일", "wbs": "exempt", "wbs_exempt_reason": "초안의 사유", "done_criteria": ["끝"]}}, bot)
+        dom = scr.draw(exe, tmp, port, f"p/{pid}/ideas/{oid}", "~WBS 면제 사유=|task 로 등록", 9000)
+        held_o = hub.call("hub_idea_get", {"id": oid}, bot)[1]["idea"]
+        _record(f"case 6 (사유 없는 exempt 는 보내지 않고 사유 칸을 가리킨다) [{impl}]", held_o["status"] == "replied" and held_o["version"] == v + 1
+                and "칸을 채운다 — 아직 보내지 않았다" in html.unescape(dom), dom[-500:])
+        dom = scr.draw(exe, tmp, port, f"p/{pid}/ideas/{oid}", "~WBS=|~WBS 면제 사유=|task 로 등록", 9000)
+        _record(f"case 6 (게이트 거절을 화면의 칸 이름으로 말한다) [{impl}]", "'WBS' 칸에 M-NNN/WBS-N.N 을 적거나" in html.unescape(dom)
+                and "--wbs" not in html.unescape(dom), dom[-500:])
+        dom = scr.draw(exe, tmp, port, f"p/{pid}/ideas/{oid}", "task 로 등록", 9000)
+        made_o = hub.call("hub_idea_get", {"id": oid}, bot)[1]["idea"]
+        t_o = hub.call("hub_task_get", {"id": made_o["task_id"] or "x"}, owner)[1].get("task", {})
+        _record(f"case 6 (초안의 면제 사유가 칸에 채워져 그대로 등록된다) [{impl}]", made_o["status"] == "adopted" and t_o.get("wbs") == "exempt"
+                and t_o.get("wbs_exempt_reason") == "초안의 사유", f"{made_o['status']} {t_o.get('wbs')} {t_o.get('wbs_exempt_reason')}")
         dom = scr.draw(exe, tmp, port, f"p/{pid}/ideas/IDEA-0005", "~task 제목=남을 초안|~더 묻기=한 번 더|더 묻기", 8000)
         _record(f"case 6 (더 묻기 · 다른 칸의 글은 남는다) [{impl}]", [e["kind"] for e in hub.call("hub_idea_get", {"id": "IDEA-0005"}, bot)[1]["idea"]["entries"]] == ["idea", "ask"] and 'data-title="남을 초안"' in dom, dom[-400:])
         for route in (f"p/{pid}/ideas", f"p/{pid}/ideas/{nid}", f"p/{pid}/ideas/IDEA-0005"):

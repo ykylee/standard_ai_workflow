@@ -124,10 +124,10 @@ func ideaDraft(v any) (any, error) {
 	}
 	m, ok := v.(map[string]any)
 	for k := range m {
-		ok = ok && oneOf(k, []string{"title", "wbs", "done_criteria"})
+		ok = ok && oneOf(k, []string{"title", "wbs", "wbs_exempt_reason", "done_criteria"})
 	}
 	if !ok {
-		return nil, InvalidField("draft", "{title, wbs?, done_criteria?}")
+		return nil, InvalidField("draft", "{title, wbs?, wbs_exempt_reason?, done_criteria?}")
 	}
 	title, err := ideaText(m["title"], "draft.title", 200, true)
 	if err != nil {
@@ -137,11 +137,19 @@ func ideaDraft(v any) (any, error) {
 	if err != nil {
 		return nil, err
 	}
+	reason, err := ideaText(m["wbs_exempt_reason"], "draft.wbs_exempt_reason", 500, false)
+	if err != nil {
+		return nil, err
+	}
 	done, err := ideaTexts(m["done_criteria"], "draft.done_criteria", 500, false)
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{"title": title, "wbs": wbs, "done_criteria": done}, nil
+	// 로드맵 밖 초안은 사유까지 실어야 사람이 그대로 등록할 수 있다 — WBS 게이트가 사유 없는 exempt 를 거절한다
+	if strings.TrimSpace(wbs) == "exempt" && ideaIsBlank(reason) {
+		return nil, InvalidField("draft.wbs_exempt_reason", "draft.wbs 가 exempt 면 면제 사유가 필수다")
+	}
+	return map[string]any{"title": title, "wbs": wbs, "wbs_exempt_reason": reason, "done_criteria": done}, nil
 }
 
 func needIdeaHuman(ctx Ctx) (*Principal, error) {

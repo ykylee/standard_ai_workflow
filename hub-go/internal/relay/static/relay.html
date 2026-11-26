@@ -1,0 +1,29 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PC 중계</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/relay.css">
+<script src="/relay.js"></script>
+</head><body>
+<div class="card">
+<h1>PC 중계 — <span id="r-name">…</span></h1>
+<p class="meta" id="r-meta"></p>
+<div class="row">상태 <span id="r-status" class="chip">확인 중</span>
+<button type="button" id="toggle-btn" hidden></button>
+<span id="hub-links" class="row"></span>
+<span class="fresh" id="r-fresh"></span></div>
+<div id="r-conn" class="alert bad" role="alert" aria-live="assertive"></div>
+<div id="r-msg" class="alert" role="status" aria-live="polite"></div>
+</div>
+<div class="card">
+<h2 id="sess-title">띄운 세션</h2>
+<table><thead><tr><th>별칭</th><th>상태</th><th>하네스</th><th>요청</th><th>pid</th><th>허브 세션</th><th><span class="mute">동작</span></th></tr></thead>
+<tbody id="sess-body"></tbody></table>
+<details class="ended" id="ended-box" hidden><summary id="ended-title">끝난 세션</summary>
+<table><tbody id="ended-body"></tbody></table></details>
+</div>
+<div class="card">
+<h2>허용 목록 (이 PC 경로)</h2><ul class="allow" id="allow-list"></ul>
+<p class="meta" id="poll-line">승인은 중앙 허브 화면에서 owner 가 한다</p>
+</div>
+<div class="card"><h2>로그</h2><pre id="log-box">—</pre></div>
+</body></html>

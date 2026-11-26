@@ -3,7 +3,7 @@
 
 3 cases:
   1. 이관 SQL — Go ``internal/db/migrations.go`` 의 ``V1..Vn`` 와 Python ``hub.db.MIGRATIONS`` 바이트 일치
-  2. 내장 자산(§2.1) — ``hub-go/internal/assets/`` 사본(``hub_client.py`` · setup guide · ``standard_block.md`` · ``static/*``)과
+  2. 내장 자산(§2.1) — ``hub-go/internal/assets/`` 사본(``hub_client.py`` · setup guide · ``standard_block.md`` · ``static/*`` · 중계 ``relay/static/*``)과
      Python 정본 바이트 일치 (실제 파일 집합 포함)
   3. 되주입 — SQL 이관 문자열 1글자 변조 · 내장 자산 1바이트 변조 모두 red 로 잡힌다
 """
@@ -118,6 +118,22 @@ def asset_pairs() -> list[tuple[str, bytes, bytes]]:
         pp = py_static / name
         pairs.append((
             f"static/{name}",
+            gp.read_bytes() if gp.is_file() else b"<MISSING>",
+            pp.read_bytes() if pp.is_file() else b"<MISSING_SRC>",
+        ))
+
+    # PC 중계 로컬 화면 — Go relay 패키지가 내장하는 사본 (TASK-2026-11-26-claude-plex-010)
+    py_relay = SOURCE_ROOT / "workflow_kit" / "relay" / "static"
+    go_relay = HUB_GO / "internal" / "relay" / "static"
+    relay_names = sorted(
+        {p.name for p in py_relay.iterdir() if p.is_file()}
+        | ({p.name for p in go_relay.iterdir() if p.is_file()} if go_relay.is_dir() else set())
+    )
+    for name in relay_names:
+        gp = go_relay / name
+        pp = py_relay / name
+        pairs.append((
+            f"relay/static/{name}",
             gp.read_bytes() if gp.is_file() else b"<MISSING>",
             pp.read_bytes() if pp.is_file() else b"<MISSING_SRC>",
         ))

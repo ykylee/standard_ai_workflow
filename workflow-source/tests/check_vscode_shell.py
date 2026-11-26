@@ -6,8 +6,8 @@
 결함 2건을 잡았다 — frame-ancestors 에 작업대 출처 누락 · 스크립트 꺼짐이 중계 화면 버튼을 죽임. 아래 3 · 6 이 그 실측값을 고정한다).
 
 1. 매니페스트 — main 파일 · 명령 ``workflowHub.openRelay`` · 설정 ``relayPort``(8771) · ``engines.vscode``
-2. 활성화 (stub, 중계 켜짐) — 상태 표시줄에 세션 수/상한 · 일시정지 · 클릭 명령
-3. 명령 — webview 가 iframe 하나로 설정 포트의 중계 화면을 담고, ``portMapping`` 이 그 포트, ``enableScripts`` 켜짐(중계 화면 버튼) ·
+2. 활성화 (stub, 중계 켜짐) — 상태 표시줄에 활성 세션 수/상한(끝난 세션 제외) · 일시정지 · 클릭 명령
+3. 명령 — webview 가 iframe 하나로 설정 포트의 중계 화면을 담고(``?theme=`` 로 VS Code 테마 종류 — 바뀌면 다시 그림), ``portMapping`` 이 그 포트, ``enableScripts`` 켜짐(중계 화면 버튼) ·
    껍데기 문서 CSP 는 ``default-src 'none'`` 에 ``script-src`` 없음(껍데기 자신은 스크립트 0)
 4. 중계 꺼짐 — 상태 표시줄 '꺼짐' (예외 없이)
 5. 껍데기 — 확장에 화면 로직(표 · 목록 그리기) 없음 · wheel 패키지 목록에 ``editors`` 없음
@@ -69,7 +69,9 @@ module.exports = {
   ViewColumn: { Active: -1 },
   window: {
     createStatusBarItem: () => { const it = { text: "", tooltip: "", command: "", shown: false, show() { this.shown = true; } }; calls.items.push(it); return it; },
-    createWebviewPanel: (id, title, col, opts) => { const p = { id, title, opts, webview: { html: "" } }; calls.panels.push(p); return p; },
+    createWebviewPanel: (id, title, col, opts) => { const p = { id, title, opts, webview: { html: "" }, onDidDispose() {} }; calls.panels.push(p); return p; },
+    activeColorTheme: { kind: Number(process.env.STUB_THEME_KIND || 2) },
+    onDidChangeActiveColorTheme: (fn) => { calls.themeListeners = (calls.themeListeners || []).concat(fn); return { dispose() {} }; },
   },
   commands: { registerCommand: (name, fn) => { calls.commands[name] = fn; return { dispose() {} }; } },
   workspace: { getConfiguration: () => ({ get: (k, d) => (k in settings ? settings[k] : d) }) },
@@ -86,10 +88,13 @@ const ext = require(process.env.EXT_MAIN);
   const item = vscode.__calls.items[0] || {};
   const cmd = vscode.__calls.commands["workflowHub.openRelay"];
   const panel = cmd ? cmd() : null;
+  const htmlDark = panel ? panel.webview.html : "";
+  vscode.window.activeColorTheme = { kind: 1 };  // 사용자가 밝은 테마로 바꾼다 → 열린 패널이 다시 그려진다
+  for (const fn of vscode.__calls.themeListeners || []) fn(vscode.window.activeColorTheme);
   for (const s of ctx.subscriptions) { if (s && s.dispose) s.dispose(); }
   console.log(JSON.stringify({ status: { text: item.text, command: item.command, shown: item.shown },
     commands: Object.keys(vscode.__calls.commands),
-    panel: panel ? { opts: panel.opts, html: panel.webview.html } : null }));
+    panel: panel ? { opts: panel.opts, html: htmlDark, htmlAfterLight: panel.webview.html } : null }));
 })().catch((e) => { console.log(JSON.stringify({ error: String(e) })); process.exit(1); });
 """
 
@@ -125,8 +130,10 @@ def main() -> int:
         _skips.append("case 2~4 (node 없음 — 미측정)")
         print("  case 2~4: SKIP — node 가 없다 (미측정, 통과 아님)")
     else:
-        state = {"name": "pc-1", "host_id": "H-1", "paused": True, "max_sessions": 3,
-                 "sessions": [{"request": "SR-0001"}, {"request": "SR-0002"}]}
+        # 끝난 세션은 자리를 차지하지 않는다 — 셋 중 하나가 ended 면 '2/3' (중계가 active_sessions 를 낸다)
+        state = {"name": "pc-1", "host_id": "H-1", "paused": True, "max_sessions": 3, "active_sessions": 2,
+                 "sessions": [{"request": "SR-0001", "status": "busy"}, {"request": "SR-0002", "status": "idle"},
+                              {"request": "SR-0003", "status": "ended"}]}
 
         class H(BaseHTTPRequestHandler):
             def log_message(self, *_a: Any) -> None:
@@ -146,15 +153,17 @@ def main() -> int:
             on = _run_node(Path(d), port)
         srv.shutdown()
         st = on.get("status") or {}
-        _record("case 2 (활성화 — 상태 표시줄 세션 2/3 · 일시정지 · 클릭 명령)",
+        _record("case 2 (활성화 — 상태 표시줄 활성 세션 2/3(끝난 1 제외) · 일시정지 · 클릭 명령)",
                 "중계 2/3" in str(st.get("text")) and "일시정지" in str(st.get("text")) and st.get("shown") is True
                 and st.get("command") == "workflowHub.openRelay", str(on)[:300])
         panel = on.get("panel") or {}
         html = str(panel.get("html", ""))
         opts = panel.get("opts") or {}
         shell_csp = (re.findall(r'http-equiv="Content-Security-Policy" content="([^"]+)"', html) or [""])[0]
-        _record("case 3 (명령 — iframe 하나 · 설정 포트 · portMapping · enableScripts 켜짐 · 껍데기 CSP 스크립트 0)",
-                html.count("<iframe") == 1 and re.findall(r'<iframe[^>]*\ssrc="([^"]+)"', html) == [f"http://localhost:{port}/"]
+        html_light = str(panel.get("htmlAfterLight", ""))
+        _record("case 3 (명령 — iframe 하나 · 설정 포트 + VS Code 테마 · 테마 바뀌면 다시 그림 · portMapping · enableScripts · 껍데기 CSP 스크립트 0)",
+                html.count("<iframe") == 1 and re.findall(r'<iframe[^>]*\ssrc="([^"]+)"', html) == [f"http://localhost:{port}/?theme=dark"]
+                and re.findall(r'<iframe[^>]*\ssrc="([^"]+)"', html_light) == [f"http://localhost:{port}/?theme=light"]
                 and opts.get("portMapping") == [{"webviewPort": port, "extensionHostPort": port}]
                 and opts.get("enableScripts") is True and "default-src 'none'" in shell_csp and "script-src" not in shell_csp,
                 f"opts={opts} csp={shell_csp!r} html={html[:200]!r}")

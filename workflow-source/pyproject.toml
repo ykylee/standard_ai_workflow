@@ -269,6 +269,8 @@ workflow_kit = ["README.md", "py.typed", "assets/hooks/*.sh", "assets/reverse-en
 "workflow_kit.workbench" = ["static/*.css", "static/*.js"]
 # 허브 화면 정적 자원 — `hub/ui.py` 가 런타임에 읽는다 (hub_spec §4.7).
 "workflow_kit.hub" = ["static/*.html", "static/*.css", "static/*.js", "static/*.svg"]
+# PC 중계 로컬 화면 — `relay/ui.py` 가 런타임에 읽는다. Go 중계는 같은 바이트를 내장한다(check_go_assets_sync).
+"workflow_kit.relay" = ["static/*.html", "static/*.css", "static/*.js"]
 
 [tool.setuptools.exclude-package-data]
 "*" = ["__pycache__/*", "*.pyc", "*.pyo"]

@@ -353,6 +353,8 @@ def run(impl: str, cmd_prefix: list[str], hub: Hub, hub_db: Path, tmp: Path) -> 
         # 10 로컬 화면 (거두기 전에 — 폴링이 살아 있을 때)
         ubase = f"http://127.0.0.1:{uport}"
         _, page = _ui_get(uport, "/")
+        _, page_js = _ui_get(uport, "/relay.js")
+        _, page_css = _ui_get(uport, "/relay.css")
         _, api = _ui_get(uport, "/api/state")
         api_state = json.loads(api)
         allow0 = (api_state.get("allow") or [{}])[0]
@@ -372,15 +374,17 @@ def run(impl: str, cmd_prefix: list[str], hub: Hub, hub_db: Path, tmp: Path) -> 
         r7_entry = next((x for x in api_after.get("sessions", []) if x.get("request") == r7_req), {})
         allow0_after = (api_after.get("allow") or [{}])[0]
         hub_orch_link = f"{base}/ui/#/p/{pid}/orch"
-        _record(f"{tag}case 10 (로컬 화면 — 무깜빡임 fetch · 로컬 path/사용률 · 허브 딥링크 · 개별 종료 · 출처 403)",
-                "pc-1" in page and "<table>" in page and 'http-equiv="refresh"' not in page
-                and 'fetch("/api/state"' in page and hub_orch_link in page
+        _record(f"{tag}case 10 (로컬 화면 — 정적 화면 + 무깜빡임 fetch · 로컬 path/사용률 · 허브 딥링크 · 개별 종료 · 출처 403)",
+                "<table>" in page and 'src="/relay.js"' in page and 'href="/relay.css"' in page and 'http-equiv="refresh"' not in page
+                and 'fetch("/api/state"' in page_js and "--accent" in page_css
+                and api_state.get("name") == "pc-1" and (api_state.get("hub_links") or {}).get("orch") == hub_orch_link
                 and Path(str(allow0.get("path", ""))).resolve() == work.resolve() and before_active >= 1
                 and token not in page and token not in api
                 and no_hdr == 403 and foreign == 403 and ok_pause == 200 and paused_poll == {"paused": True}
                 and ok_resume == 200 and "dispatch" in resumed_poll
                 and stop_miss == 404 and stop_nohdr == 403 and stop_ok == 200 and stop_doc.get("stopped") == r7_req
-                and r7_entry.get("status") == "ended" and allow0_after.get("active_sessions") == before_active - 1,
+                and r7_entry.get("status") == "ended" and allow0_after.get("active_sessions") == before_active - 1
+                and api_after.get("active_sessions") == sum(1 for x in api_after.get("sessions", []) if x.get("status") != "ended"),
                 f"no_hdr={no_hdr} foreign={foreign} pause={ok_pause} stop={stop_miss}/{stop_nohdr}/{stop_ok} "
                 f"allow0={allow0} allow0_after={allow0_after} r7={r7_entry}")
 

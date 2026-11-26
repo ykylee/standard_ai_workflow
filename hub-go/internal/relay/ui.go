@@ -1,10 +1,10 @@
 package relay
 
 import (
+	"embed"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html"
 	"io"
 	"net"
 	"net/http"
@@ -119,17 +119,29 @@ func State(r *Relay) map[string]any {
 	if harnesses == nil {
 		harnesses = []any{}
 	}
+	active := 0
+	for _, x := range live {
+		if x["status"] != "ended" {
+			active++
+		}
+	}
+	var hubLinks any
+	if projURL, orchURL := hubDeepLinks(cfg["hub"], cfg["project_id"]); orchURL != "" {
+		hubLinks = map[string]any{"project": projURL, "orch": orchURL}
+	}
 
 	return map[string]any{
-		"hub":          cfg["hub"],
-		"host_id":      cfg["host_id"],
-		"project_id":   cfg["project_id"],
-		"name":         cfg["name"],
-		"harnesses":    harnesses,
-		"paused":       paused,
-		"sessions":     live,
-		"max_sessions": MaxSessions,
-		"allow":        allowOut,
+		"hub":             cfg["hub"],
+		"host_id":         cfg["host_id"],
+		"project_id":      cfg["project_id"],
+		"name":            cfg["name"],
+		"harnesses":       harnesses,
+		"paused":          paused,
+		"sessions":        live,
+		"max_sessions":    MaxSessions,
+		"active_sessions": active,
+		"hub_links":       hubLinks,
+		"allow":           allowOut,
 		"last_poll": map[string]any{
 			"dispatch": dispatchLen,
 			"deliver":  deliverLen,
@@ -139,241 +151,17 @@ func State(r *Relay) map[string]any {
 	}
 }
 
-func joinAnyStrings(v any) string {
-	switch arr := v.(type) {
-	case []string:
-		return strings.Join(arr, ", ")
-	case []any:
-		parts := make([]string, 0, len(arr))
-		for _, item := range arr {
-			parts = append(parts, fmt.Sprint(item))
-		}
-		return strings.Join(parts, ", ")
-	default:
-		return ""
-	}
-}
+// 화면은 정적 파일 세 개(relay.html · relay.css · relay.js)가 정본이다 — Python 중계
+// (workflow-source/workflow_kit/relay/static/)와 같은 바이트(check_go_assets_sync). 서버는 상태를 /api/state 로만 낸다.
+//
+//go:embed static/relay.html static/relay.css static/relay.js
+var staticFS embed.FS
 
-func renderPage(s map[string]any) string {
-	e := html.EscapeString
-	sessions, _ := s["sessions"].([]map[string]any)
-	var rows strings.Builder
-	if len(sessions) == 0 {
-		rows.WriteString("<tr><td colspan=7>띄운 세션 없음</td></tr>")
-	} else {
-		for _, x := range sessions {
-			alias := fmt.Sprint(x["alias"])
-			if x["alias"] == nil {
-				alias = "None"
-			}
-			sess := "—"
-			if x["session"] != nil && fmt.Sprint(x["session"]) != "" {
-				sess = fmt.Sprint(x["session"])
-			}
-			st := fmt.Sprint(x["status"])
-			req := fmt.Sprint(x["request"])
-			stopBtn := ""
-			if st != "ended" {
-				stopBtn = fmt.Sprintf(`<button type="button" class="ghost stop-btn" data-req="%s">종료</button>`, e(req))
-			}
-			fmt.Fprintf(
-				&rows,
-				`<tr><td>%s</td><td>%s</td><td>%s</td><td>%v</td><td><span class="chip">%s</span></td><td>%s</td><td>%s</td></tr>`,
-				e(req),
-				e(alias),
-				e(fmt.Sprint(x["harness"])),
-				x["pid"],
-				e(st),
-				e(sess),
-				stopBtn,
-			)
-		}
-	}
-
-	allowItems, _ := s["allow"].([]map[string]any)
-	var allow strings.Builder
-	if len(allowItems) == 0 {
-		allow.WriteString("<li>없음</li>")
-	} else {
-		for _, a := range allowItems {
-			fmt.Fprintf(
-				&allow,
-				`<li><code>%s</code> <span class="mono mute">%s</span> — %s · %s · %v/%v</li>`,
-				e(fmt.Sprint(a["alias"])),
-				e(fmt.Sprint(a["path"])),
-				e(joinAnyStrings(a["harnesses"])),
-				e(joinAnyStrings(a["permission_modes"])),
-				a["active_sessions"],
-				a["max_sessions"],
-			)
-		}
-	}
-
-	logs, _ := s["log"].([]string)
-	logStr := "—"
-	if len(logs) > 0 {
-		logStr = e(strings.Join(logs, "\n"))
-	}
-
-	paused, _ := s["paused"].(bool)
-	action := "pause"
-	statusLabel := "돌고 있음"
-	btnLabel := "일시정지"
-	if paused {
-		action = "resume"
-		statusLabel = "일시정지"
-		btnLabel = "재개"
-	}
-	lp, _ := s["last_poll"].(map[string]any)
-	harnesses := joinAnyStrings(s["harnesses"])
-	if harnesses == "" {
-		harnesses = "—"
-	}
-	projURL, orchURL := hubDeepLinks(s["hub"], s["project_id"])
-	hubLinks := ""
-	if orchURL != "" {
-		hubLinks = fmt.Sprintf(
-			`<a class="link-btn" href="%s" target="_blank" rel="noopener">중앙 허브 오케스트레이션</a> <a class="link-btn" href="%s" target="_blank" rel="noopener">프로젝트 화면</a>`,
-			e(orchURL),
-			e(projURL),
-		)
-	}
-
-	return fmt.Sprintf(`<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PC 중계</title>
-<style>
-:root{--bg:#f4f6fa;--card:#fff;--fg:#161a23;--mute:#677085;--line:#e2e6ef;--accent:#4f5bd5;--soft:#eef0f5;--bad:#c2283c;--bad-soft:#fde6e9}
-@media (prefers-color-scheme:dark){:root{--bg:#0f1218;--card:#171b24;--fg:#e7eaf2;--mute:#9aa3b8;--line:#2a3140;--accent:#8b95ff;--soft:#232936;--bad:#ff7a8c;--bad-soft:#3d1a21}}
-*{box-sizing:border-box}
-body{margin:0;padding:16px;background:var(--bg);color:var(--fg);font:14px/1.5 system-ui,sans-serif;max-width:980px;overflow-wrap:anywhere}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px}
-.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-table{border-collapse:collapse;width:100%%}td,th{border-bottom:1px solid var(--line);padding:6px;text-align:left}
-.mute{color:var(--mute)}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.85em}
-.chip{display:inline-block;padding:1px 8px;border-radius:999px;background:var(--soft);font-size:.85em}
-pre{white-space:pre-wrap;background:var(--soft);padding:10px;border-radius:8px;max-height:260px;overflow:auto;margin:0}
-button,.link-btn{background:var(--accent);color:#fff;border:0;padding:6px 12px;border-radius:8px;cursor:pointer;text-decoration:none;font:inherit;display:inline-block}
-button.ghost{background:var(--bad-soft);color:var(--bad)}
-.link-btn{background:var(--soft);color:var(--fg)}
-</style></head><body>
-<div class="card">
-<h1>PC 중계 — <span id="r-name">%s</span></h1>
-<p class="mute" id="r-meta">host %s · 프로젝트 %s · 허브 %s · 하네스 %s</p>
-<div class="row">상태: <b id="r-status">%s</b>
-<button type="button" id="toggle-btn" data-action="%s">%s</button>
-%s</div>
-<div id="r-msg" class="mute"></div>
-</div>
-<div class="card">
-<h2 id="sess-title">띄운 세션 (%d / %v)</h2>
-<table><thead><tr><th>요청</th><th>별칭</th><th>하네스</th><th>pid</th><th>상태</th><th>허브 세션</th><th>동작</th></tr></thead>
-<tbody id="sess-body">%s</tbody></table>
-</div>
-<div class="card">
-<h2>허용 목록 (이 PC 경로)</h2><ul id="allow-list">%s</ul>
-<p class="mute" id="poll-line">승인은 중앙 허브 화면에서 owner 가 한다 · 마지막 폴링: 내줌 %v · 전달 %v</p>
-</div>
-<div class="card"><h2>로그</h2><pre id="log-box">%s</pre></div>
-<script>
-(function () {
-  const headers = { "X-Relay-UI": "1" };
-  const toggleBtn = document.getElementById("toggle-btn");
-  const msgEl = document.getElementById("r-msg");
-  function mk(tag, text, cls) {
-    const el = document.createElement(tag);
-    if (cls) el.className = cls;
-    if (text !== undefined && text !== null) el.textContent = String(text);
-    return el;
-  }
-  function renderState(s) {
-    document.getElementById("r-status").textContent = s.paused ? "일시정지" : "돌고 있음";
-    toggleBtn.dataset.action = s.paused ? "resume" : "pause";
-    toggleBtn.textContent = s.paused ? "재개" : "일시정지";
-    document.getElementById("sess-title").textContent = "띄운 세션 (" + s.sessions.length + " / " + s.max_sessions + ")";
-    const tb = document.getElementById("sess-body");
-    tb.replaceChildren();
-    if (!s.sessions.length) {
-      const td = mk("td", "띄운 세션 없음"); td.colSpan = 7;
-      const tr = mk("tr"); tr.appendChild(td); tb.appendChild(tr);
-    } else {
-      for (const x of s.sessions) {
-        const tr = mk("tr");
-        tr.append(mk("td", x.request), mk("td", x.alias), mk("td", x.harness), mk("td", x.pid));
-        const stTd = mk("td"); stTd.appendChild(mk("span", x.status, "chip")); tr.appendChild(stTd);
-        tr.append(mk("td", x.session || "—"));
-        const actTd = mk("td");
-        if (x.status !== "ended") {
-          const b = mk("button", "종료", "ghost stop-btn");
-          b.type = "button"; b.dataset.req = x.request;
-          actTd.appendChild(b);
-        }
-        tr.appendChild(actTd);
-        tb.appendChild(tr);
-      }
-    }
-    const ul = document.getElementById("allow-list");
-    ul.replaceChildren();
-    if (!s.allow.length) { ul.appendChild(mk("li", "없음")); }
-    else {
-      for (const a of s.allow) {
-        const li = mk("li");
-        li.append(mk("code", a.alias), " ", mk("span", a.path || "", "mono mute"),
-          " — " + (a.harnesses || []).join(", ") + " · " + (a.permission_modes || []).join(", ") +
-          " · " + (a.active_sessions || 0) + "/" + a.max_sessions);
-        ul.appendChild(li);
-      }
-    }
-    const lp = s.last_poll || {};
-    document.getElementById("poll-line").textContent =
-      "승인은 중앙 허브 화면에서 owner 가 한다 · 마지막 폴링: 내줌 " + (lp.dispatch || 0) + " · 전달 " + (lp.deliver || 0);
-    const logEl = document.getElementById("log-box");
-    const nextLog = (s.log || []).join("\n") || "—";
-    const sel = window.getSelection ? String(window.getSelection()) : "";
-    if (!sel && logEl.textContent !== nextLog) {
-      const atBottom = logEl.scrollTop + logEl.clientHeight >= logEl.scrollHeight - 8;
-      logEl.textContent = nextLog;
-      if (atBottom) logEl.scrollTop = logEl.scrollHeight;
-    }
-  }
-  async function refresh() {
-    try {
-      const r = await fetch("/api/state", { cache: "no-store" });
-      if (r.ok) renderState(await r.json());
-    } catch (e) {}
-  }
-  toggleBtn.addEventListener("click", async () => {
-    const r = await fetch("/api/" + toggleBtn.dataset.action, { method: "POST", headers });
-    if (r.ok) await refresh();
-  });
-  document.getElementById("sess-body").addEventListener("click", async (ev) => {
-    const btn = ev.target && ev.target.closest ? ev.target.closest(".stop-btn") : null;
-    if (!btn) return;
-    const reqId = btn.dataset.req;
-    if (!confirm(reqId + " 세션을 이 PC 에서 강제 종료할까?")) return;
-    const r = await fetch("/api/sessions/" + encodeURIComponent(reqId) + "/stop", { method: "POST", headers });
-    msgEl.textContent = r.ok ? (reqId + " 세션을 로컬에서 종료했다.") : ("종료 실패 (" + r.status + ")");
-    await refresh();
-  });
-  setInterval(refresh, 3000);
-})();
-</script></body></html>`,
-		e(fmt.Sprint(s["name"])),
-		e(fmt.Sprint(s["host_id"])),
-		e(fmt.Sprint(s["project_id"])),
-		e(fmt.Sprint(s["hub"])),
-		e(harnesses),
-		statusLabel,
-		action,
-		btnLabel,
-		hubLinks,
-		len(sessions),
-		s["max_sessions"],
-		rows.String(),
-		allow.String(),
-		lp["dispatch"],
-		lp["deliver"],
-		logStr,
-	)
+var staticFiles = map[string][2]string{
+	"/":           {"static/relay.html", "text/html; charset=utf-8"},
+	"/index.html": {"static/relay.html", "text/html; charset=utf-8"},
+	"/relay.css":  {"static/relay.css", "text/css; charset=utf-8"},
+	"/relay.js":   {"static/relay.js", "text/javascript; charset=utf-8"},
 }
 
 func sendResponse(w http.ResponseWriter, code int, ctype string, body []byte) {
@@ -419,10 +207,14 @@ func StartUI(r *Relay, port int) (*http.Server, int, error) {
 			switch req.URL.Path {
 			case "/api/state":
 				sendJSON(w, http.StatusOK, State(r))
-			case "/", "/index.html":
-				htmlDoc := renderPage(State(r))
-				sendResponse(w, http.StatusOK, "text/html; charset=utf-8", []byte(htmlDoc))
 			default:
+				if f, ok := staticFiles[req.URL.Path]; ok {
+					raw, err := staticFS.ReadFile(f[0])
+					if err == nil {
+						sendResponse(w, http.StatusOK, f[1], raw)
+						return
+					}
+				}
 				sendResponse(w, http.StatusNotFound, "application/json", []byte("{}"))
 			}
 		case http.MethodPost:

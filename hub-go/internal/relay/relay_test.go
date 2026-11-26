@@ -370,10 +370,22 @@ func TestRunnerAndUI(t *testing.T) {
 		t.Fatalf("unexpected security headers: csp=%q xfo=%q", csp, resp.Header.Get("X-Frame-Options"))
 	}
 	pageStr := string(pageBytes)
-	if !strings.Contains(pageStr, "pc-1") || !strings.Contains(pageStr, "<table>") || strings.Contains(pageStr, "tok-runner") {
+	if !strings.Contains(pageStr, "<table>") || !strings.Contains(pageStr, `src="/relay.js"`) || strings.Contains(pageStr, "tok-runner") {
 		t.Fatalf("unexpected UI HTML")
 	}
-	if strings.Contains(pageStr, `http-equiv="refresh"`) || !strings.Contains(pageStr, `fetch("/api/state"`) {
+	// 화면은 내장 정적 파일 — Python 정본과 같은 바이트인지는 check_go_assets_sync 가 잰다. 여기서는 실제로 내보내는지만.
+	for path, want := range map[string]string{"/relay.js": `fetch("/api/state"`, "/relay.css": "--accent"} {
+		ar, err := http.Get(ubase + path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ab, _ := io.ReadAll(ar.Body)
+		ar.Body.Close()
+		if ar.StatusCode != 200 || !strings.Contains(string(ab), want) {
+			t.Fatalf("%s: code=%d missing %q", path, ar.StatusCode, want)
+		}
+	}
+	if strings.Contains(pageStr, `http-equiv="refresh"`) {
 		t.Fatalf("expected non-flicker fetch UI without meta refresh")
 	}
 	stResp, err := http.Get(ubase + "/api/state")
@@ -383,6 +395,9 @@ func TestRunnerAndUI(t *testing.T) {
 	var stDoc map[string]any
 	_ = json.NewDecoder(stResp.Body).Decode(&stDoc)
 	stResp.Body.Close()
+	if stDoc["name"] != "pc-1" || stDoc["active_sessions"] == nil {
+		t.Fatalf("expected name pc-1 and active_sessions in /api/state: %+v", stDoc)
+	}
 	if allowSlice, ok := stDoc["allow"].([]any); !ok || len(allowSlice) == 0 {
 		t.Fatalf("expected allow slice in /api/state: %+v", stDoc)
 	} else if first, ok := allowSlice[0].(map[string]any); !ok || first["path"] != work || first["active_sessions"] != float64(1) {

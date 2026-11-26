@@ -29,7 +29,8 @@
 
   function init() {
     var toggleBtn = $("toggle-btn");
-    var msgEl = $("r-msg");
+    var msgEl = $("r-msg");      // 일시정지 · 재개 결과 — 그 단추가 있는 머리 카드 안
+    var sessMsgEl = $("sess-msg"); // 종료 안내 · 결과 — 누른 종료 단추가 있는 세션 표 바로 아래 (재채점 P2)
     var connEl = $("r-conn");
     var last = null;          // 마지막으로 받은 상태
     var lastOk = null;        // 마지막 성공 시각
@@ -37,9 +38,22 @@
     var armed = null;         // { req, until } — 종료 두 번 누름 대기
     var rowsSig = "";
 
-    function say(text, kind) {
-      msgEl.className = "alert" + (kind ? " " + kind : "");
-      msgEl.textContent = text || "";
+    function say(text, kind, where) {
+      var box = where || msgEl;
+      box.className = "alert" + (kind ? " " + kind : "");
+      box.textContent = text || "";
+    }
+    function saySess(text, kind) { say(text, kind, sessMsgEl); }
+
+    // 실패는 코드만 보이지 않는다 — 무엇이 막혔는지와 다음에 할 일을 앞에, 코드는 괄호 안 보조로 (재채점 P2).
+    function failText(label, r, stop) {
+      var why;
+      if (!r.status) why = "중계에 닿지 않는다. 중계(hub relay serve)가 돌고 있는지 확인하고 다시 누른다.";
+      else if (r.status === 403) why = "이 화면에서 보낸 요청으로 확인되지 않아 막혔다. 이 창을 새로고침한 뒤 다시 누른다.";
+      else if (r.status === 404 && stop) why = "이 세션은 이미 끝났다. 목록이 곧 갱신된다 — 할 일은 없다.";
+      else if (r.status >= 500) why = "중계가 처리하다 실패했다" + (r.message ? " (" + r.message + ")" : "") + ". 아래 로그를 보고 다시 누른다.";
+      else why = (r.message ? r.message + ". " : "") + "다시 누르고, 계속되면 아래 로그를 본다.";
+      return label + " 실패 — " + why + (r.status ? " (HTTP " + r.status + ")" : "");
     }
 
     function renderConn() {
@@ -197,8 +211,10 @@
 
     function post(path) {
       return fetch(path, { method: "POST", headers: HEADERS }).then(function (r) {
-        return { ok: r.ok, status: r.status };
-      }, function () { return { ok: false, status: 0 }; });
+        return r.json().then(function (b) { return b; }, function () { return {}; }).then(function (b) {
+          return { ok: r.ok, status: r.status, message: b && typeof b.message === "string" ? b.message : "" };
+        });
+      }, function () { return { ok: false, status: 0, message: "" }; });
     }
 
     toggleBtn.addEventListener("click", function () {
@@ -206,7 +222,7 @@
       var label = action === "pause" ? "일시정지" : "재개";
       toggleBtn.disabled = true;
       post("/api/" + action).then(function (r) {
-        say(r.ok ? label + "했다." : label + " 실패 — " + (r.status ? "HTTP " + r.status : "중계에 닿지 않는다"), r.ok ? "ok" : "bad");
+        say(r.ok ? label + "했다." : failText(label, r, false), r.ok ? "ok" : "bad");
         return refresh();
       }).then(function () { if (fails < 2) toggleBtn.disabled = false; });
     });
@@ -217,7 +233,7 @@
       if (t.closest(".cancel-btn")) {
         armed = null;
         rowsSig = "";
-        say("");
+        saySess("");
         if (last) renderSessions(last);
         return;
       }
@@ -227,13 +243,13 @@
       if (btn.dataset.step !== "confirm") {
         armed = { req: reqId, until: Date.now() + ARM_MS };
         rowsSig = "";
-        say(reqId + " 세션을 이 PC 에서 강제 종료하려면 '정말 종료' 를 한 번 더 누른다 (" + ARM_MS / 1000 + "초).", "info");
+        saySess(reqId + " 세션을 이 PC 에서 강제 종료하려면 '정말 종료' 를 한 번 더 누른다 (" + ARM_MS / 1000 + "초).", "info");
         if (last) renderSessions(last);
         var again = $("sess-body").querySelector('.stop-btn[data-req="' + CSS.escape(reqId) + '"]');
         if (again) again.focus();
         setTimeout(function () {
           if (armed && armed.req === reqId && armed.until <= Date.now()) {
-            armed = null; rowsSig = ""; say("");
+            armed = null; rowsSig = ""; saySess("");
             if (last) renderSessions(last);
           }
         }, ARM_MS + 50);
@@ -243,8 +259,7 @@
       rowsSig = "";
       btn.disabled = true;
       post("/api/sessions/" + encodeURIComponent(reqId) + "/stop").then(function (r) {
-        say(r.ok ? reqId + " 세션을 로컬에서 종료했다." :
-          "종료 실패 — " + (r.status ? "HTTP " + r.status : "중계에 닿지 않는다"), r.ok ? "ok" : "bad");
+        saySess(r.ok ? reqId + " 세션을 로컬에서 종료했다." : failText(reqId + " 종료", r, true), r.ok ? "ok" : "bad");
         return refresh();
       });
     });

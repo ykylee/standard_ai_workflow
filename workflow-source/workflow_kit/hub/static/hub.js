@@ -85,6 +85,8 @@
       `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}`);
   }
   // 상태 낱말 — 화면은 한국어 하나로 말하고, 원래 값은 title 에 남긴다 (PRODUCT.md 원칙 2).
+  // DCR 은 화면 어디서나 이 이름 하나 — 목록 화면은 뒤에 '기록' 만 붙인다 (재채점 P2: 이름이 세 가지였다)
+  const DCR_NAME = "결정 변경(DCR)", DCR_LOG = `${DCR_NAME} 기록`;
   const STATUS_LABEL = {
     planned: "예정", in_progress: "진행 중", blocked: "막힘", done: "끝남", idle: "대기", working: "일하는 중", waiting: "기다림",
     ended: "끝남", open: "열림", pending: "대기", pending_approval: "승인 대기", approved: "승인됨", rejected: "거절됨", declined: "거절함",
@@ -198,12 +200,13 @@
 
   // 탭은 다섯 — 자주 가는 넷 + 더 보기. 사람이 승인할 것은 '결정' 한 곳이다 (TASK-2026-11-26-claude-plex-025).
   // 좁은 폭에서는 이 막대가 화면 아래에 붙는다(오른손 엄지 영역, hub.css). 더 보기는 오른쪽 끝에서 위로 열린다.
+  const MORE_SHORT = { dcr: "DCR 기록" };
   function projectNav(pid, active, decideCount) {
     const base = `#/p/${encodeURIComponent(pid)}`;
     const main = [["tasks", "개요", base], ["decide", "결정", `${base}/decide`], ["orch", "오케스트레이션", `${base}/orch`],
       ["roadmap", "로드맵", `${base}/roadmap`]];
     const more = [["ideas", "아이디어", `${base}/ideas`], ["wiki", "지식", `${base}/w`], ["guide", "지침", `${base}/guide`],
-      ["events", "이력", `${base}/events`], ["dcr", "결정 변경 기록", `${base}/dcr`], ["confirmations", "확인 요청 기록", `${base}/confirmations`]];
+      ["events", "이력", `${base}/events`], ["dcr", DCR_LOG, `${base}/dcr`], ["confirmations", "확인 요청 기록", `${base}/confirmations`]];
     const on = active === "confirmations" ? "decide" : active;
     const moreOn = more.find(([id]) => id === active);
     const count = el("span", { class: "count", "data-decide-count": "", hidden: true });
@@ -213,7 +216,9 @@
       main.map(([id, label, href]) => el("a", { href, class: on === id ? "on" : "", "aria-current": on === id ? "page" : null },
         label, id === "decide" ? count : null)),
       el("details", { class: "nav-more" + (moreOn ? " on" : "") },
-        el("summary", {}, moreOn ? moreOn[1] : "더 보기"),
+        // 좁은 폭의 아래 막대 한 칸(화면 폭의 1/5)에는 DCR 의 긴 이름이 낱자로 갈린다 — 그 칸만 줄인 이름, 전체 이름은 title
+        el("summary", moreOn ? { title: moreOn[1] } : {}, moreOn ? (MORE_SHORT[moreOn[0]]
+          ? [el("span", { class: "lbl-full" }, moreOn[1]), el("span", { class: "lbl-short" }, MORE_SHORT[moreOn[0]])] : moreOn[1]) : "더 보기"),
         el("div", { class: "nav-more-menu" }, more.map(([id, label, href]) =>
           el("a", { href, class: active === id ? "on" : "", "aria-current": active === id ? "page" : null }, label)))));
   }
@@ -516,6 +521,15 @@
 
   const STATUSES = ["", "all", "blocked", "in_progress", "planned", "done"];
 
+  // 마일스톤 순서는 한 곳에서 — 진척 띠와 로드맵 화면이 같은 순서로 보인다 (재채점 P2, TASK-2026-11-26-claude-plex-030).
+  // 열린 것: 현재 → 진행 중(선언이나 파생) → 나머지, 같은 무리 안은 로드맵 순서 그대로. 끝난 것: 로드맵 순서.
+  const milestoneDone = (m) => m.derived_status === "done" && m.declared_status === "done";
+  function milestoneOrder(st) {
+    const rank = (m) => m.id === st.current_milestone_id ? 0 : [m.declared_status, m.derived_status].includes("in_progress") ? 1 : 2;
+    const ms = st.milestones || [];
+    return { open: ms.filter((m) => !milestoneDone(m)).sort((a, b) => rank(a) - rank(b)), done: ms.filter(milestoneDone) };
+  }
+
   async function viewProject(pid, status, query) {
     query = query || new URLSearchParams();
     const token = storedToken(pid);
@@ -532,11 +546,22 @@
     }
     const { project, principal, summary } = pr.data;
     setWho(principal);
+    // 기본 '지금'(막힘 + 진행 중)이 0건이면 빈 목록부터 보이지 않는다 — 다음 비지 않은 필터로 떨어지고 그렇게 했다고 알린다.
+    // 분류 필터 · 열린 결정 목록을 고른 때는 사람이 고른 조건이므로 그대로 둔다.
+    const FACETS = ["roadmap", "milestone", "wbs", "category_level_1", "category_level_2", "category_level_3"];
+    let fellBack = "";
+    {
+      const c = project.task_counts || {};
+      if (!status && query.get("decisions") !== "open" && !FACETS.some((k) => query.get(k))
+          && !(c.blocked || 0) && !(c.in_progress || 0)) {
+        fellBack = ["planned", "done"].find((s) => (c[s] || 0) > 0) || "";
+        if (fellBack) status = fellBack;
+      }
+    }
     setCrumbs([{ text: "프로젝트", href: "#/" }, { text: project.display_name }]);
     const pageLimit = Number(query.get("limit") || 25);
     const pageOffset = Number(query.get("offset") || 0);
     const listQuery = new URLSearchParams({ limit: String(pageLimit), offset: String(pageOffset) });
-    const FACETS = ["roadmap", "milestone", "wbs", "category_level_1", "category_level_2", "category_level_3"];
     for (const key of FACETS) {
       if (query.get(key)) listQuery.set(key, query.get(key));
     }
@@ -577,7 +602,7 @@
       { key: "approve", title: "승인할 것", hint: "승인하면 실행되거나 확정된다", tile: "need", items: [
         ["확인 요청", counted(conf, (d) => (d.requests || []).length), `${base}/decide?focus=confirm`, "에이전트가 기다린다"],
         ["세션 승인", sum.pending_approvals || 0, `${base}/decide?focus=session`, "세션 띄우기 · 멈춤"],
-        ["결정 변경(DCR)", counted(dcr, (d) => (d.dcrs || []).filter((x) => x.status === "open").length), `${base}/decide?focus=dcr`, "승인 · 거절"],
+        [DCR_NAME, counted(dcr, (d) => (d.dcrs || []).filter((x) => x.status === "open").length), `${base}/decide?focus=dcr`, "승인 · 거절"],
         ["지침 제안", counted(guide, (d) => (d.proposals || []).filter((x) => x.status === "open").length), `${base}/decide?focus=guide`, "새 판으로 올릴지"]] },
       { key: "review", title: "살펴볼 것", hint: "답하거나 풀어야 일이 진행된다", tile: "look", items: [
         ["열린 결정 task", sum.open_decision_tasks || 0, (sum.open_decision_task_ids || []).length === 1
@@ -606,6 +631,10 @@
         : el("div", { class: "decide-clear" }, "모든 결정이 처리됐다. 새 요청이 오면 여기에 먼저 보인다."));
 
     const attention = [];
+    if (fellBack) {
+      attention.push(alertBox("info", `지금 막히거나 진행 중인 task 가 없어 '${statusLabel(fellBack)}' task 를 보인다 — `,
+        el("a", { href: `${base}/s/all`, "data-fell-back": fellBack }, "전체 보기")));
+    }
     if (orch && orch.halted) {
       attention.push(alertBox("bad", "오케스트레이션이 정지돼 있다 — 에이전트에게 새 일을 나누지 않는다. ", el("a", { href: `${base}/orch` }, "오케스트레이션에서 풀기")));
     }
@@ -623,9 +652,10 @@
         el("p", { class: "muted" }, rm.status === 200 ? "로드맵이 아직 없다 — 마일스톤을 등록하면 여기에 진척 띠가 생긴다. " : `로드맵을 읽지 못했다 (${rm.status}). `,
           el("a", { href: `${base}/roadmap` }, "로드맵 화면")));
     } else {
-      const ms = st.milestones;
-      const isDone = (m) => m.derived_status === "done" && m.declared_status === "done";
-      const cur = ms.find((m) => m.id === st.current_milestone_id) || ms.find((m) => !isDone(m));
+      const isDone = milestoneDone;
+      const { open: openMs, done: doneMs } = milestoneOrder(st);
+      const ms = [...doneMs, ...openMs];  // 띠는 왼쪽 끝난 것 → 오른쪽 열린 것, 열린 것은 로드맵 화면과 같은 순서
+      const cur = ms.find((m) => m.id === st.current_milestone_id) || openMs[0];
       const tenth = (p) => Math.max(0, Math.min(100, Math.round((p || 0) * 10) * 10));
       // 마일스톤이 많으면(운영 허브는 60개 넘게) 한 칸씩 그리면 띠가 화면 밖으로 넘친다 —
       // 끝난 것은 한 칸으로 접고, 열린 것은 지금 것을 포함해 RAIL_OPEN 개까지, 나머지는 '남은 N개' 한 칸.
@@ -643,9 +673,7 @@
       let segs;
       if (ms.length <= RAIL_MAX) segs = ms.map(seg);
       else {
-        const doneMs = ms.filter(isDone), openMs = ms.filter((m) => !isDone(m));
-        let shownOpen = openMs.slice(0, RAIL_OPEN);
-        if (cur && !isDone(cur) && !shownOpen.includes(cur)) shownOpen = [...openMs.slice(0, RAIL_OPEN - 1), cur];
+        const shownOpen = openMs.slice(0, RAIL_OPEN);  // 현재가 맨 앞이라 늘 들어간다
         const rest = openMs.length - shownOpen.length;
         segs = [doneMs.length ? bundle(doneMs.length, true, `끝난 마일스톤 ${doneMs.length}개`, "done") : null,
           ...shownOpen.map(seg), rest > 0 ? bundle(rest, false, `남은 마일스톤 ${rest}개`, "rest") : null].filter(Boolean);
@@ -748,7 +776,7 @@
             el("dt", {}, "task"), el("dd", {}, "한 사람(또는 에이전트)이 맡아 끝내는 일 하나. 완료 기준을 검증해야 끝남이 된다."),
             el("dt", {}, "마일스톤 · WBS"), el("dd", {}, "로드맵의 큰 단계와 그 안의 세부 작업. 진척 띠의 한 칸이 마일스톤 하나다."),
             el("dt", {}, "확인 요청"), el("dd", {}, "에이전트가 실행 전에 사람의 승인을 받는 요청. 승인해야 그 일이 실행된다."),
-            el("dt", {}, "결정 변경(DCR)"), el("dd", {}, "프로젝트 결정을 바꾸자는 제안. 소유자가 승인하면 결정 기록(ADR)이 된다."),
+            el("dt", {}, DCR_NAME), el("dd", {}, "프로젝트 결정을 바꾸자는 제안. 소유자가 승인하면 결정 기록(ADR)이 된다."),
             el("dt", {}, "PC 중계 · 오케스트레이터"), el("dd", {}, "중계는 PC 에서 에이전트 세션을 띄워 주는 프로그램, 오케스트레이터는 에이전트에게 일을 나누는 세션이다."))),
         who),
       ...attention,
@@ -1394,7 +1422,7 @@
     };
   }
 
-  const DQ_KIND = { confirm: "확인 요청", session: "세션 승인", dcr: "결정 변경(DCR)", guide: "지침 제안" };
+  const DQ_KIND = { confirm: "확인 요청", session: "세션 승인", dcr: DCR_NAME, guide: "지침 제안" };
   // 한 모양: 종류 꼬리표 · 누가 무엇을(제목) · 때 · 근거 · 결정 메모 폼. 판단 근거(질문 · 차이)가 실행 내용보다 먼저다.
   function decisionCard(kind, id, headline, meta, body, form) {
     return el("section", { class: "card dq", "data-kind": kind, "data-id": id },
@@ -1492,12 +1520,9 @@
         el("div", { class: "muted" }, `세부 작업 ${m.done_leaves} / ${m.total_leaves} 끝남 (${Math.round((m.progress || 0) * 100)}%)`),
         el("progress", { value: m.progress || 0, max: 1, "aria-label": `${m.id} 진척` })),
       m.wbs && m.wbs.length ? el("ul", { class: "wbs-list" }, m.wbs.map((w) => renderWbsNode(base, w, titles))) : null);
-    const isDone = (m) => m.derived_status === "done" && m.declared_status === "done";
-    const open = st.milestones.filter((m) => !isDone(m));
-    // 현재 → 진행 중(선언이나 파생) → 나머지 (같은 무리 안은 로드맵 순서 그대로)
-    const rank = (m) => m.id === st.current_milestone_id ? 0 : [m.declared_status, m.derived_status].includes("in_progress") ? 1 : 2;
-    open.sort((a, b) => rank(a) - rank(b));
-    const done = st.milestones.filter(isDone).reverse();
+    const order = milestoneOrder(st);
+    const open = order.open;
+    const done = order.done.reverse();  // 완료 접기 안은 최근 것부터
     render(
       el("section", { class: "card" }, el("h1", {}, "로드맵"), projectNav(pid, "roadmap"),
         el("div", { class: "row muted" }, `마일스톤 ${st.milestones.length}개 (열림 ${open.length} · 완료 ${done.length})`,
@@ -1711,7 +1736,7 @@
   const dcrChip = (st) => { const [t, c] = DCR_STATUS[st] || [st, "planned"]; return el("span", { class: "chip " + c, title: st }, t); };
 
   async function viewDcrs(pid, id) {
-    const { token, base, pr } = await projectHead(pid, "결정 변경 기록");
+    const { token, base, pr } = await projectHead(pid, DCR_LOG);
     const r = await api(`projects/${encodeURIComponent(pid)}/dcr${id ? `/${encodeURIComponent(id)}` : ""}`, { token });
     const principal = pr.status === 200 ? pr.data.principal : null;
     const canDecide = Boolean(principal && principal.can_manage);  // 소유자 — 요약 API 가 계산한다 (계정 로그인 포함)
@@ -1741,9 +1766,9 @@
       body = list.length ? el("ul", { class: "hits" }, list.map((d) => el("li", {}, dcrChip(d.status), " ",
         el("a", { href: `${base}/dcr/${encodeURIComponent(d.id)}` }, d.title), el("span", { class: "muted" }, ` · 제안 ${d.author}`),
         d.status === "open" && canDecide ? el("span", { class: "muted" }, " · 내가 승인 · 거절할 수 있다") : null)))
-        : el("p", { class: "muted" }, "등록된 결정 변경 기록(DCR)이 없다.");
+        : el("p", { class: "muted" }, `등록된 ${DCR_NAME} 이 없다.`);
     }
-    render(el("section", { class: "card" }, el("h1", {}, id ? (r.status === 200 ? r.data.title : `DCR ${id}`) : "결정 변경 기록"), projectNav(pid, "dcr"), body));
+    render(el("section", { class: "card" }, el("h1", {}, id ? (r.status === 200 ? r.data.title : `DCR ${id}`) : [el("span", { class: "nowrap" }, DCR_NAME), " 기록"]), projectNav(pid, "dcr"), body));
   }
 
   function wikiLinks(path, text) {

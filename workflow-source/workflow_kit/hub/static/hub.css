@@ -146,6 +146,8 @@ th, td { text-align: left; padding: var(--sp-2) var(--sp-2); border-bottom: 1px 
 th { color: var(--ink-2); font-weight: 600; font-size: var(--fs-sm); white-space: nowrap; }
 tbody tr:hover td { background: var(--surface-2); }
 .nowrap { white-space: nowrap; }
+.lbl-short { display: none; }
+@media (max-width: 48rem) { .nav-more .lbl-full { display: none; } .nav-more .lbl-short { display: inline; } }
 .table-wrap { overflow-x: auto; }
 table.tasks { table-layout: fixed; }
 col.c-title { width: auto; } col.c-status { width: 6.5rem; } col.c-who { width: 8rem; } col.c-doing { width: 30%; } col.c-when { width: 10.5rem; }

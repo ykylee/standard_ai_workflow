@@ -14,6 +14,8 @@ fixture 는 운영 상한을 채운다: 활성 세션 3(= ``MAX_SESSIONS``) · �
 4. 종료 두 번 누름 — 첫 누름은 POST 없이 '정말 종료' 로 무장, 3초 갱신이 지나도 무장 유지, 둘째 누름에 POST 하나
 5. 연결 끊김 — /api/state 가 실패하기 시작하면 2회부터 aria-live 경보 · 상태 '확인 안 됨' · 마지막 확인 시각
 6. ``confirm(`` · ``alert(`` · ``prompt(`` 를 쓰지 않는다 (VS Code webview sandbox 에 allow-modals 가 없다 — 실측)
+7. 종료 안내 · 결과는 누른 단추가 있는 세션 카드 안, 표 바로 아래에 뜬다 — 머리 카드 알림은 비어 있다 (재채점 P2)
+8. 종료 실패는 코드만이 아니라 다음 행동을 말한다 — 500 은 로그 보고 다시, 404 는 이미 끝남 · 할 일 없음 (재채점 P2)
 """
 
 from __future__ import annotations
@@ -119,7 +121,12 @@ const b=d.querySelector('#sess-body .stop-btn');b.click();await z(200);
 out.armed=[...d.querySelectorAll('#sess-body tr:first-child .c-act button')].map(x=>x.textContent);out.posts1=await (await fetch('/__posts')).json();
 await z(3600);out.armedAfterPoll=[...d.querySelectorAll('#sess-body tr:first-child .c-act button')].map(x=>x.textContent);
 out.armedCount=d.querySelectorAll('#sess-body .stop-btn.armed').length;d.querySelector('#sess-body .stop-btn.armed').click();await z(900);out.posts2=await (await fetch('/__posts')).json();
-out.msg=d.getElementById('r-msg').textContent;
+out.msg=d.getElementById('sess-msg').textContent;out.topMsg=d.getElementById('r-msg').textContent;
+const sm=d.getElementById('sess-msg'),tbl=d.getElementById('sess-body').closest('table');
+out.near=[!!sm.closest('.card')&&sm.closest('.card')===tbl.closest('.card')&&sm.closest('.card')!==d.getElementById('r-msg').closest('.card'),Math.round(sm.getBoundingClientRect().top-tbl.getBoundingClientRect().bottom)];
+const fail=async(code)=>{await fetch('/__stopfail?'+code);const x=d.querySelectorAll('#sess-body .stop-btn')[1];x.click();await z(200);
+d.querySelector('#sess-body .stop-btn.armed').click();await z(900);return [d.getElementById('sess-msg').textContent,d.getElementById('sess-msg').className];};
+out.fail500=await fail(500);out.fail404=await fail(404);await fetch('/__stopfail?0');
 out.connBefore=d.getElementById('r-conn').textContent;
 await fetch('/__fail');await z(3200);out.connAfter1=d.getElementById('r-conn').textContent;await z(3200);
 const c=d.getElementById('r-conn');out.conn=[c.textContent,c.getAttribute('aria-live'),getComputedStyle(c).display];
@@ -137,8 +144,8 @@ def main() -> int:
 
     exe = browser()
     if exe is None:
-        print("  SKIP: Chrome 없음 — case 1~5 미측정 (통과 아님)")
-        print(f"\n{_count - len(_fails)}/{_count} passed · 미측정 5")
+        print("  SKIP: Chrome 없음 — case 1~5 · 7 · 8 미측정 (통과 아님)")
+        print(f"\n{_count - len(_fails)}/{_count} passed · 미측정 7")
         return 1 if _fails else 0
 
     with tempfile.TemporaryDirectory(prefix="relayscr-") as tmp:
@@ -179,7 +186,7 @@ def main() -> int:
             s.bind(("127.0.0.1", 0))
             uport = int(s.getsockname()[1])
         usrv = ui.serve(_Relay(), uport)  # type: ignore[arg-type]
-        ctl: dict[str, Any] = {"fail": False, "posts": [], "probe": ""}
+        ctl: dict[str, Any] = {"fail": False, "posts": [], "probe": "", "stopfail": 0}
 
         class P(BaseHTTPRequestHandler):
             def log_message(self, *_a: Any) -> None:
@@ -197,6 +204,13 @@ def main() -> int:
                     return self._reply(200, ctl["probe"].encode(), "text/html; charset=utf-8")
                 if self.path == "/__posts":
                     return self._reply(200, json.dumps(ctl["posts"]).encode(), "application/json")
+                if self.path.startswith("/__stopfail?"):
+                    ctl["stopfail"] = int(self.path.split("?", 1)[1])
+                    return self._reply(200, b"{}", "application/json")
+                if ctl["stopfail"] and self.command == "POST" and self.path.endswith("/stop"):
+                    self.rfile.read(int(self.headers.get("content-length") or 0))
+                    msg = {"error_code": "io_error", "message": "relay-state.json 을 쓰지 못했다"} if ctl["stopfail"] >= 500 else {"error_code": "not_found", "message": "실행 중인 세션이 없다"}
+                    return self._reply(ctl["stopfail"], json.dumps(msg, ensure_ascii=False).encode(), "application/json")
                 if self.path == "/__fail":
                     ctl["fail"] = True
                     return self._reply(200, b"{}", "application/json")
@@ -226,12 +240,12 @@ def main() -> int:
             for width, theme, paused in ((900, "light", True), (520, "dark", False), (390, "dark", True)):
                 tag = f"[{width}px · {theme}]"
                 state["paused"] = paused
-                ctl.update(fail=False, posts=[], probe=PROBE % {"w": width, "theme": theme})
+                ctl.update(fail=False, posts=[], stopfail=0, probe=PROBE % {"w": width, "theme": theme})
                 stops.clear()
                 prof = Path(tmp) / f"prof-{width}"
                 r = subprocess.run([exe, "--headless=new", "--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage", "--no-first-run",
                                     "--password-store=basic", "--disable-background-networking", "--no-proxy-server",
-                                    "--window-size=1200,1600", f"--user-data-dir={prof}", "--virtual-time-budget=40000",
+                                    "--window-size=1200,1600", f"--user-data-dir={prof}", "--virtual-time-budget=46000",
                                     "--dump-dom", base + "/__probe"],
                                    capture_output=True, encoding="utf-8", errors="replace", timeout=90)
                 m = re.search(r'data-out="([^"]*)"', r.stdout)
@@ -259,6 +273,14 @@ def main() -> int:
                         and out["posts2"] == ["/api/sessions/SR-0012/stop"] and stops == ["SR-0012"] and "종료했다" in out["msg"],
                         f"armed={out['armed']} posts1={out['posts1']} after={out['armedAfterPoll']} posts2={out['posts2']} "
                         f"stops={stops} msg={out['msg']!r}")
+                _record(f"{tag} case 7 (종료 안내 · 결과는 누른 단추의 카드 안 · 표 바로 아래, 머리 카드 알림 비어 있음)",
+                        out["near"][0] is True and 0 <= out["near"][1] <= 40 and out["topMsg"] == "" and "종료했다" in out["msg"],
+                        f"near={out['near']} top={out['topMsg']!r} msg={out['msg']!r}")
+                f5, f4 = out["fail500"], out["fail404"]
+                _record(f"{tag} case 8 (종료 실패는 다음 행동을 말한다 — 500 로그 보고 다시 · 404 이미 끝남, 코드는 괄호 보조)",
+                        "bad" in f5[1] and "로그를 보고 다시 누른다" in f5[0] and "relay-state.json" in f5[0] and f5[0].endswith("(HTTP 500)")
+                        and "이미 끝났다" in f4[0] and "할 일은 없다" in f4[0] and f4[0].endswith("(HTTP 404)")
+                        and not re.fullmatch(r".*실패 — HTTP \d+", f5[0]), f"500={f5} 404={f4}")
                 _record(f"{tag} case 5 (연결 끊김 — 1회는 조용 · 2회부터 aria-live 경보 · '확인 안 됨' · 마지막 확인)",
                         out["connBefore"] == "" and out["connAfter1"] == "" and "중계에 닿지 않는다" in out["conn"][0]
                         and out["conn"][1] == "assertive" and out["conn"][2] != "none" and out["status"] == "확인 안 됨"

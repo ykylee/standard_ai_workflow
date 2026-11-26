@@ -10,6 +10,7 @@ Chrome headless 의 ``--dump-dom`` 으로 그린다 (Python 허브 · Go 허브 
 3. 로드맵 — 열린 마일스톤이 먼저, 완료는 접기 안
 5. 확인 요청 — 문서 차이가 줄마다 맞고, 보이지 않는 문자를 드러내고, 낡은 요청의 승인 단추를 끈다 · 미확인 메시지 정리
 4. 오케스트레이션 — 미확인 메시지 본문(객체 · 문자열), 계정 로그인 소유자의 승인 · 정지 · 거두기 · lease · 초대 버튼이 실제로 동작
+6. 재채점 P2 — 진척 띠와 로드맵 화면의 마일스톤 순서가 같다 · DCR 이름 하나 · '지금' 0건이면 다음 필터로 떨어지고 알린다
 """
 
 from __future__ import annotations
@@ -118,7 +119,7 @@ def proxy(hub: Hub, cookie: str) -> ThreadingHTTPServer:
                         b"const br=[];const D=d.ownerDocument;const tw=D.createTreeWalker(d.querySelector('main'),NodeFilter.SHOW_TEXT);let n;"
                         b"while((n=tw.nextNode())){const pe=n.parentElement;if(!pe||pe.closest('pre')||!pe.checkVisibility())continue;const re=/\\S+/g;let m;"
                         b"while((m=re.exec(n.data))){if(!/[\\uac00-\\ud7a3]/.test(m[0]))continue;const g=D.createRange();g.setStart(n,m.index);g.setEnd(n,m.index+m[0].length);"
-                        b"if(new Set([...g.getClientRects()].filter(x=>x.width>0).map(x=>Math.round(x.top))).size>1)br.push(m[0]);}}"
+                        b"if(new Set([...g.getClientRects()].filter(x=>x.width>0).map(x=>Math.round(x.top))).size>1)br.push(m[0]+'@'+pe.tagName.toLowerCase()+(pe.className?'.'+pe.className.split(' ')[0]:''));}}"
                         b"document.body.dataset.br=JSON.stringify(br.slice(0,12))+'#'+br.length;"
                         # 아래 탭 막대 · 승인 막대 (TASK-2026-11-26-claude-plex-025) — 위치 · 크기 · 단추 순서
                         b"const bar=d.querySelector('.nav-links');if(bar){const b=bar.getBoundingClientRect();const items=[...bar.children].map(c=>{const e=c.tagName==='DETAILS'?c.querySelector('summary'):c;"
@@ -189,6 +190,10 @@ def problems(dom: str, want: str) -> list[str]:
     return out
 
 
+# 로드맵 순서(M-001 · M-003 · M-002 · M-004)와 화면 순서(현재 M-002 → 진행 중 M-004 → 예정 M-003)가 다르게 — 순서 case 가 둘의 차이를 본다
+MILES = [("M-001", "계정 · 권한", 1), ("M-003", "워크벤치 정리", 2), ("M-002", "허브 화면 재정비", 3), ("M-004", "Go 허브 이전", 4)]
+
+
 def seed(hub: Hub, db: Path, impl: str) -> dict[str, str]:
     pid, owner = ui._project(hub, "screens-demo")
     bot = hub.call("hub_callsign_register", {"project_id": pid, "callsign": "bot-a", "kind": "agent"})[1]["token"]
@@ -206,7 +211,7 @@ def seed(hub: Hub, db: Path, impl: str) -> dict[str, str]:
     must("hub_wiki_ingest", {"pages": [{"path": "topics/one.md", "body": "---\ntitle: 온보딩 안내\n---\n\n# 온보딩 안내\n\n본문\n", "expected_version": 0}], "summary": "한 장"}, owner)
     dcr = must("hub_dcr_create", {"title": "ADR 확정을 승인 즉시로 바꾸기", "rationale": "이유", "proposal": "제안", "target_refs": []}, bot)
     assert dcr
-    miles = [("M-001", "계정 · 권한", 1), ("M-003", "워크벤치 정리", 2), ("M-002", "허브 화면 재정비", 3), ("M-004", "Go 허브 이전", 4)]
+    miles = MILES
 
     wbs = {1: "계정 관리자 권한", 2: "워크벤치 결정 응답 정리", 3: "개요 화면 진척 띠", 4: "Go 허브 화면 API 맞추기"}
 
@@ -413,6 +418,40 @@ def answer_cases(impl: str, exe: str, tmp: Path, port: int, hub: Hub, env: dict[
     _record(f"[{impl}] 로그아웃으로 연 프로젝트 링크 — 로그인 양식이 먼저", "허브 계정 로그인" in out and "콜사인 토큰으로 열기" in out, out[-300:])
 
 
+def p2_cases(impl: str, exe: str, tmp: Path, port: int, hub: Hub, env: dict[str, str], doms: dict[str, str]) -> None:
+    """재채점 P2 (TASK-2026-11-26-claude-plex-030) — 마일스톤 순서 · DCR 이름 하나 · '지금' 0건이면 다음 필터."""
+    ov, rm = html.unescape(doms["viewProject"]), html.unescape(doms["viewRoadmap"])
+    rail = re.search(r'<div class="rail"[^>]*>(.*?)</div><div class="rail-legend"', ov, re.S)
+    rail_open = re.findall(r'<a role="listitem"[^>]*class="[^"]*\bopen\b[^"]*"[^>]*>.*?<span class="lbl">([^<]*)</span>', rail[1] if rail else "", re.S)
+    names = {t for _, t, _ in MILES}
+    rm_open = [t for t in re.findall(r"<h2>([^<]*)</h2>", rm.split('data-keep="rm-done"', 1)[0]) if t in names]
+    _record(f"[{impl}] 진척 띠의 열린 마일스톤 순서 = 로드맵 화면 순서", len(rail_open) == 3 and rail_open == rm_open,
+            f"rail={rail_open} roadmap={rm_open}")
+    odd = {v: sorted(set(re.findall(r"결정 변경(?!\(DCR\))\S*", re.sub(r"<[^>]+>", " ", html.unescape(re.sub(r"<(script|style)\b.*?</\1>", "", d, flags=re.S))))))
+           for v, d in doms.items()}
+    odd = {v: x for v, x in odd.items() if x}
+    _record(f"[{impl}] DCR 이름은 '결정 변경(DCR)' 하나 — 전 화면", not odd and "결정 변경(DCR) 기록" in ov, f"{odd}")
+    pid, owner = env["pid"], env["owner"]
+    moved = []
+    for st in ("in_progress", "blocked"):
+        for t in ui._req(hub.base, f"/api/projects/{pid}/tasks?status={st}&limit=100", token=owner)[1]["tasks"]:
+            code, out, _ = hub.call("hub_task_update", {"id": t["id"], "expected_version": t["version"], "values": {"status": "planned"}}, owner)
+            assert code == 200, out
+            moved.append(t["id"])
+    counts = ui._req(hub.base, f"/api/projects/{pid}", token=owner)[1]["project"]["task_counts"]
+    planned = ui._req(hub.base, f"/api/projects/{pid}/tasks?status=planned&limit=100", token=owner)[1]["tasks"]
+    now = html.unescape(draw(exe, tmp, port, f"p/{pid}"))
+    tab = re.search(r'<a href="[^"]*/s/planned[^"]*" class="on" aria-current="true">', now)
+    rows = now.count('<td class="t-title">')
+    _record(f"[{impl}] '지금' 0건 — 다음 비지 않은 필터(예정)로 떨어지고 알린다 · 그 탭이 켜지고 목록이 그 task",
+            not counts.get("in_progress") and not counts.get("blocked") and 'data-fell-back="planned"' in now
+            and "지금 막히거나 진행 중인 task 가 없어 '예정' task 를 보인다" in now and bool(tab)
+            and rows == min(25, len(planned)) > 0 and all(t["title"] in now for t in planned[:25]),
+            f"moved={moved} counts={counts} tab={bool(tab)} rows={rows} planned={len(planned)}")
+    pick = html.unescape(draw(exe, tmp, port, f"p/{pid}?milestone=M-002"))
+    _record(f"[{impl}] '지금' 0건이어도 분류 필터를 고른 때는 떨어지지 않는다", "data-fell-back" not in pick and "지금 막히거나 진행 중인 task 가 없다" in pick, pick[-200:])
+
+
 def many_milestones(impl: str, exe: str, tmp: Path, port: int, hub: Hub, env: dict[str, str]) -> None:
     """운영 허브처럼 마일스톤이 수십 개면 진척 띠가 휴대폰 화면 밖으로 넘쳤다 — 접어서 7칸 이하로 (2026-11-26 소유자 보고).
     맨 끝에서 돈다 — 마일스톤을 늘리면 앞 case 들의 4칸 전제가 깨진다."""
@@ -584,6 +623,7 @@ def measure(impl: str, cmd: list[str] | None, exe: str, tmp: Path) -> None:
         acted = re.search(r'data-acts="([^"]*)"', dom)
         _record(f"[{impl}] 결정 탭 — 첫 확인 요청을 그 자리에서 승인한다", bool(acted) and acted[1] == "승인" and after == before - 1,
                 f"acts={acted and acted[1]} before={before} after={after}")
+        p2_cases(impl, exe, tmp, port, hub, env, doms)  # task 를 예정으로 옮긴다 — 진행 중 task 를 기대는 case 들 뒤
         many_milestones(impl, exe, tmp, port, hub, env)
     finally:
         if srv:

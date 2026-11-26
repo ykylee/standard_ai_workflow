@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- feat(hub): entry region budget 12 KiB and 120 lines instead of 8 KB (df11ce10)
 - feat(hub): five tabs with one decision queue; bottom tab bar and approve bar for the right thumb (a9ea92a9)
 - feat(hub): shrink the standard block's tool catalog to family prefixes (standard 2.5) (2bd6e4af)
 - feat(hub): expire sessions after 24 hours without a signal; fold ended sessions (9cc9466e)
@@ -295,6 +296,9 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- chore(release): prepare 3.12.0 (512ff253)
+- chore(hub): re-render the CLAUDE.md hub region from 3.11.0 (standard 2.5) (307cafc9)
+- chore(release): keep the files generated while publishing 3.11.0 (e1d0d708)
 - chore(release): prepare 3.11.0 (ed8815ec)
 - chore(release): keep the files generated while publishing 3.10.0 (61d02b95)
 - chore(release): prepare 3.10.0 (b5efb478)

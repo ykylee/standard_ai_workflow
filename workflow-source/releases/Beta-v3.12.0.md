@@ -16,3 +16,20 @@
 
 - **DB 판은 22 그대로다** — 3.11.0 으로 되돌릴 때 실행 파일만 바꾸면 된다(되돌리면 8KB 를 넘는 지침은 다시 렌더되지 않는다).
 - AGENTS.md 는 손 문단과 허브 영역을 합쳐 32KiB 아래로 둔다 — 넘으면 Codex 가 뒷부분을 조용히 자른다.
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-11-26T14:49:34Z)_
+
+- total wiki pages: **104**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

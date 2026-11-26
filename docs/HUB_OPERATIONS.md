@@ -12,7 +12,7 @@ PostgreSQL은 Go와 Python 런타임이 함께 지원하는 서버 저장소다.
 참여한다. 하네스는 허브의 원격 MCP(`/mcp`)로 붙고, 셋업이 쓰는 파일은 `.gitignore` 한 줄 · 진입 파일 영역 ·
 하네스 설정 · 토큰 파일(`.workflow-hub/env`, git 제외) 뿐이다.
 
-버전 표시는 런타임 판과 kit 계약판을 구분한다. 현재 Go 허브 pilot과 Python wheel은 모두 **3.7.0**이며, 두 런타임이 구현하는
+버전 표시는 런타임 판과 kit 계약판을 구분한다. 현재 Go 허브 pilot과 Python wheel은 모두 **3.8.0**이며, 두 런타임이 구현하는
 kit 호환 계약은 **2.1.0**이다. 허브 `/healthz` 의 `hub_version`은 런타임, `kit_version`은 호환 계약 판이다.
 `X-Hub-Version` 과 `X-Hub-Kit` 응답 헤더도 같은 구분을 따른다.
 
@@ -319,7 +319,7 @@ python -m workflow_kit hub backup --db ~/workflow-hub/hub.db --out ~/backup/hub-
 
 ### 8.1 3.x pre-release pilot 런타임 선택
 
-Go 허브 pilot과 Python 허브 wheel은 **3.7.0**로 배포된다. 사내 Windows에서는 아래 보안 정책을 먼저 확인하고,
+Go 허브 pilot과 Python 허브 wheel은 **3.8.0**로 배포된다. 사내 Windows에서는 아래 보안 정책을 먼저 확인하고,
 Python 런타임은 별도 프로세스와 DB 사본으로 평가한다.
 
 #### 셋업 전 사내 Windows 확인
@@ -338,7 +338,7 @@ Windows PowerShell 예시 (SQLite 복제본으로 pilot):
 ```powershell
 py -3.11 -m venv "$env:USERPROFILE\workflow-hub\venv-3x"
 $py = "$env:USERPROFILE\workflow-hub\venv-3x\Scripts\python.exe"
-& $py -m pip install 'standard-ai-workflow[hub] @ https://github.com/ykylee/standard_ai_workflow/releases/download/v3.7.0/standard_ai_workflow-3.7.0-py3-none-any.whl'
+& $py -m pip install 'standard-ai-workflow[hub] @ https://github.com/ykylee/standard_ai_workflow/releases/download/v3.8.0/standard_ai_workflow-3.8.0-py3-none-any.whl'
 & $py -m workflow_kit hub serve --db "$env:USERPROFILE\workflow-hub\pilot-copy.db" --bind 127.0.0.1 --port 8770
 ```
 
@@ -348,7 +348,7 @@ $py = "$env:USERPROFILE\workflow-hub\venv-3x\Scripts\python.exe"
 ```sh
 python3 -m venv ~/workflow-hub/venv-3x
 ~/workflow-hub/venv-3x/bin/python -m pip install \
-  'standard-ai-workflow[hub] @ https://github.com/ykylee/standard_ai_workflow/releases/download/v3.7.0/standard_ai_workflow-3.7.0-py3-none-any.whl'
+  'standard-ai-workflow[hub] @ https://github.com/ykylee/standard_ai_workflow/releases/download/v3.8.0/standard_ai_workflow-3.8.0-py3-none-any.whl'
 ~/workflow-hub/venv-3x/bin/python -m workflow_kit hub serve \
   --db ~/workflow-hub/pilot-copy.db --bind 127.0.0.1 --port 8770
 ```
@@ -356,7 +356,7 @@ python3 -m venv ~/workflow-hub/venv-3x
 - Python은 SQLite에 경로를 직접 전달하므로 Go의 `file:` DSN URI 생성 경로를 거치지 않는다.
 - Go와 Python 모두 parity 및 rollback 검증이 끝나기 전까지 운영 DB에 연결하지 않는다. pilot 시에는 각각 독립된 일관된 DB 사본을 쓴다.
 - Go 3.0.0 pre-release는 Windows 경로 DSN 결함이 있어 Windows에서 쓰지 않는다. Go 수정판은 3.0.1 이후 판이다.
-  현재 Go/Python pilot은 3.7.0이며, Windows 사내 환경에서는 V3/EDR 정책에 따라 Python 경로를 우선한다.
+  현재 Go/Python pilot은 3.8.0이며, Windows 사내 환경에서는 V3/EDR 정책에 따라 Python 경로를 우선한다.
 
 ## 9. 허브 간 프로젝트 이전
 

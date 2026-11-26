@@ -34,7 +34,7 @@
     "work_backlog_index_path": "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/work_backlog.md"
   },
   "status": "error",
-  "tool_version": "3.7.0",
+  "tool_version": "3.8.0",
   "warnings": [
     "session-start 기준선을 복원할 수 없어 후속 판단을 중단한다."
   ]

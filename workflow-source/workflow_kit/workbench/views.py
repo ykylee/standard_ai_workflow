@@ -51,8 +51,23 @@ def _status_class(value: object) -> str:
     }.get(text, "muted")
 
 
+#: 상태 원문 → 한국어 (허브 화면의 STATUS_LABEL 과 같은 말). 원문은 title 에 남긴다 (TASK-2026-11-26-claude-plex-024).
+STATUS_KO = {
+    "planned": "예정", "in_progress": "진행 중", "blocked": "막힘", "done": "끝남", "active": "활성",
+    "proposed": "제안됨", "open": "열림", "answered": "답함", "changed": "바꿈", "kept": "유지",
+    "unopened": "안 열어 봄", "disputed": "엇갈림", "error": "오류",
+}
+
+
+def status_ko(value: object) -> str:
+    text = str(value or "")
+    head, sep, rest = text.partition(":")
+    return f"{STATUS_KO.get(head, head)}{' ' + rest if sep else ''}"
+
+
 def badge(value: object, *, kind: str | None = None) -> str:
-    return f'<span class="badge {kind or _status_class(value)}">{esc(value)}</span>'
+    return (f'<span class="badge {kind or _status_class(value)}" title="{esc(value)}">'
+            f'{esc(status_ko(value))}</span>')
 
 
 def page(*, title: str, rel: str, branch: str | None, body: str, script: bool = False,
@@ -130,7 +145,8 @@ def _progress(done: int | None, total: int) -> str:
 def _status(declared: Any, derived: Any) -> str:
     if declared == derived:
         return badge(declared if declared is not None else UNMEASURED)
-    return f'<span class="badge warn">선언 {esc(declared)} · 파생 {esc(derived)}</span>'
+    return (f'<span class="badge warn" title="선언 {esc(declared)} · 파생 {esc(derived)}">'
+            f'선언 {esc(status_ko(declared))} · 파생 {esc(status_ko(derived))}</span>')
 
 
 def _count(items: Sequence[Any] | None) -> str:
@@ -240,7 +256,7 @@ def progress_page(*, state: dict[str, Any], rel: str, user: str, csrf: str, logo
     body.append('<section class="kpis">'
                 + _kpi("진행 중", _count(tasks["in_progress"]), "info")
                 + _kpi("차단", _count(tasks["blocked"]), "bad")
-                + _kpi("계획", _count(tasks["planned"]), "muted")
+                + _kpi("예정", _count(tasks["planned"]), "muted")
                 + _kpi("열린 결정", str(open_total), "warn" if open_total else "ok")
                 + _kpi("미반영 응답", str(pending_total), "warn" if pending_total else "ok")
                 + "</section>")
@@ -256,9 +272,9 @@ def progress_page(*, state: dict[str, Any], rel: str, user: str, csrf: str, logo
     linked = {entry["task"] for entry in plans} | {scope for scope in counts if scope != "Branch"}
     body.append('<section class="section todo-section"><h2>할 일</h2><div class="card todo-card">'
                 + todo_block(items=todo.get("branch"), error=todo.get("error"), scope="Branch", rel=rel, csrf=csrf,
-                             back="", can_edit=role == "approver", empty="브랜치 할 일이 없다")
+                             back="", can_edit=role == "approver" and hub is None, empty="브랜치 할 일이 없다")
                 + "</div></section>")
-    body.append('<section class="section"><h2>계획</h2>')
+    body.append('<section class="section"><h2>계획 · 결정이 있는 task</h2>')
     if plans:
         cards = []
         for p in plans:
@@ -282,7 +298,7 @@ def progress_page(*, state: dict[str, Any], rel: str, user: str, csrf: str, logo
     body.append("</section>")
     columns = []
     for key, label, kind in (("in_progress", "진행 중", "info"), ("blocked", "차단", "bad"),
-                             ("planned", "계획", "muted"), ("recent_done", "최근 완료", "ok")):
+                             ("planned", "예정", "muted"), ("recent_done", "최근 완료", "ok")):
         columns.append(
             f'<div class="column {kind}"><h2><span>{label}</span><span class="n">{esc(_count(tasks[key]))}</span></h2>'
             + _task_list(tasks[key], rel, linked, counts) + "</div>")
@@ -365,7 +381,7 @@ def _decision_block(view: PlanView, decision_id: str, *, can_answer: bool) -> st
     kind = "open" if dv.open else "closed"
     parts = [f'<details class="decision {kind}" data-decision="{esc(d.id)}"><summary>'
              f'<span class="did">{esc(d.id)}</span> <span class="question">{esc(d.question)}</span> — '
-             f'<span class="state badge {_status_class(dv.state)}">{esc(dv.state)}</span></summary>'
+             f'<span class="state badge {_status_class(dv.state)}" title="{esc(dv.state)}">{esc(status_ko(dv.state))}</span></summary>'
              '<div class="decision-body">']
     if d.state != dv.state:
         parts.append(f'<p class="alert warn">task 파일의 칸은 {esc(d.state)}</p>')
@@ -400,15 +416,22 @@ def plan_page(*, view: PlanView, rel: str, branch: str, user: str, csrf: str, ro
               flash: str | None = None, error: str | None = None, logout: bool = True, refresh: int = 0,
               repo: str | None = None, hub: dict[str, str] | None = None) -> str:
     task = view.task
-    can_answer = role == "approver" and bool(view.decisions) and not view.has_errors
+    # 허브로 옮긴 저장소는 읽기 전용 — 여기서 보낸 응답은 반영(plan-import)이 막혀 받은편지함에 갇힌다 (TASK-2026-11-26-claude-plex-024)
+    can_answer = role == "approver" and bool(view.decisions) and not view.has_errors and hub is None
     open_count = sum(1 for d in view.decisions if d.open)
-    chips = [f'<span class="chip {_status_class(task.status)}">상태 {esc(task.status)}</span>',
+    chips = [f'<span class="chip {_status_class(task.status)}" title="{esc(task.status)}">상태 {esc(status_ko(task.status))}</span>',
              f'<span class="chip {"warn" if open_count else "ok"}">열린 결정 {open_count}건</span>',
              f'<span class="chip {"info" if view.pending else "ok"}">미반영 응답 {view.pending}건</span>']
     body: list[str] = [
         f'<p class="crumbs"><a href="{esc(rel)}">← 진척</a></p>',
-        f'<section class="card head-card"><h1>{esc(task.task_id)}</h1><p class="lead">{esc(view.title)}</p>'
+        f'<section class="card head-card"><h1>{esc(view.title)}</h1><p class="tid-line">{esc(task.task_id)}</p>'
         f'<p class="summary chips">{"".join(chips)}</p></section>']
+    if hub is not None and view.decisions:
+        url = hub.get("url") or ""
+        target = (url.rstrip("/") + "/ui/#/p/" + urllib.parse.quote(hub.get("project") or "", safe="")
+                  + "/t/" + urllib.parse.quote(task.task_id, safe="")) if url.startswith(("http://", "https://")) else ""
+        link = f' <a href="{esc(target)}" target="_blank" rel="noopener">허브에서 답한다 →</a>' if target else ""
+        body.append(f'<p class="alert info answer-at-hub">이 task 의 결정은 허브에서 답한다 — 여기서는 읽기만 한다.{link}</p>')
     if view.layout_problem:
         body.append(f'<p class="alert error">계획 응답 배치: {esc(view.layout_problem)}</p>')
     if view.responses:
@@ -426,7 +449,7 @@ def plan_page(*, view: PlanView, rel: str, branch: str, user: str, csrf: str, ro
         body.append(f'<p class="alert error">{esc(error)}</p>')
     body.append('<section class="section todo-section"><h2>체크리스트</h2><div class="card todo-card">'
                 + todo_block(items=view.todos, error=view.todo_error, scope=task.task_id, rel=rel, csrf=csrf,
-                             back=f"task/{task.task_id}", can_edit=role == "approver", empty="체크리스트가 없다")
+                             back=f"task/{task.task_id}", can_edit=role == "approver" and hub is None, empty="체크리스트가 없다")
                 + "</div></section>")
     if task.plan.claims:
         tree = "\n".join(_claim_tree(view))

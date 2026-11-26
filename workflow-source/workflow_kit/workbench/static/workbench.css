@@ -29,8 +29,8 @@ main, header.top .bar, .card, .column, .item, .kpi, details, summary, .option, .
 img, svg, video, textarea, input, select, button { max-width: 100%; }
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
-h1 { font-size: 1.6rem; margin: 0; letter-spacing: -.01em; }
-h2 { font-size: 1.05rem; margin: 0 0 .75rem; color: var(--fg); }
+h1 { font-size: 1.5rem; margin: 0; letter-spacing: -.01em; }
+h2 { font-size: 1.1875rem; margin: 0 0 .75rem; color: var(--fg); }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
 /* 머리 막대 */
@@ -59,31 +59,30 @@ a.card:hover { text-decoration: none; border-color: var(--accent); transform: tr
 .grid { display: grid; gap: .9rem; grid-template-columns: repeat(auto-fill, minmax(min(17rem, 100%), 1fr)); }
 .card-top { display: flex; justify-content: space-between; align-items: center; gap: .5rem; }
 .card-title { display: block; margin: .45rem 0 .7rem; font-weight: 600; line-height: 1.4; overflow-wrap: anywhere; }
-.plan-card.attention { border-left: 4px solid var(--warn); }
+.plan-card.attention { border-color: var(--warn); }
 .tid, .cid, .did { font: 600 .78rem var(--mono); color: var(--muted); }
 /* 카드 머리 — ID 는 잘라 버리지 않는다: 좁으면 배지가 다음 줄로 내려가고 ID 는 하이픈에서 줄을 바꾼다. */
 .card-top { flex-wrap: wrap; }
 .card-top .tid { flex: 0 1 auto; }
 .card-top .badge, .card-top .chip { flex: 0 0 auto; }
 
-.head-card h1 { font-family: var(--mono); font-size: 1.05rem; color: var(--muted); overflow-wrap: anywhere; }
-.head-card .lead { font-size: 1.25rem; font-weight: 650; margin: .35rem 0 .8rem; }
+.head-card h1 { font-size: 1.5rem; overflow-wrap: anywhere; }
+.head-card .tid-line { font: .85rem var(--mono); color: var(--muted); margin: .25rem 0 .8rem; overflow-wrap: anywhere; }
 
 /* 요약 수치 */
 .kpis { display: grid; gap: .9rem; grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .kpi { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
-  padding: .9rem 1rem; display: flex; flex-direction: column; gap: .2rem; border-top: 4px solid var(--line); }
-.kpi.info { border-top-color: var(--info); }
-.kpi.bad { border-top-color: var(--bad); }
-.kpi.warn { border-top-color: var(--warn); }
-.kpi.ok { border-top-color: var(--ok); }
-.kpi.muted { border-top-color: var(--muted); }
+  padding: .9rem 1rem; display: flex; flex-direction: column; gap: .2rem; }
+/* 색은 값 숫자에만 — 윗선 띠는 두지 않는다 (재채점 detector border-accent-on-rounded) */
+.kpi.info .kpi-value { color: var(--info); }
+.kpi.bad .kpi-value { color: var(--bad); }
+.kpi.warn .kpi-value { color: var(--warn); }
 .kpi-label { color: var(--muted); font-size: .82rem; font-weight: 600; }
 .kpi-value { font-size: 1.9rem; font-weight: 750; letter-spacing: -.02em; line-height: 1.1; }
 .kpi-value.unmeasured { font-size: 1.1rem; }
 
 /* 배지 · 칩 */
-.badge, .chip { display: inline-flex; align-items: center; gap: .3rem; border-radius: 999px; font-size: .76rem; font-weight: 650;
+.badge, .chip { display: inline-flex; align-items: center; gap: .3rem; border-radius: 4px; font-size: .76rem; font-weight: 650;
   padding: .15rem .6rem; max-width: 100%; background: var(--neutral-soft); color: var(--muted); }
 /* 배지 · 칩은 자르지 않는다 — "선언 … · 파생 …" 의 뒤쪽이 요점이다. 좁으면 줄을 바꾼다 (말줄임은 정보를 잃는다). */
 .badge, .chip { white-space: normal; overflow-wrap: anywhere; text-align: left; line-height: 1.35; }
@@ -144,7 +143,7 @@ details.claim details.claim { box-shadow: none; background: var(--surface-2); ma
 
 /* 결정 — 열린 결정은 강조 */
 details.decision { margin: .7rem 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: .75rem .9rem; }
-details.decision.open { border-color: var(--warn); border-left-width: 4px; background: var(--warn-soft); }
+details.decision.open { border-color: var(--warn); background: var(--warn-soft); }
 details.decision.open .state.badge { background: var(--surface); border: 1px solid var(--warn); }
 .question { font-weight: 650; }
 .decision-body { margin-top: .7rem; display: flex; flex-direction: column; gap: .6rem; }
@@ -165,6 +164,8 @@ label.comment { display: flex; flex-direction: column; gap: .3rem; font-size: .8
 textarea, input[type=password] { width: 100%; font: inherit; color: var(--fg); background: var(--surface-2); border: 1px solid var(--line);
   border-radius: var(--radius-sm); padding: .55rem .7rem; }
 textarea:focus, input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+::placeholder { color: var(--muted); opacity: 1; }
 button { font: inherit; font-weight: 650; border: 0; border-radius: var(--radius-sm); padding: .6rem 1.2rem; cursor: pointer;
   background: var(--accent); color: var(--accent-fg); }
 button:hover { filter: brightness(1.08); }

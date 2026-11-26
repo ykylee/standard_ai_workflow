@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """워크벤치 화면 구조 — 대시보드형 진척 · 카드형 계획 (`core/plan_workbench_spec.md` §4.4 · §7.2, TASK-2026-11-16-main-003).
 
-1. 진척 화면의 요약 수치(진행 중 · 차단 · 계획 · 열린 결정 · 미반영 응답)가 `api/state` 에서 센 값과 같다 —
+1. 진척 화면의 요약 수치(진행 중 · 차단 · 예정 · 열린 결정 · 미반영 응답)가 `api/state` 에서 센 값과 같다 —
    생성물에 없는 목록은 "미측정"
-2. 작업 보드 4열(진행 중 · 차단 · 계획 · 최근 완료) · 열 머리 건수, 계획 카드의 열린 결정 강조, 마일스톤 진척 막대;
+2. 작업 보드 4열(진행 중 · 차단 · 예정 · 최근 완료) · 열 머리 건수, 계획 카드의 열린 결정 강조, 마일스톤 진척 막대;
    선언 · 파생이 둘 다 done 이고 문제 없는 마일스톤만 접히고 어긋난 것은 펼쳐 있다
 3. 계획 화면 — 상태 칩 · 열린 결정은 `decision open` 클래스 · 선택지 카드(`label.option`) · 고정 제출 막대; 결정은 닫힌 채 그린다
    (펼침이 곧 '열어 봄' 기록이다)
@@ -97,14 +97,14 @@ def case_kpis() -> list[str]:
     expected = {
         "진행 중": str(len(tasks["in_progress"])),
         "차단": str(len(tasks["blocked"])),
-        "계획": "미측정" if tasks["planned"] is None else str(len(tasks["planned"])),
+        "예정": "미측정" if tasks["planned"] is None else str(len(tasks["planned"])),
         "열린 결정": str(sum(len(p["open_decisions"]) for p in api["plans"])),
         "미반영 응답": str(sum(api["inbox"]["pending"].values())),
     }
     shown = dict(KPI_RE.findall(pages["/"]))
     if shown != expected:
         problems.append(f"요약 수치가 api/state 와 다르다: 화면 {shown} · 기대 {expected}")
-    if expected["열린 결정"] == "0" or expected["미반영 응답"] == "0" or expected["계획"] != "미측정":
+    if expected["열린 결정"] == "0" or expected["미반영 응답"] == "0" or expected["예정"] != "미측정":
         problems.append(f"fixture 가 성립하지 않았다 — 0 · 측정값만으로는 수치를 재지 못한다: {expected}")
     return problems
 
@@ -115,7 +115,7 @@ def case_board_and_milestones() -> list[str]:
         ws, task_id = _workspace(td)
         page = _pages(ws, task_id)["/"]
     columns = re.findall(r'<div class="column (\w+)"><h2><span>([^<]+)</span><span class="n">([^<]+)</span>', page)
-    if [(label, n) for _, label, n in columns] != [("진행 중", "2"), ("차단", "0"), ("계획", "미측정"), ("최근 완료", "1")]:
+    if [(label, n) for _, label, n in columns] != [("진행 중", "2"), ("차단", "0"), ("예정", "미측정"), ("최근 완료", "1")]:
         problems.append(f"작업 보드 4열 · 건수가 다르다: {columns}")
     if f'class="card plan-card attention" href="./task/{task_id}"' not in page:
         problems.append("열린 결정이 있는 계획 카드가 강조되지 않았다")
@@ -213,12 +213,33 @@ def case_no_overflow_rules() -> list[str]:
     return problems
 
 
+def case_rescore_floor() -> list[str]:
+    """재채점(2026-11-26) 지적의 바닥 — 상태는 한국어(원문은 title) · 4px 강조 띠 없음 · h1 > h2 · 포커스 표시 · 안내 글자 대비 (TASK-2026-11-26-claude-plex-024)."""
+    from workflow_kit.workbench import views
+
+    problems: list[str] = []
+    planned = views.badge("planned")
+    if ">예정<" not in planned or 'title="planned"' not in planned or views.status_ko("changed:warn") != "바꿈 warn":
+        problems.append(f"상태 한국어: {planned} · {views.status_ko('changed:warn')}")
+    css = CSS.read_text(encoding="utf-8")
+    stripes = re.findall(r"border-(?:top|left)(?:-width)?:\s*4px[^;]*", css)
+    if stripes:
+        problems.append(f"4px 강조 띠: {stripes}")
+    size = {t: float(m[1]) for t in ("h1", "h2") if (m := re.search(rf"(?m)^{t} {{ font-size: ([0-9.]+)rem", css))}
+    if len(size) != 2 or size["h1"] / size["h2"] < 1.2:
+        problems.append(f"제목 위계 h1/h2: {size}")
+    if not re.search(r"(?m)^:focus-visible \{ outline: 2px", css) or not re.search(r"::placeholder \{ color: var\(--muted\)", css):
+        problems.append("포커스 표시 · 안내 글자 규칙 없음")
+    return problems
+
+
 CASES = (
     ("1 요약 수치 = api/state", case_kpis),
     ("2 작업 보드 4열 · 계획 카드 강조 · 마일스톤 막대 · 완료분 접기", case_board_and_milestones),
     ("3 계획 화면 — 칩 · 열린 결정 강조 · 선택지 카드 · 제출 막대 · 결정은 닫힌 채", case_plan_page),
     ("4 CSP 위생 · 어두운 모드 · 좁은 폭", case_csp_hygiene),
     ("5 글자가 박스를 넘지 않는 바탕 규칙", case_no_overflow_rules),
+    ("6 재채점 바닥 — 한국어 상태 · 4px 띠 없음 · 제목 위계 · 포커스 · 안내 글자", case_rescore_floor),
 )
 
 

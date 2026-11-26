@@ -457,6 +457,8 @@ class Handler(BaseHTTPRequestHandler):
         form = self._form(length)
         self._check_csrf(session, form)
         where = self.app.locate()
+        if _hub(where) is not None:
+            raise _Reject(HTTPStatus.CONFLICT, "이 저장소는 워크플로우 허브로 옮겼다 — 결정은 허브에서 답한다 (여기서 보낸 응답은 반영되지 않는다)")
         task = self._task(where, task_id)
         if task is None:
             raise _Reject(HTTPStatus.NOT_FOUND, f"이 브랜치에 task 가 없다: {task_id}")
@@ -492,6 +494,8 @@ class Handler(BaseHTTPRequestHandler):
         if not _BACK_RE.fullmatch(back):  # match + `$` 는 끝의 \n 을 통과시켜 Location 머리에 날것의 LF 를 싣는다
             raise _Reject(HTTPStatus.BAD_REQUEST, "돌아갈 곳이 진척 화면도 task 화면도 아니다")
         where = self.app.locate()
+        if _hub(where) is not None:
+            raise _Reject(HTTPStatus.CONFLICT, "이 저장소는 워크플로우 허브로 옮겼다 — 할 일은 허브에서 고친다")
         action = (form.get("action") or [""])[0]
         item_id = (form.get("id") or [""])[0]
         text = (form.get("text") or [""])[0]

@@ -147,6 +147,42 @@ def _dark_tokens() -> dict[str, str]:
     return dict(re.findall(r"--([\w-]+):\s*(#[0-9a-fA-F]{6})", block))
 
 
+def case_migrated() -> list[str]:
+    """허브 표식이 있으면 읽기 전용 — 여기서 보낸 응답은 반영(plan-import)이 막혀 받은편지함에 갇힌다 (TASK-2026-11-26-claude-plex-024)."""
+    problems: list[str] = []
+    with fx.temp_workspace("wb-mig-") as td:
+        ws = fx.make_workspace(td)
+        (ws / "ai-workflow" / "HUB_MIGRATED.json").write_text(
+            json.dumps({"format": "workflow-hub-migrated/1", "hub": HUB, "project_id": PROJECT}), encoding="utf-8")
+        (ws / ".git").mkdir()
+        task_id = fx.create_task(ws)
+        with fx.running(ws, tokens=(fx.APPROVER,)) as srv:
+            b = fx.Browser(srv.port)
+            b.login(fx.APPROVER)
+            home, plan = b.get("/").text, b.get(f"/task/{task_id}").text
+            before = fx.inbox_snapshot(ws)
+            csrf = fx.csrf_of(plan)
+            # 지문까지 맞춘 온전한 응답이어야 한다 — 지문이 없으면 표식과 상관없이 '계획이 바뀌었다' 409 라 검사가 무력해진다
+            from workflow_kit.common import plan_claims, plan_tasks
+            plan_obj = plan_tasks.read_task_plan(fx.branch_dir(ws) / "backlog" / "tasks" / f"{task_id}.md").plan
+            r1 = b.post(f"/task/{task_id}/respond", [("csrf", csrf), ("plan_digest", plan_claims.plan_digest(plan_obj)),
+                                                     ("value_D1", "block"), ("opened_D1", "yes"), ("value_D2", "a"), ("opened_D2", "yes")])
+            r2 = b.post("/todo", [("csrf", csrf), ("action", "add"), ("scope", "Branch"), ("text", "x"), ("back", "")])
+            after = fx.inbox_snapshot(ws)
+    link = f'href="{HUB}/ui/#/p/{PROJECT}/t/{task_id}"'
+    if "정본은 허브다" not in home or "정본은 허브다" not in plan:
+        problems.append("정본은 허브 안내가 없다")
+    if fx.respond_form(plan) is not None or 'name="value_D1"' in plan:
+        problems.append("응답 폼이 그려졌다")
+    if 'class="todo-add"' in home or 'class="todo-add"' in plan:
+        problems.append("할 일 추가 폼이 그려졌다")
+    if "허브에서 답한다" not in plan or link not in plan:
+        problems.append(f"허브에서 답한다 링크가 없다 ({link})")
+    if r1.status != 409 or "허브로 옮겼다" not in r1.text or r2.status != 409 or "허브로 옮겼다" not in r2.text or before != after:
+        problems.append(f"우회 POST respond={r1.status} todo={r2.status} 받은편지함 바뀜={before != after} 사유={r1.text[-200:]!r}")
+    return problems
+
+
 def main() -> int:
     print("=== 워크벤치 결정 폼 (실브라우저) ===")
     exe = browser()
@@ -162,9 +198,7 @@ def main() -> int:
 
     with fx.temp_workspace("wb-dec-") as td:
         ws = fx.make_workspace(td)
-        marker = ws / "ai-workflow" / "HUB_MIGRATED.json"
-        marker.write_text(json.dumps({"format": "workflow-hub-migrated/1", "hub": HUB, "project_id": PROJECT}), encoding="utf-8")
-        (ws / ".git").mkdir()  # 표식 탐색은 git 뿌리에서 멈춘다 — 이 저장소 밖으로 올라가지 않게
+        (ws / ".git").mkdir()  # 표식 탐색은 git 뿌리에서 멈춘다 — 이 저장소 밖으로 올라가지 않게 (1.x 저장소: 표식 없음 → 폼이 있다)
         task_id = fx.create_task(ws)
         ctl: dict[str, Any] = {"posts": [], "probe": PROBE % {"path": f"/task/{task_id}"}}
         with fx.running(ws, open_name="tester") as srv:
@@ -199,9 +233,9 @@ def main() -> int:
         p1.append("고르기 전에 '응답 보내기' 가 켜져 있다")
     if f"{total}건 중 0건" not in first["count"]:
         p1.append(f"고른 수 표시: {first['count']!r}")
-    if not out["note"] or "정본은 허브" not in out["note"][0] or out["note"][1] != f"{HUB}/ui/#/p/{PROJECT}":
-        p1.append(f"허브 안내 · 링크: {out['note']}")
-    _record(f"case 1 (처음 — 고른 라디오 0 · 보내기 꺼짐 · {total}건 중 0건 · 정본은 허브 안내)", p1)
+    if out["note"] is not None:
+        p1.append(f"표식 없는 1.x 저장소에 허브 안내가 떴다: {out['note']}")
+    _record(f"case 1 (1.x 저장소 처음 — 고른 라디오 0 · 보내기 꺼짐 · {total}건 중 0건 · 허브 안내 없음)", p1)
     _record("case 2 (하나만 추천 받아들이기 — 1건 · 여전히 꺼짐)",
             [] if total >= 2 and len(one["checked"]) == 1 and one["disabled"] and f"{total}건 중 1건" in one["count"]
             else [f"decisions={out['decisions']} one={one}"])
@@ -213,7 +247,10 @@ def main() -> int:
     lowl = [f"{t!r} {contrast(c, b):.2f}" for t, c, b in out["chips"] if "rgba(0, 0, 0, 0)" not in b and contrast(c, b) < 4.5]
     _record(f"case 4a (밝은 테마 칩 · 꼬리표 {len(out['chips'])}개 렌더 대비 ≥ 4.5)", lowl if out["chips"] else ["칩 0개 — 미측정"])
 
-    total_cases = 5
+    _record("case 5 (허브로 옮긴 저장소 — 정본은 허브 안내 · 쓰기 UI 없음 · '허브에서 답한다' 링크 · 화면 우회 POST 409 · 받은편지함 그대로)",
+            case_migrated())
+
+    total_cases = 6
     print(f"\n{total_cases - len(FAILURES)}/{total_cases} PASS")
     return 1 if FAILURES else 0
 

@@ -599,13 +599,30 @@
       const isDone = (m) => m.derived_status === "done" && m.declared_status === "done";
       const cur = ms.find((m) => m.id === st.current_milestone_id) || ms.find((m) => !isDone(m));
       const tenth = (p) => Math.max(0, Math.min(100, Math.round((p || 0) * 10) * 10));
-      const rail = el("div", { class: "rail", role: "list", "aria-label": "마일스톤 진척" }, ms.map((m) => {
+      // 마일스톤이 많으면(운영 허브는 60개 넘게) 한 칸씩 그리면 띠가 화면 밖으로 넘친다 —
+      // 끝난 것은 한 칸으로 접고, 열린 것은 지금 것을 포함해 RAIL_OPEN 개까지, 나머지는 '남은 N개' 한 칸.
+      const RAIL_MAX = 7, RAIL_OPEN = 5;
+      const seg = (m) => {
         const pct = isDone(m) ? 100 : tenth(m.progress);
         const label = `${m.id} ${m.title} — ${isDone(m) ? "끝남" : `세부 작업 ${m.done_leaves || 0}/${m.total_leaves || 0} 끝남`}`;
         return el("a", { role: "listitem", href: `${base}/roadmap`, title: label, "aria-label": label,
           class: `w-${Math.max(1, Math.min(8, m.total_leaves || 1))}${isDone(m) ? "" : " open"}${cur && m.id === cur.id ? " current" : ""}` },
           el("span", { class: "bar" }, el("span", { class: `fill pct-${pct}` })), el("span", { class: "lbl" }, m.title || m.id), el("span", { class: "lbl-id" }, m.id));
-      }));
+      };
+      const bundle = (n, done, text, kind) => el("a", { role: "listitem", href: `${base}/roadmap`, title: text, "aria-label": text, "data-rail": kind,
+        class: `w-${Math.max(1, Math.min(8, n))}${done ? "" : " open"} fold` },
+        el("span", { class: "bar" }, el("span", { class: `fill pct-${done ? 100 : 0}` })), el("span", { class: "lbl" }, text), el("span", { class: "lbl-id" }, "\u00a0"));
+      let segs;
+      if (ms.length <= RAIL_MAX) segs = ms.map(seg);
+      else {
+        const doneMs = ms.filter(isDone), openMs = ms.filter((m) => !isDone(m));
+        let shownOpen = openMs.slice(0, RAIL_OPEN);
+        if (cur && !isDone(cur) && !shownOpen.includes(cur)) shownOpen = [...openMs.slice(0, RAIL_OPEN - 1), cur];
+        const rest = openMs.length - shownOpen.length;
+        segs = [doneMs.length ? bundle(doneMs.length, true, `끝난 마일스톤 ${doneMs.length}개`, "done") : null,
+          ...shownOpen.map(seg), rest > 0 ? bundle(rest, false, `남은 마일스톤 ${rest}개`, "rest") : null].filter(Boolean);
+      }
+      const rail = el("div", { class: "rail", role: "list", "aria-label": "마일스톤 진척" }, segs);
       const doneCount = ms.filter(isDone).length;
       progress = el("section", { class: "card", "aria-labelledby": "rail-h" },
         el("div", { class: "decide-head" }, el("h2", { id: "rail-h" }, "진척"), el("a", { href: `${base}/roadmap` }, "로드맵 전체")),

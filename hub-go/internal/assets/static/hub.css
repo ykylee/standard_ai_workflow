@@ -277,7 +277,7 @@ details.account[open] { display: grid; gap: var(--sp-2); }
   table.stack td[data-label]::before { content: attr(data-label) " "; color: var(--ink-2); font-size: var(--fs-xs); }
   table.stack td:empty { display: none; }
   tbody tr:hover td { background: transparent; }
-  .rail .lbl, .rail .lbl-id { display: none; }
-  .rail .current .lbl { display: block; overflow: visible; }
+  /* 좁은 폭에선 칸 이름을 모두 숨긴다 — 지금 마일스톤 이름은 띠 아래 설명 줄에 있다 (넘침 방지) */
+  .rail .lbl, .rail .lbl-id, .rail .current .lbl { display: none; }
 }
 .halt-row { justify-content: space-between; margin-top: var(--sp-3); padding-top: var(--sp-3); border-top: 1px solid var(--line); }

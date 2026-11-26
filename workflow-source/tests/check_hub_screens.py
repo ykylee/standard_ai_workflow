@@ -103,7 +103,9 @@ def proxy(hub: Hub, cookie: str) -> ThreadingHTTPServer:
                         b"document.body.dataset.tw=Math.max(0,...[...d.querySelectorAll('.table-wrap')].map(e=>e.scrollWidth-e.clientWidth));"
                         # 탭이 보이는 폭 밖으로 밀려 숨었는지 (가로 스크롤 안에 숨은 탭도 센다)
                         b"const nv=[...d.querySelectorAll('.nav-links a')];document.body.dataset.nav=nv.length+'/'+nv.filter(a=>{const r=a.getBoundingClientRect();"
-                        b"const p=a.parentElement.getBoundingClientRect();return r.right>Math.min(p.right,d.clientWidth)+1||r.width===0}).length},4000)</script>")
+                        b"const p=a.parentElement.getBoundingClientRect();return r.right>Math.min(p.right,d.clientWidth)+1||r.width===0}).length;"
+                        # 화면 오른쪽 밖으로 삐져나온 요소 수 — 페이지 폭이 그대로여도 카드 안에서 넘친 것을 잡는다
+                        b"document.body.dataset.out=[...d.querySelectorAll('main *')].filter(e=>{const r=e.getBoundingClientRect();return r.width>0&&r.right>d.clientWidth+1}).length},4000)</script>")
                 self.send_response(200)
                 self.send_header("content-type", "text/html; charset=utf-8")
                 self.end_headers()
@@ -342,6 +344,39 @@ def answer_cases(impl: str, exe: str, tmp: Path, port: int, hub: Hub, env: dict[
     _record(f"[{impl}] 로그아웃으로 연 프로젝트 링크 — 로그인 양식이 먼저", "허브 계정 로그인" in out and "콜사인 토큰으로 열기" in out, out[-300:])
 
 
+def many_milestones(impl: str, exe: str, tmp: Path, port: int, hub: Hub, env: dict[str, str]) -> None:
+    """운영 허브처럼 마일스톤이 수십 개면 진척 띠가 휴대폰 화면 밖으로 넘쳤다 — 접어서 7칸 이하로 (2026-11-26 소유자 보고).
+    맨 끝에서 돈다 — 마일스톤을 늘리면 앞 case 들의 4칸 전제가 깨진다."""
+    pid, owner = env["pid"], env["owner"]
+    extra = [(f"M-{n:03d}", f"추가 마일스톤 {n}") for n in range(5, 35)]
+    st, got, _ = hub.call("hub_roadmap_get", {}, owner)
+    assert st == 200, got
+    cur = next(d for d in got["docs"] if d["path"] == "index.md")
+    body, ver = cur["body_md"], cur["version"]
+    lines = "".join(f"- **{i}** [implementation] {t} — status: planned\n  - path: [`./{i}-x.md`](./{i}-x.md)\n" for i, t in extra)
+    for i, t in extra:
+        st, out, _ = hub.call("hub_roadmap_put", {"path": f"{i}-x.md", "expected_version": 0, "body": f"---\nid: {i}\ntitle: {t}\nsdlc_phase: implementation\nstatus: planned\n"
+                                                  f"order: {int(i[2:])}\ndeliverables: []\n---\n\n# {i}\n\n## WBS\n\n- **WBS-{int(i[2:])}.1** 일\n"}, owner)
+        assert st == 200, out
+    st, out, _ = hub.call("hub_roadmap_put", {"path": "index.md", "expected_version": ver, "body": body.rstrip("\n") + "\n" + lines}, owner)
+    assert st == 200, out
+    n = len(ui._req(hub.base, f"/api/projects/{pid}/roadmap", token=owner)[1]["roadmap_state"]["milestones"])
+    dom = draw(exe, tmp, port, f"p/{pid}", narrow=True, budget=12000)
+    wide = html.unescape(draw(exe, tmp, port, f"p/{pid}"))
+    rail = re.search(r'<div class="rail"[^>]*>(.*?)</div><div class="rail-legend"', wide, re.S)
+    segs = re.findall(r'<a role="listitem"', rail[1]) if rail else []
+    w = re.search(r'data-w="(\d+)/(\d+)"', dom)
+    out_n = re.search(r'data-out="(\d+)"', dom)
+    _record(f"[{impl}] 마일스톤 {n}개 — 진척 띠는 7칸 이하로 접히고 360px 에서 화면 밖으로 넘치지 않는다",
+            n >= 30 and 0 < len(segs) <= 7 and bool(rail) and "남은 마일스톤" in rail[1] and rail[1].count(' current"') == 1
+            and bool(w) and w[1] == w[2] and bool(out_n) and out_n[1] == "0",
+            f"n={n} segs={len(segs)} w={w and w.groups()} out={out_n and out_n[1]}")
+    rdom = draw(exe, tmp, port, f"p/{pid}/roadmap", narrow=True, budget=12000)
+    rw, rout = re.search(r'data-w="(\d+)/(\d+)"', rdom), re.search(r'data-out="(\d+)"', rdom)
+    _record(f"[{impl}] 마일스톤 {n}개 — 로드맵 화면 360px 에서 화면 밖으로 넘치지 않는다", bool(rw and rout) and rw[1] == rw[2] and rout[1] == "0",
+            f"w={rw and rw.groups()} out={rout and rout[1]}")
+
+
 def measure(impl: str, cmd: list[str] | None, exe: str, tmp: Path) -> None:
     db = tmp / f"{impl}.db"
     hub = Hub(db, cmd_prefix=cmd)
@@ -430,6 +465,7 @@ def measure(impl: str, cmd: list[str] | None, exe: str, tmp: Path) -> None:
         done = re.search(r'data-acts="([^"]*)"', dom)
         _record(f"[{impl}] 관리자 계정 — 화면 단추로 권한 거두기", bool(done) and html.unescape(done[1]) == "관리자 거두기"
                 and admins >= 1 and left == admins - 1, f"{done and done[1]} admins={admins} left={left}")
+        many_milestones(impl, exe, tmp, port, hub, env)
     finally:
         if srv:
             srv.shutdown()

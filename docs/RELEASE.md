@@ -3,8 +3,8 @@
 - 문서 목적: Standard AI Workflow 릴리스 절차 (버전 박기 → 빌드 → 스모크 → GitHub Release attach) 를 한 자리에 정리한다.
 - 범위: 채널 정책, 사전 점검, 빌드, 로컬 smoke, GitHub Release 생성, 트러블슈팅, 회귀 표
 - 대상 독자: 저장소 maintainer (`ykylee`), 릴리스 매니저
-- 상태: beta (v3.9.2 기준 pre-release 발행 · HomeLab pilot 운영 중; 절차 자체는 v0.5.7+ 부터 정식 도입된 정책 유지)
-- 현재 package version: 3.9.2 (`workflow-source/pyproject.toml`)
+- 상태: beta (v3.10.0 기준 pre-release 발행 · HomeLab pilot 운영 중; 절차 자체는 v0.5.7+ 부터 정식 도입된 정책 유지)
+- 현재 package version: 3.10.0 (`workflow-source/pyproject.toml`)
 - 최종 수정일: 2026-11-26
 - 관련 문서: [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md), [./INSTALLATION_AND_USAGE.md](./INSTALLATION_AND_USAGE.md), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md), [workflow-source/releases/](https://github.com/ykylee/standard_ai_workflow/tree/main/workflow-source/releases/)
 
@@ -63,6 +63,7 @@
 - **3.9.0**은 허브 화면 재정비 pilot minor다 — 개요를 진척 띠와 "사람이 결정할 일" 한 줄로 바꾸고, 상태 · 동작 · 오류를 한국어로 풀고, DCR 을 웹에서 승인 · 거절한다. 결정 라디오를 미리 고르지 않는다. DB 판은 22 그대로다.
 - **3.9.1**은 허브 화면 pilot patch다 — 개요의 "사람이 결정할 일" 을 승인할 것 · 살펴볼 것 두 묶음으로 나누고, 확인 요청 · 중계 승인 · DCR 의 결정 메모를 같은 폼으로 맞추고, 마일스톤이 많을 때 진척 띠가 휴대폰 화면 밖으로 넘치던 결함을 고쳤다. DB 판은 22 그대로다.
 - **3.9.2**는 화면 pilot patch다 — PC 중계 화면을 정적 파일 한 벌로 모으고(Go 내장 사본) VS Code webview 에서 막히던 `confirm()` 대신 두 번 누름으로 종료하고, 워크벤치를 동결해 미리 고른 결정을 없애고 '정본은 허브' 안내를 달고, 허브 승인 카드를 "누가 어느 PC 에서 무엇을" 로 시작하게 했다. DB 판은 22 그대로다.
+- **3.10.0**은 세션 정리 pilot minor다 — 신호가 24시간 끊긴 세션을 허브가 `ended` 로 만료하고(이벤트 `expire`, 열린 배정은 `session_expired` 로 되돌림, 이후 호출 410), 오케스트레이션 화면에서 끝난 세션을 접힌 묶음으로 따로 보인다. 배포하면 24시간 넘게 신호 없는 세션이 첫 조회 때 한꺼번에 만료된다. DB 판은 22 그대로다.
 - **같은 날 두 줄을 낼 때 (2.0.0 + 1.30.0)**: 1.x 를 먼저 낸다 — 그때는 원격에 2.x 가 없어 1.30.0 이 잠시 latest 가
   된다. 이어 2.0.0 이 latest 를 가져간다. 순서를 바꾸면 1.30.0 은 처음부터 `--latest=false` 다. 어느 쪽이든 끝 상태는
   같다 — 끝난 뒤 `gh release list` 로 latest 가 2.x 인지 본다.
@@ -554,7 +555,7 @@ gh release edit "v<X>.<Y>.<Z>" --repo "$REPO" --draft=false
 
 - [릴리스 노트 디렉토리](https://github.com/ykylee/standard_ai_workflow/tree/main/workflow-source/releases/)
 - [릴리스 노트 v3.2.0](./../workflow-source/releases/Beta-v3.2.0.md)
-- [현재 릴리스 노트 v3.9.2](./../workflow-source/releases/Beta-v3.9.2.md)
+- [현재 릴리스 노트 v3.10.0](./../workflow-source/releases/Beta-v3.10.0.md)
 - [이전 릴리스 노트 v3.1.0](./../workflow-source/releases/Beta-v3.1.0.md)
 - [Python wheel 릴리스 자산 v3.2.0](https://github.com/ykylee/standard_ai_workflow/releases/tag/v3.2.0)
 - [Maturity Matrix](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/maturity_matrix.json)

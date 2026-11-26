@@ -323,6 +323,11 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
                 "SELECT COUNT(*) FROM assignment WHERE project_id = ? AND state IN ('offered', 'accepted')",
                 (pid,),
             ).fetchone()[0])
+            # 사람이 아직 안 본 아이디어 회신 (I2a)
+            ideas_unread = int(conn.execute(
+                "SELECT COUNT(*) FROM idea_entry e JOIN idea i ON i.project_id=e.project_id AND i.id=e.idea_id WHERE e.project_id=? AND e.kind='reply' AND e.seq>i.seen_seq",
+                (pid,),
+            ).fetchone()[0])
             plan_task_ids = [
                 r["id"]
                 for r in conn.execute(
@@ -336,6 +341,7 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
             "pending_approvals": pending_approvals,
             "unacknowledged": unacknowledged,
             "open_assignments": open_assignments,
+            "ideas_unread": ideas_unread,
             "session_counts": s_out["counts"],
             "unknown_sessions": s_out["unknown"],
             "sessions_total": len(s_out["sessions"]),

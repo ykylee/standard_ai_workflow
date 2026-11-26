@@ -654,7 +654,13 @@ const V21 = `
 ALTER TABLE hub_account ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0;
 `
 
-var Migrations = []string{V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11, V12, V13, V14, V15, V16, V17, V18, V19, V20, V21}
+// V22 is generated from workflow-source/workflow_kit/hub/db.py.
+const V22 = `
+ALTER TABLE idea ADD COLUMN seen_seq INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE session ADD COLUMN review_ideas INTEGER NOT NULL DEFAULT 0;
+`
+
+var Migrations = []string{V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11, V12, V13, V14, V15, V16, V17, V18, V19, V20, V21, V22}
 
 func LatestVersion() int {
 	return len(Migrations)

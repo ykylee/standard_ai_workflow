@@ -221,7 +221,8 @@ TOOLS: dict[str, ToolSpec] = {
                  "repo_results 는 {name: {rc, output}} 객체 또는 [{name, rc, output}] 목록 (이름에 : · . 가 든 키를 못 싣는 하네스는 목록으로).",
                  {"repo_results": {"type": ["object", "array"]}, "client": _OBJ,
                   "session": {"type": ["object", "string"],
-                              "description": "2.1 — 첫 호출은 {harness, harness_session_id?, kind?, delivery?, resume?} 로 세션 등록, "
+                              "description": "2.1 — 첫 호출은 {harness, harness_session_id?, kind?, delivery?, resume?, review_ideas?} 로 세션 등록 "
+                                             "(review_ideas=true 는 kind=worker 만 — hub_wait 가 검토 대기 아이디어를 일감으로 준다), "
                                              "이후(두 번째 호출 포함)는 받은 세션 ID 문자열"}}, (), _session_start),
         ToolSpec("hub_approval_request", "token",
                  "사람 확인이 필요할 때 요청을 owner에게 전달한다. 웹 허브 확인 요청 메뉴에서 승인/거절하며 결과는 요청 콜사인의 허브 받은편지함으로 돌아온다. 승인 자체가 작업을 실행하지는 않는다. action 을 실으면 (migrate_import · migrate_marker · project_doc_put) 사람이 계정 로그인으로 승인한 뒤 그 실행에만 쓰는 approval_id 가 된다.",
@@ -383,8 +384,8 @@ TOOLS: dict[str, ToolSpec] = {
         ToolSpec("hub_idea_claim", "token", "검토 대기 아이디어를 맡는다 (2시간) — 다른 콜사인이 맡고 있으면 409. 읽기만 해 hub_idea_reply 로 회신한다.",
                  {"id": _STR}, ("id",),
                  lambda s, c, a: Ideas(s).claim(c, a["id"])),
-        ToolSpec("hub_idea_reply", "token", "맡은 아이디어에 회신한다. verdict = do · conditional · hold · exists · question. 근거(refs)나 확인하지 않은 것(unverified) 가운데 하나는 필수. draft {title, wbs, wbs_exempt_reason, done_criteria[]} 는 사람이 고쳐 등록할 task 초안 (wbs 가 exempt 면 wbs_exempt_reason 필수).",
-                 {"id": _STR, "expected_version": _INT, "verdict": _STR, "understood": _STR, "reason": _STR, "refs": _ARR, "scope": _STR, "next": _STR, "unverified": _STR, "draft": _OBJ}, ("id", "expected_version", "verdict", "understood", "reason",),
+        ToolSpec("hub_idea_reply", "token", "맡은 아이디어에 회신한다. verdict = do · conditional · hold · exists · question. 근거(refs)나 확인하지 않은 것(unverified) 가운데 하나는 필수. draft {title, wbs, wbs_exempt_reason, done_criteria[]} 는 사람이 고쳐 등록할 task 초안 (wbs 가 exempt 면 wbs_exempt_reason 필수). task_id = 이 일을 이미 맡은 이 프로젝트의 task (사람이 '이 task 로 처리' 로 묶는다), related_ideas = 비슷한 다른 아이디어 ID (5개 이하).",
+                 {"id": _STR, "expected_version": _INT, "verdict": _STR, "understood": _STR, "reason": _STR, "refs": _ARR, "scope": _STR, "next": _STR, "unverified": _STR, "draft": _OBJ, "task_id": _STR, "related_ideas": _ARR}, ("id", "expected_version", "verdict", "understood", "reason",),
                  lambda s, c, a: Ideas(s).reply(c, a)),
         ToolSpec("hub_wiki_lint", "token",
                  "위키 lint — 1.x 와 같은 함수로 정위치(V-1) · index 구조(V-4) · 양방향 링크(bidir), 깨진 위키 링크. 저장소 참조 · 출처 sha · freshness 는 원격 읽기를 켰을 때만 측정, 아니면 미측정.",
@@ -440,7 +441,8 @@ TOOLS: dict[str, ToolSpec] = {
                  lambda s, c, a: Orchestration(s).session_list(c, a)),
         ToolSpec("hub_wait", "token",
                  f"일 없는 세션이 기다린다 — 이 세션 앞 메시지가 오면 바로 돌려주고, 없으면 최대 {WAIT_CAP_S}초 뒤 빈 응답 "
-                 "(call_again=true 면 다시 부른다). kind=worker 세션만 (사람이 보는 세션은 꺼짐).",
+                 "(call_again=true 면 다시 부른다). kind=worker 세션만 (사람이 보는 세션은 꺼짐). review_ideas 로 시작한 세션은 "
+                 "배정이 없을 때 검토 대기 아이디어를 {kind: idea_review, idea_id} 일감으로 받는다 — hub_idea_claim 으로 맡는다.",
                  {"session": _STR, "timeout_s": _INT}, ("session",), _wait_sync),
         ToolSpec("hub_inbox_ack", "token",
                  "받은편지함 메시지 확인 — accept(배정 수락) · decline(거절 + reason) · seen(읽음 — 10분 지난 미확인 메시지도 정리). 같은 메시지에 다시 보내도 한 번.",

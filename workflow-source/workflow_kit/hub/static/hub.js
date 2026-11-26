@@ -475,6 +475,9 @@
     if ((sum.pending_approvals || 0) > 0) {
       attention.push(alertBox("warn", `승인 대기 중인 중계 요청 ${sum.pending_approvals}건 — `, el("a", { href: `${base}/orch` }, "여기서 승인·거절")));
     }
+    if ((sum.ideas_unread || 0) > 0) {
+      attention.push(alertBox("info", `아이디어에 새 회신 ${sum.ideas_unread}건 — `, el("a", { href: `${base}/ideas`, "data-ideas-unread": String(sum.ideas_unread) }, "아이디어 보기")));
+    }
     if ((sum.unacknowledged || 0) > 0) {
       attention.push(alertBox("warn", `10분 이상 미확인 메시지 ${sum.unacknowledged}건 — `, el("a", { href: `${base}/orch` }, "오케스트레이션 판 확인")));
     }
@@ -848,7 +851,7 @@
     if (result.status !== 200) { render(head("아이디어", alertBox("bad", errorText(result)))); return; }
     const canWrite = principal?.auth_mode === "account" && principal.callsign_kind === "human" && principal.human_approved;
     const readOnly = canWrite ? null : alertBox("warn", "적고 처리하려면 허브 계정으로 로그인한 승인된 사람이어야 한다.");
-    render(...(id ? ideaDetail(`${principal?.callsign}/${pid}/${id}`, root, base, result.data.idea, canWrite, readOnly, head) : ideaList(root, base, result.data, canWrite, readOnly, head)));
+    render(...(id ? ideaDetail(`${principal?.callsign}/${pid}/${id}`, root, base, result.data.idea, canWrite, readOnly, head, result.data.similar) : ideaList(root, base, result.data, canWrite, readOnly, head)));
   }
 
   function ideaList(root, base, data, canWrite, readOnly, head) {
@@ -863,19 +866,23 @@
       send.disabled = true;
       text.readOnly = true;  // 성공하면 다시 그릴 때까지 잠근다 — 그 사이 쓴 글이 두 번 적히지 않게
       const unlock = () => { send.disabled = false; text.readOnly = false; };
+      let similar = [];
       try {
         const r = await api(`${root}/ideas`, { method: "POST", body: { body: text.value, request_id: key } });
         if (r.status !== 200) { unlock(); msg.replaceChildren(alertBox("bad", errorText(r))); return; }  // 적던 글은 그대로 둔다
+        similar = r.data.similar || [];
       } catch (e) { unlock(); msg.replaceChildren(alertBox("bad", "허브에 닿지 않는다 — 글은 그대로 있다. 다시 누른다.")); return; }
-      pendingFlash = { kind: "ok", text: "적어 두었다 — 다음에 에이전트 세션이 열릴 때 검토해 회신한다." };
+      pendingFlash = { kind: "ok", text: "적어 두었다 — 다음에 에이전트 세션이 열릴 때 검토해 회신한다."
+        + (similar.length ? ` 비슷한 아이디어: ${similar.map((x) => x.id).join(" · ")}` : "") };
       dirty = false;
       route();
     } }, text, el("div", { class: "row" }, send), msg);
     const groups = [["회신 도착", ["replied"]], ["검토 대기", ["new", "reviewing"]], ["처리됨", ["adopted", "kept", "closed"]]];
     const item = (i) => el("li", {}, el("a", { href: `${base}/ideas/${encodeURIComponent(i.id)}`, class: "exact" }, reveal(i.excerpt)), el("div", { class: "muted" },
-      ideaChip(i.status), i.verdict ? ` ${IDEA_VERDICT[i.verdict]} · ` : " ", i.id, ` · ${i.author}${i.added_via === "agent" ? " (에이전트가 적음)" : ""} · `, when(i.updated_at),
+      i.unread ? chip(`새 회신 ${i.unread}`, "unack") : null, ideaChip(i.status), i.verdict ? ` ${IDEA_VERDICT[i.verdict]} · ` : " ", i.id, ` · ${i.author}${i.added_via === "agent" ? " (에이전트가 적음)" : ""} · `, when(i.updated_at),
       i.claimed_by ? ` · ${i.claimed_by}` : "", i.task_id ? el("a", { href: `${base}/t/${encodeURIComponent(i.task_id)}` }, ` ${i.task_id}`) : null));
-    return [head("아이디어", el("p", { class: "muted" }, "대충 적어 두면 에이전트가 검토해 회신한다. 회신은 다음 에이전트 세션이 열릴 때 나온다."), readOnly, canWrite ? form : null),
+    return [head("아이디어", el("p", { class: "muted" }, "대충 적어 두면 에이전트가 검토해 회신한다. 회신은 다음 에이전트 세션이 열릴 때 나온다."),
+      data.unread_total ? alertBox("info", `아직 안 본 회신 ${data.unread_total}건`) : null, readOnly, canWrite ? form : null),
       ...groups.map(([label, states]) => {
         const rows = data.ideas.filter((i) => states.includes(i.status));
         const list = rows.length ? el("ul", { class: "hits" }, rows.map(item)) : el("p", { class: "muted" }, "없음");
@@ -895,12 +902,14 @@
   }
 
   const ideaDrafts = new Map();  // 아이디어마다 적던 글 — 다른 처리를 눌러 다시 그려도 남는다
-  function ideaDetail(key, root, base, idea, canWrite, readOnly, head) {
+  function ideaDetail(key, root, base, idea, canWrite, readOnly, head, similar) {
+    similar = similar || [];
     const msg = el("div");
     const typed = ideaDrafts.get(key) || {};
     ideaDrafts.set(key, typed);
     const reply = [...idea.entries].reverse().find((e) => e.kind === "reply" && e.draft);
     const draft = reply?.draft || {};
+    const linkTask = [...idea.entries].reverse().find((e) => e.kind === "reply" && e.task_id)?.task_id || "";
     const act = (body, done, sent) => async (ev) => {
       const fields = [...app.querySelectorAll("textarea, input")], button = ev.currentTarget;
       const lock = (on) => { button.disabled = on; fields.forEach((f) => { f.readOnly = on; }); };
@@ -921,11 +930,18 @@
       ...(e.kind !== "reply" ? [el("div", { class: "exact" }, reveal(e.body))] : [
         ...part("이렇게 이해했다", e.understood), ...part("이유", e.reason), ...part("예상 범위", e.scope), ...part("다음 한 걸음", e.next),
         e.refs.length ? [el("div", { class: "muted" }, "근거"), el("ul", {}, e.refs.map((x) => el("li", { class: "exact" }, reveal(x))))] : null,
+        e.task_id ? [el("div", { class: "muted" }, "이미 맡은 task"), el("a", { href: `${base}/t/${encodeURIComponent(e.task_id)}`, "data-reply-task": e.task_id }, e.task_id)] : null,
+        (e.related_ideas || []).length ? [el("div", { class: "muted" }, "비슷한 아이디어"), el("div", { class: "row" }, e.related_ideas.map((x) => el("a", { href: `${base}/ideas/${encodeURIComponent(x)}` }, x)))] : null,
         ...part("확인하지 않은 것", e.unverified)]));
     const out = [head(idea.id, el("div", { class: "row" }, ideaChip(idea.status), idea.claimed_by ? el("span", { class: "muted" }, `${idea.claimed_by} 검토 중`) : null,
       idea.added_via === "agent" ? chip("에이전트가 적음", "unack") : null, idea.task_id ? el("a", { href: `${base}/t/${encodeURIComponent(idea.task_id)}` }, idea.task_id) : null),
       idea.added_via === "agent" && !idea.asked_by_human ? el("p", { class: "muted" }, "에이전트가 대신 적었다. 사람이 더 묻기를 보내야 세션 시작의 검토 대기에 오른다.") : null, readOnly),
-      ...idea.entries.map(entry)];
+      ...idea.entries.map(entry),
+      similar.length ? el("section", { class: "card", "data-similar": String(similar.length) }, el("h2", {}, "비슷한 아이디어"),
+        el("ul", { class: "hits" }, similar.map((x) => el("li", {}, el("a", { href: `${base}/ideas/${encodeURIComponent(x.id)}`, class: "exact" }, reveal(x.excerpt)),
+          el("div", { class: "muted" }, ideaChip(x.status), ` ${x.id} · 겹침 ${x.score}%`))))) : null];
+    // 사람이 열어 본 회신은 읽음으로 — 판(version)을 바꾸지 않아 적던 처리와 부딪치지 않는다
+    if (canWrite && idea.unread) api(`${root}/ideas/${encodeURIComponent(idea.id)}`, { method: "POST", body: { action: "seen" } }).catch(() => {});
     if (!canWrite || idea.status === "adopted") return out;
     const ask = el("textarea", { rows: "3", placeholder: "덧붙이거나 더 물을 것", "aria-label": "더 묻기" });
     const title = el("input", { type: "text", "aria-label": "task 제목" }), wbs = el("input", { type: "text", "aria-label": "WBS", placeholder: "M-007/WBS-7.2" });
@@ -951,6 +967,9 @@
       el("div", { class: "row" }, el("button", { type: "button", onclick: act(() => ({ action: "ask", body: ask.value }), () => "보냈다 — 다시 검토 대기다.", ["ask"]) }, "더 묻기"),
         el("button", { type: "button", class: "ghost", onclick: act(() => ({ action: "keep" }), () => "보관했다.") }, "보관"),
         el("button", { type: "button", class: "ghost", onclick: act(() => ({ action: "close" }), () => "닫았다.") }, "닫기"))),
+    linkTask ? el("section", { class: "card", "data-link-task": linkTask }, el("h2", {}, "이미 있는 task 로 처리"),
+      el("p", { class: "muted" }, `회신이 이 일을 이미 맡은 task 로 ${linkTask} 를 가리킨다. 묶으면 새 task 를 만들지 않는다.`),
+      el("button", { type: "button", onclick: act(() => ({ action: "link", task_id: linkTask }), () => `${linkTask} 에 묶었다.`) }, "이 task 로 처리")) : null,
     el("section", { class: "card" }, el("h2", {}, "task 로 만들기"),
       el("p", { class: "muted" }, draft.title ? `회신이 채운 초안이다. 고쳐서 등록한다. 원문은 task 설명에 그대로 들어간다.` : "원문은 task 설명에 그대로 들어간다."),
       newer ? alertBox("warn", "그 사이 새 회신의 초안이 왔다. 아래는 전에 고치던 내용이다.", el("button", { type: "button", class: "ghost", onclick: () => { delete typed.form; delete typed.base; dirty = false; route(); } }, "새 초안으로 바꾸기")) : null,

@@ -4,7 +4,7 @@
 - 범위: 2.0 허브(`hub_spec.md`)에 **더하는** 것만. 2.0 의 표 · 도구 · 인자 · 응답 칸은 바꾸지 않는다 (요구 R24.1).
 - 대상 독자: 구현자 (M-044~), workflow 설계자, 소유자 (DO 결정)
 - 상태: draft (M-043 WBS-43.1 · 43.2, 2026-11-22 — ADR-034 accepted, design 결정 DO1~DO13 소유자 확정. 구현은 M-044~)
-- 최종 수정일: 2026-11-25
+- 최종 수정일: 2026-11-26
 - 관련 문서: `../../docs/planning/hub-orchestration-requirements-2026-11.md` (요구 R17~R24 · 실측 §1 — 아래 "요구 R…" · "실측 §1.n"), `../../docs/planning/hub-orchestration-review-2026-11.md` (concept), `../../ai-workflow/wiki/decisions/adr-034-hub-orchestration.md`, `./hub_spec.md` (2.0 계약 — 아래 "2.0 §n"), `./hub_workflow_standard.md`
 
 > 결정 근거는 concept · ADR-034 에, 요구와 실측은 requirements 에 있다. 이 문서는 *계약* 만 적는다. design 이 새로 정한 것은 `DO…` 이고 §15 에 모았다.
@@ -35,7 +35,7 @@
 
 | 표 | 칼럼 (핵심) | 키 · 제약 | 요구 |
 |---|---|---|---|
-| `session` | `project_id` · `id` (`S-<ULID>`) · `callsign` · `harness` · `harness_session_id` · `kind` (`interactive`/`worker`) · `allow_wait` · `delivery_json` (쓸 수 있는 경로 목록) · `guide_version` · `host_id` · `status` (`active`/`ended`) · `last_signal_at` · `waiting_since` · `idle_waits` (일 없이 연속 대기 수) · `started_at` · `ended_at` · `version` | `(project_id, id)` · `(project_id, callsign, harness, harness_session_id)` 유일 (빈 값 제외) | R17.1~R17.4 |
+| `session` | `project_id` · `id` (`S-<ULID>`) · `callsign` · `harness` · `harness_session_id` · `kind` (`interactive`/`worker`) · `allow_wait` · `delivery_json` (쓸 수 있는 경로 목록) · `guide_version` · `host_id` · `status` (`active`/`ended`) · `last_signal_at` · `waiting_since` · `idle_waits` (일 없이 연속 대기 수) · `review_ideas` (v22 — worker 세션이 `hub_wait` 로 검토 대기 아이디어를 받는다) · `started_at` · `ended_at` · `version` | `(project_id, id)` · `(project_id, callsign, harness, harness_session_id)` 유일 (빈 값 제외) | R17.1~R17.4 |
 | `inbox_message` | `project_id` · `id` (`MSG-<ULID>`) · `to_kind` (`session`/`callsign`) · `to_id` · `from_callsign` · `from_session` · `from_orchestrator` · `kind` (`assignment`/`note`/`release`/`report`/`approval`) · `body_json` · `ref_task` · `ref_request` · `state` (`queued`/`delivered`/`acked`/`declined`/`unacknowledged`/`expired`) · `delivered_via` · `delivered_at` (처음 실림 — 10분 판정 기준) · `last_delivered_at` (마지막 실림 — 60초 재전달 기준) · `delivery_count` · `acked_at` · `ack_by_session` · `ack_reason` · `created_at` · `version` | `(project_id, id)` · 색인 `(project_id, to_kind, to_id, state)` · **꺼내는 순서 = 들어온 순서** (`created_at, rowid` — 같은 초의 메시지가 ID 난수로 뒤섞이지 않게, M-044 검사에서 잡음) | R18.1 · R18.8 · R18.9 |
 | `assignment` | `project_id` · `task_id` · `session_id` · `callsign` · `message_id` · `state` (`offered`/`accepted`/`declined`/`returned`/`reported`) · `return_reason` · `offered_at` · `accepted_at` · `reported_at` · `report_json` · `version` | `(project_id, task_id)` 에 **열린**(`offered`/`accepted`) 줄은 하나 — 부분 유일 색인 | R20.1~R20.4 |
 | `orchestrator_lease` | `project_id` · `session_id` · `callsign` · `declared_by` · `declared_at` · `expires_at` · `halted` (0/1) · `version` | `project_id` 유일 (줄 하나 = 지금 오케스트레이터) | R19.1~R19.3 · R23.2 |

@@ -229,6 +229,54 @@ def scenario(impl: str, cmd: list[str] | None, tmp: Path) -> list[Any]:
         tables = json.loads(bundle.read_text(encoding="utf-8"))["tables"] if bundle.exists() else {}
         _record(f"case 5 (프로젝트 묶음에 실린다) [{impl}]", len(tables.get("idea", {}).get("rows", [])) == 5 and len(tables.get("idea_entry", {}).get("rows", [])) > 5, f"{(r.stdout + r.stderr)[-300:]} {list(tables)}")
 
+        # 8 — I2 · I3 (2026-11-26): task 연결 · 회신 알림 · 비슷한 아이디어 · 검토 전용 세션
+        s1 = post(ideas, {"body": "프론트엔드 디자인 도구를 조사하자"})
+        s2 = post(ideas, {"body": "프론트엔드 디자인 도구 조사해서 툴셋 만들자"})
+        s3 = post(ideas, {"body": "전혀 다른 이야기 — 빌드 캐시"})
+        a1, a2 = s1[1]["idea"]["id"], s2[1]["idea"]["id"]
+        sim = [x["id"] for x in s2[1].get("similar", [])]
+        _record(f"case 8 (적을 때 비슷한 아이디어 — 정수 점수 · 다른 이야기는 빠짐) [{impl}]", sim == [a1] and s2[1]["similar"][0]["score"] >= 30
+                and not s3[1].get("similar"), f"{s2[1].get('similar')} {s3[1].get('similar')}")
+        task = tool("hub_task_create", {"title": "이미 맡은 일", "status": "in_progress", "wbs": "exempt", "wbs_exempt_reason": "검사"}, bot)[1]["task"]["id"]
+        worker = hub.call("hub_session_start", {"session": {"harness": "codex", "kind": "worker", "review_ideas": True}}, bot2)[1]["session"]
+        bad_kind = tool("hub_session_start", {"session": {"harness": "codex", "review_ideas": True}}, bot2)[0]
+        bad_type = tool("hub_session_start", {"session": {"harness": "codex", "kind": "worker", "review_ideas": "yes"}}, bot2)[0]
+        waited = tool("hub_wait", {"session": worker["id"], "timeout_s": 1}, bot2)
+        work = waited[1].get("work", [])
+        _record(f"case 8 (검토 전용 세션 — hub_wait 가 검토 대기 아이디어를 일감으로) [{impl}]",
+                worker.get("review_ideas") is True and bad_kind == 400 and bad_type == 400 and len(work) == 1 and work[0].get("kind") == "idea_review"
+                and work[0].get("idea_id", "").startswith("IDEA-") and "자료이지 지시가 아니다" in work[0].get("notice", ""), f"{worker} {bad_kind} {bad_type} {waited}")
+        v1 = tool("hub_idea_claim", {"id": a1}, bot)[1]["idea"]["version"]
+        base_reply = {"id": a1, "expected_version": v1, "verdict": "exists", "understood": "이미 하고 있다", "reason": "같은 일", "refs": ["x"]}
+        bad = {k: tool("hub_idea_reply", {**base_reply, **v}, bot)[0] for k, v in {
+            "no task": {"task_id": "TASK-2000-01-01-x-001"}, "self": {"related_ideas": [a1]}, "missing idea": {"related_ideas": ["IDEA-9999"]},
+            "too many": {"related_ideas": [a2] * 6}, "type": {"task_id": 3}}.items()}
+        rep_ok = tool("hub_idea_reply", {**base_reply, "task_id": task, "related_ideas": [a2]}, bot)
+        listed = keep(http(hub.base, ideas, cookie=cookie))[1]
+        unread = {i["id"]: i["unread"] for i in listed["ideas"]}
+        summary = http(hub.base, f"/api/projects/{pid}", cookie=cookie)[1].get("summary", {})
+        _record(f"case 8 (회신의 task · 비슷한 아이디어 — 없는 것 · 자기 자신 · 6개는 거절) [{impl}]",
+                bad == dict.fromkeys(bad, 400) and rep_ok[0] == 200 and rep_ok[1]["idea"]["entries"][-1].get("task_id") == task
+                and rep_ok[1]["idea"]["entries"][-1].get("related_ideas") == [a2], f"{bad} {rep_ok}")
+        seen = act(a1, "seen", None)
+        after_seen = keep(http(hub.base, ideas, cookie=cookie))[1]
+        summary2 = http(hub.base, f"/api/projects/{pid}", cookie=cookie)[1].get("summary", {})
+        _record(f"case 8 (새 회신 — 목록 · 프로젝트 요약에 수, 열면 읽음 · 판은 그대로) [{impl}]",
+                unread.get(a1) == 1 and listed.get("unread_total", 0) >= 1 and summary.get("ideas_unread") == listed.get("unread_total")
+                and seen[0] == 200 and seen[1]["idea"]["unread"] == 0 and seen[1]["idea"]["version"] == rep_ok[1]["idea"]["version"]
+                and after_seen["unread_total"] == listed["unread_total"] - 1 and summary2.get("ideas_unread") == after_seen["unread_total"]
+                and http(hub.base, f"{ideas}/{a1}", {"action": "seen"}, cookie=joiner)[0] == 403, f"{unread} {listed.get('unread_total')} {summary} {seen} {summary2}")
+        ver = seen[1]["idea"]["version"]
+        links = [act(a1, "link", ver, task_id="TASK-2000-01-01-x-001")[0], act(a1, "link", ver)[0], act(a1, "link", ver - 1, task_id=task)[0]]
+        linked = act(a1, "link", ver, task_id=task)
+        again = act(a1, "link", ver + 1, task_id=task)[0]
+        before_n = len(hub.call("hub_task_list", {}, owner)[1]["tasks"])
+        _record(f"case 8 (이 task 로 처리 — 새 task 없이 adopted · 없는 task 404 · 두 번은 409) [{impl}]",
+                links == [404, 400, 409] and linked[0] == 200 and linked[1]["idea"]["status"] == "adopted" and linked[1]["idea"]["task_id"] == task
+                and again == 409 and len(hub.call("hub_task_list", {}, owner)[1]["tasks"]) == before_n, f"{links} {linked} {again}")
+        detail = keep(http(hub.base, f"{ideas}/{a2}", cookie=cookie))[1]
+        _record(f"case 8 (상세의 비슷한 아이디어) [{impl}]", [x["id"] for x in detail.get("similar", [])] == [a1], f"{detail.get('similar')}")
+
         # 6
         if exe is None:
             print("    [unmeasured] 화면 미측정: Chrome · Chromium 이 없다")
@@ -273,6 +321,21 @@ def scenario(impl: str, cmd: list[str] | None, tmp: Path) -> list[Any]:
         t_o = hub.call("hub_task_get", {"id": made_o["task_id"] or "x"}, owner)[1].get("task", {})
         _record(f"case 6 (초안의 면제 사유가 칸에 채워져 그대로 등록된다) [{impl}]", made_o["status"] == "adopted" and t_o.get("wbs") == "exempt"
                 and t_o.get("wbs_exempt_reason") == "초안의 사유", f"{made_o['status']} {t_o.get('wbs')} {t_o.get('wbs_exempt_reason')}")
+        # I2a · 연결 — 새 회신 알림(개요 · 목록), 열면 읽음, '이 task 로 처리'
+        post(ideas, {"body": "화면에서 묶을 일"})
+        lid = max(i["id"] for i in hub.call("hub_idea_list", {}, bot)[1]["ideas"])
+        lv = hub.call("hub_idea_claim", {"id": lid}, bot)[1]["idea"]["version"]
+        hub.call("hub_idea_reply", {**good, "id": lid, "expected_version": lv, "draft": None, "task_id": task}, bot)
+        over = html.unescape(scr.draw(exe, tmp, port, f"p/{pid}"))
+        lst = html.unescape(scr.draw(exe, tmp, port, f"p/{pid}/ideas"))
+        _record(f"case 6 (새 회신 — 개요 알림 · 목록 칩) [{impl}]", "아이디어에 새 회신" in over and "새 회신 1" in lst and "아직 안 본 회신" in lst, over[-300:])
+        scr.draw(exe, tmp, port, f"p/{pid}/ideas/{lid}")
+        seen_now = hub.call("hub_idea_get", {"id": lid}, bot)[1]["idea"]["unread"]
+        _record(f"case 6 (열어 보면 읽음) [{impl}]", seen_now == 0, f"{seen_now}")
+        dom = scr.draw(exe, tmp, port, f"p/{pid}/ideas/{lid}", "이 task 로 처리", 9000)
+        lk = hub.call("hub_idea_get", {"id": lid}, bot)[1]["idea"]
+        _record(f"case 6 (이 task 로 처리 — 단추) [{impl}]", lk["status"] == "adopted" and lk["task_id"] == task,
+                f"{lk['status']} {lk['task_id']}")
         dom = scr.draw(exe, tmp, port, f"p/{pid}/ideas/IDEA-0005", "~task 제목=남을 초안|~더 묻기=한 번 더|더 묻기", 8000)
         _record(f"case 6 (더 묻기 · 다른 칸의 글은 남는다) [{impl}]", [e["kind"] for e in hub.call("hub_idea_get", {"id": "IDEA-0005"}, bot)[1]["idea"]["entries"]] == ["idea", "ask"] and 'data-title="남을 초안"' in dom, dom[-400:])
         for route in (f"p/{pid}/ideas", f"p/{pid}/ideas/{nid}", f"p/{pid}/ideas/IDEA-0005"):

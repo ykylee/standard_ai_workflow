@@ -81,6 +81,7 @@ pre { background: var(--surface-2); border: 1px solid var(--line); border-radius
 .alert.bad { background: var(--bad-soft); color: var(--bad); }
 .alert.ok { background: var(--ok-soft); color: var(--ok); }
 .alert.warn { background: var(--warn-soft); color: var(--warn); }
+.alert.info { background: var(--info-soft); color: var(--info); }
 .refresh-notice { max-width: 76rem; margin: .75rem auto 0; display: flex; gap: .75rem; align-items: center; justify-content: space-between; flex-wrap: wrap; }
 
 /* 주장 트리 · 결정 라디오 카드 (1.x 워크벤치 계승) */

@@ -17,6 +17,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from workflow_kit.hub.errors import HubError, forbidden, invalid_field, not_found
+from workflow_kit.hub.ideas import Ideas
 from workflow_kit.hub.store import Ctx, Principal, Store, _iso, _json, scan_secrets
 
 SESSION_ID = re.compile(r"^S-\d{8}-[0-9a-f]{8}$")
@@ -105,7 +106,8 @@ class Orchestration:
         p = self._callsign(ctx)
         if not isinstance(spec, dict):
             raise invalid_field("session", "객체여야 한다")
-        extra = set(spec) - {"harness", "harness_session_id", "kind", "delivery", "resume", "guide_version", "spawn_request"}
+        extra = set(spec) - {"harness", "harness_session_id", "kind", "delivery", "resume", "guide_version", "spawn_request",
+                             "review_ideas"}
         if extra:
             raise HubError(400, "unknown_field", f"모르는 필드: session.{', session.'.join(sorted(extra))}",
                            {"fields": sorted(f"session.{k}" for k in extra)})
@@ -122,6 +124,12 @@ class Orchestration:
             raise invalid_field("session.delivery", f"{' · '.join(DELIVERY_PATHS)} 의 목록")
         if not isinstance(hsid, str) or len(hsid) > 200:
             raise invalid_field("session.harness_session_id", "200자 이하 문자열")
+        # 검토 전용 세션 (아이디어 박스 I3) — 기다리는 세션만 아이디어를 일감으로 받는다
+        review = spec.get("review_ideas", False)
+        if not isinstance(review, bool):
+            raise invalid_field("session.review_ideas", "true · false")
+        if review and kind != "worker":
+            raise invalid_field("session.review_ideas", "kind=worker 세션만 — 아이디어 검토는 hub_wait 로 기다리는 세션이 받는다")
         now = _iso(ctx.now)
         with self.store.write() as conn:
             row = None
@@ -135,21 +143,24 @@ class Orchestration:
             if row is not None:
                 conn.execute(
                     "UPDATE session SET last_signal_at = ?, delivery_json = ?, guide_version = ?, idle_waits = 0, "
-                    "waiting_since = NULL, version = version + 1 WHERE project_id = ? AND id = ?",
-                    (now, _json(delivery), str(spec.get("guide_version") or row["guide_version"]), p.project_id, row["id"]))
+                    "waiting_since = NULL, review_ideas = ?, version = version + 1 WHERE project_id = ? AND id = ?",
+                    (now, _json(delivery), str(spec.get("guide_version") or row["guide_version"]),
+                     int(review) if "review_ideas" in spec else row["review_ideas"], p.project_id, row["id"]))
                 sid, resumed = row["id"], True
             else:
                 sid, resumed = _new_id("S", ctx.now, 4), False
                 allow_wait = 1 if kind == "worker" else 0  # Q1 — 사람이 보는 세션은 기본 꺼짐
                 conn.execute(
                     "INSERT INTO session (project_id, id, callsign, harness, harness_session_id, kind, allow_wait, "
-                    "delivery_json, guide_version, last_signal_at, started_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    "delivery_json, guide_version, last_signal_at, started_at, review_ideas) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (p.project_id, sid, p.callsign, harness, hsid, kind, allow_wait, _json(delivery),
-                     str(spec.get("guide_version") or ""), now, now))
+                     str(spec.get("guide_version") or ""), now, now, int(review)))
             self.store._event(conn, ctx, p.project_id, "session", sid, "resume" if resumed else "start", None,
                               {"harness": harness, "kind": kind, "delivery": delivery})
             if spec.get("spawn_request") and not resumed:
-                from workflow_kit.hub.relay import Relays  # noqa: PLC0415 — relay 가 이 모듈을 쓴다 (순환 피함)
+                from workflow_kit.hub.relay import (
+                    Relays,  # noqa: PLC0415 — relay 가 이 모듈을 쓴다 (순환 피함)
+                )
 
                 Relays(self.store).link_spawned(conn, ctx, p, sid, spec["spawn_request"])
             out = self._session_view(conn, ctx, conn.execute(
@@ -177,7 +188,7 @@ class Orchestration:
             "harness_session_id": row["harness_session_id"] or None, "kind": row["kind"],
             "allow_wait": bool(row["allow_wait"]), "delivery": json.loads(row["delivery_json"]),
             "status": self.status(row, ctx.now, open_n), "last_signal_at": row["last_signal_at"],
-            "open_assignments": open_n, "started_at": row["started_at"],
+            "open_assignments": open_n, "started_at": row["started_at"], "review_ideas": bool(row["review_ideas"]),
         }
 
     @staticmethod
@@ -433,6 +444,9 @@ class Orchestration:
             conn.execute("UPDATE session SET waiting_since = COALESCE(waiting_since, ?), last_signal_at = ? "
                          "WHERE project_id = ? AND id = ?", (_iso(ctx.now), _iso(ctx.now), p.project_id, session_id))
         msgs, remaining = self.take(ctx, session_id, "wait")
+        if not msgs and row["review_ideas"]:
+            # 검토 전용 세션 (I3) — 배정이 없을 때 검토 대기 아이디어 하나를 일감으로 준다. 집기(claim)는 세션이 한다.
+            msgs = Ideas(self.store).review_work(ctx)
         if not msgs:
             return None
         with self.store.write() as conn:

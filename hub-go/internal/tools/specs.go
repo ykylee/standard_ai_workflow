@@ -113,7 +113,7 @@ var ToolOrder = []*ToolSpec{
 		Properties: map[string]map[string]any{
 			"repo_results": map[string]any{"type": []string{"object", "array"}},
 			"client":       map[string]any{"type": "object"},
-			"session":      map[string]any{"type": []string{"object", "string"}, "description": "2.1 — 첫 호출은 {harness, harness_session_id?, kind?, delivery?, resume?} 로 세션 등록, 이후(두 번째 호출 포함)는 받은 세션 ID 문자열"},
+			"session":      map[string]any{"type": []string{"object", "string"}, "description": "2.1 — 첫 호출은 {harness, harness_session_id?, kind?, delivery?, resume?, review_ideas?} 로 세션 등록 (review_ideas=true 는 kind=worker 만 — hub_wait 가 검토 대기 아이디어를 일감으로 준다), 이후(두 번째 호출 포함)는 받은 세션 ID 문자열"},
 		},
 		Required: []string{},
 	},
@@ -549,8 +549,8 @@ var ToolOrder = []*ToolSpec{
 		Properties: map[string]map[string]any{"id": {"type": "string"}}, Required: []string{"id"},
 	},
 	{
-		Name: "hub_idea_reply", Bundle: "token", Description: "맡은 아이디어에 회신한다. verdict = do · conditional · hold · exists · question. 근거(refs)나 확인하지 않은 것(unverified) 가운데 하나는 필수. draft {title, wbs, wbs_exempt_reason, done_criteria[]} 는 사람이 고쳐 등록할 task 초안 (wbs 가 exempt 면 wbs_exempt_reason 필수).",
-		Properties: map[string]map[string]any{"id": {"type": "string"}, "expected_version": {"type": "integer"}, "verdict": {"type": "string"}, "understood": {"type": "string"}, "reason": {"type": "string"}, "refs": {"type": "array"}, "scope": {"type": "string"}, "next": {"type": "string"}, "unverified": {"type": "string"}, "draft": {"type": "object"}}, Required: []string{"id", "expected_version", "verdict", "understood", "reason"},
+		Name: "hub_idea_reply", Bundle: "token", Description: "맡은 아이디어에 회신한다. verdict = do · conditional · hold · exists · question. 근거(refs)나 확인하지 않은 것(unverified) 가운데 하나는 필수. draft {title, wbs, wbs_exempt_reason, done_criteria[]} 는 사람이 고쳐 등록할 task 초안 (wbs 가 exempt 면 wbs_exempt_reason 필수). task_id = 이 일을 이미 맡은 이 프로젝트의 task (사람이 '이 task 로 처리' 로 묶는다), related_ideas = 비슷한 다른 아이디어 ID (5개 이하).",
+		Properties: map[string]map[string]any{"id": {"type": "string"}, "expected_version": {"type": "integer"}, "verdict": {"type": "string"}, "understood": {"type": "string"}, "reason": {"type": "string"}, "refs": {"type": "array"}, "scope": {"type": "string"}, "next": {"type": "string"}, "unverified": {"type": "string"}, "draft": {"type": "object"}, "task_id": {"type": "string"}, "related_ideas": {"type": "array"}}, Required: []string{"id", "expected_version", "verdict", "understood", "reason"},
 	},
 	{
 		Name:        "hub_wiki_lint",
@@ -697,7 +697,7 @@ var ToolOrder = []*ToolSpec{
 	{
 		Name:        "hub_wait",
 		Bundle:      "token",
-		Description: "일 없는 세션이 기다린다 — 이 세션 앞 메시지가 오면 바로 돌려주고, 없으면 최대 50초 뒤 빈 응답 (call_again=true 면 다시 부른다). kind=worker 세션만 (사람이 보는 세션은 꺼짐).",
+		Description: "일 없는 세션이 기다린다 — 이 세션 앞 메시지가 오면 바로 돌려주고, 없으면 최대 50초 뒤 빈 응답 (call_again=true 면 다시 부른다). kind=worker 세션만 (사람이 보는 세션은 꺼짐). review_ideas 로 시작한 세션은 배정이 없을 때 검토 대기 아이디어를 {kind: idea_review, idea_id} 일감으로 받는다 — hub_idea_claim 으로 맡는다.",
 		Properties: map[string]map[string]any{
 			"session":   map[string]any{"type": "string"},
 			"timeout_s": map[string]any{"type": "integer"},

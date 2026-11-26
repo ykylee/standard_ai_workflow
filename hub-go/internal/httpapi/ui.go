@@ -1094,7 +1094,7 @@ func (s *Server) screenProjectSummary(pid string, project map[string]any, ctx st
 	if err != nil {
 		return nil, err
 	}
-	var pendingApprovals, unacknowledged, openAssignments int
+	var pendingApprovals, unacknowledged, openAssignments, ideasUnread int
 	for _, q := range []struct {
 		sql string
 		to  *int
@@ -1102,6 +1102,8 @@ func (s *Server) screenProjectSummary(pid string, project map[string]any, ctx st
 		{"SELECT COUNT(*) FROM session_request WHERE project_id=? AND state='pending_approval'", &pendingApprovals},
 		{"SELECT COUNT(*) FROM inbox_message WHERE project_id=? AND state='unacknowledged'", &unacknowledged},
 		{"SELECT COUNT(*) FROM assignment WHERE project_id=? AND state IN ('offered','accepted')", &openAssignments},
+		// 사람이 아직 안 본 아이디어 회신 (I2a)
+		{"SELECT COUNT(*) FROM idea_entry e JOIN idea i ON i.project_id=e.project_id AND i.id=e.idea_id WHERE e.project_id=? AND e.kind='reply' AND e.seq>i.seen_seq", &ideasUnread},
 	} {
 		if err := s.cfg.Store.DB().QueryRow(q.sql, pid).Scan(q.to); err != nil {
 			return nil, err
@@ -1142,7 +1144,7 @@ func (s *Server) screenProjectSummary(pid string, project map[string]any, ctx st
 		"project": project, "principal": principalSummary(principal),
 		"summary": map[string]any{
 			"open_decision_tasks": openDecisionTasks, "pending_approvals": pendingApprovals, "unacknowledged": unacknowledged,
-			"open_assignments": openAssignments, "session_counts": sessionList["counts"],
+			"open_assignments": openAssignments, "ideas_unread": ideasUnread, "session_counts": sessionList["counts"],
 			"unknown_sessions": sessionList["unknown"], "sessions_total": len(sessionList["sessions"].([]map[string]any)),
 			"orchestrator": sessionList["orchestrator"],
 		},

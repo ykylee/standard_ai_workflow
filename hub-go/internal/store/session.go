@@ -42,7 +42,7 @@ func (s *Store) RegisterSession(ctx Ctx, spec map[string]any) (map[string]any, e
 	if err != nil {
 		return nil, err
 	}
-	allowed := map[string]bool{"harness": true, "harness_session_id": true, "kind": true, "delivery": true, "resume": true, "guide_version": true, "spawn_request": true}
+	allowed := map[string]bool{"harness": true, "harness_session_id": true, "kind": true, "delivery": true, "resume": true, "guide_version": true, "spawn_request": true, "review_ideas": true}
 	extra := []string{}
 	for key := range spec {
 		if !allowed[key] {
@@ -99,6 +99,22 @@ func (s *Store) RegisterSession(ctx Ctx, spec map[string]any) (map[string]any, e
 			}
 		}
 	}
+	// 검토 전용 세션 (아이디어 박스 I3) — 기다리는 세션만 아이디어를 일감으로 받는다
+	review, reviewGiven := false, false
+	if value, exists := spec["review_ideas"]; exists {
+		var valid bool
+		if review, valid = value.(bool); !valid {
+			return nil, InvalidField("session.review_ideas", "true · false")
+		}
+		reviewGiven = true
+	}
+	if review && kind != "worker" {
+		return nil, InvalidField("session.review_ideas", "kind=worker 세션만 — 아이디어 검토는 hub_wait 로 기다리는 세션이 받는다")
+	}
+	reviewInt := 0
+	if review {
+		reviewInt = 1
+	}
 	resume := ""
 	if value, exists := spec["resume"]; exists && value != nil {
 		var valid bool
@@ -134,13 +150,18 @@ func (s *Store) RegisterSession(ctx Ctx, spec map[string]any) (map[string]any, e
 			if _, err := tx.Exec("UPDATE session SET last_signal_at=?,delivery_json=?,guide_version=?,idle_waits=0,waiting_since=NULL,version=version+1 WHERE project_id=? AND id=?", db.FormatISO(ctx.Now), MustJSON(delivery), chooseSessionGuideVersion(tx, p.ProjectID, sid, guideVersion), p.ProjectID, sid); err != nil {
 				return nil, err
 			}
+			if reviewGiven {
+				if _, err := tx.Exec("UPDATE session SET review_ideas=? WHERE project_id=? AND id=?", reviewInt, p.ProjectID, sid); err != nil {
+					return nil, err
+				}
+			}
 		} else {
 			sid = newID
 			allowWait := 0
 			if kind == "worker" {
 				allowWait = 1
 			}
-			if _, err := tx.Exec("INSERT INTO session (project_id,id,callsign,harness,harness_session_id,kind,allow_wait,delivery_json,guide_version,last_signal_at,started_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)", p.ProjectID, sid, p.Callsign, harness, harnessSession, kind, allowWait, MustJSON(delivery), guideVersion, db.FormatISO(ctx.Now), db.FormatISO(ctx.Now)); err != nil {
+			if _, err := tx.Exec("INSERT INTO session (project_id,id,callsign,harness,harness_session_id,kind,allow_wait,delivery_json,guide_version,last_signal_at,started_at,review_ideas) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", p.ProjectID, sid, p.Callsign, harness, harnessSession, kind, allowWait, MustJSON(delivery), guideVersion, db.FormatISO(ctx.Now), db.FormatISO(ctx.Now), reviewInt); err != nil {
 				return nil, err
 			}
 		}
@@ -179,11 +200,11 @@ func sessionView(q interface {
 	QueryRow(string, ...any) *sql.Row
 }, projectID, sessionID string, now time.Time) (map[string]any, error) {
 	var callsign, harness, harnessSession, kind, deliveryJSON, status, lastSignal, waiting, started string
-	var allowWait int
+	var allowWait, reviewIdeas int
 	err := q.QueryRow(`SELECT callsign, harness, harness_session_id, kind, allow_wait, delivery_json,
-		status, last_signal_at, COALESCE(waiting_since, ''), started_at FROM session WHERE project_id=? AND id=?`,
+		status, last_signal_at, COALESCE(waiting_since, ''), started_at, review_ideas FROM session WHERE project_id=? AND id=?`,
 		projectID, sessionID).Scan(&callsign, &harness, &harnessSession, &kind, &allowWait, &deliveryJSON,
-		&status, &lastSignal, &waiting, &started)
+		&status, &lastSignal, &waiting, &started, &reviewIdeas)
 	if err != nil {
 		return nil, err
 	}
@@ -199,7 +220,7 @@ func sessionView(q interface {
 	view := map[string]any{
 		"id": sessionID, "callsign": callsign, "harness": harness, "kind": kind, "allow_wait": allowWait != 0,
 		"delivery": delivery, "status": sessionStatus(status, waiting, sql.NullString{String: lastSignal, Valid: lastSignal != ""}, now, open),
-		"last_signal_at": lastSignal, "open_assignments": open, "started_at": started,
+		"last_signal_at": lastSignal, "open_assignments": open, "started_at": started, "review_ideas": reviewIdeas != 0,
 	}
 	if harnessSession != "" {
 		view["harness_session_id"] = harnessSession

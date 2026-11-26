@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 	"unicode"
@@ -26,16 +27,24 @@ const (
 var ideaStatuses = []string{"new", "reviewing", "replied", "adopted", "kept", "closed"}
 var ideaVerdicts = []string{"do", "conditional", "hold", "exists", "question"}
 
+const (
+	ideaSimilarLimit = 3  // 비슷한 아이디어 (I2b) — 보일 최대 수
+	ideaSimilarMin   = 30 // 글자 3-gram Jaccard × 100 (정수) 이 이 값 이상
+	ideaRelatedLimit = 5
+)
+
 type ideaRow struct {
 	id, status, author, via, created, updated string
 	claimedBy, claimUntil, taskID             sql.NullString
-	asked, version                            int
+	asked, version, unread                    int
 }
 
-const ideaCols = "i.id,i.status,i.author,i.added_via,i.human_asked,i.claimed_by,i.claim_until,i.task_id,i.version,i.created_at,i.updated_at"
+// 사람이 아직 안 본 회신 수 (I2a) — 회신이 seen_seq 보다 뒤에 있으면 새 회신이다 (Python Ideas.UNREAD_SQL 과 같다)
+const ideaCols = "i.id,i.status,i.author,i.added_via,i.human_asked,i.claimed_by,i.claim_until,i.task_id,i.version,i.created_at,i.updated_at," +
+	"(SELECT COUNT(*) FROM idea_entry u WHERE u.project_id=i.project_id AND u.idea_id=i.id AND u.kind='reply' AND u.seq>i.seen_seq)"
 
 func (r *ideaRow) dest() []any {
-	return []any{&r.id, &r.status, &r.author, &r.via, &r.asked, &r.claimedBy, &r.claimUntil, &r.taskID, &r.version, &r.created, &r.updated}
+	return []any{&r.id, &r.status, &r.author, &r.via, &r.asked, &r.claimedBy, &r.claimUntil, &r.taskID, &r.version, &r.created, &r.updated, &r.unread}
 }
 
 func (r *ideaRow) effective(now string) string {
@@ -57,7 +66,84 @@ func (r *ideaRow) summary(now string) map[string]any {
 	held := status == "reviewing"
 	return map[string]any{"id": r.id, "status": status, "author": r.author, "added_via": r.via, "asked_by_human": r.asked != 0,
 		"claimed_by": nullable(r.claimedBy, held), "claim_until": nullable(r.claimUntil, held), "task_id": nullable(r.taskID, true),
-		"version": r.version, "created_at": r.created, "updated_at": r.updated}
+		"version": r.version, "created_at": r.created, "updated_at": r.updated, "unread": r.unread}
+}
+
+// ideaGrams — 비슷한 아이디어 (I2b). ASCII 대문자만 소문자로(유니코드 대소문자 규칙은 런타임마다 다르다), 공백 묶음은 공백 하나로.
+func ideaGrams(text string) map[string]bool {
+	runes := []rune(strings.Join(strings.Fields(strings.Map(func(r rune) rune {
+		if r >= 'A' && r <= 'Z' {
+			return r + 32
+		}
+		return r
+	}, text)), " "))
+	out := map[string]bool{}
+	if len(runes) < 3 {
+		if len(runes) > 0 {
+			out[string(runes)] = true
+		}
+		return out
+	}
+	for i := 0; i+3 <= len(runes); i++ {
+		out[string(runes[i:i+3])] = true
+	}
+	return out
+}
+
+func ideaSimilar(q queryExec, pid, text, exclude string) ([]map[string]any, error) {
+	mine := ideaGrams(text)
+	out := []map[string]any{}
+	if len(mine) == 0 {
+		return out, nil
+	}
+	rows, err := q.Query("SELECT i.id,i.status,e.body_json FROM idea i JOIN idea_entry e ON e.project_id=i.project_id AND e.idea_id=i.id AND e.seq=1 WHERE i.project_id=? AND i.id<>?", pid, exclude)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id, status, raw string
+		if err := rows.Scan(&id, &status, &raw); err != nil {
+			return nil, err
+		}
+		var body struct{ Body string }
+		if err := json.Unmarshal([]byte(raw), &body); err != nil {
+			return nil, err
+		}
+		theirs := ideaGrams(body.Body)
+		inter, union := 0, len(theirs)
+		for g := range mine {
+			if theirs[g] {
+				inter++
+			} else {
+				union++
+			}
+		}
+		score := 0
+		if union > 0 {
+			score = inter * 100 / union
+		}
+		if score >= ideaSimilarMin {
+			ex := []rune(body.Body)
+			if len(ex) > 80 {
+				ex = ex[:80]
+			}
+			out = append(out, map[string]any{"id": id, "score": score, "status": status, "excerpt": string(ex)})
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	sort.SliceStable(out, func(a, b int) bool {
+		if out[a]["score"].(int) != out[b]["score"].(int) {
+			return out[a]["score"].(int) > out[b]["score"].(int)
+		}
+		return out[a]["id"].(string) < out[b]["id"].(string)
+	})
+	if len(out) > ideaSimilarLimit {
+		out = out[:ideaSimilarLimit]
+	}
+	return out, nil
 }
 
 func oneOf(v any, allowed []string) bool {
@@ -282,7 +368,11 @@ func (s *Store) IdeaAdd(ctx Ctx, rawBody, rawKey any, web bool) (map[string]any,
 			return nil, err
 		}
 		idea, err := ideaFull(tx, pid, id, now)
-		return map[string]any{"idea": idea}, err
+		if err != nil {
+			return nil, err
+		}
+		similar, err := ideaSimilar(tx, pid, body, id)
+		return map[string]any{"idea": idea, "similar": similar}, err
 	})
 }
 
@@ -301,7 +391,7 @@ func (s *Store) IdeaList(ctx Ctx, status any) (map[string]any, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	ideas, total := []map[string]any{}, 0
+	ideas, total, unreadTotal := []map[string]any{}, 0, 0
 	for rows.Next() {
 		r := &ideaRow{}
 		var first string
@@ -329,11 +419,12 @@ func (s *Store) IdeaList(ctx Ctx, status any) (map[string]any, error) {
 			excerpt = excerpt[:120]
 		}
 		out["excerpt"] = string(excerpt)
+		unreadTotal += r.unread
 		if total++; total <= ideaListLimit {
 			ideas = append(ideas, out)
 		}
 	}
-	return map[string]any{"ideas": ideas, "total": total, "notice": ideaNotice}, rows.Err()
+	return map[string]any{"ideas": ideas, "total": total, "unread_total": unreadTotal, "notice": ideaNotice}, rows.Err()
 }
 
 func (s *Store) IdeaGet(ctx Ctx, id string) (map[string]any, error) {
@@ -345,7 +436,30 @@ func (s *Store) IdeaGet(ctx Ctx, id string) (map[string]any, error) {
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{"idea": idea, "notice": ideaNotice}, nil
+	first := ""
+	if entries, _ := idea["entries"].([]map[string]any); len(entries) > 0 {
+		first, _ = entries[0]["body"].(string)
+	}
+	similar, err := ideaSimilar(s.DB(), p.ProjectID, first, id)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{"idea": idea, "similar": similar, "notice": ideaNotice}, nil
+}
+
+// IdeaReviewWork is the work item a review-only session (I3) gets from hub_wait: the oldest idea waiting for review.
+// The session claims it with hub_idea_claim (Python Ideas.review_work).
+func (s *Store) IdeaReviewWork(ctx Ctx) ([]map[string]any, error) {
+	waiting, err := s.IdeaWaiting(ctx)
+	if err != nil {
+		return nil, err
+	}
+	review, _ := waiting["review"].([]map[string]any)
+	if len(review) == 0 {
+		return nil, nil
+	}
+	return []map[string]any{{"kind": "idea_review", "idea_id": review[0]["id"], "author": review[0]["author"], "waiting": waiting["waiting"],
+		"next": "hub_idea_claim → 저장소 · 허브를 읽기만 해 hub_idea_reply", "notice": ideaNotice}}, nil
 }
 
 // IdeaWaiting lists what a session start should point at: only ideas a human asked about, oldest first.
@@ -429,12 +543,37 @@ func (s *Store) IdeaReply(ctx Ctx, a map[string]any) (map[string]any, error) {
 	if len(body["refs"].([]string)) == 0 && ideaIsBlank(body["unverified"].(string)) {
 		return nil, InvalidField("refs", "근거(refs)나 확인하지 않은 것(unverified) 가운데 하나는 적는다")
 	}
+	// 이미 있는 task (사람이 시켜 따로 만든 것) · 비슷한 아이디어 — 회신에 실어 화면이 묶어 보인다
+	taskID, err := ideaText(a["task_id"], "task_id", 100, false)
+	if err != nil {
+		return nil, err
+	}
+	related, err := ideaTexts(a["related_ideas"], "related_ideas", 20, false)
+	if err != nil {
+		return nil, err
+	}
+	if len(related) > ideaRelatedLimit {
+		return nil, InvalidField("related_ideas", fmt.Sprintf("%d개 이하", ideaRelatedLimit))
+	}
+	body["task_id"], body["related_ideas"] = taskID, related
 	id, _ := a["id"].(string)
 	now := db.FormatISO(ctx.Now)
 	return s.withWriteTx(func(tx *sql.Tx) (map[string]any, error) {
 		r, err := ideaGetRow(tx, p.ProjectID, id)
 		if err != nil {
 			return nil, err
+		}
+		if taskID != "" {
+			var one int
+			if e := tx.QueryRow("SELECT 1 FROM task WHERE project_id=? AND id=?", p.ProjectID, taskID).Scan(&one); e != nil {
+				return nil, InvalidField("task_id", "이 프로젝트에 없는 task: "+taskID)
+			}
+		}
+		for _, other := range related {
+			var one int
+			if other == r.id || tx.QueryRow("SELECT 1 FROM idea WHERE project_id=? AND id=?", p.ProjectID, other).Scan(&one) != nil {
+				return nil, InvalidField("related_ideas", "이 프로젝트의 다른 아이디어가 아니다: "+other)
+			}
 		}
 		if r.effective(now) != "reviewing" || r.claimedBy.String != p.Callsign {
 			return nil, &HubError{Status: 409, Code: "idea_not_claimed", Message: "이 콜사인이 맡은 아이디어가 아니다 — hub_idea_claim 먼저", Detail: map[string]any{"status": r.effective(now)}}
@@ -463,8 +602,14 @@ func (s *Store) IdeaAct(ctx Ctx, id string, b map[string]any, gate PrepareCreate
 	if action == "adopt" {
 		return s.ideaAdopt(ctx, p, id, b, gate)
 	}
+	if action == "seen" {
+		return s.ideaSeen(ctx, p.ProjectID, id)
+	}
+	if action == "link" {
+		return s.ideaLink(ctx, p.ProjectID, id, b)
+	}
 	if !oneOf(action, []string{"ask", "keep", "close"}) {
-		return nil, InvalidField("action", "ask · keep · close · adopt")
+		return nil, InvalidField("action", "ask · keep · close · adopt · link · seen")
 	}
 	text := ""
 	if action == "ask" {
@@ -499,6 +644,52 @@ func (s *Store) IdeaAct(ctx Ctx, id string, b map[string]any, gate PrepareCreate
 			return nil, err
 		}
 		idea, err := ideaFull(tx, p.ProjectID, id, now)
+		return map[string]any{"idea": idea}, err
+	})
+}
+
+// ideaSeen marks every reply so far as read by the human who opened the idea (I2a). The version stays, so a form being
+// filled in does not conflict.
+func (s *Store) ideaSeen(ctx Ctx, pid, id string) (map[string]any, error) {
+	now := db.FormatISO(ctx.Now)
+	return s.withWriteTx(func(tx *sql.Tx) (map[string]any, error) {
+		if _, err := ideaGetRow(tx, pid, id); err != nil {
+			return nil, err
+		}
+		if _, err := tx.Exec("UPDATE idea SET seen_seq=(SELECT COALESCE(MAX(seq),0) FROM idea_entry WHERE project_id=? AND idea_id=?) WHERE project_id=? AND id=?", pid, id, pid, id); err != nil {
+			return nil, err
+		}
+		idea, err := ideaFull(tx, pid, id, now)
+		return map[string]any{"idea": idea}, err
+	})
+}
+
+// ideaLink closes the idea onto an existing task — no new task is created.
+func (s *Store) ideaLink(ctx Ctx, pid, id string, b map[string]any) (map[string]any, error) {
+	taskID, err := ideaText(b["task_id"], "task_id", 100, true)
+	if err != nil {
+		return nil, err
+	}
+	now := db.FormatISO(ctx.Now)
+	return s.withWriteTx(func(tx *sql.Tx) (map[string]any, error) {
+		r, err := ideaGetRow(tx, pid, id)
+		if err != nil {
+			return nil, err
+		}
+		if err := ideaExpect(r, b["expected_version"]); err != nil {
+			return nil, err
+		}
+		if err := ideaAdopted(r); err != nil {
+			return nil, err
+		}
+		var one int
+		if e := tx.QueryRow("SELECT 1 FROM task WHERE project_id=? AND id=?", pid, taskID).Scan(&one); e != nil {
+			return nil, NotFound("이 프로젝트에 없는 task: " + taskID)
+		}
+		if err := s.ideaMove(tx, ctx, pid, r, "link", "adopted", nil, nil, taskID, r.asked); err != nil {
+			return nil, err
+		}
+		idea, err := ideaFull(tx, pid, id, now)
 		return map[string]any{"idea": idea}, err
 	})
 }

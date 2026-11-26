@@ -471,8 +471,8 @@ func (s *Store) WaitPoll(ctx Ctx, sessionID string, first bool) (map[string]any,
 	if err := s.withSessionCheck(p, sessionID); err != nil {
 		return nil, err
 	}
-	var allowWait, idleWaits int
-	err = s.pool.QueryRow("SELECT allow_wait,idle_waits FROM session WHERE project_id=? AND id=? AND callsign=? AND status='active'", p.ProjectID, sessionID, p.Callsign).Scan(&allowWait, &idleWaits)
+	var allowWait, idleWaits, reviewIdeas int
+	err = s.pool.QueryRow("SELECT allow_wait,idle_waits,review_ideas FROM session WHERE project_id=? AND id=? AND callsign=? AND status='active'", p.ProjectID, sessionID, p.Callsign).Scan(&allowWait, &idleWaits, &reviewIdeas)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, &HubError{Status: 404, Code: "not_found", Message: "세션이 없다: " + sessionID}
 	}
@@ -493,6 +493,12 @@ func (s *Store) WaitPoll(ctx Ctx, sessionID string, first bool) (map[string]any,
 		return nil, err
 	}
 	messages, _ := inbox["messages"].([]map[string]any)
+	if len(messages) == 0 && reviewIdeas != 0 {
+		// 검토 전용 세션 (I3) — 배정이 없을 때 검토 대기 아이디어 하나를 일감으로 준다. 집기(claim)는 세션이 한다.
+		if messages, err = s.IdeaReviewWork(ctx); err != nil {
+			return nil, err
+		}
+	}
 	if len(messages) > 0 {
 		if _, err := s.pool.Exec("UPDATE session SET waiting_since=NULL,idle_waits=0 WHERE project_id=? AND id=?", p.ProjectID, sessionID); err != nil {
 			return nil, err

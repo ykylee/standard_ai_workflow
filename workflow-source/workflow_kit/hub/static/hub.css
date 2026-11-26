@@ -72,6 +72,26 @@ main { max-width: 76rem; margin: 0 auto; padding: var(--sp-5); display: grid; ga
 .nav-links a { padding: var(--sp-2) var(--sp-3); color: var(--ink-2); font-size: var(--fs-sm); border-bottom: 2px solid transparent; margin-bottom: -1px; }
 .nav-links a:hover { color: var(--ink); text-decoration: none; }
 .nav-links a.on { color: var(--ink); border-bottom-color: var(--accent); font-weight: 650; }
+/* 더 보기 — 자주 안 가는 화면 다섯. 넓은 폭에서는 탭 줄 끝에서 아래로 연다 (TASK-2026-11-26-claude-plex-025) */
+.nav-more { position: relative; }
+.nav-more > summary { list-style: none; cursor: pointer; padding: var(--sp-2) var(--sp-3); color: var(--ink-2); font-size: var(--fs-sm); font-weight: 400;
+  border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.nav-more > summary::-webkit-details-marker { display: none; }
+.nav-more.on > summary { color: var(--ink); border-bottom-color: var(--accent); font-weight: 650; }
+.nav-more-menu { position: absolute; right: 0; top: 100%; z-index: 15; min-width: 12rem; display: grid; background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--sp-1) 0; }
+.nav-more-menu a { padding: var(--sp-2) var(--sp-4); border: 0; margin: 0; color: var(--ink); }
+.nav-more-menu a.on { color: var(--accent); font-weight: 650; }
+
+/* 결정 큐 — 네 종류가 한 카드 모양 */
+.dq-group > h2 { margin: var(--sp-2) 0 0; }
+.dq-head { display: flex; gap: var(--sp-2); align-items: baseline; flex-wrap: wrap; }
+.dq-head h3 { margin: 0; font-size: var(--fs-lg); line-height: 1.35; }
+.dq-meta { font-size: var(--fs-sm); margin: var(--sp-1) 0 var(--sp-3); }
+.dq h4 { margin: var(--sp-3) 0 var(--sp-1); font-size: var(--fs-sm); color: var(--ink-2); }
+.dq-ask { font-size: var(--fs-md); margin: 0 0 var(--sp-3); }
+.dq pre.wiki, .dq pre.diff { max-height: 22rem; overflow: auto; }
+.decide-actions { justify-content: space-between; }
 .nav-links .count { display: inline-block; min-width: 1.3em; margin-left: var(--sp-1); padding: 0 5px; border-radius: var(--r-sm); background: var(--warn-soft);
   color: var(--warn); font-size: var(--fs-xs); font-weight: 700; text-align: center; }
 
@@ -256,9 +276,25 @@ details.account[open] { display: grid; gap: var(--sp-2); }
   main { padding: var(--sp-3); gap: var(--sp-3); }
   .card { padding: var(--sp-3) var(--sp-4); }
   .submitbar { margin: var(--sp-3) calc(-1 * var(--sp-4)) 0; padding: var(--sp-3) var(--sp-4); }
-  /* 탭은 숨기지 않는다 — 줄을 바꿔 모두 보인다 */
-  .nav-links { margin: var(--sp-2) calc(-1 * var(--sp-4)) var(--sp-3); padding: 0 var(--sp-4); flex-wrap: wrap; }
-  .nav-links a { white-space: nowrap; padding: var(--sp-2); }
+  /* 오른손 엄지 — 탭은 화면 아래 고정 막대, 더 보기는 오른쪽 끝에서 위로 연다 (TASK-2026-11-26-claude-plex-025) */
+  .nav-links { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; margin: 0; padding: 0 0 env(safe-area-inset-bottom);
+    display: grid; grid-template-columns: 1fr 1fr 1.8fr 1fr 1fr; background: var(--surface); border-top: 1px solid var(--line); border-bottom: 0; }
+  .nav-links > a, .nav-more > summary { min-height: 56px; display: flex; align-items: center; justify-content: center; gap: 2px;
+    padding: var(--sp-1) 2px; text-align: center; font-size: var(--fs-xs); line-height: 1.2; border-bottom: 0; border-top: 2px solid transparent; margin: 0; }
+  .nav-links > a.on, .nav-more.on > summary { border-top-color: var(--accent); border-bottom-color: transparent; }
+  .nav-more-menu { position: fixed; top: auto; right: var(--sp-2); bottom: calc(60px + env(safe-area-inset-bottom)); min-width: 13rem; }
+  .nav-more-menu a { min-height: 48px; display: flex; align-items: center; }
+  body:has(.nav-links) { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  /* 승인 막대 — 결정 단추 줄이 화면 아래(탭 막대 위)에 붙는다. 주 동작은 오른쪽, 엄지가 닿는 높이 */
+  body:has(.nav-links) .submitbar { bottom: calc(56px + env(safe-area-inset-bottom)); }
+  /* 폼 상자를 레이아웃에서 걷어 낸다 — sticky 는 부모 상자 안에서만 움직이므로, 그래야 단추 줄이 카드 전체에서 아래에 붙는다 */
+  .decide-form { display: contents; }
+  .decide-form > * + * { margin-top: var(--sp-2); }
+  .decide-actions { position: sticky; bottom: 0; z-index: 5; background: var(--surface); padding: var(--sp-2) 0; flex-wrap: nowrap; }
+  body:has(.nav-links) .decide-actions { bottom: calc(56px + env(safe-area-inset-bottom)); }
+  .decide-actions button { min-height: 48px; flex: 1 1 0; }
+  .decide-actions button:last-child { flex: 2 1 0; }
+  button, .link-btn, select, input[type="text"], input[type="password"], input[type="search"] { min-height: 44px; }
   .decide-groups { grid-template-columns: minmax(0, 1fr); gap: var(--sp-2); }
   .decide-group h3 .muted { display: none; }
   .decide { grid-template-columns: repeat(3, minmax(0, 1fr)); }

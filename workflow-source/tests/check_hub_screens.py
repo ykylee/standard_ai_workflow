@@ -60,6 +60,7 @@ _count = 0
 SCREENS: dict[str, tuple[str, str]] = {
     "viewProjects": ("", "screens-demo"), "viewHarnesses": ("harnesses", "하네스"), "viewProject": ("p/{pid}", "허브 화면 재정비"),
     "viewOrchestration": ("p/{pid}/orch", "배정한 task 를 확인해 주세요"), "viewConfirmations": ("p/{pid}/confirmations", "배포 전 확인"),
+    "viewDecisions": ("p/{pid}/decide", "배포 전 확인"),
     "viewIdeas": ("p/{pid}/ideas", "이력 화면에서 검색할 수 있으면 좋겠다"), "viewRoadmap": ("p/{pid}/roadmap", "허브 화면 재정비"), "viewCallsign": ("p/{pid}/c/bot-a", "bot-a"), "viewGuide": ("p/{pid}/guide", "지침"),
     "viewWiki": ("p/{pid}/w", "온보딩 안내"), "viewKnowledge": ("p/{pid}/k/{ref}", "온보딩 안내"), "viewDcrs": ("p/{pid}/dcr", "ADR 확정을 승인 즉시로 바꾸기"),
     "viewWikiPage": ("p/{pid}/wp/topics%2Fone.md", "온보딩 안내"), "viewTask": ("p/{pid}/t/{tid}", "답이 반영된다"), "viewEvents": ("p/{pid}/events", "register"),
@@ -118,7 +119,16 @@ def proxy(hub: Hub, cookie: str) -> ThreadingHTTPServer:
                         b"while((n=tw.nextNode())){const pe=n.parentElement;if(!pe||pe.closest('pre')||!pe.checkVisibility())continue;const re=/\\S+/g;let m;"
                         b"while((m=re.exec(n.data))){if(!/[\\uac00-\\ud7a3]/.test(m[0]))continue;const g=D.createRange();g.setStart(n,m.index);g.setEnd(n,m.index+m[0].length);"
                         b"if(new Set([...g.getClientRects()].filter(x=>x.width>0).map(x=>Math.round(x.top))).size>1)br.push(m[0]);}}"
-                        b"document.body.dataset.br=JSON.stringify(br.slice(0,12))+'#'+br.length},4000)</script>")
+                        b"document.body.dataset.br=JSON.stringify(br.slice(0,12))+'#'+br.length;"
+                        # 아래 탭 막대 · 승인 막대 (TASK-2026-11-26-claude-plex-025) — 위치 · 크기 · 단추 순서
+                        b"const bar=d.querySelector('.nav-links');if(bar){const b=bar.getBoundingClientRect();const items=[...bar.children].map(c=>{const e=c.tagName==='DETAILS'?c.querySelector('summary'):c;"
+                        b"const r=e.getBoundingClientRect();return [Math.round(r.width),Math.round(r.height),(e.textContent||'').trim().slice(0,12)]});"
+                        b"document.body.dataset.bar=JSON.stringify({top:Math.round(b.top),bottom:Math.round(b.bottom),vh:d.clientHeight,items})}"
+                        # 승인 막대는 화면 아래에 걸친 카드의 것을 잰다 — 그 카드의 단추 줄이 탭 막대 바로 위에 붙어 있어야 한다
+                        b"const bt=bar?bar.getBoundingClientRect().top:d.clientHeight;const span=[...d.querySelectorAll('.dq, .decision')].find(c=>{const q=c.getBoundingClientRect();return q.top<bt-80&&q.bottom>bt+20});"
+                        b"const act=span?span.querySelector('.decide-actions'):null;if(act){const r=act.getBoundingClientRect();"
+                        b"document.body.dataset.act=JSON.stringify({bottom:Math.round(r.bottom),bs:[...act.querySelectorAll('button')].map(x=>{const q=x.getBoundingClientRect();return [x.textContent,Math.round(q.left),Math.round(q.height)]})})}"
+                        b"},4000)</script>")
                 self.send_response(200)
                 self.send_header("content-type", "text/html; charset=utf-8")
                 self.end_headers()
@@ -257,9 +267,38 @@ def seed(hub: Hub, db: Path, impl: str) -> dict[str, str]:
     return {"owner": owner, "bot": bot, "pid": pid, "tid": tid, "ref": quote(ref, safe=""), "cookie": head.get("set-cookie", "").split(";", 1)[0], "host": host}
 
 
-APPROVE_TILES = {"확인 요청", "중계 승인", "결정 변경(DCR)", "지침 제안"}
+APPROVE_TILES = {"확인 요청", "세션 승인", "결정 변경(DCR)", "지침 제안"}
 REVIEW_TILES = {"열린 결정 task", "막힌 task"}
 RAW_STATUS = {"in_progress", "planned", "blocked", "done", "working", "idle", "waiting", "ended", "unknown"}
+
+
+def decide_cases(impl: str, exe: str, tmp: Path, port: int, hub: Hub, env: dict[str, str], doms: dict[str, str]) -> None:
+    """결정 탭 한 큐 · 오른손 엄지 (TASK-2026-11-26-claude-plex-025)."""
+    pid = env["pid"]
+    dq = html.unescape(doms["viewDecisions"])
+    api = lambda path: ui._req(hub.base, f"/api/projects/{pid}/{path}", token=env["owner"])[1]  # noqa: E731
+    want = {"confirm": len(api("confirmations")["requests"]),
+            "session": sum(r["state"] == "pending_approval" for r in api("orchestration")["requests"]),
+            "dcr": sum(x["status"] == "open" for x in api("dcr")["dcrs"]),
+            "guide": sum(x["status"] == "open" for x in api("guide")["proposals"])}
+    got = {k: len(re.findall(rf'<section class="card dq" data-kind="{k}"', dq)) for k in want}
+    shape = re.findall(r'<section class="card dq" data-kind="(\w+)"[^>]*><div class="dq-head"><span class="chip open">([^<]+)</span><h3 class="exact">', dq)
+    forms = len(re.findall(r'<div class="decide-form">', dq))
+    order = [dq.find(f'id="dq-{k}"') for k in ("confirm", "session", "dcr", "guide")]
+    _record(f"[{impl}] 결정 탭 — 확인 요청 · 세션 승인 · DCR · 지침 제안이 한 화면 · 한 카드 모양 · 수는 API 와 같다",
+            got == want and all(want.values()) and len(shape) == sum(want.values()) and forms == sum(want.values())
+            and 0 < order[0] < order[1] < order[2] < order[3] and "owner-a 가 pc 에서 fake 세션을 띄우려 한다" in dq,
+            f"got={got} want={want} shape={len(shape)} forms={forms} order={order}")
+    ndom = draw(exe, tmp, port, f"p/{pid}/decide", narrow=True, budget=12000)  # 속성값은 이스케이프된 채로 찾고 값만 푼다
+    bar, act = re.search(r'data-bar="([^"]*)"', ndom), re.search(r'data-act="([^"]*)"', ndom)
+    b = json.loads(html.unescape(bar[1])) if bar else {}
+    a = json.loads(html.unescape(act[1])) if act else {}
+    bs = a.get("bs") or []
+    ok_bar = bool(b) and abs(b["bottom"] - b["vh"]) <= 1 and len(b["items"]) == 5 and all(w > 0 and h >= 44 for w, h, _ in b["items"])
+    ok_act = ([x[0] for x in bs] == ["거절", "승인"] and bs[1][1] > bs[0][1] and all(x[2] >= 44 for x in bs)
+              and bool(b) and b["top"] - 4 <= a.get("bottom", 10 ** 6) <= b["top"] + 1)  # 탭 막대 바로 위에 붙었다
+    _record(f"[{impl}] 좁은 폭 — 탭은 화면 아래 막대(5칸 · 44px 이상), 승인 막대는 그 위 · 승인 오른쪽 · 거절 왼쪽",
+            ok_bar and ok_act, f"bar={b} act={a}")
 
 
 def overview_cases(impl: str, exe: str, tmp: Path, port: int, hub: Hub, env: dict[str, str], doms: dict[str, str]) -> None:
@@ -270,9 +309,10 @@ def overview_cases(impl: str, exe: str, tmp: Path, port: int, hub: Hub, env: dic
     summary = ui._req(hub.base, f"/api/projects/{pid}", token=env["owner"])[1]["summary"]
     tiles = {m[2]: (m[1], int(m[3])) for m in re.finditer(r'<a class="(?:need|look)" href="([^"]*)" data-decide="([^"]*)"><span class="n">(\d+)</span>', ov)}
     first = (summary.get("open_decision_task_ids") or [""])[0]
-    ok = (tiles.get("확인 요청") == (f"#/p/{pid}/confirmations", want) and want > 0
+    # 승인할 것은 모두 '결정' 탭의 그 묶음으로 간다 (TASK-2026-11-26-claude-plex-025)
+    ok = (tiles.get("확인 요청") == (f"#/p/{pid}/decide?focus=confirm", want) and want > 0
           and tiles.get("열린 결정 task") == (f"#/p/{pid}/t/{first}", summary["open_decision_tasks"]) and first
-          and tiles.get("결정 변경(DCR)", ("", 0))[0] == f"#/p/{pid}/dcr" and tiles.get("지침 제안", ("", 0))[0] == f"#/p/{pid}/guide"
+          and tiles.get("결정 변경(DCR)", ("", 0))[0] == f"#/p/{pid}/decide?focus=dcr" and tiles.get("지침 제안", ("", 0))[0] == f"#/p/{pid}/decide?focus=guide"
           and ov.find('id="decide-h"') < ov.find('id="rail-h"') < ov.find('id="tasks-h"'))
     _record(f"[{impl}] 개요 — 사람이 결정할 일: 수는 각 화면 API 와 같고 그 화면으로 간다 · 결정 → 진척 → task 순", bool(ok), f"{tiles} want={want} first={first}")
     # 두 묶음 (TASK-2026-11-26-claude-plex-013) — 승인할 것(주황 need)이 먼저, 살펴볼 것(무채색 look)이 뒤, 묶음당 4칸 이하
@@ -297,9 +337,9 @@ def overview_cases(impl: str, exe: str, tmp: Path, port: int, hub: Hub, env: dic
     orch = doms["viewOrchestration"]
     at_appr, at_msg = orch.find('id="approvals"'), orch.find("미확인 메시지")
     folded = re.search(r'<details class="card" data-keep="orch-unack"[^>]*>', orch)
-    _record(f"[{impl}] 오케스트레이션 — 사람 승인이 메시지보다 위, 메시지는 접힘 · 중계 승인 타일이 그 자리로",
-            0 < at_appr < at_msg and bool(folded) and " open" not in folded[0] and tiles.get("중계 승인", ("", 0))[0] == f"#/p/{pid}/orch?focus=approvals",
-            f"approvals={at_appr} msg={at_msg} folded={folded and folded[0]} tile={tiles.get('중계 승인')}")
+    _record(f"[{impl}] 오케스트레이션 — 사람 승인이 메시지보다 위, 메시지는 접힘 · 세션 승인 타일은 결정 탭의 그 묶음으로",
+            0 < at_appr < at_msg and bool(folded) and " open" not in folded[0] and tiles.get("세션 승인", ("", 0))[0] == f"#/p/{pid}/decide?focus=session",
+            f"approvals={at_appr} msg={at_msg} folded={folded and folded[0]} tile={tiles.get('세션 승인')}")
     st2, out2, _ = hub.call("hub_task_create", {"title": "배포 채널 정하기", "plan_md": ui.PLAN, "wbs": "exempt", "wbs_exempt_reason": "화면 검사",
                                                "fields": {"done_criteria": ["[C1] 답이 반영된다"]}}, env["owner"])
     assert st2 == 200, out2  # 열린 결정 task 가 둘이면 타일은 한 task 가 아니라 목록으로 간다
@@ -314,8 +354,19 @@ def overview_cases(impl: str, exe: str, tmp: Path, port: int, hub: Hub, env: dic
     ev = html.unescape(doms["viewEvents"])
     raw_ops = sorted({m for m in re.findall(r'<td class="t-title"><span title="([a-z_]+)">([^<]*)</span>', ev) if m[0] == m[1]})
     _record(f"[{impl}] 이력 — 동작명이 영어 원문만으로 나오지 않는다", not raw_ops and "<td class=\"t-title\">" in ev, f"{raw_ops}")
-    nav = re.search(r'data-nav="(\d+)/(\d+)"', dom)
-    _record(f"[{impl}] 360px 탭 — 9개 모두 보인다 (숨은 탭 0)", bool(nav) and nav[1] == "9" and nav[2] == "0", f"nav={nav and nav.groups()}")
+    # 탭 다섯 (TASK-2026-11-26-claude-plex-025) — 개요 · 결정(대기 수) · 오케스트레이션 · 로드맵 + 더 보기(여섯)
+    wide = doms["viewProject"]
+    nav_html = re.search(r'<nav class="nav-links"[^>]*>(.*?)</nav>', wide, re.S)
+    nav_html = nav_html[1] if nav_html else ""
+    direct = re.findall(r'(?:^|</a>)<a href="[^"]*"[^>]*>([^<]+)', nav_html.split('<details', 1)[0])
+    more = re.findall(r'<a href="[^"]*"[^>]*>([^<]+)</a>', nav_html.split('<details', 1)[1] if "<details" in nav_html else "")
+    count = re.search(r'<span class="count" data-decide-count=""[^>]*>(\d+)</span>', nav_html)
+    pending = (len(ui._req(hub.base, f"/api/projects/{pid}/confirmations", token=env["owner"])[1]["requests"]) + summary["pending_approvals"]
+               + sum(x["status"] == "open" for x in ui._req(hub.base, f"/api/projects/{pid}/dcr", token=env["owner"])[1]["dcrs"])
+               + sum(x["status"] == "open" for x in ui._req(hub.base, f"/api/projects/{pid}/guide", token=env["owner"])[1]["proposals"]))
+    _record(f"[{impl}] 탭 다섯 — 개요 · 결정(대기 수) · 오케스트레이션 · 로드맵 · 더 보기(여섯)",
+            direct == ["개요", "결정", "오케스트레이션", "로드맵"] and len(more) == 6 and "더 보기" in nav_html
+            and bool(count) and int(count[1]) == pending > 0, f"direct={direct} more={more} count={count and count[1]} pending={pending}")
 
 
 def dcr_cases(impl: str, exe: str, tmp: Path, port: int, hub: Hub, env: dict[str, str], doms: dict[str, str]) -> None:
@@ -409,6 +460,7 @@ def measure(impl: str, cmd: list[str] | None, exe: str, tmp: Path) -> None:
             bad = problems(doms[view], want)
             _record(f"[{impl}] {view}", not bad, " · ".join(bad))
         overview_cases(impl, exe, tmp, port, hub, env, doms)
+        decide_cases(impl, exe, tmp, port, hub, env, doms)  # DCR 을 결정하는 dcr_cases 보다 먼저 — 네 묶음이 모두 차 있을 때
         dcr_cases(impl, exe, tmp, port, hub, env, doms)
         answer_cases(impl, exe, tmp, port, hub, env, doms)
         rm = doms["viewRoadmap"]
@@ -525,6 +577,13 @@ def measure(impl: str, cmd: list[str] | None, exe: str, tmp: Path) -> None:
         dbl = re.search(r'data-dbl="([^"]*)"', dom)
         _record(f"[{impl}] 결정 단추 두 번 누름 — POST 1 · 보내는 동안 승인 · 거절 꺼짐", bool(dbl) and dbl[1] == "1/off,off",
                 f"{dbl and dbl[1]} acts={re.findall(DATA_ACTS, dom)}")
+        # 결정 탭에서 실제로 승인 — 같은 폼 · 같은 문법이 그 자리에서 동작한다
+        before = len(ui._req(hub.base, f"/api/projects/{env['pid']}/confirmations", token=env["owner"])[1]["requests"])
+        dom = draw(exe, tmp, port, f"p/{env['pid']}/decide", "승인", 12000)
+        after = len(ui._req(hub.base, f"/api/projects/{env['pid']}/confirmations", token=env["owner"])[1]["requests"])
+        acted = re.search(r'data-acts="([^"]*)"', dom)
+        _record(f"[{impl}] 결정 탭 — 첫 확인 요청을 그 자리에서 승인한다", bool(acted) and acted[1] == "승인" and after == before - 1,
+                f"acts={acted and acted[1]} before={before} after={after}")
         many_milestones(impl, exe, tmp, port, hub, env)
     finally:
         if srv:

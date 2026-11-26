@@ -109,11 +109,13 @@
   // 사람이 승인 · 거절하는 자리는 모두 같은 모양이다 — 꼬리표 달린 메모 칸 · 그 아래 설명 · 승인 / 거절 · 결과 자리.
   // onDecide(decision, memoText, msg, memo) — 화면마다 보내는 곳만 다르다.
   let memoSeq = 0;
-  const decisionForm = ({ required = false, hint = "", name = "", approveLabel = "승인", approveDisabled = false, onDecide }) => {
+  // 주 동작(승인)은 오른쪽 — 오른손 엄지가 닿는 자리, 거절은 왼쪽 (TASK-2026-11-26-claude-plex-025).
+  // memo=false 는 메모를 받지 않는 결정(지침 제안)이다 — 보내지 않을 칸을 그리지 않는다.
+  const decisionForm = ({ required = false, memo: withMemo = true, hint = "", name = "", approveLabel = "승인", approveDisabled = false, onDecide }) => {
     const hintId = `memo-hint-${++memoSeq}`;
     const label = required ? "판단 근거" : "결정 메모";
-    const memo = el("textarea", { rows: "2", required: required || undefined, "aria-label": name ? `${label} — ${name}` : label,
-      "aria-describedby": hint ? hintId : null });
+    const memo = withMemo ? el("textarea", { rows: "2", required: required || undefined, "aria-label": name ? `${label} — ${name}` : label,
+      "aria-describedby": hint ? hintId : null }) : null;
     const msg = el("div");
     // 보내는 동안 두 단추를 끄고 자동 새로고침을 멈춘다 — 두 번 누름 · 요청 도중 다시 그리기를 막는다
     const go = (decision) => async () => {
@@ -122,7 +124,7 @@
       node?.setAttribute("aria-busy", "true");
       dirty = true;
       msg.replaceChildren(el("span", { class: "muted" }, "보내는 중…"));
-      try { await onDecide(decision, memo.value.trim(), msg, memo); }
+      try { await onDecide(decision, memo ? memo.value.trim() : "", msg, memo); }
       finally {
         node?.removeAttribute("aria-busy");
         buttons[0].disabled = Boolean(approveDisabled);
@@ -133,9 +135,9 @@
     const buttons = [el("button", { type: "button", disabled: approveDisabled || undefined, onclick: go("approve") }, approveLabel),
       el("button", { type: "button", class: "danger", onclick: go("reject") }, "거절")];
     return el("div", { class: "decide-form" },
-      el("label", { class: "field" }, `${label} (${required ? "필수" : "선택"})`, memo),
+      memo ? el("label", { class: "field" }, `${label} (${required ? "필수" : "선택"})`, memo) : null,
       hint ? el("p", { class: "muted", id: hintId }, hint) : null,
-      el("div", { class: "row" }, ...buttons), msg);
+      el("div", { class: "row decide-actions" }, buttons[1], buttons[0]), msg);
   };
 
   function hideRefreshNotice() {
@@ -194,21 +196,47 @@
     return `${lead ? `${lead} ` : ""}${said}${said || lead ? " " : ""}(${r.status}${d.error_code ? ` ${d.error_code}` : ""})`;
   }
 
-  function projectNav(pid, active) {
+  // 탭은 다섯 — 자주 가는 넷 + 더 보기. 사람이 승인할 것은 '결정' 한 곳이다 (TASK-2026-11-26-claude-plex-025).
+  // 좁은 폭에서는 이 막대가 화면 아래에 붙는다(오른손 엄지 영역, hub.css). 더 보기는 오른쪽 끝에서 위로 열린다.
+  function projectNav(pid, active, decideCount) {
     const base = `#/p/${encodeURIComponent(pid)}`;
-    const tabs = [
-      ["tasks", "개요 · task", base],
-      ["orch", "오케스트레이션", `${base}/orch`],
-      ["ideas", "아이디어", `${base}/ideas`],
-      ["confirmations", "확인 요청", `${base}/confirmations`],
-      ["roadmap", "로드맵", `${base}/roadmap`],
-      ["events", "이력", `${base}/events`],
-      ["guide", "지침", `${base}/guide`],
-      ["wiki", "지식", `${base}/w`],
-      ["dcr", "결정 변경", `${base}/dcr`],
-    ];
+    const main = [["tasks", "개요", base], ["decide", "결정", `${base}/decide`], ["orch", "오케스트레이션", `${base}/orch`],
+      ["roadmap", "로드맵", `${base}/roadmap`]];
+    const more = [["ideas", "아이디어", `${base}/ideas`], ["wiki", "지식", `${base}/w`], ["guide", "지침", `${base}/guide`],
+      ["events", "이력", `${base}/events`], ["dcr", "결정 변경 기록", `${base}/dcr`], ["confirmations", "확인 요청 기록", `${base}/confirmations`]];
+    const on = active === "confirmations" ? "decide" : active;
+    const moreOn = more.find(([id]) => id === active);
+    const count = el("span", { class: "count", "data-decide-count": "", hidden: true });
+    if (typeof decideCount === "number") { count.textContent = String(decideCount); count.hidden = !decideCount; }
+    else fillDecideCount(pid, count);
     return el("nav", { class: "nav-links", "aria-label": "프로젝트 판" },
-      tabs.map(([id, label, href]) => el("a", { href, class: active === id ? "on" : "" }, label)));
+      main.map(([id, label, href]) => el("a", { href, class: on === id ? "on" : "", "aria-current": on === id ? "page" : null },
+        label, id === "decide" ? count : null)),
+      el("details", { class: "nav-more" + (moreOn ? " on" : "") },
+        el("summary", {}, moreOn ? moreOn[1] : "더 보기"),
+        el("div", { class: "nav-more-menu" }, more.map(([id, label, href]) =>
+          el("a", { href, class: active === id ? "on" : "", "aria-current": active === id ? "page" : null }, label)))));
+  }
+
+  // 결정 탭의 대기 건수 — 화면마다 한 번 묻고 20초 동안은 같은 값을 쓴다 (자동 새로고침이 매번 넷을 묻지 않게).
+  const decideCountCache = new Map();
+  async function fillDecideCount(pid, node) {
+    const hit = decideCountCache.get(pid);
+    let n = hit && Date.now() - hit.at < 20000 ? hit.n : null;
+    if (n === null) {
+      const token = storedToken(pid);
+      const root = `projects/${encodeURIComponent(pid)}`;
+      const [conf, proj, dcrs, guide] = await Promise.all([api(`${root}/confirmations`, { token }), api(root, { token }),
+        api(`${root}/dcr`, { token }), api(`${root}/guide`, { token })]);
+      n = (conf.status === 200 ? (conf.data.requests || []).length : 0)
+        + (proj.status === 200 ? proj.data.summary?.pending_approvals || 0 : 0)
+        + (dcrs.status === 200 ? (dcrs.data.dcrs || []).filter((x) => x.status === "open").length : 0)
+        + (guide.status === 200 ? (guide.data.proposals || []).filter((x) => x.status === "open").length : 0);
+      decideCountCache.set(pid, { n, at: Date.now() });
+    }
+    node.textContent = String(n);
+    node.hidden = !n;
+    node.setAttribute("aria-label", `기다리는 결정 ${n}건`);
   }
 
   // --- 토큰 넣기 · 등록 · 지우기 ------------------------------------------------------
@@ -547,10 +575,10 @@
     // 두 묶음 — 승인하면 실행 · 확정되는 것(되돌리기 어렵다, 주황)과 답하거나 풀어야 진행되는 것(무채색). 급한 묶음이 먼저다.
     const groups = [
       { key: "approve", title: "승인할 것", hint: "승인하면 실행되거나 확정된다", tile: "need", items: [
-        ["확인 요청", counted(conf, (d) => (d.requests || []).length), `${base}/confirmations`, "에이전트가 기다린다"],
-        ["중계 승인", sum.pending_approvals || 0, `${base}/orch?focus=approvals`, "세션 띄우기 · 멈춤"],
-        ["결정 변경(DCR)", counted(dcr, (d) => (d.dcrs || []).filter((x) => x.status === "open").length), `${base}/dcr`, "승인 · 거절"],
-        ["지침 제안", counted(guide, (d) => (d.proposals || []).filter((x) => x.status === "open").length), `${base}/guide`, "새 판으로 올릴지"]] },
+        ["확인 요청", counted(conf, (d) => (d.requests || []).length), `${base}/decide?focus=confirm`, "에이전트가 기다린다"],
+        ["세션 승인", sum.pending_approvals || 0, `${base}/decide?focus=session`, "세션 띄우기 · 멈춤"],
+        ["결정 변경(DCR)", counted(dcr, (d) => (d.dcrs || []).filter((x) => x.status === "open").length), `${base}/decide?focus=dcr`, "승인 · 거절"],
+        ["지침 제안", counted(guide, (d) => (d.proposals || []).filter((x) => x.status === "open").length), `${base}/decide?focus=guide`, "새 판으로 올릴지"]] },
       { key: "review", title: "살펴볼 것", hint: "답하거나 풀어야 일이 진행된다", tile: "look", items: [
         ["열린 결정 task", sum.open_decision_tasks || 0, (sum.open_decision_task_ids || []).length === 1
           ? `${base}/t/${encodeURIComponent(sum.open_decision_task_ids[0])}` : `${base}?decisions=open`, "그 task 에서 답한다"],
@@ -829,39 +857,20 @@
         haltRow, msg);
     })();
 
+    const reqDecide = (req) => sessionReqDecide(pid, req);
     // 화면 머리(제목 · 탭)는 승인 대기가 있든 없든 맨 위 — 같은 주소에서 탭 자리가 바뀌지 않게 (TASK-2026-11-26-claude-plex-023)
     const headCard = el("section", { class: "card" },
       el("div", { class: "row" }, el("h1", {}, "오케스트레이션"), orch && orch.halted ? chip("정지", "halted") : null),
       projectNav(pid, "orch"));
 
     // 승인 카드는 "누가 어느 PC 에서 무엇을" 이 제목이고, 요청 · PC · 세션 ID 는 보조 줄이다 (TASK-2026-11-26-claude-plex-017).
-    const hostName = (hid) => (d.hosts.find((h) => h.host_id === hid) || {}).name || hid || "—";
-    const sessionName = (sid) => (d.sessions.find((s) => s.id === sid) || {}).callsign || sid || "—";
     const reqCard = (req) => {
-      const target = req.target || {};
-      // requested_by 는 콜사인이 아니라 요청한 오케스트레이터 세션 ID 다 — 콜사인으로 풀고, ID 는 보조 줄에 (TASK-2026-11-26-claude-plex-023)
-      const who = sessionName(req.requested_by);
-      const headline = req.kind === "stop"
-        ? `${who} 가 세션 ${sessionName(target.session)} 을 멈추려 한다`
-        : `${who} 가 ${hostName(req.host_id)} 에서 ${target.harness || "—"} 세션을 띄우려 한다`;
-      const mode = target.permission_mode || "default";
-      const detailText = req.kind === "stop"
-        ? (target.reason ? `사유: ${target.reason}` : "사유 없음")
-        : `작업 폴더 별칭 ${target.dir_alias || "—"} · 권한 ${MSG_VALUE[mode] || mode}${target.prompt ? ` · 지시: ${target.prompt}` : ""}`;
-      const form = decisionForm({ name: req.id, hint: "메모는 결과와 함께 요청한 쪽에 간다.", onDecide: async (decision, note, msg) => {
-        const res = await api(`projects/${encodeURIComponent(pid)}/orchestration/approvals/${encodeURIComponent(req.id)}`, {
-          method: "POST", token: storedToken(pid), body: { decision, note } });
-        if (res.status !== 200) { dirty = true; msg.replaceChildren(alertBox("bad", errorText(res))); return; }
-        dirty = false;
-        pendingFlash = { kind: "ok", text: `${req.id} 를 ${decision === "approve" ? "승인" : "거절"}했다.` };
-        route();
-      } });
+      const info = sessionReqInfo(req, d);
+      const form = decisionForm({ name: req.id, hint: "메모는 결과와 함께 요청한 쪽에 간다.", onDecide: reqDecide(req) });
       return el("div", { class: "decision", "data-request": req.id },
-        el("div", { class: "row" }, el("strong", { class: "exact" }, reveal(headline)), chip(req.state, req.state)),
-        el("div", { class: "exact" }, reveal(detailText)),
-        el("div", { class: "row muted req-ids" }, el("span", { class: "mono" }, req.id), el("span", { class: "mono" }, `PC ${req.host_id || "—"}`),
-          req.requested_by ? el("span", { class: "mono" }, `요청 세션 ${req.requested_by}`) : null,
-          req.kind === "stop" && target.session ? el("span", { class: "mono" }, `세션 ${target.session}`) : null, when(req.created_at)),
+        el("div", { class: "row" }, el("strong", { class: "exact" }, reveal(info.headline)), chip(req.state, req.state)),
+        el("div", { class: "exact" }, reveal(info.detailText)),
+        info.ids,
         req.decided_by ? el("div", { class: "muted" }, `결정 ${req.decided_by} · `, when(req.decided_at)) : null,
         req.result && Object.keys(req.result).length ? el("div", { class: "mono muted" }, JSON.stringify(req.result)) : null,
         req.state === "pending_approval" && canManage ? form : null);
@@ -1026,30 +1035,11 @@
     const requests = result.data.requests || [];
     const actingAccount = project.status === 200 && project.data.principal?.auth_mode === "account";
     const cards = requests.map((req) => {
-      const decide = async (decision, note, msg) => {
-        const r = await api(`projects/${encodeURIComponent(pid)}/confirmations/${encodeURIComponent(req.id)}`, {
-          method: "POST", token, body: { decision, note },
-        });
-        // 오류는 그 카드 안에 — 다시 그리지 않으니 적던 메모가 남는다
-        if (r.status !== 200) { dirty = true; msg.replaceChildren(alertBox("bad", errorText(r))); return; }
-        pendingFlash = { kind: "ok", text: `요청 ${req.id} ${decision === "approve" ? "승인" : "거절"} — 허브 받은편지함으로 결과를 보냈다.` };
-        dirty = false;
-        route();
-      };
+      const decide = confirmDecide(pid, req, token);
       return el("section", { class: "card" },
         el("div", { class: "row" }, el("h2", { class: "exact" }, reveal(req.title)), staleDoc(req) ? chip("낡은 요청", "unack") : chip("승인 대기", "blocked")),
         el("div", { class: "muted" }, `${req.requested_by} · `, when(req.created_at)),
-        req.action ? el("section", { class: "card", "data-action": req.action.type },
-          el("h3", {}, "승인하면 실행되는 일"),
-          ...(req.action.type === "project_doc_put" ? docPutCard(req) : req.action.type === "knowledge_source_register" ? [
-          el("p", {}, "지식 원본 등록 · ", el("span", { class: "mono" }, reveal(req.action.summary.source_id)), " · 저장소 ", el("span", { class: "mono" }, reveal(req.action.summary.repo_key))),
-          el("p", { class: "muted" }, `승인하면 요청한 콜사인 ${req.requested_by} 만 24시간 안에 한 번 실행할 수 있다. 아래 경로의 문서 ${req.action.summary.paths}개만 스냅샷으로 받는다.`),
-          el("ul", { "data-source-paths": String(req.action.summary.paths) }, req.action.summary.allowlist.map((x) => el("li", { class: "mono exact" }, reveal(x))))] : [
-          el("p", {}, `${{ migrate_import: "1.x 기록 들여오기", migrate_marker: "'허브로 옮김' 표식" }[req.action.type] || req.action.type} · ${req.action.summary.migration_id}`),
-          el("p", { class: "muted" }, `승인하면 요청한 콜사인 ${req.requested_by} 만 24시간 안에 한 번 실행할 수 있다. 브랜치 `, reveal(req.action.summary.branch), ` · ${String(req.action.summary.head).slice(0, 8)} · 미커밋 파일 ${req.action.summary.uncommitted}개`),
-          req.action.summary.files ? el("ul", {}, Object.entries(req.action.summary.files).map(([k, n]) => el("li", {}, `${k}: ${n}개 파일`))) : null,
-          req.action.summary.marker ? el("p", {}, `표식 동작: ${req.action.summary.marker}`) : null]),
-          actingAccount ? null : alertBox("warn", "이 승인은 허브 계정 로그인이 필요하다. 홈에서 계정으로 로그인한 뒤 승인한다.")) : null,
+        confirmAction(req, actingAccount),
         el("p", { class: "muted" }, "요청한 에이전트의 설명"), el("p", { class: "exact" }, reveal(req.question)), req.details ? el("pre", { class: "wrap exact" }, reveal(req.details)) : null,
         decisionForm({ name: req.id, hint: "메모는 결과와 함께 요청한 에이전트에게 간다.",
           approveDisabled: (Boolean(req.action) && !actingAccount) || staleDoc(req), onDecide: decide }));
@@ -1057,6 +1047,67 @@
     render(el("section", { class: "card" }, el("h1", {}, "에이전트 확인 요청"), projectNav(pid, "confirmations"),
       el("p", { class: "muted" }, "승인하거나 거절하면 결과가 요청한 에이전트의 받은편지함으로 간다. 에이전트는 결과를 확인한 뒤에 일을 이어 간다.")),
       ...(cards.length ? cards : [el("section", { class: "card muted" }, "기다리는 확인 요청이 없다.")]));
+  }
+
+  // --- 화면: 결정 — 사람이 승인 · 거절할 것을 한 큐로 (TASK-2026-11-26-claude-plex-025) ---------------------
+  // 확인 요청 · 세션 승인 · DCR · 지침 제안이 탭 넷으로 흩어져 있었다. 한 화면 · 한 카드 모양 · 한 승인 문법으로 모은다.
+
+  async function viewDecisions(pid, focus) {
+    const { token, base, pr } = await projectHead(pid, "결정");
+    const root = `projects/${encodeURIComponent(pid)}`;
+    const [conf, orc, dcrs, guide] = await Promise.all([
+      api(`${root}/confirmations`, { token }), api(`${root}/orchestration`, { token }),
+      api(`${root}/dcr`, { token }), api(`${root}/guide`, { token })]);
+    const principal = pr.status === 200 ? pr.data.principal : null;
+    const canManage = Boolean(principal && principal.can_manage);
+    const actingAccount = principal?.auth_mode === "account";
+    const openDcr = dcrs.status === 200 ? (dcrs.data.dcrs || []).filter((x) => x.status === "open") : [];
+    const dcrDetail = await Promise.all(openDcr.map((x) => api(`${root}/dcr/${encodeURIComponent(x.id)}`, { token })));
+
+    const confirmCards = conf.status === 200 ? (conf.data.requests || []).map((req) => decisionCard("confirm", req.id,
+      `${req.requested_by} — ${req.title}`,
+      [when(req.created_at), staleDoc(req) ? chip("낡은 요청", "unack") : null],
+      [el("p", { class: "exact dq-ask" }, reveal(req.question)), req.details ? el("pre", { class: "wrap exact" }, reveal(req.details)) : null,
+        confirmAction(req, actingAccount)],
+      decisionForm({ name: req.id, hint: "메모는 결과와 함께 요청한 에이전트에게 간다.",
+        approveDisabled: (Boolean(req.action) && !actingAccount) || staleDoc(req), onDecide: confirmDecide(pid, req, token) }))) : conf;
+    const sessionCards = orc.status === 200 ? orc.data.requests.filter((x) => x.state === "pending_approval").map((req) => {
+      const info = sessionReqInfo(req, orc.data);
+      return decisionCard("session", req.id, info.headline, [when(req.created_at)],
+        [el("div", { class: "exact" }, reveal(info.detailText)), info.ids],
+        orc.data.principal?.can_manage ? decisionForm({ name: req.id, hint: "메모는 결과와 함께 요청한 쪽에 간다.", onDecide: sessionReqDecide(pid, req) }) : ownerOnly());
+    }) : orc;
+    const dcrCards = dcrs.status === 200 ? dcrDetail.filter((r) => r.status === 200).map((r) => {
+      const d = r.data;
+      return decisionCard("dcr", d.id, `${d.author} — ${d.title}`,
+        [`${d.version}판 · `, el("a", { href: `${base}/dcr/${encodeURIComponent(d.id)}` }, "감사 기록까지 보기")],
+        [el("h4", {}, "근거"), el("pre", { class: "wiki dq-ask" }, d.rationale),
+          el("details", {}, el("summary", {}, "제안 본문"), el("pre", { class: "wiki" }, d.proposal_md))],
+        canManage ? decisionForm({ required: true, name: d.id, onDecide: dcrDecide(pid, d, token),
+          hint: "승인하면 결정 기록(ADR)이 허브 위키 decisions/ 에 바로 남고, 거절해도 근거가 감사 기록에 남는다." }) : ownerOnly());
+    }) : dcrs;
+    const guideCards = guide.status === 200 ? (guide.data.proposals || []).filter((x) => x.status === "open").map((prop) =>
+      decisionCard("guide", prop.id, `${prop.proposed_by} — 지침 ${prop.base_version}판 고치기`, [when(prop.proposed_at)],
+        [prop.note ? el("p", { class: "exact dq-ask" }, reveal(prop.note)) : null,
+          prop.stale ? alertBox("warn", "기준 판이 지금 판이 아니다 — 승인할 수 없다. 새 판 위에서 다시 제안해야 한다.") : null,
+          el("details", {}, el("summary", {}, "바뀐 줄"), el("pre", { class: "diff exact" }, prop.diff ? reveal(prop.diff) : "(차이 없음)"))],
+        guide.data.can_decide ? decisionForm({ memo: false, name: prop.id, approveDisabled: prop.stale, onDecide: guideDecide(pid, prop),
+          hint: "승인하면 지침이 새 판이 되고 각 저장소의 진입 파일 영역이 다음 세션 시작에 바뀐다." }) : ownerOnly())) : guide;
+
+    const groups = [["confirm", confirmCards], ["session", sessionCards], ["dcr", dcrCards], ["guide", guideCards]];
+    const count = (x) => Array.isArray(x) ? x.length : 0;
+    const total = groups.reduce((a, [, x]) => a + count(x), 0);
+    const filled = groups.filter(([, x]) => !Array.isArray(x) || x.length);
+    const empty = groups.filter(([, x]) => Array.isArray(x) && !x.length).map(([k]) => DQ_KIND[k]);
+    const sections = filled.map(([key, x]) => el("section", { class: "dq-group", id: `dq-${key}`, "aria-labelledby": `dq-h-${key}` },
+      el("h2", { id: `dq-h-${key}` }, DQ_KIND[key], el("span", { class: "muted" }, Array.isArray(x) ? ` ${x.length}건` : "")),
+      Array.isArray(x) ? x : el("section", { class: "card" }, alertBox("warn", `${DQ_KIND[key]}을 읽지 못했다 — ${errorText(x)}`))));
+    render(el("section", { class: "card" }, el("h1", {}, "결정"), projectNav(pid, "decide", total),
+      el("p", { class: "muted" }, total ? `기다리는 결정 ${total}건 — ` + groups.filter(([, x]) => count(x)).map(([k, x]) => `${DQ_KIND[k]} ${count(x)}`).join(" · ")
+        : "지금 기다리는 결정이 없다.", empty.length && total ? ` · 없음: ${empty.join(", ")}` : "")),
+      ...sections);
+    const target = focus && document.getElementById(`dq-${focus}`);
+    if (target && focusedHash !== location.hash) { focusedHash = location.hash; target.scrollIntoView({ block: "start" }); }
   }
 
   // --- 화면: 아이디어 박스 — 사람이 적고 에이전트가 회신한다 -------------------------------------
@@ -1251,6 +1302,107 @@
     }
     return out.concat(a.slice(a.length - t).map((l) => [" ", l]));
   }
+
+  // --- 결정 큐 조각 — 확인 요청 · 세션 승인 · DCR · 지침 제안이 같은 카드 · 같은 승인 문법 (TASK-2026-11-26-claude-plex-025) ---
+
+  function confirmAction(req, actingAccount) {
+    return req.action ? el("section", { class: "card", "data-action": req.action.type },
+        el("h3", {}, "승인하면 실행되는 일"),
+        ...(req.action.type === "project_doc_put" ? docPutCard(req) : req.action.type === "knowledge_source_register" ? [
+        el("p", {}, "지식 원본 등록 · ", el("span", { class: "mono" }, reveal(req.action.summary.source_id)), " · 저장소 ", el("span", { class: "mono" }, reveal(req.action.summary.repo_key))),
+        el("p", { class: "muted" }, `승인하면 요청한 콜사인 ${req.requested_by} 만 24시간 안에 한 번 실행할 수 있다. 아래 경로의 문서 ${req.action.summary.paths}개만 스냅샷으로 받는다.`),
+        el("ul", { "data-source-paths": String(req.action.summary.paths) }, req.action.summary.allowlist.map((x) => el("li", { class: "mono exact" }, reveal(x))))] : [
+        el("p", {}, `${{ migrate_import: "1.x 기록 들여오기", migrate_marker: "'허브로 옮김' 표식" }[req.action.type] || req.action.type} · ${req.action.summary.migration_id}`),
+        el("p", { class: "muted" }, `승인하면 요청한 콜사인 ${req.requested_by} 만 24시간 안에 한 번 실행할 수 있다. 브랜치 `, reveal(req.action.summary.branch), ` · ${String(req.action.summary.head).slice(0, 8)} · 미커밋 파일 ${req.action.summary.uncommitted}개`),
+        req.action.summary.files ? el("ul", {}, Object.entries(req.action.summary.files).map(([k, n]) => el("li", {}, `${k}: ${n}개 파일`))) : null,
+        req.action.summary.marker ? el("p", {}, `표식 동작: ${req.action.summary.marker}`) : null]),
+        actingAccount ? null : alertBox("warn", "이 승인은 허브 계정 로그인이 필요하다. 홈에서 계정으로 로그인한 뒤 승인한다.")) : null;
+  }
+
+  function confirmDecide(pid, req, token) {
+    return async (decision, note, msg) => {
+      const r = await api(`projects/${encodeURIComponent(pid)}/confirmations/${encodeURIComponent(req.id)}`, {
+        method: "POST", token, body: { decision, note },
+      });
+      // 오류는 그 카드 안에 — 다시 그리지 않으니 적던 메모가 남는다
+      if (r.status !== 200) { dirty = true; msg.replaceChildren(alertBox("bad", errorText(r))); return; }
+      pendingFlash = { kind: "ok", text: `요청 ${req.id} ${decision === "approve" ? "승인" : "거절"} — 허브 받은편지함으로 결과를 보냈다.` };
+      dirty = false;
+      route();
+    };
+  }
+
+  // requested_by 는 콜사인이 아니라 요청한 오케스트레이터 세션 ID 다 — 콜사인으로 풀고, ID 는 보조 줄에 (TASK-2026-11-26-claude-plex-023)
+  function sessionReqInfo(req, d) {
+    const hostName = (hid) => (d.hosts.find((h) => h.host_id === hid) || {}).name || hid || "—";
+    const sessionName = (sid) => (d.sessions.find((x) => x.id === sid) || {}).callsign || sid || "—";
+    const target = req.target || {};
+    const who = sessionName(req.requested_by);
+    const headline = req.kind === "stop"
+      ? `${who} 가 세션 ${sessionName(target.session)} 을 멈추려 한다`
+      : `${who} 가 ${hostName(req.host_id)} 에서 ${target.harness || "—"} 세션을 띄우려 한다`;
+    const mode = target.permission_mode || "default";
+    const detailText = req.kind === "stop"
+      ? (target.reason ? `사유: ${target.reason}` : "사유 없음")
+      : `작업 폴더 별칭 ${target.dir_alias || "—"} · 권한 ${MSG_VALUE[mode] || mode}${target.prompt ? ` · 지시: ${target.prompt}` : ""}`;
+    const ids = el("div", { class: "row muted req-ids" }, el("span", { class: "mono" }, req.id), el("span", { class: "mono" }, `PC ${req.host_id || "—"}`),
+      req.requested_by ? el("span", { class: "mono" }, `요청 세션 ${req.requested_by}`) : null,
+      req.kind === "stop" && target.session ? el("span", { class: "mono" }, `세션 ${target.session}`) : null, when(req.created_at));
+    return { headline, detailText, ids };
+  }
+
+  function sessionReqDecide(pid, req) {
+    return async (decision, note, msg) => {
+      const res = await api(`projects/${encodeURIComponent(pid)}/orchestration/approvals/${encodeURIComponent(req.id)}`, {
+        method: "POST", token: storedToken(pid), body: { decision, note } });
+      if (res.status !== 200) { dirty = true; msg.replaceChildren(alertBox("bad", errorText(res))); return; }
+      dirty = false;
+      pendingFlash = { kind: "ok", text: `${req.id} 를 ${decision === "approve" ? "승인" : "거절"}했다.` };
+      route();
+    };
+  }
+
+  function dcrDecide(pid, d, token) {
+    return async (decision, why, msg, memo) => {
+      // 오류는 자동 새로고침이 지우지 않게 한다 (dirty — 읽기 전에 사라지면 왜 막혔는지 모른다).
+      if (!why) { dirty = true; msg.replaceChildren(alertBox("bad", "판단 근거를 적어야 결정할 수 있다 — 근거는 ADR 과 감사 기록에 남는다.")); memo.focus(); return; }
+      const res = await api(`projects/${encodeURIComponent(pid)}/dcr/${encodeURIComponent(d.id)}/decision`, {
+        method: "POST", token, body: { decision, rationale: why, expected_version: d.version } });
+      if (res.status !== 200) {
+        dirty = true;
+        const code = res.data?.error_code;
+        msg.replaceChildren(alertBox("bad", code === "stale_decision_base"
+          ? "이 DCR 이 가리키는 문서가 그 사이 바뀌었다 — 승인할 수 없다. 제안한 쪽이 새 판 위에서 다시 올려야 한다."
+          : code === "version_conflict" ? "다른 사람이 먼저 이 DCR 을 바꿨다 — 새로고침해서 지금 상태를 본다." : errorText(res)));
+        return;
+      }
+      dirty = false;
+      pendingFlash = { kind: "ok", text: decision === "approve"
+        ? `${d.id} 를 승인했다${res.data?.adr_path ? ` — ADR ${res.data.adr_path}` : ""}.` : `${d.id} 를 거절했다.` };
+      route();
+    };
+  }
+
+  function guideDecide(pid, prop) {
+    return async (decision, _note, msg) => {
+      const r = await api(`projects/${encodeURIComponent(pid)}/guide/proposals/${encodeURIComponent(prop.id)}`, {
+        method: "POST", token: storedToken(pid), body: { approve: decision === "approve" } });
+      if (r.status !== 200) { dirty = true; msg.replaceChildren(alertBox("bad", errorText(r))); return; }
+      dirty = false;
+      pendingFlash = { kind: "ok", text: decision === "approve" ? `${prop.id} 를 승인했다 — 지침 판 ${r.data.guide_version}` : `${prop.id} 를 거절했다.` };
+      route();
+    };
+  }
+
+  const DQ_KIND = { confirm: "확인 요청", session: "세션 승인", dcr: "결정 변경(DCR)", guide: "지침 제안" };
+  // 한 모양: 종류 꼬리표 · 누가 무엇을(제목) · 때 · 근거 · 결정 메모 폼. 판단 근거(질문 · 차이)가 실행 내용보다 먼저다.
+  function decisionCard(kind, id, headline, meta, body, form) {
+    return el("section", { class: "card dq", "data-kind": kind, "data-id": id },
+      el("div", { class: "dq-head" }, chip(DQ_KIND[kind], "open"), el("h3", { class: "exact" }, reveal(headline))),
+      el("div", { class: "row muted dq-meta" }, meta),
+      body, form);
+  }
+  const ownerOnly = () => el("p", { class: "muted" }, "승인 · 거절은 이 프로젝트의 소유자가 한다 — 허브 계정으로 로그인한 승인된 소유자에게 단추가 보인다.");
 
   const staleDoc = (req) => req.action?.type === "project_doc_put" && req.action.current_version !== req.action.summary.version;
 
@@ -1458,15 +1610,6 @@
   }
 
   function proposalCard(pid, prop, canDecide) {
-    const decide = (approve) => async () => {
-      const r = await api(`projects/${encodeURIComponent(pid)}/guide/proposals/${encodeURIComponent(prop.id)}`, {
-        method: "POST", token: storedToken(pid), body: { approve } });
-      dirty = false;
-      pendingFlash = r.status === 200
-        ? { kind: "ok", text: approve ? `${prop.id} 를 승인했다 — 지침 판 ${r.data.guide_version}` : `${prop.id} 를 거절했다.` }
-        : { kind: "bad", text: errorText(r) };
-      route();
-    };
     const open = prop.status === "open";
     return el("div", { class: "decision" },
       el("div", { class: "row" }, el("strong", { class: "mono" }, prop.id),
@@ -1477,9 +1620,7 @@
       prop.note ? el("div", { class: "exact" }, reveal(prop.note)) : null,
       prop.stale ? alertBox("warn", "기준 판이 지금 판이 아니다 — 승인할 수 없다. 새 판 위에서 다시 제안해야 한다.") : null,
       el("details", { open: open || undefined }, el("summary", {}, "바뀐 줄"), el("pre", { class: "diff exact" }, prop.diff ? reveal(prop.diff) : "(차이 없음)")),
-      open && canDecide ? el("div", { class: "row" },
-        el("button", { type: "button", onclick: decide(true), disabled: prop.stale || undefined }, "승인"),
-        el("button", { type: "button", class: "danger", onclick: decide(false) }, "거절")) : null);
+      open && canDecide ? decisionForm({ memo: false, name: prop.id, approveDisabled: prop.stale, onDecide: guideDecide(pid, prop) }) : null);
   }
 
   async function viewGuide(pid) {
@@ -1580,24 +1721,7 @@
       const d = r.data;
       let decideBox = null;
       if (d.status === "open" && canDecide) {
-        const decide = async (decision, why, msg, memo) => {
-          // 오류는 자동 새로고침이 지우지 않게 한다 (dirty — 읽기 전에 사라지면 왜 막혔는지 모른다).
-          if (!why) { dirty = true; msg.replaceChildren(alertBox("bad", "판단 근거를 적어야 결정할 수 있다 — 근거는 ADR 과 감사 기록에 남는다.")); memo.focus(); return; }
-          const res = await api(`projects/${encodeURIComponent(pid)}/dcr/${encodeURIComponent(d.id)}/decision`, {
-            method: "POST", token, body: { decision, rationale: why, expected_version: d.version } });
-          if (res.status !== 200) {
-            dirty = true;
-            const code = res.data?.error_code;
-            msg.replaceChildren(alertBox("bad", code === "stale_decision_base"
-              ? "이 DCR 이 가리키는 문서가 그 사이 바뀌었다 — 승인할 수 없다. 제안한 쪽이 새 판 위에서 다시 올려야 한다."
-              : code === "version_conflict" ? "다른 사람이 먼저 이 DCR 을 바꿨다 — 새로고침해서 지금 상태를 본다." : errorText(res)));
-            return;
-          }
-          dirty = false;
-          pendingFlash = { kind: "ok", text: decision === "approve"
-            ? `${d.id} 를 승인했다${res.data?.adr_path ? ` — ADR ${res.data.adr_path}` : ""}.` : `${d.id} 를 거절했다.` };
-          route();
-        };
+        const decide = dcrDecide(pid, d, token);
         decideBox = el("section", { class: "decide-box", "aria-labelledby": "dcr-decide-h" },
           el("h2", { id: "dcr-decide-h" }, "결정"),
           decisionForm({ required: true, onDecide: decide,
@@ -1812,6 +1936,7 @@
       flash ? alertBox("ok", flash) : null,
       el("section", { class: "card" },
         el("h1", {}, task.title),
+        projectNav(pid, "tasks"),
         el("div", { class: "row" }, chip(task.status), chip(task.priority, "planned"), el("span", { class: "muted" }, `맡은 이 ${task.assignee || "—"}`),
           task.wbs ? el("span", { class: "mono muted" }, task.wbs) : null, el("span", { class: "mono muted" }, `${task.id} · v${task.version}`)),
         task.progress_note ? el("p", {}, el("strong", {}, "지금 하는 일 "), task.progress_note, task.progress_at ? el("span", { class: "muted" }, " · ", when(task.progress_at)) : null) : null,
@@ -1872,6 +1997,7 @@
         if (parts[2] === "t" && parts[3]) await viewTask(parts[1], parts[3]);
         else if (parts[2] === "orch") await viewOrchestration(parts[1], hashUrl.searchParams.get("focus"));
         else if (parts[2] === "confirmations") await viewConfirmations(parts[1]);
+        else if (parts[2] === "decide") await viewDecisions(parts[1], hashUrl.searchParams.get("focus"));
         else if (parts[2] === "ideas") await viewIdeas(parts[1], parts[3] || "");
         else if (parts[2] === "roadmap") await viewRoadmap(parts[1]);
         else if (parts[2] === "events") await viewEvents(parts[1]);

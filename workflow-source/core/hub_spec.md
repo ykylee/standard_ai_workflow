@@ -304,7 +304,7 @@ python -m workflow_kit hub admin   --db PATH project import --file FILE | seal -
 - 영역 밖(환경 덧붙임 · 손 문단)은 허브가 건드리지 않는다.
 - 다시 쓰기 전에 지금 영역 본문의 해시를 머리의 `sha256` 과 대조한다. **다르면 쓰기 지시를 내지 않고** `local_edit_detected` 를 보고한다 — 고칠 것은 `hub_guide_propose` 로 (R7.5).
 - 표준 규칙 층의 정본은 kit 의 새 파일 `core/hub_workflow_standard.md` (DS6) — 1.x `global_workflow_standard.md` 처럼 생성 블록의 원천이고, 세션 시작 확인(R10) · compact 직후 확인(R11) · 세션 끝 순서(R6.4) · 쓰기 금지 규칙을 담는다. 명령은 허브 MCP 도구 이름이다 (R7.3).
-- 크기 예산은 1.x `ENTRY_BUDGET_BYTES` (8KiB) 를 영역 전체에 (R7.2).
+- 크기 예산은 영역 하나에 **12KiB(12,288B) · 120줄** — 둘 중 하나라도 넘으면 `entry_budget_exceeded` 422 (R7.2, Python `render.HUB_REGION_BUDGET_*` · Go `store.GuideRegion*`). 근거는 하네스 제약: Claude Code 는 진입 파일 하나를 200줄 아래로 권하고, Codex 는 AGENTS.md 합계 32KiB 에서 경고 없이 자른다. 처음(2.0)에는 1.x 생성 진입 파일 전체 상한 `ENTRY_BUDGET_BYTES`(8KiB)를 영역에 그대로 썼는데, 표준 블록이 7.6KB 까지 커지자 프로젝트 지침 자리가 270B 만 남았다(TASK-2026-11-26-claude-plex-022 · 027, 소유자 결정 2026-11-26).
 
 ## 6. 흐름 (WBS-32.3)
 

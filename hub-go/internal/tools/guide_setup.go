@@ -102,9 +102,8 @@ func renderGuideAtEntry(harness, entry, projectID, display, body string, version
 		text += fmt.Sprintf("\n## 프로젝트 지침 — %s\n\n%s\n", display, strings.TrimSpace(body))
 	}
 	region := fmt.Sprintf("<!-- workflow-hub:begin project=%s guide=%s sha256=%s -->\n%s<!-- workflow-hub:end -->\n", projectID, guideVersion(version), digest(text), text)
-	if len([]byte(region)) > 8*1024 {
-		return "", &store.HubError{Status: 422, Code: "entry_budget_exceeded", Message: fmt.Sprintf("%s 렌더 영역이 8192B 예산을 넘었다", entry),
-			Detail: map[string]any{"size": len([]byte(region)), "budget": 8192}}
+	if err := store.GuideRegionOverBudget(entry, region); err != nil {
+		return "", err
 	}
 	return region, nil
 }

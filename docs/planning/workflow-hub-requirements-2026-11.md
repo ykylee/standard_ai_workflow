@@ -159,7 +159,7 @@
 
 - **R7.1 세 층 정본** — 허브가 지침을 **표준 규칙 · 프로젝트 지침 · 하네스 어댑터** 세 층으로 들고 하네스별 진입 파일로 렌더링한다. 환경 덧붙임은 로컬 몫이고 허브는 모른다 (H5 · concept §4.3).
   [검증] 같은 프로젝트를 지원 하네스 4종으로 렌더링 → 표준 · 프로젝트 내용이 넷 다에 있음.
-- **R7.2 하네스 범위** — 첫 판의 진입 파일은 지원 하네스(R2.8) 4종의 것: `CLAUDE.md` (Claude Code) · `AGENTS.md` (Codex) · `MiniMax.md` (MiniMax Code) · `ANTIGRAVITY.md` (Antigravity) — 파일 이름은 1.x bootstrap 의 하네스 표(`bootstrap_lib/harnesses`)와 같다. `AGENTS.md` 는 다른 하네스도 읽지만 지원 범위를 넓히지 않는다. 크기 예산은 1.x `check_entry_budget` 의 8KB 를 그대로 쓴다.
+- **R7.2 하네스 범위** — 첫 판의 진입 파일은 지원 하네스(R2.8) 4종의 것: `CLAUDE.md` (Claude Code) · `AGENTS.md` (Codex) · `MiniMax.md` (MiniMax Code) · `ANTIGRAVITY.md` (Antigravity) — 파일 이름은 1.x bootstrap 의 하네스 표(`bootstrap_lib/harnesses`)와 같다. `AGENTS.md` 는 다른 하네스도 읽지만 지원 범위를 넓히지 않는다. 크기 예산은 처음 1.x `check_entry_budget` 의 8KB 를 그대로 썼으나, **2026-11-26 소유자 결정으로 영역 하나에 12KiB · 120줄**로 바꿨다 — 8KB 는 1.x 에서 파일 전체 상한이었고 하네스 제약(Claude Code 200줄 권고 · Codex AGENTS.md 합계 32KiB)과 무관했다 (TASK-2026-11-26-claude-plex-027).
   [검증] 렌더링 결과마다 크기 ≤ 예산 · 하네스 표와 파일 이름 대조.
 - **R7.3 표준 규칙은 2.0판** — 표준 규칙 층은 허브 흐름의 명령(허브 MCP 도구 이름)을 쓴다. 1.x 의 `python -m workflow_kit …` 명령이 2.0 진입 파일에 나오지 않는다. 세션 시작 확인(R10) · compact 직후 확인(R11) 규칙이 이 층에 있다 (H11 · H14).
   [검증] 렌더링 결과에 `python -m workflow_kit` 0건 · 세션 시작 · compact 규칙 문장 있음.

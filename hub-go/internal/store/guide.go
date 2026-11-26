@@ -11,10 +11,27 @@ import (
 )
 
 const (
-	guideBodyMax     = 64 * 1024
-	guideNoteMax     = 500
-	guideEntryBudget = 8 * 1024
+	guideBodyMax = 64 * 1024
+	guideNoteMax = 500
 )
+
+// GuideRegionBudgetBytes · GuideRegionBudgetLines — 허브 렌더 영역 한 개의 상한, Python render.HUB_REGION_BUDGET_* 와 같다
+// (TASK-2026-11-26-claude-plex-027). 근거: Claude Code 진입 파일 200줄 권고 · Codex AGENTS.md 합계 32KiB 잘림.
+const (
+	GuideRegionBudgetBytes = 12 * 1024
+	GuideRegionBudgetLines = 120
+)
+
+// GuideRegionOverBudget — 영역이 예산을 넘으면 entry_budget_exceeded 422 (바이트 · 줄 수 둘 다 본다).
+func GuideRegionOverBudget(entry, region string) error {
+	size, lines := len([]byte(region)), strings.Count(region, "\n")
+	if size > GuideRegionBudgetBytes || lines > GuideRegionBudgetLines {
+		return &HubError{Status: 422, Code: "entry_budget_exceeded",
+			Message: fmt.Sprintf("%s 렌더 영역 %dB · %d줄 > 예산 %dB · %d줄 — 프로젝트 지침을 줄인다", entry, size, lines, GuideRegionBudgetBytes, GuideRegionBudgetLines),
+			Detail:  map[string]any{"size": size, "budget": GuideRegionBudgetBytes, "lines": lines, "line_budget": GuideRegionBudgetLines}}
+	}
+	return nil
+}
 
 // GuidePropose applies a guide immediately for an approved human, otherwise
 // records an open proposal for an approved human to decide.
@@ -187,9 +204,8 @@ func checkGuideRenderable(projectID, display, body string) error {
 		}
 		version := HubKitVersion + "+p1"
 		region := fmt.Sprintf("<!-- workflow-hub:begin project=%s guide=%s sha256=%064d -->\n%s<!-- workflow-hub:end -->\n", projectID, version, 0, rendered)
-		size := len([]byte(region))
-		if size > guideEntryBudget {
-			return &HubError{Status: 422, Code: "entry_budget_exceeded", Message: fmt.Sprintf("%s 렌더 영역 %dB > 예산 %dB — 프로젝트 지침을 줄인다", entry, size, guideEntryBudget), Detail: map[string]any{"size": size, "budget": guideEntryBudget}}
+		if err := GuideRegionOverBudget(entry, region); err != nil {
+			return err
 		}
 	}
 	return nil

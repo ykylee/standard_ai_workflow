@@ -8,7 +8,7 @@
 - 범위: 세션 복원, 작업 원칙, 세션 종료 순서, 실행 · 검증 명령
 - 대상 독자: Claude Code, 저장소 관리자
 - 상태: beta
-- 최종 수정일: 2026-11-24
+- 최종 수정일: 2026-11-26
 - 관련 문서: `docs/PROJECT_PROFILE.md`, `docs/LOCAL_GATE.md`, `docs/HOST_ROLES.md`, `docs/HUB_OPERATIONS.md`
 
 ## 세션 시작

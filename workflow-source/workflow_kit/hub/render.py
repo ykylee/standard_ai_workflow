@@ -24,9 +24,16 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from workflow_kit.bootstrap_lib.harnesses import spec_for
-from workflow_kit.bootstrap_lib.harnesses.entry_sections import ENTRY_BUDGET_BYTES
 from workflow_kit.hub import KIT_COMPAT_VERSION as KIT_VERSION
 from workflow_kit.hub.errors import HubError
+
+#: 허브 렌더 영역(표준 블록 + 프로젝트 지침) 한 개의 상한 — 바이트와 줄 수 둘 다 (TASK-2026-11-26-claude-plex-027, 소유자 결정 2026-11-26).
+#: 근거는 하네스의 실제 제약이다: Claude Code 는 진입 파일 하나를 200줄 아래로 권하고(넘으면 시작할 때 경고),
+#: Codex 는 AGENTS.md 를 모두 합쳐 32KiB 에서 경고 없이 자른다. 영역 120줄이면 손 문단까지 200줄 안에 들고,
+#: 12KiB 면 손 문단 ~20KB 와 합쳐도 32KiB 아래다. 1.x 생성 진입 파일 예산(``ENTRY_BUDGET_BYTES`` 8KiB)은 파일 전체에
+#: 걸던 값이라 여기 쓰지 않는다 — 2.0 이 그것을 영역에 옮겨 쓰면서 표준 블록이 커지자 지침 자리가 없어졌다.
+HUB_REGION_BUDGET_BYTES = 12 * 1024
+HUB_REGION_BUDGET_LINES = 120
 
 #: 지원 하네스 4종 — 이 목록 하나에서 렌더 대상 · 안내 페이지 · 실측 대상이 파생된다 (요구 R2.8, Q8).
 SUPPORTED_HARNESSES: tuple[str, ...] = ("claude-code", "codex", "minimax-code", "antigravity")
@@ -117,10 +124,12 @@ def render_region(harness: str, project_id: str, project_display: str, project_g
     version = guide_version(project_version)
     region = f"<!-- workflow-hub:begin project={project_id} guide={version} sha256={sha256(body)} -->\n{body}{END_MARK}\n"
     size = len(region.encode("utf-8"))
-    if size > ENTRY_BUDGET_BYTES:
+    lines = region.count("\n")
+    if size > HUB_REGION_BUDGET_BYTES or lines > HUB_REGION_BUDGET_LINES:
         raise HubError(422, "entry_budget_exceeded",
-                       f"{entry_path or entry_file(harness)} 렌더 영역 {size}B > 예산 {ENTRY_BUDGET_BYTES}B — 프로젝트 지침을 줄인다",
-                       {"size": size, "budget": ENTRY_BUDGET_BYTES})
+                       f"{entry_path or entry_file(harness)} 렌더 영역 {size}B · {lines}줄 > 예산 {HUB_REGION_BUDGET_BYTES}B · "
+                       f"{HUB_REGION_BUDGET_LINES}줄 — 프로젝트 지침을 줄인다",
+                       {"size": size, "budget": HUB_REGION_BUDGET_BYTES, "lines": lines, "line_budget": HUB_REGION_BUDGET_LINES})
     return region, version
 
 

@@ -48,9 +48,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from check_hub_core import Hub, _env, _resolve_go_hub  # noqa: E402
 from workflow_kit.bootstrap_lib.harnesses import spec_for  # noqa: E402
-from workflow_kit.bootstrap_lib.harnesses.entry_sections import ENTRY_BUDGET_BYTES  # noqa: E402
 from workflow_kit import __version__ as HUB_VERSION  # noqa: E402
 from workflow_kit.hub import render  # noqa: E402
+from workflow_kit.hub.errors import HubError  # noqa: E402
 
 _failures: list[str] = []
 _passes: list[str] = []
@@ -134,8 +134,31 @@ def case_1_single_source() -> None:
     no_v1 = all("python -m workflow_kit" not in render.render_region(h, "P-x", "D", "", 0)[0] for h in HARNESSES)
     has_rules = all(k in STANDARD_BLOCK for k in ("hub_session_start", "compact 직후", "세션 끝"))
     _record("case 1 (표준 규칙 단일 출처 · 4종 예산 · 하네스 표)",
-            same and all(s <= ENTRY_BUDGET_BYTES for s in sizes.values()) and all(names.values()) and no_v1 and has_rules,
+            same and all(s <= render.HUB_REGION_BUDGET_BYTES for s in sizes.values()) and all(names.values()) and no_v1 and has_rules,
             f"snapshot==core={same} sizes={sizes} names={names} no_v1={no_v1} rules={has_rules}")
+
+
+def _fits(body: str) -> tuple[bool, int, int]:
+    try:
+        region, _ = render.render_region("claude-code", "P-x", "Demo", body, 1)
+        return True, len(region.encode("utf-8")), region.count("\n")
+    except HubError as e:
+        return False, int(e.detail.get("size", -1)), int(e.detail.get("lines", -1))
+
+
+def case_1b_budget_edges() -> None:
+    """렌더 영역 예산 — 12KiB · 120줄 정확히는 통과, 1B · 1줄 넘으면 422 (TASK-2026-11-26-claude-plex-027)."""
+    _, size0, lines0 = _fits("x")
+    exact_b = "x" * (1 + render.HUB_REGION_BUDGET_BYTES - size0)          # 한 줄짜리 — 바이트만 한도에 닿는다
+    _, size1, lines1 = _fits("a\nb")                                      # 지침 한 줄 늘 때 영역도 한 줄
+    exact_l = "\n".join(["a"] * (2 + render.HUB_REGION_BUDGET_LINES - lines1))
+    common = "\n".join(f"- 공통 규칙 {i}: " + "가" * 30 for i in range(36))  # 이 저장소 공통 규칙 크기(≈3.4KB · 36줄)
+    got = {"exact_bytes": _fits(exact_b), "over_bytes": _fits(exact_b + "x"),
+           "exact_lines": _fits(exact_l), "over_lines": _fits(exact_l + "\na"), "common_3_4kb": _fits(common)}
+    ok = (got["exact_bytes"][:2] == (True, render.HUB_REGION_BUDGET_BYTES) and got["over_bytes"][0] is False
+          and got["exact_lines"][0] is True and got["exact_lines"][2] == render.HUB_REGION_BUDGET_LINES and got["over_lines"][0] is False
+          and got["common_3_4kb"][0] is True and len(common.encode()) > 3400)
+    _record("case 10 (렌더 영역 예산 12KiB · 120줄 — 경계 통과 · 넘으면 422 · 3.4KB 지침 렌더)", ok, f"{got} base={size0}B/{lines0}줄")
 
 
 def case_2_merge() -> None:
@@ -406,6 +429,7 @@ def _measure(tmp: Path, cmd: list[str] | None) -> None:
 def main() -> int:
     print("=== 허브 부트스트랩 · 지침 · 세션 시작 (M-034) ===")
     case_1_single_source()
+    case_1b_budget_edges()
     case_2_merge()
     with tempfile.TemporaryDirectory(prefix="hubboot-") as d:
         _measure(Path(d) / "python", None)

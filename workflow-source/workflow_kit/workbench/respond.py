@@ -92,7 +92,10 @@ def build_and_publish(
             opened[decision.id] = False
             continue
         value = _one(form, f"value_{decision.id}")
-        if value is None or value not in decision.option_values:
+        if value is None or value == "":
+            # 고르지 않은 결정은 답이 아니다 — 추천값으로 채우지 않는다 (TASK-2026-11-26-claude-plex-009).
+            return Outcome(422, f"{decision.id} 를 고르지 않았다 — 열린 결정을 모두 고른 뒤 보낸다")
+        if value not in decision.option_values:
             return Outcome(422, f"{decision.id} 의 값이 선택지에 없다")
         values[decision.id] = value
         opened[decision.id] = _one(form, f"opened_{decision.id}") == "yes"

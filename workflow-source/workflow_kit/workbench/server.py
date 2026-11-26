@@ -191,7 +191,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def _message(self, status: int, message: str) -> None:
         where = self._where_or_none()
-        self._send(status, views.message_page(rel=self._rel(), branch=where.branch if where else None, repo=_repo(where),
+        self._send(status, views.message_page(rel=self._rel(), branch=where.branch if where else None, repo=_repo(where), hub=_hub(where),
                                               title=f"{status} {HTTPStatus(status).phrase}", message=message,
                                               back=self._rel()))
 
@@ -423,7 +423,7 @@ class Handler(BaseHTTPRequestHandler):
         self._send(HTTPStatus.OK, views.progress_page(state=state, rel=self._rel(), user=session.name,
                                                       csrf=session.csrf, logout=not self.app.is_open,
                                                       refresh=self.app.refresh_seconds, role=session.role,
-                                                      repo=_repo(self._where_or_none())))
+                                                      repo=_repo(self._where_or_none()), hub=_hub(self._where_or_none())))
 
     def _plan(self, task_id: str, *, error: str | None = None, status: int = HTTPStatus.OK) -> None:
         session = self._need_session(api=False)
@@ -433,12 +433,12 @@ class Handler(BaseHTTPRequestHandler):
         task = self._task(where, task_id)
         if task is None:
             self._send(HTTPStatus.NOT_FOUND, views.message_page(
-                rel=self._rel(), branch=where.branch, repo=_repo(where), title="404 Not Found",
+                rel=self._rel(), branch=where.branch, repo=_repo(where), hub=_hub(where), title="404 Not Found",
                 message=f"이 브랜치에 task 가 없다: {task_id}", back=self._rel()))
             return
         flash, session.flash = session.flash, None
         self._send(status, views.plan_page(
-            view=state_view.build_plan(where, task), rel=self._rel(), branch=where.branch, repo=_repo(where), user=session.name,
+            view=state_view.build_plan(where, task), rel=self._rel(), branch=where.branch, repo=_repo(where), hub=_hub(where), user=session.name,
             csrf=session.csrf, role=session.role, flash=flash, error=error, logout=not self.app.is_open,
             refresh=self.app.refresh_seconds))
 
@@ -465,7 +465,7 @@ class Handler(BaseHTTPRequestHandler):
             client=safe_client(self._client()) if self.app.is_open else None)
         if not outcome.ok:
             self._send(outcome.status, views.message_page(
-                rel=self._rel(), branch=where.branch, repo=_repo(where), title=f"{outcome.status} {HTTPStatus(outcome.status).phrase}",
+                rel=self._rel(), branch=where.branch, repo=_repo(where), hub=_hub(where), title=f"{outcome.status} {HTTPStatus(outcome.status).phrase}",
                 message=outcome.message, back=f"../{task_id}"))
             return
         session.flash = outcome.message
@@ -509,7 +509,7 @@ class Handler(BaseHTTPRequestHandler):
         except todo_list.TodoError as error:
             status = _TODO_STATUS.get(error.code, HTTPStatus.UNPROCESSABLE_ENTITY)
             self._send(status, views.message_page(
-                rel=self._rel(), branch=where.branch, repo=_repo(where), title=f"{int(status)} {HTTPStatus(status).phrase}",
+                rel=self._rel(), branch=where.branch, repo=_repo(where), hub=_hub(where), title=f"{int(status)} {HTTPStatus(status).phrase}",
                 message=str(error), back="./" + back))
             return
         try:  # 작업 세션 hook 이 다음 차례에 소유자의 변경을 문장으로 받는다 — 실패해도 todo 는 이미 바뀌었다
@@ -539,6 +539,17 @@ def _repo(where: state_view.Where | None) -> str | None:
     from workflow_kit.workbench import registry
 
     return registry.repo_name(where.workspace_root) if where is not None else None
+
+
+def _hub(where: state_view.Where | None) -> dict[str, str] | None:
+    """허브로 옮긴 저장소면 그 허브 주소 · 프로젝트 — 화면 머리에 '정본은 허브' 안내를 단다 (요청마다 표식만 읽는다)."""
+    from workflow_kit.common import hub_marker
+
+    found = hub_marker.find_marker(where.workspace_root) if where is not None else None
+    if found is None:
+        return None
+    data = found[1]
+    return {"url": str(data.get("hub") or ""), "project": str(data.get("project_id") or "")}
 
 
 def where_for(profile_path: Path) -> Callable[[], state_view.Where]:

@@ -22,6 +22,7 @@ WATCHES = (
 import fnmatch
 import json
 import os
+import re
 import socket
 import subprocess
 import sys
@@ -276,8 +277,11 @@ def case_plan_page() -> list[str]:
             measured = _session(srv.port).get(f"/task/{task_id}").text
         if "검증 줄 없음" in measured or "잼" not in measured:
             problems.append("검증 줄이 있는데도 미측정으로 그렸거나 검증 줄을 보이지 않는다")
-        if 'value="block" checked' not in page or "(추천)" not in page:
-            problems.append("기본값에 추천 · checked 가 없다")
+        # 미리 고르지 않는다 — 추천은 표시 + 사람이 누르는 단추 (TASK-2026-11-26-claude-plex-009)
+        radios = re.findall(r'<input type="radio"[^>]*>', page)
+        if not radios or any("checked" in r for r in radios) or "(추천)" not in page \
+                or 'data-pick="block" data-for="value_D1"' not in page or 'id="pick-count"' not in page:
+            problems.append(f"라디오가 미리 골라져 있거나 추천 단추 · 고른 수 표시가 없다: {radios[:3]}")
         if fx.respond_form(plain_page) is not None or "그대로 보인다" not in plain_page:
             problems.append("주장 없는 task 가 필드를 그대로 보이지 않거나 폼이 있다")
     return problems

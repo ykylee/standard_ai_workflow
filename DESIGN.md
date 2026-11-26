@@ -248,7 +248,7 @@ components:
 이 규약이 다스리는 화면 셋:
 
 - **허브** (`/ui/`) — 이번 빌드. Python 허브와 Go 허브가 같은 정적 파일을 낸다. `hub-go/internal/assets/static/` 은 바이트 사본이다 (`check_go_assets_sync` 가 묶는다).
-- **워크벤치** (`workflow-source/workflow_kit/workbench/static/`) — 뒤 task 에서 이 토큰을 따른다. 아직 옛 값이다.
+- **워크벤치** (`workflow-source/workflow_kit/workbench/static/`) — **동결**(2026-11-26, 정본은 허브). 재설계하지 않고 색 값만 이 토큰과 같게 맞췄다(변수 이름은 옛 것 그대로). 허브로 옮긴 저장소에서는 머리에 '정본은 허브' 안내를 단다.
 - **PC 중계 화면과 VS Code** (`workflow-source/workflow_kit/relay/static/`, Go `hub-go/internal/relay/static/` 은 바이트 사본, VS Code 확장은 iframe 으로 담을 뿐) — 이 토큰을 따른다(2026-11-26). `relay.css` 의 `:root` 값은 `hub.css` 와 같게 고친다. 어두운 테마는 확장이 넘긴 `?theme=` 가 정한다.
 
 지킬 제약: 외부 자원 없음(글꼴 · CDN · 빌드 단계 없음), CSP `style-src 'self'` 라 인라인 `style` 속성을 쓰지 않는다 — 동적 폭도 클래스(`.pct-*`, `.w-*`)로 낸다.

@@ -4,7 +4,7 @@
 - 범위: `python -m workflow_kit workbench`, 서버가 서빙하는 경로와 화면, 서버가 받은편지함에 쓰는 응답, 받은편지함 건수의 정본 함수, MCP 도구 `plan_inbox` · `plan_import`, §11.1 한 줄과 스킬, 검사 넷
 - 대상 독자: workflow 설계자, AI agent, kit 소비 프로젝트
 - 상태: draft (ADR-032 accepted 2026-11-13 — M-029 ② 서버 · 화면 · 검사 · MCP 두 도구 구현 2026-11-14, Windows 실측 전)
-- 최종 수정일: 2026-11-17
+- 최종 수정일: 2026-11-26
 - 관련 문서: `../../ai-workflow/wiki/decisions/adr-032-plan-workbench.md`, `../../docs/planning/plan-workbench-requirements-2026-11.md`, `./claim_plan_spec.md`, `./global_workflow_standard.md`
 
 > **결정 근거는 ADR-032 에, 숫자의 실측은 requirements 에 있다.** 이 문서는 *계약* 만 적는다.
@@ -125,7 +125,7 @@ python -m workflow_kit workbench --new-token <role>:<name> --out <path>
 ### 4.4 계획 화면
 
 task 파일에 있는 것만 그린다: 주장 트리(`<details>`, 접힌 상태 = 1단계 목록, ID 그대로) · 3단계 위치(경로와 줄만) · 주장별 완료 기준과 검증 줄
-(`plan_claims.claim_bundles` 의 묶음 — `Verification` 줄의 글은 그대로 보이고 판정을 추론하지 않는다) · 결정(가리키는 주장 안에 닫힌 `<details>` 하나씩 — 질문 · 선택지 radio · 기본값에 "추천" 과 `checked` · **계산한**
+(`plan_claims.claim_bundles` 의 묶음 — `Verification` 줄의 글은 그대로 보이고 판정을 추론하지 않는다) · 결정(가리키는 주장 안에 닫힌 `<details>` 하나씩 — 질문 · 선택지 radio(**미리 고르지 않는다** — 기본값에는 "추천" 표시와 '추천(값) 받아들이기' 보조 단추) · **계산한**
 상태, 칸이 다르면 "task 파일의 칸은 <값>") · 머리의 "열린 결정 n건" · "미반영 응답 n건" · 배치 문제(있으면) · 끝에 `Out of scope`.
 `answered` 결정은 읽기 전용(답과 함께). 주장이 없는 task 는 Description · 완료 기준 · Plan 나머지 필드를 그대로(폼 없음). viewer 에게는 폼이 없다.
 
@@ -216,14 +216,17 @@ task 파일에 있는 것만 그린다: 주장 트리(`<details>`, 접힌 상태
 ## 6. 응답 쓰기 (R5)
 
 폼 필드: `csrf` · `plan_digest`(페이지를 그릴 때 계산) · 결정마다 `value_<D>` · `opened_<D>`(`yes` 만 yes) · 주석 `comment_<C 또는 D 또는 ->`(빈 칸은 싣지 않는다).
-폼은 그 task 의 **모든** 결정을 싣는다. 스크립트 `static/workbench.js` 는 결정의 `<details>` 가 처음 열릴 때 그 `opened_<D>` 를 `yes` 로 바꾸는 일 하나만 한다.
-스크립트가 꺼진 브라우저도 열고 제출할 수 있다 — 열림 기록만 없어 `opened: no` 다 (기본값 그대로면 `unopened`, 다른 값이면 `changed` — 서버는 가르지 않는다).
+폼은 그 task 의 **모든** 결정을 싣는다. 라디오는 미리 골라 두지 않는다 — 기본값을 `checked` 로 그리면 펼쳐 보지 않은 결정에도 값이 실려
+'응답 보내기' 한 번에 나갔다(TASK-2026-11-26-claude-plex-009). 스크립트 `static/workbench.js` 는 결정의 `<details>` 가 처음 열릴 때 그 `opened_<D>` 를 `yes` 로 바꾸고,
+열린 결정을 다 고르기 전에는 '응답 보내기' 를 끄고 'N건 중 M건 골랐다' 를 보이며, '추천 받아들이기' 를 누른 결정만 그 추천값을 고른다
+(`check_workbench_decide` — 실브라우저). 스크립트가 꺼진 브라우저도 열고 골라 제출할 수 있다 — 열림 기록만 없어 `opened: no` 다
+(기본값 그대로면 `unopened`, 다른 값이면 `changed` — 서버는 가르지 않는다).
 
 §5.4 를 통과한 뒤:
 
 1. 배치 — `plan_responses.layout_problem(branch_dir)` 이 사유를 내면 **409** (사유를 보인다, 주장 스펙 §7-8 · §7-9).
 2. 지문 — 지금 task 파일의 `plan_digest` 와 폼의 값이 다르면 **409** "계획이 바뀌었다, 다시 열어라". task 파일이 오류 규칙(L2 · L6 · L9)을 어기면 **409** (주장 스펙 §8.1 의 0 단계).
-3. `answered` 가 **아닌** 결정의 `value` 가 선택지 밖이면 **422**.
+3. `answered` 가 **아닌** 결정의 `value` 가 없거나 비었으면 **422** "고르지 않았다" — 추천값으로 채우지 않는다. 선택지 밖이어도 **422**.
 4. `answered` 인 결정은 폼이 무엇을 보냈든 `value` = 기본값 · `opened: no` 로 적는다.
 5. 주석의 CRLF · CR 을 LF 로 고친다. 그 뒤에도 `\n` · `\t` 밖의 제어 문자가 있으면 **422**.
 6. `received_at` = 서버 시각 (`YYYY-MM-DDTHH:MM:SS.ffffff±HH:MM`, 주장 스펙 §6). 그 task 의 받은편지함 · 보관에서 **자격 있는** 같은 응답자의 가장 늦은 시각보다

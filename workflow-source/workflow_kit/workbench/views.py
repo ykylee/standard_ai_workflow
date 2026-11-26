@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import html
+import urllib.parse
 from collections.abc import Iterable, Sequence
 from typing import Any
 
@@ -56,7 +57,7 @@ def badge(value: object, *, kind: str | None = None) -> str:
 
 def page(*, title: str, rel: str, branch: str | None, body: str, script: bool = False,
          user: str | None = None, csrf: str | None = None, logout: bool = True, refresh: int = 0,
-         repo: str | None = None) -> str:
+         repo: str | None = None, hub: dict[str, str] | None = None) -> str:
     # 한 호스트에 워크벤치가 여럿이면 탭 제목으로 가른다 — `<저장소> · <브랜치> — <화면>` (스펙 §3.2)
     label = " · ".join(part for part in (repo, branch) if part)
     if label:
@@ -86,7 +87,16 @@ def page(*, title: str, rel: str, branch: str | None, body: str, script: bool = 
             f'<form method="post" action="{esc(rel)}logout" class="logout">'
             f'<input type="hidden" name="csrf" value="{esc(csrf)}">'
             f'<span class="who">{esc(user)}</span> <button type="submit" class="ghost">로그아웃</button></form>')
-    head.extend(["</div></header>", f'<main data-version="{version}">', body, "</main>", "</body>", "</html>"])
+    head.append("</div></header>")
+    if hub is not None:
+        # 허브로 옮긴 저장소 — 이 화면은 1.x 기록이다. 정본(task · 결정 · 진척)은 허브에서 본다 (TASK-2026-11-26-claude-plex-009).
+        url = hub.get("url") or ""
+        target = url.rstrip("/") + "/ui/" + (f"#/p/{urllib.parse.quote(hub['project'], safe='')}" if hub.get("project") else "")
+        link = (f' <a href="{esc(target)}" target="_blank" rel="noopener">허브에서 열기</a>'
+                if url.startswith(("http://", "https://")) else "")
+        head.append(f'<p class="alert info hub-note" role="note"><strong>정본은 허브다.</strong> 이 저장소는 워크플로우 허브로 옮겼다 — '
+                    f'워크벤치는 옮기기 전 기록을 보여 줄 뿐이다.{link}</p>')
+    head.extend([f'<main data-version="{version}">', body, "</main>", "</body>", "</html>"])
     return "\n".join(head) + "\n"
 
 
@@ -102,12 +112,12 @@ def login_page(*, rel: str, error: str | None = None) -> str:
 
 
 def message_page(*, rel: str, branch: str | None, title: str, message: str, back: str | None = None,
-                 repo: str | None = None) -> str:
+                 repo: str | None = None, hub: dict[str, str] | None = None) -> str:
     body = [f'<section class="card narrow"><h1>{esc(title)}</h1>', f'<p class="alert error">{esc(message)}</p>']
     if back is not None:
         body.append(f'<p><a href="{esc(back)}">돌아가기</a></p>')
     body.append("</section>")
-    return page(title=title, rel=rel, branch=branch, body="\n".join(body), repo=repo)
+    return page(title=title, rel=rel, branch=branch, body="\n".join(body), repo=repo, hub=hub)
 
 
 def _progress(done: int | None, total: int) -> str:
@@ -210,7 +220,8 @@ def _kpi(label: str, value: str, kind: str) -> str:
 
 
 def progress_page(*, state: dict[str, Any], rel: str, user: str, csrf: str, logout: bool = True,
-                  refresh: int = 0, role: str = "approver", repo: str | None = None) -> str:
+                  refresh: int = 0, role: str = "approver", repo: str | None = None,
+                  hub: dict[str, str] | None = None) -> str:
     tasks = state["tasks"]
     plans = state["plans"]
     inbox = state["inbox"]
@@ -305,7 +316,7 @@ def progress_page(*, state: dict[str, Any], rel: str, user: str, csrf: str, logo
     if state["issues"]:
         body.append('<ul class="issues">' + "".join(f"<li>{esc(note)}</li>" for note in state["issues"]) + "</ul>")
     body.append("</section>")
-    return page(title="워크벤치 — 진척", rel=rel, branch=state["branch"], body="\n".join(body), repo=repo,
+    return page(title="워크벤치 — 진척", rel=rel, branch=state["branch"], body="\n".join(body), repo=repo, hub=hub,
                 user=user, csrf=csrf, logout=logout, refresh=refresh)
 
 
@@ -369,13 +380,17 @@ def _decision_block(view: PlanView, decision_id: str, *, can_answer: bool) -> st
     else:
         parts.append(f'<input type="hidden" name="opened_{esc(d.id)}" id="opened_{esc(d.id)}" value="no">')
         parts.append('<div class="options">')
+        # 미리 고르지 않는다 — 기본값을 checked 로 그리면 열어 보지 않은 결정에도 값이 실려 나간다 (TASK-2026-11-26-claude-plex-009).
+        # 추천을 받아들이는 것은 사람이 누르는 보조 단추로만 (workbench.js 가 그 라디오를 고른다).
         for value, text in d.options:
-            checked = " checked" if value == d.default else ""
             parts.append(
-                f'<label class="option"><input type="radio" name="value_{esc(d.id)}" value="{esc(value)}"{checked}> '
+                f'<label class="option"><input type="radio" name="value_{esc(d.id)}" value="{esc(value)}" required> '
                 f'<span class="opt-value">{esc(value)}</span> — <span class="opt-text">{esc(text)}</span>'
                 + (' <span class="rec">(추천)</span>' if value == d.default else "") + "</label>")
         parts.append("</div>")
+        if d.default in d.option_values:
+            parts.append(f'<p class="pick-default"><button type="button" class="ghost" data-pick="{esc(d.default)}" '
+                         f'data-for="value_{esc(d.id)}">추천({esc(d.default)}) 받아들이기</button></p>')
         parts.append(f'<label class="comment">주석 <textarea name="comment_{esc(d.id)}" rows="2"></textarea></label>')
     parts.append("</div></details>")
     return "".join(parts)
@@ -383,7 +398,7 @@ def _decision_block(view: PlanView, decision_id: str, *, can_answer: bool) -> st
 
 def plan_page(*, view: PlanView, rel: str, branch: str, user: str, csrf: str, role: str,
               flash: str | None = None, error: str | None = None, logout: bool = True, refresh: int = 0,
-              repo: str | None = None) -> str:
+              repo: str | None = None, hub: dict[str, str] | None = None) -> str:
     task = view.task
     can_answer = role == "approver" and bool(view.decisions) and not view.has_errors
     open_count = sum(1 for d in view.decisions if d.open)
@@ -428,6 +443,7 @@ def plan_page(*, view: PlanView, rel: str, branch: str, user: str, csrf: str, ro
             content += ('<section class="section"><h2>검증</h2><ul class="card list">'
                         + "".join(f"<li>{esc(v)}</li>" for v in view.verification) + "</ul></section>")
         if can_answer:
+            unanswered = sum(1 for dv in view.decisions if not dv.decision.answered)
             content = (
                 f'<form method="post" action="{esc(rel)}task/{esc(task.task_id)}/respond" class="respond">'
                 f'<input type="hidden" name="csrf" value="{esc(csrf)}">'
@@ -435,8 +451,9 @@ def plan_page(*, view: PlanView, rel: str, branch: str, user: str, csrf: str, ro
                 + content
                 + '<section class="section"><label class="comment">계획 전체 주석 '
                 '<textarea name="comment_-" rows="3"></textarea></label></section>'
-                '<div class="submitbar"><span class="hint">펼쳐 본 결정만 &#39;열어 봄&#39; 으로 기록된다</span>'
-                '<button type="submit">응답 보내기</button></div></form>')
+                f'<div class="submitbar"><span class="hint" id="pick-count" aria-live="polite" data-total="{unanswered}">'
+                f'열린 결정 {unanswered}건 — 하나씩 펼쳐 고른다</span>'
+                '<button type="submit" id="respond-submit">응답 보내기</button></div></form>')
         body.append(content)
     else:
         rows = "".join(f"<div><dt>{esc(label)}</dt><dd>{esc(value)}</dd></div>" for label, value in view.plain_fields)
@@ -444,5 +461,5 @@ def plan_page(*, view: PlanView, rel: str, branch: str, user: str, csrf: str, ro
     if view.out_of_scope:
         body.append('<section class="section"><h2>Out of scope</h2><ul class="card list">'
                     + "".join(f"<li>{esc(v)}</li>" for v in view.out_of_scope) + "</ul></section>")
-    return page(title=f"워크벤치 — {task.task_id}", rel=rel, branch=branch, body="\n".join(body), script=can_answer, repo=repo,
+    return page(title=f"워크벤치 — {task.task_id}", rel=rel, branch=branch, body="\n".join(body), script=can_answer, repo=repo, hub=hub,
                 user=user, csrf=csrf, logout=logout, refresh=refresh)

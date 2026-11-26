@@ -1,5 +1,6 @@
 // 워크벤치 화면 스크립트 — 인라인 없이 이 파일 하나 (CSP script-src 'self').
-// 1) 결정의 <details> 가 처음 열릴 때 그 opened_<D> 를 yes 로 바꾼다 (워크벤치 스펙 §6).
+// 1) 결정의 <details> 가 처음 열릴 때 그 opened_<D> 를 yes 로 바꾼다 (워크벤치 스펙 §6). 라디오는 미리 고르지 않는다 —
+//    열린 결정을 다 고르기 전에는 '응답 보내기' 를 끈다, 추천은 '추천 받아들이기' 단추로만.
 // 2) 자동 새로고침 (스펙 §4.5): body[data-refresh] 초마다 같은 주소를 다시 받아 main 의 data-version 이
 //    바뀌었을 때만 main 을 갈아 끼운다. 답을 쓰는 중이면 갈아 끼우지 않고 알림만 낸다.
 (function () {
@@ -17,12 +18,42 @@
     });
   }
 
+  // 고른 결정 수 — 열린 결정을 다 고르기 전에는 보내기를 끈다. 미리 고른 값은 없다(서버도 고르지 않은 결정은 422).
+  function updateCount(form) {
+    var hint = form.querySelector("#pick-count");
+    var submit = form.querySelector("#respond-submit");
+    if (!hint || !submit) { return; }
+    var total = parseInt(hint.getAttribute("data-total") || "0", 10);
+    var names = {};
+    form.querySelectorAll("input[type=radio][name^=value_]").forEach(function (r) {
+      if (!(r.name in names)) { names[r.name] = false; }
+      if (r.checked) { names[r.name] = true; }
+    });
+    var picked = Object.keys(names).filter(function (k) { return names[k]; }).length;
+    submit.disabled = picked < total;
+    hint.textContent = picked < total
+      ? "열린 결정 " + total + "건 중 " + picked + "건 골랐다 — 다 고르면 보낼 수 있다"
+      : "열린 결정 " + total + "건을 모두 골랐다";
+  }
+
   function bindForm(root) {
     var form = root.querySelector("form.respond");
     if (!form || form.getAttribute("data-bound")) { return; }
     form.setAttribute("data-bound", "1");
     form.addEventListener("input", function () { dirty = true; });
-    form.addEventListener("change", function () { dirty = true; });
+    form.addEventListener("change", function () { dirty = true; updateCount(form); });
+    // '추천 받아들이기' — 사람이 누를 때만 그 결정의 추천값을 고른다.
+    form.addEventListener("click", function (event) {
+      var b = event.target && event.target.closest ? event.target.closest("button[data-pick]") : null;
+      if (!b) { return; }
+      form.querySelectorAll("input[type=radio]").forEach(function (r) {
+        if (r.name === b.getAttribute("data-for") && r.value === b.getAttribute("data-pick")) {
+          r.checked = true;
+          r.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+      });
+    });
+    updateCount(form);
   }
 
   // todo 폼(스펙 §13.1) — 글을 쓰는 중이거나 '고치기' 를 펼쳐 둔 동안은 화면을 갈아 끼우지 않는다.

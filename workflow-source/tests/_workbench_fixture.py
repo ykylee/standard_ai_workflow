@@ -254,7 +254,7 @@ def resolve(current: str, location: str) -> str:
 
 
 class FormParser(HTMLParser):
-    """페이지의 첫 ``respond`` 폼 — action 과 기본 제출값(hidden · checked radio · textarea 이름)."""
+    """페이지의 첫 ``respond`` 폼 — action 과 기본 제출값(hidden · checked radio · textarea 이름) · 라디오 묶음 · 추천 단추."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -264,12 +264,16 @@ class FormParser(HTMLParser):
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         a = {k: v or "" for k, v in attrs}
         if tag == "form":
-            self._current = {"action": a.get("action", ""), "fields": [], "textareas": []}
+            self._current = {"action": a.get("action", ""), "fields": [], "textareas": [], "radios": [], "picks": {}}
             self.forms.append(self._current)
         elif self._current is not None and tag == "input":
             kind = a.get("type", "text")
             if kind == "hidden" or (kind == "radio" and "checked" in a):
                 self._current["fields"].append((a.get("name", ""), a.get("value", "")))
+            if kind == "radio" and a.get("name", "") not in self._current["radios"]:
+                self._current["radios"].append(a.get("name", ""))
+        elif self._current is not None and tag == "button" and "data-pick" in a:
+            self._current["picks"][a.get("data-for", "")] = a.get("data-pick", "")
         elif self._current is not None and tag == "textarea":
             self._current["textareas"].append(a.get("name", ""))
 
@@ -278,10 +282,21 @@ class FormParser(HTMLParser):
             self._current = None
 
 
-def respond_form(html_text: str) -> dict[str, Any] | None:
+def respond_form(html_text: str, *, accept_recommended: bool = True) -> dict[str, Any] | None:
+    """``respond`` 폼. 라디오는 미리 골라져 있지 않다 (TASK-2026-11-26-claude-plex-009) — ``accept_recommended`` 면
+    고르지 않은 결정마다 사람이 '추천 받아들이기' 를 누른 것처럼 그 추천값을 싣는다(결정을 펼쳐야 누를 수 있으므로
+    ``opened`` 도 yes). 끄면 브라우저가 고르지 않은 라디오를 보내지 않는 그대로다."""
     parser = FormParser()
     parser.feed(html_text)
-    return next((f for f in parser.forms if f["action"].endswith("/respond")), None)
+    form = next((f for f in parser.forms if f["action"].endswith("/respond")), None)
+    if form is not None and accept_recommended:
+        chosen = {k for k, _ in form["fields"]}
+        for name in form["radios"]:
+            if name not in chosen and name in form["picks"]:
+                did = name[len("value_"):]
+                form["fields"] = [(k, "yes" if k == f"opened_{did}" else v) for k, v in form["fields"]]
+                form["fields"].append((name, form["picks"][name]))
+    return form
 
 
 def csrf_of(html_text: str) -> str:
@@ -292,12 +307,13 @@ def csrf_of(html_text: str) -> str:
 
 
 def submit(browser: Browser, task_path: str, *, overrides: dict[str, str] | None = None,
-           drop: tuple[str, ...] = (), extra_fields: list[tuple[str, str]] | None = None) -> tuple[Reply, str]:
-    """계획 화면을 열어 폼을 그대로(또는 바꿔) 제출한다 — (응답, 제출 경로)."""
+           drop: tuple[str, ...] = (), extra_fields: list[tuple[str, str]] | None = None,
+           accept_recommended: bool = True) -> tuple[Reply, str]:
+    """계획 화면을 열어 폼을 그대로(또는 바꿔) 제출한다 — (응답, 제출 경로). ``accept_recommended`` 는 :func:`respond_form`."""
     page = browser.get(task_path)
     if page.status != 200:
         raise AssertionError(f"계획 화면이 {page.status} 다: {task_path}")
-    form = respond_form(page.text)
+    form = respond_form(page.text, accept_recommended=accept_recommended)
     if form is None:
         raise AssertionError("계획 화면에 respond 폼이 없다")
     fields = [(k, v) for k, v in form["fields"] if k not in drop and k not in (overrides or {})]

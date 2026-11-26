@@ -1,19 +1,20 @@
-/* 워크벤치 — 외부 자원 없음 (스펙 §1-6). 인라인 style 없이 클래스로만 (CSP). 밝은 · 어두운 · 좁은 폭. */
+/* 워크벤치 — 외부 자원 없음 (스펙 §1-6). 인라인 style 없이 클래스로만 (CSP). 밝은 · 어두운 · 좁은 폭.
+   동결(2026-11-26): 정본은 허브다. 색 값만 허브 hub.css :root 와 같게 맞췄다(작은 글자 대비 ≥ 4.5) — 이름은 그대로. */
 :root {
   color-scheme: light dark;
-  --bg: #f4f6fa; --surface: #ffffff; --surface-2: #f8f9fc; --fg: #161a23; --muted: #677085; --line: #e2e6ef;
-  --accent: #4f5bd5; --accent-soft: #eceefe; --accent-fg: #ffffff;
-  --ok: #17804a; --ok-soft: #e3f5ea; --info: #1d6fd1; --info-soft: #e3effc; --warn: #a15c00; --warn-soft: #fdf1dc;
-  --bad: #c2283c; --bad-soft: #fde6e9; --neutral-soft: #eef0f5;
+  --bg: #f2f4f6; --surface: #ffffff; --surface-2: #f7f8fa; --fg: #17202b; --muted: #4f5b6b; --line: #d5dae1;
+  --accent: #1d5fbf; --accent-soft: #e6eefa; --accent-fg: #ffffff;
+  --ok: #1a6b3c; --ok-soft: #e4f2e9; --info: #1d5fbf; --info-soft: #e6eefa; --warn: #8a4b00; --warn-soft: #fbefdc;
+  --bad: #b3261e; --bad-soft: #fbe7e5; --neutral-soft: #e8ebef;
   --radius: 14px; --radius-sm: 9px; --shadow: 0 1px 2px rgba(20, 24, 40, .06), 0 4px 16px rgba(20, 24, 40, .05);
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0f1218; --surface: #171b24; --surface-2: #1d222d; --fg: #e7eaf2; --muted: #9aa3b8; --line: #2a3140;
-    --accent: #8b95ff; --accent-soft: #23284a; --accent-fg: #0f1218;
-    --ok: #5fd394; --ok-soft: #173326; --info: #6fb0ff; --info-soft: #172a44; --warn: #f2b65a; --warn-soft: #3a2b12;
-    --bad: #ff7a8c; --bad-soft: #3d1a21; --neutral-soft: #232936;
+    --bg: #0e141b; --surface: #151c25; --surface-2: #1b2430; --fg: #e6ebf1; --muted: #a3afbf; --line: #2a3542;
+    --accent: #7fb0ff; --accent-soft: #182a44; --accent-fg: #0e141b;
+    --ok: #6fd39a; --ok-soft: #13301f; --info: #7fb0ff; --info-soft: #182a44; --warn: #f0b860; --warn-soft: #33260f;
+    --bad: #ff8a80; --bad-soft: #3a1a18; --neutral-soft: #222c38;
     --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 6px 20px rgba(0, 0, 0, .25);
   }
 }
@@ -253,3 +254,11 @@ button.danger { color: var(--bad); border-color: var(--bad); }
 .clamp-3, .clamp-2 { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
 .clamp-3 { -webkit-line-clamp: 3; line-clamp: 3; }
 .clamp-2 { -webkit-line-clamp: 2; line-clamp: 2; }
+
+/* 정본은 허브 안내 · 추천 받아들이기 (TASK-2026-11-26-claude-plex-009) */
+.alert.info { background: var(--info-soft); }
+.hub-note { max-width: calc(76rem - 2.5rem); margin: .9rem auto 0; }
+@media (max-width: 78rem) { .hub-note { margin-left: 1.25rem; margin-right: 1.25rem; } }
+.hub-note a { color: inherit; text-decoration: underline; font-weight: 650; margin-left: .4rem; }
+.pick-default { margin: .4rem 0 0; }
+.submitbar button:disabled { opacity: .55; cursor: not-allowed; }

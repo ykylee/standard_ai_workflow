@@ -5,7 +5,7 @@
 # CLAUDE.md (Claude Code 진입점)
 
 - 문서 목적: Claude Code 가 이 저장소에서 매 세션 알아야 할 진입 규칙
-- 범위: 세션 복원, 작업 원칙, 세션 종료 순서, 실행 · 검증 명령
+- 범위: 세션 시작, Claude Code 전용 규칙 — 공통 규칙(호스트 역할 · 언어 · 실행 · 검증 명령)은 파일 끝 허브 영역의 프로젝트 지침
 - 대상 독자: Claude Code, 저장소 관리자
 - 상태: beta
 - 최종 수정일: 2026-11-26
@@ -13,41 +13,12 @@
 
 ## 세션 시작
 
-- **먼저 역할**: `git config --local --get workflow.role` — `consumer` 면 [`docs/HOST_ROLES.md`](docs/HOST_ROLES.md) §3 만 한다(아래 세션 시작 · 변경 · push 없음). 비었으면 pull · 업데이트 · 세션 시작 전에 멈추고 소유자에게 묻는다.
+- **먼저 역할** — 허브 영역의 프로젝트 지침 '먼저 — 호스트 역할' 을 따른다(`consumer` 면 세션 시작 · 변경 · push 없음).
 - Start each session with the Workflow Hub MCP tool `hub_session_start`. The Hub is the source of task and handoff state; do not restore state from local 1.x paths.
-- `ai-workflow/` 는 허브로 옮기기 전 1.x 기록이다(읽기 전용, 표식 `ai-workflow/HUB_MIGRATED.json`) — 탐색 범위에서 뺀다. 1.x 쓰기 명령은 거절된다.
 - task 를 `done` 으로 닫기 전: `verifier` subagent (`.claude/agents/verifier.md`) — 완료 기준을 새 컨텍스트에서 다시 잰다
-- 작업 중: 단계마다 허브 `hub_task_progress` — 작업 원칙 · 기록 · 세션 종료 규칙은 파일 끝 허브 영역(생성물)이 정본이다.
+- 작업 중: 단계마다 허브 `hub_task_progress` — 작업 원칙 · 기록 · 세션 종료 · 언어 · 실행 명령은 파일 끝 허브 영역(생성물)이 정본이다.
 
-## 언어
-
-- 사용자에게 보이는 보고 · 요약 · 문서 문안은 한국어로 쓴다. 코드 · 명령 · 경로 · 고유 명칭은 원문 그대로.
-- 결론과 다음 행동만 짧게 — 중간 reasoning · 중복 요약 · 자기 설명은 뺀다.
-- 허브 handoff 와 task 에는 다음 세션에 필요한 사실만 남긴다.
-
-## 프로젝트 실행 기본값
-
-개발 환경은 저장소 `.venv` 다 (시스템 python3 는 PEP 668 · dev 의존성 부재로 오탐을 낸다). 활성화 없이 그대로 실행된다.
-
-- **install**: `python3 -m venv .venv && .venv/bin/python3 -m pip install -r requirements.txt -r requirements-dev.txt && .venv/bin/python3 -m pip install -e "./workflow-source[dev,release,mcp-sdk]"`
-- **run**: `PYTHONPATH=workflow-source .venv/bin/python3 -m workflow_kit.workflow_kit_cli --command=dashboard --format=json`
-- **quick test**: `.venv/bin/python3 workflow-source/tests/run_all_checks.py --filter=<이름조각> --tmp-dir=<실디스크경로>`
-- **isolated test**: `.venv/bin/python3 workflow-source/tests/run_all_checks.py --tmp-dir=<실디스크경로>` (격리 venv 에서 전량)
-- **smoke check**: `.venv/bin/python3 workflow-source/tests/check_self_application.py`
-
-| 단계 | 명령 |
-|---|---|
-| 커밋 전 | `run_all_checks.py --changed` + smoke check |
-| **push 직전 (게이트)** | 커밋 후 깨끗한 트리에서 `.venv/bin/python3 workflow-source/tests/run_all_checks.py --branch-context=all --tmp-dir=<실디스크경로>` — 통과 기록이 없으면 pre-push hook 과 `release --apply` 가 막는다 |
-| 발행 전 · 해당 코드를 건드렸을 때 | `PYTHONPATH=workflow-source .venv/bin/python3 -m workflow_kit.common.interpreter_matrix --run-local` · `PYTHONPATH=workflow-source .venv/bin/python3 -m workflow_kit.common.sdk_matrix --run-local` (`mcp` SDK 코드를 건드렸으면 **반드시**) |
-
-- 새 클론 · 호스트는 `git config core.hooksPath .githooks` 를 한 번 켠다. 게이트 **뒤** 편집하면 다시 돈다.
-- 두 에이전트가 전량을 돌려야 하면 `--no-lock` 말고 worktree 를 나눈다. `--tmp-dir` 는 실디스크 경로 (tmpfs 는 OOM).
-- 게이트 명령 출력은 파일로 받고 종료 코드를 따로 읽는다 (파이프 뒤 exit 0 에 속지 않는다).
-
-CI 는 없다 — 근거 · 축별 상세 · 검사 작성 규약(`REQUIRES_QUIET_REPO` · `CHECK_TIMEOUT_S` · 경고 red)은 [`docs/LOCAL_GATE.md`](docs/LOCAL_GATE.md).
-
-<!-- workflow-hub:begin project=P-20261121-fcfdccb1 guide=2.1.0+p0 sha256=2a0ffe4e56a9abdd0064f80b17a25fdd704f1f31a8bec7b30bc3490b83b30c91 -->
+<!-- workflow-hub:begin project=P-20261121-fcfdccb1 guide=2.1.0+p1 sha256=a69fc37b6d649e203b2b4dc636d9e43ae7ccfda0174084c74f73cab92ad8d8b1 -->
 <!-- 이 영역은 워크플로우 허브가 렌더링한다 (CLAUDE.md · claude-code). 고칠 것은 허브에 지침 제안으로. -->
 ## 워크플로우 허브 규칙 (표준 · 2.5)
 
@@ -91,4 +62,35 @@ CI 는 없다 — 근거 · 축별 상세 · 검사 작성 규약(`REQUIRES_QUIE
 ### 하지 않는 것
 - 이 렌더 영역(`workflow-hub:begin` ~ `end`)을 손으로 고치지 않는다 — 고칠 것은 허브에 지침 제안으로 올린다.
 - `.workflow-hub/` 를 커밋하지 않는다. 토큰을 task · handoff · 커밋 · 진입 파일에 적지 않는다.
+
+## 프로젝트 지침 — standard_ai_workflow
+
+### 먼저 — 호스트 역할
+- `git config --local --get workflow.role` 이 `consumer` 면 `docs/HOST_ROLES.md` §3(pull · 환경 맞추기 · 버전 업데이트)만 한다 — 세션 시작 · 변경 · push 없음. 비었으면 pull · 업데이트 · 세션 시작 전에 멈추고 소유자에게 묻는다.
+- `ai-workflow/` 는 허브로 옮기기 전 1.x 기록이다(읽기 전용, 표식 `ai-workflow/HUB_MIGRATED.json`) — 탐색 범위에서 뺀다. 1.x 쓰기 명령은 거절된다.
+
+### 언어
+- 사용자에게 보이는 보고 · 요약 · 문서 문안은 한국어로 쓴다. 코드 · 명령 · 경로 · 고유 명칭은 원문 그대로.
+- 결론과 다음 행동만 짧게 — 중간 reasoning · 중복 요약 · 자기 설명은 뺀다.
+- 허브 handoff 와 task 에는 다음 세션에 필요한 사실만 남긴다.
+
+### 실행 기본값
+개발 환경은 저장소 `.venv` 다 (시스템 python3 는 PEP 668 · dev 의존성 부재로 오탐을 낸다). 활성화 없이 그대로 실행된다.
+
+- **install**: `python3 -m venv .venv && .venv/bin/python3 -m pip install -r requirements.txt -r requirements-dev.txt && .venv/bin/python3 -m pip install -e "./workflow-source[dev,release,mcp-sdk]"`
+- **run**: `PYTHONPATH=workflow-source .venv/bin/python3 -m workflow_kit.workflow_kit_cli --command=dashboard --format=json`
+- **quick test**: `.venv/bin/python3 workflow-source/tests/run_all_checks.py --filter=<이름조각> --tmp-dir=<실디스크경로>`
+- **isolated test**: `.venv/bin/python3 workflow-source/tests/run_all_checks.py --tmp-dir=<실디스크경로>` (격리 venv 에서 전량)
+- **smoke check**: `.venv/bin/python3 workflow-source/tests/check_self_application.py`
+
+| 단계 | 명령 |
+|---|---|
+| 커밋 전 | `run_all_checks.py --changed` + smoke check |
+| **push 직전 (게이트)** | 커밋 후 깨끗한 트리에서 `.venv/bin/python3 workflow-source/tests/run_all_checks.py --branch-context=all --tmp-dir=<실디스크경로>` — 통과 기록이 없으면 pre-push hook 과 `release --apply` 가 막는다 |
+| 발행 전 · 해당 코드를 건드렸을 때 | `PYTHONPATH=workflow-source .venv/bin/python3 -m workflow_kit.common.interpreter_matrix --run-local` · `PYTHONPATH=workflow-source .venv/bin/python3 -m workflow_kit.common.sdk_matrix --run-local` (`mcp` SDK 코드를 건드렸으면 **반드시**) |
+
+- 새 클론 · 호스트는 `git config core.hooksPath .githooks` 를 한 번 켠다. 게이트 **뒤** 편집하면 다시 돈다.
+- 두 에이전트가 전량을 돌려야 하면 `--no-lock` 말고 worktree 를 나눈다. `--tmp-dir` 는 실디스크 경로 (tmpfs 는 OOM).
+- 게이트 명령 출력은 파일로 받고 종료 코드를 따로 읽는다 (파이프 뒤 exit 0 에 속지 않는다).
+- CI 는 없다 — 근거 · 축별 상세 · 검사 작성 규약은 `docs/LOCAL_GATE.md`.
 <!-- workflow-hub:end -->

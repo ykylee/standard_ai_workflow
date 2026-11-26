@@ -48,7 +48,7 @@ DOC_OLD = "\n".join(["머리", *(f"앞{i}" for i in range(6)), "옛 줄", "가�
 DOC_NEW = "\n".join(["머리", *(f"앞{i}" for i in range(6)), "새 줄 <script>1</script>", "가운데", *(f"뒤{i}" for i in range(6)),
                      "끝\u202e문\u2028단\u0000값\u200b\u3164\u00a0\U000e0041", ""])
 # 화면이 보여야 할 차이 — 줄 앞 표시까지 그대로. 앞뒤 두 줄만, 나머지는 접는다.
-DIFF = ["⋯ 같은 줄", "  앞4", "  앞5", "- 옛 줄", "+ 새 줄 <script>1</script>", "  가운데", "- 지울 줄", "  뒤0", "  뒤1", "⋯ 같은 줄", "  뒤4", "  뒤5",
+DIFF = ["⋯ 바뀌지 않은 줄", "  앞4", "  앞5", "- 옛 줄", "+ 새 줄 <script>1</script>", "  가운데", "- 지울 줄", "  뒤0", "  뒤1", "⋯ 바뀌지 않은 줄", "  뒤4", "  뒤5",
         "+ 끝U+202E문U+2028단U+0000값U+200BU+3164U+00A0U+E0041", "  "]
 
 _fails: list[str] = []
@@ -56,11 +56,11 @@ _count = 0
 
 # 화면 함수 → (해시 경로, 있어야 할 글). {pid} 등은 실행 때 채운다.
 SCREENS: dict[str, tuple[str, str]] = {
-    "viewProjects": ("", "screens-demo"), "viewHarnesses": ("harnesses", "하네스"), "viewProject": ("p/{pid}", "결정 있는 task"),
-    "viewOrchestration": ("p/{pid}/orch", "본문이 보인다"), "viewConfirmations": ("p/{pid}/confirmations", "확인 부탁"),
-    "viewIdeas": ("p/{pid}/ideas", "적어 둔 생각"), "viewRoadmap": ("p/{pid}/roadmap", "열린 마일스톤"), "viewCallsign": ("p/{pid}/c/bot-a", "bot-a"), "viewGuide": ("p/{pid}/guide", "지침"),
-    "viewWiki": ("p/{pid}/w", "위키 한 장"), "viewKnowledge": ("p/{pid}/k/{ref}", "위키 한 장"), "viewDcrs": ("p/{pid}/dcr", "결정 하나"),
-    "viewWikiPage": ("p/{pid}/wp/topics%2Fone.md", "위키 한 장"), "viewTask": ("p/{pid}/t/{tid}", "답이 반영된다"), "viewEvents": ("p/{pid}/events", "register"),
+    "viewProjects": ("", "screens-demo"), "viewHarnesses": ("harnesses", "하네스"), "viewProject": ("p/{pid}", "허브 화면 재정비"),
+    "viewOrchestration": ("p/{pid}/orch", "배정한 task 를 확인해 주세요"), "viewConfirmations": ("p/{pid}/confirmations", "배포 전 확인"),
+    "viewIdeas": ("p/{pid}/ideas", "이력 화면에서 검색할 수 있으면 좋겠다"), "viewRoadmap": ("p/{pid}/roadmap", "허브 화면 재정비"), "viewCallsign": ("p/{pid}/c/bot-a", "bot-a"), "viewGuide": ("p/{pid}/guide", "지침"),
+    "viewWiki": ("p/{pid}/w", "온보딩 안내"), "viewKnowledge": ("p/{pid}/k/{ref}", "온보딩 안내"), "viewDcrs": ("p/{pid}/dcr", "ADR 확정을 승인 즉시로 바꾸기"),
+    "viewWikiPage": ("p/{pid}/wp/topics%2Fone.md", "온보딩 안내"), "viewTask": ("p/{pid}/t/{tid}", "답이 반영된다"), "viewEvents": ("p/{pid}/events", "register"),
 }
 PROBE = """<script>
 window.addEventListener('error',e=>document.documentElement.dataset.err=(document.documentElement.dataset.err||'')+e.message+';');
@@ -98,7 +98,9 @@ def proxy(hub: Hub, cookie: str) -> ThreadingHTTPServer:
             if self.path.startswith("/narrow?"):  # 휴대폰 폭 — Chrome 창은 500px 아래로 줄지 않는다
                 page = (b"<!doctype html><iframe width=360 height=800 src='/ui/" + urllib.parse.unquote(self.path[8:]).encode() + b"'></iframe><script>setTimeout(()=>{const d="
                         b"document.querySelector('iframe').contentDocument.documentElement;document.body.dataset.w=d.scrollWidth+'/'+d.clientWidth;"
-                        b"document.body.dataset.text=d.innerText},4000)</script>")
+                        b"document.body.dataset.text=d.innerText;"
+                        # 표 안쪽 가로 넘침 — 페이지 폭은 그대로여도 표가 옆으로 밀리면 휴대폰에서 못 읽는다
+                        b"document.body.dataset.tw=Math.max(0,...[...d.querySelectorAll('.table-wrap')].map(e=>e.scrollWidth-e.clientWidth))},4000)</script>")
                 self.send_response(200)
                 self.send_header("content-type", "text/html; charset=utf-8")
                 self.end_headers()
@@ -173,10 +175,12 @@ def seed(hub: Hub, db: Path, impl: str) -> dict[str, str]:
     tid = ui._task(hub, owner)
     so = must("hub_session_start", {"session": {"harness": "claude-code"}}, owner)["session"]["id"]
     sw = must("hub_session_start", {"session": {"harness": "codex", "kind": "worker"}}, bot)["session"]["id"]
-    must("hub_wiki_ingest", {"pages": [{"path": "topics/one.md", "body": "---\ntitle: 위키 한 장\n---\n\n# 위키 한 장\n\n본문\n", "expected_version": 0}], "summary": "한 장"}, owner)
-    dcr = must("hub_dcr_create", {"title": "결정 하나", "rationale": "이유", "proposal": "제안", "target_refs": []}, bot)
+    must("hub_wiki_ingest", {"pages": [{"path": "topics/one.md", "body": "---\ntitle: 온보딩 안내\n---\n\n# 온보딩 안내\n\n본문\n", "expected_version": 0}], "summary": "한 장"}, owner)
+    dcr = must("hub_dcr_create", {"title": "ADR 확정을 승인 즉시로 바꾸기", "rationale": "이유", "proposal": "제안", "target_refs": []}, bot)
     assert dcr
-    miles = [("M-001", "끝난 마일스톤", 1), ("M-003", "예정 마일스톤", 2), ("M-002", "열린 마일스톤", 3), ("M-004", "병렬 마일스톤", 4)]
+    miles = [("M-001", "계정 · 권한", 1), ("M-003", "워크벤치 정리", 2), ("M-002", "허브 화면 재정비", 3), ("M-004", "Go 허브 이전", 4)]
+
+    wbs = {1: "계정 관리자 권한", 2: "워크벤치 결정 응답 정리", 3: "개요 화면 진척 띠", 4: "Go 허브 화면 API 맞추기"}
 
     def roadmap(version: int, first: str) -> None:
         status = {"M-001": first, "M-002": "in_progress", "M-003": "planned", "M-004": "in_progress"}
@@ -184,19 +188,19 @@ def seed(hub: Hub, db: Path, impl: str) -> dict[str, str]:
             f"- **{i}** [implementation] {t} — status: {status[i]}\n  - path: [`./{i}-x.md`](./{i}-x.md)\n" for i, t, _ in miles)}, owner)
         for i, t, n in miles:
             must("hub_roadmap_put", {"path": f"{i}-x.md", "expected_version": version, "body": f"---\nid: {i}\ntitle: {t}\nsdlc_phase: implementation\nstatus: {status[i]}\n"
-                                     f"order: {n}\nparallel_allowed: [M-001, M-002, M-003, M-004]\ndeliverables: []\n---\n\n# {i}\n\n## WBS\n\n- **WBS-{n}.1** 작업 {n}\n"}, owner)
+                                     f"order: {n}\nparallel_allowed: [M-001, M-002, M-003, M-004]\ndeliverables: []\n---\n\n# {i}\n\n## WBS\n\n- **WBS-{n}.1** {wbs[n]}\n"}, owner)
 
     roadmap(0, "in_progress")
-    must("hub_idea_add", {"body": "적어 둔 생각"}, bot)
-    t1 = must("hub_task_create", {"title": "끝난 일", "wbs": "M-001/WBS-1.1", "fields": {"done_criteria": ["끝"]}}, owner)["task"]
+    must("hub_idea_add", {"body": "이력 화면에서 검색할 수 있으면 좋겠다"}, bot)
+    t1 = must("hub_task_create", {"title": "계정 관리자 권한 추가", "wbs": "M-001/WBS-1.1", "fields": {"done_criteria": ["끝"]}}, owner)["task"]
     must("hub_task_claim", {"id": t1["id"]}, owner)
     t1 = must("hub_task_get", {"id": t1["id"]}, owner)["task"]
     must("hub_task_close", {"id": t1["id"], "expected_version": t1["version"], "validation_result": "확인"}, owner)
     roadmap(1, "done")  # done 선언은 task 가 끝난 뒤 (그 전에는 WBS 게이트가 task 를 막는다)
-    must("hub_approval_request", {"session": sw, "title": "확인 부탁", "question": "할까요?"}, bot)
+    must("hub_approval_request", {"session": sw, "title": "배포 전 확인", "question": "3.9.0 을 홈랩 허브에 배포해도 될까요?"}, bot)
     must("hub_project_doc_put", {"name": "purpose", "body": DOC_OLD, "expected_version": 0}, owner)
     must("hub_project_doc_put", {"name": "profile", "body": "옛 프로필\n", "expected_version": 0}, owner)
-    must("hub_approval_request", {"session": sw, "title": "문서", "question": "쓸까요?", "action": {
+    must("hub_approval_request", {"session": sw, "title": "목적 문서 고치기", "question": "프로젝트 목적 문서를 이 내용으로 바꿀까요?", "action": {
         "type": "project_doc_put", "name": "purpose", "body": DOC_NEW, "expected_version": 1}}, bot)
     must("hub_approval_request", {"session": sw, "title": "제\u202e목", "question": "질\u200b문", "details": "설\u2066명", "action": {
         "type": "project_doc_put", "name": "profile", "body": "새 프로필\n", "expected_version": 1}}, bot)
@@ -216,7 +220,7 @@ def seed(hub: Hub, db: Path, impl: str) -> dict[str, str]:
         must("hub_orch_request_session", {"session": so, "host_id": host, "dir_alias": alias, "harness": "fake", "prompt": "지\u202e시  두칸\ufffc"}, owner)
     must("hub_orch_assign", {"session": so, "task_id": tid, "to_session": sw}, owner)
     with sqlite3.connect(db) as c:
-        for n, body in (("a", {"title": "알림 제목", "text": "본문이 보인다\u200b"}), ("b", "문자열 본문\u2066")):
+        for n, body in (("a", {"title": "새 배정 알림", "text": "배정한 task 를 확인해 주세요\u200b"}), ("b", "문자열 본문\u2066")):
             c.execute("INSERT INTO inbox_message (project_id,id,to_kind,to_id,from_callsign,from_session,from_orchestrator,kind,body_json,ref_task,state,"
                       "delivered_via,delivered_at,created_at) VALUES (?,?,'session',?,'owner-a',?,1,'note',?,?,'unacknowledged','piggyback',?,?)",
                       (pid, f"MSG-20261122-{n * 12}", sw, so, json.dumps(body, ensure_ascii=False), tid, "2026-11-22T00:00:00+00:00", "2026-11-22T00:00:00+00:00"))
@@ -224,10 +228,60 @@ def seed(hub: Hub, db: Path, impl: str) -> dict[str, str]:
         for n, raw in (("d", '"글"'), ("e", "[1]")):
             c.execute("INSERT INTO inbox_message (project_id,id,to_kind,to_id,from_callsign,from_session,from_orchestrator,kind,body_json,state,created_at) "
                       "VALUES (?,?,'callsign','owner-a','bot-a','',0,'approval',?,'queued',?)", (pid, f"MSG-20261121-{n * 12}", raw, "2026-11-21T00:00:00+00:00"))
-    found = must("hub_knowledge_search", {"query": "위키"}, owner)
+    found = must("hub_knowledge_search", {"query": "온보딩"}, owner)
     ref = next((str(x.get("ref")) for x in found.get("results") or found.get("hits") or []), "")
     from urllib.parse import quote
     return {"owner": owner, "bot": bot, "pid": pid, "tid": tid, "ref": quote(ref, safe=""), "cookie": head.get("set-cookie", "").split(";", 1)[0], "host": host}
+
+
+RAW_STATUS = {"in_progress", "planned", "blocked", "done", "working", "idle", "waiting", "ended", "unknown"}
+
+
+def overview_cases(impl: str, exe: str, tmp: Path, port: int, hub: Hub, env: dict[str, str], doms: dict[str, str]) -> None:
+    """개요 재정비(TASK-2026-11-26-claude-plex-008) — 사람이 결정할 일 · 진척 띠 · 한국어 상태 · 좁은 폭 표."""
+    ov = html.unescape(doms["viewProject"])
+    pid = env["pid"]
+    want = len(ui._req(hub.base, f"/api/projects/{pid}/confirmations", token=env["owner"])[1]["requests"])
+    summary = ui._req(hub.base, f"/api/projects/{pid}", token=env["owner"])[1]["summary"]
+    tiles = {m[2]: (m[1], int(m[3])) for m in re.finditer(r'<a class="need" href="([^"]*)" data-decide="([^"]*)"><span class="n">(\d+)</span>', ov)}
+    first = (summary.get("open_decision_task_ids") or [""])[0]
+    ok = (tiles.get("확인 요청") == (f"#/p/{pid}/confirmations", want) and want > 0
+          and tiles.get("열린 결정 task") == (f"#/p/{pid}/t/{first}", summary["open_decision_tasks"]) and first
+          and tiles.get("결정 변경(DCR)", ("", 0))[0] == f"#/p/{pid}/dcr" and tiles.get("지침 제안", ("", 0))[0] == f"#/p/{pid}/guide"
+          and ov.find('id="decide-h"') < ov.find('id="rail-h"') < ov.find('id="tasks-h"'))
+    _record(f"[{impl}] 개요 — 사람이 결정할 일: 수는 각 화면 API 와 같고 그 화면으로 간다 · 결정 → 진척 → task 순", bool(ok), f"{tiles} want={want} first={first}")
+    rail = re.search(r'<div class="rail"[^>]*>(.*?)</div>', ov, re.S)
+    segs = re.findall(r'<a role="listitem"[^>]*class="([^"]*)"', rail[1]) if rail else []
+    _record(f"[{impl}] 개요 — 진척 띠: 마일스톤마다 한 칸 · 현재 하나", len(segs) == 4 and sum("current" in c for c in segs) == 1, f"{segs}")
+    raw = {v: sorted({t for t in re.findall(r'<span class="chip[^"]*"[^>]*>([^<]*)</span>', html.unescape(doms[v])) if t in RAW_STATUS})
+           for v in ("viewProject", "viewRoadmap", "viewOrchestration", "viewTask")}
+    _record(f"[{impl}] 상태는 한국어 낱말 — 원문 enum 꼬리표 없음", not any(raw.values()), f"{raw}")
+    dom = draw(exe, tmp, port, f"p/{pid}", narrow=True, budget=12000)
+    w = re.search(r'data-w="(\d+)/(\d+)"', dom)
+    tw = re.search(r'data-tw="(-?\d+)"', dom)
+    _record(f"[{impl}] 개요 360px — 페이지 · 표 안쪽 모두 가로 넘침 없음", bool(w and tw) and w[1] == w[2] and tw[1] == "0", f"w={w and w.groups()} tw={tw and tw[1]}")
+
+
+def dcr_cases(impl: str, exe: str, tmp: Path, port: int, hub: Hub, env: dict[str, str]) -> None:
+    """DCR 을 웹에서 승인 · 거절한다 (TASK-2026-11-26-claude-plex-011) — 근거 없으면 막고, 비소유자는 403."""
+    pid = env["pid"]
+    st, out, _ = hub.call("hub_dcr_create", {"title": "거절할 결정", "rationale": "이유", "proposal": "제안", "target_refs": []}, env["bot"])
+    assert st == 200, out
+    listed = {d["title"]: d["id"] for d in ui._req(hub.base, f"/api/projects/{pid}/dcr", token=env["owner"])[1]["dcrs"]}
+    yes, no = listed["ADR 확정을 승인 즉시로 바꾸기"], listed["거절할 결정"]
+    blank = draw(exe, tmp, port, f"p/{pid}/dcr/{yes}", "승인", 12000)  # 근거 없이 누르면 막힌다
+    still = ui._req(hub.base, f"/api/projects/{pid}/dcr/{yes}", token=env["owner"])[1]["status"]
+    _record(f"[{impl}] DCR — 근거 없이 승인하면 막는다", still == "open" and "판단 근거를 적어야" in html.unescape(blank), f"status={still}")
+    draw(exe, tmp, port, f"p/{pid}/dcr/{yes}", "~판단 근거=화면에서 승인한다|승인", 12000)
+    draw(exe, tmp, port, f"p/{pid}/dcr/{no}", "~판단 근거=범위가 맞지 않는다|거절", 12000)
+    got = {k: ui._req(hub.base, f"/api/projects/{pid}/dcr/{v}", token=env["owner"])[1] for k, v in (("yes", yes), ("no", no))}
+    bot = ui._req(hub.base, f"/api/projects/{pid}/dcr/{no}/decision", method="POST", token=env["bot"],
+                  body={"decision": "approve", "rationale": "r", "expected_version": got["no"]["version"]})[0]
+    shown = html.unescape(draw(exe, tmp, port, f"p/{pid}/dcr/{yes}"))
+    _record(f"[{impl}] DCR — 화면 단추로 승인(ADR 확정) · 거절, 비소유자 403, 끝난 DCR 엔 단추 없음",
+            got["yes"]["status"] == "accepted" and bool(got["yes"].get("adr_path")) and got["no"]["status"] == "rejected" and bot == 403
+            and ">승인</button>" not in shown and got["yes"]["adr_path"] in shown,
+            f"yes={got['yes']['status']}/{got['yes'].get('adr_path')} no={got['no']['status']} bot={bot}")
 
 
 def measure(impl: str, cmd: list[str] | None, exe: str, tmp: Path) -> None:
@@ -243,18 +297,20 @@ def measure(impl: str, cmd: list[str] | None, exe: str, tmp: Path) -> None:
             doms[view] = draw(exe, tmp, port, route.format(**env))
             bad = problems(doms[view], want)
             _record(f"[{impl}] {view}", not bad, " · ".join(bad))
+        overview_cases(impl, exe, tmp, port, hub, env, doms)
+        dcr_cases(impl, exe, tmp, port, hub, env)
         rm = doms["viewRoadmap"]
         fold = rm.find('data-keep="rm-done"')
-        at = [rm.find(f"<h2>{t} 마일스톤") for t in ("열린", "병렬", "예정", "끝난")]
+        at = [rm.find(f"<h2>{t}") for t in ("허브 화면 재정비", "Go 허브 이전", "워크벤치 정리", "계정 · 권한")]
         _record(f"[{impl}] 로드맵 — 현재 · 진행 중 · 예정 · 완료 순", at[0] > 0 and at == sorted(at), f"{at}")
         kept = draw(exe, tmp, port, f"p/{env['pid']}/roadmap", "@rm-done", 14000)
         folds = re.findall(r'<details[^>]*data-keep="rm-done"[^>]*>', kept)
         _record(f"[{impl}] 자동 갱신이 펼친 접기를 닫지 않는다", len(folds) == 1 and " open" in folds[0] and 'data-renders="1"' in kept, f"{folds}")
-        _record(f"[{impl}] 로드맵 — 열린 것 먼저 · 완료는 접기", 0 < rm.find("<h2>열린 마일스톤") < fold < rm.find("<h2>끝난 마일스톤"), f"접기 {fold}")
+        _record(f"[{impl}] 로드맵 — 열린 것 먼저 · 완료는 접기", 0 < rm.find("<h2>허브 화면 재정비") < fold < rm.find("<h2>계정 · 권한"), f"접기 {fold}")
         orch = doms["viewOrchestration"]
-        _record(f"[{impl}] 오케스트레이션 — 메시지 본문", all(x in orch for x in ("알림 제목", "본문이 보인다", "문자열 본문")))
+        _record(f"[{impl}] 오케스트레이션 — 메시지 본문", all(x in orch for x in ("새 배정 알림", "배정한 task 를 확인해 주세요", "문자열 본문")))
         _record(f"[{impl}] 오케스트레이션 — 지시문 · 메시지의 보이지 않는 문자", [orch.count(f">{u}</mark>") for u in ("U+202E", "U+FFFC", "U+200B", "U+2066")] == [2, 2, 1, 1])
-        _record(f"[{impl}] 오케스트레이션 — 정리 안내문", "세션이 끝났으면 같은 콜사인" in orch and "hub_inbox_ack(decision=seen)" in orch and "읽음으로 정리" in orch)
+        _record(f"[{impl}] 오케스트레이션 — 정리 안내문", "세션이 끝났으면 같은 콜사인" in orch and "읽음으로 표시" in orch and "hub_" not in re.sub(r"<[^>]+>", "", orch.split("<body", 1)[-1]) and "읽음으로 정리" in orch)
         guide = doms["viewGuide"]
         _record(f"[{impl}] 지침 제안 — 보이지 않는 문자", guide.count(">U+202E</mark>") == 1 and guide.count(">U+200B</mark>") == 1
                 and re.search(r'<pre class="diff exact">[^<]*\+새 규<mark', guide) is not None)
@@ -291,7 +347,7 @@ def measure(impl: str, cmd: list[str] | None, exe: str, tmp: Path) -> None:
             left = c.execute("SELECT state, ack_by_session FROM inbox_message WHERE id LIKE 'MSG-20261122-%' ORDER BY state").fetchall()
         again = ui._req(hub.base, close.format(mid if "aaaa" not in dom else f"MSG-20261122-{'b' * 12}"), method="POST", token=env["owner"], body={})[0]
         _record(f"[{impl}] 미확인 정리 — 소유자 단추", sorted(left)[0] == ("acked", "web:owner-a") and [x[0] for x in left] == ["acked", "unacknowledged"] and again == 409, f"{left} {again}")
-        acts = ["승인", "거절", "세션 인계 (transfer)", "전체 정지 (halt)", "정지 풀기 (resume)", "거두기", "lease 해제", "오케스트레이터 지정", "중계 초대 코드 발급"]
+        acts = ["승인", "거절", "이 세션에 넘기기", "전체 정지", "정지 풀기", "거두기", "오케스트레이터 내려놓기", "오케스트레이터 지정", "중계 초대 코드 발급"]
         dom = draw(exe, tmp, port, f"p/{env['pid']}/orch", "|".join(acts), 16000)
         with sqlite3.connect(db) as c:
             state = (sorted(c.execute("SELECT state, decided_by FROM session_request").fetchall()), c.execute("SELECT revoked_at IS NOT NULL FROM relay_host").fetchone()[0],

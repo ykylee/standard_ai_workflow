@@ -125,7 +125,7 @@ def _project(hub: Hub, name: str, callsign: str = "owner-a") -> tuple[str, str]:
 
 
 def _task(hub: Hub, tok: str) -> str:
-    st, out, _ = hub.call("hub_task_create", {"title": "결정 있는 task", "plan_md": PLAN,
+    st, out, _ = hub.call("hub_task_create", {"title": "저장소 백엔드 정하기", "plan_md": PLAN,
                                                 "fields": {"done_criteria": ["[C1] 답이 반영된다"]}}, tok)
     assert st == 200, out
     return str(out["task"]["id"])

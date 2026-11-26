@@ -8,6 +8,7 @@
   const crumbs = document.getElementById("crumbs");
   const adminLink = document.getElementById("admin-link");
   const whoEl = document.getElementById("who");
+  const live = document.getElementById("live");
   let hubHost = location.host;
   let pendingFlash = null;
   let dirty = false;
@@ -83,7 +84,24 @@
     return el("time", { datetime: iso, title: iso },
       `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}`);
   }
-  const chip = (text, cls) => el("span", { class: "chip " + (cls || text) }, text);
+  // 상태 낱말 — 화면은 한국어 하나로 말하고, 원래 값은 title 에 남긴다 (PRODUCT.md 원칙 2).
+  const STATUS_LABEL = {
+    planned: "예정", in_progress: "진행 중", blocked: "막힘", done: "끝남", idle: "대기", working: "일하는 중", waiting: "기다림",
+    ended: "끝남", open: "열림", pending: "대기", pending_approval: "승인 대기", approved: "승인됨", rejected: "거절됨", declined: "거절함",
+    returned: "돌려받음", offered: "제안됨", accepted: "수락함", dispatched: "보냄", reported: "보고됨", answered: "답함", proposed: "제안됨",
+    unknown: "신호 끊김", failed: "실패", halted: "정지", refused_by_host: "PC 가 거절", unack: "미확인", unacknowledged: "미확인",
+    queued: "대기", delivered: "전달됨", acked: "읽음", high: "높음", medium: "보통", low: "낮음",
+    note: "알림", spawn: "세션 띄우기", stop: "멈춤", assignment: "배정", approval: "승인 요청",
+  };
+  const statusLabel = (s) => STATUS_LABEL[s] || s;
+  const PHASE_LABEL = { concept: "구상", requirements: "요구 사항", design: "설계", implementation: "구현", release: "발행", operations: "운영", operation: "운영" };
+  const VIA_LABEL = { http: "API", ui: "화면", mcp: "MCP", relay: "PC 중계", cli: "명령줄", a2a: "A2A", piggyback: "다른 응답에 덧붙여", wait: "대기 중 받음", push: "바로 보냄" };
+  const OP_LABEL = { create: "만듦", update: "고침", claim: "맡음", release: "놓음", close: "닫음", progress: "진행 기록", link_commit: "커밋 연결",
+    register: "등록", approve: "승인", reject: "거절", declare: "지정", transfer: "넘김", delete: "지움", archive: "보관", respond: "응답" };
+  const viaLabel = (v) => VIA_LABEL[v] || v;
+  const chip = (text, cls) => STATUS_LABEL[text]
+    ? el("span", { class: "chip " + (cls || text), title: text }, STATUS_LABEL[text])
+    : el("span", { class: "chip " + (cls || text) }, text);
   const alertBox = (kind, text, ...extra) => el("div", { class: "alert " + kind, role: kind === "bad" ? "alert" : "status" }, text, ...extra);
 
   function hideRefreshNotice() {
@@ -108,6 +126,8 @@
     renderedHash = location.hash;
     const flash = pendingFlash;
     pendingFlash = null;
+    // 동작 결과는 늘 있는 live 영역으로도 읽힌다 — 새로 그린 알림 상자는 보조기술이 놓칠 수 있다.
+    if (live) live.textContent = flash ? flash.text : "";
     hideRefreshNotice();
     // 배열을 그대로 넘기면 '[object HTMLElement]' 글자가 된다 — 펼쳐서 넣는다. 자동 갱신은 펼쳐 둔 접기를 닫지 않는다.
     const open = new Set([...app.querySelectorAll("details[data-keep][open]")].map((d) => d.dataset.keep));
@@ -125,9 +145,9 @@
     if (principal.kind === "account") { whoEl.textContent = `허브 계정 ${principal.name || ""}`; return; }
     if (principal.auth_mode === "account") { whoEl.textContent = `허브 계정 ${principal.account?.display_name || principal.name || ""}`; return; }
     if (principal.kind === "callsign") {
-      whoEl.textContent = `${principal.callsign} (${principal.callsign_kind}${principal.callsign_kind === "human" && !principal.human_approved ? " · 승인 전" : ""} · ${principal.role})`;
+      whoEl.textContent = `${principal.callsign} (${principal.callsign_kind === "human" ? "사람" : "에이전트"}${principal.callsign_kind === "human" && !principal.human_approved ? " · 승인 전" : ""} · ${{ owner: "소유자", editor: "편집자", viewer: "읽기 전용" }[principal.role] || principal.role})`;
     } else {
-      whoEl.textContent = `공용 ${principal.kind} 토큰 — 읽기 전용`;
+      whoEl.textContent = `공용 읽기 전용 토큰`;
     }
   }
   function errorText(r) {
@@ -148,7 +168,7 @@
       ["events", "이력", `${base}/events`],
       ["guide", "지침", `${base}/guide`],
       ["wiki", "지식", `${base}/w`],
-      ["dcr", "결정", `${base}/dcr`],
+      ["dcr", "결정 변경", `${base}/dcr`],
     ];
     return el("nav", { class: "nav-links", "aria-label": "프로젝트 판" },
       tabs.map(([id, label, href]) => el("a", { href, class: active === id ? "on" : "" }, label)));
@@ -169,37 +189,38 @@
       input.value = "";
       dirty = false;
       onDone(r.data.principal.project_id);
-    } }, el("label", {}, "토큰 넣기", input), el("button", { type: "submit" }, "이 브라우저에 두기"), msg);
+    } }, el("label", {}, "토큰 넣기", input), el("button", { type: "submit" }, "이 브라우저에 저장"), msg);
   }
 
   function accountPanel(account, onDone) {
     const status = el("div");
     if (account) {
-      const linkToken = el("input", { required: true, autocomplete: "off", placeholder: "다른 프로젝트의 승인된 사람 콜사인 토큰" });
-      const joinProject = el("input", { required: true, autocomplete: "off", placeholder: "프로젝트 ID 또는 git 주소", "aria-label": "프로젝트 ID 또는 git 주소" });
-      const joinCallsign = el("input", { required: true, autocomplete: "off", placeholder: "쓸 콜사인 (예: yk-desk)", "aria-label": "쓸 콜사인" });
+      const linkToken = el("input", { type: "password", required: true, autocomplete: "off", placeholder: "wfh_…" });
+      const joinProject = el("input", { type: "text", required: true, autocomplete: "off", placeholder: "P-… 또는 github.com/…" });
+      const joinCallsign = el("input", { type: "text", required: true, autocomplete: "off", placeholder: "예: yk-desk" });
       return el("section", { class: "card" }, el("h2", {}, "허브 계정"),
         el("p", {}, `${account.display_name} (${account.username})로 로그인됨`),
-        el("form", { class: "row", onsubmit: async (ev) => { ev.preventDefault(); const r = await api("account/join", { method: "POST", body: { project: joinProject.value.trim(), callsign: joinCallsign.value.trim() } }); if (r.status !== 200) { status.replaceChildren(alertBox("bad", errorText(r))); return; } pendingFlash = { kind: "ok", text: `${r.data.joined.callsign}로 참여했다 — 프로젝트 소유자가 승인하면 결정에 답할 수 있다.` }; dirty = false; onDone(); } }, joinProject, joinCallsign, el("button", { type: "submit" }, "프로젝트 참여 요청")),
-        el("form", { class: "row", onsubmit: async (ev) => { ev.preventDefault(); const r = await api("account/link", { method: "POST", token: linkToken.value.trim(), forceToken: true, body: {} }); if (r.status !== 200) status.replaceChildren(alertBox("bad", errorText(r))); else { linkToken.value = ""; status.replaceChildren(alertBox("ok", `콜사인을 연결했다: ${r.data.linked.callsign}`)); onDone(); } } }, linkToken, el("button", { type: "submit" }, "콜사인 연결")), status,
+        el("form", { class: "row", onsubmit: async (ev) => { ev.preventDefault(); const r = await api("account/join", { method: "POST", body: { project: joinProject.value.trim(), callsign: joinCallsign.value.trim() } }); if (r.status !== 200) { status.replaceChildren(alertBox("bad", errorText(r))); return; } pendingFlash = { kind: "ok", text: `${r.data.joined.callsign}로 참여를 요청했다 — 프로젝트 소유자가 승인하면 결정에 답할 수 있다.` }; dirty = false; onDone(); } }, el("label", { class: "field" }, "프로젝트 ID 또는 git 주소", joinProject), el("label", { class: "field" }, "쓸 콜사인", joinCallsign), el("button", { type: "submit" }, "프로젝트 참여 요청")),
+        el("form", { class: "row", onsubmit: async (ev) => { ev.preventDefault(); const r = await api("account/link", { method: "POST", token: linkToken.value.trim(), forceToken: true, body: {} }); if (r.status !== 200) status.replaceChildren(alertBox("bad", errorText(r))); else { linkToken.value = ""; status.replaceChildren(alertBox("ok", `콜사인을 연결했다: ${r.data.linked.callsign}`)); onDone(); } } }, el("label", { class: "field" }, "다른 프로젝트의 승인된 사람 콜사인 토큰", linkToken), el("button", { type: "submit" }, "콜사인 연결")), status,
         el("button", { class: "ghost", onclick: async () => { const r = await api("account/logout", { method: "POST", body: {} }); if (r.status === 200) { signedInAccount = false; location.hash = "#/"; onDone(); } else status.replaceChildren(alertBox("bad", errorText(r))); } }, "로그아웃"));
     }
-    const loginUser = el("input", { required: true, autocomplete: "username", placeholder: "계정 이름" });
-    const loginPass = el("input", { required: true, type: "password", autocomplete: "current-password", placeholder: "비밀번호" });
-    const enrollToken = el("input", { autocomplete: "off", placeholder: "사람 콜사인 토큰 (선택 — 넣으면 바로 연결)" });
-    const enrollUser = el("input", { required: true, autocomplete: "username", placeholder: "계정 이름" });
-    const enrollName = el("input", { required: true, autocomplete: "name", placeholder: "표시 이름" });
-    const enrollPass = el("input", { required: true, type: "password", autocomplete: "new-password", minlength: "8", placeholder: "비밀번호 (8자 이상)" });
+    const loginUser = el("input", { type: "text", required: true, autocomplete: "username" });
+    const loginPass = el("input", { required: true, type: "password", autocomplete: "current-password" });
+    const enrollToken = el("input", { type: "password", autocomplete: "off", placeholder: "wfh_…" });
+    const enrollUser = el("input", { type: "text", required: true, autocomplete: "username" });
+    const enrollName = el("input", { type: "text", required: true, autocomplete: "name" });
+    const enrollPass = el("input", { required: true, type: "password", autocomplete: "new-password", minlength: "8" });
     return el("section", { class: "card" }, el("h2", {}, "허브 계정 로그인"),
       el("p", { class: "muted" }, "처음이면 토큰 없이 바로 가입한다. 가입 뒤 프로젝트에 참여하면 소유자가 승인한다. 이미 사람 콜사인 토큰이 있으면 함께 넣어 바로 연결한다."),
-      el("form", { class: "row", onsubmit: async (ev) => { ev.preventDefault(); const r = await api("account/login", { method: "POST", body: { username: loginUser.value, password: loginPass.value } }); if (r.status !== 200) status.replaceChildren(alertBox("bad", errorText(r))); else { signedInAccount = true; dirty = false; onDone(); } } }, loginUser, loginPass, el("button", { type: "submit" }, "로그인")),
+      el("form", { class: "row", onsubmit: async (ev) => { ev.preventDefault(); const r = await api("account/login", { method: "POST", body: { username: loginUser.value, password: loginPass.value } }); if (r.status !== 200) status.replaceChildren(alertBox("bad", errorText(r))); else { signedInAccount = true; dirty = false; onDone(); } } }, el("label", { class: "field" }, "계정 이름", loginUser), el("label", { class: "field" }, "비밀번호", loginPass), el("button", { type: "submit" }, "로그인")),
       el("details", {}, el("summary", {}, "새 계정 만들기"),
-        el("form", { class: "row", onsubmit: async (ev) => { ev.preventDefault(); const r = await api("account/enroll", { method: "POST", token: enrollToken.value.trim() || undefined, body: { username: enrollUser.value, display_name: enrollName.value, password: enrollPass.value } }); if (r.status !== 200) status.replaceChildren(alertBox("bad", errorText(r))); else { signedInAccount = true; enrollToken.value = ""; dirty = false; onDone(); } } }, enrollUser, enrollName, enrollPass, enrollToken, el("button", { type: "submit" }, "가입"))), status);
+        el("form", { class: "row", onsubmit: async (ev) => { ev.preventDefault(); const r = await api("account/enroll", { method: "POST", token: enrollToken.value.trim() || undefined, body: { username: enrollUser.value, display_name: enrollName.value, password: enrollPass.value } }); if (r.status !== 200) status.replaceChildren(alertBox("bad", errorText(r))); else { signedInAccount = true; enrollToken.value = ""; dirty = false; onDone(); } } }, el("label", { class: "field" }, "계정 이름", enrollUser), el("label", { class: "field" }, "표시 이름", enrollName),
+          el("label", { class: "field" }, "비밀번호 (8자 이상)", enrollPass), el("label", { class: "field" }, "사람 콜사인 토큰 (선택 — 넣으면 바로 연결)", enrollToken), el("button", { type: "submit" }, "가입"))), status);
   }
 
   function registerForm(pid, onDone) {
     const name = el("input", { type: "text", placeholder: "콜사인 (예: yk-desk)", autocomplete: "off", "aria-label": "콜사인" });
-    const kind = el("select", { "aria-label": "종류" }, el("option", { value: "human" }, "human (사람)"), el("option", { value: "agent" }, "agent"));
+    const kind = el("select", { "aria-label": "종류" }, el("option", { value: "human" }, "사람"), el("option", { value: "agent" }, "에이전트"));
     const label = el("input", { type: "text", placeholder: "설명 (선택)", autocomplete: "off", "aria-label": "설명" });
     const msg = el("div");
     return el("div", {},
@@ -211,10 +232,10 @@
         const saved = storeToken(pid, r.data.token);
         dirty = false;
         if (!saved) {
-          msg.replaceChildren(alertBox("warn", `등록했지만 브라우저 저장소에 둘 수 없다 — 토큰을 지금 옮겨 둔다: ${r.data.token}`));
+          msg.replaceChildren(alertBox("warn", `등록했지만 이 브라우저에 토큰을 저장하지 못했다. 다시 볼 수 없으니 지금 복사해 둔다: ${r.data.token}`));
           return;
         }
-        pendingFlash = { kind: "ok", text: `${r.data.callsign} 로 등록했다 — 토큰은 이 브라우저에만 있고 다시 나오지 않는다.${r.data.human_pending ? " human 은 소유자 승인 전까지 결정에 답할 수 없다." : ""}` };
+        pendingFlash = { kind: "ok", text: `${r.data.callsign} 로 등록했다 — 토큰은 이 브라우저에만 있고 다시 나오지 않는다.${r.data.human_pending ? " 사람 콜사인은 소유자가 승인하기 전까지 결정에 답할 수 없다." : ""}` };
         onDone();
       } }, name, kind, label, el("button", { type: "submit" }, "콜사인 등록")), msg);
   }
@@ -255,17 +276,17 @@
     const cards = [...seen.values()].map((p) => el("a", { class: "card", href: `#/p/${encodeURIComponent(p.id)}` },
       el("h2", {}, p.display_name),
       el("div", { class: "mono muted" }, p.id),
-      el("div", { class: "row" }, ...["in_progress", "blocked", "planned", "done"].map((s) => chip(`${s} ${p.task_counts[s] || 0}`, s))),
+      el("div", { class: "row" }, ...["in_progress", "blocked", "planned", "done"].map((s) => chip(`${statusLabel(s)} ${p.task_counts[s] || 0}`, s))),
       storedToken(p.id) ? el("div", { class: "muted" }, "이 브라우저에 콜사인 토큰 있음") : null));
     render(
       accountPanel(projectList.status === 200 && projectList.data.account ? projectList.data.account : null, () => route()),
       el("section", { class: "card" }, el("h1", {}, "프로젝트"),
         cards.length ? el("div", { class: "grid" }, cards)
           : el("p", { class: "muted" }, projectList.status === 401
-            ? "토큰 없는 화면 읽기가 꺼져 있다 (허브 기본). 콜사인 토큰을 넣으면 그 프로젝트가 보인다."
+            ? "로그인하지 않으면 프로젝트가 보이지 않는다 (허브 기본 설정). 허브 계정으로 로그인하거나 콜사인 토큰을 넣는다."
             : "등록된 프로젝트가 없다.")),
       el("section", { class: "card admin-entry" }, el("div", {}, el("h2", {}, "허브 전체 관리"),
-        el("p", { class: "muted" }, "하네스 등록 제보를 검토하고 사람 담당자 명부 · 계정 관리자 권한을 관리합니다. 관리자 토큰 또는 관리자 계정이 필요합니다.")),
+        el("p", { class: "muted" }, "하네스 등록 제보를 검토하고 사람 담당자 명부와 계정 관리자 권한을 관리한다. 관리자 토큰이나 관리자 계정이 필요하다.")),
         el("a", { class: "admin-entry-button", href: "#/harnesses" }, principal?.kind === "admin" ? "관리 화면 열기" : "관리자 로그인")),
       errors.length ? el("section", { class: "card" }, errors.map((e) => alertBox("bad", e))) : null,
       el("section", { class: "card" }, el("h2", {}, "이 브라우저에 콜사인 토큰 넣기"), tokenForm(() => route())));
@@ -278,7 +299,7 @@
     const accountSession = token ? null : await api("session");
     const viaAccount = accountSession?.status === 200 && accountSession.data.principal.kind === "admin";
     if (!token && !viaAccount) {
-      const input = el("input", { type: "password", autocomplete: "off", placeholder: "hub admin 토큰", "aria-label": "hub admin 토큰" });
+      const input = el("input", { type: "password", autocomplete: "off", placeholder: "관리자 토큰", "aria-label": "관리자 토큰" });
       const message = el("div");
       setWho(null); adminLink.textContent = "관리자 로그인";
       render(el("section", { class: "card" }, el("h1", {}, "허브 관리자 로그인"),
@@ -292,7 +313,7 @@
           const submitted = input.value.trim();
           const r = await api("session", { token: submitted });
           if (r.status !== 200 || r.data.principal.kind !== "admin") {
-            const reason = r.status === 200 ? "이 토큰은 허브 관리자 권한이 아니다. web 또는 콜사인 토큰 대신 admin 토큰을 입력한다."
+            const reason = r.status === 200 ? "이 토큰에는 허브 관리자 권한이 없다. 콜사인 토큰이나 공용 읽기 토큰이 아니라 관리자 토큰을 넣는다."
               : r.status === 401 || r.status === 403 ? "토큰을 확인할 수 없다. 허브 관리자 토큰을 다시 확인한다." : errorText(r);
             message.replaceChildren(alertBox("bad", reason)); return;
           }
@@ -364,7 +385,7 @@
         supportsProfile ? el("div", { class: "row" },
           el("label", {}, "진입 파일", entryFile), el("label", {}, "MCP JSON 경로", configPath),
           el("label", {}, setupConfirmed, "이 경로와 Streamable HTTP JSON 호환을 확인하고 셋업 지원 활성화"))
-          : alertBox("warn", "자동 셋업 승인에 필요한 정보가 부족하다. mcp_transports에 streamable-http, config_formats에 mcp-http-json-v1, 두 후보 경로 목록을 포함해 다시 제보해야 한다."),
+          : alertBox("warn", "자동 셋업을 승인할 정보가 모자란다 — 제보한 쪽이 다시 보내야 한다. (필요: mcp_transports 에 streamable-http, config_formats 에 mcp-http-json-v1, 후보 경로 목록 두 개)"),
         el("label", {}, "검토 메모", note),
         el("div", { class: "row" }, el("button", { disabled: !people.length, onclick: () => decide("approve") }, "담당자를 지정하고 등록 승인"),
           el("button", { class: "danger", onclick: () => decide("reject") }, "거절")), result);
@@ -417,25 +438,18 @@
       return el("div", {}, el("h3", {}, `${p.display_name} · ${p.id}`), message,
         el("table", {}, el("thead", {}, el("tr", {}, ...["콜사인", "종류", "등록", "마지막 활동", "셋업", ""].map((h) => el("th", {}, h)))),
           el("tbody", {}, r.data.callsigns.map((c) => el("tr", { class: c.archived ? "archived" : "" },
-            el("td", {}, c.id, c.archived ? el("span", { class: "muted" }, " (거둠)") : null), el("td", {}, `${c.kind} · ${c.role}`),
+            el("td", {}, c.id, c.archived ? el("span", { class: "muted" }, " (보관)") : null), el("td", {}, `${c.kind} · ${c.role}`),
             el("td", {}, when(c.created_at)), el("td", {}, c.last_seen_at ? when(c.last_seen_at) : "—"),
             el("td", {}, c.setup_complete ? "완료" : "미완료"),
             el("td", {}, c.role === "owner" ? null : el("button", { class: "danger", "data-delete-callsign": c.id, onclick: () => remove(c.id) }, "삭제")))))));
     }));
     return el("section", { class: "card" }, el("h2", {}, "콜사인 정리"),
-      el("p", { class: "muted" }, "등록·셋업 외 활동이 없는 콜사인만 지운다. 활동 기록이 있으면 허브가 거절한다 — 그때는 거두기를 쓴다."), blocks);
+      el("p", { class: "muted" }, "등록·셋업 외 활동이 없는 콜사인만 지운다. 활동 기록이 있는 콜사인은 지울 수 없다 — 허브가 거절한다."), blocks);
   }
 
   // --- 화면: 프로젝트 · KPI · task 목록 --------------------------------------------------
 
-  const STATUSES = ["", "in_progress", "blocked", "planned", "done"];
-
-  function kpiCard(label, value, sub, tone) {
-    return el("div", { class: "kpi " + (tone || "") },
-      el("div", { class: "kpi-label" }, label),
-      el("div", { class: "kpi-value" }, String(value)),
-      sub ? el("div", { class: "kpi-sub" }, sub) : null);
-  }
+  const STATUSES = ["", "all", "blocked", "in_progress", "planned", "done"];
 
   async function viewProject(pid, status, query) {
     query = query || new URLSearchParams();
@@ -453,13 +467,24 @@
     const pageLimit = Number(query.get("limit") || 25);
     const pageOffset = Number(query.get("offset") || 0);
     const listQuery = new URLSearchParams({ limit: String(pageLimit), offset: String(pageOffset) });
-    if (status) listQuery.set("status", status);
-    for (const key of ["roadmap", "milestone", "wbs", "category_level_1", "category_level_2", "category_level_3"]) {
+    const FACETS = ["roadmap", "milestone", "wbs", "category_level_1", "category_level_2", "category_level_3"];
+    for (const key of FACETS) {
       if (query.get(key)) listQuery.set(key, query.get(key));
     }
-    const [tr, cr] = await Promise.all([
-      api(`projects/${encodeURIComponent(pid)}/tasks?${listQuery}`, { token }),
-      api(`projects/${encodeURIComponent(pid)}/callsigns`, { token })]);
+    // 기본 탭 '지금' = 막힘 + 진행 중 (진척을 보러 온 사람이 먼저 봐야 할 task). '전체' 는 s/all.
+    const nowMode = !status;
+    if (status && status !== "all") listQuery.set("status", status);
+    const nowQuery = (st) => { const q = new URLSearchParams(listQuery); q.set("status", st); q.set("limit", "100"); q.set("offset", "0"); return q; };
+    const root = `projects/${encodeURIComponent(pid)}`;
+    // 사람이 결정할 일은 화면마다 따로 있다 — 각 화면의 API 를 그대로 읽어 센다 (못 읽은 것은 '확인 못 함', 0 으로 세지 않는다).
+    const [tr0, trBlocked, cr, conf, dcr, guide, rm] = await Promise.all([
+      api(`${root}/tasks?${nowMode ? nowQuery("in_progress") : listQuery}`, { token }),
+      nowMode ? api(`${root}/tasks?${nowQuery("blocked")}`, { token }) : Promise.resolve(null), api(`${root}/callsigns`, { token }),
+      api(`${root}/confirmations`, { token }), api(`${root}/dcr`, { token }),
+      api(`${root}/guide`, { token }), api(`${root}/roadmap`, { token })]);
+    const tr = nowMode && tr0.status === 200 && trBlocked && trBlocked.status === 200
+      ? { status: 200, data: { ...tr0.data, tasks: [...trBlocked.data.tasks, ...tr0.data.tasks], total: (trBlocked.data.total || 0) + (tr0.data.total || 0) } }
+      : nowMode && trBlocked && trBlocked.status !== 200 ? trBlocked : tr0;
     const base = `#/p/${encodeURIComponent(pid)}`;
     const sum = summary || {};
     const sc = sum.session_counts || {};
@@ -467,68 +492,114 @@
     const unknownSessions = sum.unknown_sessions || 0;
     const orch = sum.orchestrator;
     const tc = project.task_counts || {};
+    const totalTasks = Object.values(tc).reduce((a, b) => a + b, 0);
+
+    const counted = (r, pick) => r.status === 200 ? pick(r.data) : null;
+    const decisions = [
+      ["확인 요청", counted(conf, (d) => (d.requests || []).length), `${base}/confirmations`, "에이전트가 승인을 기다린다"],
+      ["중계 승인", sum.pending_approvals || 0, `${base}/orch`, "세션 띄우기 · 멈춤"],
+      ["열린 결정 task", sum.open_decision_tasks || 0, (sum.open_decision_task_ids || []).length
+        ? `${base}/t/${encodeURIComponent(sum.open_decision_task_ids[0])}` : base,
+        (sum.open_decision_task_ids || []).length > 1 ? `첫 task 부터 — 모두 ${sum.open_decision_task_ids.length}건` : "그 task 에서 답한다"],
+      ["결정 변경(DCR)", counted(dcr, (d) => (d.dcrs || []).filter((x) => x.status === "open").length), `${base}/dcr`, "승인 · 거절"],
+      ["지침 제안", counted(guide, (d) => (d.proposals || []).filter((x) => x.status === "open").length), `${base}/guide`, "새 판으로 올릴지"],
+      ["막힌 task", tc.blocked || 0, `${base}/s/blocked`, "풀 사람이 필요하다"],
+    ];
+    const need = decisions.filter(([, n]) => n);
+    const unread = decisions.filter(([, n]) => n === null);
+    const decideRow = el("section", { "aria-labelledby": "decide-h" },
+      el("div", { class: "decide-head" }, el("h2", { id: "decide-h" }, "사람이 결정할 일"),
+        el("span", { class: "muted" }, need.length ? `${need.reduce((a, [, n]) => a + n, 0)}건` : "지금 없음",
+          unread.length ? ` · 확인 못 함: ${unread.map(([l]) => l).join(", ")} (이 계정에 권한이 없다)` : "",
+          // 확인 요청 · 중계 승인을 알린 메시지도 섞여 있다 — 결정 수에 더하지 않는다 (같은 일을 두 번 세지 않는다).
+          (sum.unacknowledged || 0) > 0 ? [" · ", el("a", { href: `${base}/orch` }, `읽지 않은 에이전트 메시지 ${sum.unacknowledged}건`)] : null)),
+      need.length
+        ? el("div", { class: "decide" }, need.map(([label, n, href, what]) =>
+          el("a", { class: "need", href, "data-decide": label }, el("span", { class: "n" }, String(n)), el("span", {}, label), el("span", { class: "what" }, what))))
+        : el("div", { class: "decide-clear" }, "모든 결정이 처리됐다. 새 요청이 오면 여기에 먼저 보인다."));
 
     const attention = [];
     if (orch && orch.halted) {
-      attention.push(alertBox("bad", "오케스트레이션이 정지(halted)돼 있다. ", el("a", { href: `${base}/orch` }, "오케스트레이션 판으로")));
+      attention.push(alertBox("bad", "오케스트레이션이 정지돼 있다 — 에이전트에게 새 일을 나누지 않는다. ", el("a", { href: `${base}/orch` }, "오케스트레이션에서 풀기")));
     }
-    if ((sum.pending_approvals || 0) > 0) {
-      attention.push(alertBox("warn", `승인 대기 중인 중계 요청 ${sum.pending_approvals}건 — `, el("a", { href: `${base}/orch` }, "여기서 승인·거절")));
+    if (unknownSessions > 0) {
+      attention.push(alertBox("bad", `신호가 끊긴 세션 ${unknownSessions}개 — `, el("a", { href: `${base}/orch` }, "오케스트레이션에서 확인")));
     }
     if ((sum.ideas_unread || 0) > 0) {
       attention.push(alertBox("info", `아이디어에 새 회신 ${sum.ideas_unread}건 — `, el("a", { href: `${base}/ideas`, "data-ideas-unread": String(sum.ideas_unread) }, "아이디어 보기")));
     }
-    if ((sum.unacknowledged || 0) > 0) {
-      attention.push(alertBox("warn", `10분 이상 미확인 메시지 ${sum.unacknowledged}건 — `, el("a", { href: `${base}/orch` }, "오케스트레이션 판 확인")));
+
+    const st = rm.status === 200 ? rm.data.roadmap_state : null;
+    let progress;
+    if (!st || !(st.milestones || []).length) {
+      progress = el("section", { class: "card", "aria-labelledby": "rail-h" }, el("h2", { id: "rail-h" }, "진척"),
+        el("p", { class: "muted" }, rm.status === 200 ? "로드맵이 아직 없다 — 마일스톤을 등록하면 여기에 진척 띠가 생긴다. " : `로드맵을 읽지 못했다 (${rm.status}). `,
+          el("a", { href: `${base}/roadmap` }, "로드맵 화면")));
+    } else {
+      const ms = st.milestones;
+      const isDone = (m) => m.derived_status === "done" && m.declared_status === "done";
+      const cur = ms.find((m) => m.id === st.current_milestone_id) || ms.find((m) => !isDone(m));
+      const tenth = (p) => Math.max(0, Math.min(100, Math.round((p || 0) * 10) * 10));
+      const rail = el("div", { class: "rail", role: "list", "aria-label": "마일스톤 진척" }, ms.map((m) => {
+        const pct = isDone(m) ? 100 : tenth(m.progress);
+        const label = `${m.id} ${m.title} — ${isDone(m) ? "끝남" : `세부 작업 ${m.done_leaves || 0}/${m.total_leaves || 0} 끝남`}`;
+        return el("a", { role: "listitem", href: `${base}/roadmap`, title: label, "aria-label": label,
+          class: `w-${Math.max(1, Math.min(8, m.total_leaves || 1))}${isDone(m) ? "" : " open"}${cur && m.id === cur.id ? " current" : ""}` },
+          el("span", { class: "bar" }, el("span", { class: `fill pct-${pct}` })), el("span", { class: "lbl" }, m.title || m.id), el("span", { class: "lbl-id" }, m.id));
+      }));
+      const doneCount = ms.filter(isDone).length;
+      progress = el("section", { class: "card", "aria-labelledby": "rail-h" },
+        el("div", { class: "decide-head" }, el("h2", { id: "rail-h" }, "진척"), el("a", { href: `${base}/roadmap` }, "로드맵 전체")),
+        el("div", { class: "rail-wrap" }, rail,
+          el("div", { class: "rail-legend" },
+            cur ? el("span", {}, "지금 ", el("b", {}, `${cur.id} ${cur.title}`), ` · 세부 작업 ${cur.done_leaves || 0}/${cur.total_leaves || 0} 끝남`) : el("span", {}, "모든 마일스톤이 끝났다"),
+            el("span", {}, `마일스톤 ${ms.length}개 중 ${doneCount}개 끝남`),
+            el("span", {}, `task 진행 중 ${tc.in_progress || 0} · 막힘 ${tc.blocked || 0} · 끝남 ${tc.done || 0} / 전체 ${totalTasks}`))));
     }
 
-    const kpis = el("section", { class: "kpis", "aria-label": "프로젝트 요약" },
-      kpiCard("진행 · 막힘 task", `${tc.in_progress || 0} / ${tc.blocked || 0}`, `전체 ${Object.values(tc).reduce((a, b) => a + b, 0)}건`, (tc.blocked || 0) > 0 ? "warn" : "info"),
-      kpiCard("열린 결정 task", sum.open_decision_tasks || 0, "사람 응답 필요", (sum.open_decision_tasks || 0) > 0 ? "warn" : "ok"),
-      kpiCard("승인 대기 요청", sum.pending_approvals || 0, "세션 띄우기 · 멈춤", (sum.pending_approvals || 0) > 0 ? "warn" : "ok"),
-      kpiCard("활성 · unknown 세션", `${activeSessions} / ${unknownSessions}`, `전체 ${sum.sessions_total || 0} (ended ${sc.ended || 0})`, unknownSessions > 0 ? "bad" : "info"),
-      kpiCard("오케스트레이터", orch ? `${orch.callsign}${orch.halted ? " (정지)" : ""}` : "미지정",
-        orch ? `배정 열림 ${sum.open_assignments || 0}건` : "hub_orch_declare 로 지정", orch && orch.halted ? "bad" : orch ? "ok" : ""));
-
-    const statusFilters = el("nav", { class: "filters", "aria-label": "상태" }, STATUSES.map((s) => {
+    const statusFilters = el("nav", { class: "filters", "aria-label": "상태로 거르기" }, STATUSES.map((s) => {
       const next = new URLSearchParams(query);
       next.set("limit", String(pageLimit)); next.set("offset", "0");
       next.delete("status");
       const suffix = next.toString() ? `?${next}` : "";
-      return el("a", { href: `${s ? `${base}/s/${encodeURIComponent(s)}` : base}${suffix}`, class: s === (status || "") ? "on" : "" }, s || "전체");
+      const on = s === (status || "");
+      return el("a", { href: `${s ? `${base}/s/${encodeURIComponent(s)}` : base}${suffix}`, class: on ? "on" : "",
+        "aria-current": on ? "true" : null }, s === "" ? `지금 (막힘 · 진행 중 ${(tc.blocked || 0) + (tc.in_progress || 0)})` : s === "all" ? `전체 ${totalTasks}` : `${statusLabel(s)} ${tc[s] || 0}`);
     }));
+    const category = (t) => t.fields?.category ? [t.fields.category.level_1, t.fields.category.level_2, t.fields.category.level_3].filter(Boolean).join(" / ") : "";
     const rows = tr.status === 200 ? tr.data.tasks.map((t) => el("tr", {},
-      el("td", { class: "mono nowrap" }, el("a", { href: `${base}/t/${encodeURIComponent(t.id)}`, title: t.id }, t.id)),
-      el("td", { class: "title" }, t.title),
-      el("td", { class: "muted" }, t.fields?.category ? [t.fields.category.level_1, t.fields.category.level_2, t.fields.category.level_3].join(" / ") : "—"),
-      el("td", {}, chip(t.status)),
-      el("td", {}, t.assignee || "—"),
-      el("td", { class: "muted progress" }, t.progress_note ? el("div", { class: "clamp-2", title: t.progress_note }, t.progress_note) : ""),
-      el("td", { class: "muted nowrap" }, when(t.updated_at)))) : [];
+      el("td", { class: "t-title" }, el("a", { href: `${base}/t/${encodeURIComponent(t.id)}` }, t.title || t.id),
+        el("span", { class: "t-id" }, t.id), category(t) ? el("span", { class: "t-cat" }, category(t)) : null),
+      el("td", { class: "t-status" }, chip(t.status)),
+      el("td", { class: "t-more", "data-label": "맡은 이" }, t.assignee || "—"),
+      el("td", { class: "t-more" }, t.progress_note ? el("div", { class: "clamp-2", title: t.progress_note }, t.progress_note) : ""),
+      el("td", { class: "t-more nowrap" }, when(t.updated_at)))) : [];
     const facets = tr.data?.facets || {};
     const filterOptions = (key, label, values) => el("label", {}, label,
       el("select", { name: key, "aria-label": label },
         el("option", { value: "" }, "전체"),
         (values || []).map((value) => el("option", { value, selected: query.get(key) === value },
           key === "roadmap" ? (value === "linked" ? "연결됨" : "미지정") : value))));
-    const listFilters = el("form", { class: "task-filters", onsubmit: (ev) => {
-      ev.preventDefault();
-      const next = new URLSearchParams();
-      for (const key of ["roadmap", "milestone", "wbs", "category_level_1", "category_level_2", "category_level_3"]) {
-        const value = ev.currentTarget.elements.namedItem(key)?.value || "";
-        if (value) next.set(key, value);
-      }
-      next.set("limit", String(pageLimit));
-      next.set("view", query.get("view") || "table");
-      location.hash = `${base}${status ? `/s/${encodeURIComponent(status)}` : ""}?${next}`;
-    } },
-      filterOptions("roadmap", "로드맵 연결", ["linked", "unlinked"]),
-      filterOptions("milestone", "마일스톤", facets.milestones),
-      filterOptions("wbs", "WBS", facets.wbs),
-      filterOptions("category_level_1", "카테고리 1", facets.category_level_1),
-      filterOptions("category_level_2", "카테고리 2", facets.category_level_2),
-      filterOptions("category_level_3", "카테고리 3", facets.category_level_3),
-      el("button", { type: "submit" }, "분류 적용"));
+    const listFilters = el("details", { class: "facets", "data-keep": "facets", open: FACETS.some((k) => query.get(k)) },
+      el("summary", {}, "분류로 거르기"),
+      el("form", { class: "task-filters", onsubmit: (ev) => {
+        ev.preventDefault();
+        const next = new URLSearchParams();
+        for (const key of FACETS) {
+          const value = ev.currentTarget.elements.namedItem(key)?.value || "";
+          if (value) next.set(key, value);
+        }
+        next.set("limit", String(pageLimit));
+        next.set("view", query.get("view") || "table");
+        location.hash = `${base}${status ? `/s/${encodeURIComponent(status)}` : ""}?${next}`;
+      } },
+        filterOptions("roadmap", "로드맵 연결", ["linked", "unlinked"]),
+        filterOptions("milestone", "마일스톤", facets.milestones),
+        filterOptions("wbs", "WBS", facets.wbs),
+        filterOptions("category_level_1", "분류 1", facets.category_level_1),
+        filterOptions("category_level_2", "분류 2", facets.category_level_2),
+        filterOptions("category_level_3", "분류 3", facets.category_level_3),
+        el("button", { type: "submit" }, "분류 적용")));
     const viewMode = query.get("view") === "card" ? "card" : "table";
     const pageQuery = (offset, view = viewMode) => {
       const next = new URLSearchParams(query);
@@ -540,49 +611,63 @@
     const page = Math.floor(pageOffset / pageLimit) + 1;
     const pageCount = Math.max(1, Math.ceil(total / pageLimit));
     const cards = tr.status === 200 ? tr.data.tasks.map((t) => el("a", { class: "card task-card", href: `${base}/t/${encodeURIComponent(t.id)}` },
-      el("div", { class: "row" }, el("span", { class: "mono muted" }, t.id), chip(t.status), chip(t.priority, "planned")),
+      el("div", { class: "row" }, chip(t.status), chip(t.priority, "planned"), el("span", { class: "mono muted" }, t.id)),
       el("h3", {}, t.title),
-      el("p", { class: "muted" }, t.wbs || "로드맵 미지정", " · ", t.fields?.category ? [t.fields.category.level_1, t.fields.category.level_2, t.fields.category.level_3].filter(Boolean).join(" / ") : "카테고리 없음"),
+      el("p", { class: "muted" }, t.wbs || "로드맵 미지정", " · ", category(t) || "분류 없음"),
       t.progress_note ? el("p", {}, t.progress_note) : null,
       el("div", { class: "muted" }, `맡은 이 ${t.assignee || "—"} · `, when(t.updated_at)))) : [];
     const listView = viewMode === "card"
-      ? cards.length ? el("div", { class: "grid task-cards" }, cards) : el("p", { class: "muted" }, "조건에 맞는 task 가 없다.")
-      : rows.length ? el("div", { class: "table-wrap" }, el("table", { class: "tasks" },
-          el("colgroup", {}, ["c-id", "c-title", "c-category", "c-status", "c-who", "c-doing", "c-when"].map((c) => el("col", { class: c }))),
-          el("thead", {}, el("tr", {}, ["ID", "제목", "카테고리", "상태", "맡은 이", "지금 하는 일", "고친 때"].map((h) => el("th", {}, h)))),
-          el("tbody", {}, rows))) : el("p", { class: "muted" }, "조건에 맞는 task 가 없다.");
-    const pagination = tr.status === 200 ? el("div", { class: "row pagination" },
+      ? cards.length ? el("div", { class: "grid task-cards" }, cards) : el("p", { class: "muted" }, nowMode ? "지금 막히거나 진행 중인 task 가 없다 — '전체' 탭에서 모두 본다." : "조건에 맞는 task 가 없다.")
+      : rows.length ? el("div", { class: "table-wrap" }, el("table", { class: "tasks stack" },
+          el("colgroup", {}, ["c-title", "c-status", "c-who", "c-doing", "c-when"].map((c) => el("col", { class: c }))),
+          el("thead", {}, el("tr", {}, ["task", "상태", "맡은 이", "지금 하는 일", "고친 때"].map((h) => el("th", { scope: "col" }, h)))),
+          el("tbody", {}, rows))) : el("p", { class: "muted" }, nowMode ? "지금 막히거나 진행 중인 task 가 없다 — '전체' 탭에서 모두 본다." : "조건에 맞는 task 가 없다.");
+    const pagination = nowMode ? null : tr.status === 200 ? el("div", { class: "row pagination" },
       el("span", { class: "muted" }, `${total}개 · ${page}/${pageCount}페이지`),
-      el("a", { class: page <= 1 ? "disabled" : "", href: pageQuery(Math.max(0, pageOffset - pageLimit)) }, "이전"),
-      el("a", { class: page >= pageCount ? "disabled" : "", href: pageQuery(Math.min((pageCount - 1) * pageLimit, pageOffset + pageLimit)) }, "다음")) : null;
+      el("a", { class: page <= 1 ? "disabled" : "", "aria-disabled": page <= 1 ? "true" : null, href: pageQuery(Math.max(0, pageOffset - pageLimit)) }, "이전"),
+      el("a", { class: page >= pageCount ? "disabled" : "", "aria-disabled": page >= pageCount ? "true" : null, href: pageQuery(Math.min((pageCount - 1) * pageLimit, pageOffset + pageLimit)) }, "다음")) : null;
+    const who = principal.auth_mode === "account"
+      ? el("details", { class: "account", "data-keep": "account" }, el("summary", {}, "내 계정 · 프로젝트 참여 · 콜사인 연결"), accountPanel(principal.account, route))
+      : principal.kind === "callsign"
+      ? el("div", { class: "row" }, forgetButton(pid, route))
+      : el("details", { class: "account", "data-keep": "account", open: true }, el("summary", {}, "이 브라우저의 콜사인"), registerForm(pid, route), tokenForm(() => route()));
     render(
-      el("section", { class: "card" },
+      el("section", { class: "card project-head" },
         el("h1", {}, project.display_name),
-        el("div", { class: "row muted" }, el("span", { class: "mono" }, project.id), `소유자 ${project.owner_callsign}`),
-        projectNav(pid, "tasks"),
-        principal.auth_mode === "account"
-          ? accountPanel(principal.account, route)
-          : principal.kind === "callsign"
-          ? el("div", { class: "row" }, forgetButton(pid, route))
-          : el("div", {}, el("h2", {}, "이 브라우저의 콜사인"), registerForm(pid, route), tokenForm(() => route()))),
+        el("div", { class: "meta" }, el("span", { class: "mono" }, project.id), el("span", {}, `소유자 ${project.owner_callsign}`)),
+        projectNav(pid, "tasks"), who),
       ...attention,
-      kpis,
-      callsignSection(pid, principal, cr),
-      el("section", { class: "card" }, el("h2", {}, "task"), statusFilters, listFilters,
-        el("div", { class: "row view-switch" }, el("span", {}, "보기"),
-          el("a", { class: viewMode === "table" ? "on" : "", href: pageQuery(pageOffset, "table") }, "표"),
-          el("a", { class: viewMode === "card" ? "on" : "", href: pageQuery(pageOffset, "card") }, "카드")),
+      decideRow,
+      progress,
+      el("section", { class: "card", "aria-labelledby": "tasks-h" },
+        el("div", { class: "decide-head" }, el("h2", { id: "tasks-h" }, "task"),
+          el("div", { class: "row view-switch" }, el("span", { class: "muted" }, "보기"),
+            el("a", { class: viewMode === "table" ? "on" : "", href: pageQuery(pageOffset, "table") }, "표"),
+            el("a", { class: viewMode === "card" ? "on" : "", href: pageQuery(pageOffset, "card") }, "카드"))),
+        el("div", { class: "task-tools" }, statusFilters), listFilters,
         tr.status !== 200 ? alertBox("bad", errorText(tr))
-          : listView, pagination));
+          : listView, pagination),
+      callsignSection(pid, principal, cr));
   }
 
+  const MSG_FIELD = { request_type: "종류", request_id: "요청", dir_alias: "별칭", harness: "하네스", permission_mode: "권한", prompt: "지시",
+    host_id: "PC", host: "PC", request: "요청", session: "세션", reason: "사유", task_id: "task", decide_with: "결정 방법", kind: "종류", target: "대상", to_session: "받는 세션" };
+  // 알려진 값은 한국어로, 원래 값은 괄호 안에 남긴다 (이력의 '만듦 (create)' 과 같은 방식).
+  const MSG_VALUE = { spawn: "세션 띄우기", stop: "멈춤", default: "기본", acceptEdits: "편집 자동 허용", plan: "계획만 세움", bypassPermissions: "권한 확인 건너뜀",
+    hub_approval_decide: "허브에서 승인", agent_confirmation: "에이전트 확인 요청", session_request: "세션 요청" };
+  const msgValue = (v) => typeof v === "string" && MSG_VALUE[v] ? `${MSG_VALUE[v]} (${v})` : v;
   function messageBody(body) {
     if (typeof body === "string") return el("div", { class: "exact" }, reveal(body));
+    if (Array.isArray(body)) return el("pre", { class: "wrap exact" }, reveal(JSON.stringify(body)));
     const b = body || {};
     const text = ["title", "text", "question", "summary", "message", "note"].map((k) => b[k]).filter((v) => typeof v === "string" && v);
     const state = typeof b.state === "string" ? b.state : typeof b.decision === "string" ? b.decision : "";
+    // 글 칸이 없는 본문은 이름표 붙은 칸으로 — 값은 그대로(보이지 않는 문자 드러냄), 모르는 이름은 원문 이름으로.
+    const rest = Object.entries(b).filter(([k]) => !["state", "decision"].includes(k));
+    const field = ([k, v]) => el("div", { class: "kv" }, el("span", { class: "muted", title: k }, MSG_FIELD[k] || k),
+      el("span", { class: "exact" }, reveal(typeof v === "string" ? msgValue(v) : JSON.stringify(v))));
     return el("div", {}, state ? chip(state, "planned") : null, text.map((v) => el("div", { class: "exact" }, reveal(v))),
-      !text.length && Object.keys(b).length ? el("pre", { class: "wrap exact" }, reveal(JSON.stringify(b, null, 1))) : null);
+      !text.length && rest.length ? el("div", { class: "kvs" }, rest.map(field)) : null);
   }
 
   // --- 화면: 오케스트레이션 (M-053 WBS-53.1) -----------------------------------------------
@@ -611,19 +696,22 @@
         route();
       };
       const controls = [];
+      let haltRow = null;
       if (canManage) {
         if (orch) {
-          controls.push(el("button", {
+          haltRow = el("div", { class: "row halt-row" }, el("span", { class: "muted" }, orch.halted
+            ? "정지 중 — 에이전트에게 새 일을 나누지 않는다."
+            : "모든 에이전트의 새 배정을 멈춘다. 돌고 있는 세션은 끝나지 않는다."), el("button", {
             type: "button", class: orch.halted ? "" : "danger",
             onclick: async () => {
               const res = await api(`projects/${encodeURIComponent(pid)}/orchestration/halt`, {
                 method: "POST", token: storedToken(pid), body: { on: !orch.halted } });
               if (res.status !== 200) { msg.replaceChildren(alertBox("bad", errorText(res))); return; }
               dirty = false;
-              pendingFlash = { kind: "ok", text: res.data.halted ? "오케스트레이션을 정지(halt)했다." : "오케스트레이션 정지를 풀었다." };
+              pendingFlash = { kind: "ok", text: res.data.halted ? "오케스트레이션을 정지했다." : "오케스트레이션 정지를 풀었다." };
               route();
             },
-          }, orch.halted ? "정지 풀기 (resume)" : "전체 정지 (halt)"));
+          }, orch.halted ? "정지 풀기" : "전체 정지"));
         }
         const sel = el("select", { "aria-label": "오케스트레이터 대상 세션" },
           activeSessions.length
@@ -633,21 +721,21 @@
           el("button", {
             type: "button", class: "ghost", disabled: !activeSessions.length || undefined,
             onclick: () => postLease({ action: orch ? "transfer" : "declare", session: sel.value },
-              orch ? `${sel.value} 로 오케스트레이터를 인계했다.` : `${sel.value} 를 오케스트레이터로 지정했다.`),
-          }, orch ? "세션 인계 (transfer)" : "오케스트레이터 지정"));
+              orch ? `${sel.value} 로 오케스트레이터를 넘겼다.` : `${sel.value} 를 오케스트레이터로 지정했다.`),
+          }, orch ? "이 세션에 넘기기" : "오케스트레이터 지정"));
         if (orch) {
-          controls.push(el("button", { type: "button", class: "ghost", onclick: () => postLease({ action: "release" }, "오케스트레이터 lease 를 해제했다.") }, "lease 해제"));
+          controls.push(el("button", { type: "button", class: "ghost", onclick: () => postLease({ action: "release" }, "오케스트레이터를 내려놓았다 — 지금은 맡은 세션이 없다.") }, "오케스트레이터 내려놓기"));
         }
       }
       return el("section", { class: "card" },
         el("div", { class: "row" }, el("h1", {}, "오케스트레이션"),
-          orch && orch.halted ? chip("정지 (halted)", "halted") : null),
+          orch && orch.halted ? chip("정지", "halted") : null),
         projectNav(pid, "orch"),
         orch ? el("div", { class: "row" }, "오케스트레이터 ", el("strong", {}, orch.callsign),
           el("span", { class: "mono muted" }, orch.session), "만료 ", when(orch.expires_at))
           : el("p", { class: "muted" }, "지정된 오케스트레이터가 없다."),
-        controls.length ? el("div", { class: "row" }, controls) : el("p", { class: "muted" }, "정지 · lease 지정 · 승인은 이 프로젝트의 소유자가 한다 — 허브 계정으로 로그인하거나 승인된 owner 콜사인 토큰을 쓴다."),
-        msg);
+        controls.length ? el("div", { class: "row" }, el("span", { class: "muted" }, "오케스트레이터 세션"), controls) : el("p", { class: "muted" }, "정지 · 오케스트레이터 지정 · 승인은 이 프로젝트의 소유자가 한다 — 허브 계정으로 로그인하거나 승인된 소유자 콜사인 토큰을 쓴다."),
+        haltRow, msg);
     })();
 
     const reqCard = (req) => {
@@ -670,11 +758,11 @@
       }, label);
       return el("div", { class: "decision" },
         el("div", { class: "row" }, el("strong", { class: "mono" }, req.id), chip(req.kind, "planned"), chip(req.state, req.state),
-          `호스트 ${req.host_id}`, `· 요청 ${req.requested_by} · `, when(req.created_at)),
+          `PC ${req.host_id}`, `· 요청 ${req.requested_by} · `, when(req.created_at)),
         el("div", { class: "exact" }, reveal(detailText)),
         req.decided_by ? el("div", { class: "muted" }, `결정 ${req.decided_by} · `, when(req.decided_at)) : null,
         req.result && Object.keys(req.result).length ? el("div", { class: "mono muted" }, JSON.stringify(req.result)) : null,
-        req.state === "pending_approval" && canManage ? el("div", { class: "row" }, note, decideBtn("approve", "승인"), decideBtn("reject", "거절", "ghost")) : null,
+        req.state === "pending_approval" && canManage ? el("div", { class: "row" }, note, decideBtn("approve", "승인"), decideBtn("reject", "거절", "danger")) : null,
         msg);
     };
 
@@ -685,15 +773,15 @@
         el("div", {}, otherReqs.map(reqCard))) : null);
 
     const sessCountsRow = el("div", { class: "row" },
-      ...["working", "waiting", "idle", "ended"].map((st) => chip(`${st} ${sc[st] || 0}`, st)),
-      chip(`unknown ${d.unknown_sessions || 0}`, (d.unknown_sessions || 0) > 0 ? "unknown" : "planned"));
+      ...["working", "waiting", "idle", "ended"].map((st) => chip(`${statusLabel(st)} ${sc[st] || 0}`, st)),
+      chip(`${statusLabel("unknown")} ${d.unknown_sessions || 0}`, (d.unknown_sessions || 0) > 0 ? "unknown" : "planned"));
 
     const sessRows = d.sessions.map((s) => el("tr", {},
-      el("td", { class: "mono nowrap" }, s.id, s.orchestrator ? " " : null, s.orchestrator ? chip("오케스트레이터", "approved") : null),
-      el("td", {}, el("a", { href: `${base}/c/${encodeURIComponent(s.callsign)}` }, s.callsign)),
-      el("td", {}, s.harness || "—", s.kind === "worker" ? " (worker)" : ""),
+      el("td", {}, el("a", { href: `${base}/c/${encodeURIComponent(s.callsign)}` }, s.callsign), s.orchestrator ? " " : null, s.orchestrator ? chip("오케스트레이터", "approved") : null,
+        el("span", { class: "t-id" }, s.id)),
+      el("td", {}, s.harness || "—", s.kind === "worker" ? " (자동 작업 세션)" : ""),
       el("td", {}, chip(s.status, s.status)),
-      el("td", { class: "mono muted" }, (s.delivery || []).join(", ") || "—"),
+      el("td", { class: "muted" }, (s.delivery || []).map(viaLabel).join(", ") || "—"),
       el("td", {}, String(s.open_assignments || 0)),
       el("td", { class: "mono muted" }, s.host_id || "로컬/직접"),
       el("td", { class: "muted nowrap" }, when(s.last_signal_at))));
@@ -701,16 +789,16 @@
     const sessionsSection = el("section", { class: "card" },
       el("h2", {}, `세션 (${d.sessions.length})`), sessCountsRow,
       d.sessions.length ? el("div", { class: "table-wrap" }, el("table", {},
-        el("thead", {}, el("tr", {}, ["세션", "콜사인", "하네스", "상태", "전달", "열린 배정", "호스트", "마지막 신호"].map((h) => el("th", {}, h)))),
+        el("thead", {}, el("tr", {}, ["콜사인 · 세션", "하네스", "상태", "전달", "열린 배정", "호스트", "마지막 신호"].map((h) => el("th", { scope: "col" }, h)))),
         el("tbody", {}, sessRows))) : el("p", { class: "muted" }, "등록된 세션이 없다."));
 
     const unackSection = d.unacknowledged.length ? el("section", { class: "card" },
-      el("h2", {}, `미확인 메시지 unacknowledged (${d.unacknowledged.length})`),
-      el("p", { class: "muted" }, "10분 안에 확인하지 않은 메시지다. 받은 세션이나 콜사인(세션이 끝났으면 같은 콜사인)이 hub_inbox_ack(decision=seen) 로 읽음 처리하거나 소유자가 정리하면 사라진다. 정리는 배정·승인 상태를 바꾸지 않는다."),
+      el("h2", {}, `미확인 메시지 (${d.unacknowledged.length})`),
+      el("p", { class: "muted" }, "10분 넘게 읽지 않은 메시지다. 받은 세션이 읽음으로 표시하면(세션이 끝났으면 같은 콜사인의 새 세션이) 사라진다. 소유자는 '읽음으로 정리' 로 지울 수 있고, 배정 · 승인 상태는 바뀌지 않는다."),
       d.unacknowledged.map((m) => el("div", { class: "decision" },
-        el("div", { class: "row" }, el("span", { class: "mono muted" }, m.id), chip(m.kind, "planned"),
-          `${m.to_kind}:${m.to_id}`, m.ref_task ? el("a", { class: "mono", href: `${base}/t/${encodeURIComponent(m.ref_task)}` }, m.ref_task) : null,
-          el("span", { class: "muted" }, `경로 ${m.delivered_via || "—"} · `, when(m.created_at))),
+        el("div", { class: "row" }, chip(m.kind, "planned"), el("span", {}, `받는 이 ${m.to_kind === "session" ? "세션" : "콜사인"} ${m.to_id}`),
+          m.ref_task ? el("a", { href: `${base}/t/${encodeURIComponent(m.ref_task)}`, title: m.ref_task }, "관련 task") : null,
+          el("span", { class: "muted" }, `${viaLabel(m.delivered_via) || "—"} · `, when(m.created_at)), el("span", { class: "mono muted" }, m.id)),
         messageBody(m.body),
         m.kind === "approval" && m.body && m.body.request_type === "agent_confirmation"
           ? el("a", { href: `${base}/confirmations` }, "확인 요청에서 결정")
@@ -723,17 +811,17 @@
           } }, "읽음으로 정리") : null))) : null;
 
     const assignRows = d.assignments.map((a) => el("tr", {},
-      el("td", { class: "mono nowrap" }, el("a", { href: `${base}/t/${encodeURIComponent(a.task_id)}` }, a.task_id)),
-      el("td", {}, a.task_title || "—", a.progress_note ? el("div", { class: "muted clamp-2" }, a.progress_note) : null),
+      el("td", { class: "t-title" }, el("a", { href: `${base}/t/${encodeURIComponent(a.task_id)}` }, a.task_title || a.task_id), el("span", { class: "t-id" }, a.task_id),
+        a.progress_note ? el("div", { class: "muted clamp-2" }, a.progress_note) : null),
       el("td", {}, chip(a.state, a.state), a.message_state === "unacknowledged" ? el("span", {}, " ", chip("unack", "unack")) : null),
       el("td", {}, a.callsign, el("div", { class: "mono muted" }, a.session_id)),
-      el("td", { class: "muted" }, a.delivered_via || "—", a.delivery_count ? ` (${a.delivery_count}회)` : ""),
+      el("td", { class: "muted" }, viaLabel(a.delivered_via) || "—", a.delivery_count ? ` (${a.delivery_count}회)` : ""),
       el("td", { class: "muted" }, a.return_reason || (a.report && a.report.summary) || when(a.offered_at) || "—")));
 
     const assignSection = el("section", { class: "card" },
       el("h2", {}, `배정 현황 (${d.assignments.length})`),
       d.assignments.length ? el("div", { class: "table-wrap" }, el("table", {},
-        el("thead", {}, el("tr", {}, ["task", "제목 · 진척", "상태", "대상", "전달", "사유 · 보고"].map((h) => el("th", {}, h)))),
+        el("thead", {}, el("tr", {}, ["task · 진척", "상태", "대상", "전달", "사유 · 보고"].map((h) => el("th", { scope: "col" }, h)))),
         el("tbody", {}, assignRows))) : el("p", { class: "muted" }, "배정 기록이 없다."));
 
     const hostsSection = (() => {
@@ -747,7 +835,7 @@
           if (res.status !== 200) { inviteBox.replaceChildren(alertBox("bad", errorText(res))); return; }
           dirty = true;
           inviteBox.replaceChildren(
-            alertBox("ok", `1회용 초대 코드(이 화면에서만 보임 · 만료 ${res.data.expires_at}): ${res.data.invite}`),
+            alertBox("ok", `1회용 초대 코드(이 화면에서만 보임 · 만료 ${res.data.expires_at ? when(res.data.expires_at).textContent : "—"}): ${res.data.invite}`),
             el("pre", {}, res.data.command));
         },
       }, "중계 초대 코드 발급") : null;
@@ -773,7 +861,7 @@
         el("div", { class: "row" }, el("h2", {}, `PC 중계 호스트 (${d.hosts.length})`), inviteBtn),
         inviteBox, hostMsg,
         d.hosts.length ? el("div", { class: "table-wrap" }, el("table", {},
-          el("thead", {}, el("tr", {}, ["호스트", "이름", "하네스", "허용 digest", "마지막 폴링", ""].map((h) => el("th", {}, h)))),
+          el("thead", {}, el("tr", {}, ["호스트", "이름", "하네스", "허용 목록 지문", "마지막 연결", ""].map((h) => el("th", {}, h)))),
           el("tbody", {}, hostRows))) : el("p", { class: "muted" }, "등록된 PC 중계가 없다."));
     })();
 
@@ -811,15 +899,15 @@
       };
       return el("section", { class: "card" },
         el("div", { class: "row" }, el("h2", { class: "exact" }, reveal(req.title)), staleDoc(req) ? chip("낡은 요청", "unack") : chip("승인 대기", "blocked")),
-        el("div", { class: "muted" }, `${req.requested_by} · ${req.created_at}`),
+        el("div", { class: "muted" }, `${req.requested_by} · `, when(req.created_at)),
         req.action ? el("section", { class: "card", "data-action": req.action.type },
-          el("h3", {}, "승인하면 허용되는 실행 (허브가 계산)"),
+          el("h3", {}, "승인하면 실행되는 일"),
           ...(req.action.type === "project_doc_put" ? docPutCard(req) : req.action.type === "knowledge_source_register" ? [
           el("p", {}, "지식 원본 등록 · ", el("span", { class: "mono" }, reveal(req.action.summary.source_id)), " · 저장소 ", el("span", { class: "mono" }, reveal(req.action.summary.repo_key))),
-          el("p", { class: "muted" }, `요청 콜사인 ${req.requested_by}에게만, 승인 뒤 24시간, 한 번. 이 경로의 문서만 스냅샷으로 받는다 — ${req.action.summary.paths}개`),
+          el("p", { class: "muted" }, `승인하면 요청한 콜사인 ${req.requested_by} 만 24시간 안에 한 번 실행할 수 있다. 아래 경로의 문서 ${req.action.summary.paths}개만 스냅샷으로 받는다.`),
           el("ul", { "data-source-paths": String(req.action.summary.paths) }, req.action.summary.allowlist.map((x) => el("li", { class: "mono exact" }, reveal(x))))] : [
           el("p", {}, `${{ migrate_import: "1.x 기록 들여오기", migrate_marker: "'허브로 옮김' 표식" }[req.action.type] || req.action.type} · ${req.action.summary.migration_id}`),
-          el("p", { class: "muted" }, `요청 콜사인 ${req.requested_by}에게만, 승인 뒤 24시간, 한 번. 브랜치 `, reveal(req.action.summary.branch), ` · ${String(req.action.summary.head).slice(0, 8)} · 미커밋 파일 ${req.action.summary.uncommitted}개`),
+          el("p", { class: "muted" }, `승인하면 요청한 콜사인 ${req.requested_by} 만 24시간 안에 한 번 실행할 수 있다. 브랜치 `, reveal(req.action.summary.branch), ` · ${String(req.action.summary.head).slice(0, 8)} · 미커밋 파일 ${req.action.summary.uncommitted}개`),
           req.action.summary.files ? el("ul", {}, Object.entries(req.action.summary.files).map(([k, n]) => el("li", {}, `${k}: ${n}개 파일`))) : null,
           req.action.summary.marker ? el("p", {}, `표식 동작: ${req.action.summary.marker}`) : null]),
           actingAccount ? null : alertBox("warn", "이 승인은 허브 계정 로그인이 필요하다. 홈에서 계정으로 로그인한 뒤 승인한다.")) : null,
@@ -829,16 +917,16 @@
           el("button", { class: "danger", type: "button", onclick: decide("reject") }, "거절")));
     });
     render(el("section", { class: "card" }, el("h1", {}, "에이전트 확인 요청"),
-      el("p", { class: "muted" }, "요청에 답하면 승인 또는 거절 결과가 요청한 콜사인의 허브 받은편지함으로 전달됩니다. 승인은 요청 내용을 승인하는 결정이며, 작업은 에이전트가 결과를 확인한 뒤 진행합니다."),
+      el("p", { class: "muted" }, "승인하거나 거절하면 결과가 요청한 에이전트의 받은편지함으로 간다. 에이전트는 결과를 확인한 뒤에 일을 이어 간다."),
       projectNav(pid, "confirmations")),
-      ...(cards.length ? cards : [el("section", { class: "card muted" }, "대기 중인 에이전트 확인 요청이 없습니다.")]));
+      ...(cards.length ? cards : [el("section", { class: "card muted" }, "기다리는 확인 요청이 없다.")]));
   }
 
   // --- 화면: 아이디어 박스 — 사람이 적고 에이전트가 회신한다 -------------------------------------
 
   const IDEA_STATUS = { new: ["검토 대기", "planned"], reviewing: ["검토 중", "in_progress"], replied: ["회신 도착", "open"],
     adopted: ["task 로 만듦", "done"], kept: ["보관", "ended"], closed: ["닫음", "ended"] };
-  const IDEA_VERDICT = { do: "하자", conditional: "조건부", hold: "보류", exists: "이미 있음", question: "질문" };
+  const IDEA_VERDICT = { do: "추천", conditional: "조건부", hold: "보류", exists: "이미 있음", question: "질문" };
   const ideaChip = (status) => chip(...(IDEA_STATUS[status] || [status, "unknown"]));
 
   async function viewIdeas(pid, id) {
@@ -874,7 +962,7 @@
         const r = await api(`${root}/ideas`, { method: "POST", body: { body: text.value, request_id: key } });
         if (r.status !== 200) { unlock(); msg.replaceChildren(alertBox("bad", errorText(r))); return; }  // 적던 글은 그대로 둔다
         similar = r.data.similar || [];
-      } catch (e) { unlock(); msg.replaceChildren(alertBox("bad", "허브에 닿지 않는다 — 글은 그대로 있다. 다시 누른다.")); return; }
+      } catch (e) { unlock(); msg.replaceChildren(alertBox("bad", "허브에 연결할 수 없다 — 적은 글은 그대로 있다. 다시 눌러 본다.")); return; }
       pendingFlash = { kind: "ok", text: "적어 두었다 — 다음에 에이전트 세션이 열릴 때 검토해 회신한다."
         + (similar.length ? ` 비슷한 아이디어: ${similar.map((x) => x.id).join(" · ")}` : "") };
       dirty = false;
@@ -898,7 +986,7 @@
   // 허브 WBS 게이트의 거절을 이 화면의 칸 이름으로 말한다 (게이트 문구는 CLI 옵션으로 설명한다)
   function ideaGateText(r) {
     const warn = r.data?.error_code === "gate_denied" ? (r.data.detail?.warnings || []) : [];
-    if (warn.includes("exempt_reason_required")) return "WBS 가 exempt(로드맵 밖)면 'WBS 면제 사유' 칸을 채운다.";
+    if (warn.includes("exempt_reason_required")) return "로드맵 밖 일이면 'WBS 면제 사유' 칸을 채운다.";
     if (warn.includes("wbs_required")) return "이 프로젝트는 로드맵이 있어 WBS 가 필요하다 — 'WBS' 칸에 M-NNN/WBS-N.N 을 적거나, 로드맵 밖이면 'WBS 면제 사유' 를 적는다.";
     if (warn.includes("wbs_ref_format")) return "'WBS' 칸은 M-NNN/WBS-N.N 꼴이다 (예: M-007/WBS-7.2).";
     return "";
@@ -919,7 +1007,7 @@
       lock(true);
       let r;
       try { r = await api(`${root}/ideas/${encodeURIComponent(idea.id)}`, { method: "POST", body: { expected_version: idea.version, ...body() } }); }
-      catch (e) { lock(false); msg.replaceChildren(alertBox("bad", "허브에 닿지 않는다 — 적던 글은 그대로 있다.")); return; }
+      catch (e) { lock(false); msg.replaceChildren(alertBox("bad", "허브에 연결할 수 없다 — 적던 글은 그대로 있다.")); return; }
       if (r.status !== 200) { lock(false); msg.replaceChildren(alertBox("bad", ideaGateText(r) || errorText(r) + (r.data?.error_code === "version_conflict" ? " · 새로고침해 바뀐 내용을 본 뒤 다시 한다 (적던 글은 남는다)." : ""))); return; }
       (sent || []).forEach((name) => delete typed[name]);
       pendingFlash = { kind: "ok", text: done(r.data) };
@@ -938,7 +1026,7 @@
         ...part("확인하지 않은 것", e.unverified)]));
     const out = [head(idea.id, el("div", { class: "row" }, ideaChip(idea.status), idea.claimed_by ? el("span", { class: "muted" }, `${idea.claimed_by} 검토 중`) : null,
       idea.added_via === "agent" ? chip("에이전트가 적음", "unack") : null, idea.task_id ? el("a", { href: `${base}/t/${encodeURIComponent(idea.task_id)}` }, idea.task_id) : null),
-      idea.added_via === "agent" && !idea.asked_by_human ? el("p", { class: "muted" }, "에이전트가 대신 적었다. 사람이 더 묻기를 보내야 세션 시작의 검토 대기에 오른다.") : null, readOnly),
+      idea.added_via === "agent" && !idea.asked_by_human ? el("p", { class: "muted" }, "에이전트가 대신 적은 아이디어다. 사람이 '더 묻기' 를 보내야 다음 세션의 검토 대기에 오른다.") : null, readOnly),
       ...idea.entries.map(entry),
       similar.length ? el("section", { class: "card", "data-similar": String(similar.length) }, el("h2", {}, "비슷한 아이디어"),
         el("ul", { class: "hits" }, similar.map((x) => el("li", {}, el("a", { href: `${base}/ideas/${encodeURIComponent(x.id)}`, class: "exact" }, reveal(x.excerpt)),
@@ -971,8 +1059,8 @@
         el("button", { type: "button", class: "ghost", onclick: act(() => ({ action: "keep" }), () => "보관했다.") }, "보관"),
         el("button", { type: "button", class: "ghost", onclick: act(() => ({ action: "close" }), () => "닫았다.") }, "닫기"))),
     linkTask ? el("section", { class: "card", "data-link-task": linkTask }, el("h2", {}, "이미 있는 task 로 처리"),
-      el("p", { class: "muted" }, `회신이 이 일을 이미 맡은 task 로 ${linkTask} 를 가리킨다. 묶으면 새 task 를 만들지 않는다.`),
-      el("button", { type: "button", onclick: act(() => ({ action: "link", task_id: linkTask }), () => `${linkTask} 에 묶었다.`) }, "이 task 로 처리")) : null,
+      el("p", { class: "muted" }, `회신에 따르면 이 일은 이미 ${linkTask} 에서 하고 있다. 이 task 에 연결하면 새 task 를 만들지 않는다.`),
+      el("button", { type: "button", onclick: act(() => ({ action: "link", task_id: linkTask }), () => `${linkTask} 에 연결했다.`) }, "이 task 로 처리")) : null,
     el("section", { class: "card" }, el("h2", {}, "task 로 만들기"),
       el("p", { class: "muted" }, draft.title ? `회신이 채운 초안이다. 고쳐서 등록한다. 원문은 task 설명에 그대로 들어간다.` : "원문은 task 설명에 그대로 들어간다."),
       newer ? alertBox("warn", "그 사이 새 회신의 초안이 왔다. 아래는 전에 고치던 내용이다.", el("button", { type: "button", class: "ghost", onclick: () => { delete typed.form; delete typed.base; dirty = false; route(); } }, "새 초안으로 바꾸기")) : null,
@@ -982,7 +1070,7 @@
       el("div", { class: "row" }, el("button", { type: "button", onclick: (ev) => {
         // 로드맵 밖(exempt)은 사유가 있어야 허브 WBS 게이트를 지난다 — 보내기 전에 그 칸을 가리킨다
         if (wbs.value.trim() === "exempt" && !exempt.value.trim()) {
-          msg.replaceChildren(alertBox("bad", "WBS 가 exempt(로드맵 밖)면 'WBS 면제 사유' 칸을 채운다 — 아직 보내지 않았다."));
+          msg.replaceChildren(alertBox("bad", "로드맵 밖 일이면 'WBS 면제 사유' 칸을 채운다 — 아직 보내지 않았다."));
           exempt.focus();
           return undefined;
         }
@@ -1037,12 +1125,12 @@
     const body = [];
     rows.forEach(([mark, text], i) => {
       if (near.has(i)) body.push(el("span", { class: mark === "+" ? "diff-add" : mark === "-" ? "diff-del" : "" }, `${mark} `, reveal(text), "\n"));
-      else if (near.has(i - 1) || i === 0) body.push(el("span", { class: "muted" }, "⋯ 같은 줄\n"));
+      else if (near.has(i - 1) || i === 0) body.push(el("span", { class: "muted" }, "⋯ 바뀌지 않은 줄\n"));
     });
     const changed = rows.filter(([mark]) => mark !== " ");
     return [
       el("p", {}, `프로젝트 문서 쓰기 · ${d.name} · ${d.version}판 → ${d.version + 1}판`),
-      el("p", { class: "muted" }, `요청 콜사인 ${req.requested_by}에게만, 승인 뒤 24시간, 아래 본문 그대로 한 번. 그 사이 문서가 바뀌면 쓸 수 없다. sha256 ${d.sha256.slice(0, 12)}`),
+      el("p", { class: "muted" }, `승인하면 요청한 콜사인 ${req.requested_by} 만 24시간 안에 아래 본문 그대로 한 번 쓸 수 있다. 그 사이 문서가 바뀌면 쓸 수 없다. sha256 ${d.sha256.slice(0, 12)}`),
       el("p", {}, `추가 ${changed.filter(([mark]) => mark === "+").length}줄 · 삭제 ${changed.filter(([mark]) => mark === "-").length}줄`),
       staleDoc(req) ? alertBox("warn", `낡은 요청 — 문서가 지금 ${req.action.current_version}판이라 승인해도 쓸 수 없다. 거절하고 다시 요청받는다.`) : null,
       hiddenCount(d.proposed) ? alertBox("warn", `새 본문에 보이지 않는 문자 ${hiddenCount(d.proposed)}개 — U+… 로 표시했다.`) : null,
@@ -1053,15 +1141,31 @@
 
   // --- 화면: 로드맵 (M-053 WBS-53.1) -----------------------------------------------------
 
-  function renderWbsNode(base, node) {
+  function renderWbsNode(base, node, titles) {
+    titles = titles || new Map();
     return el("li", { class: "wbs-node" },
-      el("div", { class: "row" }, el("span", { class: "mono" }, node.id), chip(node.derived_status), el("span", {}, node.title),
-        node.total_leaves ? el("span", { class: "muted" }, `(${node.done_leaves}/${node.total_leaves})`) : null),
+      el("div", { class: "row" }, chip(node.derived_status), el("span", {}, node.title), el("span", { class: "mono muted" }, node.id),
+        node.total_leaves ? el("span", { class: "muted" }, `${node.done_leaves}/${node.total_leaves} 끝남`) : null),
       node.linked_task_ids && node.linked_task_ids.length
-        ? el("div", { class: "row" }, node.linked_task_ids.map((tid) => el("a", { class: "mono", href: `${base}/t/${encodeURIComponent(tid)}` }, tid)))
+        ? el("ul", { class: "wbs-tasks" }, node.linked_task_ids.map((tid) => {
+          const t = titles.get(tid);
+          return el("li", {}, t ? chip(t.status) : null, " ", el("a", { href: `${base}/t/${encodeURIComponent(tid)}`, title: tid }, t ? t.title : tid));
+        }))
         : null,
       node.children && node.children.length
-        ? el("ul", { class: "wbs-list" }, node.children.map((ch) => renderWbsNode(base, ch))) : null);
+        ? el("ul", { class: "wbs-list" }, node.children.map((ch) => renderWbsNode(base, ch, titles))) : null);
+  }
+
+  // 로드맵에 묶인 task 의 제목 · 상태 — 목록 API 를 100건씩 읽는다 (ID 만 보이면 무엇인지 다시 찾아야 한다).
+  async function linkedTaskTitles(pid, token) {
+    const out = new Map();
+    for (let offset = 0; offset < 1000; offset += 100) {
+      const r = await api(`projects/${encodeURIComponent(pid)}/tasks?roadmap=linked&limit=100&offset=${offset}`, { token });
+      if (r.status !== 200) break;
+      for (const t of r.data.tasks) out.set(t.id, t);
+      if (offset + 100 >= (r.data.total || 0)) break;
+    }
+    return out;
   }
 
   async function viewRoadmap(pid) {
@@ -1075,15 +1179,17 @@
         el("p", { class: "muted" }, r.data.reason || "로드맵이 없다.")));
       return;
     }
+    const titles = await linkedTaskTitles(pid, token);
+    // 상태는 하나로 보인다 — 로드맵에 적힌 상태(선언)와 task 로 계산한 상태(파생)가 다르면 그때만 알린다.
     const card = (m) => el("section", { class: "card" },
-      el("div", { class: "row" }, el("strong", { class: "mono" }, m.id), chip(m.sdlc_phase, "planned"),
-        chip(`선언 ${m.declared_status}`, m.declared_status), chip(`파생 ${m.derived_status}`, m.derived_status),
-        m.id === st.current_milestone_id ? chip("현재 마일스톤", "in_progress") : null),
+      el("div", { class: "row" }, chip(m.derived_status), m.id === st.current_milestone_id ? chip("현재 마일스톤", "in_progress") : null,
+        el("span", { class: "mono muted" }, m.id), el("span", { class: "muted", title: m.sdlc_phase }, PHASE_LABEL[m.sdlc_phase] || m.sdlc_phase)),
       el("h2", {}, m.title),
+      m.declared_status !== m.derived_status ? alertBox("warn", `로드맵 문서에는 '${statusLabel(m.declared_status)}' 로 적혀 있지만 task 로 계산하면 '${statusLabel(m.derived_status)}' 이다 — 로드맵 문서나 task 상태를 맞춘다.`) : null,
       el("div", { class: "meter" },
-        el("div", { class: "muted" }, `WBS leaf ${m.done_leaves} / ${m.total_leaves} (${Math.round((m.progress || 0) * 100)}%)`),
-        el("progress", { value: m.progress || 0, max: 1 })),
-      m.wbs && m.wbs.length ? el("ul", { class: "wbs-list" }, m.wbs.map((w) => renderWbsNode(base, w))) : null);
+        el("div", { class: "muted" }, `세부 작업 ${m.done_leaves} / ${m.total_leaves} 끝남 (${Math.round((m.progress || 0) * 100)}%)`),
+        el("progress", { value: m.progress || 0, max: 1, "aria-label": `${m.id} 진척` })),
+      m.wbs && m.wbs.length ? el("ul", { class: "wbs-list" }, m.wbs.map((w) => renderWbsNode(base, w, titles))) : null);
     const isDone = (m) => m.derived_status === "done" && m.declared_status === "done";
     const open = st.milestones.filter((m) => !isDone(m));
     // 현재 → 진행 중(선언이나 파생) → 나머지 (같은 무리 안은 로드맵 순서 그대로)
@@ -1094,9 +1200,9 @@
       el("section", { class: "card" }, el("h1", {}, "로드맵"), projectNav(pid, "roadmap"),
         el("div", { class: "row muted" }, `마일스톤 ${st.milestones.length}개 (열림 ${open.length} · 완료 ${done.length})`,
           st.current_milestone_id ? ` · 현재 ${st.current_milestone_id}` : "",
-          st.exempt_tasks ? ` · exempt ${st.exempt_tasks.length}건` : "")),
+          st.exempt_tasks ? ` · 로드맵 밖(면제) task ${st.exempt_tasks.length}건` : "")),
       st.issues && st.issues.length ? el("section", { class: "card" }, el("h2", {}, `로드맵 경고 (${st.issues.length})`),
-        el("ul", {}, st.issues.map((i) => el("li", {}, el("span", { class: "mono" }, i.code), ` — ${i.detail}`)))) : null,
+        el("ul", {}, st.issues.map((i) => el("li", { title: i.code }, i.detail || i.code)))) : null,
       open.map(card),
       done.length ? el("details", { class: "card", "data-keep": "rm-done" }, el("summary", {}, `완료한 마일스톤 (${done.length})`), done.map(card)) : null);
   }
@@ -1112,9 +1218,10 @@
     return chip("지침 받은 적 없음", "planned");
   }
 
+  const ROLE_LABEL = { owner: "소유자", editor: "편집자", viewer: "읽기 전용" };
   function kindText(c) {
-    if (c.kind !== "human") return "agent";
-    return c.human_approved ? "human" : "human · 승인 전";
+    if (c.kind !== "human") return "에이전트";
+    return c.human_approved ? "사람" : "사람 · 승인 전";
   }
 
   function approveButton(pid, c) {
@@ -1131,8 +1238,8 @@
   function nowDoing(c, base) {
     if (!c.open_tasks.length) return el("span", { class: "muted" }, "맡은 열린 task 없음");
     return el("ul", { class: "doing" }, c.open_tasks.map((t) => el("li", {},
-      el("a", { class: "mono", href: `${base}/t/${encodeURIComponent(t.id)}` }, t.id), " ", chip(t.status), " ",
-      t.progress_note ? el("span", {}, t.progress_note) : el("span", { class: "muted" }, t.title))));
+      chip(t.status), " ", el("a", { href: `${base}/t/${encodeURIComponent(t.id)}`, title: t.id }, t.title || t.id),
+      t.progress_note ? el("div", { class: "muted clamp-2" }, t.progress_note) : null)));
   }
 
   function callsignSection(pid, principal, cr) {
@@ -1140,20 +1247,21 @@
     const base = `#/p/${encodeURIComponent(pid)}`;
     const { callsigns, guide_current: current } = cr.data;
     const rows = callsigns.map((c) => el("tr", { class: c.archived ? "archived" : "" },
-      el("td", {}, el("a", { href: `${base}/c/${encodeURIComponent(c.id)}` }, c.id), c.archived ? " " : null, c.archived ? chip("보관", "planned") : null),
-      el("td", {}, kindText(c), ` · ${c.role}`, c.kind === "human" && !c.human_approved && !c.archived && canApprove(principal) ? approveButton(pid, c) : null),
-      el("td", {}, nowDoing(c, base)),
-      el("td", { class: "muted nowrap" }, when(c.last_seen_at) || "활동 없음"),
-      el("td", {}, guideChip(c, current)),
-      el("td", { class: "muted mono" }, c.client_version_seen || "—")));
+      el("td", { class: "t-title nowrap" }, el("a", { href: `${base}/c/${encodeURIComponent(c.id)}` }, c.id), c.archived ? " " : null, c.archived ? chip("보관", "planned") : null,
+        el("span", { class: "t-cat" }, kindText(c), ` · ${ROLE_LABEL[c.role] || c.role}`),
+        c.kind === "human" && !c.human_approved && !c.archived && canApprove(principal) ? approveButton(pid, c) : null),
+      el("td", { class: "t-status" }, guideChip(c, current)),
+      el("td", { class: "t-more" }, nowDoing(c, base)),
+      el("td", { class: "t-more nowrap", "data-label": "마지막 활동" }, when(c.last_seen_at) || "활동 없음"),
+      el("td", { class: "t-more mono", "data-label": "클라이언트" }, c.client_version_seen || "—")));
     return el("section", { class: "card" }, el("h2", {}, "콜사인 — 지금 누가 무엇을"),
       el("p", { class: "muted" }, "허브 지침 판 ", el("span", { class: "mono" }, current)),
-      el("div", { class: "table-wrap" }, el("table", {}, el("thead", {}, el("tr", {}, ["콜사인", "종류", "지금 하는 일", "마지막 활동", "지침", "클라이언트"].map((h) => el("th", {}, h)))),
+      el("div", { class: "table-wrap" }, el("table", { class: "stack callsigns" }, el("thead", {}, el("tr", {}, ["콜사인", "지침", "지금 하는 일", "마지막 활동", "클라이언트"].map((h) => el("th", { scope: "col" }, h)))),
         el("tbody", {}, rows))));
   }
 
-  const HANDOFF = [["baseline", "현재 기준선"], ["focus", "주 작업 축"], ["in_progress", "진행 중"], ["blocked", "막힘"],
-    ["recent_done", "최근 완료"], ["next", "다음 시작 포인트"], ["risks", "남은 위험"]];
+  const HANDOFF = [["baseline", "현재 기준선"], ["focus", "주요 작업"], ["in_progress", "진행 중"], ["blocked", "막힘"],
+    ["recent_done", "최근 완료"], ["next", "다음에 시작할 곳"], ["risks", "남은 위험"]];
 
   async function viewCallsign(pid, cs) {
     const token = storedToken(pid);
@@ -1173,7 +1281,7 @@
       return el("div", { class: "handoff-part" }, el("h2", {}, title),
         empty ? el("p", { class: "muted" }, "—")
           : Array.isArray(v) ? el("ul", {}, v.map((x) => el("li", {}, x))) : el("p", {}, v));
-    }) : [el("p", { class: "muted" }, "아직 올린 handoff 가 없다.")];
+    }) : [el("p", { class: "muted" }, "아직 올린 인계 기록이 없다.")];
     render(
       el("section", { class: "card" },
         el("h1", {}, c.id),
@@ -1181,7 +1289,7 @@
           c.archived ? chip("보관 (읽기 전용)", "planned") : null,
           c.kind === "human" && !c.human_approved && !c.archived && canApprove(principal) ? approveButton(pid, c) : null),
         el("div", { class: "row muted" }, "마지막 활동 ", when(c.last_seen_at) || "없음", "·", guideChip(c, current), "·",
-          `클라이언트 ${c.client_version_seen || "—"}`, "·", c.setup_complete ? "셋업 끝" : "셋업 미완"),
+          `클라이언트 ${c.client_version_seen || "—"}`, "·", c.setup_complete ? "셋업 완료" : "셋업 미완료"),
         el("h2", {}, "지금 하는 일"), nowDoing(c, base)),
       el("section", { class: "card" }, el("h2", {}, "handoff"),
         sections ? el("p", { class: "muted" }, `v${h.version} · `, when(h.updated_at)) : null, body));
@@ -1212,7 +1320,7 @@
     return el("div", { class: "decision" },
       el("div", { class: "row" }, el("strong", { class: "mono" }, prop.id),
         chip(open ? "열림" : prop.status === "approved" ? "승인" : "거절", open ? "open" : prop.status === "approved" ? "answered" : "planned"),
-        `${prop.proposed_by} · `, when(prop.proposed_at), ` · 기준 v${prop.base_version}`,
+        `${prop.proposed_by} · `, when(prop.proposed_at), ` · 기준 ${prop.base_version}판`,
         prop.applied_version ? ` → v${prop.applied_version}` : null,
         prop.decided_by && prop.decided_by !== prop.proposed_by ? ` · 결정 ${prop.decided_by}` : null),
       prop.note ? el("div", { class: "exact" }, reveal(prop.note)) : null,
@@ -1220,7 +1328,7 @@
       el("details", { open: open || undefined }, el("summary", {}, "바뀐 줄"), el("pre", { class: "diff exact" }, prop.diff ? reveal(prop.diff) : "(차이 없음)")),
       open && canDecide ? el("div", { class: "row" },
         el("button", { type: "button", onclick: decide(true), disabled: prop.stale || undefined }, "승인"),
-        el("button", { type: "button", class: "ghost", onclick: decide(false) }, "거절")) : null);
+        el("button", { type: "button", class: "danger", onclick: decide(false) }, "거절")) : null);
   }
 
   async function viewGuide(pid) {
@@ -1229,7 +1337,7 @@
     if (r.status !== 200) { render(el("section", { class: "card" }, alertBox("bad", errorText(r)))); return; }
     const g = r.data;
     const open = g.proposals.filter((x) => x.status === "open");
-    let editor = el("p", { class: "muted" }, "고치려면 이 프로젝트의 콜사인 토큰이 이 브라우저에 있어야 한다.");
+    let editor = el("p", { class: "muted" }, "고치려면 허브 계정으로 로그인하거나 이 프로젝트의 콜사인 토큰을 넣는다.");
     if (g.can_propose) {
       const text = el("textarea", { class: "guide-edit", "aria-label": "지침 본문" });
       text.value = g.body;
@@ -1251,9 +1359,9 @@
     render(
       el("section", { class: "card" }, el("h1", {}, "프로젝트 지침"), projectNav(pid, "guide"),
         el("div", { class: "row muted" }, "지금 판 ", el("span", { class: "mono" }, g.guide_version), `· 열린 제안 ${open.length}`),
-        el("p", { class: "muted" }, g.can_decide ? "승인된 사람 콜사인 — 고치면 바로 판이 오르고, 열린 제안을 승인 · 거절한다."
-          : "에이전트 · 승인 전 사람 콜사인의 변경은 제안으로 남는다 (D11)."),
-        el("details", {}, el("summary", {}, "지금 본문"), el("pre", {}, g.body || "(비었다 — 표준 규칙만 렌더된다)")),
+        el("p", { class: "muted" }, g.can_decide ? "승인된 사람 콜사인이라 고치면 바로 새 판이 되고, 열린 제안을 승인하거나 거절할 수 있다."
+          : "에이전트나 아직 승인받지 않은 사람 콜사인이 고치면 제안으로 남는다."),
+        el("details", {}, el("summary", {}, "지금 본문"), el("pre", {}, g.body || "(비어 있다 — 표준 규칙만 적용된다)")),
         el("h2", {}, "고치기"), editor),
       el("section", { class: "card" }, el("h2", {}, "제안"),
         g.proposals.length ? g.proposals.map((x) => proposalCard(pid, x, g.can_decide)) : el("p", { class: "muted" }, "제안이 없다.")),
@@ -1261,16 +1369,16 @@
         g.history.length ? el("div", { class: "table-wrap" }, el("table", {}, el("thead", {}, el("tr", {}, ["판", "누가", "언제", "크기"].map((h) => el("th", {}, h)))),
           el("tbody", {}, g.history.map((h) => el("tr", {}, el("td", { class: "mono" }, `v${h.version}`), el("td", {}, h.updated_by),
             el("td", { class: "muted nowrap" }, when(h.updated_at)), el("td", { class: "muted" }, `${h.size}자`))))))
-          : el("p", { class: "muted" }, "아직 판이 없다 (v0 — 표준 규칙만).")));
+          : el("p", { class: "muted" }, "아직 올린 판이 없다 — 표준 규칙만 적용된다.")));
   }
 
   const pageHref = (base, path) => `${base}/wp/${encodeURIComponent(path)}`;
 
   async function viewWiki(pid, query) {
-    const { token, base } = await projectHead(pid, "위키");
+    const { token, base } = await projectHead(pid, "지식");
     const q = (query || "").trim();
     const r = await api(`projects/${encodeURIComponent(pid)}/wiki${q ? `?q=${encodeURIComponent(q)}` : ""}`, { token });
-    const input = el("input", { type: "search", placeholder: "낱말 (모두 들어간 페이지)", "aria-label": "위키 검색" });
+    const input = el("input", { type: "search", placeholder: "검색어 (모두 들어간 문서를 찾는다)", "aria-label": "위키 검색" });
     input.value = q;
     const search = el("form", { class: "row", role: "search", onsubmit: (ev) => {
       ev.preventDefault();
@@ -1283,7 +1391,7 @@
       el("a", { href: h.kind === "wiki" ? pageHref(base, h.path) : `${base}/k/${encodeURIComponent(h.ref)}` }, h.title), " ", el("span", { class: "mono muted" }, h.path || h.canonical_ref || ""),
       h.snippet || h.excerpt ? el("div", { class: "muted" }, h.snippet || h.excerpt) : null))) : el("p", { class: "muted" }, "맞는 문서가 없다.");
     else body = el("div", {},
-      el("div", { class: "row" }, (r.data.generated || []).map((g) => el("a", { href: pageHref(base, g) }, g)), el("span", { class: "muted" }, "(생성물)")),
+      el("div", { class: "row" }, (r.data.generated || []).map((g) => el("a", { href: pageHref(base, g) }, g)), el("span", { class: "muted" }, "(자동 생성)")),
       r.data.pages.length ? el("div", { class: "table-wrap" }, el("table", {}, el("thead", {}, el("tr", {}, ["페이지", "경로", "판", "고친 이", "고친 때"].map((h) => el("th", {}, h)))),
         el("tbody", {}, r.data.pages.map((pg) => el("tr", {}, el("td", {}, el("a", { href: pageHref(base, pg.path) }, pg.title)),
           el("td", { class: "mono muted" }, pg.path), el("td", { class: "mono" }, `v${pg.version}`), el("td", {}, pg.updated_by || "—"),
@@ -1307,17 +1415,64 @@
         el("pre", { class: "wiki" }, body)) : alertBox("bad", errorText(r))));
   }
 
+  const DCR_STATUS = { open: ["열림", "open"], accepted: ["승인됨", "approved"], rejected: ["거절됨", "planned"] };
+  const dcrChip = (st) => { const [t, c] = DCR_STATUS[st] || [st, "planned"]; return el("span", { class: "chip " + c, title: st }, t); };
+
   async function viewDcrs(pid, id) {
-    const { token, base } = await projectHead(pid, "결정 변경 기록");
+    const { token, base, pr } = await projectHead(pid, "결정 변경 기록");
     const r = await api(`projects/${encodeURIComponent(pid)}/dcr${id ? `/${encodeURIComponent(id)}` : ""}`, { token });
-    const body = r.status !== 200 ? alertBox("bad", errorText(r)) : id
-      ? el("div", {}, el("p", { class: "muted" }, `${r.data.status} · v${r.data.version} · ${r.data.author}`),
-        el("h2", {}, "근거"), el("pre", { class: "wiki" }, r.data.rationale), el("h2", {}, "제안"), el("pre", { class: "wiki" }, r.data.proposal_md),
-        el("h2", {}, "감사 기록"), el("ul", {}, r.data.timeline.map((e) => el("li", {}, `${e.at} · ${e.actor} · ${e.op}`))),
-        r.data.adr_path ? el("p", { class: "mono" }, `ADR: ${r.data.adr_path}`) : null)
-      : r.data.dcrs.length ? el("ul", { class: "hits" }, r.data.dcrs.map((d) => el("li", {}, el("a", { href: `${base}/dcr/${encodeURIComponent(d.id)}` }, d.title), ` · ${d.status} · ${d.author}`)))
-        : el("p", { class: "muted" }, "등록된 DCR이 없다.");
-    render(el("section", { class: "card" }, el("h1", {}, id ? `DCR ${id}` : "결정 변경 기록"), projectNav(pid, "dcr"), body));
+    const principal = pr.status === 200 ? pr.data.principal : null;
+    const canDecide = Boolean(principal && principal.can_manage);  // 소유자 — 요약 API 가 계산한다 (계정 로그인 포함)
+    let body;
+    if (r.status !== 200) body = alertBox("bad", errorText(r));
+    else if (id) {
+      const d = r.data;
+      let decideBox = null;
+      if (d.status === "open" && canDecide) {
+        const why = el("textarea", { rows: "3", required: true, "aria-label": "판단 근거", "aria-describedby": "dcr-why-hint" });
+        const msg = el("div");
+        const decide = (decision) => async () => {
+          // 오류는 자동 새로고침이 지우지 않게 한다 (dirty — 읽기 전에 사라지면 왜 막혔는지 모른다).
+          if (!why.value.trim()) { dirty = true; msg.replaceChildren(alertBox("bad", "판단 근거를 적어야 결정할 수 있다 — 근거는 ADR 과 감사 기록에 남는다.")); why.focus(); return; }
+          const res = await api(`projects/${encodeURIComponent(pid)}/dcr/${encodeURIComponent(d.id)}/decision`, {
+            method: "POST", token, body: { decision, rationale: why.value.trim(), expected_version: d.version } });
+          if (res.status !== 200) {
+            dirty = true;
+            const code = res.data?.error_code;
+            msg.replaceChildren(alertBox("bad", code === "stale_decision_base"
+              ? "이 DCR 이 가리키는 문서가 그 사이 바뀌었다 — 승인할 수 없다. 제안한 쪽이 새 판 위에서 다시 올려야 한다."
+              : code === "version_conflict" ? "다른 사람이 먼저 이 DCR 을 바꿨다 — 새로고침해서 지금 상태를 본다." : errorText(res)));
+            return;
+          }
+          dirty = false;
+          pendingFlash = { kind: "ok", text: decision === "approve"
+            ? `${d.id} 를 승인했다${res.data?.adr_path ? ` — ADR ${res.data.adr_path}` : ""}.` : `${d.id} 를 거절했다.` };
+          route();
+        };
+        decideBox = el("section", { class: "decide-box", "aria-labelledby": "dcr-decide-h" },
+          el("h2", { id: "dcr-decide-h" }, "결정"),
+          el("label", { class: "field" }, "판단 근거 (필수)", why),
+          el("p", { class: "muted", id: "dcr-why-hint" }, "승인하면 결정 기록(ADR)이 허브 위키 decisions/ 에 바로 남고, 거절해도 근거가 감사 기록에 남는다."),
+          el("div", { class: "row" }, el("button", { type: "button", onclick: decide("approve") }, "승인"),
+            el("button", { type: "button", class: "danger", onclick: decide("reject") }, "거절")), msg);
+      } else if (d.status === "open") {
+        decideBox = el("p", { class: "muted" }, "승인 · 거절은 이 프로젝트의 소유자가 한다 — 허브 계정으로 로그인한 승인된 소유자에게 단추가 보인다.");
+      }
+      body = el("div", {},
+        el("div", { class: "row" }, dcrChip(d.status), el("span", { class: "muted" }, `제안 ${d.author} · ${d.version}판`), el("span", { class: "mono muted" }, d.id)),
+        el("h2", {}, "근거"), el("pre", { class: "wiki" }, d.rationale), el("h2", {}, "제안"), el("pre", { class: "wiki" }, d.proposal_md),
+        decideBox,
+        el("h2", {}, "감사 기록"), el("ul", {}, d.timeline.map((e) => el("li", {}, when(e.at), ` · ${e.actor} · ${OP_LABEL[e.op] ? `${OP_LABEL[e.op]} (${e.op})` : e.op}`))),
+        d.adr_path ? el("p", {}, "확정된 ADR ", el("span", { class: "mono" }, d.adr_path)) : null);
+    } else {
+      const order = { open: 0, accepted: 1, rejected: 2 };
+      const list = r.data.dcrs.slice().sort((x, y) => (order[x.status] ?? 3) - (order[y.status] ?? 3));
+      body = list.length ? el("ul", { class: "hits" }, list.map((d) => el("li", {}, dcrChip(d.status), " ",
+        el("a", { href: `${base}/dcr/${encodeURIComponent(d.id)}` }, d.title), el("span", { class: "muted" }, ` · 제안 ${d.author}`),
+        d.status === "open" && canDecide ? el("span", { class: "muted" }, " · 결정 대기") : null)))
+        : el("p", { class: "muted" }, "등록된 결정 변경 기록(DCR)이 없다.");
+    }
+    render(el("section", { class: "card" }, el("h1", {}, id ? (r.status === 200 ? r.data.title : `DCR ${id}`) : "결정 변경 기록"), projectNav(pid, "dcr"), body));
   }
 
   function wikiLinks(path, text) {
@@ -1348,7 +1503,7 @@
     const pg = r.data;
     const links = wikiLinks(path, pg.body);
     render(el("section", { class: "card" },
-      el("div", { class: "row" }, el("h1", { class: "mono" }, pg.path), pg.generated ? chip("생성물", "planned") : chip(`v${pg.version}`, "planned")),
+      el("div", { class: "row" }, el("h1", { class: "mono" }, pg.path), pg.generated ? chip("자동 생성", "planned") : chip(`${pg.version}판`, "planned")),
       pg.generated ? null : el("div", { class: "row muted" }, `${pg.updated_by || "—"} · `, when(pg.updated_at),
         pg.source && pg.source.sha ? el("span", { class: "mono" }, ` · 출처 ${pg.source.repo_key || ""}@${pg.source.sha.slice(0, 12)}`) : null),
       el("pre", { class: "wiki" }, pg.body),
@@ -1387,7 +1542,7 @@
           el("summary", {}, el("span", { class: "row" }, el("strong", {}, `${d.id} [${d.claim_id}]`), decisionState(d, true), d.question)),
           el("div", { class: "claim-body" },
             el("div", { class: "options" }, radios),
-            el("label", { class: "muted" }, openedBox, "기본값/선택지를 확인했다 (선택 변경 시 자동 체크)")));
+            el("label", { class: "muted" }, openedBox, "기본값과 선택지를 확인했다 (다른 선택지를 고르면 저절로 체크된다)")));
         det.addEventListener("toggle", () => { if (det.open) { openedBox.checked = true; dirty = true; } });
         return det;
       }
@@ -1414,20 +1569,20 @@
       return el("details", { class: "claim", open: true },
         el("summary", {}, `${c.id} — ${c.text}`),
         ds.length ? el("div", { class: "claim-body" }, ds.map(decisionBlock))
-          : el("div", { class: "claim-body muted" }, "이 주장에 걸린 결정 없음"));
+          : el("div", { class: "claim-body muted" }, "이 주장에 연결된 결정 없음"));
     });
     if (orphanDecisions.length) {
       treeNodes.push(el("details", { class: "claim", open: true },
-        el("summary", {}, "연결 주장이 없는 결정"),
+        el("summary", {}, "연결된 주장이 없는 결정"),
         el("div", { class: "claim-body" }, orphanDecisions.map(decisionBlock))));
     }
 
     let statusNotice;
     if (!openIds.size) statusNotice = el("p", { class: "muted" }, "열린 결정이 없다.");
-    else if (plan.has_errors) statusNotice = alertBox("warn", "계획이 오류 규칙을 어긴 상태라 응답을 받을 수 없다 — 작업 세션이 계획을 고친다.");
+    else if (plan.has_errors) statusNotice = alertBox("warn", "계획에 오류가 있어 지금은 답할 수 없다 — 작업 중인 에이전트가 계획을 고치면 답할 수 있다.");
     else if (!principal.can_answer) statusNotice = alertBox("warn", principal.kind === "callsign"
-      ? "결정에는 승인된 human 콜사인만 답한다 — 이 콜사인은 아니다."
-      : "결정에 답하려면 이 프로젝트의 승인된 human 콜사인 토큰이 이 브라우저에 있어야 한다.");
+      ? "결정에는 승인된 사람 콜사인만 답할 수 있다 — 이 콜사인은 아니다."
+      : "결정에 답하려면 허브 계정으로 로그인하거나, 이 프로젝트의 승인된 사람 콜사인 토큰을 이 브라우저에 넣는다.");
 
     const treeEl = treeNodes.length ? el("div", { class: "tree" }, treeNodes) : null;
     const planRaw = el("details", {}, el("summary", {}, "계획 원문"), el("pre", {}, planMd || "(없음)"));
@@ -1474,18 +1629,16 @@
 
   function eventRows(events, withTarget) {
     return events.slice().reverse().map((e) => el("tr", {},
-      el("td", { class: "mono muted" }, String(e.seq)),
-      el("td", { class: "muted nowrap" }, when(e.at)),
-      el("td", {}, e.callsign || "—"),
-      withTarget ? el("td", { class: "mono" }, `${e.target_kind} ${e.target_id}`) : null,
-      el("td", {}, e.op),
-      el("td", { class: "muted" }, e.via),
-      el("td", {}, (e.before !== null || e.after !== null)
-        ? el("details", {}, el("summary", {}, "값"), el("pre", {}, JSON.stringify({ before: e.before, after: e.after }, null, 1)))
+      el("td", { class: "t-title" }, el("span", { title: e.op }, OP_LABEL[e.op] ? `${OP_LABEL[e.op]} (${e.op})` : e.op), withTarget ? el("span", { class: "t-id" }, `${e.target_kind} ${e.target_id}`) : null),
+      el("td", { class: "t-status nowrap muted" }, when(e.at)),
+      el("td", { class: "t-more", "data-label": "누가" }, e.callsign || "—"),
+      el("td", { class: "t-more muted", "data-label": `#${e.seq} ·`, title: e.via }, viaLabel(e.via)),
+      el("td", { class: "t-more" }, (e.before !== null || e.after !== null)
+        ? el("details", {}, el("summary", {}, "바뀐 값"), el("pre", {}, JSON.stringify({ before: e.before, after: e.after }, null, 1)))
         : "")));
   }
   const eventHead = (withTarget) => el("thead", {}, el("tr", {},
-    ["#", "시각", "콜사인", withTarget ? "대상" : null, "무엇", "경로", ""].filter((h) => h !== null).map((h) => el("th", {}, h))));
+    [withTarget ? "무엇 · 대상" : "무엇", "시각", "누가", "어디서", ""].map((h) => el("th", { scope: "col" }, h))));
 
   async function viewTask(pid, tid, flash) {
     const token = storedToken(pid);
@@ -1504,9 +1657,9 @@
       flash ? alertBox("ok", flash) : null,
       el("section", { class: "card" },
         el("h1", {}, task.title),
-        el("div", { class: "row" }, el("span", { class: "mono muted" }, task.id), chip(task.status), chip(task.priority, "planned"),
-          `맡은 이 ${task.assignee || "—"}`, task.wbs ? el("span", { class: "mono" }, task.wbs) : null, `v${task.version}`),
-        task.progress_note ? el("p", {}, el("strong", {}, "지금 하는 일 "), task.progress_note, el("span", { class: "muted" }, ` (${task.progress_at || ""})`)) : null,
+        el("div", { class: "row" }, chip(task.status), chip(task.priority, "planned"), el("span", { class: "muted" }, `맡은 이 ${task.assignee || "—"}`),
+          task.wbs ? el("span", { class: "mono muted" }, task.wbs) : null, el("span", { class: "mono muted" }, `${task.id} · v${task.version}`)),
+        task.progress_note ? el("p", {}, el("strong", {}, "지금 하는 일 "), task.progress_note, task.progress_at ? el("span", { class: "muted" }, " · ", when(task.progress_at)) : null) : null,
         task.description ? el("p", {}, task.description) : null,
         f.category ? el("p", { class: "muted" }, "분류 ", [f.category.level_1, f.category.level_2, f.category.level_3].join(" / ")) : null,
         f.tests?.length ? el("div", {}, el("h2", {}, "테스트 · 최근 실행"), el("ul", {}, f.tests.map((test) => {
@@ -1525,6 +1678,7 @@
 
   // --- 화면: 프로젝트 이력 ----------------------------------------------------------
 
+  let eventsShown = 50;
   async function viewEvents(pid) {
     const token = storedToken(pid);
     const [pr, r] = await Promise.all([
@@ -1534,8 +1688,15 @@
     setCrumbs([{ text: "프로젝트", href: "#/" }, { text: pr.status === 200 ? pr.data.project.display_name : pid, href: base }, { text: "이력" }]);
     if (r.status !== 200) { render(el("section", { class: "card" }, alertBox("bad", errorText(r)))); return; }
     setWho(pr.status === 200 ? pr.data.principal : null);
+    // 최근 것부터 50건씩 — 한 화면에 수백 줄을 쌓지 않는다.
+    const all = r.data.events;
+    const shown = all.slice(Math.max(0, all.length - eventsShown));
+    const more = all.length - shown.length;
     render(el("section", { class: "card" }, el("h1", {}, "이력"), projectNav(pid, "events"),
-      el("div", { class: "table-wrap" }, el("table", {}, eventHead(true), el("tbody", {}, eventRows(r.data.events, true))))));
+      el("p", { class: "muted" }, `최근 ${shown.length}건 / 불러온 ${all.length}건 — 최신이 위`),
+      el("div", { class: "table-wrap" }, el("table", { class: "stack events" }, eventHead(true), el("tbody", {}, eventRows(shown, true)))),
+      more ? el("div", { class: "row pagination" }, el("button", { type: "button", class: "ghost", onclick: () => { eventsShown += 50; route({ preserveScroll: true }); } },
+        `50건 더 보기 (남은 ${more}건)`)) : null));
   }
 
   // --- 길 · 자동 갱신 루프 ---------------------------------------------------------
@@ -1571,7 +1732,7 @@
       }
       if (keepScroll) window.scrollTo(sx, sy);
     } catch (e) {
-      render(el("section", { class: "card" }, alertBox("bad", "허브에 닿지 않는다: " + e)));
+      render(el("section", { class: "card" }, alertBox("bad", "허브에 연결할 수 없다: " + e)));
     }
   }
 

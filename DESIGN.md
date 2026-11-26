@@ -1,172 +1,404 @@
 ---
 version: alpha
 name: Workflow Hub
-description: 프로젝트 소유자와 AI 에이전트가 task · 계획 · 승인 · 세션을 함께 보는 운영 화면 — 허브 · 워크벤치 · PC 중계(VS Code 안).
+description: 차분한 운영 콘솔 — 프로젝트 진척과 사람이 결정할 일을 먼저 보이는 허브 화면. 워크벤치 · PC 중계(VS Code)가 같은 값을 따른다.
 colors:
-  primary: "#161a23"
-  secondary: "#677085"
-  tertiary: "#4f5bd5"
-  on-tertiary: "#ffffff"
-  tertiary-soft: "#eceefe"
-  neutral: "#f4f6fa"
+  ground: "#f2f4f6"
   surface: "#ffffff"
-  surface-2: "#f8f9fc"
-  line: "#e2e6ef"
-  neutral-soft: "#eef0f5"
-  ok: "#17804a"
-  ok-soft: "#e3f5ea"
-  info: "#1d6fd1"
-  info-soft: "#e3effc"
-  warn: "#a15c00"
-  warn-soft: "#fdf1dc"
-  danger: "#c2283c"
-  danger-soft: "#fde6e9"
+  surface-2: "#f7f8fa"
+  ink: "#17202b"
+  ink-2: "#4f5b6b"
+  line: "#d5dae1"
+  field: "#7d8796"
+  shell: "#14233a"
+  shell-ink: "#e8edf4"
+  shell-ink-2: "#a9b6c8"
+  shell-line: "#2a3c55"
+  primary: "#1d5fbf"
+  accent-soft: "#e6eefa"
+  on-accent: "#ffffff"
+  ok: "#1a6b3c"
+  ok-soft: "#e4f2e9"
+  warn: "#8a4b00"
+  warn-soft: "#fbefdc"
+  bad: "#b3261e"
+  bad-soft: "#fbe7e5"
+  neutral: "#3e4a5a"
+  neutral-soft: "#e8ebef"
+  rail-done: "#1d5fbf"
+  rail-open: "#c9d6ea"
+  rail-ground: "#e8ebef"
 typography:
-  headline-lg:
-    fontFamily: system-ui
-    fontSize: 1.45rem
+  count:
+    fontFamily: "system-ui, -apple-system, Segoe UI, Apple SD Gothic Neo, Malgun Gothic, Noto Sans KR, sans-serif"
+    fontSize: 1.5rem
     fontWeight: 700
-    lineHeight: 1.25
-  headline-sm:
-    fontFamily: system-ui
-    fontSize: 1.05rem
+    lineHeight: 1.2
+  headline:
+    fontFamily: "system-ui, -apple-system, Segoe UI, Apple SD Gothic Neo, Malgun Gothic, Noto Sans KR, sans-serif"
+    fontSize: 1.5rem
+    fontWeight: 700
+    lineHeight: 1.3
+    letterSpacing: -0.01em
+  title:
+    fontFamily: "system-ui, -apple-system, Segoe UI, Apple SD Gothic Neo, Malgun Gothic, Noto Sans KR, sans-serif"
+    fontSize: 1.1875rem
     fontWeight: 700
     lineHeight: 1.35
-  body-md:
-    fontFamily: system-ui
-    fontSize: 15px
+  body:
+    fontFamily: "system-ui, -apple-system, Segoe UI, Apple SD Gothic Neo, Malgun Gothic, Noto Sans KR, sans-serif"
+    fontSize: 0.9375rem
+    fontWeight: 400
     lineHeight: 1.55
-  label-sm:
-    fontFamily: system-ui
-    fontSize: 0.82rem
+    fontFeature: "tnum"
+  label:
+    fontFamily: "system-ui, -apple-system, Segoe UI, Apple SD Gothic Neo, Malgun Gothic, Noto Sans KR, sans-serif"
+    fontSize: 0.8125rem
     fontWeight: 600
-  mono-sm:
-    fontFamily: ui-monospace
-    fontSize: 0.85rem
+    lineHeight: 1.5
+  caption:
+    fontFamily: "system-ui, -apple-system, Segoe UI, Apple SD Gothic Neo, Malgun Gothic, Noto Sans KR, sans-serif"
+    fontSize: 0.75rem
+    fontWeight: 400
+  mono:
+    fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+    fontSize: 0.8125rem
+    lineHeight: 1.5
 rounded:
-  sm: 8px
-  md: 14px
-  full: 999px
+  hair: 2px
+  sm: 4px
+  md: 6px
+  lg: 8px
 spacing:
-  xs: 4px
-  sm: 8px
-  md: 16px
-  lg: 24px
+  sp-1: 4px
+  sp-2: 8px
+  sp-3: 12px
+  sp-4: 16px
+  sp-5: 24px
+  sp-6: 32px
 components:
   page:
-    backgroundColor: "{colors.neutral}"
-    textColor: "{colors.primary}"
-    typography: "{typography.body-md}"
+    backgroundColor: "{colors.ground}"
+    textColor: "{colors.ink}"
+    typography: "{typography.body}"
+  shell-bar:
+    backgroundColor: "{colors.shell}"
+    textColor: "{colors.shell-ink}"
+    padding: 12px 24px
+  shell-meta:
+    backgroundColor: "{colors.shell}"
+    textColor: "{colors.shell-ink-2}"
+    typography: "{typography.label}"
+  shell-button-hover:
+    backgroundColor: "{colors.shell-line}"
+    textColor: "{colors.shell-ink}"
+    rounded: "{rounded.md}"
+    padding: 4px 12px
   card:
     backgroundColor: "{colors.surface}"
-    textColor: "{colors.primary}"
-    rounded: "{rounded.md}"
-    padding: 16px
-  card-inset:
-    backgroundColor: "{colors.surface-2}"
-    textColor: "{colors.primary}"
-    rounded: "{rounded.md}"
-    padding: 12px
+    textColor: "{colors.ink}"
+    rounded: "{rounded.lg}"
+    padding: 16px 24px
+  card-meta:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink-2}"
+    typography: "{typography.label}"
+  page-title:
+    textColor: "{colors.ink}"
+    typography: "{typography.headline}"
+  section-title:
+    textColor: "{colors.ink}"
+    typography: "{typography.title}"
   divider:
     backgroundColor: "{colors.line}"
-  caption:
-    textColor: "{colors.secondary}"
-    typography: "{typography.label-sm}"
-  title:
-    textColor: "{colors.primary}"
-    typography: "{typography.headline-lg}"
-  section-title:
-    textColor: "{colors.primary}"
-    typography: "{typography.headline-sm}"
+    height: 1px
+  field-stroke:
+    backgroundColor: "{colors.field}"
+    height: 1px
+  input:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.md}"
+    padding: 6px 8px
+  row-hover:
+    backgroundColor: "{colors.surface-2}"
+    textColor: "{colors.ink}"
   code:
     backgroundColor: "{colors.surface-2}"
-    textColor: "{colors.primary}"
-    typography: "{typography.mono-sm}"
-    rounded: "{rounded.sm}"
+    textColor: "{colors.ink}"
+    typography: "{typography.mono}"
+    rounded: "{rounded.md}"
+    padding: 12px
   button-primary:
-    backgroundColor: "{colors.tertiary}"
-    textColor: "{colors.on-tertiary}"
-    rounded: "{rounded.sm}"
-    padding: 8px
+    backgroundColor: "{colors.primary}"
+    textColor: "{colors.on-accent}"
+    typography: "{typography.label}"
+    rounded: "{rounded.md}"
+    padding: 6px 16px
   button-ghost:
-    backgroundColor: "{colors.neutral-soft}"
-    textColor: "{colors.primary}"
-    rounded: "{rounded.sm}"
-    padding: 8px
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.md}"
+    padding: 6px 16px
   button-danger:
-    backgroundColor: "{colors.danger-soft}"
-    textColor: "{colors.danger}"
-    rounded: "{rounded.sm}"
-    padding: 8px
-  nav-chip-on:
-    backgroundColor: "{colors.tertiary-soft}"
-    textColor: "{colors.tertiary}"
-    rounded: "{rounded.full}"
-  chip-neutral:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.bad}"
+    rounded: "{rounded.md}"
+    padding: 6px 16px
+  button-danger-hover:
+    backgroundColor: "{colors.bad-soft}"
+    textColor: "{colors.bad}"
+  button-disabled:
     backgroundColor: "{colors.neutral-soft}"
+    textColor: "{colors.ink-2}"
+  tab:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink-2}"
+    typography: "{typography.label}"
+    padding: 8px 12px
+  tab-on:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink}"
+    typography: "{typography.label}"
+    padding: 8px 12px
+  filter-on:
+    backgroundColor: "{colors.accent-soft}"
     textColor: "{colors.primary}"
-    rounded: "{rounded.full}"
-  chip-ok:
-    backgroundColor: "{colors.ok-soft}"
-    textColor: "{colors.ok}"
-    rounded: "{rounded.full}"
-  chip-info:
-    backgroundColor: "{colors.info-soft}"
-    textColor: "{colors.info}"
-    rounded: "{rounded.full}"
-  chip-warn:
+    rounded: "{rounded.md}"
+    padding: 2px 12px
+  decide-cell:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink}"
+    typography: "{typography.count}"
+    padding: 12px 16px
+  decide-need:
     backgroundColor: "{colors.warn-soft}"
     textColor: "{colors.warn}"
-    rounded: "{rounded.full}"
-  chip-danger:
-    backgroundColor: "{colors.danger-soft}"
-    textColor: "{colors.danger}"
-    rounded: "{rounded.full}"
+    typography: "{typography.count}"
+    padding: 12px 16px
+  rail-track:
+    backgroundColor: "{colors.rail-ground}"
+    rounded: "{rounded.hair}"
+    height: 10px
+  rail-open:
+    backgroundColor: "{colors.rail-open}"
+    rounded: "{rounded.hair}"
+    height: 10px
+  rail-fill:
+    backgroundColor: "{colors.rail-done}"
+    height: 10px
+  chip:
+    backgroundColor: "{colors.neutral-soft}"
+    textColor: "{colors.neutral}"
+    typography: "{typography.label}"
+    rounded: "{rounded.sm}"
+    padding: 1px 6px
+  chip-progress:
+    backgroundColor: "{colors.accent-soft}"
+    textColor: "{colors.primary}"
+    rounded: "{rounded.sm}"
+    padding: 1px 6px
+  chip-need:
+    backgroundColor: "{colors.warn-soft}"
+    textColor: "{colors.warn}"
+    rounded: "{rounded.sm}"
+    padding: 1px 6px
+  chip-done:
+    backgroundColor: "{colors.ok-soft}"
+    textColor: "{colors.ok}"
+    rounded: "{rounded.sm}"
+    padding: 1px 6px
+  chip-fail:
+    backgroundColor: "{colors.bad-soft}"
+    textColor: "{colors.bad}"
+    rounded: "{rounded.sm}"
+    padding: 1px 6px
+  alert-info:
+    backgroundColor: "{colors.accent-soft}"
+    textColor: "{colors.primary}"
+    rounded: "{rounded.md}"
+    padding: 8px 12px
+  alert-ok:
+    backgroundColor: "{colors.ok-soft}"
+    textColor: "{colors.ok}"
+    rounded: "{rounded.md}"
+    padding: 8px 12px
+  alert-warn:
+    backgroundColor: "{colors.warn-soft}"
+    textColor: "{colors.warn}"
+    rounded: "{rounded.md}"
+    padding: 8px 12px
+  alert-bad:
+    backgroundColor: "{colors.bad-soft}"
+    textColor: "{colors.bad}"
+    rounded: "{rounded.md}"
+    padding: 8px 12px
 ---
+
+# Design System: Workflow Hub
 
 ## Overview
 
-운영자가 매일 여는 도구다 — 마케팅 페이지가 아니다. 한눈에 "지금 무엇이 막혀 있고 무엇을 내가 결정해야 하는가"가 보여야 하고, 그다음이 세부다. 차분하고 조밀하게, 상태는 색과 글자로 함께 말한다.
+**Creative North Star: "차분한 운영 콘솔"**
 
-이 문서는 2026-11-26 현재 세 화면이 실제로 쓰는 값을 받아 적은 **기준선**이다 (`workflow-source/workflow_kit/hub/static/hub.css` · `workflow-source/workflow_kit/workbench/static/workbench.css` · `workflow-source/workflow_kit/relay/ui.py` 의 CSS 변수). 재정비 task 가 이 값을 고친다 — 고칠 때는 이 파일을 먼저 고치고 화면을 따라 고친다.
+팀이 매일 여는 운영 도구다. 첫 화면은 표가 아니라 "지금 어디까지 왔고, 사람이 무엇을 정해야 하나" 를 먼저 말한다 — 프로젝트 머리 → '사람이 결정할 일' 한 줄 → 마일스톤 진척 띠 → task 목록 순서. 짙은 남색 머리 막대가 화면을 붙잡고, 그 아래는 찬 회색 바탕 위 흰 판과 1px 선뿐이다. 그림자도 장식도 없다. 색은 상태를 말할 때만 쓰고, 상태는 언제나 한국어 낱말로 같이 쓴다.
 
-화면 셋:
+이 문서는 2026-11-26 재정비가 끝난 허브 화면(`workflow-source/workflow_kit/hub/static/`)에서 받아 적었다. **값의 정본은 `hub.css` 의 `:root`** 다 — 값을 바꾸면 `hub.css` 와 이 파일을 같은 커밋에서 같이 고친다. 재정비 전 기준선 값은 git 이력과 허브 위키 보고(`queries/ui-baseline-2026-11-26.md`)에 남아 있다.
 
-- **허브** (`/ui/`) — task · 로드맵 · 계획 · 승인 · 오케스트레이션 · 위키. Python 허브와 Go 허브가 같은 정적 파일을 쓴다 (`hub-go/internal/assets/static/` 는 사본, `check_go_assets_sync` 가 묶는다).
-- **워크벤치** — 1.x 로컬 계획 검토 화면.
-- **PC 중계** — 한 PC 에서 띄운 세션 목록 · 허용 경로 · 로그. VS Code 확장은 이 화면을 webview iframe 으로 담을 뿐이다 (`editors/vscode/extension.js`).
+이 규약이 다스리는 화면 셋:
+
+- **허브** (`/ui/`) — 이번 빌드. Python 허브와 Go 허브가 같은 정적 파일을 낸다. `hub-go/internal/assets/static/` 은 바이트 사본이다 (`check_go_assets_sync` 가 묶는다).
+- **워크벤치** (`workflow-source/workflow_kit/workbench/static/`) — 뒤 task 에서 이 토큰을 따른다. 아직 옛 값이다.
+- **PC 중계 화면과 VS Code** (`workflow-source/workflow_kit/relay/ui.py`, Go `hub-go/internal/relay/ui.go`, VS Code 확장은 iframe 으로 담을 뿐) — 뒤 task 에서 이 토큰을 따른다. 아직 옛 값이다.
+
+지킬 제약: 외부 자원 없음(글꼴 · CDN · 빌드 단계 없음), CSP `style-src 'self'` 라 인라인 `style` 속성을 쓰지 않는다 — 동적 폭도 클래스(`.pct-*`, `.w-*`)로 낸다.
+
+**Key Characteristics:**
+- 짙은 머리 막대 하나 + 찬 회색 바탕 + 흰 판 + 1px 선, 그림자 없음
+- 강조색 하나(파랑), 주황은 사람이 필요한 것에만
+- 상태 꼬리표는 각진 작은 표(4px)이고 글자가 상태를 말한다
+- 시그니처는 마일스톤 진척 띠
+- 시스템 글꼴 하나, 숫자는 tabular
 
 ## Colors
 
-- **Primary (`#161a23`):** 본문 글자 · 제목.
-- **Secondary (`#677085`):** 보조 글 · 표 머리 · 메타. 흰 바탕 대비 4.9:1.
-- **Tertiary (`#4f5bd5`):** 주 동작 · 링크 · 선택된 탐색. 주 동작 단추는 한 구역에 하나.
-- **Ok / Info / Warn / Danger:** 상태 전용. 각 색은 `-soft` 바탕 위의 글자로만 쓴다(칩 · 알림). 상태 이름을 글자로 같이 쓴다.
-- **Danger:** 되돌릴 수 없는 동작과 실패에만.
+찬 회색 바탕 위의 남색 잉크, 파랑 하나, 상태색 넷. 모든 상태색은 자기 `-soft` 바탕 위 글자로만 쓴다.
 
-어두운 모드는 같은 이름의 값을 바꿔 넣는다 (`prefers-color-scheme: dark`): neutral `#0f1218`, surface `#171b24`, primary `#e7eaf2`, secondary `#9aa3b8`, tertiary `#8b95ff`.
+### Primary
+- **Console Blue** (`#1d5fbf`, frontmatter `primary` = CSS `--accent`): 주 동작 단추 · 현재 탭 밑줄 · 현재 마일스톤 테두리 · 진척 채움 · 링크 · 포커스 고리 · '진행 중' 꼬리표. 바탕 `--accent-soft` (`#e6eefa`), 위 글자 `--on-accent` (`#ffffff`).
+
+### Neutral
+- **Shell Navy** (`#14233a`, `--shell`): 머리 막대만. 글자 `--shell-ink` (`#e8edf4`), 보조 `--shell-ink-2` (`#a9b6c8`), 선 · 단추 hover `--shell-line` (`#2a3c55`).
+- **Cool Ground** (`#f2f4f6`, `--ground`): 페이지 바탕.
+- **Surface** (`#ffffff`, `--surface`) · **Surface 2** (`#f7f8fa`, `--surface-2`): 판 · 줄 hover · `pre`.
+- **Ink** (`#17202b`, `--ink`) · **Ink 2** (`#4f5b6b`, `--ink-2`): 본문 · 보조 글(메타, 표 머리, 꺼진 탭).
+- **Line** (`#d5dae1`, `--line`): 판 테두리 · 구분선. **Field** (`#7d8796`, `--field`): 입력 · ghost 단추 테두리, hover 시 판 테두리(비글자 3:1 이상).
+- **Neutral** (`#3e4a5a` on `#e8ebef`): '예정' 등 중립 꼬리표 · 꺼진 단추 바탕.
+
+### 상태색
+- **Ok** (`#1a6b3c` on `#e4f2e9`): 끝남 · 승인됨 · 답함.
+- **Warn** (`#8a4b00` on `#fbefdc`): 막힘 · 열림 · 승인 대기 · 미확인 — 사람이 필요하다는 뜻.
+- **Bad** (`#b3261e` on `#fbe7e5`): 실패 · 거절 · 정지 · 응답 없음, 되돌릴 수 없는 동작.
+
+### 진척 띠
+- **Rail Done** (`#1d5fbf`) 채움 · **Rail Open** (`#c9d6ea`) 진행 중 마일스톤의 빈칸 · **Rail Ground** (`#e8ebef`) 아직 열리지 않은 칸.
+
+### 어두운 모드
+`@media (prefers-color-scheme: dark)` 가 같은 이름의 값을 바꿔 넣는다 (`color-scheme: light dark`). 위 frontmatter 는 밝은 값이다. 토큰 이름은 CSS 변수 이름과 같다 — 단 하나, frontmatter `primary` 는 CSS `--accent` 다(형식 검사기가 `primary` 를 요구한다).
+
+| 토큰 | 어두운 값 | 토큰 | 어두운 값 |
+|---|---|---|---|
+| ground | `#0e141b` | primary (`--accent`) | `#7fb0ff` |
+| surface | `#151c25` | accent-soft | `#182a44` |
+| surface-2 | `#1b2430` | on-accent | `#0e141b` |
+| ink | `#e6ebf1` | ok / ok-soft | `#6fd39a` / `#13301f` |
+| ink-2 | `#a3afbf` | warn / warn-soft | `#f0b860` / `#33260f` |
+| line | `#2a3542` | bad / bad-soft | `#ff8a80` / `#3a1a18` |
+| field | `#6f7b8c` | neutral / neutral-soft | `#c5cdd8` / `#222c38` |
+| shell | `#0a1018` | rail-done | `#7fb0ff` |
+| shell-ink | `#e6ebf1` | rail-open | `#2b3f5e` |
+| shell-ink-2 | `#8f9cad` | rail-ground | `#222c38` |
+| shell-line | `#1f2a38` | | |
+
+두 모드 모두 글자 쌍은 4.5:1 이상이다 (밝은 모드 최저 ink-2 on neutral-soft 5.8, 어두운 모드 최저 accent on accent-soft 6.6).
+
+### Named Rules
+**The One Blue Rule.** 강조색은 파랑 하나다. 두 번째 강조색을 들이지 않는다.
+
+**The Orange Means Human Rule.** 주황(warn)은 사람이 손대야 하는 것에만 쓴다 — 막힌 task, 승인 대기, 열린 결정, 탭의 대기 개수.
+
+**The Soft Pair Rule.** 상태색은 자기 `-soft` 바탕 위 글자로만 쓴다. 흰 바탕 위 상태색 글자는 `button.danger` 하나뿐이다.
 
 ## Typography
 
-시스템 글꼴(한글: Apple SD Gothic Neo · Malgun Gothic · Noto Sans KR). 본문 15px, 제목 두 단계(1.45rem · 1.05rem), 라벨 0.82rem. ID · 경로 · 명령은 mono.
+**Body Font:** 시스템 글꼴 (`system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif`)
+**Mono Font:** `ui-monospace, SFMono-Regular, Menlo, Consolas, monospace` — ID · 경로 · 명령 · 옵션 값
+
+**Character:** 글꼴 하나로 굵기와 크기만 바꾼다. 한국어 운영 문구가 주인이고, 숫자는 `font-variant-numeric: tabular-nums` 로 줄을 맞춘다.
+
+### Hierarchy
+- **Count** (700, 1.5rem, 1.2): '사람이 결정할 일' 칸의 숫자. 좁은 폭에서 1.1875rem.
+- **Headline** (700, 1.5rem, 1.3, -0.01em): 화면 제목 `h1` 하나.
+- **Title** (700, 1.1875rem, 1.35): 판 제목 `h2`. `h3` 은 본문 크기 굵게.
+- **Body** (400, 0.9375rem / 15px, 1.55): 본문 · 표 · 입력.
+- **Label** (600, 0.8125rem): 표 머리 · 탭 · 꼬리표 · 필드 라벨 · 메타.
+- **Caption** (400, 0.75rem): task 분류 · 띠 라벨 · 탭 개수.
+- **Mono** (0.8125rem, 1.5): `pre` · `.mono` · `.t-id`.
+
+크기 단계는 12 · 13 · 15 · 19 · 24px 다.
 
 ## Layout
 
-본문 최대 폭 76rem, 카드 사이 16px. 390px 폭에서 가로 스크롤이 없어야 한다 — 넓은 표는 `.table-wrap` 안에서만 스크롤한다. 긴 ID · 경로는 박스 안에서 줄을 바꾼다(`overflow-wrap: anywhere`, flex · grid 자식 `min-width: 0`).
+- 본문 폭 최대 76rem, 가운데. 머리 막대 안쪽도 같은 폭. 판 사이 16px, 판 안쪽 16px 24px.
+- 간격 단위 4 · 8 · 12 · 16 · 24 · 32px (`--sp-1`~`--sp-6`).
+- 좁은 폭 경계 하나: `max-width: 48rem`. 거기서 머리 막대 · 판 안쪽이 줄고, 탭 줄은 한 줄 가로 스크롤, '사람이 결정할 일' 은 3열 고정(칸 최소 높이 44px, 설명 줄 숨김), `table.stack` 표는 제목 + 상태가 한 줄인 쌓인 줄로 바뀌고 나머지 칸은 `data-label` 머리말을 달고 아래로 간다. 진척 띠는 현재 마일스톤 라벨만 남긴다.
+- 390px 폭에서 페이지 가로 스크롤 없음. 넓은 표는 `.table-wrap` 안에서만 스크롤. 긴 ID · 경로는 `overflow-wrap: anywhere`, flex · grid 자식은 `min-width: 0`.
+- 결정 제출 막대(`.submitbar`)는 판 바닥에 sticky.
 
-외부 자원(글꼴 · CDN)을 쓰지 않는다 — 허브는 CSP `style-src 'self'` 라 인라인 style 도 쓰지 않는다.
+## Elevation & Depth
+
+그림자를 쓰지 않는다. 깊이는 세 겹의 면으로만 낸다: 짙은 머리 막대(sticky) → 찬 회색 바탕 → 1px 선을 두른 흰 판. hover 는 `surface-2` 로 바탕을 바꾸거나 테두리를 `field` 로 진하게 하거나 `filter: brightness(1.06)` 로 낸다.
+
+**The Flat Panel Rule.** 판은 흰 면 + 1px `line` 테두리다. `box-shadow` 를 들이지 않는다.
+
+## Shapes
+
+모서리는 작고 일정하다: 판 · '사람이 결정할 일' 줄 8px, 단추 · 입력 · 알림 · 필터 · `pre` 6px, 상태 꼬리표 · 탭 개수 4px, 진척 띠 막대 2px. 알약(999px)은 쓰지 않는다. 판 안의 판은 상자가 아니라 위쪽 구분선 하나로 바뀐다(`.card .card` → 테두리 0, `border-top: 1px`).
 
 ## Components
 
-- **card** — 화면의 기본 덩어리. 카드 안에 카드를 겹치지 않는다(안쪽은 `card-inset`).
-- **chip-*** — 상태 하나. 알약 모양, soft 바탕 + 진한 글자.
-- **button-primary** — 구역마다 하나. 나머지는 ghost.
-- **button-danger** — 거절 · 정지 · 삭제.
+### 머리 막대 (`header.top`)
+짙은 남색 sticky 막대. 이름(굵게) · 위치(crumbs, `shell-ink-2`) · '관리자 모드' 외곽선 단추(`shell-line` 테두리, 6px) · 계정(오른쪽 끝). 포커스 고리는 `shell-ink`.
+
+### 프로젝트 머리와 탭 (`.project-head`, `.nav-links`)
+제목 `h1` → mono ID · 메타 → 탭 줄. 탭은 밑줄형: 꺼진 탭 `ink-2`, 켜진 탭 `ink` 650 + 2px `accent` 밑줄, 탭 줄 밑에 1px `line`. 대기 개수는 탭 옆 4px 주황 작은 표.
+
+### 사람이 결정할 일 (`.decide`)
+개요 맨 위 한 줄. 칸들이 1px `line` 틈으로 붙은 한 덩어리(8px, overflow hidden), 각 칸은 숫자(Count) + 이름 + 한 줄 설명이고 해당 화면으로 가는 링크다. 0 이 아닌 칸은 `.need` 로 `warn-soft` 바탕 + `warn` 글자. 모두 0 이면 `.decide-clear` 한 줄로 접힌다.
+
+### 마일스톤 진척 띠 (`.rail`) — 시그니처
+마일스톤마다 한 칸, 칸 폭 = WBS 수(`.w-1`~`.w-8` → `flex-grow`), 채움 = 끝난 비율(`.pct-0`~`.pct-100`, 10% 단위). 막대 높이 10px, 모서리 2px, 칸 사이 3px. 끝난 부분 `rail-done`, 진행 중 칸 바탕 `rail-open`, 아직 안 연 칸 `rail-ground`. 현재 마일스톤은 2px `accent` 외곽선(offset 1px) + 굵은 라벨. 라벨 아래 mono ID. 띠 아래 범례 한 줄(`.rail-legend`). 로드맵 화면의 `progress` 요소도 같은 색을 쓴다.
+
+### 상태 꼬리표 (`.chip`)
+각진 작은 표: 4px, `1px 6px`, Label 크기 600. 글자는 `STATUS_LABEL` 의 한국어 낱말이고 원래 값은 `title` 에 남는다. 진행 중 계열 파랑, 사람 필요 계열 주황, 끝남 계열 초록, 실패 계열 빨강, 그 밖(예정 · 대기 등)은 중립 회색.
+
+### 표 (`table.tasks`, `table.stack`)
+머리는 Label `ink-2`, 줄 사이 1px `line`, hover `surface-2`. task 제목이 첫 칸이고 굵게, ID 는 그 아래 mono Caption. 48rem 아래에서 `table.stack` 은 쌓인 줄(Layout 참고).
+
+### 판 (`.card`)
+흰 면, 1px `line`, 8px, 안쪽 16px 24px(좁은 폭 12px 16px), 그림자 없음. 판 안의 항목(`.decision`, 중첩 `.card`)은 위쪽 1px 구분선 줄이다. 열린 결정 줄만 위 구분선이 2px `warn`.
+
+### 단추
+- **Primary:** `accent` 바탕 · `on-accent` 글자 · 600 · 6px · `6px 16px`. hover `brightness(1.06)`.
+- **Ghost:** `surface` 바탕 · `ink` 글자 · 1px `field` 테두리. hover `surface-2`.
+- **Danger:** `surface` 바탕 · `bad` 글자 · 1px `bad` 테두리. hover `bad-soft`.
+- **Disabled:** `neutral-soft` 바탕 · `ink-2` 글자 · `line` 테두리, `not-allowed`.
+- 포커스: 모든 대화 요소 2px `accent` outline, offset 2px.
+
+### 입력 · 라벨 (`label.field`)
+라벨은 입력 위에 붙는 Label 크기 `ink-2` 600. 입력은 `surface` 바탕 · 1px `field` 테두리 · 6px · `6px 8px`, placeholder 는 `ink-2`. 결정 선택지(`label.option`)는 1px `line` 상자, 고르면 `accent` 테두리 + `accent-soft` 바탕.
+
+### 필터 · 보기 전환 (`.filters`, `.view-switch`)
+1px `line` 테두리 6px 작은 단추. 켜진 것은 `accent-soft` 바탕 + `accent` 테두리 · 글자 650.
+
+### 알림 (`.alert`)
+6px, `8px 12px`, soft 바탕 + 같은 계열 글자(info 는 파랑). 안의 링크는 같은 색 밑줄 굵게. `bad` 는 `role="alert"`, 나머지는 `role="status"`.
 
 ## Do's and Don'ts
 
-- Do: 글자 대비 WCAG AA(4.5:1) 이상 — 작은 칩 글자도.
-- Do: 입력마다 보이는 라벨이나 `aria-label`.
-- Do: 자동 갱신은 사용자가 입력 중이면 포커스 · 입력값을 지킨다.
-- Don't: 보라-파랑 그라디언트, 카드 안의 카드, 한쪽만 두꺼운 테두리 + 둥근 모서리 조합.
-- Don't: 상태를 색만으로 말하기.
+### Do:
+- **Do** 값을 `hub.css` `:root` 에서 고치고, 같은 커밋에서 이 파일과 Go 사본(`hub-go/internal/assets/static/`)을 같이 맞춘다.
+- **Do** 상태를 색과 한국어 낱말로 함께 말한다 — 꼬리표 글자는 `STATUS_LABEL` 에서 온다.
+- **Do** 글자 대비 WCAG AA 4.5:1 이상을 두 모드에서 지킨다 — 작은 꼬리표 글자도.
+- **Do** 입력마다 보이는 라벨(`label.field`)이나 `aria-label` 을 단다.
+- **Do** 판 안의 항목은 구분선 줄로 나눈다 (`.decision`, 중첩 `.card`).
+- **Do** 동적 폭 · 비율은 클래스(`.pct-*`, `.w-*`)로 낸다 — CSP 가 인라인 style 을 막는다.
+- **Do** 자동 갱신은 사용자가 입력 중이면 포커스 · 입력값을 지킨다.
+
+### Don't:
+- **Don't** 외부 글꼴 · CDN · 빌드 단계를 들인다.
+- **Don't** `box-shadow` 나 그라디언트로 판을 띄운다.
+- **Don't** 상태 꼬리표를 알약(999px)으로 만든다.
+- **Don't** 주황을 사람이 필요하지 않은 상태에 쓴다.
+- **Don't** 판 안에 테두리 상자 판을 겹친다.
+- **Don't** 상태를 색만으로 말한다.

@@ -1,0 +1,618 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-26T05:58:41+00:00",
+  "title": "Design System: Workflow Hub",
+  "extensions": {
+    "colorMeta": {
+      "ground": {
+        "role": "neutral",
+        "displayName": "Cool Ground",
+        "canonical": "#f2f4f6",
+        "cssVar": "--ground",
+        "dark": "#0e141b",
+        "tonalRamp": [
+          "#0b0b0c",
+          "#242526",
+          "#414243",
+          "#606163",
+          "#818284",
+          "#a4a5a7",
+          "#c8c9ca",
+          "#edeeef"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Surface",
+        "canonical": "#ffffff",
+        "cssVar": "--surface",
+        "dark": "#151c25",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "surface-2": {
+        "role": "neutral",
+        "displayName": "Surface 2",
+        "canonical": "#f7f8fa",
+        "cssVar": "--surface-2",
+        "dark": "#1b2430",
+        "tonalRamp": [
+          "#0b0b0c",
+          "#252526",
+          "#414243",
+          "#606163",
+          "#818284",
+          "#a4a5a6",
+          "#c8c9ca",
+          "#eeeeef"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#17202b",
+        "cssVar": "--ink",
+        "dark": "#e6ebf1",
+        "tonalRamp": [
+          "#080b10",
+          "#20262d",
+          "#3b434c",
+          "#58626e",
+          "#798390",
+          "#9da6b1",
+          "#c2cad4",
+          "#e9eff7"
+        ]
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Ink 2",
+        "canonical": "#4f5b6b",
+        "cssVar": "--ink-2",
+        "dark": "#a3afbf",
+        "tonalRamp": [
+          "#070b11",
+          "#1f262e",
+          "#3a434f",
+          "#576271",
+          "#788393",
+          "#9ca6b4",
+          "#c1cad6",
+          "#e8eff9"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Line",
+        "canonical": "#d5dae1",
+        "cssVar": "--line",
+        "dark": "#2a3542",
+        "tonalRamp": [
+          "#0a0b0d",
+          "#232528",
+          "#3f4247",
+          "#5e6267",
+          "#7e8389",
+          "#a2a5aa",
+          "#c6c9ce",
+          "#eceff2"
+        ]
+      },
+      "field": {
+        "role": "neutral",
+        "displayName": "Field Stroke",
+        "canonical": "#7d8796",
+        "cssVar": "--field",
+        "dark": "#6f7b8c",
+        "tonalRamp": [
+          "#080b10",
+          "#20252d",
+          "#3c424d",
+          "#59626f",
+          "#7a8391",
+          "#9ea6b2",
+          "#c3cad4",
+          "#e9eff7"
+        ]
+      },
+      "shell": {
+        "role": "neutral",
+        "displayName": "Shell Navy",
+        "canonical": "#14233a",
+        "cssVar": "--shell",
+        "dark": "#0a1018",
+        "tonalRamp": [
+          "#060b15",
+          "#1c2534",
+          "#364356",
+          "#52627b",
+          "#72839e",
+          "#97a6bd",
+          "#bdcade",
+          "#e5efff"
+        ]
+      },
+      "shell-ink": {
+        "role": "neutral",
+        "displayName": "Shell Ink",
+        "canonical": "#e8edf4",
+        "cssVar": "--shell-ink",
+        "dark": "#e6ebf1",
+        "tonalRamp": [
+          "#0a0b0d",
+          "#232528",
+          "#3f4247",
+          "#5e6267",
+          "#7e8388",
+          "#a2a5aa",
+          "#c6c9ce",
+          "#eceff2"
+        ]
+      },
+      "shell-ink-2": {
+        "role": "neutral",
+        "displayName": "Shell Ink 2",
+        "canonical": "#a9b6c8",
+        "cssVar": "--shell-ink-2",
+        "dark": "#8f9cad",
+        "tonalRamp": [
+          "#070b11",
+          "#1f262e",
+          "#3a434e",
+          "#576271",
+          "#788393",
+          "#9ca6b4",
+          "#c1cad6",
+          "#e8eff8"
+        ]
+      },
+      "shell-line": {
+        "role": "neutral",
+        "displayName": "Shell Line",
+        "canonical": "#2a3c55",
+        "cssVar": "--shell-line",
+        "dark": "#1f2a38",
+        "tonalRamp": [
+          "#050b15",
+          "#1b2634",
+          "#354357",
+          "#50627c",
+          "#71849e",
+          "#96a6be",
+          "#bccade",
+          "#e4f0ff"
+        ]
+      },
+      "primary": {
+        "role": "primary",
+        "displayName": "Console Blue",
+        "canonical": "#1d5fbf",
+        "cssVar": "--accent",
+        "dark": "#7fb0ff",
+        "tonalRamp": [
+          "#00062c",
+          "#002156",
+          "#0d3e85",
+          "#225eb6",
+          "#4581dc",
+          "#72a6f5",
+          "#9fcbff",
+          "#cef1ff"
+        ]
+      },
+      "accent-soft": {
+        "role": "primary",
+        "displayName": "Console Blue Soft",
+        "canonical": "#e6eefa",
+        "cssVar": "--accent-soft",
+        "dark": "#182a44",
+        "tonalRamp": [
+          "#090b0f",
+          "#22252b",
+          "#3d424a",
+          "#5b626b",
+          "#7c838d",
+          "#a0a5ae",
+          "#c5c9d1",
+          "#ebeff5"
+        ]
+      },
+      "on-accent": {
+        "role": "primary",
+        "displayName": "On Console Blue",
+        "canonical": "#ffffff",
+        "cssVar": "--on-accent",
+        "dark": "#0e141b",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "ok": {
+        "role": "status",
+        "displayName": "Ok Green",
+        "canonical": "#1a6b3c",
+        "cssVar": "--ok",
+        "dark": "#6fd39a",
+        "tonalRamp": [
+          "#001102",
+          "#002e14",
+          "#144e2c",
+          "#2b7145",
+          "#4f9466",
+          "#7cb58c",
+          "#a8d7b4",
+          "#d5f9de"
+        ]
+      },
+      "ok-soft": {
+        "role": "status",
+        "displayName": "Ok Soft",
+        "canonical": "#e4f2e9",
+        "cssVar": "--ok-soft",
+        "dark": "#13301f",
+        "tonalRamp": [
+          "#080c0a",
+          "#202723",
+          "#3c443f",
+          "#59645d",
+          "#7a867e",
+          "#9ea8a1",
+          "#c3ccc6",
+          "#eaf0ec"
+        ]
+      },
+      "warn": {
+        "role": "status",
+        "displayName": "Human-Needed Amber",
+        "canonical": "#8a4b00",
+        "cssVar": "--warn",
+        "dark": "#f0b860",
+        "tonalRamp": [
+          "#1b0400",
+          "#3d1a00",
+          "#633501",
+          "#8b5117",
+          "#b0723d",
+          "#ce986c",
+          "#edbf9b",
+          "#ffe7ca"
+        ]
+      },
+      "warn-soft": {
+        "role": "status",
+        "displayName": "Amber Soft",
+        "canonical": "#fbefdc",
+        "cssVar": "--warn-soft",
+        "dark": "#33260f",
+        "tonalRamp": [
+          "#0e0b05",
+          "#2a241b",
+          "#484135",
+          "#696051",
+          "#8b8171",
+          "#ada496",
+          "#cfc8bc",
+          "#f3eee4"
+        ]
+      },
+      "bad": {
+        "role": "status",
+        "displayName": "Fault Red",
+        "canonical": "#b3261e",
+        "cssVar": "--bad",
+        "dark": "#ff8a80",
+        "tonalRamp": [
+          "#260000",
+          "#4f0000",
+          "#7c130e",
+          "#ab2c23",
+          "#d35245",
+          "#f08072",
+          "#ffad9f",
+          "#ffd9cd"
+        ]
+      },
+      "bad-soft": {
+        "role": "status",
+        "displayName": "Fault Soft",
+        "canonical": "#fbe7e5",
+        "cssVar": "--bad-soft",
+        "dark": "#3a1a18",
+        "tonalRamp": [
+          "#0f0909",
+          "#2c2322",
+          "#4b3f3d",
+          "#6d5d5b",
+          "#8e7e7c",
+          "#b0a1a0",
+          "#d2c6c5",
+          "#f6eceb"
+        ]
+      },
+      "neutral": {
+        "role": "neutral",
+        "displayName": "Slate Tag",
+        "canonical": "#3e4a5a",
+        "cssVar": "--neutral",
+        "dark": "#c5cdd8",
+        "tonalRamp": [
+          "#070b12",
+          "#1f262f",
+          "#3a434f",
+          "#576272",
+          "#778394",
+          "#9ba6b5",
+          "#c1cad6",
+          "#e8eff9"
+        ]
+      },
+      "neutral-soft": {
+        "role": "neutral",
+        "displayName": "Slate Tag Soft",
+        "canonical": "#e8ebef",
+        "cssVar": "--neutral-soft",
+        "dark": "#222c38",
+        "tonalRamp": [
+          "#0a0b0c",
+          "#242527",
+          "#404245",
+          "#5f6165",
+          "#808286",
+          "#a3a5a8",
+          "#c7c9cc",
+          "#edeef0"
+        ]
+      },
+      "rail-done": {
+        "role": "primary",
+        "displayName": "Rail Done",
+        "canonical": "#1d5fbf",
+        "cssVar": "--rail-done",
+        "dark": "#7fb0ff",
+        "tonalRamp": [
+          "#00062c",
+          "#002156",
+          "#0d3e85",
+          "#225eb6",
+          "#4581dc",
+          "#72a6f5",
+          "#9fcbff",
+          "#cef1ff"
+        ]
+      },
+      "rail-open": {
+        "role": "primary",
+        "displayName": "Rail Open",
+        "canonical": "#c9d6ea",
+        "cssVar": "--rail-open",
+        "dark": "#2b3f5e",
+        "tonalRamp": [
+          "#070b12",
+          "#1f252f",
+          "#3a434f",
+          "#576272",
+          "#788394",
+          "#9ca6b5",
+          "#c2cad6",
+          "#e8eff9"
+        ]
+      },
+      "rail-ground": {
+        "role": "neutral",
+        "displayName": "Rail Ground",
+        "canonical": "#e8ebef",
+        "cssVar": "--rail-ground",
+        "dark": "#222c38",
+        "tonalRamp": [
+          "#0a0b0c",
+          "#242527",
+          "#404245",
+          "#5f6165",
+          "#808286",
+          "#a3a5a8",
+          "#c7c9cc",
+          "#edeef0"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "count": {
+        "displayName": "Count",
+        "purpose": "'사람이 결정할 일' 칸의 숫자."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "화면 제목 h1 하나."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "판 제목 h2."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "본문 · 표 · 입력 (tabular 숫자)."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "표 머리 · 탭 · 꼬리표 · 필드 라벨 · 메타."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "task 분류 · 띠 라벨 · 탭 개수."
+      },
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "ID · 경로 · 명령 · pre."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "hover-brightness",
+        "value": "filter: brightness(1.06)",
+        "purpose": "주 동작 단추 · 관리자 진입 단추 hover. 전환 애니메이션은 없다."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "narrow",
+        "value": "48rem",
+        "purpose": "max-width — 쌓인 표 · 3열 결정 줄 · 탭 가로 스크롤"
+      }
+    ],
+    "focus": {
+      "value": "outline: 2px solid var(--accent); outline-offset: 2px",
+      "purpose": "모든 대화 요소. 머리 막대 안에서는 outline-color: var(--shell-ink)."
+    },
+    "darkMode": {
+      "mechanism": "@media (prefers-color-scheme: dark) 가 :root 변수를 바꿔 넣는다 (color-scheme: light dark). 값은 colorMeta.*.dark."
+    },
+    "source": {
+      "valueSource": "workflow-source/workflow_kit/hub/static/hub.css :root",
+      "byteCopy": "hub-go/internal/assets/static/",
+      "constraints": [
+        "외부 자원 없음",
+        "CSP style-src 'self' — 인라인 style 없음"
+      ]
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "구역의 주 동작 하나.",
+      "html": "<button class=\"ds-btn-primary\">승인</button>",
+      "css": ".ds-btn-primary{font-family: system-ui, -apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif;background:var(--accent,#1d5fbf);color:var(--on-accent,#fff);border:1px solid transparent;border-radius:6px;padding:6px 16px;font-weight:600;font-size:.9375rem;cursor:pointer}.ds-btn-primary:hover{filter:brightness(1.06)}.ds-btn-primary:focus-visible{outline:2px solid var(--accent,#1d5fbf);outline-offset:2px}"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "나머지 동작.",
+      "html": "<button class=\"ds-btn-ghost\">취소</button>",
+      "css": ".ds-btn-ghost{font-family: system-ui, -apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif;background:var(--surface,#fff);color:var(--ink,#17202b);border:1px solid var(--field,#7d8796);border-radius:6px;padding:6px 16px;font-weight:600;font-size:.9375rem;cursor:pointer}.ds-btn-ghost:hover{background:var(--surface-2,#f7f8fa)}.ds-btn-ghost:focus-visible{outline:2px solid var(--accent,#1d5fbf);outline-offset:2px}"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "거절 · 정지 · 삭제.",
+      "html": "<button class=\"ds-btn-danger\">거절</button>",
+      "css": ".ds-btn-danger{font-family: system-ui, -apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif;background:var(--surface,#fff);color:var(--bad,#b3261e);border:1px solid var(--bad,#b3261e);border-radius:6px;padding:6px 16px;font-weight:600;font-size:.9375rem;cursor:pointer}.ds-btn-danger:hover{background:var(--bad-soft,#fbe7e5)}.ds-btn-danger:focus-visible{outline:2px solid var(--accent,#1d5fbf);outline-offset:2px}"
+    },
+    {
+      "name": "Labeled Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "입력 위에 붙는 보이는 라벨.",
+      "html": "<label class=\"ds-field\">콜사인<input type=\"text\" placeholder=\"bot-a\"></label>",
+      "css": ".ds-field{font-family: system-ui, -apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif;display:inline-grid;font-size:.8125rem;font-weight:600;color:var(--ink-2,#4f5b6b)}.ds-field input{font:inherit;font-size:.9375rem;font-weight:400;color:var(--ink,#17202b);background:var(--surface,#fff);border:1px solid var(--field,#7d8796);border-radius:6px;padding:6px 8px}.ds-field input::placeholder{color:var(--ink-2,#4f5b6b)}.ds-field input:focus-visible{outline:2px solid var(--accent,#1d5fbf);outline-offset:2px}"
+    },
+    {
+      "name": "Shell Bar and Tabs",
+      "kind": "nav",
+      "refersTo": "shell-bar",
+      "description": "짙은 머리 막대 + 밑줄형 프로젝트 탭.",
+      "html": "<div class=\"ds-shell\"><b>워크플로우 허브</b><span>프로젝트 › demo</span></div><nav class=\"ds-tabs\"><a class=\"on\" href=\"#\">개요 · task</a><a href=\"#\">확인 요청<span class=\"ds-count\">4</span></a><a href=\"#\">로드맵</a></nav>",
+      "css": ".ds-shell{font-family: system-ui, -apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif;display:flex;gap:12px;align-items:center;padding:12px 24px;background:var(--shell,#14233a);color:var(--shell-ink,#e8edf4)}.ds-shell span{color:var(--shell-ink-2,#a9b6c8);font-size:.8125rem}.ds-tabs{font-family: system-ui, -apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif;display:flex;border-bottom:1px solid var(--line,#d5dae1);background:var(--surface,#fff);padding:0 24px}.ds-tabs a{padding:8px 12px;color:var(--ink-2,#4f5b6b);font-size:.8125rem;text-decoration:none;border-bottom:2px solid transparent;margin-bottom:-1px}.ds-tabs a:hover{color:var(--ink,#17202b)}.ds-tabs a.on{color:var(--ink,#17202b);font-weight:650;border-bottom-color:var(--accent,#1d5fbf)}.ds-count{display:inline-block;margin-left:4px;padding:0 5px;border-radius:4px;background:var(--warn-soft,#fbefdc);color:var(--warn,#8a4b00);font-size:.75rem;font-weight:700}"
+    },
+    {
+      "name": "Status Tags",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "각진 작은 표, 한국어 낱말이 상태를 말한다.",
+      "html": "<span class=\"ds-chip\">예정</span> <span class=\"ds-chip prog\">진행 중</span> <span class=\"ds-chip need\">막힘</span> <span class=\"ds-chip done\">끝남</span> <span class=\"ds-chip fail\">실패</span>",
+      "css": ".ds-chip{font-family: system-ui, -apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif;display:inline-block;white-space:nowrap;padding:1px 6px;border-radius:4px;font-size:.8125rem;font-weight:600;line-height:1.5;background:var(--neutral-soft,#e8ebef);color:var(--neutral,#3e4a5a)}.ds-chip.prog{background:var(--accent-soft,#e6eefa);color:var(--accent,#1d5fbf)}.ds-chip.need{background:var(--warn-soft,#fbefdc);color:var(--warn,#8a4b00)}.ds-chip.done{background:var(--ok-soft,#e4f2e9);color:var(--ok,#1a6b3c)}.ds-chip.fail{background:var(--bad-soft,#fbe7e5);color:var(--bad,#b3261e)}"
+    },
+    {
+      "name": "Panel",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "흰 면 + 1px 선, 그림자 없음. 안의 항목은 구분선 줄.",
+      "html": "<section class=\"ds-card\"><h2>진척</h2><div class=\"ds-item\">열린 결정 — 배포 순서</div><div class=\"ds-item open\">열린 결정 — 이름 규칙</div></section>",
+      "css": ".ds-card{font-family: system-ui, -apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif;background:var(--surface,#fff);color:var(--ink,#17202b);border:1px solid var(--line,#d5dae1);border-radius:8px;padding:16px 24px}.ds-card h2{font-size:1.1875rem;line-height:1.35;margin:0 0 12px}.ds-item{border-top:1px solid var(--line,#d5dae1);padding:12px 0}.ds-item.open{border-top:2px solid var(--warn,#8a4b00)}"
+    },
+    {
+      "name": "Decision Row",
+      "kind": "custom",
+      "refersTo": "decide-need",
+      "description": "'사람이 결정할 일' 한 줄. 0 이 아닌 칸만 주황.",
+      "html": "<div class=\"ds-decide\"><a class=\"need\" href=\"#\"><b>4</b><span>확인 요청</span></a><a class=\"need\" href=\"#\"><b>2</b><span>중계 승인</span></a><a href=\"#\"><b>0</b><span>DCR</span></a></div>",
+      "css": ".ds-decide{font-family: system-ui, -apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif;display:grid;grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr));gap:1px;background:var(--line,#d5dae1);border:1px solid var(--line,#d5dae1);border-radius:8px;overflow:hidden}.ds-decide a{display:grid;padding:12px 16px;background:var(--surface,#fff);color:var(--ink,#17202b);text-decoration:none}.ds-decide a:hover{background:var(--surface-2,#f7f8fa)}.ds-decide b{font-size:1.5rem;line-height:1.2;font-variant-numeric:tabular-nums}.ds-decide span{font-size:.8125rem;color:var(--ink-2,#4f5b6b)}.ds-decide a.need{background:var(--warn-soft,#fbefdc)}.ds-decide a.need b,.ds-decide a.need span{color:var(--warn,#8a4b00)}.ds-decide a:focus-visible{outline:2px solid var(--accent,#1d5fbf);outline-offset:-2px}"
+    },
+    {
+      "name": "Milestone Rail",
+      "kind": "custom",
+      "refersTo": "rail-fill",
+      "description": "시그니처. 칸 폭 = WBS 수, 채움 = 끝난 비율, 현재 마일스톤 외곽선.",
+      "html": "<div class=\"ds-rail\"><a class=\"w-2\"><i class=\"bar\"><i class=\"fill pct-100\"></i></i><span>M-001</span></a><a class=\"cur open w-3\"><i class=\"bar\"><i class=\"fill pct-30\"></i></i><span>M-002</span></a><a class=\"w-2\"><i class=\"bar\"></i><span>M-003</span></a></div>",
+      "css": ".ds-rail{font-family: system-ui, -apple-system, 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif;display:flex;gap:3px}.ds-rail a{flex:1 1 0;min-width:1.25rem}.ds-rail .bar{display:block;height:10px;border-radius:2px;background:var(--rail-ground,#e8ebef);overflow:hidden}.ds-rail .open .bar{background:var(--rail-open,#c9d6ea)}.ds-rail .fill{display:block;height:100%;background:var(--rail-done,#1d5fbf)}.ds-rail .cur .bar{outline:2px solid var(--accent,#1d5fbf);outline-offset:1px}.ds-rail span{display:block;margin-top:4px;font-size:.75rem;color:var(--ink-2,#4f5b6b)}.ds-rail .cur span{color:var(--ink,#17202b);font-weight:650}.ds-rail .w-2{flex-grow:2}.ds-rail .w-3{flex-grow:3}.ds-rail .pct-100{width:100%}.ds-rail .pct-30{width:30%}"
+    }
+  ],
+  "narrative": {
+    "northStar": "차분한 운영 콘솔",
+    "overview": "**Creative North Star: \"차분한 운영 콘솔\"**\n\n팀이 매일 여는 운영 도구다. 첫 화면은 표가 아니라 \"지금 어디까지 왔고, 사람이 무엇을 정해야 하나\" 를 먼저 말한다 — 프로젝트 머리 → '사람이 결정할 일' 한 줄 → 마일스톤 진척 띠 → task 목록 순서. 짙은 남색 머리 막대가 화면을 붙잡고, 그 아래는 찬 회색 바탕 위 흰 판과 1px 선뿐이다. 그림자도 장식도 없다. 색은 상태를 말할 때만 쓰고, 상태는 언제나 한국어 낱말로 같이 쓴다.",
+    "keyCharacteristics": [
+      "짙은 머리 막대 하나 + 찬 회색 바탕 + 흰 판 + 1px 선, 그림자 없음",
+      "강조색 하나(파랑), 주황은 사람이 필요한 것에만",
+      "상태 꼬리표는 각진 작은 표(4px)이고 글자가 상태를 말한다",
+      "시그니처는 마일스톤 진척 띠",
+      "시스템 글꼴 하나, 숫자는 tabular"
+    ],
+    "rules": [
+      {
+        "name": "The One Blue Rule",
+        "body": "강조색은 파랑 하나다. 두 번째 강조색을 들이지 않는다.",
+        "section": "colors"
+      },
+      {
+        "name": "The Orange Means Human Rule",
+        "body": "주황(warn)은 사람이 손대야 하는 것에만 쓴다 — 막힌 task, 승인 대기, 열린 결정, 탭의 대기 개수.",
+        "section": "colors"
+      },
+      {
+        "name": "The Soft Pair Rule",
+        "body": "상태색은 자기 `-soft` 바탕 위 글자로만 쓴다. 흰 바탕 위 상태색 글자는 `button.danger` 하나뿐이다.",
+        "section": "colors"
+      },
+      {
+        "name": "The Flat Panel Rule",
+        "body": "판은 흰 면 + 1px `line` 테두리다. `box-shadow` 를 들이지 않는다.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** 값을 `hub.css` `:root` 에서 고치고, 같은 커밋에서 이 파일과 Go 사본(`hub-go/internal/assets/static/`)을 같이 맞춘다.",
+      "**Do** 상태를 색과 한국어 낱말로 함께 말한다 — 꼬리표 글자는 `STATUS_LABEL` 에서 온다.",
+      "**Do** 글자 대비 WCAG AA 4.5:1 이상을 두 모드에서 지킨다 — 작은 꼬리표 글자도.",
+      "**Do** 입력마다 보이는 라벨(`label.field`)이나 `aria-label` 을 단다.",
+      "**Do** 판 안의 항목은 구분선 줄로 나눈다 (`.decision`, 중첩 `.card`).",
+      "**Do** 동적 폭 · 비율은 클래스(`.pct-*`, `.w-*`)로 낸다 — CSP 가 인라인 style 을 막는다.",
+      "**Do** 자동 갱신은 사용자가 입력 중이면 포커스 · 입력값을 지킨다."
+    ],
+    "donts": [
+      "**Don't** 외부 글꼴 · CDN · 빌드 단계를 들인다.",
+      "**Don't** `box-shadow` 나 그라디언트로 판을 띄운다.",
+      "**Don't** 상태 꼬리표를 알약(999px)으로 만든다.",
+      "**Don't** 주황을 사람이 필요하지 않은 상태에 쓴다.",
+      "**Don't** 판 안에 테두리 상자 판을 겹친다.",
+      "**Don't** 상태를 색만으로 말한다."
+    ]
+  }
+}

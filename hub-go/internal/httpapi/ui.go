@@ -753,6 +753,33 @@ func (s *Server) handleProjectUIAPI(w http.ResponseWriter, r *http.Request, prin
 		writeJSONResponse(w, http.StatusOK, result)
 		return
 	}
+	if len(parts) == 5 && parts[2] == "dcr" && parts[4] == "decision" && r.Method == http.MethodPost {
+		// DCR 승인 · 거절 — hub_dcr_decide 와 같은 함수 (소유자만, 판단 근거 필수, 낡은 판 409).
+		if principal.Kind != "callsign" || principal.ProjectID != pid {
+			writeScreenError(w, store.Forbidden("쓰기는 이 프로젝트의 콜사인 토큰으로만 한다 (화면 공용 토큰은 읽기 · 등록만)"))
+			return
+		}
+		body, err := readScreenJSON(r)
+		if err != nil {
+			writeScreenError(w, err)
+			return
+		}
+		expectedValue, ok := body["expected_version"].(json.Number)
+		expected, parseErr := strconv.Atoi(expectedValue.String())
+		if !ok || parseErr != nil {
+			writeScreenError(w, store.InvalidField("expected_version", "정수"))
+			return
+		}
+		decision, _ := body["decision"].(string)
+		rationale, _ := body["rationale"].(string)
+		result, err := s.cfg.Store.DCRDecide(store.Ctx{Now: now, Via: "ui", Principal: principal}, parts[3], expected, decision, rationale)
+		if err != nil {
+			writeScreenError(w, err)
+			return
+		}
+		writeJSONResponse(w, http.StatusOK, result)
+		return
+	}
 	if len(parts) == 4 && parts[2] == "dcr" && r.Method == http.MethodGet {
 		result, err := s.cfg.Store.DCRGet(ctx, parts[3])
 		if err != nil {
@@ -1109,7 +1136,7 @@ func (s *Server) screenProjectSummary(pid string, project map[string]any, ctx st
 			return nil, err
 		}
 	}
-	planRows, err := s.cfg.Store.DB().Query("SELECT id FROM task WHERE project_id=? AND status!='done' AND plan_md!=''", pid)
+	planRows, err := s.cfg.Store.DB().Query("SELECT id FROM task WHERE project_id=? AND status!='done' AND plan_md!='' ORDER BY id", pid)
 	if err != nil {
 		return nil, err
 	}
@@ -1130,20 +1157,21 @@ func (s *Server) screenProjectSummary(pid string, project map[string]any, ctx st
 		return nil, err
 	}
 	judgeBridge := tools.JudgeBridge{Store: s.cfg.Store}
-	openDecisionTasks := 0
+	// 화면이 '사람이 결정할 일' 에서 그 task 로 바로 보낸다 — 수만 주면 어느 task 인지 다시 찾아야 한다.
+	openDecisionTaskIDs := []string{}
 	for _, taskID := range planTaskIDs {
 		status, err := judgeBridge.PlanStatus(ctx, taskID)
 		if err != nil {
 			return nil, err
 		}
 		if len(status["open_decisions"].([]string)) > 0 {
-			openDecisionTasks++
+			openDecisionTaskIDs = append(openDecisionTaskIDs, taskID)
 		}
 	}
 	return map[string]any{
 		"project": project, "principal": principalSummary(principal),
 		"summary": map[string]any{
-			"open_decision_tasks": openDecisionTasks, "pending_approvals": pendingApprovals, "unacknowledged": unacknowledged,
+			"open_decision_tasks": len(openDecisionTaskIDs), "open_decision_task_ids": openDecisionTaskIDs, "pending_approvals": pendingApprovals, "unacknowledged": unacknowledged,
 			"open_assignments": openAssignments, "ideas_unread": ideasUnread, "session_counts": sessionList["counts"],
 			"unknown_sessions": sessionList["unknown"], "sessions_total": len(sessionList["sessions"].([]map[string]any)),
 			"orchestrator": sessionList["orchestrator"],

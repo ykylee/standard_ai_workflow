@@ -331,13 +331,15 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
             plan_task_ids = [
                 r["id"]
                 for r in conn.execute(
-                    "SELECT id FROM task WHERE project_id = ? AND status != 'done' AND plan_md != ''",
+                    "SELECT id FROM task WHERE project_id = ? AND status != 'done' AND plan_md != '' ORDER BY id",
                     (pid,),
                 ).fetchall()
             ]
-        open_decision_tasks = sum(1 for tid in plan_task_ids if judge.plan_status(ctx, tid)["open_decisions"])
+        # 화면이 '사람이 결정할 일' 에서 그 task 로 바로 보낸다 — 수만 주면 어느 task 인지 다시 찾아야 한다.
+        open_decision_task_ids = [tid for tid in plan_task_ids if judge.plan_status(ctx, tid)["open_decisions"]]
         return {
-            "open_decision_tasks": open_decision_tasks,
+            "open_decision_tasks": len(open_decision_task_ids),
+            "open_decision_task_ids": open_decision_task_ids,
             "pending_approvals": pending_approvals,
             "unacknowledged": unacknowledged,
             "open_assignments": open_assignments,
@@ -639,6 +641,16 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
             raise invalid_field("approve", "true · false")
         return guides.decide(Ctx(now=now, via="ui", principal=_own(p, pid)), request.path_params["gid"], b["approve"])
 
+    def post_dcr_decision(request: Request, p: Principal, now: datetime, b: dict[str, Any]) -> dict[str, Any]:
+        """DCR 승인 · 거절 — ``hub_dcr_decide`` 와 같은 함수 (소유자만, 판단 근거 필수, 낡은 판 409)."""
+        pid = request.path_params["pid"]
+        version = b.get("expected_version")
+        if not isinstance(version, int) or isinstance(version, bool):
+            raise invalid_field("expected_version", "정수")
+        rationale = b.get("rationale")
+        return knowledge.dcr_decide(Ctx(now=now, via="ui", principal=_own(p, pid)), request.path_params["did"], version,
+                                    str(b.get("decision") or ""), rationale if isinstance(rationale, str) else "")
+
     def post_approve(request: Request, p: Principal, now: datetime, _b: Any) -> dict[str, Any]:
         """사람 콜사인 승인 — ``hub_callsign_approve`` 와 같은 함수 (승인된 human 소유자만)."""
         pid = request.path_params["pid"]
@@ -789,6 +801,7 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
         Route("/api/projects/{pid}/knowledge/ref", api(get_knowledge_ref), methods=["GET"]),
         Route("/api/projects/{pid}/dcr", api(get_dcrs), methods=["GET"]),
         Route("/api/projects/{pid}/dcr/{did}", api(get_dcr), methods=["GET"]),
+        Route("/api/projects/{pid}/dcr/{did}/decision", api(post_dcr_decision, body=True), methods=["POST"]),
         Route("/api/projects/{pid}/callsigns", api(get_callsigns), methods=["GET"]),
         Route("/api/projects/{pid}/callsigns", api(post_callsign, body=True), methods=["POST"]),
         Route("/api/projects/{pid}/callsigns/{cs}", api(get_callsign), methods=["GET"]),

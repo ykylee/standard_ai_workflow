@@ -287,6 +287,9 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- chore(release): prepare 3.6.1 (aac65a3c)
+- docs: add a harness-neutral frontend toolkit and how to use it (49c898ca)
+- chore(release): keep the files generated while publishing 3.6.0 (c8f30acb)
 - chore(release): prepare 3.6.0 (bf68a704)
 - chore(release): keep the files generated while publishing 3.5.1 (0bba68a8)
 - docs(release): record the smoke total in the 3.5.1 note (c8652f20)
@@ -919,6 +922,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- fix(hub): let an idea draft carry a WBS exempt reason so "task 로 등록" passes the gate (84a0081a)
 - fix(hub): warn on the values that will be registered, lock idea forms until redrawn, steady the idea check (b6362667)
 - fix(hub): keep ideas away from resumed workers, hold claims per idea, and never redraw over typing (0d927328)
 - fix(hub): never echo misplaced admin arguments, show newline-only guide changes, keep odd approvals off the screen (5b7f8d35)

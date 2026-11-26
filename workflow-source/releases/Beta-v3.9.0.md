@@ -22,3 +22,20 @@
 
 - **DB 판은 22 그대로다** — 3.8.0 으로 되돌릴 때 실행 파일만 바꾸면 된다.
 - 워크벤치(1.x) 의 같은 '미리 고른 결정' 결함과 PC 중계 화면은 이번 판에 들지 않았다(TASK-2026-11-26-claude-plex-009 · 010).
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-11-26T08:10:39Z)_
+
+- total wiki pages: **104**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

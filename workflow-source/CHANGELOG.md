@@ -16,6 +16,8 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- feat(hub): redesign the hub screens around progress and human decisions; approve DCRs on the web (16c9e34e)
+- feat(ui): adopt the frontend toolkit in this repository and record the UI baseline (82bc47bc)
 - feat(hub): onboarding agents register a knowledge source with the owner's screen approval (844965c5)
 - feat(hub): idea box I2 and I3, plus linking ideas to existing tasks (054af45c)
 - feat(hub): a DCR approval writes its ADR to the hub wiki and is accepted at once (e51988b9)
@@ -290,6 +292,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- chore(release): prepare 3.9.0 (31a486ec)
+- chore(release): keep the files generated while publishing 3.8.0 (df1f4c59)
 - chore(release): prepare 3.8.0 (ec90067b)
 - chore(release): keep the files generated while publishing 3.7.0 (cb189c96)
 - chore(release): prepare 3.7.0 (ee7004dd)
@@ -929,6 +933,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- fix(hub): put people's approvals first and close the remaining readability gaps (e91679ac)
+- fix(hub): never answer an unseen plan decision; send logged-out project links to login (1c9c555d)
 - fix(hub): let an idea draft carry a WBS exempt reason so "task 로 등록" passes the gate (84a0081a)
 - fix(hub): warn on the values that will be registered, lock idea forms until redrawn, steady the idea check (b6362667)
 - fix(hub): keep ideas away from resumed workers, hold claims per idea, and never redraw over typing (0d927328)

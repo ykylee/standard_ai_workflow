@@ -100,7 +100,10 @@ def proxy(hub: Hub, cookie: str) -> ThreadingHTTPServer:
                         b"document.querySelector('iframe').contentDocument.documentElement;document.body.dataset.w=d.scrollWidth+'/'+d.clientWidth;"
                         b"document.body.dataset.text=d.innerText;"
                         # 표 안쪽 가로 넘침 — 페이지 폭은 그대로여도 표가 옆으로 밀리면 휴대폰에서 못 읽는다
-                        b"document.body.dataset.tw=Math.max(0,...[...d.querySelectorAll('.table-wrap')].map(e=>e.scrollWidth-e.clientWidth))},4000)</script>")
+                        b"document.body.dataset.tw=Math.max(0,...[...d.querySelectorAll('.table-wrap')].map(e=>e.scrollWidth-e.clientWidth));"
+                        # 탭이 보이는 폭 밖으로 밀려 숨었는지 (가로 스크롤 안에 숨은 탭도 센다)
+                        b"const nv=[...d.querySelectorAll('.nav-links a')];document.body.dataset.nav=nv.length+'/'+nv.filter(a=>{const r=a.getBoundingClientRect();"
+                        b"const p=a.parentElement.getBoundingClientRect();return r.right>Math.min(p.right,d.clientWidth)+1||r.width===0}).length},4000)</script>")
                 self.send_response(200)
                 self.send_header("content-type", "text/html; charset=utf-8")
                 self.end_headers()
@@ -260,6 +263,29 @@ def overview_cases(impl: str, exe: str, tmp: Path, port: int, hub: Hub, env: dic
     w = re.search(r'data-w="(\d+)/(\d+)"', dom)
     tw = re.search(r'data-tw="(-?\d+)"', dom)
     _record(f"[{impl}] 개요 360px — 페이지 · 표 안쪽 모두 가로 넘침 없음", bool(w and tw) and w[1] == w[2] and tw[1] == "0", f"w={w and w.groups()} tw={tw and tw[1]}")
+    # 재채점 P2 · P3 (TASK-2026-11-26-claude-plex-012)
+    orch = doms["viewOrchestration"]
+    at_appr, at_msg = orch.find('id="approvals"'), orch.find("미확인 메시지")
+    folded = re.search(r'<details class="card" data-keep="orch-unack"[^>]*>', orch)
+    _record(f"[{impl}] 오케스트레이션 — 사람 승인이 메시지보다 위, 메시지는 접힘 · 중계 승인 타일이 그 자리로",
+            0 < at_appr < at_msg and bool(folded) and " open" not in folded[0] and tiles.get("중계 승인", ("", 0))[0] == f"#/p/{pid}/orch?focus=approvals",
+            f"approvals={at_appr} msg={at_msg} folded={folded and folded[0]} tile={tiles.get('중계 승인')}")
+    st2, out2, _ = hub.call("hub_task_create", {"title": "배포 채널 정하기", "plan_md": ui.PLAN, "wbs": "exempt", "wbs_exempt_reason": "화면 검사",
+                                               "fields": {"done_criteria": ["[C1] 답이 반영된다"]}}, env["owner"])
+    assert st2 == 200, out2  # 열린 결정 task 가 둘이면 타일은 한 task 가 아니라 목록으로 간다
+    many = ui._req(hub.base, f"/api/projects/{pid}", token=env["owner"])[1]["summary"]["open_decision_task_ids"]
+    ov2 = html.unescape(draw(exe, tmp, port, f"p/{pid}"))
+    tile2 = re.search(r'<a class="need" href="([^"]*)" data-decide="열린 결정 task">', ov2)
+    lst = html.unescape(draw(exe, tmp, port, f"p/{pid}?decisions=open"))
+    titles = [ui._req(hub.base, f"/api/projects/{pid}/tasks/{t}", token=env["owner"])[1]["task"]["title"] for t in many]
+    _record(f"[{impl}] '열린 결정 task' 둘 이상 — 타일이 목록으로, 목록엔 그 task 만", len(many) == 2 and bool(tile2) and tile2[1] == f"#/p/{pid}?decisions=open"
+            and all(t in lst for t in titles) and "답이 필요한 결정이 있는 task" in lst and lst.count('<td class="t-title">') == 2
+            and ">필터 해제</a>" in lst and re.search(r'class="need on"[^>]*data-decide="열린 결정 task" aria-current="true"', lst) is not None, f"{many} tile={tile2 and tile2[1]}")
+    ev = html.unescape(doms["viewEvents"])
+    raw_ops = sorted({m for m in re.findall(r'<td class="t-title"><span title="([a-z_]+)">([^<]*)</span>', ev) if m[0] == m[1]})
+    _record(f"[{impl}] 이력 — 동작명이 영어 원문만으로 나오지 않는다", not raw_ops and "<td class=\"t-title\">" in ev, f"{raw_ops}")
+    nav = re.search(r'data-nav="(\d+)/(\d+)"', dom)
+    _record(f"[{impl}] 360px 탭 — 9개 모두 보인다 (숨은 탭 0)", bool(nav) and nav[1] == "9" and nav[2] == "0", f"nav={nav and nav.groups()}")
 
 
 def dcr_cases(impl: str, exe: str, tmp: Path, port: int, hub: Hub, env: dict[str, str]) -> None:

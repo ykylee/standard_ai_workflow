@@ -97,7 +97,10 @@
   const PHASE_LABEL = { concept: "구상", requirements: "요구 사항", design: "설계", implementation: "구현", release: "발행", operations: "운영", operation: "운영" };
   const VIA_LABEL = { http: "API", ui: "화면", mcp: "MCP", relay: "PC 중계", cli: "명령줄", a2a: "A2A", piggyback: "다른 응답에 덧붙여", wait: "대기 중 받음", push: "바로 보냄" };
   const OP_LABEL = { create: "만듦", update: "고침", claim: "맡음", release: "놓음", close: "닫음", progress: "진행 기록", link_commit: "커밋 연결",
-    register: "등록", approve: "승인", reject: "거절", declare: "지정", transfer: "넘김", delete: "지움", archive: "보관", respond: "응답" };
+    register: "등록", approve: "승인", reject: "거절", declare: "지정", transfer: "넘김", delete: "지움", archive: "보관", respond: "응답",
+    enqueue: "보낼 줄에 넣음", request: "요청", offer: "제안함", put: "씀", propose: "제안", issue: "발급", decide: "결정", ack: "읽음",
+    assign: "배정", recall: "거둬들임", halt: "정지", resume: "정지 풀기", revoke: "거둠", invite: "초대", accept: "수락", decline: "거절함",
+    report: "보고", ingest: "위키에 넣음", seen: "봄", reply: "회신", add: "추가", claim_idea: "맡음", start: "시작", end: "끝냄", wait: "기다림" };
   const viaLabel = (v) => VIA_LABEL[v] || v;
   const chip = (text, cls) => STATUS_LABEL[text]
     ? el("span", { class: "chip " + (cls || text), title: text }, STATUS_LABEL[text])
@@ -152,9 +155,12 @@
   }
   function errorText(r) {
     const d = r.data || {};
-    let msg = `${r.status} ${d.error_code || ""} — ${d.message || ""}`;
-    if (r.status === 401) msg += " · 허브 계정으로 로그인하거나 유효한 콜사인 토큰을 확인한다.";
-    return msg;
+    // 사람 말이 먼저, 코드는 괄호 안에 — 무엇이 막혔고 어떻게 풀지를 앞에 둔다.
+    const lead = { 401: "로그인이 필요하다 — 허브 계정으로 로그인하거나 유효한 콜사인 토큰을 넣는다.", 403: "이 일을 할 권한이 없다.",
+      404: "찾는 것이 없다 (지워졌거나 주소가 틀렸다).", 409: "그 사이 다른 쪽이 먼저 바꿨다 — 새로고침해서 지금 상태를 본다.",
+      429: "요청이 너무 잦다 — 잠시 뒤에 다시 한다." }[r.status];
+    const said = d.message ? d.message : "";
+    return `${lead ? `${lead} ` : ""}${said}${said || lead ? " " : ""}(${r.status}${d.error_code ? ` ${d.error_code}` : ""})`;
   }
 
   function projectNav(pid, active) {
@@ -476,7 +482,8 @@
       if (query.get(key)) listQuery.set(key, query.get(key));
     }
     // 기본 탭 '지금' = 막힘 + 진행 중 (진척을 보러 온 사람이 먼저 봐야 할 task). '전체' 는 s/all.
-    const nowMode = !status;
+    const decisionMode = query.get("decisions") === "open";
+    const nowMode = !status && !decisionMode;
     if (status && status !== "all") listQuery.set("status", status);
     const nowQuery = (st) => { const q = new URLSearchParams(listQuery); q.set("status", st); q.set("limit", "100"); q.set("offset", "0"); return q; };
     const root = `projects/${encodeURIComponent(pid)}`;
@@ -486,7 +493,14 @@
       nowMode ? api(`${root}/tasks?${nowQuery("blocked")}`, { token }) : Promise.resolve(null), api(`${root}/callsigns`, { token }),
       api(`${root}/confirmations`, { token }), api(`${root}/dcr`, { token }),
       api(`${root}/guide`, { token }), api(`${root}/roadmap`, { token })]);
-    const tr = nowMode && tr0.status === 200 && trBlocked && trBlocked.status === 200
+    // '열린 결정 task' 타일 — 그 task 들만 (요약 API 가 ID 를 준다)
+    let trDecisions = null;
+    if (decisionMode) {
+      const ids = (summary?.open_decision_task_ids || []).slice(0, 50);
+      const got = await Promise.all(ids.map((id) => api(`${root}/tasks/${encodeURIComponent(id)}`, { token })));
+      trDecisions = { status: 200, data: { tasks: got.filter((g) => g.status === 200).map((g) => g.data.task), total: ids.length, facets: {} } };
+    }
+    const tr = decisionMode ? trDecisions : nowMode && tr0.status === 200 && trBlocked && trBlocked.status === 200
       ? { status: 200, data: { ...tr0.data, tasks: [...trBlocked.data.tasks, ...tr0.data.tasks], total: (trBlocked.data.total || 0) + (tr0.data.total || 0) } }
       : nowMode && trBlocked && trBlocked.status !== 200 ? trBlocked : tr0;
     const base = `#/p/${encodeURIComponent(pid)}`;
@@ -501,10 +515,9 @@
     const counted = (r, pick) => r.status === 200 ? pick(r.data) : null;
     const decisions = [
       ["확인 요청", counted(conf, (d) => (d.requests || []).length), `${base}/confirmations`, "에이전트가 승인을 기다린다"],
-      ["중계 승인", sum.pending_approvals || 0, `${base}/orch`, "세션 띄우기 · 멈춤"],
-      ["열린 결정 task", sum.open_decision_tasks || 0, (sum.open_decision_task_ids || []).length
-        ? `${base}/t/${encodeURIComponent(sum.open_decision_task_ids[0])}` : base,
-        (sum.open_decision_task_ids || []).length > 1 ? `첫 task 부터 — 모두 ${sum.open_decision_task_ids.length}건` : "그 task 에서 답한다"],
+      ["중계 승인", sum.pending_approvals || 0, `${base}/orch?focus=approvals`, "세션 띄우기 · 멈춤"],
+      ["열린 결정 task", sum.open_decision_tasks || 0, (sum.open_decision_task_ids || []).length === 1
+        ? `${base}/t/${encodeURIComponent(sum.open_decision_task_ids[0])}` : `${base}?decisions=open`, "그 task 에서 답한다"],
       ["결정 변경(DCR)", counted(dcr, (d) => (d.dcrs || []).filter((x) => x.status === "open").length), `${base}/dcr`, "승인 · 거절"],
       ["지침 제안", counted(guide, (d) => (d.proposals || []).filter((x) => x.status === "open").length), `${base}/guide`, "새 판으로 올릴지"],
       ["막힌 task", tc.blocked || 0, `${base}/s/blocked`, "풀 사람이 필요하다"],
@@ -519,7 +532,9 @@
           (sum.unacknowledged || 0) > 0 ? [" · ", el("a", { href: `${base}/orch` }, `읽지 않은 에이전트 메시지 ${sum.unacknowledged}건`)] : null)),
       need.length
         ? el("div", { class: "decide" }, need.map(([label, n, href, what]) =>
-          el("a", { class: "need", href, "data-decide": label }, el("span", { class: "n" }, String(n)), el("span", {}, label), el("span", { class: "what" }, what))))
+          el("a", { class: "need" + (decisionMode && label === "열린 결정 task" ? " on" : ""), href, "data-decide": label,
+            "aria-current": decisionMode && label === "열린 결정 task" ? "true" : null },
+            el("span", { class: "n" }, String(n)), el("span", {}, label), el("span", { class: "what" }, what))))
         : el("div", { class: "decide-clear" }, "모든 결정이 처리됐다. 새 요청이 오면 여기에 먼저 보인다."));
 
     const attention = [];
@@ -564,19 +579,21 @@
     const statusFilters = el("nav", { class: "filters", "aria-label": "상태로 거르기" }, STATUSES.map((s) => {
       const next = new URLSearchParams(query);
       next.set("limit", String(pageLimit)); next.set("offset", "0");
-      next.delete("status");
+      next.delete("status"); next.delete("decisions");
       const suffix = next.toString() ? `?${next}` : "";
-      const on = s === (status || "");
+      const on = !decisionMode && s === (status || "");
       return el("a", { href: `${s ? `${base}/s/${encodeURIComponent(s)}` : base}${suffix}`, class: on ? "on" : "",
-        "aria-current": on ? "true" : null }, s === "" ? `지금 (막힘 · 진행 중 ${(tc.blocked || 0) + (tc.in_progress || 0)})` : s === "all" ? `전체 ${totalTasks}` : `${statusLabel(s)} ${tc[s] || 0}`);
+        "aria-current": on && !decisionMode ? "true" : null }, s === "" ? `지금 (막힘 · 진행 중 ${(tc.blocked || 0) + (tc.in_progress || 0)})` : s === "all" ? `전체 ${totalTasks}` : `${statusLabel(s)} ${tc[s] || 0}`);
     }));
     const category = (t) => t.fields?.category ? [t.fields.category.level_1, t.fields.category.level_2, t.fields.category.level_3].filter(Boolean).join(" / ") : "";
+    // 아무 task 도 '지금 하는 일' 을 적지 않았으면 빈 열을 그리지 않는다
+    const hasDoing = tr.status === 200 && tr.data.tasks.some((t) => t.progress_note);
     const rows = tr.status === 200 ? tr.data.tasks.map((t) => el("tr", {},
       el("td", { class: "t-title" }, el("a", { href: `${base}/t/${encodeURIComponent(t.id)}` }, t.title || t.id),
         el("span", { class: "t-id" }, t.id), category(t) ? el("span", { class: "t-cat" }, category(t)) : null),
       el("td", { class: "t-status" }, chip(t.status)),
       el("td", { class: "t-more", "data-label": "맡은 이" }, t.assignee || "—"),
-      el("td", { class: "t-more" }, t.progress_note ? el("div", { class: "clamp-2", title: t.progress_note }, t.progress_note) : ""),
+      hasDoing ? el("td", { class: "t-more" }, t.progress_note ? el("div", { class: "clamp-2", title: t.progress_note }, t.progress_note) : "") : null,
       el("td", { class: "t-more nowrap" }, when(t.updated_at)))) : [];
     const facets = tr.data?.facets || {};
     const filterOptions = (key, label, values) => el("label", {}, label,
@@ -623,10 +640,10 @@
     const listView = viewMode === "card"
       ? cards.length ? el("div", { class: "grid task-cards" }, cards) : el("p", { class: "muted" }, nowMode ? "지금 막히거나 진행 중인 task 가 없다 — '전체' 탭에서 모두 본다." : "조건에 맞는 task 가 없다.")
       : rows.length ? el("div", { class: "table-wrap" }, el("table", { class: "tasks stack" },
-          el("colgroup", {}, ["c-title", "c-status", "c-who", "c-doing", "c-when"].map((c) => el("col", { class: c }))),
-          el("thead", {}, el("tr", {}, ["task", "상태", "맡은 이", "지금 하는 일", "고친 때"].map((h) => el("th", { scope: "col" }, h)))),
+          el("colgroup", {}, ["c-title", "c-status", "c-who", hasDoing ? "c-doing" : null, "c-when"].filter(Boolean).map((c) => el("col", { class: c }))),
+          el("thead", {}, el("tr", {}, ["task", "상태", "맡은 이", hasDoing ? "지금 하는 일" : null, "고친 때"].filter(Boolean).map((h) => el("th", { scope: "col" }, h)))),
           el("tbody", {}, rows))) : el("p", { class: "muted" }, nowMode ? "지금 막히거나 진행 중인 task 가 없다 — '전체' 탭에서 모두 본다." : "조건에 맞는 task 가 없다.");
-    const pagination = nowMode ? null : tr.status === 200 ? el("div", { class: "row pagination" },
+    const pagination = nowMode || decisionMode ? null : tr.status === 200 ? el("div", { class: "row pagination" },
       el("span", { class: "muted" }, `${total}개 · ${page}/${pageCount}페이지`),
       el("a", { class: page <= 1 ? "disabled" : "", "aria-disabled": page <= 1 ? "true" : null, href: pageQuery(Math.max(0, pageOffset - pageLimit)) }, "이전"),
       el("a", { class: page >= pageCount ? "disabled" : "", "aria-disabled": page >= pageCount ? "true" : null, href: pageQuery(Math.min((pageCount - 1) * pageLimit, pageOffset + pageLimit)) }, "다음")) : null;
@@ -639,12 +656,22 @@
       el("section", { class: "card project-head" },
         el("h1", {}, project.display_name),
         el("div", { class: "meta" }, el("span", { class: "mono" }, project.id), el("span", {}, `소유자 ${project.owner_callsign}`)),
-        projectNav(pid, "tasks"), who),
+        projectNav(pid, "tasks"),
+        el("details", { class: "account glossary", "data-keep": "glossary" }, el("summary", {}, "처음이라면 — 이 화면의 낱말"),
+          el("dl", {},
+            el("dt", {}, "콜사인"), el("dd", {}, "허브에서 사람과 에이전트를 구분하는 이름. 사람은 계정에 콜사인을 연결해 쓴다."),
+            el("dt", {}, "task"), el("dd", {}, "한 사람(또는 에이전트)이 맡아 끝내는 일 하나. 완료 기준을 검증해야 끝남이 된다."),
+            el("dt", {}, "마일스톤 · WBS"), el("dd", {}, "로드맵의 큰 단계와 그 안의 세부 작업. 진척 띠의 한 칸이 마일스톤 하나다."),
+            el("dt", {}, "확인 요청"), el("dd", {}, "에이전트가 실행 전에 사람의 승인을 받는 요청. 승인해야 그 일이 실행된다."),
+            el("dt", {}, "결정 변경(DCR)"), el("dd", {}, "프로젝트 결정을 바꾸자는 제안. 소유자가 승인하면 결정 기록(ADR)이 된다."),
+            el("dt", {}, "PC 중계 · 오케스트레이터"), el("dd", {}, "중계는 PC 에서 에이전트 세션을 띄워 주는 프로그램, 오케스트레이터는 에이전트에게 일을 나누는 세션이다."))),
+        who),
       ...attention,
       decideRow,
       progress,
       el("section", { class: "card", "aria-labelledby": "tasks-h" },
-        el("div", { class: "decide-head" }, el("h2", { id: "tasks-h" }, "task"),
+        el("div", { class: "decide-head" }, el("h2", { id: "tasks-h" }, decisionMode ? "답이 필요한 결정이 있는 task" : "task",
+          decisionMode ? el("a", { class: "clear-filter", href: base }, "필터 해제") : null),
           el("div", { class: "row view-switch" }, el("span", { class: "muted" }, "보기"),
             el("a", { class: viewMode === "table" ? "on" : "", href: pageQuery(pageOffset, "table") }, "표"),
             el("a", { class: viewMode === "card" ? "on" : "", href: pageQuery(pageOffset, "card") }, "카드"))),
@@ -676,7 +703,8 @@
 
   // --- 화면: 오케스트레이션 (M-053 WBS-53.1) -----------------------------------------------
 
-  async function viewOrchestration(pid) {
+  let focusedHash = null;  // 자동 새로고침마다 다시 스크롤하지 않는다
+  async function viewOrchestration(pid, focus) {
     const { token, base, pr } = await projectHead(pid, "오케스트레이션");
     if (pr.status !== 200) { render(el("section", { class: "card" }, alertBox("bad", errorText(pr)))); return; }
     const r = await api(`projects/${encodeURIComponent(pid)}/orchestration`, { token });
@@ -708,6 +736,7 @@
             : "모든 에이전트의 새 배정을 멈춘다. 돌고 있는 세션은 끝나지 않는다."), el("button", {
             type: "button", class: orch.halted ? "" : "danger",
             onclick: async () => {
+              if (!orch.halted && !window.confirm("모든 에이전트에게 새 일을 나누는 것을 멈춘다. 돌고 있는 세션은 그대로다. 정지할까?")) return;
               const res = await api(`projects/${encodeURIComponent(pid)}/orchestration/halt`, {
                 method: "POST", token: storedToken(pid), body: { on: !orch.halted } });
               if (res.status !== 200) { msg.replaceChildren(alertBox("bad", errorText(res))); return; }
@@ -796,8 +825,23 @@
         el("thead", {}, el("tr", {}, ["콜사인 · 세션", "하네스", "상태", "전달", "열린 배정", "호스트", "마지막 신호"].map((h) => el("th", { scope: "col" }, h)))),
         el("tbody", {}, sessRows))) : el("p", { class: "muted" }, "등록된 세션이 없다."));
 
-    const unackSection = d.unacknowledged.length ? el("section", { class: "card" },
-      el("h2", {}, `미확인 메시지 (${d.unacknowledged.length})`),
+    const isConfirmNote = (m) => m.kind === "approval" && m.body && m.body.request_type === "agent_confirmation";
+    const closable = d.unacknowledged.filter((m) => !isConfirmNote(m));
+    const dupes = d.unacknowledged.length - closable.length;
+    const closeAll = canManage && closable.length > 1 ? el("button", { type: "button", class: "ghost", onclick: async () => {
+      let ok = 0, bad = null;
+      for (const m of closable) {
+        const res = await api(`projects/${encodeURIComponent(pid)}/orchestration/messages/${encodeURIComponent(m.id)}/close`, {
+          method: "POST", token: storedToken(pid), body: {} });
+        if (res.status === 200) ok++; else bad = bad || res;
+      }
+      pendingFlash = bad ? { kind: "bad", text: `${ok}건 정리, 나머지는 실패 — ${errorText(bad)}` } : { kind: "ok", text: `미확인 메시지 ${ok}건을 정리했다.` };
+      dirty = false;
+      route();
+    } }, `모두 읽음으로 정리 (${closable.length}건)`) : null;
+    const unackSection = d.unacknowledged.length ? el("details", { class: "card", "data-keep": "orch-unack" },
+      el("summary", {}, `미확인 메시지 ${d.unacknowledged.length}건`, dupes ? el("span", { class: "muted" }, ` — 이 가운데 ${dupes}건은 확인 요청 알림(확인 요청 화면에서 결정)` ) : null),
+      closeAll ? el("div", { class: "row" }, closeAll) : null,
       el("p", { class: "muted" }, "10분 넘게 읽지 않은 메시지다. 받은 세션이 읽음으로 표시하면(세션이 끝났으면 같은 콜사인의 새 세션이) 사라진다. 소유자는 '읽음으로 정리' 로 지울 수 있고, 배정 · 승인 상태는 바뀌지 않는다."),
       d.unacknowledged.map((m) => el("div", { class: "decision" },
         el("div", { class: "row" }, chip(m.kind, "planned"), el("span", {}, `받는 이 ${m.to_kind === "session" ? "세션" : "콜사인"} ${m.to_id}`),
@@ -869,7 +913,10 @@
           el("tbody", {}, hostRows))) : el("p", { class: "muted" }, "등록된 PC 중계가 없다."));
     })();
 
-    render(leaseCard, unackSection, approvalsSection, sessionsSection, assignSection, hostsSection);
+    // 사람이 결정할 것이 먼저 — 메시지는 접어 둔다 (개요의 '중계 승인' 이 ?focus=approvals 로 이 자리로 온다).
+    approvalsSection.id = "approvals";
+    render(leaseCard, approvalsSection, unackSection, sessionsSection, assignSection, hostsSection);
+    if (focus === "approvals" && focusedHash !== location.hash) { focusedHash = location.hash; approvalsSection.scrollIntoView({ block: "start" }); }
   }
 
   async function viewConfirmations(pid) {
@@ -1160,6 +1207,19 @@
         ? el("ul", { class: "wbs-list" }, node.children.map((ch) => renderWbsNode(base, ch, titles))) : null);
   }
 
+  // 로드맵 경고 코드 → 쉬운 말 (원래 코드는 줄의 title 에)
+  const ISSUE_HELP = {
+    wbs_milestone_number_mismatch: "WBS 번호의 앞자리가 속한 마일스톤 번호와 다르다",
+    duplicate_wbs_id: "같은 WBS 번호가 두 번 나온다", wbs_id_format: "WBS 번호 형식이 틀렸다", wbs_node_invalid: "WBS 항목을 읽지 못했다",
+    milestone_parse_error: "마일스톤 문서 머리말을 읽지 못했다", milestone_filename_format: "마일스톤 파일 이름 형식이 틀렸다",
+    duplicate_milestone_id: "같은 마일스톤 번호가 두 번 나온다", index_id_mismatch: "문서 안 번호와 파일 이름의 번호가 다르다",
+    index_missing_file: "목록에 있는 마일스톤의 문서가 없다", index_entry_missing_for_file: "마일스톤 문서가 목록에 빠져 있다",
+    index_status_mismatch: "목록의 상태와 문서의 상태가 다르다", index_status_vocab: "목록에 모르는 상태 낱말이 있다",
+    index_entry_without_path: "목록 항목에 문서 경로가 없다", order_mismatch: "목록 순서와 문서의 순서 값이 다르다",
+    declared_derived_mismatch: "적힌 상태와 task 로 계산한 상태가 다르다", deliverable_missing: "선언한 산출물이 없다",
+    goal_source_missing: "목표 문서가 없다", exempt_without_reason: "로드맵 밖 task 에 사유가 없다",
+  };
+
   // 로드맵에 묶인 task 의 제목 · 상태 — 목록 API 를 100건씩 읽는다 (ID 만 보이면 무엇인지 다시 찾아야 한다).
   async function linkedTaskTitles(pid, token) {
     const out = new Map();
@@ -1206,7 +1266,8 @@
           st.current_milestone_id ? ` · 현재 ${st.current_milestone_id}` : "",
           st.exempt_tasks ? ` · 로드맵 밖(면제) task ${st.exempt_tasks.length}건` : "")),
       st.issues && st.issues.length ? el("section", { class: "card" }, el("h2", {}, `로드맵 경고 (${st.issues.length})`),
-        el("ul", {}, st.issues.map((i) => el("li", { title: i.code }, i.detail || i.code)))) : null,
+        el("p", { class: "muted" }, "로드맵 문서끼리 맞지 않는 곳이다. 화면은 그대로 보이지만 진척 계산이 틀릴 수 있다 — 로드맵 문서를 고친다."),
+        el("ul", {}, st.issues.map((i) => el("li", { title: i.code }, ISSUE_HELP[i.code] ? [el("strong", {}, ISSUE_HELP[i.code]), " — ", i.detail] : i.detail || i.code)))) : null,
       open.map(card),
       done.length ? el("details", { class: "card", "data-keep": "rm-done" }, el("summary", {}, `완료한 마일스톤 (${done.length})`), done.map(card)) : null);
   }
@@ -1727,7 +1788,7 @@
         await viewHarnesses();
       } else if (parts[0] === "p" && parts[1]) {
         if (parts[2] === "t" && parts[3]) await viewTask(parts[1], parts[3]);
-        else if (parts[2] === "orch") await viewOrchestration(parts[1]);
+        else if (parts[2] === "orch") await viewOrchestration(parts[1], hashUrl.searchParams.get("focus"));
         else if (parts[2] === "confirmations") await viewConfirmations(parts[1]);
         else if (parts[2] === "ideas") await viewIdeas(parts[1], parts[3] || "");
         else if (parts[2] === "roadmap") await viewRoadmap(parts[1]);

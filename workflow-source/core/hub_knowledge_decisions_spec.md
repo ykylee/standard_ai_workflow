@@ -4,7 +4,7 @@
 - 범위: 3.1 Hub Wiki/Memory Index를 확장하는 source sync와 decision workflow; Git 작업은 export instruction까지만 다룬다.
 - 대상 독자: Python·Go hub 구현자, project owner, 검증자
 - 상태: design contract accepted 2026-11-24 — TASK-2026-11-24-main-002, ADR-036; implementation WBS-59.3~59.4
-- 최종 수정일: 2026-11-24
+- 최종 수정일: 2026-11-26
 - 관련 문서: `../../docs/planning/project-knowledge-decisions-concept-2026-11.md`, `../../docs/planning/project-knowledge-decisions-requirements-2026-11.md`, `./hub_spec.md`, `./hub_go_spec.md`, `../../ai-workflow/wiki/decisions/adr-036-project-knowledge-decisions.md`
 
 > D1~D3 are owner-approved. This contract is normative for implementation; any deviation requires a DCR.
@@ -25,7 +25,7 @@
 | Repository design docs, requirements, specs, accepted ADRs | `git` | Immutable projection pinned to repository commit SHA and path | Project callsigns only |
 | Project Wiki authored/managed in Hub | `hub` | Existing `wiki_page` version history and export instruction | Project callsigns only |
 | DCR proposal and review history | `hub` | First-class project record and append-only events | Project callsigns only |
-| Accepted ADR created by a DCR | `git` | Hub tracks approved pending publication and links the resulting Git projection after sync confirms the new ADR | Project callsigns only |
+| Accepted ADR created by a DCR | `hub-wiki` (3.7.0~) | Hub writes the ADR to the wiki `decisions/` at approval; a Git copy is optional via wiki export | Project callsigns only |
 | Memory Index | `hub` project entry or imported source | Existing `memory_entry`, returned as `memory` kind rather than canonical design/decision | Project callsigns only |
 
 No cross-project knowledge search is provided by the initial contract. `hub_wide` requires a separate owner decision and authorization contract.
@@ -58,16 +58,16 @@ hub_adr_export_plan(id) -> expected source SHA + path + content hash + write ins
 Normative transitions:
 
 ```text
-draft → open → approved_pending_export | rejected
+draft → open → accepted | rejected   (3.7.0~ — 승인 = 확정)
   └──────────→ withdrawn
-approved_pending_export → accepted (after the new ADR is committed and source sync confirms path + SHA)
+approved_pending_export → accepted (3.6.1 이하에서 승인된 DCR 만 — 그 ADR 을 source sync 로 확인하면)
 open + stale target revision → stale (requires rebase/reproposal before decision)
 ```
 
 - `decide` requires an approved `human` project owner; web/admin generic access does not imply project decision authority.
-- Owner approval creates a new ADR ID and a hash-bound export instruction; DCR enters `approved_pending_export`. It does not push or write Git.
-- The ADR becomes `accepted` and the DCR becomes `accepted` only after a subsequent Git source sync confirms the new ADR path, expected base commit, and content hash. This preserves Git as the accepted ADR authority.
-- The prior ADR's Git projection is marked `superseded` only after that confirming sync; history remains queryable by pinned revision.
+- **변경 (소유자 2026-11-26, 3.7.0):** Owner approval creates a new ADR ID and writes the ADR to the Hub wiki at `decisions/adr-NNN-<slug>.md` in the same transaction; the DCR becomes `accepted` immediately. 이유: 허브 이관 뒤 위키의 정본은 허브이고 저장소의 `ai-workflow/` 는 읽기 전용 기록이라, Git 커밋을 확정 조건으로 두면 온보딩한 저장소에서 승인만으로 결정이 끝나지 않았다. It still does not push or write Git; a repository copy comes from wiki export.
+- ~~The ADR becomes `accepted` only after a subsequent Git source sync confirms the new ADR path and content hash.~~ (3.6.1 까지의 계약 — 그때 승인돼 `approved_pending_export` 에 남은 DCR 은 여전히 이 sync 로 끝낸다.)
+- The prior ADR's Git projection is marked `superseded` at approval; the old ADR body is never edited (D2), and history remains queryable by pinned revision.
 - `rejected` retains proposal and decision rationale. `withdrawn` retains history. No terminal state is silently reopened; a changed proposal uses a new DCR or explicit revision flow.
 - If target revision no longer matches `base_revisions`, decision returns 409 `stale_decision_base` without state mutation.
 

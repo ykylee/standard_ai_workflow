@@ -170,61 +170,68 @@ class Wiki:
             clean.append({"path": path, "body": body, "expected_version": ev, "delete": delete, "source": source})
         summary = summary.strip()
         scan_secrets(summary, "summary")
-        now = _iso(ctx.now)
 
         def do(conn: sqlite3.Connection) -> dict[str, Any]:
             keys = {r["key"] for r in conn.execute("SELECT key FROM project_alias WHERE project_id = ?", (pid,))}
             for i, page in enumerate(clean):
                 if page["source"] and page["source"]["repo_key"] not in keys:
                     raise invalid_field(f"pages[{i}].source.repo_key", f"이 프로젝트의 저장소 키가 아니다 (등록된 키: {sorted(keys)})")
-            conflicts = []
-            current: dict[str, int] = {}
-            for page in clean:
-                row = conn.execute("SELECT version FROM wiki_page WHERE project_id = ? AND path = ?",
-                                   (pid, page["path"])).fetchone()
-                cur = row["version"] if row else 0
-                current[page["path"]] = cur
-                if page["expected_version"] != cur or (page["delete"] and cur == 0):
-                    conflicts.append({"path": page["path"], "expected_version": page["expected_version"],
-                                      "current_version": cur})
-            if conflicts:
-                # 하나라도 어긋나면 묶음 전체를 거절 — 트랜잭션이 되돌린다 (부분 반영 0, 요구 R8.2).
-                raise HubError(409, "version_conflict",
-                               f"묶음 안 {len(conflicts)} 페이지의 version 이 다르다 — 묶음 전체를 거절했다",
-                               {"conflicts": conflicts})
-            seq = conn.execute("SELECT COALESCE(MAX(seq), 0) + 1 AS n FROM wiki_ingest WHERE project_id = ?",
-                               (pid,)).fetchone()["n"]
-            ing_id = f"ING-{seq:05d}"
-            written = []
-            for page in clean:
-                cur = current[page["path"]]
-                if page["delete"]:
-                    conn.execute("INSERT INTO wiki_page_revision(project_id,path,revision,body_md,status,updated_by,updated_at) VALUES(?,?,?,'','tombstone',?,?)",
-                                 (pid, page["path"], cur + 1, p.callsign, now))
-                    conn.execute("DELETE FROM wiki_page WHERE project_id = ? AND path = ?", (pid, page["path"]))
-                    written.append({"path": page["path"], "version": cur + 1, "deleted": True})
-                    continue
-                # 출처는 이번 쓰기가 말하는 것 — 주지 않으면 지운다 (옛 sha 가 새 본문의 출처인 척하지 않게).
-                src = page["source"] or {"repo_key": "", "sha": ""}
-                conn.execute(
-                    "INSERT INTO wiki_page (project_id, path, body_md, version, updated_by, updated_at, last_ingest, "
-                    "source_repo_key, source_sha) VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?) ON CONFLICT(project_id, path) DO UPDATE SET "
-                    "body_md = excluded.body_md, version = wiki_page.version + 1, updated_by = excluded.updated_by, "
-                    "updated_at = excluded.updated_at, last_ingest = excluded.last_ingest, "
-                    "source_repo_key = excluded.source_repo_key, source_sha = excluded.source_sha",
-                    (pid, page["path"], page["body"], p.callsign, now, ing_id, src["repo_key"], src["sha"]))
-                revision = cur + 1
-                conn.execute("INSERT INTO wiki_page_revision(project_id,path,revision,body_md,status,updated_by,updated_at) VALUES(?,?,?,?,'active',?,?)",
-                             (pid, page["path"], revision, page["body"], p.callsign, now))
-                written.append({"path": page["path"], "version": revision})
-            log_line = f"## [{ctx.now.strftime('%Y-%m-%d')}] ingest | {summary}"
-            conn.execute(
-                "INSERT INTO wiki_ingest (project_id, id, seq, callsign, at, log_line, pages_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (pid, ing_id, seq, p.callsign, now, log_line, json.dumps(written, ensure_ascii=False)))
-            self.store._event(conn, ctx, pid, "wiki_ingest", ing_id, "ingest", None, {"pages": written})
-            return {"ingest_id": ing_id, "log_line": log_line, "pages": written}
+            return self.write_pages(conn, ctx, pid, str(p.callsign), clean, summary)
 
         return self.store.idempotent(ctx, request_id, do)
+
+    def write_pages(self, conn: sqlite3.Connection, ctx: Ctx, pid: str, callsign: str, clean: list[dict[str, Any]],
+                    summary: str) -> dict[str, Any]:
+        """검증을 마친 페이지 묶음을 열린 쓰기 트랜잭션 안에서 쓴다 — ingest 와 DCR 승인(ADR)이 같은 길로 쓴다.
+
+        ``clean`` 항목: ``{path, body, expected_version, delete, source}``. version 이 하나라도 어긋나면 409 로 전부 거절한다."""
+        now = _iso(ctx.now)
+        conflicts = []
+        current: dict[str, int] = {}
+        for page in clean:
+            row = conn.execute("SELECT version FROM wiki_page WHERE project_id = ? AND path = ?",
+                               (pid, page["path"])).fetchone()
+            cur = row["version"] if row else 0
+            current[page["path"]] = cur
+            if page["expected_version"] != cur or (page["delete"] and cur == 0):
+                conflicts.append({"path": page["path"], "expected_version": page["expected_version"],
+                                  "current_version": cur})
+        if conflicts:
+            # 하나라도 어긋나면 묶음 전체를 거절 — 트랜잭션이 되돌린다 (부분 반영 0, 요구 R8.2).
+            raise HubError(409, "version_conflict",
+                           f"묶음 안 {len(conflicts)} 페이지의 version 이 다르다 — 묶음 전체를 거절했다",
+                           {"conflicts": conflicts})
+        seq = conn.execute("SELECT COALESCE(MAX(seq), 0) + 1 AS n FROM wiki_ingest WHERE project_id = ?",
+                           (pid,)).fetchone()["n"]
+        ing_id = f"ING-{seq:05d}"
+        written = []
+        for page in clean:
+            cur = current[page["path"]]
+            if page["delete"]:
+                conn.execute("INSERT INTO wiki_page_revision(project_id,path,revision,body_md,status,updated_by,updated_at) VALUES(?,?,?,'','tombstone',?,?)",
+                             (pid, page["path"], cur + 1, callsign, now))
+                conn.execute("DELETE FROM wiki_page WHERE project_id = ? AND path = ?", (pid, page["path"]))
+                written.append({"path": page["path"], "version": cur + 1, "deleted": True})
+                continue
+            # 출처는 이번 쓰기가 말하는 것 — 주지 않으면 지운다 (옛 sha 가 새 본문의 출처인 척하지 않게).
+            src = page["source"] or {"repo_key": "", "sha": ""}
+            conn.execute(
+                "INSERT INTO wiki_page (project_id, path, body_md, version, updated_by, updated_at, last_ingest, "
+                "source_repo_key, source_sha) VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?) ON CONFLICT(project_id, path) DO UPDATE SET "
+                "body_md = excluded.body_md, version = wiki_page.version + 1, updated_by = excluded.updated_by, "
+                "updated_at = excluded.updated_at, last_ingest = excluded.last_ingest, "
+                "source_repo_key = excluded.source_repo_key, source_sha = excluded.source_sha",
+                (pid, page["path"], page["body"], callsign, now, ing_id, src["repo_key"], src["sha"]))
+            revision = cur + 1
+            conn.execute("INSERT INTO wiki_page_revision(project_id,path,revision,body_md,status,updated_by,updated_at) VALUES(?,?,?,?,'active',?,?)",
+                         (pid, page["path"], revision, page["body"], callsign, now))
+            written.append({"path": page["path"], "version": revision})
+        log_line = f"## [{ctx.now.strftime('%Y-%m-%d')}] ingest | {summary}"
+        conn.execute(
+            "INSERT INTO wiki_ingest (project_id, id, seq, callsign, at, log_line, pages_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (pid, ing_id, seq, callsign, now, log_line, json.dumps(written, ensure_ascii=False)))
+        self.store._event(conn, ctx, pid, "wiki_ingest", ing_id, "ingest", None, {"pages": written})
+        return {"ingest_id": ing_id, "log_line": log_line, "pages": written}
 
     # --- 읽기 -------------------------------------------------------------------
 

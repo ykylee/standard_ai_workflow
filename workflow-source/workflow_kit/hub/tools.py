@@ -364,7 +364,7 @@ TOOLS: dict[str, ToolSpec] = {
         ToolSpec("hub_dcr_create", "token", "프로젝트 결정 변경 제안(DCR)을 생성한다. 수락은 승인된 human owner만 할 수 있다.",
                  {"title": _STR, "rationale": _STR, "proposal": _STR, "target_refs": _ARR}, ("title", "rationale", "proposal"),
                  lambda s, c, a: Knowledge(s).dcr_create(c, a["title"], a["rationale"], a["proposal"], a.get("target_refs"))),
-        ToolSpec("hub_dcr_decide", "token", "DCR 승인/거절. 승인 시 Git ADR 커밋·동기화 전까지 approved_pending_export 상태로 둔다.",
+        ToolSpec("hub_dcr_decide", "token", "DCR 승인/거절. 승인하면 같은 트랜잭션에서 새 ADR 을 허브 위키 decisions/adr-NNN-*.md 에 쓰고 DCR 은 accepted 가 된다 (Git 커밋 불필요 — 저장소에 두려면 위키 내보내기).",
                  {"id": _STR, "expected_version": _INT, "outcome": _STR, "rationale": _STR}, ("id", "expected_version", "outcome", "rationale"),
                  lambda s, c, a: Knowledge(s).dcr_decide(c, a["id"], a["expected_version"], a["outcome"], a["rationale"])),
         ToolSpec("hub_dcr_list", "token", "프로젝트 DCR 목록과 현재 상태.", {"status": _STR}, (),

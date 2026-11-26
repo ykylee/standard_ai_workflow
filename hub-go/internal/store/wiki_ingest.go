@@ -109,59 +109,65 @@ func (s *Store) WikiIngest(ctx Ctx, rawPages any, summary, requestID string) (ma
 		pages = append(pages, wikiWrite{path: path, body: body, repo: repo, sha: strings.ToLower(sha), expected: expected, delete: del})
 	}
 	summary = strings.TrimSpace(summary)
-	now := db.FormatISO(ctx.Now)
 	return s.Idempotent(ctx, requestID, func(tx *sql.Tx) (map[string]any, error) {
-		versions := map[string]int{}
-		conflicts := []map[string]any{}
-		for _, pg := range pages {
-			var current int
-			e := tx.QueryRow("SELECT version FROM wiki_page WHERE project_id=? AND path=?", pid, pg.path).Scan(&current)
-			if e != nil && e != sql.ErrNoRows {
-				return nil, e
-			}
-			versions[pg.path] = current
-			if current != pg.expected || (pg.delete && current == 0) {
-				conflicts = append(conflicts, map[string]any{"path": pg.path, "expected_version": pg.expected, "current_version": current})
-			}
-		}
-		if len(conflicts) > 0 {
-			return nil, &HubError{Status: 409, Code: "version_conflict", Message: "위키 page version이 다르다 — 묶음 전체를 거절했다", Detail: map[string]any{"conflicts": conflicts}}
-		}
-		var seq int
-		if err := tx.QueryRow("SELECT COALESCE(MAX(seq),0)+1 FROM wiki_ingest WHERE project_id=?", pid).Scan(&seq); err != nil {
-			return nil, err
-		}
-		ingestID := fmt.Sprintf("ING-%05d", seq)
-		written := []map[string]any{}
-		for _, pg := range pages {
-			revision := versions[pg.path] + 1
-			if pg.delete {
-				if _, err := tx.Exec("INSERT INTO wiki_page_revision(project_id,path,revision,body_md,status,updated_by,updated_at) VALUES(?,?,?,'','tombstone',?,?)", pid, pg.path, revision, p.Callsign, now); err != nil {
-					return nil, err
-				}
-				if _, err := tx.Exec("DELETE FROM wiki_page WHERE project_id=? AND path=?", pid, pg.path); err != nil {
-					return nil, err
-				}
-				written = append(written, map[string]any{"path": pg.path, "version": revision, "deleted": true})
-				continue
-			}
-			if _, err := tx.Exec("INSERT INTO wiki_page(project_id,path,body_md,source_repo_key,source_sha,version,updated_by,updated_at,last_ingest) VALUES(?,?,?,?,?,1,?,?,?) ON CONFLICT(project_id,path) DO UPDATE SET body_md=excluded.body_md,source_repo_key=excluded.source_repo_key,source_sha=excluded.source_sha,version=wiki_page.version+1,updated_by=excluded.updated_by,updated_at=excluded.updated_at,last_ingest=excluded.last_ingest", pid, pg.path, pg.body, pg.repo, pg.sha, p.Callsign, now, ingestID); err != nil {
-				return nil, err
-			}
-			if _, err := tx.Exec("INSERT INTO wiki_page_revision(project_id,path,revision,body_md,status,updated_by,updated_at) VALUES(?,?,?,?,'active',?,?)", pid, pg.path, revision, pg.body, p.Callsign, now); err != nil {
-				return nil, err
-			}
-			written = append(written, map[string]any{"path": pg.path, "version": revision})
-		}
-		logLine := fmt.Sprintf("## [%s] ingest | %s", ctx.Now.Format("2006-01-02"), summary)
-		blob, _ := json.Marshal(written)
-		if _, err := tx.Exec("INSERT INTO wiki_ingest(project_id,id,seq,callsign,at,log_line,pages_json) VALUES(?,?,?,?,?,?,?)", pid, ingestID, seq, p.Callsign, now, logLine, string(blob)); err != nil {
-			return nil, err
-		}
-		projectID := pid
-		if err := s.RecordEvent(tx, ctx, &projectID, "wiki_ingest", ingestID, "ingest", nil, map[string]any{"pages": written}, nil); err != nil {
-			return nil, err
-		}
-		return map[string]any{"ingest_id": ingestID, "log_line": logLine, "pages": written}, nil
+		return s.wikiWritePages(tx, ctx, pid, p.Callsign, pages, summary)
 	})
+}
+
+// wikiWritePages writes an already validated batch inside an open write transaction — wiki ingest and DCR approval
+// (the ADR page) take the same path. One stale version rejects the whole batch with 409.
+func (s *Store) wikiWritePages(tx *sql.Tx, ctx Ctx, pid, callsign string, pages []wikiWrite, summary string) (map[string]any, error) {
+	now := db.FormatISO(ctx.Now)
+	versions := map[string]int{}
+	conflicts := []map[string]any{}
+	for _, pg := range pages {
+		var current int
+		e := tx.QueryRow("SELECT version FROM wiki_page WHERE project_id=? AND path=?", pid, pg.path).Scan(&current)
+		if e != nil && e != sql.ErrNoRows {
+			return nil, e
+		}
+		versions[pg.path] = current
+		if current != pg.expected || (pg.delete && current == 0) {
+			conflicts = append(conflicts, map[string]any{"path": pg.path, "expected_version": pg.expected, "current_version": current})
+		}
+	}
+	if len(conflicts) > 0 {
+		return nil, &HubError{Status: 409, Code: "version_conflict", Message: "위키 page version이 다르다 — 묶음 전체를 거절했다", Detail: map[string]any{"conflicts": conflicts}}
+	}
+	var seq int
+	if err := tx.QueryRow("SELECT COALESCE(MAX(seq),0)+1 FROM wiki_ingest WHERE project_id=?", pid).Scan(&seq); err != nil {
+		return nil, err
+	}
+	ingestID := fmt.Sprintf("ING-%05d", seq)
+	written := []map[string]any{}
+	for _, pg := range pages {
+		revision := versions[pg.path] + 1
+		if pg.delete {
+			if _, err := tx.Exec("INSERT INTO wiki_page_revision(project_id,path,revision,body_md,status,updated_by,updated_at) VALUES(?,?,?,'','tombstone',?,?)", pid, pg.path, revision, callsign, now); err != nil {
+				return nil, err
+			}
+			if _, err := tx.Exec("DELETE FROM wiki_page WHERE project_id=? AND path=?", pid, pg.path); err != nil {
+				return nil, err
+			}
+			written = append(written, map[string]any{"path": pg.path, "version": revision, "deleted": true})
+			continue
+		}
+		if _, err := tx.Exec("INSERT INTO wiki_page(project_id,path,body_md,source_repo_key,source_sha,version,updated_by,updated_at,last_ingest) VALUES(?,?,?,?,?,1,?,?,?) ON CONFLICT(project_id,path) DO UPDATE SET body_md=excluded.body_md,source_repo_key=excluded.source_repo_key,source_sha=excluded.source_sha,version=wiki_page.version+1,updated_by=excluded.updated_by,updated_at=excluded.updated_at,last_ingest=excluded.last_ingest", pid, pg.path, pg.body, pg.repo, pg.sha, callsign, now, ingestID); err != nil {
+			return nil, err
+		}
+		if _, err := tx.Exec("INSERT INTO wiki_page_revision(project_id,path,revision,body_md,status,updated_by,updated_at) VALUES(?,?,?,?,'active',?,?)", pid, pg.path, revision, pg.body, callsign, now); err != nil {
+			return nil, err
+		}
+		written = append(written, map[string]any{"path": pg.path, "version": revision})
+	}
+	logLine := fmt.Sprintf("## [%s] ingest | %s", ctx.Now.Format("2006-01-02"), summary)
+	blob, _ := json.Marshal(written)
+	if _, err := tx.Exec("INSERT INTO wiki_ingest(project_id,id,seq,callsign,at,log_line,pages_json) VALUES(?,?,?,?,?,?,?)", pid, ingestID, seq, callsign, now, logLine, string(blob)); err != nil {
+		return nil, err
+	}
+	projectID := pid
+	if err := s.RecordEvent(tx, ctx, &projectID, "wiki_ingest", ingestID, "ingest", nil, map[string]any{"pages": written}, nil); err != nil {
+		return nil, err
+	}
+	return map[string]any{"ingest_id": ingestID, "log_line": logLine, "pages": written}, nil
 }

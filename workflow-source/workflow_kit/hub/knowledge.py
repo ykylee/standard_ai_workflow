@@ -9,6 +9,7 @@ from typing import Any
 
 from workflow_kit.hub.errors import HubError, forbidden, invalid_field, not_found, version_conflict
 from workflow_kit.hub.store import Ctx, Store, _iso, _json, scan_secrets
+from workflow_kit.hub.wiki import Wiki
 
 _ID = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,79}$")
 _SHA = re.compile(r"^[0-9a-f]{7,40}$")
@@ -557,20 +558,22 @@ class Knowledge:
                             raise HubError(
                                 409, "stale_decision_base", f"DCR target가 바뀌었다: {ref}"
                             )
-            status = "approved_pending_export" if outcome == "approve" else "rejected"
+            # 승인 = 확정 (소유자 2026-11-26): ADR 은 이 트랜잭션에서 허브 위키 decisions/ 에 쓰이고 DCR 은 곧바로 accepted.
+            # Git 저장소에 두는 것은 위키 내보내기(hub_wiki_export)의 일이다 — 승인을 Git 커밋에 묶지 않는다.
+            status = "accepted" if outcome == "approve" else "rejected"
             now = _iso(ctx.now)
             adr = None
+            written: dict[str, Any] | None = None
             if outcome == "approve":
                 max_adr = 0
-                for item in conn.execute(
-                    "SELECT path,body_md FROM knowledge_revision WHERE project_id=?", (pid,)
-                ):
-                    match = re.search(
-                        r"(?:adr_id:\s*ADR-|id:\s*ADR-|/adr-)(\d{3,})",
+                # 번호는 Git 지식 원본과 허브 위키의 ADR 을 모두 본다 — 한쪽만 보면 번호가 겹친다
+                for item in [*conn.execute("SELECT path,body_md FROM knowledge_revision WHERE project_id=?", (pid,)),
+                             *conn.execute("SELECT path,body_md FROM wiki_page WHERE project_id=?", (pid,))]:
+                    for match in re.finditer(
+                        r"(?:adr_id:\s*ADR-|id:\s*ADR-|(?:^|/)adr-)(\d{3,})",
                         item["path"] + "\n" + item["body_md"],
-                        re.I,
-                    )
-                    if match:
+                        re.I | re.M,
+                    ):
                         max_adr = max(max_adr, int(match.group(1)))
                 adr_number = max_adr + 1
                 adr_id = f"ADR-{adr_number:03d}"
@@ -584,13 +587,32 @@ class Knowledge:
                     if isinstance(r, str) and re.search(r"(?:^|/)adr-[^/]+\.md(?:@|$)", r)
                 ]
                 supersedes = json.dumps(superseded_refs, ensure_ascii=False, separators=(",", ":"))
-                adr_path = f"ai-workflow/wiki/decisions/adr-{adr_suffix}-{slug}.md"
+                related = json.dumps(sorted({r[len("hub-wiki:"):].rsplit("@", 1)[0].removesuffix(".md")
+                                             for r in json.loads(row["target_refs_json"])
+                                             if isinstance(r, str) and r.startswith("hub-wiki:")}),
+                                     ensure_ascii=False, separators=(",", ":"))
+                day = ctx.now.strftime("%Y-%m-%d")
+                adr_path = f"decisions/adr-{adr_suffix}-{slug}.md"
                 adr = (
-                    f"---\nadr_id: {adr_id}\nstatus: accepted\nsupersedes: {supersedes}\ndcr: {dcr_id}\n---\n\n"
-                    f"# {row['title']}\n\n## Context\n\n{row['rationale']}\n\n## Decision\n\n{row['proposal_md']}\n\n## Approval\n\n{rationale.strip()}\n"
+                    f"---\ntype: decision\nstatus: accepted\nadr_id: {adr_id}\ndecided_at: {day}\nalternatives_considered: []\n"
+                    f"related_pages: {related}\nsupersedes: {supersedes}\ndcr: {dcr_id}\ncreated: {day}\nupdated: {day}\n---\n\n"
+                    f"# {adr_id}: {row['title']}\n\n## Status\n\n**Accepted** ({day} {p.callsign} 승인 · {dcr_id})\n\n"
+                    f"## Context\n\n{row['rationale']}\n\n## Decision\n\n{row['proposal_md']}\n\n## Approval\n\n{rationale.strip()}\n"
                 )
                 scan_secrets(adr, "adr")
                 digest = hashlib.sha256(adr.encode()).hexdigest()
+                written = Wiki(self.store).write_pages(
+                    conn, ctx, pid, str(p.callsign),
+                    [{"path": adr_path, "body": adr, "expected_version": 0, "delete": False, "source": None}],
+                    f"{adr_id} — {dcr_id} 승인")
+                # 대체되는 Git ADR 은 지식 원본에서 superseded 로 (그 문서 자체는 고치지 않는다 — D2)
+                for target in superseded_refs:
+                    if target.startswith("git:") and ":" in target[4:]:
+                        old_path = target[4:].split(":", 1)[1].split("@", 1)[0]
+                        conn.execute(
+                            "UPDATE knowledge_revision SET status='superseded' WHERE project_id=? AND path=? AND status='active'",
+                            (pid, old_path),
+                        )
                 conn.execute(
                     "UPDATE decision_change SET status=?,reviewer=?,decision_rationale=?,adr_path=?,adr_sha256=?,version=version+1,updated_at=? WHERE project_id=? AND id=?",
                     (status, p.callsign, rationale.strip(), adr_path, digest, now, pid, dcr_id),
@@ -612,14 +634,15 @@ class Knowledge:
                     _json({"status": status, "rationale": rationale.strip()}),
                 ),
             )
-        result = {"id": dcr_id, "status": status, "version": expected_version + 1}
-        if adr is not None:
+        result: dict[str, Any] = {"id": dcr_id, "status": status, "version": expected_version + 1}
+        if adr is not None and written is not None:
             result.update(
                 {
+                    "adr_id": adr_id,
                     "adr_path": adr_path,
                     "content": adr,
                     "content_sha256": digest,
-                    "instruction": "Commit this exact file in Git, then sync the matching commit and document. The DCR becomes accepted only after hash confirmation.",
+                    "wiki": {"path": adr_path, "version": written["pages"][0]["version"], "ingest_id": written["ingest_id"]},
                 }
             )
         return result

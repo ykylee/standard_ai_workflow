@@ -521,7 +521,7 @@ var ToolOrder = []*ToolSpec{
 		Properties: map[string]map[string]any{"title": {"type": "string"}, "rationale": {"type": "string"}, "proposal": {"type": "string"}, "target_refs": {"type": "array"}}, Required: []string{"title", "rationale", "proposal"},
 	},
 	{
-		Name: "hub_dcr_decide", Bundle: "token", Description: "DCR 승인/거절. 승인 시 Git ADR 커밋·동기화 전까지 approved_pending_export 상태로 둔다.",
+		Name: "hub_dcr_decide", Bundle: "token", Description: "DCR 승인/거절. 승인하면 같은 트랜잭션에서 새 ADR 을 허브 위키 decisions/adr-NNN-*.md 에 쓰고 DCR 은 accepted 가 된다 (Git 커밋 불필요 — 저장소에 두려면 위키 내보내기).",
 		Properties: map[string]map[string]any{"id": {"type": "string"}, "expected_version": {"type": "integer"}, "outcome": {"type": "string"}, "rationale": {"type": "string"}}, Required: []string{"id", "expected_version", "outcome", "rationale"},
 	},
 	{

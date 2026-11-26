@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from check_hub_core import Hub  # noqa: E402
 
 
-def test_knowledge_lifecycle() -> int:
+def test_knowledge_lifecycle(binary: str | None = None) -> int:
     root = Path(__file__).resolve().parents[2]
     sys.path.insert(0, str(root / "workflow-source"))
     from workflow_kit.hub import db as hubdb  # noqa: E402
@@ -21,7 +21,7 @@ def test_knowledge_lifecycle() -> int:
     with tempfile.TemporaryDirectory(prefix="hub-knowledge-") as td:
         db = Path(td) / "hub.sqlite"
         hubdb.open_db(db, now=datetime.now(timezone.utc))
-        binary = os.environ.get("WORKFLOW_HUB_TEST_BIN")
+        binary = binary or os.environ.get("WORKFLOW_HUB_TEST_BIN")
         hub = Hub(db, cmd_prefix=[binary] if binary else None)
         try:
             reg = hub.call(
@@ -40,7 +40,7 @@ def test_knowledge_lifecycle() -> int:
                 owner,
             )[1]["token"]
             old_path = "ai-workflow/wiki/decisions/adr-036-old-choice.md"
-            path = "ai-workflow/wiki/decisions/adr-037-test-choice.md"
+            path = "decisions/adr-037-test-choice.md"  # 승인 = 허브 위키 (소유자 2026-11-26)
             code = "a" * 40
             checks = []
 
@@ -146,45 +146,80 @@ def test_knowledge_lifecycle() -> int:
                 },
                 owner,
             )
+            # 승인이 곧 확정 — 같은 트랜잭션에서 위키 ADR 이 생기고 DCR 은 accepted, 대상 Git ADR 은 superseded
             checks.append(
                 st == 200
-                and approved["status"] == "approved_pending_export"
+                and approved["status"] == "accepted"
+                and approved["adr_id"] == "ADR-037"
                 and approved["adr_path"] == path
+                and approved["wiki"]["path"] == path
+                and approved["wiki"]["version"] == 1
+                and "instruction" not in approved
             )
-            st, _, _ = hub.call(
-                "hub_knowledge_sync",
-                {
-                    "source_id": "repo-docs",
-                    "commit_sha": "b" * 40,
-                    "documents": [
-                        {"path": path, "title": "ADR-037 Test Choice", "body": approved["content"]}
-                    ],
-                },
-                agent,
+            st, page, _ = hub.call("hub_wiki_get", {"path": path}, agent)
+            front = page.get("body", "").split("---", 2)[1] if page.get("body", "").startswith("---") else ""
+            checks.append(
+                st == 200
+                and page["body"] == approved["content"]
+                and all(k in front for k in ("type: decision", "status: accepted", "adr_id: ADR-037", "decided_at:", "alternatives_considered:", "related_pages:", f"dcr: {dcr['id']}"))
+                and "# ADR-037: Test Choice" in page["body"]
             )
-            checks.append(st == 200)
             st, dcr_after, _ = hub.call("hub_dcr_get", {"id": dcr["id"]}, agent)
             checks.append(
                 st == 200 and dcr_after["status"] == "accepted" and dcr_after["adr_path"] == path
             )
-            st, adr_hits, _ = hub.call("hub_knowledge_search", {"query": "Test Choice"}, agent)
-            checks.append(
-                st == 200
-                and any(h["kind"] == "adr" and h["status"] == "accepted" for h in adr_hits["hits"])
-            )
+            st, lint, _ = hub.call("hub_wiki_lint", {}, agent)
+            checks.append(st == 200 and path not in str(lint))
+            # 번호는 위키 ADR 까지 본다 — 위키에 adr-050 이 있으면 다음 승인은 051
+            st, _, _ = hub.call("hub_wiki_ingest", {"summary": "manual adr", "pages": [
+                {"path": "decisions/adr-050-manual.md", "expected_version": 0,
+                 "body": "---\ntype: decision\nstatus: accepted\nadr_id: ADR-050\n---\n\n# ADR-050\n"}]}, agent)
+            st2, dcr2, _ = hub.call("hub_dcr_create", {"title": "Next Choice", "rationale": "r", "proposal": "p", "target_refs": []}, agent)
+            st3, approved2, _ = hub.call("hub_dcr_decide", {"id": dcr2["id"], "expected_version": 1, "outcome": "approve", "rationale": "ok"}, owner)
+            checks.append(st == 200 and st3 == 200 and approved2["adr_id"] == "ADR-051" and approved2["adr_path"] == "decisions/adr-051-next-choice.md")
+            hub.call("hub_wiki_ingest", {"summary": "squat", "pages": [
+                {"path": "decisions/adr-052-third-choice.md", "expected_version": 0, "body": "# squat\n"}]}, agent)
+            # 052 를 미리 차지하면 번호는 053 — 충돌 대신 다음 번호를 쓴다
+            st4, dcr3, _ = hub.call("hub_dcr_create", {"title": "Third Choice", "rationale": "r", "proposal": "p", "target_refs": []}, agent)
+            st5, approved3, _ = hub.call("hub_dcr_decide", {"id": dcr3["id"], "expected_version": 1, "outcome": "approve", "rationale": "ok"}, owner)
+            checks.append(st5 == 200 and approved3["adr_id"] == "ADR-053")
+            # 3.6.1 이하에서 승인돼 approved_pending_export 에 남은 DCR 은 예전 sync 로 끝난다
             st, historical, _ = hub.call("hub_knowledge_get", {"ref": old_ref}, agent)
             checks.append(st == 200 and historical["status"] == "superseded")
+            legacy_path = "docs/design.md"  # allowlist 안의 옛 ADR 이 아닌 경로 — 위의 superseded 확인을 덮지 않는다
+            st6, dcr4, _ = hub.call("hub_dcr_create", {"title": "Legacy", "rationale": "r", "proposal": "p", "target_refs": []}, agent)
+            legacy_body = "---\nadr_id: ADR-099\nstatus: accepted\n---\n\n# Legacy\n"
+            import hashlib  # noqa: PLC0415
+            import sqlite3  # noqa: PLC0415
+            with sqlite3.connect(db) as c:
+                c.execute("UPDATE decision_change SET status='approved_pending_export', adr_path=?, adr_sha256=? WHERE id=?",
+                          (legacy_path, hashlib.sha256(legacy_body.encode()).hexdigest(), dcr4["id"]))
+            st7, _, _ = hub.call("hub_knowledge_sync", {"source_id": "repo-docs", "commit_sha": "c" * 40,
+                                                         "documents": [{"path": legacy_path, "title": "Legacy", "body": legacy_body}]}, agent)
+            st8, legacy_after, _ = hub.call("hub_dcr_get", {"id": dcr4["id"]}, agent)
+            checks.append(st6 == 200 and st7 == 200 and legacy_after["status"] == "accepted")
             st, listed, _ = hub.call("hub_dcr_list", {"status": "accepted"}, agent)
-            checks.append(st == 200 and listed["dcrs"][0]["id"] == dcr["id"])
+            checks.append(st == 200 and {dcr["id"], dcr2["id"], dcr3["id"], dcr4["id"]} <= {x["id"] for x in listed["dcrs"]})
         finally:
             hub.stop()
     passed = sum(checks)
-    print(f"hub knowledge lifecycle: {passed}/{len(checks)} passed")
+    print(f"hub knowledge lifecycle [{'go' if binary else 'python'}]: {passed}/{len(checks)} passed")
     if passed != len(checks):
         print(f"failed case indexes: {[i + 1 for i, ok in enumerate(checks) if not ok]}")
         return 1
     return 0
 
 
+def main() -> int:
+    rc = test_knowledge_lifecycle()
+    from check_hub_core import _resolve_go_hub  # noqa: PLC0415
+    with tempfile.TemporaryDirectory(prefix="hub-knowledge-go-") as td:
+        cmd, why = _resolve_go_hub(Path(td))
+        if cmd is None:
+            print(f"    [unmeasured] Go 허브 미측정: {why}")
+            return rc
+        return rc | test_knowledge_lifecycle(cmd[0])
+
+
 if __name__ == "__main__":
-    raise SystemExit(test_knowledge_lifecycle())
+    raise SystemExit(main())

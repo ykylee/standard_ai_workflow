@@ -70,11 +70,16 @@ func TestKnowledgeAndDCRLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if approved["status"] != "approved_pending_export" || approved["adr_path"] != adrPath {
+	// 승인 = 확정 (소유자 2026-11-26): 같은 트랜잭션에서 위키 ADR 이 생기고 DCR 은 accepted
+	if approved["status"] != "accepted" || approved["adr_path"] != "decisions/adr-037-test-choice.md" || approved["adr_id"] != "ADR-037" {
 		t.Fatalf("approval=%#v", approved)
 	}
-	if _, err = st.KnowledgeSync(agentCtx, "repo-docs", "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", []any{map[string]any{"path": adrPath, "title": "ADR", "body": approved["content"]}}); err != nil {
+	page, err := st.WikiGet(agentCtx, "decisions/adr-037-test-choice.md")
+	if err != nil {
 		t.Fatal(err)
+	}
+	if page["body"] != approved["content"] {
+		t.Fatalf("wiki ADR body differs: %#v", page["body"])
 	}
 	detail, err := st.DCRGet(agentCtx, id)
 	if err != nil {

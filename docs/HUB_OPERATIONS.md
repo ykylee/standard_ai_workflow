@@ -374,7 +374,7 @@ Go 허브 3.3.1부터 광고하는 도구를 모두 구현한다(`not_implemente
 
 프로젝트 owner가 MCP 도구 `hub_knowledge_source_register`로 source ID, 등록된 repository key, Markdown allowlist를 등록한다. 이후 세션은 저장소에서 문서를 읽은 뒤 `hub_knowledge_sync`에 commit SHA와 `{path,title,body}` 목록을 넘긴다. `hub_knowledge_search`는 자기 프로젝트의 Git 문서와 Wiki를 함께 검색하며 commit/revision/hash가 포함된 ref를 돌려준다. `hub_knowledge_get`은 ref에 고정된 과거 판도 읽는다. 관리 화면은 **지식** 탭에서 통합 검색, **결정** 탭에서 DCR 상태와 감사 timeline을 보여준다.
 
-DCR은 `hub_dcr_create`로 제안한다. project writer는 제안할 수 있지만 결정은 승인된 human project owner만 가능하다. 승인은 새 ADR Markdown과 경로·SHA-256을 내고 상태를 `approved_pending_export`로 바꾼다. 제안자가 해당 파일을 Git에 커밋한 뒤 같은 등록 source에서 path와 내용을 동기화해 hash가 확인되면 Hub가 DCR을 `accepted`로 바꾸고 대상 ADR의 projection을 `superseded`로 표시한다. 거절도 결정 근거와 함께 남는다. Hub는 Git commit/push를 수행하지 않는다.
+DCR은 `hub_dcr_create`로 제안한다. project writer는 제안할 수 있지만 결정은 승인된 human project owner만 가능하다. **승인이 곧 확정이다**(3.7.0, 소유자 2026-11-26): 승인하는 같은 트랜잭션에서 Hub가 새 ADR을 허브 위키 `decisions/adr-NNN-<slug>.md`(위키 decision frontmatter)에 쓰고 DCR을 `accepted`로 바꾼다. 대상 Git ADR의 projection은 그때 `superseded`로 표시하고, 옛 ADR 본문은 고치지 않는다. ADR 번호는 위키와 Git 지식 원본의 ADR을 모두 보고 매긴다. 저장소에 파일로 두려면 위키 내보내기(`hub_wiki_export`)를 쓴다 — Hub는 Git commit/push를 수행하지 않는다. 3.6.1 이하에서 승인돼 `approved_pending_export`에 남은 DCR은 예전처럼 같은 내용을 등록 source에서 sync하면 `accepted`가 된다. 거절도 결정 근거와 함께 남는다.
 
 기본 공유 범위는 프로젝트 callsign이다. 다른 프로젝트의 문서는 검색 결과에 나타나지 않는다. PostgreSQL을 쓰는 경우 schema migration은 허브 시작 시 자동 적용되며, SQLite에서 PostgreSQL로 옮길 때도 기존 DB 이관 절차가 새 표를 함께 복사한다.
 

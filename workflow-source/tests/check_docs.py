@@ -62,6 +62,9 @@ IGNORED_PARTS = {
     ".claude",
     ".codex",
     ".opencode",
+    # 하네스 공용 스킬 폴더(Agent Skills — Codex · Gemini CLI 등). 설치기(impeccable 등)가 남의 SKILL.md · reference 를
+    # 통째로 넣는다 — 2026-11-26 실측: `.gitignore` 대상인데 이 이름 목록에 없어 남의 문서 수십 장이 red.
+    ".agents",
     ".venv",
     "venv",
     "env",

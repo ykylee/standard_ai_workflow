@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 # 하네스 중립 프론트엔드 툴셋 — 프로젝트 범위 설치. 사용 가이드: docs/FRONTEND_TOOLKIT.md
 #
-#   setup.sh [--harness claude,codex] [--no-hooks] [--dry-run]
+#   setup.sh [--harness claude,codex] [--no-hooks] [--local] [--dry-run]
 #
 # 대상 프로젝트의 뿌리에서 돌린다. 하는 일:
 #   1. DESIGN.md 가 없으면 템플릿을 놓고, @google/design.md 로 lint 한다 (오류면 멈춘다)
 #   2. impeccable 스킬(+ 디자인 hook)을 프로젝트 범위로 설치한다
 #   3. 브라우저 확인 MCP(chrome-devtools-mcp)를 연결한다 — Claude Code 는 .mcp.json 에 병합, 그 밖은 명령만 보인다
-# 사용자 범위 설정(~/.claude · ~/.codex)은 쓰지 않는다. 판은 아래에 고정한다 — 올릴 때는 가이드 §7 순서로.
+# --local: 이 클론에만 둔다 — 설치물은 .git/info/exclude 에 적고, Claude Code MCP 는 커밋된 .mcp.json 대신
+#          `claude mcp add -s local` 로 넣는다. 도구를 저장소 기여자 모두에게 강요하지 않을 때.
+# 사용자 범위 설정(~/.claude · ~/.codex)은 쓰지 않는다 (--local 의 Claude MCP 는 ~/.claude.json 의 이 프로젝트 칸에만). 판은 아래에 고정한다 — 올릴 때는 가이드 §7 순서로.
 set -euo pipefail
 
 IMPECCABLE_VERSION=4.11.0
@@ -17,13 +19,15 @@ CHROME_DEVTOOLS_MCP_VERSION=1.14.0
 HARNESS=claude,codex
 HOOKS=1
 DRY=0
+LOCAL=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --harness) HARNESS="$2"; shift 2 ;;
     --harness=*) HARNESS="${1#*=}"; shift ;;
     --no-hooks) HOOKS=0; shift ;;
     --dry-run) DRY=1; shift ;;
-    -h|--help) sed -n '2,11p' "$0"; exit 0 ;;
+    --local) LOCAL=1; shift ;;
+    -h|--help) sed -n '2,13p' "$0"; exit 0 ;;
     *) echo "setup.sh: 모르는 인자 $1" >&2; exit 2 ;;
   esac
 done
@@ -60,6 +64,20 @@ hook_flag=()
 run npx -y "impeccable@${IMPECCABLE_VERSION}" install -y "--providers=${providers}" --scope=project "${hook_flag[@]}"
 echo "  주의: 프로젝트 범위여도 엔진은 ~/.impeccable/ 에, Chrome 네이티브 메시징 호스트는"
 echo "        ~/.config/google-chrome/NativeMessagingHosts/style.impeccable.browser.json 에 들어간다 (가이드 §6)"
+if [ "$LOCAL" = 1 ]; then
+  exclude="$(git rev-parse --git-path info/exclude 2>/dev/null || true)"
+  if [ -z "$exclude" ]; then
+    echo "setup.sh: --local 은 git 저장소 안에서만 — 설치물을 숨길 곳이 없다" >&2
+    exit 1
+  fi
+  for pat in /.claude/skills/impeccable/ "/.claude/agents/impeccable-*.md" /.agents/skills/impeccable/ /.codex/skills/impeccable/ /.cursor/skills/impeccable/ /.gemini/skills/impeccable/; do
+    if [ "$DRY" = 0 ]; then
+      mkdir -p "$(dirname "$exclude")"; touch "$exclude"
+      grep -qxF "$pat" "$exclude" || echo "$pat" >> "$exclude"
+    fi
+  done
+  echo "+ 설치물 경로를 $exclude 에 적었다 (커밋되지 않는다)"
+fi
 
 # 3. 브라우저 확인 MCP --------------------------------------------------------------
 cdt_args=(-y "chrome-devtools-mcp@${CHROME_DEVTOOLS_MCP_VERSION}" --headless --isolated --no-usage-statistics)
@@ -67,6 +85,16 @@ IFS=',' read -r -a hs <<< "$HARNESS"
 for h in "${hs[@]}"; do
   case "$h" in
     claude)
+      if [ "$LOCAL" = 1 ]; then
+        if ! command -v claude >/dev/null; then
+          echo "  Claude Code: claude 명령이 없다 — 손으로: claude mcp add -s local chrome-devtools -- npx ${cdt_args[*]}"
+        elif claude mcp get chrome-devtools >/dev/null 2>&1; then
+          echo "  Claude Code: chrome-devtools 가 이미 있다 — 건드리지 않는다 (claude mcp get chrome-devtools)"
+        else
+          run claude mcp add -s local chrome-devtools -- npx "${cdt_args[@]}"
+        fi
+        continue
+      fi
       echo "+ .mcp.json 에 chrome-devtools 병합"
       if [ "$DRY" = 0 ]; then
         python3 - "${cdt_args[@]}" <<'PY'

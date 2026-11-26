@@ -40,18 +40,25 @@
 bash <이 저장소>/docs/frontend-toolkit/setup.sh                 # 기본: --harness claude,codex
 bash <이 저장소>/docs/frontend-toolkit/setup.sh --dry-run       # 무엇을 할지만 보인다
 bash <이 저장소>/docs/frontend-toolkit/setup.sh --harness codex,cursor,gemini --no-hooks
+bash <이 저장소>/docs/frontend-toolkit/setup.sh --local --no-hooks   # 이 클론에만 — 커밋되는 파일을 건드리지 않는다
 ```
 
 하는 일은 셋이다.
 
 1. `DESIGN.md` 가 없으면 [템플릿](./frontend-toolkit/DESIGN.template.md)을 놓고 lint 한다 — 오류가 있으면 멈춘다.
-2. impeccable 을 프로젝트 범위로 설치한다(`--providers` 는 `--harness` 그대로). 스킬은 `.claude/skills/` · `.agents/skills/` 등 하네스별 폴더에, 디자인 hook 은 `.claude/settings.local.json` · `.codex/hooks.json` 에 쓴다.
+2. impeccable 을 프로젝트 범위로 설치한다(`--providers` 는 `--harness` 그대로). 스킬은 `.claude/skills/` · `.agents/skills/` 등 하네스별 폴더에, Claude Code 용 서브에이전트 5개는 `.claude/agents/impeccable-*.md` 에(4.11.0 실측 — README 에 없다), 디자인 hook 은 `.claude/settings.local.json` · `.codex/hooks.json` 에 쓴다.
 3. 브라우저 확인 MCP 를 연결한다.
    - **Claude Code**: `.mcp.json` 에 `chrome-devtools` 를 병합한다. 다른 서버는 건드리지 않는다.
    - **Codex**: 프로젝트 `.codex/` 설정은 신뢰한 프로젝트에서만 읽힌다(실측: 신뢰 전 `codex exec` 는 "Untrusted project-local configuration is disabled" 경고를 내고 무시). 스크립트는 실행마다 붙이는 `-c` 인자와 사용자 범위 `codex mcp add` 명령을 **보이기만** 한다.
    - **그 밖**: 서버 명령(`npx -y chrome-devtools-mcp@1.14.0 --headless --isolated --no-usage-statistics`)을 보인다. 그 하네스의 MCP 설정에 넣는다.
 
 사용자 범위 설정(`~/.claude` · `~/.codex`)은 쓰지 않는다. 그래도 바깥에 남는 것이 있다 — §6.
+
+**`--local`** — 규약(`DESIGN.md` · `PRODUCT.md`)만 커밋하고 도구는 각자 클론에 둘 때. 이 저장소가 그렇게 쓴다(2026-11-26).
+
+- 설치물(`.claude/skills/impeccable/` · `.claude/agents/impeccable-*.md` · `.agents/skills/impeccable/` 등)을 `.git/info/exclude` 에 적는다 — `git status` 에 안 보이고 커밋되지 않는다.
+- Claude Code 브라우저 MCP 는 커밋된 `.mcp.json` 대신 `claude mcp add -s local` 로 넣는다. 값은 `~/.claude.json` 의 이 프로젝트 칸에 들어가고 다른 프로젝트에는 보이지 않는다. 이미 있으면 건드리지 않는다(재실행 멱등).
+- 하네스를 다시 열어야 새 MCP 가 뜬다. 스킬은 Claude Code 2.1.332 에서 같은 세션에 바로 잡혔다.
 
 ## 4. 작업 순서
 
@@ -88,7 +95,7 @@ impeccable 은 강력한 만큼 자동으로 하는 일이 많다. 설치 전에
 - **원격 요청.** 새 디자인을 시작하면 impeccable.style 에서 시각 방향 목록을 받는다(텔레메트리를 꺼도). 사용 기록은 `DO_NOT_TRACK=1` 로 끈다 — `setup.sh` 가 켠다. chrome-devtools-mcp 의 사용 통계는 `--no-usage-statistics` 로 끈다(기본 켜짐).
 - **브라우저 MCP 는 열린 페이지를 다 본다.** `--isolated` 로 매번 빈 프로필을 쓴다. 로그인된 실사용 프로필에 붙이지 않는다.
 
-정리하려면: `rm -rf ~/.impeccable ~/.config/google-chrome/NativeMessagingHosts/style.impeccable.browser.json` 와 프로젝트의 `.claude/skills/impeccable` · `.agents/skills/impeccable` · hook 항목.
+정리하려면: `rm -rf ~/.impeccable ~/.config/google-chrome/NativeMessagingHosts/style.impeccable.browser.json` 와 프로젝트의 `.claude/skills/impeccable` · `.claude/agents/impeccable-*.md` · `.agents/skills/impeccable` · hook 항목, `--local` 이면 `claude mcp remove -s local chrome-devtools`.
 
 ## 7. 판 올리기
 

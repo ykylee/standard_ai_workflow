@@ -4,7 +4,7 @@
 - 범위: 프로젝트 설계, 개발 및 표준, 분석 및 계획
 - 대상 독자: 개발자, AI 에이전트, 프로젝트 온보딩 담당자
 - 상태: stable
-- 최종 수정일: 2026-11-23
+- 최종 수정일: 2026-11-26
 - 관련 문서: [Documentation Governance](./index.md) (저장소 governance 의 진입점), [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md)
 
 이 인덱스는 프로젝트의 영구 지식 자산(Knowledge Base)을 체계적으로 정리하여 개발자와 AI 에이전트의 온보딩 및 분석을 돕습니다.
@@ -27,6 +27,7 @@
 - **[Installation & Usage Guide](./INSTALLATION_AND_USAGE.md)** (v0.5.10+ 도입, v1.0.0 기준 cross-check): 소스에서 설치해 개발/검증 환경으로 쓰는 절차. editable install, 스모크 테스트 실행, `workflow_kit` / `bootstrap_lib` 임포트, 부트스트랩, MCP 서버 (jsonrpc-bridge / stdio-sdk), 자주 만나는 문제 안내.
 - **[Host Roles](./HOST_ROLES.md)** (2026-11-20): 클론별 역할 표식 `git config workflow.role` — 개발 참여자 / 읽기 전용 소비자. 소비자는 pull(ff) · 환경 맞추기 · 버전 업데이트만, push 는 pre-push hook 이 막는다.
 - **[Hub Operations](./HUB_OPERATIONS.md)** (2.0): 워크플로우 허브 설치 · SQLite/PostgreSQL 선택과 이관 · 노출과 공개 주소 · 토큰 · 셋업 안내(`/setup.md`) · 지침 · 백업 · 판 올리기 · 허브 간 이전.
+- **[Frontend Toolkit](./FRONTEND_TOOLKIT.md)** (2026-11-26): 하네스 중립 프론트엔드 툴셋 — DESIGN.md · impeccable(Agent Skills) · chrome-devtools-mcp 조합, 설치 스크립트(`frontend-toolkit/setup.sh`) · 작업 순서 · 보안 부작용 · Claude Code/Codex 실측.
 - **[Release Procedure](./RELEASE.md)** (v0.5.7+ 도입, v0.15.15 까지 회귀 표 확장): GitHub Releases only, PyPI 폐기. wheel 빌드/스모크/릴리스 절차 + 회귀 표.
 
 ## 3. 분석 및 계획 (Analysis & Planning)

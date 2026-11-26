@@ -10,6 +10,8 @@
 
 ## 검증
 
+- 누적 smoke **360/360 PASS**
+
 - 실측(claude 2.1.332, 변수 없음): 헬퍼면 허브 도구 전체와 `hub_session_start` 가 보이고, 변수 참조만이면 부트스트랩 도구 6종만 보인다. 헬퍼와 정적 헤더를 함께 두면 헬퍼가 이긴다.
 - `check_hub_client` case 6 · `check_hub_bootstrap` case 3 · `check_hub_harness_intake` · Go `TestSetupMCPJSONHeadersHelper` 가 새 계약을 잰다. 되주입 3건(Python 셋업 헬퍼 끄기 · 클라이언트 명령 이름 바꾸기 · Go 셋업 헬퍼 끄기)이 모두 red.
 

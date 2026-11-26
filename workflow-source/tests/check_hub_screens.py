@@ -111,7 +111,14 @@ def proxy(hub: Hub, cookie: str) -> ThreadingHTTPServer:
                         b"const nv=[...d.querySelectorAll('.nav-links a')];document.body.dataset.nav=nv.length+'/'+nv.filter(a=>{const r=a.getBoundingClientRect();"
                         b"const p=a.parentElement.getBoundingClientRect();return r.right>Math.min(p.right,d.clientWidth)+1||r.width===0}).length;"
                         # 화면 오른쪽 밖으로 삐져나온 요소 수 — 페이지 폭이 그대로여도 카드 안에서 넘친 것을 잡는다
-                        b"document.body.dataset.out=[...d.querySelectorAll('main *')].filter(e=>{const r=e.getBoundingClientRect();return r.width>0&&r.right>d.clientWidth+1}).length},4000)</script>")
+                        b"const outs=[...d.querySelectorAll('main *')].filter(e=>{const r=e.getBoundingClientRect();return r.width>0&&r.right>d.clientWidth+1});document.body.dataset.out=outs.length;"
+                        b"document.body.dataset.outs=outs.slice(0,6).map(e=>e.tagName.toLowerCase()+'.'+[...e.classList].join('.')+':'+(e.textContent||'').trim().slice(0,20)).join(' | ');"
+                        # 한국어 낱자 끊김 — 한글이 든 낱말이 두 줄에 걸친 것 (TASK-2026-11-26-claude-plex-023, 재채점 B 측정 방식)
+                        b"const br=[];const D=d.ownerDocument;const tw=D.createTreeWalker(d.querySelector('main'),NodeFilter.SHOW_TEXT);let n;"
+                        b"while((n=tw.nextNode())){const pe=n.parentElement;if(!pe||pe.closest('pre')||!pe.checkVisibility())continue;const re=/\\S+/g;let m;"
+                        b"while((m=re.exec(n.data))){if(!/[\\uac00-\\ud7a3]/.test(m[0]))continue;const g=D.createRange();g.setStart(n,m.index);g.setEnd(n,m.index+m[0].length);"
+                        b"if(new Set([...g.getClientRects()].filter(x=>x.width>0).map(x=>Math.round(x.top))).size>1)br.push(m[0]);}}"
+                        b"document.body.dataset.br=JSON.stringify(br.slice(0,12))+'#'+br.length},4000)</script>")
                 self.send_response(200)
                 self.send_header("content-type", "text/html; charset=utf-8")
                 self.end_headers()
@@ -417,13 +424,24 @@ def measure(impl: str, cmd: list[str] | None, exe: str, tmp: Path) -> None:
         _record(f"[{impl}] 오케스트레이션 — 지시문 · 메시지의 보이지 않는 문자", [orch.count(f">{u}</mark>") for u in ("U+202E", "U+FFFC", "U+200B", "U+2066")] == [2, 2, 1, 1])
         # 승인 카드 — "누가 어느 PC 에서 무엇을" 이 제목, ID 는 보조 줄 · 승인 대기가 리스 제어 위 (TASK-2026-11-26-claude-plex-017)
         text = html.unescape(orch)
-        heads = re.findall(r'<strong class="exact">([^<]*?가 pc 에서 fake 세션을 띄우려 한다)', text)
+        # 주어는 콜사인이어야 한다 — requested_by 는 오케스트레이터 세션 ID 라 문장 꼴만 보면 'S-… 가' 도 통과했다 (TASK-2026-11-26-claude-plex-023)
+        heads = re.findall(r'<strong class="exact">(owner-a 가 pc 에서 fake 세션을 띄우려 한다)</strong>', text)
         ids = re.findall(r'<div class="row muted req-ids"><span class="mono">(SR-\d+)</span><span class="mono">PC (H-[^<]+)</span>', text)
-        at_appr, at_lease = orch.find('id="approvals"'), orch.find("<h1>오케스트레이션")
-        _record(f"[{impl}] 오케스트레이션 — 승인 카드는 사람 말 먼저 · ID 는 보조 줄 · 승인 대기가 리스 제어 위",
+        at_head, at_appr, at_lease = orch.find("<h1>오케스트레이션"), orch.find('id="approvals"'), orch.find("<h2>오케스트레이터</h2>")
+        _record(f"[{impl}] 오케스트레이션 — 승인 카드 주어는 콜사인 · ID 는 보조 줄 · 머리(제목 · 탭) 맨 위, 승인 대기가 리스 제어 위",
                 len(heads) == 2 and len(ids) == 2 and "하네스 fake" not in text and "권한 기본" in text
-                and 0 < at_appr < at_lease,
-                f"heads={heads} ids={ids} approvals@{at_appr} lease@{at_lease}")
+                and not re.search(r'<strong class="exact">S-\d{8}-[0-9a-f]{8} 가', text) and "요청 세션 S-" in text
+                and 0 < at_head < at_appr < at_lease,
+                f"heads={heads} ids={ids} head@{at_head} approvals@{at_appr} lease@{at_lease}")
+        # 좁은 폭(360) 전 화면 — 한국어 낱자 끊김 0 · 화면 밖 요소 0 (재채점 B 의 390px 측정을 게이트로)
+        narrow_bad = []
+        for route in ("p/{pid}", "p/{pid}/t/{tid}", "p/{pid}/orch", "p/{pid}/confirmations", "p/{pid}/dcr", "p/{pid}/roadmap"):
+            ndom = draw(exe, tmp, port, route.format(**env), narrow=True, budget=12000)
+            br, out_n = re.search(r'data-br="([^"]*)"', ndom), re.search(r'data-out="(\d+)"', ndom)
+            words = html.unescape(br[1]) if br else None
+            if words is None or not out_n or not words.endswith("#0") or out_n[1] != "0":
+                narrow_bad.append(f"{route.rsplit('/', 1)[-1].format(**env)[:12]}: 끊김={words and words[:200]} 밖={out_n and out_n[1]}")
+        _record(f"[{impl}] 좁은 폭 전 화면 — 한국어 낱자 끊김 0 · 화면 밖 요소 0", not narrow_bad, " | ".join(narrow_bad))
         conf_head = doms["viewConfirmations"]
         at_nav, at_lead = conf_head.find('class="nav-links'), conf_head.find("승인하거나 거절하면 결과가")
         task_dom = html.unescape(doms["viewTask"])

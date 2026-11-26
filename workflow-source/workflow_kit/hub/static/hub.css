@@ -1,4 +1,5 @@
-/* 허브 화면 — 외부 자원 없음, 인라인 style 없이 클래스로만 (CSP style-src 'self'). 밝은 · 어두운 · 좁은 폭.
+/* 한국어는 어절로 꺾는다(word-break: keep-all) — 390px 에서 '거|두기' 처럼 음절 단위로 쪼개지던 것 (TASK-2026-11-26-claude-plex-023).
+   허브 화면 — 외부 자원 없음, 인라인 style 없이 클래스로만 (CSP style-src 'self'). 밝은 · 어두운 · 좁은 폭.
    시각 규약은 저장소 뿌리 DESIGN.md (차분한 운영 콘솔, 2026-11-26 재정비). 값은 여기 :root 가 정본 — DESIGN.md 와 같이 고친다. */
 :root {
   color-scheme: light dark;
@@ -26,7 +27,7 @@
 }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
-body { margin: 0; font: var(--fs-md)/1.55 var(--sans); color: var(--ink); background: var(--ground); overflow-wrap: anywhere;
+body { margin: 0; font: var(--fs-md)/1.55 var(--sans); color: var(--ink); background: var(--ground); overflow-wrap: anywhere; word-break: keep-all;
   font-variant-numeric: tabular-nums; }
 ::selection { background: var(--accent-soft); color: var(--ink); }
 main, .card, .row > *, .grid > *, details, summary, .option, .decide > *, .rail > * { min-width: 0; }

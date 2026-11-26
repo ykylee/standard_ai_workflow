@@ -821,9 +821,7 @@
         }
       }
       return el("section", { class: "card" },
-        el("div", { class: "row" }, el("h1", {}, "오케스트레이션"),
-          orch && orch.halted ? chip("정지", "halted") : null),
-        projectNav(pid, "orch"),
+        el("h2", {}, "오케스트레이터"),
         orch ? el("div", { class: "row" }, "오케스트레이터 ", el("strong", {}, orch.callsign),
           el("span", { class: "mono muted" }, orch.session), "만료 ", when(orch.expires_at))
           : el("p", { class: "muted" }, "지정된 오케스트레이터가 없다."),
@@ -831,12 +829,18 @@
         haltRow, msg);
     })();
 
+    // 화면 머리(제목 · 탭)는 승인 대기가 있든 없든 맨 위 — 같은 주소에서 탭 자리가 바뀌지 않게 (TASK-2026-11-26-claude-plex-023)
+    const headCard = el("section", { class: "card" },
+      el("div", { class: "row" }, el("h1", {}, "오케스트레이션"), orch && orch.halted ? chip("정지", "halted") : null),
+      projectNav(pid, "orch"));
+
     // 승인 카드는 "누가 어느 PC 에서 무엇을" 이 제목이고, 요청 · PC · 세션 ID 는 보조 줄이다 (TASK-2026-11-26-claude-plex-017).
     const hostName = (hid) => (d.hosts.find((h) => h.host_id === hid) || {}).name || hid || "—";
     const sessionName = (sid) => (d.sessions.find((s) => s.id === sid) || {}).callsign || sid || "—";
     const reqCard = (req) => {
       const target = req.target || {};
-      const who = req.requested_by || "—";
+      // requested_by 는 콜사인이 아니라 요청한 오케스트레이터 세션 ID 다 — 콜사인으로 풀고, ID 는 보조 줄에 (TASK-2026-11-26-claude-plex-023)
+      const who = sessionName(req.requested_by);
       const headline = req.kind === "stop"
         ? `${who} 가 세션 ${sessionName(target.session)} 을 멈추려 한다`
         : `${who} 가 ${hostName(req.host_id)} 에서 ${target.harness || "—"} 세션을 띄우려 한다`;
@@ -856,6 +860,7 @@
         el("div", { class: "row" }, el("strong", { class: "exact" }, reveal(headline)), chip(req.state, req.state)),
         el("div", { class: "exact" }, reveal(detailText)),
         el("div", { class: "row muted req-ids" }, el("span", { class: "mono" }, req.id), el("span", { class: "mono" }, `PC ${req.host_id || "—"}`),
+          req.requested_by ? el("span", { class: "mono" }, `요청 세션 ${req.requested_by}`) : null,
           req.kind === "stop" && target.session ? el("span", { class: "mono" }, `세션 ${target.session}`) : null, when(req.created_at)),
         req.decided_by ? el("div", { class: "muted" }, `결정 ${req.decided_by} · `, when(req.decided_at)) : null,
         req.result && Object.keys(req.result).length ? el("div", { class: "mono muted" }, JSON.stringify(req.result)) : null,
@@ -876,32 +881,33 @@
     const liveSessions = d.sessions.filter((s) => s.status !== "ended");
     const endedSessions = d.sessions.filter((s) => s.status === "ended")
       .sort((a, b) => String(b.ended_at || "").localeCompare(String(a.ended_at || "")));
+    // 좁은 폭에서는 표가 쌓인다(table.stack) — 제목 칸 · 상태 칸 · 나머지는 이름표 붙은 줄 (TASK-2026-11-26-claude-plex-023)
     const sessRows = liveSessions.map((s) => el("tr", {},
-      el("td", {}, el("a", { href: `${base}/c/${encodeURIComponent(s.callsign)}` }, s.callsign), s.orchestrator ? " " : null, s.orchestrator ? chip("오케스트레이터", "approved") : null,
+      el("td", { class: "t-title" }, el("a", { href: `${base}/c/${encodeURIComponent(s.callsign)}` }, s.callsign), s.orchestrator ? " " : null, s.orchestrator ? chip("오케스트레이터", "approved") : null,
         el("span", { class: "t-id" }, s.id)),
-      el("td", {}, s.harness || "—", s.kind === "worker" ? " (자동 작업 세션)" : ""),
-      el("td", {}, chip(s.status, s.status)),
-      el("td", { class: "muted" }, (s.delivery || []).map(viaLabel).join(", ") || "—"),
-      el("td", {}, String(s.open_assignments || 0)),
-      el("td", { class: "mono muted" }, s.host_id || "로컬/직접"),
-      el("td", { class: "muted nowrap" }, when(s.last_signal_at))));
+      el("td", { class: "t-more", "data-label": "하네스" }, s.harness || "—", s.kind === "worker" ? " (자동 작업 세션)" : ""),
+      el("td", { class: "t-status" }, chip(s.status, s.status)),
+      el("td", { class: "t-more muted", "data-label": "전달" }, (s.delivery || []).map(viaLabel).join(", ") || "—"),
+      el("td", { class: "t-more", "data-label": "열린 배정" }, String(s.open_assignments || 0)),
+      el("td", { class: "t-more mono muted", "data-label": "호스트" }, s.host_id || "로컬/직접"),
+      el("td", { class: "t-more muted", "data-label": "마지막 신호" }, when(s.last_signal_at))));
 
     const endedRows = endedSessions.map((s) => el("tr", {},
-      el("td", {}, el("a", { href: `${base}/c/${encodeURIComponent(s.callsign)}` }, s.callsign), el("span", { class: "t-id" }, s.id)),
-      el("td", {}, s.harness || "—"),
-      el("td", {}, s.end_reason === "expired" ? chip("신호 끊겨 만료", "unknown") : chip("끝냄", "ended")),
-      el("td", { class: "muted nowrap" }, when(s.last_signal_at)),
-      el("td", { class: "muted nowrap" }, s.ended_at ? when(s.ended_at) : "—")));
+      el("td", { class: "t-title" }, el("a", { href: `${base}/c/${encodeURIComponent(s.callsign)}` }, s.callsign), el("span", { class: "t-id" }, s.id)),
+      el("td", { class: "t-more", "data-label": "하네스" }, s.harness || "—"),
+      el("td", { class: "t-status" }, s.end_reason === "expired" ? chip("신호 끊겨 만료", "unknown") : chip("끝냄", "ended")),
+      el("td", { class: "t-more muted", "data-label": "마지막 신호" }, when(s.last_signal_at)),
+      el("td", { class: "t-more muted", "data-label": "끝난 때" }, s.ended_at ? when(s.ended_at) : "—")));
     const sessionsSection = el("section", { class: "card" },
       el("h2", {}, `세션 (${liveSessions.length})`), sessCountsRow,
-      liveSessions.length ? el("div", { class: "table-wrap" }, el("table", {},
+      liveSessions.length ? el("div", { class: "table-wrap" }, el("table", { class: "stack" },
         el("thead", {}, el("tr", {}, ["콜사인 · 세션", "하네스", "상태", "전달", "열린 배정", "호스트", "마지막 신호"].map((h) => el("th", { scope: "col" }, h)))),
         el("tbody", {}, sessRows))) : el("p", { class: "muted" }, "지금 살아 있는 세션이 없다."),
       el("p", { class: "muted" }, "신호가 15분 끊기면 '신호 끊김', 24시간 끊기면 허브가 만료해 끝난 세션으로 옮긴다 — 맡던 배정은 오케스트레이터에게 돌아간다."),
       endedSessions.length ? el("details", { class: "ended-sessions", "data-keep": "orch-ended" },
         el("summary", {}, `끝난 세션 ${endedSessions.length}`,
           el("span", { class: "muted" }, ` — 끝냄 ${endedSessions.filter((s) => s.end_reason !== "expired").length} · 신호 끊겨 만료 ${endedSessions.filter((s) => s.end_reason === "expired").length}`)),
-        el("div", { class: "table-wrap" }, el("table", {},
+        el("div", { class: "table-wrap" }, el("table", { class: "stack" },
           el("thead", {}, el("tr", {}, ["콜사인 · 세션", "하네스", "끝난 까닭", "마지막 신호", "끝난 때"].map((h) => el("th", { scope: "col" }, h)))),
           el("tbody", {}, endedRows)))) : null);
 
@@ -941,14 +947,14 @@
     const assignRows = d.assignments.map((a) => el("tr", {},
       el("td", { class: "t-title" }, el("a", { href: `${base}/t/${encodeURIComponent(a.task_id)}` }, a.task_title || a.task_id), el("span", { class: "t-id" }, a.task_id),
         a.progress_note ? el("div", { class: "muted clamp-2" }, a.progress_note) : null),
-      el("td", {}, chip(a.state, a.state), a.message_state === "unacknowledged" ? el("span", {}, " ", chip("unack", "unack")) : null),
-      el("td", {}, a.callsign, el("div", { class: "mono muted" }, a.session_id)),
-      el("td", { class: "muted" }, viaLabel(a.delivered_via) || "—", a.delivery_count ? ` (${a.delivery_count}회)` : ""),
-      el("td", { class: "muted" }, a.return_reason || (a.report && a.report.summary) || when(a.offered_at) || "—")));
+      el("td", { class: "t-status" }, chip(a.state, a.state), a.message_state === "unacknowledged" ? el("span", {}, " ", chip("unack", "unack")) : null),
+      el("td", { class: "t-more", "data-label": "대상" }, a.callsign, el("div", { class: "mono muted" }, a.session_id)),
+      el("td", { class: "t-more muted", "data-label": "전달" }, viaLabel(a.delivered_via) || "—", a.delivery_count ? ` (${a.delivery_count}회)` : ""),
+      el("td", { class: "t-more muted", "data-label": "사유 · 보고" }, a.return_reason || (a.report && a.report.summary) || when(a.offered_at) || "—")));
 
     const assignSection = el("section", { class: "card" },
       el("h2", {}, `배정 현황 (${d.assignments.length})`),
-      d.assignments.length ? el("div", { class: "table-wrap" }, el("table", {},
+      d.assignments.length ? el("div", { class: "table-wrap" }, el("table", { class: "stack" },
         el("thead", {}, el("tr", {}, ["task · 진척", "상태", "대상", "전달", "사유 · 보고"].map((h) => el("th", { scope: "col" }, h)))),
         el("tbody", {}, assignRows))) : el("p", { class: "muted" }, "배정 기록이 없다."));
 
@@ -968,12 +974,12 @@
         },
       }, "중계 초대 코드 발급") : null;
       const hostRows = d.hosts.map((h) => el("tr", {},
-        el("td", { class: "mono" }, h.host_id),
-        el("td", {}, h.name),
-        el("td", {}, (h.harnesses || []).join(", ") || "—"),
-        el("td", { class: "mono muted" }, h.allow_digest ? h.allow_digest.slice(0, 18) : "—"),
-        el("td", { class: "muted nowrap" }, when(h.last_seen_at)),
-        el("td", {}, canManage ? el("button", {
+        el("td", { class: "t-more mono", "data-label": "호스트" }, h.host_id),
+        el("td", { class: "t-title" }, h.name),
+        el("td", { class: "t-more", "data-label": "하네스" }, (h.harnesses || []).join(", ") || "—"),
+        el("td", { class: "t-more mono muted", "data-label": "허용 목록 지문" }, h.allow_digest ? h.allow_digest.slice(0, 18) : "—"),
+        el("td", { class: "t-more muted", "data-label": "마지막 연결" }, when(h.last_seen_at)),
+        el("td", { class: "t-status" }, canManage ? el("button", {
           type: "button", class: "ghost danger",
           onclick: async () => {
             if (!confirm(`${h.name} (${h.host_id}) 중계 토큰을 거둔다. 계속할까?`)) return;
@@ -988,16 +994,16 @@
       return el("section", { class: "card" },
         el("div", { class: "row" }, el("h2", {}, `PC 중계 호스트 (${d.hosts.length})`), inviteBtn),
         inviteBox, hostMsg,
-        d.hosts.length ? el("div", { class: "table-wrap" }, el("table", {},
-          el("thead", {}, el("tr", {}, ["호스트", "이름", "하네스", "허용 목록 지문", "마지막 연결", ""].map((h) => el("th", {}, h)))),
+        d.hosts.length ? el("div", { class: "table-wrap" }, el("table", { class: "stack" },
+          el("thead", {}, el("tr", {}, ["호스트", "이름", "하네스", "허용 목록 지문", "마지막 연결", "동작"].map((h) => el("th", { scope: "col" }, h)))),
           el("tbody", {}, hostRows))) : el("p", { class: "muted" }, "등록된 PC 중계가 없다."));
     })();
 
     // 사람이 결정할 것이 먼저 — 메시지는 접어 둔다 (개요의 '중계 승인' 이 ?focus=approvals 로 이 자리로 온다).
     approvalsSection.id = "approvals";
     // 사람이 결정할 일이 먼저 — 승인 대기가 있으면 리스 제어보다 위에 (TASK-2026-11-26-claude-plex-017)
-    if (pendingReqs.length) render(approvalsSection, leaseCard, unackSection, sessionsSection, assignSection, hostsSection);
-    else render(leaseCard, approvalsSection, unackSection, sessionsSection, assignSection, hostsSection);
+    if (pendingReqs.length) render(headCard, approvalsSection, leaseCard, unackSection, sessionsSection, assignSection, hostsSection);
+    else render(headCard, leaseCard, approvalsSection, unackSection, sessionsSection, assignSection, hostsSection);
     if (focus === "approvals" && focusedHash !== location.hash) { focusedHash = location.hash; approvalsSection.scrollIntoView({ block: "start" }); }
   }
 
@@ -1821,7 +1827,7 @@
         task.commits && task.commits.length ? el("div", {}, el("h2", {}, "커밋"), list(task.commits.map((c) => `${c.sha} ${c.branch || ""} (${c.added_by})`))) : null),
       renderPlanSection(pid, tid, plan, principal, task.plan_md, (m) => viewTask(pid, tid, m)),
       el("section", { class: "card" }, el("h2", {}, "이력"),
-        events.length ? el("div", { class: "table-wrap" }, el("table", {}, eventHead(false), el("tbody", {}, eventRows(events, false))))
+        events.length ? el("div", { class: "table-wrap" }, el("table", { class: "stack events" }, eventHead(false), el("tbody", {}, eventRows(events, false))))
           : el("p", { class: "muted" }, "없음")));
   }
 

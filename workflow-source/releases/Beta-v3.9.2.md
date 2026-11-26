@@ -22,3 +22,20 @@
 
 - **DB 판은 22 그대로다** — 3.9.1 로 되돌릴 때 실행 파일만 바꾸면 된다.
 - 중계 화면의 일시정지 실패 메시지 · '오케스트레이터 내려놓기' 확인창의 '취소' 쪽은 브라우저 case 가 없다. macOS · Windows VS Code 는 재지 않았다.
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-11-26T11:25:38Z)_
+
+- total wiki pages: **104**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

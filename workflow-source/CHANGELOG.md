@@ -292,6 +292,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- chore(release): prepare 3.9.2 (bb3fa237)
+- chore(release): keep the files generated while publishing 3.9.1 (0b6b7096)
 - chore(release): prepare 3.9.1 (ed943595)
 - chore(release): keep the files generated while publishing 3.9.0 (5abd9e8b)
 - chore(release): prepare 3.9.0 (31a486ec)
@@ -935,6 +937,9 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- fix(hub): approval cards say who wants what on which PC; smaller rescore items (1ffed66d)
+- fix(workbench): no preselected decisions; freeze the screen behind a hub notice (61f6e6ee)
+- fix(relay): two-press stop instead of confirm(), one static screen for both relays (f8d0afe7)
 - fix(hub): fold the progress rail so dozens of milestones fit a phone screen (e3f22f58)
 - fix(hub): split human decisions into approve and review groups; one decision-memo form (9ade3aa4)
 - fix(hub): put people's approvals first and close the remaining readability gaps (e91679ac)

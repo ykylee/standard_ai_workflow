@@ -457,8 +457,12 @@
     const pr = await api(`projects/${encodeURIComponent(pid)}`, { token });
     if (pr.status !== 200) {
       setCrumbs([{ text: "프로젝트", href: "#/" }, { text: pid }]);
-      render(el("section", { class: "card" }, alertBox("bad", errorText(pr)),
-        token ? forgetButton(pid, route) : null, el("h2", {}, "토큰 넣기"), tokenForm(() => route())));
+      // 공유받은 링크로 처음 온 사람이 길을 잃지 않게 — 로그인이 먼저, 토큰은 접어 둔다.
+      render(pr.status === 401 && !signedInAccount ? accountPanel(null, () => route()) : null,
+        el("section", { class: "card" }, alertBox(pr.status === 401 ? "info" : "bad",
+          pr.status === 401 ? "이 프로젝트를 보려면 로그인한다." : errorText(pr)),
+        token ? forgetButton(pid, route) : null,
+        el("details", { class: "account" }, el("summary", {}, "콜사인 토큰으로 열기"), tokenForm(() => route()))));
       return;
     }
     const { project, principal, summary } = pr.data;
@@ -1531,7 +1535,8 @@
         const openedBox = el("input", { type: "checkbox", "aria-label": `${d.id} 열어 보고 확인함` });
         const radios = d.options.map(([v, label]) => {
           const inp = el("input", {
-            type: "radio", name: `dec_${d.id}`, value: v, checked: v === d.default || undefined,
+            // 미리 고르지 않는다 — 사람이 고르거나 '기본값으로 답한다' 를 체크해야 답이 된다 (보지 않은 결정에 답이 나가지 않게).
+            type: "radio", name: `dec_${d.id}`, value: v,
             onchange: () => { openedBox.checked = true; dirty = true; },
           });
           return el("label", { class: "option" }, inp, el("span", { class: "opt-value" }, v),
@@ -1542,8 +1547,8 @@
           el("summary", {}, el("span", { class: "row" }, el("strong", {}, `${d.id} [${d.claim_id}]`), decisionState(d, true), d.question)),
           el("div", { class: "claim-body" },
             el("div", { class: "options" }, radios),
-            el("label", { class: "muted" }, openedBox, "기본값과 선택지를 확인했다 (다른 선택지를 고르면 저절로 체크된다)")));
-        det.addEventListener("toggle", () => { if (det.open) { openedBox.checked = true; dirty = true; } });
+            el("label", { class: "muted" }, openedBox, `선택지를 확인했다 — 고르지 않으면 기본값(${d.default})으로 답한다`)));
+        openedBox.addEventListener("change", () => { dirty = true; });
         return det;
       }
       return el("div", { class: "decision" + (isOpen ? " open" : "") },
@@ -1606,6 +1611,13 @@
         ev.preventDefault();
         button.disabled = true;
         const values = {}, opened = {};
+        const untouched = Object.entries(inputs).filter(([, inp]) => !inp.radios.some((r) => r.checked) && !inp.openedBox.checked).map(([id]) => id);
+        if (untouched.length) {
+          button.disabled = false;
+          dirty = true;
+          msg.replaceChildren(alertBox("bad", `아직 답하지 않은 결정이 있다: ${untouched.join(", ")} — 선택지를 고르거나 '선택지를 확인했다' 를 체크한다.`));
+          return;
+        }
         for (const [id, inp] of Object.entries(inputs)) {
           const picked = inp.radios.find((r) => r.checked);
           values[id] = picked ? picked.value : inp.defaultVal;

@@ -284,6 +284,23 @@ def dcr_cases(impl: str, exe: str, tmp: Path, port: int, hub: Hub, env: dict[str
             f"yes={got['yes']['status']}/{got['yes'].get('adr_path')} no={got['no']['status']} bot={bot}")
 
 
+def answer_cases(impl: str, exe: str, tmp: Path, port: int, hub: Hub, env: dict[str, str], doms: dict[str, str]) -> None:
+    """보지 않은 결정에 답이 나가지 않는다 · 로그아웃 링크는 로그인으로 (TASK-2026-11-26-claude-plex-008 재채점 P1)."""
+    pid, tid = env["pid"], env["tid"]
+    task = doms["viewTask"]
+    radios = re.findall(r'<input type="radio"[^>]*>', task)
+    boxes = re.findall(r'<input type="checkbox"[^>]*열어 보고 확인함[^>]*>', task)
+    before = ui._req(hub.base, f"/api/projects/{pid}/tasks/{tid}", token=env["owner"])[1]["plan"]["responses"]
+    dom = html.unescape(draw(exe, tmp, port, f"p/{pid}/t/{tid}", "응답 보내기", 12000))
+    after = ui._req(hub.base, f"/api/projects/{pid}/tasks/{tid}", token=env["owner"])[1]["plan"]["responses"]
+    _record(f"[{impl}] 결정 — 미리 고르지 않고, 고르지 않은 채 보내면 막는다", bool(radios) and not any(" checked" in r for r in radios)
+            and bool(boxes) and not any(" checked" in b for b in boxes) and "아직 답하지 않은 결정이 있다" in dom and after == before,
+            f"radios={radios} boxes={boxes} responses {before}->{after}")
+    direct = int(hub.base.rsplit(":", 1)[1].split("/")[0])
+    out = html.unescape(draw(exe, tmp, direct, f"p/{pid}"))
+    _record(f"[{impl}] 로그아웃으로 연 프로젝트 링크 — 로그인 양식이 먼저", "허브 계정 로그인" in out and "콜사인 토큰으로 열기" in out, out[-300:])
+
+
 def measure(impl: str, cmd: list[str] | None, exe: str, tmp: Path) -> None:
     db = tmp / f"{impl}.db"
     hub = Hub(db, cmd_prefix=cmd)
@@ -299,6 +316,7 @@ def measure(impl: str, cmd: list[str] | None, exe: str, tmp: Path) -> None:
             _record(f"[{impl}] {view}", not bad, " · ".join(bad))
         overview_cases(impl, exe, tmp, port, hub, env, doms)
         dcr_cases(impl, exe, tmp, port, hub, env)
+        answer_cases(impl, exe, tmp, port, hub, env, doms)
         rm = doms["viewRoadmap"]
         fold = rm.find('data-keep="rm-done"')
         at = [rm.find(f"<h2>{t}") for t in ("허브 화면 재정비", "Go 허브 이전", "워크벤치 정리", "계정 · 권한")]

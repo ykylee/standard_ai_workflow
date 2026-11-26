@@ -18,3 +18,20 @@
 
 - **DB 판은 22 그대로다** — 3.9.2 로 되돌릴 때 실행 파일만 바꾸면 된다(만료로 `ended` 가 된 세션은 그대로 남는다).
 - 배포하면 24시간 넘게 신호 없는 세션이 첫 조회 때 한꺼번에 만료된다. 홈랩 배포 전 실측: 2건, 그 세션의 열린 배정 0건.
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-11-26T11:57:45Z)_
+
+- total wiki pages: **104**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

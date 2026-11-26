@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- feat(hub): expire sessions after 24 hours without a signal; fold ended sessions (9cc9466e)
 - feat(hub): redesign the hub screens around progress and human decisions; approve DCRs on the web (16c9e34e)
 - feat(ui): adopt the frontend toolkit in this repository and record the UI baseline (82bc47bc)
 - feat(hub): onboarding agents register a knowledge source with the owner's screen approval (844965c5)
@@ -292,6 +293,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- chore(release): prepare 3.10.0 (b5efb478)
+- chore(release): keep the files generated while publishing 3.9.2 (3d48026d)
 - chore(release): prepare 3.9.2 (bb3fa237)
 - chore(release): keep the files generated while publishing 3.9.1 (0b6b7096)
 - chore(release): prepare 3.9.1 (ed943595)

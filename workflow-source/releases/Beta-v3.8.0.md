@@ -20,3 +20,20 @@
 
 - **DB 판이 21 → 22로 오른다** (`idea.seen_seq` · `session.review_ideas`) — 3.7.x 실행 파일은 이관된 DB를 열지 못하므로 되돌리려면 배포 전 백업을 쓴다.
 - 검토 전용 세션을 상시로 둘지는 운영 선택이다 — 떠 있는 동안 사용량이 든다. 지식 원본의 허용 목록을 늘리는 길은 아직 없다.
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-11-26T05:02:44Z)_
+
+- total wiki pages: **104**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

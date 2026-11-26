@@ -16,6 +16,8 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- feat(hub): onboarding agents register a knowledge source with the owner's screen approval (844965c5)
+- feat(hub): idea box I2 and I3, plus linking ideas to existing tasks (054af45c)
 - feat(hub): a DCR approval writes its ADR to the hub wiki and is accepted at once (e51988b9)
 - feat(hub): let hub accounts hold admin rights (af45a751)
 - feat(hub): read the callsign token for MCP through a Claude Code headersHelper (3a8860e6)
@@ -288,6 +290,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- chore(release): prepare 3.8.0 (ec90067b)
+- chore(release): keep the files generated while publishing 3.7.0 (cb189c96)
 - chore(release): prepare 3.7.0 (ee7004dd)
 - chore(release): keep the files generated while publishing 3.6.1 (7d4e6d85)
 - chore(release): prepare 3.6.1 (aac65a3c)

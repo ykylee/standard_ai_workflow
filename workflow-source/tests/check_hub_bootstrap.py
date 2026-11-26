@@ -184,6 +184,8 @@ def case_3_to_6(hub: Hub, tmp: Path) -> tuple[str, str, Path]:
     st4, conf2, _ = hub.call("hub_setup_confirm", {"project_id": pid, "token": tok, "files": files2, "checks": checks2})
     mcp_json = json.loads((repo / ".mcp.json").read_text(encoding="utf-8"))
     header = mcp_json["mcpServers"]["workflow-hub"]["headers"]["Authorization"]
+    # Claude Code 는 headersHelper 로 .workflow-hub/env 의 콜사인 토큰을 읽는다 — 환경 변수 없이 붙는 길 (2026-11-25)
+    helper = mcp_json["mcpServers"]["workflow-hub"].get("headersHelper")
     committed_files = [render.entry_file(h) for h in HARNESSES] + [".mcp.json", ".gitignore"]
     token_in_repo_files = [f for f in committed_files if tok in (repo / f).read_text(encoding="utf-8")]
     ignored = subprocess.run(["git", "status", "--porcelain", "--ignored", ".workflow-hub"], cwd=repo,
@@ -194,11 +196,12 @@ def case_3_to_6(hub: Hub, tmp: Path) -> tuple[str, str, Path]:
            and all(f"entry:{h}" in ids2 for h in HARNESSES) and "harness:mcp-json" in ids2 and "harness:codex" in ids2
            and tok in env_step.get("content", "") and agy.get("warning") and tok in " ".join(agy.get("run", []))
            and st4 == 200 and conf2.get("setup_complete") is True and not conf2.get("unconfirmed")
-           and header == "Bearer ${WORKFLOW_HUB_TOKEN}" and not token_in_repo_files
+           and header == "Bearer ${WORKFLOW_HUB_TOKEN}" and helper == "python3 .workflow-hub/hub_client.py mcp-headers"
+           and not token_in_repo_files
            and "!! .workflow-hub/" in ignored and oct((repo / ".workflow-hub/env").stat().st_mode & 0o777) == "0o600")
     _record("case 3 (셋업 — .gitignore 먼저 · env · 진입 파일 · 하네스 설정 · 완료)", ok3,
             f"stage1={plan1.get('stage')} token1={stage1_has_token} conf1={conf1} stage2={plan2.get('stage')} ids={ids2} "
-            f"conf2={conf2} header={header} token_in={token_in_repo_files} ignored={ignored!r}")
+            f"conf2={conf2} header={header} helper={helper} token_in={token_in_repo_files} ignored={ignored!r}")
 
     # 4 — .gitignore 가 듣지 않는다: 부정 규칙 · 이미 추적
     # git 의미: 부모 디렉터리가 무시되면 그 안의 파일은 `!` 로 다시 포함되지 않는다 (gitignore 문서).

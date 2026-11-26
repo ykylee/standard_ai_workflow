@@ -329,11 +329,20 @@ func diffLines(text string) []string {
 	return lines
 }
 
+// mcpHeadersHelper — Claude Code 는 headersHelper 가 낸 헤더로 정적 headers 를 덮어쓴다. 콜사인 토큰을
+// .workflow-hub/env 에서 바로 읽어 셸 환경에 토큰을 올리지 않아도 붙는다 (Python setup.HEADERS_HELPER 와 같다).
+// 정적 headers 의 환경 변수 참조는 headersHelper 를 모르는 하네스를 위해 남긴다.
+const mcpHeadersHelper = "python3 .workflow-hub/hub_client.py mcp-headers"
+
 func setupMCPJSON(existing, url string) (string, error) {
-	return setupMCPJSONAtPath(existing, url, ".mcp.json")
+	return setupMCPJSONWith(existing, url, ".mcp.json", true)
 }
 
 func setupMCPJSONAtPath(existing, url, configPath string) (string, error) {
+	return setupMCPJSONWith(existing, url, configPath, false)
+}
+
+func setupMCPJSONWith(existing, url, configPath string, headersHelper bool) (string, error) {
 	data := map[string]any{}
 	if strings.TrimSpace(existing) != "" {
 		if err := json.Unmarshal([]byte(existing), &data); err != nil {
@@ -348,7 +357,11 @@ func setupMCPJSONAtPath(existing, url, configPath string) (string, error) {
 		servers = map[string]any{}
 		data["mcpServers"] = servers
 	}
-	servers["workflow-hub"] = map[string]any{"type": "http", "url": url, "headers": map[string]any{"Authorization": "Bearer ${WORKFLOW_HUB_TOKEN}"}}
+	server := map[string]any{"type": "http", "url": url, "headers": map[string]any{"Authorization": "Bearer ${WORKFLOW_HUB_TOKEN}"}}
+	if headersHelper {
+		server["headersHelper"] = mcpHeadersHelper
+	}
+	servers["workflow-hub"] = server
 	var output strings.Builder
 	encoder := json.NewEncoder(&output)
 	encoder.SetEscapeHTML(false)
@@ -568,7 +581,7 @@ func setupPlan(s *store.Store, ctx store.Ctx, args map[string]any) (map[string]a
 			if err := issue("harness:mcp-json", "harness", ".mcp.json", digest(content), ""); err != nil {
 				return nil, err
 			}
-			steps = append(steps, map[string]any{"id": "harness:mcp-json", "op": "write", "path": ".mcp.json", "content": content, "sha256_after": digest(content), "note": "토큰은 환경 변수 참조만 저장한다"})
+			steps = append(steps, map[string]any{"id": "harness:mcp-json", "op": "write", "path": ".mcp.json", "content": content, "sha256_after": digest(content), "note": "토큰 값은 이 파일에 없다 — Claude Code 는 headersHelper 로 .workflow-hub/env 의 콜사인 토큰을 읽고, 헬퍼를 모르는 하네스는 환경 변수 WORKFLOW_HUB_TOKEN 참조로 붙는다"})
 			mcpJSONWritten = true
 		}
 		if h == "antigravity" {
@@ -593,5 +606,5 @@ func setupPlan(s *store.Store, ctx store.Ctx, args map[string]any) (map[string]a
 			}
 		}
 	}
-	return map[string]any{"stage": "files", "steps": steps, "blocked": blocked, "legacy_1x": legacyOut, "relay": relay, "next": "hub_setup_confirm — 쓴 파일의 sha256 과 명령 결과를 보낸다. 끝나면 WORKFLOW_HUB_TOKEN 을 .workflow-hub/env 에서 환경에 올리고 하네스를 다시 연결한다"}, nil
+	return map[string]any{"stage": "files", "steps": steps, "blocked": blocked, "legacy_1x": legacyOut, "relay": relay, "next": "hub_setup_confirm — 쓴 파일의 sha256 과 명령 결과를 보낸다. 끝나면 하네스를 다시 연결한다 (Claude Code 는 .workflow-hub/env 를 headersHelper 로 읽는다 — 그 밖의 하네스는 WORKFLOW_HUB_TOKEN 을 환경에 올린다)"}, nil
 }

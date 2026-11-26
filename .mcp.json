@@ -34,6 +34,7 @@
       "headers": {
         "Authorization": "Bearer ${WORKFLOW_HUB_TOKEN}"
       },
+      "headersHelper": "python3 .workflow-hub/hub_client.py mcp-headers",
       "type": "http",
       "url": "https://homelab.ddn777.synology.me/workflow/mcp"
     }

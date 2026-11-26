@@ -30,6 +30,10 @@ LEGACY_1X_MARKERS = ("standard-ai-workflow-kit:", "generated-from: core/global_w
 MCP_JSON = ".mcp.json"
 SERVER_NAME = "workflow-hub"
 TOKEN_ENV = "WORKFLOW_HUB_TOKEN"
+# Claude Code 는 headersHelper 가 낸 헤더로 정적 headers 를 덮어쓴다 — 콜사인 토큰을 .workflow-hub/env 에서 바로 읽어
+# 셸 환경에 토큰을 올리지 않아도 붙는다 (2026-11-25 실측: 변수 없이 ${VAR} 만이면 부트스트랩 도구 6종).
+# 정적 headers 의 환경 변수 참조는 headersHelper 를 모르는 하네스를 위해 남긴다.
+HEADERS_HELPER = "python3 .workflow-hub/hub_client.py mcp-headers"
 MIGRATION_MARKER_FORMAT = "workflow-hub-migrated/1"
 CHECK_IGNORE = ["git", "check-ignore", "-v", ENV_PATH]
 AGY_WARNING = (
@@ -66,7 +70,7 @@ def check_ignore_ok(rc: int, output: str) -> tuple[bool, str]:
     return True, ""
 
 
-def _mcp_json(existing: str | None, url: str, path: str = MCP_JSON) -> str:
+def _mcp_json(existing: str | None, url: str, path: str = MCP_JSON, headers_helper: bool = False) -> str:
     try:
         data = json.loads(existing) if existing and existing.strip() else {}
     except json.JSONDecodeError as exc:
@@ -76,11 +80,14 @@ def _mcp_json(existing: str | None, url: str, path: str = MCP_JSON) -> str:
     servers = data.setdefault("mcpServers", {})
     if not isinstance(servers, dict):
         raise HubError(409, "invalid_existing_file", f"{path} 의 mcpServers 가 객체가 아니다")
-    servers[SERVER_NAME] = {
+    server: dict[str, Any] = {
         "type": "http",
         "url": url,
         "headers": {"Authorization": "Bearer ${" + TOKEN_ENV + "}"},
     }
+    if headers_helper:
+        server["headersHelper"] = HEADERS_HELPER
+    servers[SERVER_NAME] = server
     return json.dumps(data, ensure_ascii=False, indent=2) + "\n"
 
 
@@ -260,11 +267,12 @@ class Setup:
                                   "sha256_after": render.sha256(merged), "guide_version": version,
                                   "note": "이 파일은 커밋한다 (D10)"})
                 if h in ("claude-code", "minimax-code") and not mcp_json_written:
-                    content = _mcp_json(files.get(MCP_JSON), self.mcp_url)
+                    content = _mcp_json(files.get(MCP_JSON), self.mcp_url, headers_helper=True)
                     self._issue(conn, ctx, p, "harness:mcp-json", "harness", MCP_JSON, render.sha256(content))
                     steps.append({"id": "harness:mcp-json", "op": "write", "path": MCP_JSON, "content": content,
                                   "sha256_after": render.sha256(content),
-                                  "note": f"Claude Code · MiniMax Code 가 읽는다. 토큰은 환경 변수 {TOKEN_ENV} 참조만 (요구 R2.5). "
+                                  "note": "Claude Code · MiniMax Code 가 읽는다. 토큰 값은 이 파일에 없다 (요구 R2.5) — Claude Code 는 headersHelper 로 "
+                                          f".workflow-hub/env 의 콜사인 토큰을 읽고, 헬퍼를 모르는 하네스는 환경 변수 {TOKEN_ENV} 참조로 붙는다. "
                                           "Claude Code 는 .mcp.json 을 민감 파일로 다뤄 쓰기에 사람 승인이 필요하다 — 비대화 실행에서 막히면 "
                                           "사람이 이 내용 그대로 만들고 sha256 확인만 맡긴다 (M-039 실측)"})
                     mcp_json_written = True
@@ -300,8 +308,8 @@ class Setup:
                 # 1.x 흔적 (요구 R14.1) — 셋업은 전환을 하지 않는다. 사람에게 알리고 클라이언트 전환으로 안내한다.
                 "legacy_1x": legacy_1x,
                 "relay": relay_advice,
-                "next": "hub_setup_confirm — 쓴 파일의 sha256 과 명령 결과를 보낸다. 끝나면 "
-                        f"`{TOKEN_ENV}` 를 .workflow-hub/env 에서 환경에 올리고 하네스를 다시 연결한다",
+                "next": "hub_setup_confirm — 쓴 파일의 sha256 과 명령 결과를 보낸다. 끝나면 하네스를 다시 연결한다 "
+                        f"(Claude Code 는 .workflow-hub/env 를 headersHelper 로 읽는다 — 그 밖의 하네스는 `{TOKEN_ENV}` 를 환경에 올린다)",
             }
 
     # --- 확인 -----------------------------------------------------------------------

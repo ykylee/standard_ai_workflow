@@ -4,7 +4,7 @@
 - 범위: 설치 · SQLite/PostgreSQL 선택 · 띄우기 · 노출과 공개 주소 · 토큰 · 프로젝트 셋업 안내 · 지침 · 백업과 복원 · 판 올리기 · 허브 간 이전 · 점검
 - 대상 독자: 허브 관리자, 저장소 관리자
 - 상태: beta
-- 최종 수정일: 2026-11-25
+- 최종 수정일: 2026-11-26
 - 관련 문서: [`../workflow-source/core/hub_spec.md`](../workflow-source/core/hub_spec.md) (계약 정본), [`planning/workflow-hub-requirements-2026-11.md`](./planning/workflow-hub-requirements-2026-11.md) (요구 · 실측 §16), [`RELEASE.md`](./RELEASE.md)
 
 허브는 **프로세스 하나와 SQLite 파일 또는 PostgreSQL 데이터베이스 하나**다. SQLite는 기본·테스트 저장소이고,
@@ -110,7 +110,7 @@ workflow-hub admin --db <DB 경로> token issue --role admin --name <이름>
 
 에이전트가 허브의 선택 클라이언트로 등록(또는 합류) · `.gitignore` 확인 · 토큰 파일 · 진입 파일 · 하네스 설정을
 하고, 하네스의 안전 장치가 걸린 단계(Claude Code 의 `.mcp.json` 승인, Codex 샌드박스, Antigravity 평문 토큰)는
-사람에게 넘긴다. 끝나면 `.workflow-hub/env` 의 토큰을 하네스 환경에 올리고 하네스를 다시 시작한다. 실측: 4 하네스
+사람에게 넘긴다. 끝나면 하네스를 다시 시작한다 — Claude Code 는 `.mcp.json` 의 `headersHelper`(`hub_client.py mcp-headers`)가 `.workflow-hub/env` 의 콜사인 토큰을 읽으므로 환경 변수가 필요 없고, 그 밖의 하네스는 토큰을 하네스 환경에 올린다. 실측: 4 하네스
 모두 빈 폴더에서 페이지만 읽고 셋업을 마쳤다 (requirements §16.7).
 
 - 하네스별 등록 명령과 사람 몫은 안내 페이지 `<public-url>/` 에 있다.

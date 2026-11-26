@@ -4,7 +4,7 @@
 - 범위: `python -m workflow_kit hub …` 명령, 허브가 여는 경로(`/mcp` · `/v1/…` · 화면 · `/healthz` · `/v1/bootstrap`), SQLite/PostgreSQL 스키마, 허브 MCP 도구, 쓰기 지시 형식, 진입 파일 렌더 영역, 1.x 들여오기 매핑. 화면의 구체 디자인은 M-037, 선택 클라이언트의 명령 세부는 M-034 가 정한다.
 - 대상 독자: 구현자(M-033~M-039), workflow 설계자, 소유자 (DS 결정)
 - 상태: draft (ADR-033 accepted 2026-11-21 — M-032 design 완료, DS1~DS9 소유자 확정. 구현은 M-033~M-039)
-- 최종 수정일: 2026-11-25
+- 최종 수정일: 2026-11-26
 - 관련 문서: `./hub_postgresql_spec.md` (backend · migration · import contract), `../../docs/planning/workflow-hub-requirements-2026-11.md` (요구 R0~R16 · 실측 §16 — 아래에서 "요구 R…" · "실측 §16.n"), `../../docs/planning/workflow-hub-review-2026-11.md` (concept), `../../ai-workflow/wiki/decisions/adr-033-workflow-hub.md`, `./claim_plan_spec.md`, `./plan_workbench_spec.md`, `./compact_relay_spec.md`, `./roadmap_milestone_wbs_spec.md`, `./stable_guarantee.md`
 
 > **결정 근거는 concept · ADR-033 에, 요구와 실측은 requirements 에 있다.** 이 문서는 *계약* 만 적는다.
@@ -209,7 +209,7 @@ python -m workflow_kit hub admin   --db PATH project import --file FILE | seal -
 
 클라이언트는 `hub_session_start` 의 `harness_support` 가 `unknown` 이거나 `hub_setup_plan` 이 `harness_support` 를 돌려주면 `hub_harness_report` 로 하네스 정보와 경로 후보를 보고한다. 안전한 선언형 프로필 `mcp-http-json-v1` 을 제보하려면 `config_formats` 에 `mcp-http-json-v1`, `mcp_transports` 에 `streamable-http`, `entry_file_candidates` 와 `.json` 인 `mcp_config_candidates` 가 필요하다. 사람 허브 관리자는 웹 화면에서 후보 경로와 호환성을 확인하고, 사람 담당자 1명 이상 및 명시적 확인과 함께 승인한다. 승인되지 않은 보고는 셋업 파일을 만들지 않는다.
 
-승인된 프로필은 `{kind: "mcp-http-json-v1", entry_file, mcp_config_path}` 이며 선택 경로는 보고된 후보여야 한다. 셋업은 승인된 진입 파일에 표준 허브 영역을 병합하고, MCP JSON 경로의 `mcpServers.workflow-hub` 에 Streamable HTTP 주소와 `${WORKFLOW_HUB_TOKEN}` 참조를 병합한다. 실행 명령/eval, 임의 코드, 토큰 값의 MCP JSON 저장은 지원하지 않는다. Go 판은 Python 판과 같은 응답·경로·쓰기 경계를 지킨다.
+승인된 프로필은 `{kind: "mcp-http-json-v1", entry_file, mcp_config_path}` 이며 선택 경로는 보고된 후보여야 한다. 셋업은 승인된 진입 파일에 표준 허브 영역을 병합하고, MCP JSON 경로의 `mcpServers.workflow-hub` 에 Streamable HTTP 주소와 `${WORKFLOW_HUB_TOKEN}` 참조를 병합한다 (Claude Code 의 `.mcp.json` 에만 `headersHelper` 를 더한다 — 아래 클라이언트의 `mcp-headers` 가 `.workflow-hub/env` 의 토큰으로 헤더를 낸다). 실행 명령/eval, 임의 코드, 토큰 값의 MCP JSON 저장은 지원하지 않는다. Go 판은 Python 판과 같은 응답·경로·쓰기 경계를 지킨다.
 | `hub_setup_confirm` | `project_id` · `token` · `files: [{path, sha256}]` · `checks: [{name, output}]` | `{confirmed[], unconfirmed[], next_steps[]}` (R2.4) |
 
 **등록 직후 토큰 (DS4)** — 하네스의 MCP 연결은 등록 전에 만들어져 헤더 토큰이 없다. 그래서 부트스트랩 묶음의 셋업 도구는 인자 `token` 을 받는다. 다른 묶음은 **헤더 토큰만** 받는다 — 셋업이 끝나 하네스가 환경 변수 참조로 다시 연결한 뒤에야 보인다.
@@ -386,7 +386,7 @@ python -m workflow_kit hub admin   --db PATH project import --file FILE | seal -
 
 ## 7. 선택 클라이언트 (요구 R2.7 · R11.3 · R12)
 
-`GET /v1/bootstrap/hub_client.py` (토큰 없이 — 비밀이 없다)가 내려주는 `workflow_kit/hub/client/hub_client.py` 한 파일, 표준 라이브러리만. 저장소 뿌리의 `.workflow-hub/hub_client.py` 로 두고 `.workflow-hub/env` 의 `WORKFLOW_HUB_URL` · `WORKFLOW_HUB_TOKEN` 을 읽는다. 모든 호출은 `POST /v1/tools/<name>` — MCP 도구와 같은 함수다. 하는 일은 셋 — ① hook 에서 체크포인트 올리기 · compact 직후 재주입 (아직 — 후속) ② 오프라인 보낼편지함 ③ 마지막 브리핑 캐시. 첫 판은 M-036 WBS-36.3 (②③).
+`GET /v1/bootstrap/hub_client.py` (토큰 없이 — 비밀이 없다)가 내려주는 `workflow_kit/hub/client/hub_client.py` 한 파일, 표준 라이브러리만. 저장소 뿌리의 `.workflow-hub/hub_client.py` 로 두고 `.workflow-hub/env` 의 `WORKFLOW_HUB_URL` · `WORKFLOW_HUB_TOKEN` 을 읽는다. 모든 호출은 `POST /v1/tools/<name>` — MCP 도구와 같은 함수다. Claude Code `headersHelper` 용 `mcp-headers` 명령도 있다 — 이 파일 옆 `env` 의 토큰으로 `{"Authorization": "Bearer …"}` 한 줄을 내고, 토큰이 없으면 0 아닌 종료. 하는 일은 셋 — ① hook 에서 체크포인트 올리기 · compact 직후 재주입 (아직 — 후속) ② 오프라인 보낼편지함 ③ 마지막 브리핑 캐시. 첫 판은 M-036 WBS-36.3 (②③).
 
 | 명령 | 하는 일 |
 |---|---|

@@ -239,7 +239,7 @@ func TestHTTPGuidePages(t *testing.T) {
 	if landing.Header().Get("Content-Security-Policy") != "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'" || landing.Header().Get("Referrer-Policy") != "same-origin" {
 		t.Fatalf("landing security headers missing: %#v", landing.Header())
 	}
-	for _, want := range []string{"http://127.0.0.1:8770/setup.md", "Hub 3.2.0", "kit 호환 2.1.0", "claude-code", "codex", "minimax-code", "antigravity", "CLAUDE.md", "AGENTS.md", "MiniMax.md", "ANTIGRAVITY.md", "${WORKFLOW_HUB_TOKEN}"} {
+	for _, want := range []string{"http://127.0.0.1:8770/setup.md", "Hub 3.2.0", "kit 호환 2.1.0", "claude-code", "codex", "minimax-code", "antigravity", "CLAUDE.md", "AGENTS.md", "MiniMax.md", "ANTIGRAVITY.md", "hub_client.py mcp-headers", "WORKFLOW_HUB_TOKEN"} {
 		if !strings.Contains(landing.Body.String(), want) {
 			t.Errorf("landing page is missing %q", want)
 		}

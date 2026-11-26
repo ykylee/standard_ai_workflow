@@ -4,7 +4,7 @@
 - 범위: 허브 서버 · 허브 MCP 도구 · 부트스트랩과 등록 · 콜사인과 작업 기억 · task와 판정 · handoff와 상태 요약 · 공유 지침 · 위키 · 로드맵 · 세션 시작 확인 · compact 직후 확인 · 오프라인 · 노출 · git 내보내기 · 1.x 전환. 방향과 결정은 [concept](./workflow-hub-review-2026-11.md)이 정본이라 **여기서 다시 정하지 않는다**. design 전 실측(WBS-31.2)과 PURPOSE 2.0판 · 1.x 유지보수 정책(WBS-31.3)은 이 문서에 자리만 둔다 (§16 · §17).
 - 대상 독자: 소유자 (sign-off), design 단계 작성자
 - 상태: **종결 (2026-11-20)** — WBS-31.1 · 31.2 · 31.3 완료, 소유자 결정 Q1~Q10 전부 확정 (§20 · §24), design 진입 조건 충족 (§21). 다음은 design (M-032 — ADR-033 Accepted + `core/hub_spec.md`)
-- 최종 수정일: 2026-11-22
+- 최종 수정일: 2026-11-26
 - 관련 문서: [`workflow-hub-review-2026-11.md`](./workflow-hub-review-2026-11.md) (concept — 아래에서 "concept §n" 으로 부른다), [`M-031`](../../ai-workflow/memory/active/roadmap/M-031-workflow-hub-requirements.md), [`ADR-033`](../../ai-workflow/wiki/decisions/adr-033-workflow-hub.md) (Proposed), [`plan-workbench-requirements-2026-11.md`](./plan-workbench-requirements-2026-11.md) (받은편지함 · 노출의 선례), arcturus-port `portal/` (`8d24fcd7` — 화면 인증 Q4 의 선례: `backend/internal/api/api.go` · `backend/internal/store/callsign.go` · `site/src/pages/tasks/index.astro` · `deploy/homelab/Caddyfile`), [`claim_plan_spec.md`](../../workflow-source/core/claim_plan_spec.md), [`compact_relay_spec.md`](../../workflow-source/core/compact_relay_spec.md), [`multi_workspace_orchestration.md`](../../workflow-source/core/multi_workspace_orchestration.md)
 
 ## 0. 요약
@@ -72,7 +72,7 @@
   [검증] 토큰 없이 도구 목록 = 부트스트랩 묶음, task 도구 호출 → 거절.
 - **R2.4 쓰기 지시 + 확인** — 로컬 파일이 필요한 도구(진입 파일 · `.gitignore` · `.workflow-hub/env`)는 파일을 직접 쓰지 않고 **쓰기 지시**(경로 · 내용 · sha256)를 돌려준다. 확인 도구는 에이전트가 보낸 실제 파일 해시를 지시와 대조하고, 다르면 '미확인' 으로 보고한다 — 확인을 거치지 않은 셋업은 허브가 완료로 적지 않는다 (I1).
   [검증] 지시대로 쓴 경우 확인 통과 · 한 바이트 바꾼 경우 '미확인' · 확인 안 부른 경우 셋업 상태 '미완료'.
-- **R2.5 토큰 전달** — 하네스 MCP 설정에는 `${WORKFLOW_HUB_TOKEN}` 꼴의 **환경 변수 참조만** 쓴다 (하네스마다 칸이 다르다 — Codex 는 `bearer_token_env_var`, §16.3. 참조를 못 하는 하네스는 R2.5a). 값은 `.workflow-hub/env` 에 둔다 (I3). 허브가 내주는 하네스별 설정 조각에 토큰 값이 들어 있으면 안 된다.
+- **R2.5 토큰 전달** — 하네스 MCP 설정에는 `${WORKFLOW_HUB_TOKEN}` 꼴의 **환경 변수 참조만** 쓴다 (하네스마다 칸이 다르다 — Codex 는 `bearer_token_env_var`, §16.3. 참조를 못 하는 하네스는 R2.5a). 값은 `.workflow-hub/env` 에 둔다 (I3). 허브가 내주는 하네스별 설정 조각에 토큰 값이 들어 있으면 안 된다. **Claude Code 는 덧붙여 `headersHelper: "python3 .workflow-hub/hub_client.py mcp-headers"`** 를 쓴다 — 헬퍼가 `.workflow-hub/env` 의 콜사인 토큰을 읽어 헤더를 내고 정적 헤더를 덮어쓰므로, 셸 환경에 변수를 올리지 않아도 붙는다 (2026-11-25 소유자 지시 · 실측 claude 2.1.332: 변수 없이 `${VAR}` 만이면 부트스트랩 도구 6종, 헬퍼면 전체). 정적 헤더의 변수 참조는 헬퍼를 모르는 하네스(MiniMax Code 등 같은 `.mcp.json` 을 읽는 쪽)를 위해 남긴다.
   [검증] 안내 페이지 · 도구가 내는 설정 조각에 토큰 문자열 0.
 - **R2.5a 참조를 못 하는 하네스 — 사용자 범위에만 값 (Q7)** — 헤더의 환경 변수 참조를 확장하지 않는 지원 하네스(지금은 Antigravity — §16.3)는 **그 하네스의 사용자 범위 설정**(저장소 밖, Antigravity 는 `~/.gemini/config/mcp_config.json`)에 토큰 값을 직접 넣는다. 허브는 그 하네스의 등록 명령 · 쓰기 지시에 경고 한 줄(평문 저장 · 이 파일을 공유하지 말 것 · 토큰을 거두는 법)을 붙인다. **프로젝트 범위 파일(저장소 안)에는 어떤 하네스든 토큰 값을 쓰지 않는다** — 쓰기 지시 생성 단계에서 거절한다. 콜사인을 거두면(R4.7) 그 토큰은 허브에서 무효가 되므로 남은 파일 값은 쓸모가 없어진다.
   [검증] Antigravity 등록 지시 = 사용자 범위 경로 + 경고 문구. 프로젝트 범위 경로로 값을 쓰는 지시 요청 → 거절. 콜사인 거둔 뒤 그 토큰 → 401.

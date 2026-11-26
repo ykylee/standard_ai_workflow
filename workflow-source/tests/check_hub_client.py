@@ -21,10 +21,12 @@ WATCHES = (
 )
 
 import json
+import os
 import shutil
 import subprocess
 import sys
 import tempfile
+import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Any
@@ -172,6 +174,41 @@ def run(tmp: Path) -> None:
                 or ss_cached.get("cached", {}).get("hub", {}).get("my_tasks") is None or ss_cached.get("outbox_pending") != 1:
             problems.append(f"캐시로 열기 {rc5d} {str(ss_cached)[:200]}")
         _record("case 5 세션 시작 — 남은 수 · 클라이언트 없음 · 캐시로 열기", not problems, "; ".join(problems))
+
+        # --- 6. MCP 헤더 도우미 (Claude Code headersHelper) ----------------------------------
+        # 하네스가 저장소 밖 cwd 에서 돌려도 이 파일 옆 env 를 읽는다 · 셸 환경 변수 없이 · 낸 헤더로 실제 인증된다
+        hub = Hub(db)
+        hubs.append(hub)
+        cli.env(hub.base, tok)
+        clean = {k: v for k, v in os.environ.items() if k not in ("WORKFLOW_HUB_TOKEN", "WORKFLOW_HUB_URL")}
+        elsewhere = tmp / "elsewhere"
+        elsewhere.mkdir()
+        script = str(repo / ".workflow-hub" / "hub_client.py")
+        cp6 = subprocess.run([sys.executable, script, "mcp-headers"], cwd=elsewhere, env=clean, capture_output=True,
+                             text=True, encoding="utf-8", timeout=30)
+        problems = []
+        try:
+            headers = json.loads(cp6.stdout)
+        except ValueError:
+            headers = {}
+        if cp6.returncode != 0 or headers != {"Authorization": f"Bearer {tok}"} or len(cp6.stdout.strip().splitlines()) != 1:
+            problems.append(f"헤더 출력 rc={cp6.returncode} keys={sorted(headers)} lines={len(cp6.stdout.splitlines())}")
+        req = urllib.request.Request(hub.base + "/v1/tools/hub_whoami", data=b"{}", method="POST",
+                                     headers={"content-type": "application/json", **headers})
+        try:
+            with urllib.request.urlopen(req, timeout=10) as r:
+                who = json.loads(r.read().decode("utf-8"))
+        except urllib.error.HTTPError as e:
+            who = {"http": e.code}
+        if json.dumps(who, ensure_ascii=False).find("agent-c") < 0:
+            problems.append(f"낸 헤더로 인증되지 않았다: {str(who)[:200]}")
+        (repo / ".workflow-hub" / "env").write_text(f"WORKFLOW_HUB_URL={hub.base}\n", encoding="utf-8")
+        cp6b = subprocess.run([sys.executable, script, "mcp-headers"], cwd=elsewhere, env=clean, capture_output=True,
+                              text=True, encoding="utf-8", timeout=30)
+        if cp6b.returncode == 0 or cp6b.stdout.strip() or "WORKFLOW_HUB_TOKEN" not in cp6b.stderr:
+            problems.append(f"토큰 없을 때 rc={cp6b.returncode} stdout={cp6b.stdout!r} (기대: 0 아님 · 빈 stdout · 이유)")
+        _record("case 6 MCP 헤더 도우미 — 파일 옆 env · 환경 변수 없이 · 실제 인증 · 토큰 없으면 실패", not problems,
+                "; ".join(problems))
     finally:
         for h in hubs:
             h.stop()

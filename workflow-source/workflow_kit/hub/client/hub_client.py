@@ -7,6 +7,7 @@
     python .workflow-hub/hub_client.py call <tool> ['<json 인자>']   # 닿지 않으면 쓰기는 보낼편지함으로 (exit 3)
     python .workflow-hub/hub_client.py flush                        # 보낼편지함을 오래된 것부터 보낸다
     python .workflow-hub/hub_client.py status                       # 보낼편지함 · 캐시
+    python .workflow-hub/hub_client.py mcp-headers                  # MCP 헤더 도우미 — env 의 콜사인 토큰으로 Authorization JSON
     python .workflow-hub/hub_client.py session-start                # 남은 보낼편지함 수를 싣고 시작, 브리핑을 캐시
     python .workflow-hub/hub_client.py migrate plan                 # 1.x 전환 계획 — 허브 명령 실행 · 감지 전송 · 요약
     python .workflow-hub/hub_client.py migrate import <MIG> <종류,…|all>  # 고른 종류의 파일을 묶음으로 보내고 끝낸다
@@ -59,8 +60,8 @@ QUEUEABLE = frozenset({
 })
 
 
-def _env() -> dict[str, str]:
-    path = HUB_DIR / "env"
+def _env(path: Path | None = None) -> dict[str, str]:
+    path = path or HUB_DIR / "env"
     out: dict[str, str] = {}
     if path.is_file():
         for line in path.read_text(encoding="utf-8").splitlines():
@@ -71,6 +72,18 @@ def _env() -> dict[str, str]:
         if os.environ.get(k):
             out[k] = os.environ[k]
     return out
+
+
+def cmd_mcp_headers() -> int:
+    """하네스 MCP 설정의 헤더 도우미 (Claude Code ``headersHelper``) — 콜사인 토큰을 ``.workflow-hub/env`` 에서 읽어
+    ``{"Authorization": "Bearer …"}`` JSON 한 줄을 stdout 으로 낸다. 토큰을 MCP 설정 · 셸 환경에 두지 않는다.
+    env 는 cwd 가 아니라 이 파일 옆에서 찾는다 — 하네스가 어느 디렉터리에서 도우미를 돌려도 같은 토큰을 읽는다."""
+    token = _env(Path(__file__).resolve().parent / "env").get("WORKFLOW_HUB_TOKEN", "")
+    if not token:
+        print("hub_client: .workflow-hub/env 에 WORKFLOW_HUB_TOKEN 이 없다 — 허브 MCP 는 부트스트랩 도구만 보인다", file=sys.stderr)
+        return 1
+    print(json.dumps({"Authorization": f"Bearer {token}"}))
+    return 0
 
 
 class Unreachable(Exception):
@@ -689,7 +702,8 @@ def cmd_bootstrap(argv: list[str]) -> int:
            "callsign": a.callsign, **joined, "confirmed": done, "for_agent": for_agent, "pending": pending,
            "legacy_1x": legacy,
            "relay": relay_advice,
-           "next": ("셋업 완료 — .workflow-hub/env 의 WORKFLOW_HUB_TOKEN 을 환경에 올리고 하네스를 다시 시작한 뒤 hub_session_start"
+           "next": ("셋업 완료 — 하네스를 다시 시작한 뒤 hub_session_start (Claude Code 는 .mcp.json 의 headersHelper 가 "
+                    ".workflow-hub/env 의 토큰을 읽는다 — 그 밖의 하네스는 WORKFLOW_HUB_TOKEN 을 환경에 올린다)"
                     if complete else
                     "for_agent 의 파일을 내용 그대로 쓰고(하네스가 승인을 물으면 사람이 답한다) 이 명령을 다시 부른다. "
                     "pending 은 사람에게 보인다" if pending_ids else "이 명령을 다시 부른다")}
@@ -703,6 +717,8 @@ def main(argv: list[str]) -> int:
     cmd, rest = argv[0], argv[1:]
     if cmd == "call" and rest:
         return cmd_call(rest[0], rest[1] if len(rest) > 1 else "{}")
+    if cmd == "mcp-headers" and not rest:
+        return cmd_mcp_headers()
     if cmd == "flush":
         return cmd_flush()
     if cmd == "status":

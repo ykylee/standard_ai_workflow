@@ -23,7 +23,7 @@ func guides(publicURL string) []harnessGuide {
 	mcp := strings.TrimRight(publicURL, "/") + "/mcp"
 	return []harnessGuide{
 		{name: "claude-code", entryFile: "CLAUDE.md", before: "claude mcp add --transport http workflow-hub " + mcp,
-			after: "부트스트랩이 .mcp.json 에 'Authorization: Bearer ${WORKFLOW_HUB_TOKEN}' 를 쓴다 (Claude Code 는 이 파일 쓰기에 사람 승인을 요구한다) — 토큰을 환경에 올리고 다시 시작"},
+			after: "부트스트랩이 .mcp.json 에 headersHelper 'python3 .workflow-hub/hub_client.py mcp-headers' 를 쓴다 (Claude Code 는 이 파일 쓰기에 사람 승인을 요구한다) — 콜사인 토큰을 .workflow-hub/env 에서 읽으므로 환경 변수 없이 다시 시작"},
 		{name: "codex", entryFile: "AGENTS.md", before: "codex mcp add workflow-hub --url " + mcp,
 			after: "부트스트랩이 --bearer-token-env-var WORKFLOW_HUB_TOKEN 로 다시 등록한다. 대화형은 허브 도구마다 승인을 묻고, 비대화(codex exec)는 실행마다 -c 'mcp_servers.workflow-hub.default_tools_approval_mode=\"approve\"' 를 줘야 허브 도구를 부른다 (부트스트랩 때도 같다 — 자동 승인은 사람의 선택이라 설정에 쓰지 않는다)"},
 		{name: "minimax-code", entryFile: "MiniMax.md", before: "저장소 뿌리의 .mcp.json 에 {\"mcpServers\": {\"workflow-hub\": {\"type\": \"http\", \"url\": \"" + mcp + "\"}}}",

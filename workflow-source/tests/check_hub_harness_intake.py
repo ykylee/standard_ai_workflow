@@ -145,6 +145,8 @@ def test_intake_review() -> int:
             config_step = next(step for step in file_plan["steps"] if step.get("path") == "harness-mcp.json")
             assert file_plan["stage"] == "files"
             assert "${WORKFLOW_HUB_TOKEN}" in config_step["content"]
+            # 헬퍼는 Claude Code 의 .mcp.json 에만 — 승인된 일반 프로필 하네스가 모르는 칸을 받지 않는다
+            assert "headersHelper" not in config_step["content"]
             # .mcp.json 이 아닌 승인 설정 파일도 해시로 확인되고 셋업이 끝난다
             written = [{"path": step["path"], "sha256": step["sha256_after"]} for step in file_plan["steps"]]
             wrong = [{**item, "sha256": "0" * 64} if item["path"] == "harness-mcp.json" else item for item in written]

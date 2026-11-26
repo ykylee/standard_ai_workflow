@@ -87,8 +87,9 @@ Windows에서 Go relay 실행 파일은 필수가 아니다. Python 실행 모�
 
 ## 6. 끝난 뒤
 
-- `.workflow-hub/env` 의 `WORKFLOW_HUB_TOKEN` 을 하네스가 도는 환경에 올리고 하네스를 다시 시작해야 허브 MCP 로 붙는다
-  (등록 전 연결에는 토큰이 없다). 다시 붙으면 `hub_session_start`.
+- 하네스를 다시 시작해야 허브 MCP 로 붙는다 (등록 전 연결에는 토큰이 없다). Claude Code 는 `.mcp.json` 의 headersHelper 가
+  `.workflow-hub/env` 의 콜사인 토큰을 읽는다 — 그 밖의 하네스는 `WORKFLOW_HUB_TOKEN` 을 하네스가 도는 환경에 올린다.
+  다시 붙으면 `hub_session_start`.
 - 사람에게 보고: 프로젝트 ID · 콜사인 · 확인된 단계 · 남은 단계와 이유 · 커밋할 파일(`.gitignore` · 진입 파일 ·
   `.mcp.json` — `.workflow-hub/` 는 커밋하지 않는다).
 

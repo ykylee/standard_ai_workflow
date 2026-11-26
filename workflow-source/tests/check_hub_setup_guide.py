@@ -29,6 +29,7 @@ WATCHES = (
 
 import json  # noqa: E402
 import os  # noqa: E402
+import re  # noqa: E402
 import stat  # noqa: E402
 import subprocess  # noqa: E402
 import sys  # noqa: E402
@@ -201,9 +202,15 @@ def case_5_join(e: Env, pid: str, remote: str, fake_log: Path) -> None:
         problems.append("AGENTS.md 없음")
     else:
         agents = (e.root / "AGENTS.md").read_text(encoding="utf-8")
+        # 모든 도구를 진입 파일에서 찾을 수 있어야 한다 — 이름 그대로이거나 묶음 접두사(`hub_task_*`)로.
+        # 이름 전부를 나열하면 표준 블록이 진입 영역 예산(8KB)의 1/3 을 먹어 프로젝트 지침 자리가 없었다 (TASK-2026-11-26-claude-plex-022).
+        named = set(re.findall(r"`(hub_[a-z_]+\*?)`", agents))
+        prefixes = [t[:-1] for t in named if t.endswith("*")]
         for tool in TOOLS:
-            if tool not in agents:
-                problems.append(f"생성된 AGENTS.md 에 {tool} 사용 안내가 없다")
+            if tool not in named and not any(tool.startswith(pre) for pre in prefixes):
+                problems.append(f"생성된 AGENTS.md 에서 {tool} 을 찾을 수 없다 (이름 · 접두사 둘 다 없음)")
+        if not prefixes:
+            problems.append("생성된 AGENTS.md 에 도구 묶음 접두사가 없다")
     _record("case 5 (같은 원격의 두 번째 환경 — 합류 · codex 단계 실행 확인 · complete)", not problems, "; ".join(problems))
 
 

@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- feat(hub): let hub accounts hold admin rights (af45a751)
 - feat(hub): read the callsign token for MCP through a Claude Code headersHelper (3a8860e6)
 - feat(hub): stream A2A tasks and let callsigns message each other (f7f08192)
 - feat(hub): add the idea box — people jot ideas, agents review read-only and reply (3.4.0) (c4d4c64b)
@@ -286,6 +287,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- chore(release): prepare 3.6.0 (bf68a704)
+- chore(release): keep the files generated while publishing 3.5.1 (0bba68a8)
 - docs(release): record the smoke total in the 3.5.1 note (c8652f20)
 - chore(release): prepare 3.5.1 (15c4c3e5)
 - docs(a2a): defer moving assignments to A2A and keep the MCP messaging tools (43e6f394)

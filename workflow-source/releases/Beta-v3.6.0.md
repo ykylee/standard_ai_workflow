@@ -21,3 +21,20 @@
 
 - **DB 판이 20 → 21로 오른다** — 3.5.x 실행 파일은 이관된 DB를 열지 못하므로 되돌리려면 배포 전 백업을 쓴다.
 - 계정 비활성화 · 마지막 관리자 보호는 없다 — admin 토큰과 서버 CLI 가 늘 남는 복구 경로다. PostgreSQL 은 재지 않았다.
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-11-26T01:40:51Z)_
+
+- total wiki pages: **104**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

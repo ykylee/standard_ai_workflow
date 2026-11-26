@@ -51,6 +51,7 @@ DOC_NEW = "\n".join(["머리", *(f"앞{i}" for i in range(6)), "새 줄 <script>
 DIFF = ["⋯ 바뀌지 않은 줄", "  앞4", "  앞5", "- 옛 줄", "+ 새 줄 <script>1</script>", "  가운데", "- 지울 줄", "  뒤0", "  뒤1", "⋯ 바뀌지 않은 줄", "  뒤4", "  뒤5",
         "+ 끝U+202E문U+2028단U+0000값U+200BU+3164U+00A0U+E0041", "  "]
 
+DATA_ACTS = r'data-acts="([^"]*)"'
 _fails: list[str] = []
 _count = 0
 
@@ -73,6 +74,10 @@ for(const a of acts.split('|')){if(a[0]==='@'){const d=document.querySelector('[
 if(!document.querySelector('[data-old]'))document.documentElement.dataset.renders='1';continue;}
 if(a[0]==='!'){const [l,v]=a.slice(1).split('=');const g=window.fetch;window.fetch=async(...x)=>{const r=await g(...x);const f=document.querySelector('[aria-label="'+l+'"]');
 if(f&&!f.value){f.value=v;f.dispatchEvent(new Event('input',{bubbles:true}));}await z(300);return r;};await z(11500);continue;}
+if(a[0]==='^'){const t=a.slice(1);const b=[...document.querySelectorAll('button')].find(x=>x.textContent===t&&!x.disabled);let n=0;const g=window.fetch;
+window.fetch=(...x)=>{if(((x[1]||{}).method||'GET')==='POST')n++;return g(...x);};log.push(a+(b?'':':없음'));
+if(b){b.click();const row=[...b.parentElement.querySelectorAll('button')].map(x=>x.disabled?'off':'on').join(',');b.click();await z(1500);
+document.documentElement.dataset.dbl=n+'/'+row;}window.fetch=g;continue;}
 if(a[0]==='~'){const [l,v]=a.slice(1).split('=');const f=document.querySelector('[aria-label="'+l+'"]');f.value=v;f.dispatchEvent(new Event('input',{bubbles:true}));continue;}const b=[...document.querySelectorAll('button')].find(x=>x.textContent===a&&!x.disabled);log.push(a+(b?'':':없음'));if(b){b.click();await z(900);}}
 const tt=document.querySelector('[aria-label="task 제목"]');if(tt)document.documentElement.dataset.title=tt.value;
 const kept=document.querySelector('textarea[aria-label="아이디어"]');if(kept&&kept.value)document.documentElement.dataset.kept=kept.value.length;
@@ -404,6 +409,23 @@ def measure(impl: str, cmd: list[str] | None, exe: str, tmp: Path) -> None:
         orch = doms["viewOrchestration"]
         _record(f"[{impl}] 오케스트레이션 — 메시지 본문", all(x in orch for x in ("새 배정 알림", "배정한 task 를 확인해 주세요", "문자열 본문")))
         _record(f"[{impl}] 오케스트레이션 — 지시문 · 메시지의 보이지 않는 문자", [orch.count(f">{u}</mark>") for u in ("U+202E", "U+FFFC", "U+200B", "U+2066")] == [2, 2, 1, 1])
+        # 승인 카드 — "누가 어느 PC 에서 무엇을" 이 제목, ID 는 보조 줄 · 승인 대기가 리스 제어 위 (TASK-2026-11-26-claude-plex-017)
+        text = html.unescape(orch)
+        heads = re.findall(r'<strong class="exact">([^<]*?가 pc 에서 fake 세션을 띄우려 한다)', text)
+        ids = re.findall(r'<div class="row muted req-ids"><span class="mono">(SR-\d+)</span><span class="mono">PC (H-[^<]+)</span>', text)
+        at_appr, at_lease = orch.find('id="approvals"'), orch.find("<h1>오케스트레이션")
+        _record(f"[{impl}] 오케스트레이션 — 승인 카드는 사람 말 먼저 · ID 는 보조 줄 · 승인 대기가 리스 제어 위",
+                len(heads) == 2 and len(ids) == 2 and "하네스 fake" not in text and "권한 기본" in text
+                and 0 < at_appr < at_lease,
+                f"heads={heads} ids={ids} approvals@{at_appr} lease@{at_lease}")
+        conf_head = doms["viewConfirmations"]
+        at_nav, at_lead = conf_head.find('class="nav-links'), conf_head.find("승인하거나 거절하면 결과가")
+        task_dom = html.unescape(doms["viewTask"])
+        _record(f"[{impl}] 확인 요청 머리 카드가 탭 줄로 끝나지 않는다 · task 주석 칸 이름표 · DCR 목록 '결정 대기' 중복 없음",
+                0 < at_nav < at_lead
+                and re.search(r'<label class="field wide">계획 전체 주석 \(선택\)<textarea', task_dom) is not None
+                and "결정 대기" not in html.unescape(doms["viewDcrs"]),
+                f"nav@{at_nav} lead@{at_lead}")
         _record(f"[{impl}] 오케스트레이션 — 정리 안내문", "세션이 끝났으면 같은 콜사인" in orch and "읽음으로 표시" in orch and "hub_" not in re.sub(r"<[^>]+>", "", orch.split("<body", 1)[-1]) and "읽음으로 정리" in orch)
         guide = doms["viewGuide"]
         _record(f"[{impl}] 지침 제안 — 보이지 않는 문자", guide.count(">U+202E</mark>") == 1 and guide.count(">U+200B</mark>") == 1
@@ -465,6 +487,11 @@ def measure(impl: str, cmd: list[str] | None, exe: str, tmp: Path) -> None:
         done = re.search(r'data-acts="([^"]*)"', dom)
         _record(f"[{impl}] 관리자 계정 — 화면 단추로 권한 거두기", bool(done) and html.unescape(done[1]) == "관리자 거두기"
                 and admins >= 1 and left == admins - 1, f"{done and done[1]} admins={admins} left={left}")
+        # 두 번 누름 방지 (decisionForm) — 같은 단추를 곧바로 두 번 눌러도 POST 는 하나, 첫 누름 직후 두 단추가 꺼진다
+        dom = draw(exe, tmp, port, f"p/{env['pid']}/confirmations", "^승인", 12000)
+        dbl = re.search(r'data-dbl="([^"]*)"', dom)
+        _record(f"[{impl}] 결정 단추 두 번 누름 — POST 1 · 보내는 동안 승인 · 거절 꺼짐", bool(dbl) and dbl[1] == "1/off,off",
+                f"{dbl and dbl[1]} acts={re.findall(DATA_ACTS, dom)}")
         many_milestones(impl, exe, tmp, port, hub, env)
     finally:
         if srv:

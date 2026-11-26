@@ -191,6 +191,8 @@ label.field > input, label.field > textarea { font-size: var(--fs-md); font-weig
 /* 승인 · 거절 자리 — 확인 요청 · 중계 승인 · DCR 이 같은 모양 */
 .decide-form { display: grid; gap: var(--sp-2); max-width: 44rem; }
 .decide-form label.field { display: grid; }
+label.field.wide { display: grid; margin-top: var(--sp-3); }
+.req-ids { font-size: var(--fs-sm); gap: var(--sp-3); }
 .decide-form p { margin: 0; }
 form.row { align-items: end; }
 input:not([type]), input[type=text], input[type=password], input[type=search], select, textarea { border: 1px solid var(--field); border-radius: var(--r-md); padding: 6px var(--sp-2);

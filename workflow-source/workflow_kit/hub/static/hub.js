@@ -814,7 +814,10 @@
               orch ? `${sel.value} 로 오케스트레이터를 넘겼다.` : `${sel.value} 를 오케스트레이터로 지정했다.`),
           }, orch ? "이 세션에 넘기기" : "오케스트레이터 지정"));
         if (orch) {
-          controls.push(el("button", { type: "button", class: "ghost", onclick: () => postLease({ action: "release" }, "오케스트레이터를 내려놓았다 — 지금은 맡은 세션이 없다.") }, "오케스트레이터 내려놓기"));
+          controls.push(el("button", { type: "button", class: "ghost", onclick: () => {
+            if (!confirm(`${orch.callsign} 의 오케스트레이터 자리를 내려놓는다 — 배정 · 승인 요청을 낼 세션이 없어진다. 계속할까?`)) return;
+            postLease({ action: "release" }, "오케스트레이터를 내려놓았다 — 지금은 맡은 세션이 없다.");
+          } }, "오케스트레이터 내려놓기"));
         }
       }
       return el("section", { class: "card" },
@@ -828,11 +831,19 @@
         haltRow, msg);
     })();
 
+    // 승인 카드는 "누가 어느 PC 에서 무엇을" 이 제목이고, 요청 · PC · 세션 ID 는 보조 줄이다 (TASK-2026-11-26-claude-plex-017).
+    const hostName = (hid) => (d.hosts.find((h) => h.host_id === hid) || {}).name || hid || "—";
+    const sessionName = (sid) => (d.sessions.find((s) => s.id === sid) || {}).callsign || sid || "—";
     const reqCard = (req) => {
       const target = req.target || {};
+      const who = req.requested_by || "—";
+      const headline = req.kind === "stop"
+        ? `${who} 가 세션 ${sessionName(target.session)} 을 멈추려 한다`
+        : `${who} 가 ${hostName(req.host_id)} 에서 ${target.harness || "—"} 세션을 띄우려 한다`;
+      const mode = target.permission_mode || "default";
       const detailText = req.kind === "stop"
-        ? `대상 세션 ${target.session || "—"}${target.reason ? ` · 사유: ${target.reason}` : ""}`
-        : `별칭 ${target.dir_alias || "—"} · 하네스 ${target.harness || "—"} · 권한 ${target.permission_mode || "default"}${target.prompt ? ` · 지시: ${target.prompt}` : ""}`;
+        ? (target.reason ? `사유: ${target.reason}` : "사유 없음")
+        : `작업 폴더 별칭 ${target.dir_alias || "—"} · 권한 ${MSG_VALUE[mode] || mode}${target.prompt ? ` · 지시: ${target.prompt}` : ""}`;
       const form = decisionForm({ name: req.id, hint: "메모는 결과와 함께 요청한 쪽에 간다.", onDecide: async (decision, note, msg) => {
         const res = await api(`projects/${encodeURIComponent(pid)}/orchestration/approvals/${encodeURIComponent(req.id)}`, {
           method: "POST", token: storedToken(pid), body: { decision, note } });
@@ -841,10 +852,11 @@
         pendingFlash = { kind: "ok", text: `${req.id} 를 ${decision === "approve" ? "승인" : "거절"}했다.` };
         route();
       } });
-      return el("div", { class: "decision" },
-        el("div", { class: "row" }, el("strong", { class: "mono" }, req.id), chip(req.kind, "planned"), chip(req.state, req.state),
-          `PC ${req.host_id}`, `· 요청 ${req.requested_by} · `, when(req.created_at)),
+      return el("div", { class: "decision", "data-request": req.id },
+        el("div", { class: "row" }, el("strong", { class: "exact" }, reveal(headline)), chip(req.state, req.state)),
         el("div", { class: "exact" }, reveal(detailText)),
+        el("div", { class: "row muted req-ids" }, el("span", { class: "mono" }, req.id), el("span", { class: "mono" }, `PC ${req.host_id || "—"}`),
+          req.kind === "stop" && target.session ? el("span", { class: "mono" }, `세션 ${target.session}`) : null, when(req.created_at)),
         req.decided_by ? el("div", { class: "muted" }, `결정 ${req.decided_by} · `, when(req.decided_at)) : null,
         req.result && Object.keys(req.result).length ? el("div", { class: "mono muted" }, JSON.stringify(req.result)) : null,
         req.state === "pending_approval" && canManage ? form : null);
@@ -966,7 +978,9 @@
 
     // 사람이 결정할 것이 먼저 — 메시지는 접어 둔다 (개요의 '중계 승인' 이 ?focus=approvals 로 이 자리로 온다).
     approvalsSection.id = "approvals";
-    render(leaseCard, approvalsSection, unackSection, sessionsSection, assignSection, hostsSection);
+    // 사람이 결정할 일이 먼저 — 승인 대기가 있으면 리스 제어보다 위에 (TASK-2026-11-26-claude-plex-017)
+    if (pendingReqs.length) render(approvalsSection, leaseCard, unackSection, sessionsSection, assignSection, hostsSection);
+    else render(leaseCard, approvalsSection, unackSection, sessionsSection, assignSection, hostsSection);
     if (focus === "approvals" && focusedHash !== location.hash) { focusedHash = location.hash; approvalsSection.scrollIntoView({ block: "start" }); }
   }
 
@@ -1017,9 +1031,8 @@
         decisionForm({ name: req.id, hint: "메모는 결과와 함께 요청한 에이전트에게 간다.",
           approveDisabled: (Boolean(req.action) && !actingAccount) || staleDoc(req), onDecide: decide }));
     });
-    render(el("section", { class: "card" }, el("h1", {}, "에이전트 확인 요청"),
-      el("p", { class: "muted" }, "승인하거나 거절하면 결과가 요청한 에이전트의 받은편지함으로 간다. 에이전트는 결과를 확인한 뒤에 일을 이어 간다."),
-      projectNav(pid, "confirmations")),
+    render(el("section", { class: "card" }, el("h1", {}, "에이전트 확인 요청"), projectNav(pid, "confirmations"),
+      el("p", { class: "muted" }, "승인하거나 거절하면 결과가 요청한 에이전트의 받은편지함으로 간다. 에이전트는 결과를 확인한 뒤에 일을 이어 간다.")),
       ...(cards.length ? cards : [el("section", { class: "card muted" }, "기다리는 확인 요청이 없다.")]));
   }
 
@@ -1580,7 +1593,7 @@
       const list = r.data.dcrs.slice().sort((x, y) => (order[x.status] ?? 3) - (order[y.status] ?? 3));
       body = list.length ? el("ul", { class: "hits" }, list.map((d) => el("li", {}, dcrChip(d.status), " ",
         el("a", { href: `${base}/dcr/${encodeURIComponent(d.id)}` }, d.title), el("span", { class: "muted" }, ` · 제안 ${d.author}`),
-        d.status === "open" && canDecide ? el("span", { class: "muted" }, " · 결정 대기") : null)))
+        d.status === "open" && canDecide ? el("span", { class: "muted" }, " · 내가 승인 · 거절할 수 있다") : null)))
         : el("p", { class: "muted" }, "등록된 결정 변경 기록(DCR)이 없다.");
     }
     render(el("section", { class: "card" }, el("h1", {}, id ? (r.status === 200 ? r.data.title : `DCR ${id}`) : "결정 변경 기록"), projectNav(pid, "dcr"), body));
@@ -1708,7 +1721,7 @@
         statusNotice, planRaw);
     }
 
-    const comment = el("textarea", { placeholder: "주석 (선택)", "aria-label": "주석" });
+    const comment = el("textarea", { rows: "2" });
     const msg = el("div");
     const button = el("button", { type: "submit" }, "응답 보내기");
     return el("section", { class: "card" },
@@ -1740,7 +1753,7 @@
       } },
         treeEl,
         el("p", { class: "muted" }, `반영된 응답 ${plan.responses}건 · 계획 지문 `, el("span", { class: "mono" }, plan.digest.slice(0, 12))),
-        comment,
+        el("label", { class: "field wide" }, "계획 전체 주석 (선택)", comment),
         el("div", { class: "submitbar" }, el("span", { class: "muted" }, "응답자 ", principal.callsign || "—"), button),
         msg),
       planRaw);

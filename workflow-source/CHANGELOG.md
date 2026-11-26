@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- feat(hub): a DCR approval writes its ADR to the hub wiki and is accepted at once (e51988b9)
 - feat(hub): let hub accounts hold admin rights (af45a751)
 - feat(hub): read the callsign token for MCP through a Claude Code headersHelper (3a8860e6)
 - feat(hub): stream A2A tasks and let callsigns message each other (f7f08192)
@@ -287,6 +288,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- chore(release): prepare 3.7.0 (ee7004dd)
+- chore(release): keep the files generated while publishing 3.6.1 (7d4e6d85)
 - chore(release): prepare 3.6.1 (aac65a3c)
 - docs: add a harness-neutral frontend toolkit and how to use it (49c898ca)
 - chore(release): keep the files generated while publishing 3.6.0 (c8f30acb)

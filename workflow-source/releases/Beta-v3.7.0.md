@@ -19,3 +19,20 @@
 
 - DB 판은 21 그대로다. 저장소에 ADR 파일이 필요하면 위키 내보내기(`hub_wiki_export`)를 쓴다.
 - 사람 화면의 DCR 결정 단추는 아직 없다 — 결정은 MCP `hub_dcr_decide`(승인된 human owner).
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-11-26T04:02:37Z)_
+
+- total wiki pages: **104**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

@@ -9,7 +9,7 @@
     "work_backlog_index_path": "/abs/path/work_backlog.md"
   },
   "status": "error",
-  "tool_version": "3.10.0",
+  "tool_version": "3.11.0",
   "warnings": [
     "session-start 기준선을 복원할 수 없어 후속 판단을 중단한다."
   ]

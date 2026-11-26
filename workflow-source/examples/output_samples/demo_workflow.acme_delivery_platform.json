@@ -16,7 +16,7 @@
     "target_backlog_path": "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/backlog/2026-04-18.md",
     "task_found": true,
     "task_id": "TASK-021",
-    "tool_version": "3.10.0",
+    "tool_version": "3.11.0",
     "warnings": []
   },
   "code_index_update": {
@@ -26,7 +26,7 @@
       "/Users/yklee/repos/standard_ai_workflow/README.md"
     ],
     "status": "ok",
-    "tool_version": "3.10.0",
+    "tool_version": "3.11.0",
     "warnings": [
       "코드/설정 변경이 문서 허브 설명과 최신 구조에 반영됐는지 확인이 필요하다.",
       "변경 경로 기준으로 추정한 색인 문서 일부가 현재 저장소에서 확인되지 않는다."
@@ -42,7 +42,7 @@
       "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/backlog/2026-04-18.md"
     ],
     "status": "ok",
-    "tool_version": "3.10.0",
+    "tool_version": "3.11.0",
     "warnings": [
       "app/jobs/delivery_sync.py 변경이 운영 문서에 반영됐는지 아직 확인되지 않았다."
     ]
@@ -54,7 +54,7 @@
     ],
     "latest_backlog_path": "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/backlog/2026-04-18.md",
     "status": "ok",
-    "tool_version": "3.10.0",
+    "tool_version": "3.11.0",
     "warnings": []
   },
   "merge_doc_reconcile": {
@@ -67,7 +67,7 @@
       "blocked 항목이 다르다. handoff: TASK-019 staging 운영 계정 접근 권한 재승인 대기 / backlog: 없음"
     ],
     "status": "ok",
-    "tool_version": "3.10.0",
+    "tool_version": "3.11.0",
     "warnings": []
   },
   "orchestration_plan": {
@@ -141,7 +141,7 @@
       "진행 중 작업 1건 확인",
       "주요 제약: VPN 미연결 상태에서는 staging API 및 운영 콘솔 접근 불가"
     ],
-    "tool_version": "3.10.0",
+    "tool_version": "3.11.0",
     "warnings": [
       "blocked 항목이 handoff 와 backlog 사이에서 다르다 — handoff 에만: TASK-019 staging 운영 계정 접근 권한 재승인 대기, TASK-021 배송 상태 동기화 실패 대응 절차 문서 정리"
     ]
@@ -172,10 +172,10 @@
       "docs/operations/runbooks/delivery-sync.md"
     ],
     "status": "ok",
-    "tool_version": "3.10.0",
+    "tool_version": "3.11.0",
     "warnings": []
   },
-  "tool_version": "3.10.0",
+  "tool_version": "3.11.0",
   "validation_plan": {
     "detected_change_types": [
       "code",
@@ -197,7 +197,7 @@
       "release_sensitive"
     ],
     "status": "ok",
-    "tool_version": "3.10.0",
+    "tool_version": "3.11.0",
     "warnings": [
       "staging 검증은 사내 VPN 연결 상태에서만 수행 가능하다."
     ]

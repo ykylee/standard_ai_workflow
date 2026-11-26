@@ -8,6 +8,7 @@ import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from check_hub_core import Hub  # noqa: E402
@@ -198,6 +199,60 @@ def test_knowledge_lifecycle(binary: str | None = None) -> int:
                                                          "documents": [{"path": legacy_path, "title": "Legacy", "body": legacy_body}]}, agent)
             st8, legacy_after, _ = hub.call("hub_dcr_get", {"id": dcr4["id"]}, agent)
             checks.append(st6 == 200 and st7 == 200 and legacy_after["status"] == "accepted")
+            # 온보딩하는 에이전트의 원본 등록 — 소유자가 화면에서 승인하면 에이전트가 approval_id 로 한다 (소유자 2026-11-26)
+            import json as _json  # noqa: PLC0415
+            import urllib.error  # noqa: PLC0415
+            import urllib.request  # noqa: PLC0415
+
+            def ui(path: str, body: Any = None, cookie: str = "", token: str = "") -> tuple[int, Any, Any]:
+                h = {"content-type": "application/json", "origin": hub.base, **({"cookie": cookie} if cookie else {}),
+                     **({"authorization": f"Bearer {token}"} if token else {})}
+                req = urllib.request.Request(hub.base + path, data=_json.dumps(body).encode() if body is not None else None, headers=h)
+                try:
+                    with urllib.request.urlopen(req, timeout=20) as r:
+                        return r.status, _json.loads(r.read()), r.headers
+                except urllib.error.HTTPError as e:
+                    return e.code, _json.loads(e.read()), e.headers
+
+            # 이미 원본이 있는 저장소 — 같은 키로 또 등록하면 409 (전에는 DB 유일 제약으로 500)
+            st_dup, dup, _ = hub.call("hub_knowledge_source_register", {"source_id": "second", "repo_key": "github.com/acme/knowledge", "allowlist": ["docs/x.md"]}, owner)
+            checks.append(st_dup == 409 and dup.get("error_code") == "source_exists_for_repo")
+            # 새로 온보딩하는 프로젝트
+            reg2 = hub.call("hub_project_register", {"remote_url": "git@github.com:acme/onboard.git", "display_name": "Onboard",
+                                                     "callsign": "owner-two", "kind": "human"})[1]
+            owner2 = reg2["token"]
+            agent = hub.call("hub_callsign_register", {"project_id": reg2["project_id"], "callsign": "agent-onboard", "kind": "agent"}, owner2)[1]["token"]
+            _, _, head = ui("/api/account/enroll", {"username": "owner-account", "display_name": "O", "password": "long-test-password-1"}, token=owner2)
+            cookie = head.get("set-cookie", "").split(";", 1)[0]
+            want = {"source_id": "agent-docs", "repo_key": "github.com/acme/onboard", "allowlist": ["docs/onboard.md", "docs/onboard.md", "docs/more.md"]}
+            st_direct, _, _ = hub.call("hub_knowledge_source_register", want, agent)
+            sess = hub.call("hub_session_start", {"session": {"harness": "codex"}}, agent)[1]["session"]["id"]
+            st_req, asked, _ = hub.call("hub_approval_request", {"session": sess, "title": "원본 등록", "question": "온보딩 문서를 등록할까요?",
+                                                              "action": {"type": "knowledge_source_register", **want}}, agent)
+            rid = asked.get("approval_id") or asked.get("request", {}).get("id", "")
+            st_bad_req, _, _ = hub.call("hub_approval_request", {"session": sess, "title": "x", "question": "x",
+                                                                 "action": {"type": "knowledge_source_register", **want, "repo_key": "github.com/other/x"}}, agent)
+            pid = reg2["project_id"]
+            st_list, pending, _ = ui(f"/api/projects/{pid}/confirmations", cookie=cookie)
+            shown = next((r for r in pending.get("requests", []) if r.get("id") == rid), {})
+            st_early, _, _ = hub.call("hub_knowledge_source_register", {**want, "approval_id": rid}, agent)
+            st_dec, _, _ = ui(f"/api/projects/{pid}/confirmations/{rid}", {"decision": "approve", "note": "ok"}, cookie=cookie)
+            st_other, _, _ = hub.call("hub_knowledge_source_register", {**want, "allowlist": ["docs/other.md"], "approval_id": rid}, agent)
+            st_ok, made, _ = hub.call("hub_knowledge_source_register", {**want, "approval_id": rid}, agent)
+            st_again, _, _ = hub.call("hub_knowledge_source_register", {**want, "source_id": "agent-docs-2", "approval_id": rid}, agent)
+            import sqlite3 as _sqlite3  # noqa: PLC0415
+            with _sqlite3.connect(db) as _c:
+                grant_state = _c.execute("SELECT state FROM approval_grant WHERE id=?", (rid,)).fetchone()[0]
+            checks.append(
+                st_direct == 403 and st_req == 200 and bool(rid) and st_bad_req == 400
+                and st_list == 200 and shown.get("action", {}).get("type") == "knowledge_source_register"
+                and shown.get("action", {}).get("summary", {}).get("allowlist") == ["docs/onboard.md", "docs/more.md"]
+                and st_early == 403 and st_dec == 200 and st_other == 403
+                and st_ok == 200 and made.get("allowlist") == ["docs/onboard.md", "docs/more.md"] and st_again == 409 and grant_state == "used"
+            )
+            if not checks[-1]:
+                print("  onboarding source:", st_direct, st_req, rid, st_bad_req, st_list, shown.get("action"), st_early, st_dec, st_other, st_ok, made, st_again, grant_state)
+            agent = hub.call("hub_callsign_register", {"project_id": reg["project_id"], "callsign": "agent-reader", "kind": "agent"}, owner)[1]["token"]
             st, listed, _ = hub.call("hub_dcr_list", {"status": "accepted"}, agent)
             checks.append(st == 200 and {dcr["id"], dcr2["id"], dcr3["id"], dcr4["id"]} <= {x["id"] for x in listed["dcrs"]})
         finally:

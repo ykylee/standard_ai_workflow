@@ -41,7 +41,7 @@ func TestKnowledgeAndDCRLifecycle(t *testing.T) {
 	oldPath := "ai-workflow/wiki/decisions/adr-036-old-choice.md"
 	adrPath := "ai-workflow/wiki/decisions/adr-037-test-choice.md"
 	repo := "github.com/acme/knowledge"
-	if _, err = st.KnowledgeSourceRegister(ownerCtx, "repo-docs", repo, []any{"docs/design.md", oldPath, adrPath}); err != nil {
+	if _, err = st.KnowledgeSourceRegister(ownerCtx, "repo-docs", repo, []any{"docs/design.md", oldPath, adrPath}, ""); err != nil {
 		t.Fatal(err)
 	}
 	sha := "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"

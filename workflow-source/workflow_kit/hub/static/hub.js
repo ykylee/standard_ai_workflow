@@ -814,7 +814,10 @@
         el("div", { class: "muted" }, `${req.requested_by} · ${req.created_at}`),
         req.action ? el("section", { class: "card", "data-action": req.action.type },
           el("h3", {}, "승인하면 허용되는 실행 (허브가 계산)"),
-          ...(req.action.type === "project_doc_put" ? docPutCard(req) : [
+          ...(req.action.type === "project_doc_put" ? docPutCard(req) : req.action.type === "knowledge_source_register" ? [
+          el("p", {}, "지식 원본 등록 · ", el("span", { class: "mono" }, reveal(req.action.summary.source_id)), " · 저장소 ", el("span", { class: "mono" }, reveal(req.action.summary.repo_key))),
+          el("p", { class: "muted" }, `요청 콜사인 ${req.requested_by}에게만, 승인 뒤 24시간, 한 번. 이 경로의 문서만 스냅샷으로 받는다 — ${req.action.summary.paths}개`),
+          el("ul", { "data-source-paths": String(req.action.summary.paths) }, req.action.summary.allowlist.map((x) => el("li", { class: "mono exact" }, reveal(x))))] : [
           el("p", {}, `${{ migrate_import: "1.x 기록 들여오기", migrate_marker: "'허브로 옮김' 표식" }[req.action.type] || req.action.type} · ${req.action.summary.migration_id}`),
           el("p", { class: "muted" }, `요청 콜사인 ${req.requested_by}에게만, 승인 뒤 24시간, 한 번. 브랜치 `, reveal(req.action.summary.branch), ` · ${String(req.action.summary.head).slice(0, 8)} · 미커밋 파일 ${req.action.summary.uncommitted}개`),
           req.action.summary.files ? el("ul", {}, Object.entries(req.action.summary.files).map(([k, n]) => el("li", {}, `${k}: ${n}개 파일`))) : null,

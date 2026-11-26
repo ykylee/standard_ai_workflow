@@ -64,6 +64,7 @@ approved_pending_export → accepted (3.6.1 이하에서 승인된 DCR 만 — �
 open + stale target revision → stale (requires rebase/reproposal before decision)
 ```
 
+- `hub_knowledge_source_register` requires an approved human project owner, **or** (3.8.0~, 소유자 2026-11-26) a callsign holding an owner's screen approval for the same `{source_id, repo_key, allowlist}` (`approval_id`, one use, 24h) — onboarding agents no longer stop here. One source per repository key (`409 source_exists_for_repo`).
 - `decide` requires an approved `human` project owner; web/admin generic access does not imply project decision authority.
 - **변경 (소유자 2026-11-26, 3.7.0):** Owner approval creates a new ADR ID and writes the ADR to the Hub wiki at `decisions/adr-NNN-<slug>.md` in the same transaction; the DCR becomes `accepted` immediately. 이유: 허브 이관 뒤 위키의 정본은 허브이고 저장소의 `ai-workflow/` 는 읽기 전용 기록이라, Git 커밋을 확정 조건으로 두면 온보딩한 저장소에서 승인만으로 결정이 끝나지 않았다. It still does not push or write Git; a repository copy comes from wiki export.
 - ~~The ADR becomes `accepted` only after a subsequent Git source sync confirms the new ADR path and content hash.~~ (3.6.1 까지의 계약 — 그때 승인돼 `approved_pending_export` 에 남은 DCR 은 여전히 이 sync 로 끝낸다.)

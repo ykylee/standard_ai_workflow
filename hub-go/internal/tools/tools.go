@@ -518,7 +518,7 @@ func Call(s *store.Store, name string, rawArgs any, ctx store.Ctx) (result map[s
 	case "hub_wiki_search":
 		return s.WikiSearch(ctx, strArg(clean, "query", ""), intArg(clean, "limit", 20))
 	case "hub_knowledge_source_register":
-		return s.KnowledgeSourceRegister(ctx, strArg(clean, "source_id", ""), strArg(clean, "repo_key", ""), clean["allowlist"])
+		return s.KnowledgeSourceRegister(ctx, strArg(clean, "source_id", ""), strArg(clean, "repo_key", ""), clean["allowlist"], strArg(clean, "approval_id", ""))
 	case "hub_knowledge_sync":
 		return s.KnowledgeSync(ctx, strArg(clean, "source_id", ""), strArg(clean, "commit_sha", ""), clean["documents"])
 	case "hub_knowledge_search":

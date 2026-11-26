@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"regexp"
 	"sort"
@@ -46,39 +47,87 @@ func knowledgeReader(ctx Ctx) (*Principal, string, error) {
 	return knowledgeActor(ctx, false)
 }
 
-func (s *Store) KnowledgeSourceRegister(ctx Ctx, id, repo string, raw any) (map[string]any, error) {
-	p, pid, err := knowledgeActor(ctx, true)
-	if err != nil {
-		return nil, err
-	}
+// checkKnowledgeSource validates a source registration — the tool and the approval request use the same check.
+// Paths keep their first-seen order without repeats (Python knowledge.check_source).
+func checkKnowledgeSource(q queryExec, pid string, rawID, rawRepo, raw any) (string, string, []string, error) {
+	id, _ := rawID.(string)
 	if !knowledgeID.MatchString(id) {
-		return nil, InvalidField("source_id", "영문·숫자·._- 1~80자")
+		return "", "", nil, InvalidField("source_id", "영문·숫자·._- 1~80자")
 	}
 	items, ok := raw.([]any)
 	if !ok || len(items) == 0 || len(items) > 500 {
-		return nil, InvalidField("allowlist", "허용할 markdown 경로가 하나 이상 필요하다")
+		return "", "", nil, InvalidField("allowlist", "허용할 markdown 경로가 하나 이상 필요하다")
 	}
 	paths := []string{}
 	seen := map[string]bool{}
 	for _, v := range items {
 		path, ok := v.(string)
 		if !ok || !knowledgePath.MatchString(path) || containsPathTraversal(path) {
-			return nil, InvalidField("allowlist", "안전한 상대 .md 경로가 필요하다")
+			return "", "", nil, InvalidField("allowlist", "안전한 상대 .md 경로가 필요하다")
 		}
 		if !seen[path] {
 			seen[path] = true
 			paths = append(paths, path)
 		}
 	}
-	blob, _ := json.Marshal(paths)
+	repo, _ := rawRepo.(string)
 	var exists int
-	if err = s.DB().QueryRow("SELECT COUNT(*) FROM project_alias WHERE project_id=? AND key=?", pid, repo).Scan(&exists); err != nil {
-		return nil, err
+	if err := q.QueryRow("SELECT COUNT(*) FROM project_alias WHERE project_id=? AND key=?", pid, repo).Scan(&exists); err != nil {
+		return "", "", nil, err
 	}
 	if exists == 0 {
-		return nil, InvalidField("repo_key", "프로젝트에 등록된 저장소 키가 아니다")
+		return "", "", nil, InvalidField("repo_key", "프로젝트에 등록된 저장소 키가 아니다")
 	}
-	result, err := s.withWriteTx(func(tx *sql.Tx) (map[string]any, error) {
+	var version int
+	err := q.QueryRow("SELECT version FROM knowledge_source WHERE project_id=? AND id=?", pid, id).Scan(&version)
+	if err == nil {
+		return "", "", nil, VersionConflict(version, map[string]any{"source_id": id})
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return "", "", nil, err
+	}
+	// 저장소 하나에 원본은 하나 (DB 유일 제약) — 부딪치기 전에 이유를 말한다
+	var taken string
+	err = q.QueryRow("SELECT id FROM knowledge_source WHERE project_id=? AND repo_key=?", pid, repo).Scan(&taken)
+	if err == nil {
+		return "", "", nil, &HubError{Status: 409, Code: "source_exists_for_repo", Message: "이 저장소에는 이미 지식 원본이 있다: " + taken, Detail: map[string]any{"source_id": taken}}
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return "", "", nil, err
+	}
+	return id, repo, paths, nil
+}
+
+// KnowledgeSourceRegister registers a project's Git document source — by an approved human owner, or by a callsign
+// whose request for the same target an owner approved on the screen (approvalID).
+func (s *Store) KnowledgeSourceRegister(ctx Ctx, rawID, rawRepo string, raw any, approvalID string) (map[string]any, error) {
+	p, err := NeedCallsign(ctx)
+	if err != nil {
+		return nil, err
+	}
+	pid := p.ProjectID
+	if approvalID != "" {
+		id, repo, paths, cerr := checkKnowledgeSource(s.DB(), pid, rawID, rawRepo, raw)
+		if cerr != nil {
+			return nil, cerr
+		}
+		if _, err := s.ApprovalAuthorize(ctx, approvalID, "knowledge_source_register", map[string]any{"source_id": id, "repo_key": repo, "allowlist": paths}); err != nil {
+			return nil, err
+		}
+	} else if p.Kind != "callsign" || p.CallsignKind != "human" || !p.HumanApproved || p.Role != "owner" {
+		return nil, Forbidden("지식 원본 등록은 승인된 human 소유자가 하거나, hub_approval_request(action={type: knowledge_source_register, source_id, repo_key, allowlist}) 로 화면 승인을 받은 approval_id 가 필요하다")
+	}
+	return s.withWriteTx(func(tx *sql.Tx) (map[string]any, error) {
+		id, repo, paths, cerr := checkKnowledgeSource(tx, pid, rawID, rawRepo, raw)
+		if cerr != nil {
+			return nil, cerr
+		}
+		if approvalID != "" {
+			if e := ApprovalConsume(tx, ctx, pid, approvalID); e != nil {
+				return nil, e
+			}
+		}
+		blob, _ := json.Marshal(paths)
 		if _, e := tx.Exec("INSERT INTO knowledge_source(project_id,id,kind,authority,repo_key,allowlist_json,created_by,created_at) VALUES(?,?,'git','git',?,?,?,?)", pid, id, repo, string(blob), p.Callsign, ctx.Now.Format(time.RFC3339Nano)); e != nil {
 			return nil, &HubError{Status: 409, Code: "version_conflict", Message: "knowledge source already exists"}
 		}
@@ -88,7 +137,6 @@ func (s *Store) KnowledgeSourceRegister(ctx Ctx, id, repo string, raw any) (map[
 		}
 		return map[string]any{"source_id": id, "repo_key": repo, "allowlist": paths, "authority": "git", "version": 1}, nil
 	})
-	return result, err
 }
 
 func (s *Store) KnowledgeSync(ctx Ctx, sourceID, commit string, raw any) (map[string]any, error) {

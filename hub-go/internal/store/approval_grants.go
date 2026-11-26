@@ -17,7 +17,7 @@ import (
 // 사람이 웹에서 로그인해 여는 실행 승인 — Python hub/approval_grants.py 와 같은 계약.
 // 대상에 묶이고 만료되며 한 번 쓰면 끝난다. 받은편지함 상태는 권한 근거가 아니다.
 
-const approvalActionForm = "{type: migrate_import, migration_id, kinds} · {type: migrate_marker, migration_id, marker: issue|revert} · {type: project_doc_put, name, body, expected_version}"
+const approvalActionForm = "{type: migrate_import, migration_id, kinds} · {type: migrate_marker, migration_id, marker: issue|revert} · {type: project_doc_put, name, body, expected_version} · {type: knowledge_source_register, source_id, repo_key, allowlist}"
 
 func docSHA(body string) string {
 	sum := sha256.Sum256([]byte(body))
@@ -91,6 +91,23 @@ func prepareApproval(tx *sql.Tx, projectID string, raw any) (map[string]any, map
 	kind, _ := action["type"].(string)
 	if kind == "project_doc_put" {
 		return prepareDocPut(tx, projectID, action)
+	}
+	if kind == "knowledge_source_register" {
+		// 지식 원본 등록 — 온보딩하는 에이전트가 요청하고 소유자가 화면에서 승인한다 (소유자 2026-11-26)
+		if len(action) != 4 {
+			return nil, nil, InvalidField("action", approvalActionForm)
+		}
+		for _, k := range []string{"source_id", "repo_key", "allowlist"} {
+			if _, has := action[k]; !has {
+				return nil, nil, InvalidField("action", approvalActionForm)
+			}
+		}
+		id, repo, paths, err := checkKnowledgeSource(tx, projectID, action["source_id"], action["repo_key"], action["allowlist"])
+		if err != nil {
+			return nil, nil, err
+		}
+		return map[string]any{"type": "knowledge_source_register", "source_id": id, "repo_key": repo, "allowlist": paths},
+			map[string]any{"source_id": id, "repo_key": repo, "allowlist": paths, "paths": len(paths)}, nil
 	}
 	mig, okMig := action["migration_id"].(string)
 	extra := map[string]string{"migrate_import": "kinds", "migrate_marker": "marker"}[kind]

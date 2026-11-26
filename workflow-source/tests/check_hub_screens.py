@@ -201,6 +201,9 @@ def seed(hub: Hub, db: Path, impl: str) -> dict[str, str]:
     must("hub_approval_request", {"session": sw, "title": "제\u202e목", "question": "질\u200b문", "details": "설\u2066명", "action": {
         "type": "project_doc_put", "name": "profile", "body": "새 프로필\n", "expected_version": 1}}, bot)
     must("hub_project_doc_put", {"name": "profile", "body": "그 사이 바뀜\n", "expected_version": 1}, owner)  # 요청을 낡게 한다
+    must("hub_approval_request", {"session": sw, "title": "원본 등록", "question": "온보딩 문서를 등록할까요?", "action": {
+        "type": "knowledge_source_register", "source_id": "onboard-docs", "repo_key": "github.com/acme/screens-demo",
+        "allowlist": ["docs/a.md", "docs/b.md"]}}, bot)
     must("hub_guide_propose", {"base_version": must("hub_guide_get", {}, bot)["version"], "body": "# 지침\n\n새 규\u202e칙\n", "note": "메\u200b모"}, bot)
     st, _, _ = ui._req(hub.base, f"/api/projects/{pid}/orchestration/lease", token=owner, method="POST", body={"action": "declare", "session": so})
     assert st == 200
@@ -258,6 +261,9 @@ def measure(impl: str, cmd: list[str] | None, exe: str, tmp: Path) -> None:
         exact = {v: re.findall(r'data-exact="([^"]*)"', doms[v])[:1] for v in ("viewConfirmations", "viewOrchestration", "viewGuide")}
         _record(f"[{impl}] 승인 글은 저장된 순서 · 공백 그대로", all(x == ["bidi-override/pre-wrap"] for x in exact.values()), f"{exact}")
         conf = doms["viewConfirmations"]
+        src = re.search(r'<section class="card" data-action="knowledge_source_register">.*?</section>', conf, re.S)
+        _record(f"[{impl}] 확인 요청 — 지식 원본 등록 카드", bool(src) and "지식 원본 등록" in src[0] and 'data-source-paths="2"' in src[0]
+                and "docs/a.md" in html.unescape(src[0]) and "onboard-docs" in html.unescape(src[0]), (src[0] if src else conf)[-400:])
         _record(f"[{impl}] 확인 요청 — 문서 차이", all(x in conf for x in (
             'class="diff-del">- 옛 줄', 'class="diff-add">+ 새 줄 &lt;script&gt;', "1판 → 2판", 'data-doc-diff="purpose"', "추가 2줄 · 삭제 2줄")))
         pre = re.search(r'<pre[^>]*data-doc-diff="purpose"[^>]*>(.*?)</pre>', conf, re.S)

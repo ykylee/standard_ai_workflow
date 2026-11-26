@@ -19,7 +19,7 @@ from workflow_kit.hub.store import Ctx, Principal, Store, _iso, _json, scan_secr
 GRANT_HOURS = 24
 MARKER_SCOPE = {"issue": ("issue", "confirm"), "revert": ("revert", "confirm_revert")}
 ACTION_FORM = ("{type: migrate_import, migration_id, kinds} · {type: migrate_marker, migration_id, marker: issue|revert} · "
-               "{type: project_doc_put, name, body, expected_version}")
+               "{type: project_doc_put, name, body, expected_version} · {type: knowledge_source_register, source_id, repo_key, allowlist}")
 #: 요약 가운데 본문 — 승인 화면만 본다 (A2A · 도구 응답에는 싣지 않는다).
 BODY_KEYS = ("base", "proposed")
 
@@ -52,12 +52,27 @@ def _prepare_doc(conn: sqlite3.Connection, project_id: str, raw: dict[str, Any])
             {"name": name, "version": current, "sha256": sha, "base": row["body_md"] if row else "", "proposed": body})
 
 
+def _prepare_source(conn: sqlite3.Connection, project_id: str, raw: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    """지식 원본 등록 — 온보딩하는 에이전트가 요청하고 소유자가 화면에서 승인한다 (소유자 2026-11-26)."""
+    from workflow_kit.hub.knowledge import (
+        check_source,  # noqa: PLC0415 — knowledge 가 이 모듈을 쓴다 (순환 피함)
+    )
+
+    if set(raw) != {"type", "source_id", "repo_key", "allowlist"}:
+        raise invalid_field("action", ACTION_FORM)
+    source_id, repo_key, paths = check_source(conn, project_id, raw["source_id"], raw["repo_key"], raw["allowlist"])
+    return ({"type": "knowledge_source_register", "source_id": source_id, "repo_key": repo_key, "allowlist": paths},
+            {"source_id": source_id, "repo_key": repo_key, "allowlist": paths, "paths": len(paths)})
+
+
 def prepare(conn: sqlite3.Connection, project_id: str, raw: Any) -> tuple[dict[str, Any], dict[str, Any]]:
     """요청한 실행 → (묶을 값, 화면에 보일 요약). 대상이 없거나 지금 할 수 없으면 거절한다."""
     from workflow_kit.hub.migrate1x import KINDS
 
     if isinstance(raw, dict) and raw.get("type") == "project_doc_put":
         return _prepare_doc(conn, project_id, raw)
+    if isinstance(raw, dict) and raw.get("type") == "knowledge_source_register":
+        return _prepare_source(conn, project_id, raw)
     if not isinstance(raw, dict) or not isinstance(raw.get("migration_id"), str):
         raise invalid_field("action", ACTION_FORM)
     kind, mig = raw.get("type"), raw["migration_id"]

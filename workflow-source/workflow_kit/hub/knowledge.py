@@ -7,6 +7,7 @@ import json
 import re
 from typing import Any
 
+from workflow_kit.hub import approval_grants
 from workflow_kit.hub.errors import HubError, forbidden, invalid_field, not_found, version_conflict
 from workflow_kit.hub.store import Ctx, Store, _iso, _json, scan_secrets
 from workflow_kit.hub.wiki import Wiki
@@ -16,6 +17,31 @@ _SHA = re.compile(r"^[0-9a-f]{7,40}$")
 _PATH = re.compile(r"^(?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.md$")
 _ADR_PATH = re.compile(r"(?:^|/)adr-\d{3,}-.+\.md$", re.I)
 _ADR_STATUS = re.compile(r"^status:\s*([a-z_-]+)\s*$", re.M | re.I)
+
+
+def check_source(conn: Any, pid: str, source_id: Any, repo_key: Any, allowlist: Any) -> tuple[str, str, list[str]]:
+    """지식 원본 등록의 검사 — 도구와 승인 요청이 같은 함수로 잰다. 경로는 처음 나온 순서로 겹침을 뺀다."""
+    if not isinstance(source_id, str) or not _ID.fullmatch(source_id):
+        raise invalid_field("source_id", "영문·숫자·._- 1~80자")
+    if not isinstance(allowlist, list) or not allowlist or len(allowlist) > 500:
+        raise invalid_field("allowlist", "허용할 markdown 경로가 하나 이상 필요하다")
+    paths: list[str] = []
+    for raw in allowlist:
+        if not isinstance(raw, str) or not _PATH.fullmatch(raw) or ".." in raw.split("/"):
+            raise invalid_field("allowlist", f"안전한 상대 .md 경로가 아니다: {raw!r}")
+        if raw not in paths:
+            paths.append(raw)
+    aliases = {r[0] for r in conn.execute("SELECT key FROM project_alias WHERE project_id=?", (pid,))}
+    if not isinstance(repo_key, str) or repo_key not in aliases:
+        raise invalid_field("repo_key", "프로젝트에 등록된 저장소 키가 아니다")
+    existing = conn.execute("SELECT version FROM knowledge_source WHERE project_id=? AND id=?", (pid, source_id)).fetchone()
+    if existing:
+        raise version_conflict(existing[0], {"source_id": source_id})
+    # 저장소 하나에 원본은 하나 (DB 유일 제약) — 부딪치기 전에 이유를 말한다
+    taken = conn.execute("SELECT id FROM knowledge_source WHERE project_id=? AND repo_key=?", (pid, repo_key)).fetchone()
+    if taken:
+        raise HubError(409, "source_exists_for_repo", f"이 저장소에는 이미 지식 원본이 있다: {taken[0]}", {"source_id": taken[0]})
+    return source_id, repo_key, paths
 
 
 class Knowledge:
@@ -40,31 +66,26 @@ class Knowledge:
         return p, p.project_id
 
     def source_register(
-        self, ctx: Ctx, source_id: str, repo_key: str, allowlist: list[Any]
+        self, ctx: Ctx, source_id: str, repo_key: str, allowlist: list[Any], approval_id: str | None = None
     ) -> dict[str, Any]:
-        p, pid = self._identity(ctx, owner=True)
-        if not _ID.fullmatch(source_id or ""):
-            raise invalid_field("source_id", "영문·숫자·._- 1~80자")
-        if not isinstance(allowlist, list) or not allowlist or len(allowlist) > 500:
-            raise invalid_field("allowlist", "허용할 markdown 경로가 하나 이상 필요하다")
-        paths = []
-        for raw in allowlist:
-            if not isinstance(raw, str) or not _PATH.fullmatch(raw) or ".." in raw.split("/"):
-                raise invalid_field("allowlist", f"안전한 상대 .md 경로가 아니다: {raw!r}")
-            if raw not in paths:
-                paths.append(raw)
+        """지식 원본 등록 — 승인된 human 소유자, 또는 같은 대상을 화면에서 승인받은 콜사인(approval_id)."""
+        if approval_id:
+            p = self.store._need_callsign(ctx)
+            pid = str(p.project_id)
+            with self.store.read() as conn:
+                source_id, repo_key, paths = check_source(conn, pid, source_id, repo_key, allowlist)
+            approval_grants.authorize(self.store, ctx, approval_id, "knowledge_source_register",
+                                      source_id=source_id, repo_key=repo_key, allowlist=paths)
+        else:
+            p = self.store._need_callsign(ctx)
+            if not (p.kind == "callsign" and p.callsign_kind == "human" and p.human_approved and p.role == "owner"):
+                raise forbidden("지식 원본 등록은 승인된 human 소유자가 하거나, hub_approval_request(action={type: knowledge_source_register, "
+                                "source_id, repo_key, allowlist}) 로 화면 승인을 받은 approval_id 가 필요하다")
+            pid = str(p.project_id)
         with self.store.write() as conn:
-            aliases = {
-                r[0]
-                for r in conn.execute("SELECT key FROM project_alias WHERE project_id=?", (pid,))
-            }
-            if repo_key not in aliases:
-                raise invalid_field("repo_key", "프로젝트에 등록된 저장소 키가 아니다")
-            existing = conn.execute(
-                "SELECT version FROM knowledge_source WHERE project_id=? AND id=?", (pid, source_id)
-            ).fetchone()
-            if existing:
-                raise version_conflict(existing[0], {"source_id": source_id})
+            source_id, repo_key, paths = check_source(conn, pid, source_id, repo_key, allowlist)
+            if approval_id:
+                approval_grants.consume(conn, ctx, pid, approval_id)
             now = _iso(ctx.now)
             conn.execute(
                 "INSERT INTO knowledge_source(project_id,id,kind,authority,repo_key,allowlist_json,created_by,created_at) VALUES(?,?,'git','git',?,?,?,?)",

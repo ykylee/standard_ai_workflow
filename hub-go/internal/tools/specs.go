@@ -120,7 +120,7 @@ var ToolOrder = []*ToolSpec{
 	{
 		Name:        "hub_approval_request",
 		Bundle:      "token",
-		Description: "사람 확인이 필요할 때 요청을 owner에게 전달한다. 웹 허브 확인 요청 메뉴에서 승인/거절하며 결과는 요청 콜사인의 허브 받은편지함으로 돌아온다. 승인 자체가 작업을 실행하지는 않는다. action 을 실으면 (migrate_import · migrate_marker · project_doc_put) 사람이 계정 로그인으로 승인한 뒤 그 실행에만 쓰는 approval_id 가 된다.",
+		Description: "사람 확인이 필요할 때 요청을 owner에게 전달한다. 웹 허브 확인 요청 메뉴에서 승인/거절하며 결과는 요청 콜사인의 허브 받은편지함으로 돌아온다. 승인 자체가 작업을 실행하지는 않는다. action 을 실으면 (migrate_import · migrate_marker · project_doc_put · knowledge_source_register) 사람이 계정 로그인으로 승인한 뒤 그 실행에만 쓰는 approval_id 가 된다.",
 		Properties: map[string]map[string]any{
 			"session":  map[string]any{"type": "string"},
 			"title":    map[string]any{"type": "string"},
@@ -501,8 +501,8 @@ var ToolOrder = []*ToolSpec{
 		Required: []string{"query"},
 	},
 	{
-		Name: "hub_knowledge_source_register", Bundle: "token", Description: "프로젝트 Git 문서 원본을 등록한다. 허용 경로만 스냅샷으로 수신하며 허브는 Git 원격을 실행하지 않는다.",
-		Properties: map[string]map[string]any{"source_id": {"type": "string"}, "repo_key": {"type": "string"}, "allowlist": {"type": "array"}}, Required: []string{"source_id", "repo_key", "allowlist"},
+		Name: "hub_knowledge_source_register", Bundle: "token", Description: "프로젝트 Git 문서 원본을 등록한다. 허용 경로만 스냅샷으로 수신하며 허브는 Git 원격을 실행하지 않는다. 승인된 human 소유자가 부르거나, 에이전트는 hub_approval_request(action={type: knowledge_source_register, source_id, repo_key, allowlist}) 로 소유자의 화면 승인을 받은 뒤 같은 인자 + approval_id 로 부른다 (요청한 콜사인 · 24시간 · 한 번).",
+		Properties: map[string]map[string]any{"source_id": {"type": "string"}, "repo_key": {"type": "string"}, "allowlist": {"type": "array"}, "approval_id": {"type": "string"}}, Required: []string{"source_id", "repo_key", "allowlist"},
 	},
 	{
 		Name: "hub_knowledge_sync", Bundle: "token", Description: "등록된 Git 지식 원본에 커밋 고정 문서 스냅샷을 동기화한다.",

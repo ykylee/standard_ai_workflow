@@ -225,7 +225,7 @@ TOOLS: dict[str, ToolSpec] = {
                                              "(review_ideas=true 는 kind=worker 만 — hub_wait 가 검토 대기 아이디어를 일감으로 준다), "
                                              "이후(두 번째 호출 포함)는 받은 세션 ID 문자열"}}, (), _session_start),
         ToolSpec("hub_approval_request", "token",
-                 "사람 확인이 필요할 때 요청을 owner에게 전달한다. 웹 허브 확인 요청 메뉴에서 승인/거절하며 결과는 요청 콜사인의 허브 받은편지함으로 돌아온다. 승인 자체가 작업을 실행하지는 않는다. action 을 실으면 (migrate_import · migrate_marker · project_doc_put) 사람이 계정 로그인으로 승인한 뒤 그 실행에만 쓰는 approval_id 가 된다.",
+                 "사람 확인이 필요할 때 요청을 owner에게 전달한다. 웹 허브 확인 요청 메뉴에서 승인/거절하며 결과는 요청 콜사인의 허브 받은편지함으로 돌아온다. 승인 자체가 작업을 실행하지는 않는다. action 을 실으면 (migrate_import · migrate_marker · project_doc_put · knowledge_source_register) 사람이 계정 로그인으로 승인한 뒤 그 실행에만 쓰는 approval_id 가 된다.",
                  {"session": _STR, "title": _STR, "question": _STR, "details": _STR, "action": _OBJ},
                  ("session", "title", "question"), lambda s, c, a: Confirmations(s).request(c, a)),
         ToolSpec("hub_harness_report", "token", "셋업 미지원 하네스의 비밀 없는 프로필 관측과 후보 경로를 검토 대기열에 제보한다. 관리자는 승인 시 검증된 mcp-http-json-v1 셋업 프로필도 함께 등록한다. 제보만으로 허브 설정은 바뀌지 않는다.",
@@ -351,9 +351,11 @@ TOOLS: dict[str, ToolSpec] = {
                  {"prefix": _STR}, (), lambda s, c, a: Wiki(s).list_pages(c, a.get("prefix", ""))),
         ToolSpec("hub_wiki_search", "token", "위키 검색 — 낱말이 모두 들어간 페이지 (경로 · 제목 · 본문).",
                  {"query": _STR, "limit": _INT}, ("query",), lambda s, c, a: Wiki(s).search(c, a["query"], a.get("limit", 20))),
-        ToolSpec("hub_knowledge_source_register", "token", "프로젝트 Git 문서 원본을 등록한다. 허용 경로만 스냅샷으로 수신하며 허브는 Git 원격을 실행하지 않는다.",
-                 {"source_id": _STR, "repo_key": _STR, "allowlist": _ARR}, ("source_id", "repo_key", "allowlist"),
-                 lambda s, c, a: Knowledge(s).source_register(c, a["source_id"], a["repo_key"], a["allowlist"])),
+        ToolSpec("hub_knowledge_source_register", "token", "프로젝트 Git 문서 원본을 등록한다. 허용 경로만 스냅샷으로 수신하며 허브는 Git 원격을 실행하지 않는다. "
+                 "승인된 human 소유자가 부르거나, 에이전트는 hub_approval_request(action={type: knowledge_source_register, source_id, repo_key, allowlist}) "
+                 "로 소유자의 화면 승인을 받은 뒤 같은 인자 + approval_id 로 부른다 (요청한 콜사인 · 24시간 · 한 번).",
+                 {"source_id": _STR, "repo_key": _STR, "allowlist": _ARR, "approval_id": _STR}, ("source_id", "repo_key", "allowlist"),
+                 lambda s, c, a: Knowledge(s).source_register(c, a["source_id"], a["repo_key"], a["allowlist"], a.get("approval_id"))),
         ToolSpec("hub_knowledge_sync", "token", "등록된 Git 지식 원본에 커밋 고정 문서 스냅샷을 동기화한다.",
                  {"source_id": _STR, "commit_sha": _STR, "documents": _ARR}, ("source_id", "commit_sha", "documents"),
                  lambda s, c, a: Knowledge(s).sync(c, a["source_id"], a["commit_sha"], a["documents"])),

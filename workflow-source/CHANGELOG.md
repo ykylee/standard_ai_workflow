@@ -16,6 +16,8 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- feat(hub): five tabs with one decision queue; bottom tab bar and approve bar for the right thumb (a9ea92a9)
+- feat(hub): shrink the standard block's tool catalog to family prefixes (standard 2.5) (2bd6e4af)
 - feat(hub): expire sessions after 24 hours without a signal; fold ended sessions (9cc9466e)
 - feat(hub): redesign the hub screens around progress and human decisions; approve DCRs on the web (16c9e34e)
 - feat(ui): adopt the frontend toolkit in this repository and record the UI baseline (82bc47bc)
@@ -293,6 +295,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- chore(release): prepare 3.11.0 (ed8815ec)
+- chore(release): keep the files generated while publishing 3.10.0 (61d02b95)
 - chore(release): prepare 3.10.0 (b5efb478)
 - chore(release): keep the files generated while publishing 3.9.2 (3d48026d)
 - chore(release): prepare 3.9.2 (bb3fa237)
@@ -940,6 +944,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- fix(workbench): read-only once the repository moved to the hub; Korean status words; drop accent stripes (1311ab06)
+- fix(hub): name the requester by callsign; keep the orchestration header on top; no split Korean words on phones (416cfb97)
 - fix(hub): approval cards say who wants what on which PC; smaller rescore items (1ffed66d)
 - fix(workbench): no preselected decisions; freeze the screen behind a hub notice (61f6e6ee)
 - fix(relay): two-press stop instead of confirm(), one static screen for both relays (f8d0afe7)

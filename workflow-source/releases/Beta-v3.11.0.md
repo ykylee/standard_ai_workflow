@@ -23,3 +23,20 @@
 - **DB 판은 22 그대로다** — 3.10.0 으로 되돌릴 때 실행 파일만 바꾸면 된다.
 - 표준 블록이 바뀌어 각 저장소 진입 파일의 허브 영역(sha)이 다음 `hub_guide_render` 에서 바뀐다.
 - '오케스트레이터 내려놓기' 확인창의 '취소' 쪽, 중계 일시정지 실패 메시지는 브라우저 case 가 없다.
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-11-26T13:49:15Z)_
+
+- total wiki pages: **104**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

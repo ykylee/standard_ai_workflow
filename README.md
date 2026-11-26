@@ -5,7 +5,7 @@
 - 대상 독자: 허브 관리자, 허브를 쓰는 저장소 주인, AI 에이전트 설계자, 이 저장소 기여자
 - 상태: beta (2.0 허브 2.0.0 — 계약 보장 전)
 - 최종 수정일: 2026-11-26
-- 버전: v3.9.0 (Go 허브 pre-release pilot; package: standard-ai-workflow 3.9.0, runtime `__version__` = 3.9.0, latest tag **v3.9.0**. GitHub 안정판 latest 는 **v2.1.0** 유지)
+- 버전: v3.9.1 (Go 허브 pre-release pilot; package: standard-ai-workflow 3.9.1, runtime `__version__` = 3.9.1, latest tag **v3.9.1**. GitHub 안정판 latest 는 **v2.1.0** 유지)
 - 관련 문서: [`docs/HUB_OPERATIONS.md`](./docs/HUB_OPERATIONS.md), [`workflow-source/core/hub_spec.md`](./workflow-source/core/hub_spec.md), [`workflow-source/core/hub_orchestration_spec.md`](./workflow-source/core/hub_orchestration_spec.md), [`docs/INSTALLATION_AND_USAGE.md`](./docs/INSTALLATION_AND_USAGE.md), [`docs/LOCAL_GATE.md`](./docs/LOCAL_GATE.md)
 
 ## 1. 한눈에
@@ -17,7 +17,7 @@
 |---|---|---|---|
 | **2.0** 워크플로우 허브 | `main` · 태그 `v2.0.0` | 발행 (베타 표기) | 허브 서버 + 원격 MCP + 허브 화면. 저장소는 진입 파일 한 영역과 토큰 파일만 가진다 |
 | **2.1** 허브 오케스트레이션 | `main` (M-041~M-048) | v2.1.0 발행 · 안정판 latest | 오케스트레이터 세션이 일하는 세션들에게 배정 · 받은편지함 · PC 중계로 하네스 세션 띄우기 · VS Code 확장 |
-| **3.9.0** Go 허브 pilot | `main` | pre-release · A2A 1.0 승인 Task, 사람 로그인 승인, Go 이관 지원 | Go 6개 대상 바이너리와 Python `hub serve` fallback. 실험은 운영 DB가 아닌 일관된 사본에서 수행한다 |
+| **3.9.1** Go 허브 pilot | `main` | pre-release · A2A 1.0 승인 Task, 사람 로그인 승인, Go 이관 지원 | Go 6개 대상 바이너리와 Python `hub serve` fallback. 실험은 운영 DB가 아닌 일관된 사본에서 수행한다 |
 | **1.x** 독립 kit | [`release/1.x`](https://github.com/ykylee/standard_ai_workflow/tree/release/1.x) | 유지보수 (결함 수리만, 2028-07-20 까지) | 각 저장소에 kit 를 깔고 `ai-workflow/memory/` 파일로 상태를 두는 판 |
 
 배포는 GitHub Releases 하나다 (PyPI 에 올리지 않는다 — [`docs/RELEASE.md`](./docs/RELEASE.md) §1).

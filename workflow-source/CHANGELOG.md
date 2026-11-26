@@ -4,7 +4,7 @@
 - 범위: git log 에서 추출한 release 별 Added / Changed / Fixed 항목.
 - 대상 독자: maintainer, 릴리스 매니저, 외부 consumer
 - 상태: stable (자동 생성물)
-- 최종 수정일: 2026-11-25
+- 최종 수정일: 2026-11-26
 - 관련 문서: [`./releases/`](./releases/) (release note), [`../docs/RELEASE.md`](../docs/RELEASE.md) (릴리스 절차)
 
 All notable changes to this project will be documented in this file.
@@ -12,10 +12,11 @@ All notable changes to this project will be documented in this file.
 본 파일은 `tools/release_pipeline.py changelog-gen` 으로 자동 생성됩니다 (v0.7.14+).
 수동 편집은 다음 생성 시 덮어써진다 — 형식/metadata 변경은 생성기를 고칠 것.
 
-## [Unreleased] - 2026-11-25
+## [Unreleased] - 2026-11-26
 
 ### Added
 
+- feat(hub): read the callsign token for MCP through a Claude Code headersHelper (3a8860e6)
 - feat(hub): stream A2A tasks and let callsigns message each other (f7f08192)
 - feat(hub): add the idea box — people jot ideas, agents review read-only and reply (3.4.0) (c4d4c64b)
 - feat(hub): reveal hidden characters in approvals, tidy late messages, reset account passwords (3.3.4) (676418d4)
@@ -285,6 +286,10 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- docs(release): record the smoke total in the 3.5.1 note (c8652f20)
+- chore(release): prepare 3.5.1 (15c4c3e5)
+- docs(a2a): defer moving assignments to A2A and keep the MCP messaging tools (43e6f394)
+- chore(release): keep the files generated while publishing 3.5.0 (96676c34)
 - docs: stamp the code index for 3.5.0 (39be63fa)
 - chore(release): prepare 3.5.0 (918b44a3)
 - chore(hub): refresh the rendered hub rules and keep the files generated while publishing 3.4.0 (5edc65b8)

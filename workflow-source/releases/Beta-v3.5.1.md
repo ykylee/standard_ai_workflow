@@ -20,3 +20,20 @@
 - DB 판은 20 그대로다.
 - 이미 셋업된 저장소는 `.workflow-hub/hub_client.py` 를 새로 받고(`GET /v1/bootstrap/hub_client.py`) `.mcp.json` 에 `headersHelper` 줄을 더하면 된다. 그 하네스의 local scope 에 옛 `workflow-hub` 항목이 있으면 그것이 이긴다 — `claude mcp get workflow-hub` 로 범위를 본다.
 - 재지 않은 것: MiniMax Code 가 모르는 칸 `headersHelper` 를 무시하는지, `python3` 이 없는 Windows.
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-11-26T00:42:16Z)_
+
+- total wiki pages: **104**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

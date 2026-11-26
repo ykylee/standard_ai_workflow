@@ -75,7 +75,7 @@ button.danger.armed { background: var(--bad); color: var(--surface); }
 .chip { white-space: nowrap; display: inline-block; padding: 1px 6px; border-radius: var(--r-sm); font-size: var(--fs-sm); font-weight: 600;
   line-height: 1.5; background: var(--neutral-soft); color: var(--neutral); }
 .chip.busy, .chip.running { background: var(--accent-soft); color: var(--accent); }
-.chip.idle { background: var(--ok-soft); color: var(--ok); }
+/* idle('대기')은 허브의 대기 칩과 같은 중립 — 초록은 성공에만 (재채점 P3) */
 .chip.paused { background: var(--warn-soft); color: var(--warn); }
 .chip.unknown, .chip.stale { background: var(--bad-soft); color: var(--bad); }
 

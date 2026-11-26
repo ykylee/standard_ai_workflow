@@ -9,12 +9,13 @@ fixture 는 운영 상한을 채운다: 활성 세션 3(= ``MAX_SESSIONS``) · �
 
 폭 3개(900 · 520 · 390 — VS Code 패널 · 좁은 패널 · 휴대폰) × 테마마다:
 1. 페이지 가로 넘침 0 · 글자 단위로 꺾인 낱말 0 (표 칸 · 칩 · 단추 · 제목 · 메타)
-2. 활성 세션만 센다(``3 / 3``) · 끝난 세션은 접힌 묶음 · 상태 칩은 한국어
+2. 활성 세션만 센다(``3개 · 이 PC 상한 3개`` — 분모를 말로, 재채점 P3) · 끝난 세션은 접힌 묶음 · 상태 칩은 한국어
 3. 테마 — ``?theme=`` 가 ``<html data-theme>`` 로, 주 단추(accent 위 on-accent) 대비 ≥ 4.5
 4. 종료 두 번 누름 — 첫 누름은 POST 없이 '정말 종료' 로 무장, 3초 갱신이 지나도 무장 유지, 둘째 누름에 POST 하나
 5. 연결 끊김 — /api/state 가 실패하기 시작하면 2회부터 aria-live 경보 · 상태 '확인 안 됨' · 마지막 확인 시각
 6. ``confirm(`` · ``alert(`` · ``prompt(`` 를 쓰지 않는다 (VS Code webview sandbox 에 allow-modals 가 없다 — 실측)
 7. 종료 안내 · 결과는 누른 단추가 있는 세션 카드 안, 표 바로 아래에 뜬다 — 머리 카드 알림은 비어 있다 (재채점 P2)
+9. '대기'(idle) 칩은 허브의 대기 칩과 같은 중립색 — 초록(성공)이 아니다 (재채점 P3)
 8. 종료 실패는 코드만이 아니라 다음 행동을 말한다 — 500 은 로그 보고 다시, 404 는 이미 끝남 · 할 일 없음 (재채점 P2)
 """
 
@@ -114,7 +115,9 @@ for(const el of d.querySelectorAll('h1,h2,th,td,.chip,button,.meta span,summary,
     while((m=re.exec(n.data))){const r=d.createRange();r.setStart(n,m.index);r.setEnd(n,m.index+m[0].length);
       const tops=new Set([...r.getClientRects()].filter(x=>x.width>0).map(x=>Math.round(x.top)));if(tops.size>1)broken.push(m[0]);}}}
 out.broken=[...new Set(broken)];
-out.title=d.getElementById('sess-title').textContent;out.chips=[...d.querySelectorAll('#sess-body .chip')].map(x=>x.textContent);
+out.title=d.getElementById('sess-title').textContent;
+const nt=d.createElement('span');nt.className='chip';d.body.append(nt);const idle=d.querySelector('#sess-body .chip.idle');
+out.idle=idle?[getComputedStyle(idle).backgroundColor,getComputedStyle(idle).color,getComputedStyle(nt).backgroundColor,getComputedStyle(nt).color]:null;nt.remove();out.chips=[...d.querySelectorAll('#sess-body .chip')].map(x=>x.textContent);
 out.ended=d.getElementById('ended-title').textContent;out.endedOpen=d.getElementById('ended-box').open;out.endedHidden=d.getElementById('ended-box').hidden;
 const tb=d.getElementById('toggle-btn'),cs=getComputedStyle(tb);out.toggle=[tb.textContent,tb.className,cs.color,cs.backgroundColor];
 const b=d.querySelector('#sess-body .stop-btn');b.click();await z(200);
@@ -144,8 +147,8 @@ def main() -> int:
 
     exe = browser()
     if exe is None:
-        print("  SKIP: Chrome 없음 — case 1~5 · 7 · 8 미측정 (통과 아님)")
-        print(f"\n{_count - len(_fails)}/{_count} passed · 미측정 7")
+        print("  SKIP: Chrome 없음 — case 1~5 · 7~9 미측정 (통과 아님)")
+        print(f"\n{_count - len(_fails)}/{_count} passed · 미측정 8")
         return 1 if _fails else 0
 
     with tempfile.TemporaryDirectory(prefix="relayscr-") as tmp:
@@ -259,7 +262,7 @@ def main() -> int:
                 _record(f"{tag} case 1 (가로 넘침 0 · 글자 단위 꺾임 0)", out["overflow"] <= 0 and not out["broken"],
                         f"overflow={out['overflow']} broken={out['broken'][:8]}")
                 _record(f"{tag} case 2 (활성만 센다 · 끝난 세션 접힘 · 한국어 칩)",
-                        out["title"] == "띄운 세션 3 / 3" and out["chips"] == ["일하는 중", "대기", "일하는 중"]
+                        out["title"] == "띄운 세션 3개 · 이 PC 상한 3개" and out["chips"] == ["일하는 중", "대기", "일하는 중"]
                         and out["ended"] == "끝난 세션 2" and out["endedOpen"] is False and out["endedHidden"] is False,
                         f"title={out['title']!r} chips={out['chips']} ended={out['ended']!r} open={out['endedOpen']}")
                 fg, bg = out["toggle"][2], out["toggle"][3]
@@ -281,6 +284,8 @@ def main() -> int:
                         "bad" in f5[1] and "로그를 보고 다시 누른다" in f5[0] and "relay-state.json" in f5[0] and f5[0].endswith("(HTTP 500)")
                         and "이미 끝났다" in f4[0] and "할 일은 없다" in f4[0] and f4[0].endswith("(HTTP 404)")
                         and not re.fullmatch(r".*실패 — HTTP \d+", f5[0]), f"500={f5} 404={f4}")
+                iv = out["idle"]
+                _record(f"{tag} case 9 ('대기' 칩은 중립색 — 상태 없는 칩과 같은 배경 · 글자)", bool(iv) and iv[0] == iv[2] and iv[1] == iv[3], f"{iv}")
                 _record(f"{tag} case 5 (연결 끊김 — 1회는 조용 · 2회부터 aria-live 경보 · '확인 안 됨' · 마지막 확인)",
                         out["connBefore"] == "" and out["connAfter1"] == "" and "중계에 닿지 않는다" in out["conn"][0]
                         and out["conn"][1] == "assertive" and out["conn"][2] != "none" and out["status"] == "확인 안 됨"

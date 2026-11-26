@@ -10,6 +10,7 @@ Chrome headless 의 ``--dump-dom`` 으로 그린다 (Python 허브 · Go 허브 
 3. 로드맵 — 열린 마일스톤이 먼저, 완료는 접기 안
 5. 확인 요청 — 문서 차이가 줄마다 맞고, 보이지 않는 문자를 드러내고, 낡은 요청의 승인 단추를 끈다 · 미확인 메시지 정리
 4. 오케스트레이션 — 미확인 메시지 본문(객체 · 문자열), 계정 로그인 소유자의 승인 · 정지 · 거두기 · lease · 초대 버튼이 실제로 동작
+7. 재채점 P3 — 탭 aria-current · 현재 마일스톤 이름표 · 단추 44px(넓은 · 좁은 폭) · 용어집이 개요 밖에도
 6. 재채점 P2 — 진척 띠와 로드맵 화면의 마일스톤 순서가 같다 · DCR 이름 하나 · '지금' 0건이면 다음 필터로 떨어지고 알린다
 """
 
@@ -70,6 +71,8 @@ PROBE = """<script>
 window.addEventListener('error',e=>document.documentElement.dataset.err=(document.documentElement.dataset.err||'')+e.message+';');
 window.addEventListener('unhandledrejection',e=>document.documentElement.dataset.err=(document.documentElement.dataset.err||'')+String(e.reason)+';');
 window.confirm=()=>true;
+setInterval(()=>{const bh=[...document.querySelectorAll('main button,main .admin-entry-button')].filter(e=>e.checkVisibility()).map(e=>[Math.round(e.getBoundingClientRect().height),(e.textContent||'').trim().slice(0,12)]).sort((a,b)=>a[0]-b[0]);
+if(bh.length)document.documentElement.dataset.btnh=bh[0][0]+':'+bh[0][1];},400);
 setInterval(()=>{const x=[...document.querySelectorAll('.exact')].map(e=>getComputedStyle(e).unicodeBidi+'/'+getComputedStyle(e).whiteSpace);
 if(x.length)document.documentElement.dataset.exact=[...new Set(x)].join(',');},400);
 (async()=>{const acts=new URL(location.href).searchParams.get('acts');if(!acts)return;const z=t=>new Promise(r=>setTimeout(r,t));await z(1500);const log=[];
@@ -113,6 +116,7 @@ def proxy(hub: Hub, cookie: str) -> ThreadingHTTPServer:
                         b"const nv=[...d.querySelectorAll('.nav-links a')];document.body.dataset.nav=nv.length+'/'+nv.filter(a=>{const r=a.getBoundingClientRect();"
                         b"const p=a.parentElement.getBoundingClientRect();return r.right>Math.min(p.right,d.clientWidth)+1||r.width===0}).length;"
                         # 화면 오른쪽 밖으로 삐져나온 요소 수 — 페이지 폭이 그대로여도 카드 안에서 넘친 것을 잡는다
+                        b"const bh=[...d.querySelectorAll('main button,main .admin-entry-button')].filter(e=>e.checkVisibility()).map(e=>Math.round(e.getBoundingClientRect().height));document.body.dataset.btnh=bh.length?Math.min(...bh):-1;"
                         b"const outs=[...d.querySelectorAll('main *')].filter(e=>{const r=e.getBoundingClientRect();return r.width>0&&r.right>d.clientWidth+1});document.body.dataset.out=outs.length;"
                         b"document.body.dataset.outs=outs.slice(0,6).map(e=>e.tagName.toLowerCase()+'.'+[...e.classList].join('.')+':'+(e.textContent||'').trim().slice(0,20)).join(' | ');"
                         # 한국어 낱자 끊김 — 한글이 든 낱말이 두 줄에 걸친 것 (TASK-2026-11-26-claude-plex-023, 재채점 B 측정 방식)
@@ -452,6 +456,34 @@ def p2_cases(impl: str, exe: str, tmp: Path, port: int, hub: Hub, env: dict[str,
     _record(f"[{impl}] '지금' 0건이어도 분류 필터를 고른 때는 떨어지지 않는다", "data-fell-back" not in pick and "지금 막히거나 진행 중인 task 가 없다" in pick, pick[-200:])
 
 
+def p3_cases(impl: str, exe: str, tmp: Path, port: int, hub: Hub, env: dict[str, str], doms: dict[str, str]) -> None:
+    """재채점 P3 (TASK-2026-11-26-claude-plex-031) — 탭 aria-current · 현재 마일스톤 이름표 · 단추 44px · 용어집 · 좁은 폭 단추."""
+    want = {"viewProject": "개요", "viewDecisions": "결정", "viewOrchestration": "오케스트레이션", "viewRoadmap": "로드맵", "viewDcrs": "결정 변경(DCR) 기록",
+            "viewIdeas": "아이디어", "viewEvents": "이력", "viewGuide": "지침"}
+    cur = {}
+    for v in want:
+        nav = re.search(r'<nav class="nav-links"[^>]*>(.*?)</nav>', doms[v], re.S)
+        cur[v] = [html.unescape(re.sub(r"<[^>]+>", "", m)).strip() for m in re.findall(r'aria-current="page">(.*?)</a>', nav[1] if nav else "", re.S)]
+    _record(f"[{impl}] 프로젝트 탭 — 현재 탭 하나에만 aria-current=page (더 보기 안 항목 포함)",
+            all(len(cur[v]) == 1 and re.sub(r"\d+$", "", cur[v][0]).strip() == want[v] for v in want), f"{cur}")
+    ov = html.unescape(doms["viewProject"])
+    rail = re.search(r'<div class="rail"[^>]*>(.*?)</div><div class="rail-legend"', ov, re.S)
+    labels = re.findall(r'aria-label="([^"]*)"', rail[1] if rail else "")
+    cur_seg = re.findall(r'<a role="listitem"[^>]*aria-label="([^"]*)"[^>]*class="[^"]*\bcurrent\b', rail[1] if rail else "")
+    _record(f"[{impl}] 진척 띠 — 현재 칸의 이름표가 '현재 마일스톤' 이라고 말한다 · 다른 칸은 아니다",
+            len(cur_seg) == 1 and cur_seg[0].startswith("현재 마일스톤 · ") and sum(x.startswith("현재 마일스톤") for x in labels) == 1, f"{cur_seg} {labels}")
+    low = {v: m[1] for v, d in doms.items() if (m := re.search(r'data-btnh="([^"]*)"', d)) and int(m[1].split(":", 1)[0]) < 44}
+    seen = sum('data-btnh="' in d for d in doms.values())
+    _record(f"[{impl}] 넓은 폭 — 보이는 단추 높이 44px 이상 (전 화면)", not low and seen >= 8, f"low={low} 잰 화면={seen}")
+    narrow = {}
+    for route in ("p/{pid}/decide", "p/{pid}/orch", "p/{pid}/confirmations", "p/{pid}/t/{tid}"):
+        m = re.search(r'data-btnh="(-?\d+)"', draw(exe, tmp, port, route.format(**env), narrow=True, budget=12000))
+        narrow[route] = int(m[1]) if m else None
+    _record(f"[{impl}] 좁은 폭 — 보이는 단추 높이 44px 이상", all(x is not None and x >= 44 for x in narrow.values()), f"{narrow}")
+    gl = {v: 'data-keep="glossary"' in doms[v] for v in ("viewProject", "viewDecisions", "viewOrchestration", "viewRoadmap")}
+    _record(f"[{impl}] 용어집 — 개요 · 결정 · 오케스트레이션 · 로드맵에서 연다", all(gl.values()), f"{gl}")
+
+
 def many_milestones(impl: str, exe: str, tmp: Path, port: int, hub: Hub, env: dict[str, str]) -> None:
     """운영 허브처럼 마일스톤이 수십 개면 진척 띠가 휴대폰 화면 밖으로 넘쳤다 — 접어서 7칸 이하로 (2026-11-26 소유자 보고).
     맨 끝에서 돈다 — 마일스톤을 늘리면 앞 case 들의 4칸 전제가 깨진다."""
@@ -623,6 +655,7 @@ def measure(impl: str, cmd: list[str] | None, exe: str, tmp: Path) -> None:
         acted = re.search(r'data-acts="([^"]*)"', dom)
         _record(f"[{impl}] 결정 탭 — 첫 확인 요청을 그 자리에서 승인한다", bool(acted) and acted[1] == "승인" and after == before - 1,
                 f"acts={acted and acted[1]} before={before} after={after}")
+        p3_cases(impl, exe, tmp, port, hub, env, doms)
         p2_cases(impl, exe, tmp, port, hub, env, doms)  # task 를 예정으로 옮긴다 — 진행 중 task 를 기대는 case 들 뒤
         many_milestones(impl, exe, tmp, port, hub, env)
     finally:

@@ -201,6 +201,17 @@
   // 탭은 다섯 — 자주 가는 넷 + 더 보기. 사람이 승인할 것은 '결정' 한 곳이다 (TASK-2026-11-26-claude-plex-025).
   // 좁은 폭에서는 이 막대가 화면 아래에 붙는다(오른손 엄지 영역, hub.css). 더 보기는 오른쪽 끝에서 위로 열린다.
   const MORE_SHORT = { dcr: "DCR 기록" };
+  // 처음 온 사람의 낱말 풀이 — 개요만이 아니라 결정 · 오케스트레이션 · 로드맵 머리에도 (재채점 P3)
+  function glossary() {
+    return el("details", { class: "account glossary", "data-keep": "glossary" }, el("summary", {}, "처음이라면 — 이 화면의 낱말"),
+        el("dl", {},
+          el("dt", {}, "콜사인"), el("dd", {}, "허브에서 사람과 에이전트를 구분하는 이름. 사람은 계정에 콜사인을 연결해 쓴다."),
+          el("dt", {}, "task"), el("dd", {}, "한 사람(또는 에이전트)이 맡아 끝내는 일 하나. 완료 기준을 검증해야 끝남이 된다."),
+          el("dt", {}, "마일스톤 · WBS"), el("dd", {}, "로드맵의 큰 단계와 그 안의 세부 작업. 진척 띠의 한 칸이 마일스톤 하나다."),
+          el("dt", {}, "확인 요청"), el("dd", {}, "에이전트가 실행 전에 사람의 승인을 받는 요청. 승인해야 그 일이 실행된다."),
+          el("dt", {}, DCR_NAME), el("dd", {}, "프로젝트 결정을 바꾸자는 제안. 소유자가 승인하면 결정 기록(ADR)이 된다."),
+          el("dt", {}, "PC 중계 · 오케스트레이터"), el("dd", {}, "중계는 PC 에서 에이전트 세션을 띄워 주는 프로그램, 오케스트레이터는 에이전트에게 일을 나누는 세션이다.")));
+  }
   function projectNav(pid, active, decideCount) {
     const base = `#/p/${encodeURIComponent(pid)}`;
     const main = [["tasks", "개요", base], ["decide", "결정", `${base}/decide`], ["orch", "오케스트레이션", `${base}/orch`],
@@ -662,7 +673,7 @@
       const RAIL_MAX = 7, RAIL_OPEN = 5;
       const seg = (m) => {
         const pct = isDone(m) ? 100 : tenth(m.progress);
-        const label = `${m.id} ${m.title} — ${isDone(m) ? "끝남" : `세부 작업 ${m.done_leaves || 0}/${m.total_leaves || 0} 끝남`}`;
+        const label = `${cur && m.id === cur.id ? "현재 마일스톤 · " : ""}${m.id} ${m.title} — ${isDone(m) ? "끝남" : `세부 작업 ${m.done_leaves || 0}/${m.total_leaves || 0} 끝남`}`;
         return el("a", { role: "listitem", href: `${base}/roadmap`, title: label, "aria-label": label,
           class: `w-${Math.max(1, Math.min(8, m.total_leaves || 1))}${isDone(m) ? "" : " open"}${cur && m.id === cur.id ? " current" : ""}` },
           el("span", { class: "bar" }, el("span", { class: `fill pct-${pct}` })), el("span", { class: "lbl" }, m.title || m.id), el("span", { class: "lbl-id" }, m.id));
@@ -770,14 +781,7 @@
         el("h1", {}, project.display_name),
         el("div", { class: "meta" }, el("span", { class: "mono" }, project.id), el("span", {}, `소유자 ${project.owner_callsign}`)),
         projectNav(pid, "tasks"),
-        el("details", { class: "account glossary", "data-keep": "glossary" }, el("summary", {}, "처음이라면 — 이 화면의 낱말"),
-          el("dl", {},
-            el("dt", {}, "콜사인"), el("dd", {}, "허브에서 사람과 에이전트를 구분하는 이름. 사람은 계정에 콜사인을 연결해 쓴다."),
-            el("dt", {}, "task"), el("dd", {}, "한 사람(또는 에이전트)이 맡아 끝내는 일 하나. 완료 기준을 검증해야 끝남이 된다."),
-            el("dt", {}, "마일스톤 · WBS"), el("dd", {}, "로드맵의 큰 단계와 그 안의 세부 작업. 진척 띠의 한 칸이 마일스톤 하나다."),
-            el("dt", {}, "확인 요청"), el("dd", {}, "에이전트가 실행 전에 사람의 승인을 받는 요청. 승인해야 그 일이 실행된다."),
-            el("dt", {}, DCR_NAME), el("dd", {}, "프로젝트 결정을 바꾸자는 제안. 소유자가 승인하면 결정 기록(ADR)이 된다."),
-            el("dt", {}, "PC 중계 · 오케스트레이터"), el("dd", {}, "중계는 PC 에서 에이전트 세션을 띄워 주는 프로그램, 오케스트레이터는 에이전트에게 일을 나누는 세션이다."))),
+        glossary(),
         who),
       ...attention,
       decideRow,
@@ -889,7 +893,7 @@
     // 화면 머리(제목 · 탭)는 승인 대기가 있든 없든 맨 위 — 같은 주소에서 탭 자리가 바뀌지 않게 (TASK-2026-11-26-claude-plex-023)
     const headCard = el("section", { class: "card" },
       el("div", { class: "row" }, el("h1", {}, "오케스트레이션"), orch && orch.halted ? chip("정지", "halted") : null),
-      projectNav(pid, "orch"));
+      projectNav(pid, "orch"), glossary());
 
     // 승인 카드는 "누가 어느 PC 에서 무엇을" 이 제목이고, 요청 · PC · 세션 ID 는 보조 줄이다 (TASK-2026-11-26-claude-plex-017).
     const reqCard = (req) => {
@@ -1130,7 +1134,7 @@
     const sections = filled.map(([key, x]) => el("section", { class: "dq-group", id: `dq-${key}`, "aria-labelledby": `dq-h-${key}` },
       el("h2", { id: `dq-h-${key}` }, DQ_KIND[key], el("span", { class: "muted" }, Array.isArray(x) ? ` ${x.length}건` : "")),
       Array.isArray(x) ? x : el("section", { class: "card" }, alertBox("warn", `${DQ_KIND[key]}을 읽지 못했다 — ${errorText(x)}`))));
-    render(el("section", { class: "card" }, el("h1", {}, "결정"), projectNav(pid, "decide", total),
+    render(el("section", { class: "card" }, el("h1", {}, "결정"), projectNav(pid, "decide", total), glossary(),
       el("p", { class: "muted" }, total ? `기다리는 결정 ${total}건 — ` + groups.filter(([, x]) => count(x)).map(([k, x]) => `${DQ_KIND[k]} ${count(x)}`).join(" · ")
         : "지금 기다리는 결정이 없다.", empty.length && total ? ` · 없음: ${empty.join(", ")}` : "")),
       ...sections);
@@ -1524,7 +1528,7 @@
     const open = order.open;
     const done = order.done.reverse();  // 완료 접기 안은 최근 것부터
     render(
-      el("section", { class: "card" }, el("h1", {}, "로드맵"), projectNav(pid, "roadmap"),
+      el("section", { class: "card" }, el("h1", {}, "로드맵"), projectNav(pid, "roadmap"), glossary(),
         el("div", { class: "row muted" }, `마일스톤 ${st.milestones.length}개 (열림 ${open.length} · 완료 ${done.length})`,
           st.current_milestone_id ? ` · 현재 ${st.current_milestone_id}` : "",
           st.exempt_tasks ? ` · 로드맵 밖(면제) task ${st.exempt_tasks.length}건` : "")),

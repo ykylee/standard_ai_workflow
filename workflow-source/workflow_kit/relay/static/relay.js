@@ -111,7 +111,8 @@
       var active = sessions.filter(function (x) { return x.status !== "ended"; });
       var ended = sessions.filter(function (x) { return x.status === "ended"; });
       var n = typeof s.active_sessions === "number" ? s.active_sessions : active.length;
-      $("sess-title").textContent = "띄운 세션 " + n + " / " + s.max_sessions;
+      // '3 / 3' 만으로는 분모가 무엇인지 모른다 — 이 PC 가 함께 띄울 수 있는 상한이라고 말로 (재채점 P3)
+      $("sess-title").textContent = "띄운 세션 " + n + "개 · 이 PC 상한 " + s.max_sessions + "개";
       var sig = JSON.stringify([sessions, armed && armed.until > Date.now() ? armed.req : null]);
       if (sig === rowsSig) return;
       var focusedReq = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.req : null;

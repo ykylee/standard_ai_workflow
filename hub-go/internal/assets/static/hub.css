@@ -61,7 +61,7 @@ main { max-width: 76rem; margin: 0 auto; padding: var(--sp-5); display: grid; ga
 .grid { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); }
 .admin-entry { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-4); background: var(--accent-soft); border-color: transparent; }
 .admin-entry h2, .admin-entry p { margin: 0; }
-.admin-entry-button { display: inline-flex; align-items: center; justify-content: center; border-radius: var(--r-md); padding: var(--sp-2) var(--sp-4);
+.admin-entry-button { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--r-md); padding: var(--sp-2) var(--sp-4);
   background: var(--accent); color: var(--on-accent); font-weight: 650; white-space: nowrap; }
 .admin-entry-button:hover { text-decoration: none; filter: brightness(1.06); }
 
@@ -222,7 +222,7 @@ input:not([type]), input[type=text], input[type=password], input[type=search], s
   background: var(--surface); color: var(--ink); }
 input::placeholder, textarea::placeholder { color: var(--ink-2); opacity: 1; }
 textarea { width: 100%; min-height: 4rem; }
-button { border: 1px solid transparent; border-radius: var(--r-md); padding: 6px var(--sp-4); background: var(--accent); color: var(--on-accent); cursor: pointer;
+button { min-height: 44px; border: 1px solid transparent; border-radius: var(--r-md); padding: 6px var(--sp-4); background: var(--accent); color: var(--on-accent); cursor: pointer;
   font-weight: 600; }
 button:hover { filter: brightness(1.06); }
 button.ghost { background: var(--surface); color: var(--ink); border-color: var(--field); }

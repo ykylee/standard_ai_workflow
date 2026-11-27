@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/db"
+	"github.com/ykylee/standard_ai_workflow/hub-go/internal/pytext"
 )
 
 var wikiPagePath = regexp.MustCompile(`^(?:[A-Za-z0-9_][A-Za-z0-9_.-]*/)*[A-Za-z0-9_][A-Za-z0-9_.-]*\.md$`)
@@ -24,7 +25,7 @@ func (s *Store) WikiIngest(ctx Ctx, rawPages any, summary, requestID string) (ma
 		return nil, err
 	}
 	pid := p.ProjectID
-	if strings.TrimSpace(summary) == "" || strings.ContainsAny(strings.TrimSpace(summary), "\r\n") {
+	if pytext.Strip(summary) == "" || strings.ContainsAny(pytext.Strip(summary), "\r\n") {
 		return nil, InvalidField("summary", "한 줄 요약이 필요해요")
 	}
 	if err = ScanSecrets(summary, "summary"); err != nil {
@@ -76,7 +77,7 @@ func (s *Store) WikiIngest(ctx Ctx, rawPages any, summary, requestID string) (ma
 			if _, has := m["body"]; has {
 				return nil, InvalidField("body", "delete 와 body 를 같이 줄 수 없어요")
 			}
-		} else if strings.TrimSpace(body) == "" || len(body) > 192*1024 {
+		} else if pytext.Strip(body) == "" || len(body) > 192*1024 {
 			return nil, InvalidField("body", "본문이 비었거나 192KB를 넘어요")
 		}
 		if !del {
@@ -108,7 +109,7 @@ func (s *Store) WikiIngest(ctx Ctx, rawPages any, summary, requestID string) (ma
 		}
 		pages = append(pages, wikiWrite{path: path, body: body, repo: repo, sha: strings.ToLower(sha), expected: expected, delete: del})
 	}
-	summary = strings.TrimSpace(summary)
+	summary = pytext.Strip(summary)
 	return s.Idempotent(ctx, requestID, func(tx *sql.Tx) (map[string]any, error) {
 		return s.wikiWritePages(tx, ctx, pid, p.Callsign, pages, summary)
 	})

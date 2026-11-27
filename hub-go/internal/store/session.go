@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/db"
+	"github.com/ykylee/standard_ai_workflow/hub-go/internal/pytext"
 )
 
 var sessionIDPattern = regexp.MustCompile(`^S-\d{8}-[0-9a-f]{8}$`)
@@ -123,7 +124,7 @@ func (s *Store) RegisterSession(ctx Ctx, spec map[string]any) (map[string]any, e
 		return nil, err
 	}
 	harness, ok := spec["harness"].(string)
-	if !ok || harness == "" {
+	if !ok || pytext.IsBlank(harness) {
 		return nil, InvalidField("session.harness", "필수 (예: claude-code · codex)")
 	}
 	harnessSession := ""

@@ -11,18 +11,18 @@ import (
 )
 
 const (
-	recentDoneItemsCap          = 10
-	memoryEntriesSchemaVersion  = "2"
-	pointerAbstractionMaxChars  = 120
-	missingStatusMarker         = "<미기재>"
+	recentDoneItemsCap         = 10
+	memoryEntriesSchemaVersion = "2"
+	pointerAbstractionMaxChars = 120
+	missingStatusMarker        = "<미기재>"
 )
 
 var (
-	purposeFmRe          = regexp.MustCompile(`(?s)\A---\n(.+?)\n---`)
-	purposeReviewRe      = regexp.MustCompile(`last_purpose_review\s*:\s*(\d{4}-\d{2}-\d{2})`)
-	purposeGoalRe        = regexp.MustCompile(`(?m)^- \*\*G\d+\*\*\s*:\s*(.+)$`)
-	taskRecencyFields    = []string{"completed_at", "updated_at", "created_at"}
-	isoDateFieldRes      = map[string]*regexp.Regexp{
+	purposeFmRe       = regexp.MustCompile(`(?s)\A---\n(.+?)\n---`)
+	purposeReviewRe   = regexp.MustCompile(`last_purpose_review\s*:\s*(\d{4}-\d{2}-\d{2})`)
+	purposeGoalRe     = regexp.MustCompile(`(?m)^- \*\*G\d+\*\*\s*:\s*(.+)$`)
+	taskRecencyFields = []string{"completed_at", "updated_at", "created_at"}
+	isoDateFieldRes   = map[string]*regexp.Regexp{
 		"completed_at": regexp.MustCompile(`(?m)^completed_at\s*:\s*(\d{4}-\d{2}-\d{2})`),
 		"updated_at":   regexp.MustCompile(`(?m)^updated_at\s*:\s*(\d{4}-\d{2}-\d{2})`),
 		"created_at":   regexp.MustCompile(`(?m)^created_at\s*:\s*(\d{4}-\d{2}-\d{2})`),

@@ -11,6 +11,7 @@ import (
 
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/assets"
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/mcpserver"
+	"github.com/ykylee/standard_ai_workflow/hub-go/internal/pytext"
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/store"
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/tools"
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/waiter"
@@ -107,7 +108,7 @@ func writeJSONResponse(w http.ResponseWriter, status int, payload any) {
 func bearerToken(h http.Header) string {
 	raw := h.Get("Authorization")
 	if len(raw) >= 7 && strings.EqualFold(raw[:7], "bearer ") {
-		return strings.TrimSpace(raw[7:])
+		return pytext.Strip(raw[7:])
 	}
 	return ""
 }

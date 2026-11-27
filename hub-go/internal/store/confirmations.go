@@ -4,14 +4,14 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"strings"
 
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/db"
+	"github.com/ykylee/standard_ai_workflow/hub-go/internal/pytext"
 )
 
 // ValidateConfirmation checks the human question an agent wants answered.
 func ValidateConfirmation(title, question, details string) (string, string, string, error) {
-	title, question, details = strings.TrimSpace(title), strings.TrimSpace(question), strings.TrimSpace(details)
+	title, question, details = pytext.Strip(title), pytext.Strip(question), pytext.Strip(details)
 	if title == "" || len([]rune(title)) > 160 {
 		return "", "", "", InvalidField("title", "1~160자 문자열")
 	}

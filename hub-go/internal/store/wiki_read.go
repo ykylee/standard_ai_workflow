@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/ykylee/standard_ai_workflow/hub-go/internal/pytext"
 	"path"
 	"regexp"
 	"sort"
@@ -28,12 +29,12 @@ func wikiPageTitle(p, body string) string {
 	if strings.HasPrefix(body, "---\n") {
 		if end := strings.Index(body[4:], "\n---"); end >= 0 {
 			if m := wikiFrontTitle.FindStringSubmatch(body[4 : 4+end]); m != nil {
-				return strings.Trim(strings.TrimSpace(m[1]), `"'`)
+				return strings.Trim(pytext.Strip(m[1]), `"'`)
 			}
 		}
 	}
 	if m := wikiH1.FindStringSubmatch(body); m != nil {
-		return strings.TrimSpace(m[1])
+		return pytext.Strip(m[1])
 	}
 	return strings.TrimSuffix(p, ".md")
 }

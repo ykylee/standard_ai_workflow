@@ -8,10 +8,10 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
-	"strings"
 	"time"
 
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/db"
+	"github.com/ykylee/standard_ai_workflow/hub-go/internal/pytext"
 )
 
 var messageIDPattern = regexp.MustCompile(`^MSG-\d{8}-[0-9a-f]{12}$`)
@@ -537,7 +537,7 @@ func (s *Store) Report(ctx Ctx, sessionID, taskID, summary, verification, reques
 	if err != nil {
 		return nil, err
 	}
-	if strings.TrimSpace(summary) == "" {
+	if pytext.Strip(summary) == "" {
 		return nil, InvalidField("summary", "비었어요")
 	}
 	if err := ScanSecrets(map[string]any{"summary": summary, "verification": verification}, ""); err != nil {

@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/ykylee/standard_ai_workflow/hub-go/internal/pytext"
 	"os"
 	"path/filepath"
 	"slices"
@@ -112,7 +113,7 @@ func ReadToken() (string, bool) {
 	if err != nil {
 		return "", false
 	}
-	return strings.TrimSpace(string(raw)), true
+	return pytext.Strip(string(raw)), true
 }
 
 func WriteToken(token string) error {
@@ -180,7 +181,7 @@ func AllowDigest(entries []AllowEntry) string {
 }
 
 func ValidateEntry(e AllowEntry) string {
-	if strings.TrimSpace(e.Alias) == "" {
+	if pytext.Strip(e.Alias) == "" {
 		return "alias 가 비었다"
 	}
 	if e.Path == "" || !filepath.IsAbs(e.Path) {

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/db"
+	"github.com/ykylee/standard_ai_workflow/hub-go/internal/pytext"
 )
 
 // 허브 간 프로젝트 이전 — Python hub/transfer.py 와 같은 묶음 형식 · digest · 거절.
@@ -343,7 +344,7 @@ func (s *Store) setMoved(projectID, to string, now time.Time) (map[string]any, e
 
 // Seal marks a project as moved; every call on it then answers 410.
 func (s *Store) Seal(projectID, to string, now time.Time) (map[string]any, error) {
-	if to = strings.TrimSpace(to); to == "" {
+	if to = pytext.Strip(to); to == "" {
 		return nil, &HubError{Status: 400, Code: "invalid_field", Message: "moved_to: 새 허브 주소가 필요해요"}
 	}
 	return s.setMoved(projectID, to, now)
@@ -613,7 +614,7 @@ func (s *Store) ProjectUnseal(ctx Ctx) (map[string]any, error) {
 
 // IssueProjectInvite makes a single-use code for bringing one project into this hub.
 func (s *Store) IssueProjectInvite(projectID string, now time.Time, hours int, note string) (map[string]any, error) {
-	if strings.TrimSpace(projectID) == "" {
+	if pytext.Strip(projectID) == "" {
 		return nil, &HubError{Status: 400, Code: "invalid_field", Message: "project: 들일 프로젝트 ID"}
 	}
 	var raw [24]byte

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/db"
+	"github.com/ykylee/standard_ai_workflow/hub-go/internal/pytext"
 )
 
 // 콜사인 간 A2A 메시지 — Python hub/a2a_peer.py 와 같은 계약.
@@ -152,7 +153,7 @@ func peerCheck(message map[string]any) error {
 		}
 	}
 	text := peerText(message)
-	if blank := strings.TrimSpace(text) == ""; blank || len(text) > peerTextMax {
+	if blank := pytext.Strip(text) == ""; blank || len(text) > peerTextMax {
 		status := 413
 		if blank {
 			status = 400

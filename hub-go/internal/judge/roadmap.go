@@ -33,12 +33,12 @@ var (
 	rmFrontmatter  = regexp.MustCompile(`(?s)\A---\s*\n(.*?)\n---\s*\n`)
 
 	validSdlcPhases = map[string]bool{
-		"concept":       true,
-		"requirements":  true,
-		"design":        true,
+		"concept":        true,
+		"requirements":   true,
+		"design":         true,
 		"implementation": true,
-		"stabilization": true,
-		"release":       true,
+		"stabilization":  true,
+		"release":        true,
 	}
 	validRoadmapStatuses = map[string]bool{
 		"planned":     true,
@@ -179,13 +179,13 @@ type MilestoneState struct {
 }
 
 type RoadmapState struct {
-	CurrentMilestoneID *string        `json:"current_milestone_id"`
-	ExemptTasks        []TaskWbsLink  `json:"exempt_tasks"`
-	GeneratedAt        string         `json:"generated_at"`
-	GeneratedBy        string         `json:"generated_by"`
-	Issues             []RoadmapIssue `json:"issues"`
+	CurrentMilestoneID *string          `json:"current_milestone_id"`
+	ExemptTasks        []TaskWbsLink    `json:"exempt_tasks"`
+	GeneratedAt        string           `json:"generated_at"`
+	GeneratedBy        string           `json:"generated_by"`
+	Issues             []RoadmapIssue   `json:"issues"`
 	Milestones         []MilestoneState `json:"milestones"`
-	SchemaVersion      int            `json:"schema_version"`
+	SchemaVersion      int              `json:"schema_version"`
 }
 
 type WbsGateVerdict struct {

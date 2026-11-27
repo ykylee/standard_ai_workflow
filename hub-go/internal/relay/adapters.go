@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ykylee/standard_ai_workflow/hub-go/internal/pytext"
 	"io"
 	"os"
 	"os/exec"
@@ -216,7 +217,7 @@ func (a *ClaudeCodeAdapter) Probe() map[string]any {
 	return map[string]any{
 		"harness":          a.Name(),
 		"available":        true,
-		"version":          strings.TrimSpace(string(out)),
+		"version":          pytext.Strip(string(out)),
 		"actions":          []string{"spawn", "deliver", "status", "stop"},
 		"deliver_mid_turn": "unmeasured",
 	}
@@ -370,7 +371,7 @@ func GitWritableRoots(cwd string) []string {
 	}
 	var roots []string
 	for _, raw := range strings.Split(string(out), "\n") {
-		line := strings.TrimSpace(raw)
+		line := pytext.Strip(raw)
 		if line != "" && !slices.Contains(roots, line) {
 			roots = append(roots, line)
 		}
@@ -407,7 +408,7 @@ func (a *CodexAdapter) Probe() map[string]any {
 	return map[string]any{
 		"harness":   a.Name(),
 		"available": true,
-		"version":   strings.TrimSpace(string(out)),
+		"version":   pytext.Strip(string(out)),
 		"actions":   []string{"spawn", "deliver", "deliver_mid_turn", "status", "stop"},
 	}
 }

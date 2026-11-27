@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/judge"
+	"github.com/ykylee/standard_ai_workflow/hub-go/internal/pytext"
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/store"
 )
 
@@ -91,7 +92,7 @@ func hubState(s *store.Store, ctx store.Ctx, callsign string) (map[string]any, e
 		}
 		text += fmt.Sprintf("\n---\n\n# %s — %s\n\n## 📝 Description\n\n- Status: %s\n", id, title, status)
 		if judge.Strip(plan.String) != "" {
-			text += "\n## 🧭 Plan\n\n" + strings.TrimRight(plan.String, " \t\r\n") + "\n"
+			text += "\n## 🧭 Plan\n\n" + pytext.RStrip(plan.String) + "\n"
 		}
 		if progress.String != "" {
 			text += "\n## 🛠️ Implementation / Content\n\n- Progress: " + progress.String + "\n"

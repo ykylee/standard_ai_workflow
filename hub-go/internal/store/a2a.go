@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/db"
+	"github.com/ykylee/standard_ai_workflow/hub-go/internal/pytext"
 )
 
 // A2A(Agent2Agent) 1.0 승인 Task — Python hub/a2a.py 와 같은 계약.
@@ -341,14 +342,14 @@ func a2aContent(message map[string]any) (map[string]any, error) {
 		sort.Strings(unknown)
 		return nil, a2aBad("data 의 모르는 칸: " + strings.Join(unknown, ", "))
 	}
-	text := strings.TrimSpace(strings.Join(texts, "\n"))
+	text := pytext.Strip(strings.Join(texts, "\n"))
 	if _, ok := out["question"]; !ok {
 		out["question"] = text
 	}
 	if _, ok := out["title"]; !ok {
-		first := strings.TrimSpace(strings.SplitN(text, "\n", 2)[0])
+		first := pytext.Strip(strings.SplitN(text, "\n", 2)[0])
 		if first == "" {
-			first = strings.SplitN(strings.TrimSpace(fmt.Sprint(out["question"])), "\n", 2)[0]
+			first = strings.SplitN(pytext.Strip(fmt.Sprint(out["question"])), "\n", 2)[0]
 		}
 		if r := []rune(first); len(r) > 160 {
 			first = string(r[:160])

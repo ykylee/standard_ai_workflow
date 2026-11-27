@@ -16,6 +16,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/db"
+	"github.com/ykylee/standard_ai_workflow/hub-go/internal/pytext"
 )
 
 const accountPasswordRounds = 310000
@@ -81,8 +82,8 @@ func (s *Store) AccountEnroll(token, username, displayName, password string, now
 			return "", HubAccount{}, nil, Forbidden("토큰을 넣으려면 승인된 사람 콜사인 토큰이어야 해요")
 		}
 	}
-	username = strings.ToLower(strings.TrimSpace(username))
-	displayName = strings.TrimSpace(displayName)
+	username = strings.ToLower(pytext.Strip(username))
+	displayName = pytext.Strip(displayName)
 	if !accountNamePattern.MatchString(username) {
 		return "", HubAccount{}, nil, InvalidField("username", "영문 소문자·숫자·._- 3~64자")
 	}
@@ -169,7 +170,7 @@ func signupSlot(tx *sql.Tx, now time.Time) error {
 
 // AccountJoin lets a signed-in account join a project as an unapproved human callsign; no token is issued.
 func (s *Store) AccountJoin(accountID, project, callsign string, now time.Time) (map[string]any, error) {
-	pid, callsign := strings.TrimSpace(project), strings.TrimSpace(callsign)
+	pid, callsign := pytext.Strip(project), pytext.Strip(callsign)
 	if pid == "" {
 		return nil, InvalidField("project", "프로젝트 ID 또는 git 주소")
 	}
@@ -211,7 +212,7 @@ func (s *Store) AccountJoin(accountID, project, callsign string, now time.Time) 
 
 // AccountResetPassword is the operator path (hub admin): it ends every login session and clears the login lock.
 func (s *Store) AccountResetPassword(username, password string, now time.Time) (map[string]any, error) {
-	username = strings.ToLower(strings.TrimSpace(username))
+	username = strings.ToLower(pytext.Strip(username))
 	if n := len([]rune(password)); n < 8 || n > 256 || !utf8.ValidString(password) {
 		return nil, InvalidField("password", "8~256자")
 	}
@@ -274,7 +275,7 @@ func (s *Store) AccountList() ([]map[string]any, error) {
 // an admin token. Revoking takes effect on the next request — rights are read from the DB per request, sessions stay.
 // actor is the event author: admin:hub (server CLI), admin:<token name> or account:<username> (screen).
 func (s *Store) AccountSetAdmin(username string, admin bool, now time.Time, actor string) (map[string]any, error) {
-	username = strings.ToLower(strings.TrimSpace(username))
+	username = strings.ToLower(pytext.Strip(username))
 	return s.withWriteTx(func(tx *sql.Tx) (map[string]any, error) {
 		var id string
 		var was int
@@ -303,7 +304,7 @@ func (s *Store) AccountSetAdmin(username string, admin bool, now time.Time, acto
 }
 
 func (s *Store) AccountLogin(username, password string, now time.Time) (string, HubAccount, error) {
-	username = strings.ToLower(strings.TrimSpace(username))
+	username = strings.ToLower(pytext.Strip(username))
 	usernameHash := HashToken(username)
 	var account HubAccount
 	var encoded string

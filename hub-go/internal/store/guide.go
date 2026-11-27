@@ -8,6 +8,7 @@ import (
 
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/assets"
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/db"
+	"github.com/ykylee/standard_ai_workflow/hub-go/internal/pytext"
 )
 
 const (
@@ -199,8 +200,8 @@ func checkGuideRenderable(projectID, display, body string) error {
 	for _, item := range entries {
 		harness, entry := item.harness, item.entry
 		rendered := fmt.Sprintf("<!-- 이 영역은 워크플로우 허브가 렌더링한다 (%s · %s). 고칠 것은 허브에 지침 제안으로. -->\n%s", entry, harness, assets.StandardBlock)
-		if strings.TrimSpace(body) != "" {
-			rendered += fmt.Sprintf("\n## 프로젝트 지침 — %s\n\n%s\n", display, strings.TrimSpace(body))
+		if pytext.Strip(body) != "" {
+			rendered += fmt.Sprintf("\n## 프로젝트 지침 — %s\n\n%s\n", display, pytext.Strip(body))
 		}
 		version := HubKitVersion + "+p1"
 		region := fmt.Sprintf("<!-- workflow-hub:begin project=%s guide=%s sha256=%064d -->\n%s<!-- workflow-hub:end -->\n", projectID, version, 0, rendered)

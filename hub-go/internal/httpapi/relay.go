@@ -9,6 +9,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/ykylee/standard_ai_workflow/hub-go/internal/pytext"
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/store"
 )
 
@@ -147,7 +148,7 @@ func readRelayBody(r *http.Request) (any, error) {
 	if !utf8.Valid(raw) {
 		return nil, &store.HubError{Status: http.StatusBadRequest, Code: "invalid_json", Message: "본문이 JSON 이 아니에요: UTF-8 이 아니에요"}
 	}
-	if len(strings.TrimSpace(string(raw))) == 0 {
+	if len(pytext.Strip(string(raw))) == 0 {
 		return map[string]any{}, nil
 	}
 	var body any

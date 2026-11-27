@@ -306,8 +306,8 @@ func TestHandoffParseAndStateBuild(t *testing.T) {
 	task2 := "---\nid: TASK-2026-11-22-main-002\nstatus: done\ncreated_at: 2026-11-22\n---\n\n# TASK-2026-11-22-main-002 — 완료 작업\n"
 	daily := "# Backlog Index\n\n- **TASK-2026-11-22-main-001** [generic] 진행 작업\n  - path: [`./tasks/TASK-2026-11-22-main-001.md`](./tasks/TASK-2026-11-22-main-001.md)\n  - status: in_progress\n- **TASK-2026-11-22-main-002** [generic] 완료 작업\n  - path: [`./tasks/TASK-2026-11-22-main-002.md`](./tasks/TASK-2026-11-22-main-002.md)\n  - status: done\n"
 	files := map[string]string{
-		"docs/PROJECT_PROFILE.md": "# Profile\n- 프로젝트명: TestProj\n- 문서 위키 홈: docs/index.md\n",
-		"ai-workflow/memory/active/PURPOSE.md": "---\nlast_purpose_review: 2026-11-21\n---\n## 1. Goals\n- **G1**: 목표 1\n",
+		"docs/PROJECT_PROFILE.md":                                                  "# Profile\n- 프로젝트명: TestProj\n- 문서 위키 홈: docs/index.md\n",
+		"ai-workflow/memory/active/PURPOSE.md":                                     "---\nlast_purpose_review: 2026-11-21\n---\n## 1. Goals\n- **G1**: 목표 1\n",
 		"ai-workflow/memory/active/main/session_handoff.md":                        handoffText,
 		"ai-workflow/memory/active/main/backlog/2026-11-22.md":                     daily,
 		"ai-workflow/memory/active/main/backlog/tasks/TASK-2026-11-22-main-001.md": task1,

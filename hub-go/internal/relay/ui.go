@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ykylee/standard_ai_workflow/hub-go/internal/pytext"
 	"io"
 	"net"
 	"net/http"
@@ -17,8 +18,8 @@ const uiHost = "127.0.0.1"
 const relayCSP = "frame-ancestors 'self' vscode-webview: vscode-file://vscode-app"
 
 func hubDeepLinks(hub any, pid any) (string, string) {
-	base := strings.TrimRight(strings.TrimSpace(fmt.Sprint(hub)), "/")
-	proj := strings.TrimSpace(fmt.Sprint(pid))
+	base := strings.TrimRight(pytext.Strip(fmt.Sprint(hub)), "/")
+	proj := pytext.Strip(fmt.Sprint(pid))
 	if hub == nil || pid == nil || base == "" || proj == "" {
 		return "", ""
 	}
@@ -226,7 +227,7 @@ func StartUI(r *Relay, port int) (*http.Server, int, error) {
 				return
 			}
 			if strings.HasPrefix(req.URL.Path, "/api/sessions/") && strings.HasSuffix(req.URL.Path, "/stop") {
-				reqID := strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(req.URL.Path, "/api/sessions/"), "/stop"))
+				reqID := pytext.Strip(strings.TrimSuffix(strings.TrimPrefix(req.URL.Path, "/api/sessions/"), "/stop"))
 				var h *Handle
 				if reqID != "" && !strings.Contains(reqID, "/") {
 					r.Mu.Lock()

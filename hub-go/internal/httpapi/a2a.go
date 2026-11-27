@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ykylee/standard_ai_workflow/hub-go/internal/pytext"
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/store"
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/tools"
 )
@@ -113,7 +114,7 @@ func (s *Server) handleA2A(w http.ResponseWriter, r *http.Request) {
 		}
 		defer a2aStreams.release(key)
 	}
-	id, result, err := s.a2aCall(ctx, raw, strings.TrimSpace(version))
+	id, result, err := s.a2aCall(ctx, raw, pytext.Strip(version))
 	if err == nil && streaming {
 		s.a2aStream(w, r, ctx, bearerToken(r.Header), id, result["task"].(map[string]any))
 		return

@@ -18,6 +18,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/db"
+	"github.com/ykylee/standard_ai_workflow/hub-go/internal/pytext"
 )
 
 const (
@@ -484,7 +485,7 @@ func CheckCallsign(callsign, kind string) error {
 }
 
 func (s *Store) RegisterProject(ctx Ctx, remoteURL, displayName, callsign, kind, label, host string) (map[string]any, error) {
-	local := strings.TrimSpace(remoteURL) == ""
+	local := pytext.Strip(remoteURL) == ""
 	var key string
 	var err error
 	if local {
@@ -498,7 +499,7 @@ func (s *Store) RegisterProject(ctx Ctx, remoteURL, displayName, callsign, kind,
 	if err := CheckCallsign(callsign, kind); err != nil {
 		return nil, err
 	}
-	if strings.TrimSpace(displayName) == "" {
+	if pytext.Strip(displayName) == "" {
 		return nil, InvalidField("display_name", "비었어요")
 	}
 	token, err := NewToken()
@@ -526,7 +527,7 @@ func (s *Store) RegisterProject(ctx Ctx, remoteURL, displayName, callsign, kind,
 			return nil, err
 		}
 		nowISO := db.FormatISO(ctx.Now)
-		dn := strings.TrimSpace(displayName)
+		dn := pytext.Strip(displayName)
 		if _, err := tx.Exec("INSERT INTO project (id, display_name, owner_callsign, created_at) VALUES (?, ?, ?, ?)", projectID, dn, callsign, nowISO); err != nil {
 			return nil, err
 		}
@@ -843,7 +844,7 @@ func (s *Store) GetTask(qe queryExec, projectID, taskID string) (map[string]any,
 func ValidateTaskFields(values map[string]any) error {
 	if rawTitle, has := values["title"]; has {
 		title, ok := rawTitle.(string)
-		if !ok || strings.TrimSpace(title) == "" {
+		if !ok || pytext.Strip(title) == "" {
 			return InvalidField("title", "비었어요")
 		}
 		if rc := utf8.RuneCountInString(title); rc > TitleMax {
@@ -897,7 +898,7 @@ func ValidateTaskFields(values map[string]any) error {
 			}
 			for _, level := range []string{"level_1", "level_2", "level_3"} {
 				v, ok := cat[level].(string)
-				if !ok || strings.TrimSpace(v) == "" {
+				if !ok || pytext.Strip(v) == "" {
 					return InvalidField("fields.category", "level_1 · level_2 · level_3 문자열이 모두 필요해요")
 				}
 			}
@@ -913,7 +914,7 @@ func ValidateTaskFields(values map[string]any) error {
 				id, idOK := test["id"].(string)
 				name, nameOK := test["name"].(string)
 				_, requiredOK := test["required"].(bool)
-				if !ok || !idOK || strings.TrimSpace(id) == "" || !nameOK || strings.TrimSpace(name) == "" || !requiredOK || seen[id] {
+				if !ok || !idOK || pytext.Strip(id) == "" || !nameOK || pytext.Strip(name) == "" || !requiredOK || seen[id] {
 					return InvalidField("fields.tests", "각 테스트는 고유한 id, name, required가 필요해요")
 				}
 				seen[id] = true
@@ -999,7 +1000,7 @@ func (s *Store) TaskCreate(ctx Ctx, values map[string]any, requestID string, pre
 		nowISO := db.FormatISO(ctx.Now)
 		if _, err := tx.Exec(
 			"INSERT INTO task (project_id, id, title, status, priority, branch, wbs, wbs_exempt_reason, description, plan_md, fields_json, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-			pid, taskID, strings.TrimSpace(strVal(vals, "title", "")), strVal(vals, "status", "planned"),
+			pid, taskID, pytext.Strip(strVal(vals, "title", "")), strVal(vals, "status", "planned"),
 			strVal(vals, "priority", "high"), strVal(vals, "branch", ""), strVal(vals, "wbs", ""),
 			strVal(vals, "wbs_exempt_reason", ""), strVal(vals, "description", ""), strVal(vals, "plan_md", ""),
 			MustJSON(fieldsMap), cs, nowISO, nowISO,
@@ -1350,7 +1351,7 @@ func (s *Store) TaskUpdate(ctx Ctx, taskID string, expectedVersion int, values m
 				target := v
 				if k == "title" {
 					if ts, ok := v.(string); ok {
-						target = strings.TrimSpace(ts)
+						target = pytext.Strip(ts)
 					}
 				}
 				if MustJSON(before[k]) != MustJSON(target) {
@@ -1411,13 +1412,13 @@ func (s *Store) TaskProgress(ctx Ctx, taskID, note, requestID string) (map[strin
 	if err := ScanSecrets(note, "note"); err != nil {
 		return nil, err
 	}
-	if strings.TrimSpace(note) == "" {
+	if pytext.Strip(note) == "" {
 		return nil, InvalidField("note", "비었어요")
 	}
 	stamp := ctx.Now.Format("2006-01-02 15:04")
 	return s.versionedUpdate(ctx, taskID, nil, "progress", func(_ map[string]any, _ *Principal, _ *sql.Tx) (map[string]any, error) {
 		return map[string]any{
-			"progress_note": fmt.Sprintf("[%s] %s", stamp, strings.TrimSpace(note)),
+			"progress_note": fmt.Sprintf("[%s] %s", stamp, pytext.Strip(note)),
 			"progress_at":   db.FormatISO(ctx.Now),
 		}, nil
 	}, requestID)
@@ -1428,7 +1429,7 @@ func (s *Store) TaskLinkCommit(ctx Ctx, taskID, sha, branch, requestID string) (
 	if err != nil {
 		return nil, err
 	}
-	norm := strings.ToLower(strings.TrimSpace(sha))
+	norm := strings.ToLower(pytext.Strip(sha))
 	if !ShaPattern.MatchString(norm) {
 		return nil, InvalidField("sha", "16진 7~40 자")
 	}

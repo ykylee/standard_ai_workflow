@@ -9,6 +9,7 @@
 4. compact — 요약에서 빠진 식별자 · 그 사이 다른 콜사인의 변경 · 요약 없으면 대조 불가 (R11)
 5. 거두기 뒤 — 기록은 읽기 전용으로 남는다 (archived) · 세션 시작이 내 handoff 를 돌려준다 (G2 · R10)
 6. 문서 본문 해석 — 승인 요청 action 의 expected_version 4.0 은 400 · 홀로 선 서로게이트는 U+FFFD (HTTP · MCP) · U+001C–001F 만인 본문은 빈 본문 (Python · Go 같은 응답)
+7. 빈 값 판정 — 두 런타임이 Python str.strip() 의 공백 집합으로 (task 제목 · 진행 · harness), 세션 끝의 빈 · 문자열 아닌 note, 요약의 \\r 를 같이 거절
 """
 
 from __future__ import annotations
@@ -191,6 +192,29 @@ def run(hub: Hub, db: Path, tmp: Path) -> None:
             f"float={s_f}/{float_v.get('detail')} sur={s_sur}/{sur.get('request', {}).get('action')} "
             f"blank={ {k: (st, out.get('detail')) for k, (st, out) in blank.items()} } put={s_put} mcp={s_mcp}/{mcp_sha}")
 
+
+    # 7 빈 값 판정 — Python str.strip() 과 같은 공백 집합 · 같은 거절 (TASK-2026-11-27-claude-plex-004)
+    s_t, bad_title, _ = hub.call("hub_task_create", {"title": "\x1c\x1d"}, tok_b)
+    tid = hub.call("hub_task_create", {"title": "본문 판정"}, tok_b)[1]["task"]["id"]
+    s_p, bad_note, _ = hub.call("hub_task_progress", {"id": tid, "note": " \x1f "}, tok_b)
+    s_h, bad_harness, _ = hub.call("hub_session_start", {"session": {"harness": "  "}}, tok_b)
+    hb = {"baseline": "b", "focus": "", "in_progress": [], "blocked": [], "recent_done": [], "next": [], "risks": []}
+    s_e1, empty_note, _ = hub.call("hub_session_end", {"handoff": hb, "progress": [{"task_id": tid, "note": "\x1e"}]}, tok_b)
+    s_e2, typed_note, _ = hub.call("hub_session_end", {"handoff": hb, "progress": [{"task_id": tid, "note": 3}]}, tok_b)
+    s_w, cr, _ = hub.call("hub_wiki_ingest", {"summary": "한 줄\r둘째", "pages": [
+        {"path": "p.md", "body": "# p\n", "expected_version": 0}]}, tok_b)
+    s_x, kept, _ = hub.call("hub_task_get", {"id": tid}, tok_b)
+
+    def field(out: dict[str, Any]) -> Any:
+        return (out.get("detail") or {}).get("field")
+
+    got7 = {"title": (s_t, field(bad_title)), "note": (s_p, field(bad_note)), "harness": (s_h, field(bad_harness)),
+            "end_empty": (s_e1, field(empty_note)), "end_type": (s_e2, field(typed_note)), "wiki_cr": (s_w, field(cr))}
+    want7 = {"title": (400, "title"), "note": (400, "note"), "harness": (400, "client.harness"),  # 세션 harness 도 client 판정을 먼저 탄다
+             "end_empty": (400, "progress.note"), "end_type": (400, "progress[0]"), "wiki_cr": (400, "summary")}
+    ok7 = got7 == want7 and s_x == 200 and kept["task"]["progress_note"] == ""  # 거절된 세션 끝은 아무것도 안 썼다
+    _record("case 7 (빈 값 판정 — U+001C–001F 공백 · 빈 progress note · 문자열 아닌 note · 요약의 \\r)", ok7,
+            f"got={got7} progress_note={kept.get('task', {}).get('progress_note')!r}")
 
 def _mcp_approval_sha(hub: Hub, token: str, session: str, body_json: str) -> tuple[int, str | None]:
     """/mcp 에 날 JSON-RPC 를 보낸다 — SDK 클라이언트는 홀로 선 서로게이트를 보내기 전에 막아 이 경로를 못 잰다."""

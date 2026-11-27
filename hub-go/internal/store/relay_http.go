@@ -6,11 +6,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 	"unicode/utf8"
 
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/db"
+	"github.com/ykylee/standard_ai_workflow/hub-go/internal/pytext"
 )
 
 const relayNameMax = 80
@@ -41,7 +41,7 @@ func (s *Store) RelayRegister(now time.Time, raw any) (map[string]any, error) {
 		return nil, InvalidField("invite", "필수")
 	}
 	name, ok := a["name"].(string)
-	if !ok || strings.TrimSpace(name) == "" || utf8.RuneCountInString(name) > relayNameMax {
+	if !ok || pytext.Strip(name) == "" || utf8.RuneCountInString(name) > relayNameMax {
 		return nil, InvalidField("name", fmt.Sprintf("1~%d자", relayNameMax))
 	}
 	harnesses := []string{}
@@ -91,10 +91,10 @@ func (s *Store) RelayRegister(now time.Time, raw any) (map[string]any, error) {
 		if _, err := tx.Exec("UPDATE relay_invite SET used_at=?,host_id=? WHERE code_hash=?", db.FormatISO(now), hostID, HashToken(code)); err != nil {
 			return nil, err
 		}
-		if _, err := tx.Exec("INSERT INTO relay_host(host_id,name,token_hash,owner_callsign,projects_json,harnesses_json,last_seen_at) VALUES(?,?,?,?,?,?,?)", hostID, strings.TrimSpace(name), HashToken(token), owner, MustJSON([]string{projectID}), MustJSON(harnesses), db.FormatISO(now)); err != nil {
+		if _, err := tx.Exec("INSERT INTO relay_host(host_id,name,token_hash,owner_callsign,projects_json,harnesses_json,last_seen_at) VALUES(?,?,?,?,?,?,?)", hostID, pytext.Strip(name), HashToken(token), owner, MustJSON([]string{projectID}), MustJSON(harnesses), db.FormatISO(now)); err != nil {
 			return nil, err
 		}
-		if err := s.RecordEvent(tx, ctx, &projectID, "relay_host", hostID, "register", nil, map[string]any{"name": strings.TrimSpace(name), "harnesses": harnesses}, &owner); err != nil {
+		if err := s.RecordEvent(tx, ctx, &projectID, "relay_host", hostID, "register", nil, map[string]any{"name": pytext.Strip(name), "harnesses": harnesses}, &owner); err != nil {
 			return nil, err
 		}
 		return map[string]any{}, nil

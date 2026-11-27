@@ -8,8 +8,9 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"unicode"
 	"unicode/utf8"
+
+	"github.com/ykylee/standard_ai_workflow/hub-go/internal/pytext"
 )
 
 const (
@@ -77,7 +78,7 @@ type Claim struct {
 	Location *ClaimLocation
 }
 
-func (c Claim) Depth() int   { return len(c.Parts) }
+func (c Claim) Depth() int    { return len(c.Parts) }
 func (c Claim) ValidID() bool { return len(c.Parts) > 0 }
 
 func (c Claim) ParentID() string {
@@ -229,9 +230,7 @@ type PlanStatesResult struct {
 
 type LineCounter func(path string) (int, bool)
 
-func isPySpace(r rune) bool {
-	return unicode.IsSpace(r) || r == '\x1c' || r == '\x1d' || r == '\x1e' || r == '\x1f'
-}
+func isPySpace(r rune) bool { return pytext.IsSpace(r) }
 
 func pyStrip(s string) string {
 	return strings.TrimFunc(s, isPySpace)

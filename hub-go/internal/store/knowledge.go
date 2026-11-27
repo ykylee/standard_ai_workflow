@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ykylee/standard_ai_workflow/hub-go/internal/pytext"
 	"regexp"
 	"sort"
 	"strings"
@@ -179,13 +180,13 @@ func (s *Store) KnowledgeSync(ctx Ctx, sourceID, commit string, raw any) (map[st
 		if !allowed[path] {
 			return nil, Forbidden("source allowlist에 없는 경로: " + path)
 		}
-		if strings.TrimSpace(title) == "" || strings.TrimSpace(body) == "" || len(body) > 192*1024 {
+		if pytext.Strip(title) == "" || pytext.Strip(body) == "" || len(body) > 192*1024 {
 			return nil, InvalidField("documents", "title/body가 비었거나 본문이 192KB를 넘어요")
 		}
 		if err = ScanSecrets(body, "body"); err != nil {
 			return nil, err
 		}
-		docs = append(docs, doc{path, strings.TrimSpace(title), body})
+		docs = append(docs, doc{path, pytext.Strip(title), body})
 	}
 	now := ctx.Now.Format(time.RFC3339Nano)
 	results := []map[string]any{}
@@ -281,7 +282,7 @@ func (s *Store) KnowledgeSearch(ctx Ctx, query string, limit int) (map[string]an
 	if err != nil {
 		return nil, err
 	}
-	if strings.TrimSpace(query) == "" {
+	if pytext.Strip(query) == "" {
 		return nil, InvalidField("query", "검색어가 비었어요")
 	}
 	if limit < 1 {
@@ -426,7 +427,7 @@ func (s *Store) DCRCreate(ctx Ctx, title, rationale, proposal string, rawRefs an
 	if err != nil {
 		return nil, err
 	}
-	if strings.TrimSpace(title) == "" || strings.TrimSpace(rationale) == "" || strings.TrimSpace(proposal) == "" {
+	if pytext.Strip(title) == "" || pytext.Strip(rationale) == "" || pytext.Strip(proposal) == "" {
 		return nil, InvalidField("DCR", "title, rationale, proposal이 필요해요")
 	}
 	if len(title)+len(rationale)+len(proposal) > 150*1024 {
@@ -466,13 +467,13 @@ func (s *Store) DCRCreate(ctx Ctx, title, rationale, proposal string, rawRefs an
 			return nil, e
 		}
 		id := fmt.Sprintf("DCR-%04d", n+1)
-		if _, e := tx.Exec("INSERT INTO decision_change(project_id,id,title,rationale,proposal_md,target_refs_json,base_revisions_json,status,author,created_at,updated_at) VALUES(?,?,?,?,?,?,?,'open',?,?,?)", pid, id, strings.TrimSpace(title), strings.TrimSpace(rationale), proposal, string(blob), string(baseBlob), p.Callsign, now, now); e != nil {
+		if _, e := tx.Exec("INSERT INTO decision_change(project_id,id,title,rationale,proposal_md,target_refs_json,base_revisions_json,status,author,created_at,updated_at) VALUES(?,?,?,?,?,?,?,'open',?,?,?)", pid, id, pytext.Strip(title), pytext.Strip(rationale), proposal, string(blob), string(baseBlob), p.Callsign, now, now); e != nil {
 			return nil, e
 		}
 		if _, e := tx.Exec("INSERT INTO decision_event(project_id,dcr_id,at,actor,op,after_json) VALUES(?,?,?,?,?,?)", pid, id, now, p.Callsign, "create", MustJSON(map[string]any{"status": "open", "title": title})); e != nil {
 			return nil, e
 		}
-		return map[string]any{"id": id, "status": "open", "version": 1, "title": strings.TrimSpace(title)}, nil
+		return map[string]any{"id": id, "status": "open", "version": 1, "title": pytext.Strip(title)}, nil
 	})
 }
 
@@ -481,7 +482,7 @@ func (s *Store) DCRDecide(ctx Ctx, id string, expected int, outcome, rationale s
 	if err != nil {
 		return nil, err
 	}
-	if outcome != "approve" && outcome != "reject" || strings.TrimSpace(rationale) == "" {
+	if outcome != "approve" && outcome != "reject" || pytext.Strip(rationale) == "" {
 		return nil, InvalidField("decision", "approve/reject와 판단 근거가 필요해요")
 	}
 	var status, title, context, proposal, targetRefs, baseRefs string
@@ -607,7 +608,7 @@ func (s *Store) DCRDecide(ctx Ctx, id string, expected int, outcome, rationale s
 		adrIDOut = adrID
 		adrPath = "decisions/adr-" + adrSuffix + "-" + slug + ".md"
 		adrBody = fmt.Sprintf("---\ntype: decision\nstatus: accepted\nadr_id: %s\ndecided_at: %s\nalternatives_considered: []\nrelated_pages: %s\nsupersedes: %s\ndcr: %s\ncreated: %s\nupdated: %s\n---\n\n# %s: %s\n\n## Status\n\n**Accepted** (%s %s 승인 · %s)\n\n## Context\n\n%s\n\n## Decision\n\n%s\n\n## Approval\n\n%s\n",
-			adrID, day, string(relatedJSON), string(supersedesJSON), id, day, day, adrID, title, day, p.Callsign, id, context, proposal, strings.TrimSpace(rationale))
+			adrID, day, string(relatedJSON), string(supersedesJSON), id, day, day, adrID, title, day, p.Callsign, id, context, proposal, pytext.Strip(rationale))
 		supersededPaths = nil
 		for _, ref := range supersedes {
 			v := strings.TrimPrefix(ref, "git:")
@@ -629,9 +630,9 @@ func (s *Store) DCRDecide(ctx Ctx, id string, expected int, outcome, rationale s
 		var result sql.Result
 		var e error
 		if adrBody != "" {
-			result, e = tx.Exec("UPDATE decision_change SET status=?,reviewer=?,decision_rationale=?,adr_path=?,adr_sha256=?,version=version+1,updated_at=? WHERE project_id=? AND id=? AND version=? AND status='open'", next, p.Callsign, strings.TrimSpace(rationale), adrPath, digest, now, pid, id, expected)
+			result, e = tx.Exec("UPDATE decision_change SET status=?,reviewer=?,decision_rationale=?,adr_path=?,adr_sha256=?,version=version+1,updated_at=? WHERE project_id=? AND id=? AND version=? AND status='open'", next, p.Callsign, pytext.Strip(rationale), adrPath, digest, now, pid, id, expected)
 		} else {
-			result, e = tx.Exec("UPDATE decision_change SET status=?,reviewer=?,decision_rationale=?,version=version+1,updated_at=? WHERE project_id=? AND id=? AND version=? AND status='open'", next, p.Callsign, strings.TrimSpace(rationale), now, pid, id, expected)
+			result, e = tx.Exec("UPDATE decision_change SET status=?,reviewer=?,decision_rationale=?,version=version+1,updated_at=? WHERE project_id=? AND id=? AND version=? AND status='open'", next, p.Callsign, pytext.Strip(rationale), now, pid, id, expected)
 		}
 		if e != nil {
 			return nil, e

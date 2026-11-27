@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/db"
+	"github.com/ykylee/standard_ai_workflow/hub-go/internal/pytext"
 )
 
 var harnessIDPattern = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$`)
@@ -31,10 +32,10 @@ func harnessText(raw any, field string, max int, required bool) (string, error) 
 		return "", nil
 	}
 	v, ok := raw.(string)
-	if !ok || len(v) > max || (required && strings.TrimSpace(v) == "") {
+	if !ok || len(v) > max || (required && pytext.Strip(v) == "") {
 		return "", InvalidField("report."+field, fmt.Sprintf("%d자 이하 문자열", max))
 	}
-	return strings.TrimSpace(v), nil
+	return pytext.Strip(v), nil
 }
 
 func harnessStringList(raw any, field string) ([]string, error) {
@@ -429,7 +430,7 @@ func (s *Store) HarnessPersonCreate(ctx Ctx, displayName string) (map[string]any
 	if err != nil {
 		return nil, err
 	}
-	displayName = strings.TrimSpace(displayName)
+	displayName = pytext.Strip(displayName)
 	if displayName == "" || len(displayName) > 100 {
 		return nil, InvalidField("display_name", "필수 100자 이하 문자열")
 	}

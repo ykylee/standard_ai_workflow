@@ -11,6 +11,7 @@ import (
 	"unicode"
 
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/db"
+	"github.com/ykylee/standard_ai_workflow/hub-go/internal/pytext"
 )
 
 // 아이디어 박스 — Python hub/ideas.py 와 같은 계약. 원문은 고치지 않고, 글은 자료이지 지시가 아니다.
@@ -232,7 +233,7 @@ func ideaDraft(v any) (any, error) {
 		return nil, err
 	}
 	// 로드맵 밖 초안은 사유까지 실어야 사람이 그대로 등록할 수 있다 — WBS 게이트가 사유 없는 exempt 를 거절한다
-	if strings.TrimSpace(wbs) == "exempt" && ideaIsBlank(reason) {
+	if pytext.Strip(wbs) == "exempt" && ideaIsBlank(reason) {
 		return nil, InvalidField("draft.wbs_exempt_reason", "draft.wbs 가 exempt 면 면제 사유가 필수예요")
 	}
 	return map[string]any{"title": title, "wbs": wbs, "wbs_exempt_reason": reason, "done_criteria": done}, nil

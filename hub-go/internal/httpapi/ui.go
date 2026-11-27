@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/judge"
+	"github.com/ykylee/standard_ai_workflow/hub-go/internal/pytext"
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/store"
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/tools"
 )
@@ -881,7 +882,7 @@ func (s *Server) screenPlanResponse(pid, taskID string, body map[string]any, pri
 			return nil, store.InvalidField("comments."+key, "문자열")
 		}
 		txt = strings.ReplaceAll(strings.ReplaceAll(txt, "\r\n", "\n"), "\r", "\n")
-		if strings.TrimSpace(txt) == "" {
+		if pytext.Strip(txt) == "" {
 			continue
 		}
 		if !allowed[key] {
@@ -1025,7 +1026,7 @@ func (s *Server) screenGuide(pid string, principal *store.Principal) (map[string
 }
 
 func (s *Server) screenWiki(pid string, r *http.Request, ctx store.Ctx) (map[string]any, error) {
-	if q := strings.TrimSpace(r.URL.Query().Get("q")); q != "" {
+	if q := pytext.Strip(r.URL.Query().Get("q")); q != "" {
 		return s.cfg.Store.KnowledgeSearch(ctx, q, 50)
 	}
 	return s.cfg.Store.WikiListOf(pid, r.URL.Query().Get("prefix"))
@@ -1039,7 +1040,7 @@ func (s *Server) screenWikiPage(pid, p string) (map[string]any, error) {
 }
 
 func readScreenJSON(r *http.Request) (map[string]any, error) {
-	contentType := strings.ToLower(strings.TrimSpace(strings.Split(r.Header.Get("Content-Type"), ";")[0]))
+	contentType := strings.ToLower(pytext.Strip(strings.Split(r.Header.Get("Content-Type"), ";")[0]))
 	if contentType != "application/json" {
 		return nil, &store.HubError{Status: http.StatusUnsupportedMediaType, Code: "unsupported_media_type", Message: "본문은 application/json 이어야 해요"}
 	}
@@ -1050,7 +1051,7 @@ func readScreenJSON(r *http.Request) (map[string]any, error) {
 	if len(raw) > MaxBody {
 		return nil, &store.HubError{Status: http.StatusRequestEntityTooLarge, Code: "payload_too_large", Message: fmt.Sprintf("본문 상한 %d 바이트", MaxBody)}
 	}
-	if len(strings.TrimSpace(string(raw))) == 0 {
+	if len(pytext.Strip(string(raw))) == 0 {
 		return map[string]any{}, nil
 	}
 	var body map[string]any
@@ -1462,7 +1463,7 @@ func (s *Server) screenOrigin(r *http.Request) screenOrigin {
 		}
 		return screenOrigin{ok: true, secure: u.Scheme == "https", path: path}
 	}
-	scheme := strings.TrimSpace(strings.Split(r.Header.Get("X-Forwarded-Proto"), ",")[0])
+	scheme := pytext.Strip(strings.Split(r.Header.Get("X-Forwarded-Proto"), ",")[0])
 	if scheme == "" {
 		if scheme = "http"; r.TLS != nil {
 			scheme = "https"

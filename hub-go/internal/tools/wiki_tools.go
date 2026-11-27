@@ -18,6 +18,7 @@ import (
 
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/db"
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/judge"
+	"github.com/ykylee/standard_ai_workflow/hub-go/internal/pytext"
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/store"
 )
 
@@ -44,7 +45,7 @@ func validateWikiIndex(text string, has func(string) bool) ([]string, int) {
 	seen := map[string]int{}
 	section, inSection, hasEntry, sawH2 := "", false, false, false
 	for i, raw := range lines {
-		n, line := strconv.Itoa(i+1), strings.TrimRight(raw, " \t")
+		n, line := strconv.Itoa(i+1), pytext.RStrip(raw)
 		switch {
 		case line == "":
 		case strings.HasPrefix(line, "# "):
@@ -95,7 +96,7 @@ func validateWikiIndex(text string, has func(string) bool) ([]string, int) {
 func wikiLinks(body string) []string {
 	out, fenced := []string{}, false
 	for _, line := range splitTextLines(body) {
-		if strings.HasPrefix(strings.TrimLeft(line, " \t"), "```") {
+		if strings.HasPrefix(strings.TrimLeftFunc(line, pytext.IsSpace), "```") {
 			fenced = !fenced
 			continue
 		}

@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"github.com/ykylee/standard_ai_workflow/hub-go/internal/pytext"
 	"regexp"
 	"strings"
 )
@@ -34,7 +35,7 @@ func invalidRemote(url, why string) *HubError {
 
 // NormalizeGitRemote converts a git remote URL or SCP spec into canonical host/path form.
 func NormalizeGitRemote(remoteURL string) (string, error) {
-	raw := strings.TrimSpace(remoteURL)
+	raw := pytext.Strip(remoteURL)
 	if raw == "" {
 		return "", invalidRemote(remoteURL, "비었다")
 	}
@@ -64,7 +65,7 @@ func NormalizeGitRemote(remoteURL string) (string, error) {
 		p = s[3]
 	}
 
-	host = strings.ToLower(strings.TrimSpace(host))
+	host = strings.ToLower(pytext.Strip(host))
 	if host == "" {
 		return "", invalidRemote(remoteURL, "호스트가 없다")
 	}

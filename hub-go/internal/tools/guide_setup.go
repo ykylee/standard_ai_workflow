@@ -11,6 +11,7 @@ import (
 
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/assets"
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/db"
+	"github.com/ykylee/standard_ai_workflow/hub-go/internal/pytext"
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/store"
 )
 
@@ -98,8 +99,8 @@ func renderGuideAtEntry(harness, entry, projectID, display, body string, version
 		return "", store.InvalidField("entry_file", "안전한 상대 경로만 허용")
 	}
 	text := fmt.Sprintf("<!-- 이 영역은 워크플로우 허브가 렌더링한다 (%s · %s). 고칠 것은 허브에 지침 제안으로. -->\n%s", entry, harness, assets.StandardBlock)
-	if strings.TrimSpace(body) != "" {
-		text += fmt.Sprintf("\n## 프로젝트 지침 — %s\n\n%s\n", display, strings.TrimSpace(body))
+	if pytext.Strip(body) != "" {
+		text += fmt.Sprintf("\n## 프로젝트 지침 — %s\n\n%s\n", display, pytext.Strip(body))
 	}
 	region := fmt.Sprintf("<!-- workflow-hub:begin project=%s guide=%s sha256=%s -->\n%s<!-- workflow-hub:end -->\n", projectID, guideVersion(version), digest(text), text)
 	if err := store.GuideRegionOverBudget(entry, region); err != nil {
@@ -343,7 +344,7 @@ func setupMCPJSONAtPath(existing, url, configPath string) (string, error) {
 
 func setupMCPJSONWith(existing, url, configPath string, headersHelper bool) (string, error) {
 	data := map[string]any{}
-	if strings.TrimSpace(existing) != "" {
+	if pytext.Strip(existing) != "" {
 		if err := json.Unmarshal([]byte(existing), &data); err != nil {
 			return "", &store.HubError{Status: 409, Code: "invalid_existing_file", Message: configPath + " 이 JSON 이 아니에요 — 손으로 고친 뒤 다시"}
 		}
@@ -492,7 +493,7 @@ func setupPlan(s *store.Store, ctx store.Ctx, args map[string]any) (map[string]a
 		gi, _ := files[".gitignore"].(string)
 		already := false
 		for _, line := range strings.Split(gi, "\n") {
-			if strings.TrimSpace(line) == "/.workflow-hub/" {
+			if pytext.Strip(line) == "/.workflow-hub/" {
 				already = true
 			}
 		}

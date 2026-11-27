@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/judge"
+	"github.com/ykylee/standard_ai_workflow/hub-go/internal/pytext"
 )
 
 // OKF(Open Knowledge Format) 출판 · 들여오기 — Python okf_export.py · okf_import.py 와 같은 변환 (resolve=False).
@@ -57,7 +58,7 @@ func simpleYAML(body string) map[string]any {
 				if judge.Strip(lines[j]) == "" {
 					continue
 				}
-				item := strings.TrimLeft(lines[j], " \t")
+				item := strings.TrimLeftFunc(lines[j], pytext.IsSpace)
 				if !strings.HasPrefix(item, "- ") {
 					break
 				}

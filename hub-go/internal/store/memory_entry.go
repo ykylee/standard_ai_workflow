@@ -6,11 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
-	"strings"
 	"time"
 	"unicode/utf8"
 
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/db"
+	"github.com/ykylee/standard_ai_workflow/hub-go/internal/pytext"
 )
 
 // memory_index entry — 1.x MemoryEntry 스키마 (common/schemas/memory_index.py) 와 같은 칸 · 제약.
@@ -27,7 +27,7 @@ func entryTime(raw any, field string) (string, error) {
 	if !ok {
 		return "", entryError(field, "ISO 시각 문자열이 필요하다")
 	}
-	text = strings.TrimSpace(text)
+	text = pytext.Strip(text)
 	for _, layout := range []string{"2006-01-02T15:04:05.999999999Z07:00", "2006-01-02 15:04:05.999999999Z07:00", "2006-01-02T15:04Z07:00"} {
 		if t, err := time.Parse(layout, text); err == nil {
 			out := t.Format("2006-01-02T15:04:05")

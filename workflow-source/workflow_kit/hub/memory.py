@@ -169,13 +169,19 @@ class Memory:
         """handoff 와 진행 한 줄들을 **한 트랜잭션**으로 (hub_spec §6.3, R6.4)."""
         p = self.store._need_callsign(ctx)
         clean = _validate_sections(handoff)
-        if not isinstance(progress, list) or not all(isinstance(x, dict) and set(x) == {"task_id", "note"} for x in progress):
+        if not isinstance(progress, list):
             raise invalid_field("progress", "[{task_id, note}]")
+        for i, x in enumerate(progress):  # Go 허브와 같은 자리 · 같은 필드 (note 가 문자열이 아니면 500 이었다)
+            if not (isinstance(x, dict) and set(x) == {"task_id", "note"} and isinstance(x["task_id"], str)
+                    and isinstance(x["note"], str)):
+                raise invalid_field(f"progress[{i}]", "{task_id, note}")
         stamp = ctx.now.strftime("%Y-%m-%d %H:%M")
         with self.store.write() as conn:
             for item in progress:
                 scan_secrets(item["note"], "progress.note")
                 task = self.store._get_task(conn, p.project_id or "", item["task_id"])
+                if not item["note"].strip():
+                    raise invalid_field("progress.note", "비었어요")
                 conn.execute("UPDATE task SET progress_note = ?, progress_at = ?, version = version + 1, updated_at = ? "
                              "WHERE project_id = ? AND id = ?",
                              (f"[{stamp}] {item['note'].strip()}", _iso(ctx.now), _iso(ctx.now), p.project_id, item["task_id"]))

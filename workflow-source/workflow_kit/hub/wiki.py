@@ -130,7 +130,7 @@ class Wiki:
         p = self.store._need_callsign(ctx)
         pid = p.project_id
         assert pid is not None
-        if not isinstance(summary, str) or not summary.strip() or "\n" in summary.strip():
+        if not isinstance(summary, str) or not summary.strip() or any(c in summary.strip() for c in "\r\n"):
             raise invalid_field("summary", "한 줄 요약이 필요해요")
         if not isinstance(pages, list) or not pages:
             raise invalid_field("pages", "페이지가 하나 이상 필요해요")

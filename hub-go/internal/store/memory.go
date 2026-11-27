@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/db"
+	"github.com/ykylee/standard_ai_workflow/hub-go/internal/pytext"
 )
 
 var handoffStringKeys = []string{"baseline", "focus"}
@@ -49,17 +50,17 @@ func validateHandoff(raw map[string]any) (map[string]any, error) {
 			case []any:
 				for _, item := range list {
 					s, ok := item.(string)
-					if !ok || strings.TrimSpace(s) == "" {
+					if !ok || pytext.Strip(s) == "" {
 						return nil, InvalidField("handoff."+k, "비지 않은 문자열 목록")
 					}
-					values = append(values, strings.TrimSpace(s))
+					values = append(values, pytext.Strip(s))
 				}
 			case []string:
 				for _, s := range list {
-					if strings.TrimSpace(s) == "" {
+					if pytext.Strip(s) == "" {
 						return nil, InvalidField("handoff."+k, "비지 않은 문자열 목록")
 					}
-					values = append(values, strings.TrimSpace(s))
+					values = append(values, pytext.Strip(s))
 				}
 			default:
 				return nil, InvalidField("handoff."+k, "비지 않은 문자열 목록")
@@ -167,14 +168,14 @@ func (s *Store) SessionEnd(ctx Ctx, sessionID string, handoff map[string]any, ex
 			if err != nil {
 				return nil, err
 			}
-			if strings.TrimSpace(item["note"]) == "" {
+			if pytext.Strip(item["note"]) == "" {
 				return nil, InvalidField("progress.note", "비었어요")
 			}
-			note := fmt.Sprintf("[%s] %s", stamp, strings.TrimSpace(item["note"]))
+			note := fmt.Sprintf("[%s] %s", stamp, pytext.Strip(item["note"]))
 			if _, err := tx.Exec("UPDATE task SET progress_note=?,progress_at=?,version=version+1,updated_at=? WHERE project_id=? AND id=?", note, db.FormatISO(ctx.Now), db.FormatISO(ctx.Now), p.ProjectID, item["task_id"]); err != nil {
 				return nil, err
 			}
-			if err := s.RecordEvent(tx, ctx, &p.ProjectID, "task", item["task_id"], "progress", map[string]any{"progress_note": task["progress_note"]}, map[string]any{"progress_note": strings.TrimSpace(item["note"])}, nil); err != nil {
+			if err := s.RecordEvent(tx, ctx, &p.ProjectID, "task", item["task_id"], "progress", map[string]any{"progress_note": task["progress_note"]}, map[string]any{"progress_note": pytext.Strip(item["note"])}, nil); err != nil {
 				return nil, err
 			}
 		}

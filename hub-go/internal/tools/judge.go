@@ -11,6 +11,7 @@ import (
 
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/db"
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/judge"
+	"github.com/ykylee/standard_ai_workflow/hub-go/internal/pytext"
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/store"
 )
 
@@ -124,7 +125,7 @@ func isReadableNote(note *string) bool {
 func matchLabelPrefix(stripped string, prefixes []string) (string, bool) {
 	for _, p := range prefixes {
 		if strings.HasPrefix(stripped, p) {
-			return strings.TrimSpace(stripped[len(p):]), true
+			return pytext.Strip(stripped[len(p):]), true
 		}
 	}
 	return "", false
@@ -133,11 +134,11 @@ func matchLabelPrefix(stripped string, prefixes []string) (string, bool) {
 func readTaskListField(lines []string, prefixes []string) []string {
 	var values []string
 	for idx, line := range lines {
-		if _, ok := matchLabelPrefix(strings.TrimSpace(line), prefixes); !ok {
+		if _, ok := matchLabelPrefix(pytext.Strip(line), prefixes); !ok {
 			continue
 		}
 		for end := idx; end < len(lines); end++ {
-			v, ok := matchLabelPrefix(strings.TrimSpace(lines[end]), prefixes)
+			v, ok := matchLabelPrefix(pytext.Strip(lines[end]), prefixes)
 			if !ok {
 				break
 			}
@@ -176,7 +177,7 @@ func rewriteDecisionStates(lines []string, states map[string]string) ([]string, 
 	out := make([]string, 0, len(lines))
 	var changes []stateChange
 	for _, line := range lines {
-		val, ok := matchLabelPrefix(strings.TrimSpace(line), decisionPrefixes)
+		val, ok := matchLabelPrefix(pytext.Strip(line), decisionPrefixes)
 		if !ok || val == "" {
 			out = append(out, line)
 			continue
@@ -187,7 +188,7 @@ func rewriteDecisionStates(lines []string, states map[string]string) ([]string, 
 			out = append(out, line)
 			continue
 		}
-		indentLen := len(line) - len(strings.TrimLeftFunc(line, unicode.IsSpace))
+		indentLen := len(line) - len(strings.TrimLeftFunc(line, pytext.IsSpace))
 		indent := line[:indentLen]
 		out = append(out, fmt.Sprintf("%s- %s: %s", indent, judge.DecisionLabelCanonical, renderDecisionValue(d, newState)))
 		changes = append(changes, stateChange{ID: d.ID, Old: d.State, New: newState})
@@ -265,7 +266,7 @@ func (j *JudgeBridge) Enforce(
 		previousLines, _ = TaskLines(*previousPlanMD, fields)
 	}
 	planChanged := previousPlanMD == nil || *previousPlanMD != newPlanMD
-	if planChanged && strings.TrimSpace(newPlanMD) != "" {
+	if planChanged && pytext.Strip(newPlanMD) != "" {
 		issues := judge.LintPlan(judge.ParsePlan(lines), extractDoneCriteria(fields), nil)
 		var rendered []string
 		for _, iss := range issues {
@@ -299,7 +300,7 @@ func (j *JudgeBridge) Enforce(
 	if len(plan.Claims) == 0 && (creating || toInProgress) {
 		var codeFiles []string
 		for _, v := range readTaskListField(lines, planFilesPref) {
-			clean := strings.Trim(strings.TrimSpace(v), "`")
+			clean := strings.Trim(pytext.Strip(v), "`")
 			if !strings.HasPrefix(clean, "ai-workflow/") {
 				codeFiles = append(codeFiles, v)
 			}
@@ -320,8 +321,8 @@ func (j *JudgeBridge) Enforce(
 	requestedStates := map[string]string{}
 	for _, item := range decisionStates {
 		decID, rawState, hasSep := strings.Cut(item, "=")
-		decID = strings.TrimSpace(decID)
-		rawState = strings.TrimSpace(rawState)
+		decID = pytext.Strip(decID)
+		rawState = pytext.Strip(rawState)
 		dec, foundDec := findDecision(plan, decID)
 		kind, val, okState := judge.ParseState(rawState)
 		reason := ""
@@ -585,7 +586,7 @@ func (j *JudgeBridge) PrepareCreate(tx *sql.Tx, projectID, taskID string, values
 		out[k] = v
 	}
 	planMD, _ := values["plan_md"].(string)
-	if strings.TrimSpace(planMD) != "" {
+	if pytext.Strip(planMD) != "" {
 		status := "planned"
 		if st, ok := values["status"].(string); ok && st != "" {
 			status = st
@@ -653,7 +654,7 @@ func (j *JudgeBridge) PrepareUpdate(projectID string, decisionStates map[string]
 			status = *reqStatusPtr
 		}
 		statusChange := hasNewStatus(values, beforeStatus)
-		if (strings.TrimSpace(newPlan) != "" || strings.TrimSpace(beforePlan) != "") && (hasNewPlan || len(dsArgs) > 0 || statusChange) {
+		if (pytext.Strip(newPlan) != "" || pytext.Strip(beforePlan) != "") && (hasNewPlan || len(dsArgs) > 0 || statusChange) {
 			bf, _ := before["fields"].(map[string]any)
 			vf, _ := values["fields"].(map[string]any)
 			merged := make(map[string]any, len(bf)+len(vf))

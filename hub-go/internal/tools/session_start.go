@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ykylee/standard_ai_workflow/hub-go/internal/pytext"
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/store"
 )
 
@@ -235,10 +236,10 @@ func localClient(raw any) (map[string]any, error) {
 	out := map[string]any{"status": "present", "version": version, "outbox_pending": pending}
 	if rawHarness, exists := c["harness"]; exists {
 		harness, ok := rawHarness.(string)
-		if !ok || strings.TrimSpace(harness) == "" || len(harness) > 64 {
+		if !ok || pytext.Strip(harness) == "" || len(harness) > 64 {
 			return nil, store.InvalidField("client.harness", "1~64자 하네스 ID")
 		}
-		out["harness"] = strings.ToLower(strings.TrimSpace(harness))
+		out["harness"] = strings.ToLower(pytext.Strip(harness))
 	}
 	if pending > 0 {
 		out["notice"] = fmt.Sprintf("보낼편지함에 %d건 — hub_client.py flush 로 보낸다 (409 는 남는다, D4)", pending)
@@ -336,7 +337,7 @@ func sessionStartPhase2(s *store.Store, ctx store.Ctx, hub map[string]any, comma
 		ahead, behind, hasAB, hasUpstream := 0, 0, false, false
 		dirty := []string{}
 		for _, line := range lines {
-			trimmed := strings.TrimSpace(line)
+			trimmed := pytext.Strip(line)
 			if match := branchAheadBehind.FindStringSubmatch(trimmed); match != nil {
 				ahead, _ = strconv.Atoi(match[1])
 				behind, _ = strconv.Atoi(match[2])
@@ -460,7 +461,7 @@ func checkIgnoreOK(rc int, output string) (bool, string) {
 	if rc != 0 {
 		return false, "무시되지 않는다 (rc != 0 — 규칙이 없거나 이미 추적 중인 파일)"
 	}
-	lines := strings.Split(strings.TrimSpace(output), "\n")
+	lines := strings.Split(pytext.Strip(output), "\n")
 	if len(lines) == 0 || lines[0] == "" {
 		return false, "출력이 없다"
 	}

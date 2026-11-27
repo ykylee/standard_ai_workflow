@@ -24,23 +24,23 @@ def check_source(conn: Any, pid: str, source_id: Any, repo_key: Any, allowlist: 
     if not isinstance(source_id, str) or not _ID.fullmatch(source_id):
         raise invalid_field("source_id", "영문·숫자·._- 1~80자")
     if not isinstance(allowlist, list) or not allowlist or len(allowlist) > 500:
-        raise invalid_field("allowlist", "허용할 markdown 경로가 하나 이상 필요하다")
+        raise invalid_field("allowlist", "허용할 markdown 경로가 하나 이상 필요해요")
     paths: list[str] = []
     for raw in allowlist:
         if not isinstance(raw, str) or not _PATH.fullmatch(raw) or ".." in raw.split("/"):
-            raise invalid_field("allowlist", f"안전한 상대 .md 경로가 아니다: {raw!r}")
+            raise invalid_field("allowlist", f"안전한 상대 .md 경로가 아니에요: {raw!r}")
         if raw not in paths:
             paths.append(raw)
     aliases = {r[0] for r in conn.execute("SELECT key FROM project_alias WHERE project_id=?", (pid,))}
     if not isinstance(repo_key, str) or repo_key not in aliases:
-        raise invalid_field("repo_key", "프로젝트에 등록된 저장소 키가 아니다")
+        raise invalid_field("repo_key", "프로젝트에 등록된 저장소 키가 아니에요")
     existing = conn.execute("SELECT version FROM knowledge_source WHERE project_id=? AND id=?", (pid, source_id)).fetchone()
     if existing:
         raise version_conflict(existing[0], {"source_id": source_id})
     # 저장소 하나에 원본은 하나 (DB 유일 제약) — 부딪치기 전에 이유를 말한다
     taken = conn.execute("SELECT id FROM knowledge_source WHERE project_id=? AND repo_key=?", (pid, repo_key)).fetchone()
     if taken:
-        raise HubError(409, "source_exists_for_repo", f"이 저장소에는 이미 지식 원본이 있다: {taken[0]}", {"source_id": taken[0]})
+        raise HubError(409, "source_exists_for_repo", f"이 저장소에는 이미 지식 원본이 있어요: {taken[0]}", {"source_id": taken[0]})
     return source_id, repo_key, paths
 
 
@@ -57,7 +57,7 @@ class Knowledge:
             or not p.human_approved
             or p.role != "owner"
         ):
-            raise forbidden("DCR 결정에는 승인된 human project owner가 필요하다")
+            raise forbidden("DCR 결정에는 승인된 human project owner가 필요해요")
         return p, p.project_id
 
     def _read_identity(self, ctx: Ctx) -> tuple[Any, str]:
@@ -80,7 +80,7 @@ class Knowledge:
             p = self.store._need_callsign(ctx)
             if not (p.kind == "callsign" and p.callsign_kind == "human" and p.human_approved and p.role == "owner"):
                 raise forbidden("지식 원본 등록은 승인된 human 소유자가 하거나, hub_approval_request(action={type: knowledge_source_register, "
-                                "source_id, repo_key, allowlist}) 로 화면 승인을 받은 approval_id 가 필요하다")
+                                "source_id, repo_key, allowlist}) 로 화면 승인을 받은 approval_id 가 필요해요")
             pid = str(p.project_id)
         with self.store.write() as conn:
             source_id, repo_key, paths = check_source(conn, pid, source_id, repo_key, allowlist)
@@ -114,21 +114,21 @@ class Knowledge:
     ) -> dict[str, Any]:
         p, pid = self._identity(ctx)
         if not isinstance(commit_sha, str) or not _SHA.fullmatch(commit_sha.lower()):
-            raise invalid_field("commit_sha", "40자리 이하 16진 커밋 SHA가 필요하다")
+            raise invalid_field("commit_sha", "40자리 이하 16진 커밋 SHA가 필요해요")
         if not isinstance(documents, list) or not documents or len(documents) > 500:
-            raise invalid_field("documents", "문서가 1~500개 필요하다")
+            raise invalid_field("documents", "문서가 1~500개 필요해요")
         with self.store.read() as conn:
             source = conn.execute(
                 "SELECT * FROM knowledge_source WHERE project_id=? AND id=? AND enabled=1",
                 (pid, source_id),
             ).fetchone()
         if not source:
-            raise not_found(f"knowledge source가 없다: {source_id}")
+            raise not_found(f"knowledge source가 없어요: {source_id}")
         allowed = set(json.loads(source["allowlist_json"]))
         clean = []
         for i, item in enumerate(documents):
             if not isinstance(item, dict) or set(item) - {"path", "title", "body"}:
-                raise invalid_field(f"documents[{i}]", "path, title, body 필드만 허용한다")
+                raise invalid_field(f"documents[{i}]", "path, title, body 필드만 허용해요")
             path, title, body = item.get("path"), item.get("title"), item.get("body")
             if path not in allowed:
                 raise forbidden(f"source allowlist에 없는 경로: {path}")
@@ -140,7 +140,7 @@ class Knowledge:
                 or len(body.encode()) > 192 * 1024
             ):
                 raise invalid_field(
-                    f"documents[{i}]", "title/body가 비었거나 본문이 192KB를 넘는다"
+                    f"documents[{i}]", "title/body가 비었거나 본문이 192KB를 넘어요"
                 )
             scan_secrets(body, f"documents[{i}].body")
             clean.append((path, title.strip(), body))
@@ -200,7 +200,7 @@ class Knowledge:
                     continue
                 if last and "/decisions/adr-" in f"/{path}" and not pending:
                     raise HubError(
-                        409, "adr_requires_dcr", f"기존 ADR은 DCR 승인으로만 새 판을 만든다: {path}"
+                        409, "adr_requires_dcr", f"기존 ADR은 DCR 승인으로만 새 판을 만들어요: {path}"
                     )
                 if last:
                     conn.execute(
@@ -239,7 +239,7 @@ class Knowledge:
     def search(self, ctx: Ctx, query: str, limit: int = 20) -> dict[str, Any]:
         _, pid = self._read_identity(ctx)
         if not isinstance(query, str) or not query.strip():
-            raise invalid_field("query", "검색어가 비었다")
+            raise invalid_field("query", "검색어가 비었어요")
         words = query.lower().split()
         hits = []
         with self.store.read() as conn:
@@ -354,7 +354,7 @@ class Knowledge:
     def get(self, ctx: Ctx, ref: str) -> dict[str, Any]:
         _, pid = self._read_identity(ctx)
         if not isinstance(ref, str):
-            raise invalid_field("ref", "문자열이어야 한다")
+            raise invalid_field("ref", "문자열이어야 해요")
         with self.store.read() as conn:
             if ref.startswith("hub-dcr:"):
                 key, sep, rev = ref[len("hub-dcr:") :].rpartition("@")
@@ -365,7 +365,7 @@ class Knowledge:
                     (pid, key),
                 ).fetchone()
                 if not row or row["version"] != int(rev):
-                    raise not_found(f"knowledge ref가 없다: {ref}")
+                    raise not_found(f"knowledge ref가 없어요: {ref}")
                 return self.dcr_get(ctx, key)
             if ref.startswith("hub-memory:"):
                 key, sep, rev = ref[len("hub-memory:") :].rpartition("@")
@@ -376,7 +376,7 @@ class Knowledge:
                     (pid, key, int(rev)),
                 ).fetchone()
                 if not row:
-                    raise not_found(f"knowledge ref가 없다: {ref}")
+                    raise not_found(f"knowledge ref가 없어요: {ref}")
                 return {
                     "ref": ref,
                     "kind": "memory",
@@ -396,9 +396,9 @@ class Knowledge:
                     (pid, key, int(rev)),
                 ).fetchone()
                 if not row:
-                    raise not_found(f"knowledge ref가 없다: {ref}")
+                    raise not_found(f"knowledge ref가 없어요: {ref}")
                 if row["status"] == "tombstone":
-                    raise not_found(f"위키 revision은 삭제 표식이다: {ref}")
+                    raise not_found(f"위키 revision은 삭제 표식이에요: {ref}")
                 return {
                     "ref": ref,
                     "kind": "wiki",
@@ -418,7 +418,7 @@ class Knowledge:
                 (pid, m.group(1), m.group(2), m.group(3)),
             ).fetchone()
             if not row:
-                raise not_found(f"knowledge ref가 없다: {ref}")
+                raise not_found(f"knowledge ref가 없어요: {ref}")
             return {
                 "ref": ref,
                 "kind": "design_doc",
@@ -454,7 +454,7 @@ class Knowledge:
                 "SELECT * FROM decision_change WHERE project_id=? AND id=?", (pid, dcr_id)
             ).fetchone()
             if not row:
-                raise not_found(f"DCR이 없다: {dcr_id}")
+                raise not_found(f"DCR이 없어요: {dcr_id}")
             result = dict(row)
             for key in ("target_refs_json", "base_revisions_json", "supersedes_json"):
                 result[key.removesuffix("_json")] = json.loads(result.pop(key))
@@ -477,14 +477,14 @@ class Knowledge:
     ) -> dict[str, Any]:
         p, pid = self._identity(ctx)
         if not all(isinstance(x, str) and x.strip() for x in (title, rationale, proposal)):
-            raise invalid_field("DCR", "title, rationale, proposal이 필요하다")
+            raise invalid_field("DCR", "title, rationale, proposal이 필요해요")
         if len((title + rationale + proposal).encode("utf-8")) > 150 * 1024:
             raise invalid_field("DCR", "DCR 본문 합계는 150KB까지")
         for value, field in ((title, "title"), (rationale, "rationale"), (proposal, "proposal")):
             scan_secrets(value, field)
         refs = target_refs or []
         if not isinstance(refs, list) or any(not isinstance(x, str) for x in refs):
-            raise invalid_field("target_refs", "문자열 배열이어야 한다")
+            raise invalid_field("target_refs", "문자열 배열이어야 해요")
         base_revisions: dict[str, Any] = {}
         for ref in refs:
             current = self.get(ctx, ref)
@@ -537,18 +537,18 @@ class Knowledge:
             or not isinstance(rationale, str)
             or not rationale.strip()
         ):
-            raise invalid_field("decision", "approve/reject와 판단 근거가 필요하다")
+            raise invalid_field("decision", "approve/reject와 판단 근거가 필요해요")
         with self.store.write() as conn:
             row = conn.execute(
                 "SELECT * FROM decision_change WHERE project_id=? AND id=?", (pid, dcr_id)
             ).fetchone()
             if not row:
-                raise not_found(f"DCR이 없다: {dcr_id}")
+                raise not_found(f"DCR이 없어요: {dcr_id}")
             if row["version"] != expected_version:
                 raise version_conflict(row["version"], dict(row))
             if row["status"] != "open":
                 raise HubError(
-                    409, "invalid_dcr_transition", f"open 상태만 결정할 수 있다: {row['status']}"
+                    409, "invalid_dcr_transition", f"open 상태만 결정할 수 있어요: {row['status']}"
                 )
             if outcome == "approve":
                 bases = json.loads(row["base_revisions_json"])
@@ -561,12 +561,12 @@ class Knowledge:
                         ).fetchone()
                         if not current or current["version"] != base["revision"]:
                             raise HubError(
-                                409, "stale_decision_base", f"DCR target가 바뀌었다: {ref}"
+                                409, "stale_decision_base", f"DCR target가 바뀌었어요: {ref}"
                             )
                     else:
                         match = re.fullmatch(r"git:([^:]+):(.+)@([0-9a-f]{7,40})", ref)
                         if not match:
-                            raise invalid_field("target_refs", "유효한 지식 ref가 아니다")
+                            raise invalid_field("target_refs", "유효한 지식 ref가 아니에요")
                         current = conn.execute(
                             "SELECT commit_sha,content_sha256 FROM knowledge_revision r JOIN knowledge_source s ON s.project_id=r.project_id AND s.id=r.source_id WHERE r.project_id=? AND s.repo_key=? AND r.path=? AND r.status='active' ORDER BY r.revision DESC LIMIT 1",
                             (pid, match.group(1), match.group(2)),
@@ -577,7 +577,7 @@ class Knowledge:
                             or current["content_sha256"] != base.get("content_sha256")
                         ):
                             raise HubError(
-                                409, "stale_decision_base", f"DCR target가 바뀌었다: {ref}"
+                                409, "stale_decision_base", f"DCR target가 바뀌었어요: {ref}"
                             )
             # 승인 = 확정 (소유자 2026-11-26): ADR 은 이 트랜잭션에서 허브 위키 decisions/ 에 쓰이고 DCR 은 곧바로 accepted.
             # Git 저장소에 두는 것은 위키 내보내기(hub_wiki_export)의 일이다 — 승인을 Git 커밋에 묶지 않는다.

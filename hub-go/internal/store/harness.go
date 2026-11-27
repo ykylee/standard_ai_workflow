@@ -80,7 +80,7 @@ func safeHarnessRelativePath(raw any, field string) (string, error) {
 	}
 	for _, part := range strings.Split(value, "/") {
 		if part == ".." {
-			return "", InvalidField(field, "경로 역행은 허용하지 않는다")
+			return "", InvalidField(field, "경로 역행은 허용하지 않아요")
 		}
 	}
 	return value, nil
@@ -110,17 +110,17 @@ func normalizeHarnessSetupProfile(raw any, report map[string]any) (map[string]an
 		return nil, err
 	}
 	if entry == config {
-		return nil, InvalidField("setup_profile", "진입 파일과 MCP JSON 설정 파일은 서로 달라야 한다")
+		return nil, InvalidField("setup_profile", "진입 파일과 MCP JSON 설정 파일은 서로 달라야 해요")
 	}
 	entries, _ := harnessStringList(report["entry_file_candidates"], "entry_file_candidates")
 	configs, _ := harnessStringList(report["mcp_config_candidates"], "mcp_config_candidates")
 	formats, _ := harnessStringList(report["config_formats"], "config_formats")
 	transports, _ := harnessStringList(report["mcp_transports"], "mcp_transports")
 	if !slices.Contains(entries, entry) || !slices.Contains(configs, config) {
-		return nil, InvalidField("setup_profile", "진입 파일과 MCP JSON 경로는 제보된 후보 가운데 선택해야 한다")
+		return nil, InvalidField("setup_profile", "진입 파일과 MCP JSON 경로는 제보된 후보 가운데 선택해야 해요")
 	}
 	if !slices.Contains(formats, harnessSetupProfileKind) || !slices.Contains(transports, "streamable-http") || !strings.HasSuffix(strings.ToLower(config), ".json") {
-		return nil, InvalidField("setup_profile", "mcp-http-json-v1 config format, streamable-http transport, .json 경로 제보가 필요하다")
+		return nil, InvalidField("setup_profile", "mcp-http-json-v1 config format, streamable-http transport, .json 경로 제보가 필요해요")
 	}
 	return map[string]any{"kind": harnessSetupProfileKind, "entry_file": entry, "mcp_config_path": config}, nil
 }
@@ -231,7 +231,7 @@ func normalizeHarnessReport(raw any) (map[string]any, error) {
 func needHarnessCallsign(ctx Ctx) (*Principal, error) {
 	p := ctx.Principal
 	if p == nil || p.Kind != "callsign" || p.ProjectID == "" || p.Callsign == "" {
-		return nil, Unauthorized("프로젝트 콜사인 토큰이 필요하다")
+		return nil, Unauthorized("프로젝트 콜사인 토큰이 필요해요")
 	}
 	return p, nil
 }
@@ -239,7 +239,7 @@ func needHarnessCallsign(ctx Ctx) (*Principal, error) {
 func needHarnessAdmin(ctx Ctx) (*Principal, error) {
 	p := ctx.Principal
 	if p == nil || p.Kind != "admin" {
-		return nil, Forbidden("hub admin 토큰만 전역 하네스 제보를 검토할 수 있다")
+		return nil, Forbidden("hub admin 토큰만 전역 하네스 제보를 검토할 수 있어요")
 	}
 	return p, nil
 }
@@ -287,7 +287,7 @@ func (s *Store) HarnessReportList(ctx Ctx, status string, global bool) (map[stri
 		return nil, Unauthorized("")
 	}
 	if global && p.Kind != "admin" {
-		return nil, Forbidden("hub admin 토큰만 전역 검토 대기열을 볼 수 있다")
+		return nil, Forbidden("hub admin 토큰만 전역 검토 대기열을 볼 수 있어요")
 	}
 	if status != "" && status != "pending" && status != "approved" && status != "rejected" {
 		return nil, InvalidField("status", "pending · approved · rejected")
@@ -342,7 +342,7 @@ func (s *Store) HarnessRegistryList(ctx Ctx, includeInactive bool) (map[string]a
 		return nil, Unauthorized("")
 	}
 	if includeInactive && p.Kind != "admin" {
-		return nil, Forbidden("비활성 등록부 조회는 hub admin만 가능하다")
+		return nil, Forbidden("비활성 등록부 조회는 hub admin만 가능해요")
 	}
 	query := "SELECT harness_id,display_name,profile_json,source_report_id,version,active,registered_by,registered_at FROM harness_registry"
 	if !includeInactive {
@@ -464,12 +464,12 @@ func (s *Store) HarnessReportDecide(ctx Ctx, reportID, decision, note string, ow
 	}
 	if decision == "approve" {
 		if len(ownerIDs) == 0 || len(ownerIDs) > 20 {
-			return nil, InvalidField("owner_ids", "승인 등록에 사람 담당자 1~20명을 지정해야 한다")
+			return nil, InvalidField("owner_ids", "승인 등록에 사람 담당자 1~20명을 지정해야 해요")
 		}
 		seen := map[string]bool{}
 		for _, id := range ownerIDs {
 			if id == "" || seen[id] {
-				return nil, InvalidField("owner_ids", "등록된 사람 ID의 중복 없는 목록이어야 한다")
+				return nil, InvalidField("owner_ids", "등록된 사람 ID의 중복 없는 목록이어야 해요")
 			}
 			seen[id] = true
 		}
@@ -480,19 +480,19 @@ func (s *Store) HarnessReportDecide(ctx Ctx, reportID, decision, note string, ow
 		var projectID, reportJSON, status, submittedBy string
 		if err := tx.QueryRow("SELECT project_id,harness_id,report_json,status,submitted_by FROM harness_report WHERE id=?", reportID).Scan(&projectID, &harnessID, &reportJSON, &status, &submittedBy); err != nil {
 			if err == sql.ErrNoRows {
-				return nil, NotFound("하네스 제보가 없다: " + reportID)
+				return nil, NotFound("하네스 제보가 없어요: " + reportID)
 			}
 			return nil, err
 		}
 		if status != "pending" {
-			return nil, &HubError{Status: 409, Code: "version_conflict", Message: "이미 검토가 끝난 제보다", Detail: map[string]any{"status": status}}
+			return nil, &HubError{Status: 409, Code: "version_conflict", Message: "이미 검토가 끝난 제보예요", Detail: map[string]any{"status": status}}
 		}
 		approvedStatus := "rejected"
 		if decision == "approve" {
 			for _, personID := range ownerIDs {
 				var active int
 				if err := tx.QueryRow("SELECT active FROM harness_person WHERE id=?", personID).Scan(&active); err != nil || active != 1 {
-					return nil, InvalidField("owner_ids", "활성 사람 명부에서 담당자를 선택해야 한다")
+					return nil, InvalidField("owner_ids", "활성 사람 명부에서 담당자를 선택해야 해요")
 				}
 			}
 			var profile map[string]any

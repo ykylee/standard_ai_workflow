@@ -37,7 +37,7 @@ class Confirmations:
         callsign = str(p.callsign)
         row = conn.execute("SELECT owner_callsign FROM project WHERE id=?", (p.project_id,)).fetchone()
         if row is None:
-            raise not_found(f"프로젝트가 없다: {p.project_id}")
+            raise not_found(f"프로젝트가 없어요: {p.project_id}")
         prepared = approval_grants.prepare(conn, str(p.project_id), action) if action is not None else None
         request_id = self.orch.enqueue(
             conn, ctx, str(p.project_id), to_kind="callsign", to_id=row["owner_callsign"],
@@ -57,10 +57,10 @@ class Confirmations:
         title, question, details = self.validate(args)
         p = self.orch._callsign(ctx)
         if not p.callsign:
-            raise invalid_field("callsign", "콜사인 토큰이 필요하다")
+            raise invalid_field("callsign", "콜사인 토큰이 필요해요")
         session_id = args.get("session")
         if not isinstance(session_id, str):
-            raise invalid_field("session", "세션 식별자가 필요하다")
+            raise invalid_field("session", "세션 식별자가 필요해요")
         with self.store.write() as conn:
             self.orch._session_row(conn, p, session_id)
             request_id, prepared = self.create(conn, ctx, p, title, question, details, args.get("action"), session_id)
@@ -74,7 +74,7 @@ class Confirmations:
     def list_pending(self, ctx: Ctx) -> dict[str, Any]:
         p = self.orch._need_owner(ctx)
         if not p.callsign or not p.project_id:
-            raise invalid_field("owner", "프로젝트 사람 소유자 콜사인이 필요하다")
+            raise invalid_field("owner", "프로젝트 사람 소유자 콜사인이 필요해요")
         with self.store.read() as conn:
             rows = conn.execute(
                 "SELECT id,from_callsign,from_session,body_json,created_at,state FROM inbox_message "
@@ -97,7 +97,7 @@ class Confirmations:
     def decide(self, ctx: Ctx, request_id: str, decision: str, note: str = "") -> dict[str, Any]:
         p = self.orch._need_owner(ctx)
         if not p.callsign or not p.project_id:
-            raise invalid_field("owner", "프로젝트 사람 소유자 콜사인이 필요하다")
+            raise invalid_field("owner", "프로젝트 사람 소유자 콜사인이 필요해요")
         if decision not in {"approve", "reject"}:
             raise invalid_field("decision", "approve · reject")
         if not isinstance(note, str) or len(note) > 1000:
@@ -110,17 +110,17 @@ class Confirmations:
                 (p.project_id, request_id, p.callsign),
             ).fetchone()
             if row is None:
-                raise not_found(f"확인 요청이 없다: {request_id}")
+                raise not_found(f"확인 요청이 없어요: {request_id}")
             body = json.loads(row["body_json"])
             if not isinstance(body, dict) or body.get("request_type") != "agent_confirmation":
-                raise not_found(f"에이전트 확인 요청이 아니다: {request_id}")
+                raise not_found(f"에이전트 확인 요청이 아니에요: {request_id}")
             if row["state"] in {"acked", "declined"}:
                 if row["state"] == target_state:
                     return {"request": {"id": request_id, "state": "approved" if decision == "approve" else "rejected"},
                             "unchanged": True}
-                raise HubError(409, "already_decided", "이미 다른 결정을 내린 요청이다", {"state": row["state"]})
+                raise HubError(409, "already_decided", "이미 다른 결정을 내린 요청이에요", {"state": row["state"]})
             if row["state"] == "expired":
-                raise HubError(409, "request_expired", "만료된 확인 요청이다")
+                raise HubError(409, "request_expired", "만료된 확인 요청이에요")
             approval_grants.decide(conn, ctx, request_id, decision == "approve")
             conn.execute(
                 "UPDATE inbox_message SET state=?,acked_at=?,ack_by_session=?,ack_reason=?,version=version+1 "

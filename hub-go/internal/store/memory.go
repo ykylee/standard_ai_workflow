@@ -68,7 +68,7 @@ func validateHandoff(raw map[string]any) (map[string]any, error) {
 		if k == "in_progress" || k == "blocked" || k == "recent_done" {
 			for _, value := range values {
 				if !strings.HasPrefix(value, "TASK-") {
-					return nil, InvalidField("handoff."+k, "항목은 TASK- 로 시작한다 (R6.2): "+fmt.Sprintf("%q", value))
+					return nil, InvalidField("handoff."+k, "항목은 TASK- 로 시작해요 (R6.2): "+fmt.Sprintf("%q", value))
 				}
 			}
 		}
@@ -98,7 +98,7 @@ func putHandoff(tx *sql.Tx, ctx Ctx, p *Principal, expected *int, sections map[s
 			}
 			old = parsed
 		}
-		return nil, &HubError{Status: 409, Code: "version_conflict", Message: fmt.Sprintf("version 이 다르다 — 지금 %d", current), Detail: map[string]any{"current_version": current, "current": old}}
+		return nil, &HubError{Status: 409, Code: "version_conflict", Message: fmt.Sprintf("version 이 달라요 — 지금 %d", current), Detail: map[string]any{"current_version": current, "current": old}}
 	}
 	recent := sections["recent_done"].([]string)
 	moved := []string{}
@@ -168,7 +168,7 @@ func (s *Store) SessionEnd(ctx Ctx, sessionID string, handoff map[string]any, ex
 				return nil, err
 			}
 			if strings.TrimSpace(item["note"]) == "" {
-				return nil, InvalidField("progress.note", "비었다")
+				return nil, InvalidField("progress.note", "비었어요")
 			}
 			note := fmt.Sprintf("[%s] %s", stamp, strings.TrimSpace(item["note"]))
 			if _, err := tx.Exec("UPDATE task SET progress_note=?,progress_at=?,version=version+1,updated_at=? WHERE project_id=? AND id=?", note, db.FormatISO(ctx.Now), db.FormatISO(ctx.Now), p.ProjectID, item["task_id"]); err != nil {

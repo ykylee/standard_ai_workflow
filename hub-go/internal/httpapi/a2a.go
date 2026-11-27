@@ -65,7 +65,7 @@ func (s *Server) handleA2A(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(raw) > MaxBody {
-		deny(&store.HubError{Status: http.StatusRequestEntityTooLarge, Code: "payload_too_large", Message: "본문 상한을 넘었다", Detail: map[string]any{"limit": MaxBody}})
+		deny(&store.HubError{Status: http.StatusRequestEntityTooLarge, Code: "payload_too_large", Message: "본문 상한을 넘었어요", Detail: map[string]any{"limit": MaxBody}})
 		return
 	}
 	now := s.cfg.Clock().UTC().Truncate(time.Second)
@@ -77,25 +77,25 @@ func (s *Server) handleA2A(w http.ResponseWriter, r *http.Request) {
 				deny(he)
 				return
 			}
-			deny(&store.HubError{Status: http.StatusInternalServerError, Code: "internal_error", Message: "인증을 확인하지 못했다"})
+			deny(&store.HubError{Status: http.StatusInternalServerError, Code: "internal_error", Message: "인증을 확인하지 못했어요"})
 			return
 		}
 	}
 	if p == nil {
-		deny(store.Unauthorized("콜사인 토큰이 필요하다"))
+		deny(store.Unauthorized("콜사인 토큰이 필요해요"))
 		return
 	}
 	if p.Kind != "callsign" || p.ProjectID == "" {
-		deny(store.Forbidden("콜사인 토큰이 필요하다"))
+		deny(store.Forbidden("콜사인 토큰이 필요해요"))
 		return
 	}
 	moved, err := s.cfg.Store.ProjectMoved(p.ProjectID)
 	if err != nil {
-		deny(&store.HubError{Status: http.StatusInternalServerError, Code: "internal_error", Message: "프로젝트를 확인하지 못했다"})
+		deny(&store.HubError{Status: http.StatusInternalServerError, Code: "internal_error", Message: "프로젝트를 확인하지 못했어요"})
 		return
 	}
 	if moved != "" {
-		deny(&store.HubError{Status: http.StatusGone, Code: "project_moved", Message: "프로젝트가 다른 허브로 이동했다", Detail: map[string]any{"project_id": p.ProjectID, "to": moved}})
+		deny(&store.HubError{Status: http.StatusGone, Code: "project_moved", Message: "프로젝트가 다른 허브로 이동했어요", Detail: map[string]any{"project_id": p.ProjectID, "to": moved}})
 		return
 	}
 	version := r.Header.Get("A2A-Version")
@@ -108,7 +108,7 @@ func (s *Server) handleA2A(w http.ResponseWriter, r *http.Request) {
 	if streaming {
 		key := p.ProjectID + "/" + p.Callsign
 		if !a2aStreams.take(key) {
-			deny(&store.HubError{Status: http.StatusTooManyRequests, Code: "stream_capacity", Message: "동시 스트림 상한 — 잠시 뒤 다시 구독한다"})
+			deny(&store.HubError{Status: http.StatusTooManyRequests, Code: "stream_capacity", Message: "동시 스트림 상한 — 잠시 뒤 다시 구독해요"})
 			return
 		}
 		defer a2aStreams.release(key)

@@ -59,9 +59,9 @@ def halted(conn: sqlite3.Connection, project_id: str | None) -> bool:
 
 def check_open(conn: sqlite3.Connection, ctx: Ctx, p: Principal, to: str) -> None:
     if halted(conn, p.project_id):
-        raise HubError(423, "halted", "오케스트레이션이 정지돼 있다")
+        raise HubError(423, "halted", "오케스트레이션이 정지돼 있어요")
     if conn.execute("SELECT 1 FROM callsign WHERE project_id = ? AND id = ? AND revoked_at IS NULL", (p.project_id, to)).fetchone() is None:
-        raise not_found(f"콜사인이 없다: {to}")
+        raise not_found(f"콜사인이 없어요: {to}")
     n = sum(1 for r in conn.execute("SELECT * FROM a2a_peer WHERE project_id = ? AND from_callsign = ? AND to_callsign = ?",
                                     (p.project_id, p.callsign, to)) if state(r, ctx.now)[0] in ("SUBMITTED", "WORKING"))
     if n >= OPEN_MAX:

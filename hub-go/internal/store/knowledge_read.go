@@ -27,7 +27,7 @@ func (s *Store) KnowledgeGet(ctx Ctx, ref string) (map[string]any, error) {
 			return nil, getErr
 		}
 		if result["version"] != version {
-			return nil, NotFound("knowledge ref가 없다: " + ref)
+			return nil, NotFound("knowledge ref가 없어요: " + ref)
 		}
 		return result, nil
 	}
@@ -44,7 +44,7 @@ func (s *Store) KnowledgeGet(ctx Ctx, ref string) (map[string]any, error) {
 		var body, updated, by string
 		err = s.DB().QueryRow("SELECT body_json,updated_at,updated_by FROM memory_entry WHERE project_id=? AND id=? AND version=?", pid, v[:i], version).Scan(&body, &updated, &by)
 		if err == sql.ErrNoRows {
-			return nil, NotFound("knowledge ref가 없다: " + ref)
+			return nil, NotFound("knowledge ref가 없어요: " + ref)
 		}
 		if err != nil {
 			return nil, err
@@ -65,7 +65,7 @@ func (s *Store) KnowledgeGet(ctx Ctx, ref string) (map[string]any, error) {
 		var revision int
 		err = s.DB().QueryRow("SELECT body_md,status,updated_at,revision FROM wiki_page_revision WHERE project_id=? AND path=? AND revision=?", pid, v[:i], v[i+1:]).Scan(&body, &status, &at, &revision)
 		if err == sql.ErrNoRows || status == "tombstone" {
-			return nil, NotFound("knowledge ref가 없다: " + ref)
+			return nil, NotFound("knowledge ref가 없어요: " + ref)
 		}
 		if err != nil {
 			return nil, err
@@ -85,7 +85,7 @@ func (s *Store) KnowledgeGet(ctx Ctx, ref string) (map[string]any, error) {
 	var revision int
 	err = s.DB().QueryRow("SELECT r.body_md,r.title,r.status,r.content_sha256,r.revision FROM knowledge_revision r JOIN knowledge_source s ON s.project_id=r.project_id AND s.id=r.source_id WHERE r.project_id=? AND s.repo_key=? AND r.path=? AND r.commit_sha=? ORDER BY r.revision DESC LIMIT 1", pid, v[:i], v[i+1:j], v[j+1:]).Scan(&body, &title, &status, &digest, &revision)
 	if err == sql.ErrNoRows {
-		return nil, NotFound("knowledge ref가 없다: " + ref)
+		return nil, NotFound("knowledge ref가 없어요: " + ref)
 	}
 	if err != nil {
 		return nil, err
@@ -133,7 +133,7 @@ func (s *Store) DCRGet(ctx Ctx, id string) (map[string]any, error) {
 	var version int
 	err = s.DB().QueryRow("SELECT title,rationale,proposal_md,target_refs_json,base_revisions_json,status,version,author,reviewer,decision_rationale,adr_path,adr_sha256,created_at,updated_at FROM decision_change WHERE project_id=? AND id=?", pid, id).Scan(&title, &rationale, &proposal, &targets, &bases, &status, &version, &author, &reviewer, &decision, &adrPath, &adrHash, &created, &updated)
 	if err == sql.ErrNoRows {
-		return nil, NotFound("DCR이 없다: " + id)
+		return nil, NotFound("DCR이 없어요: " + id)
 	}
 	if err != nil {
 		return nil, err

@@ -52,7 +52,7 @@ func (s *Store) RelayRevoke(ctx Ctx, hostID string) (map[string]any, error) {
 		var inviter, projectsJSON string
 		err := tx.QueryRow("SELECT owner_callsign,projects_json FROM relay_host WHERE host_id=? AND revoked_at IS NULL", hostID).Scan(&inviter, &projectsJSON)
 		if err == sql.ErrNoRows {
-			return nil, NotFound("이 프로젝트의 중계가 아니다: " + hostID)
+			return nil, NotFound("이 프로젝트의 중계가 아니에요: " + hostID)
 		}
 		if err != nil {
 			return nil, err
@@ -69,7 +69,7 @@ func (s *Store) RelayRevoke(ctx Ctx, hostID string) (map[string]any, error) {
 			}
 		}
 		if !found {
-			return nil, NotFound("이 프로젝트의 중계가 아니다: " + hostID)
+			return nil, NotFound("이 프로젝트의 중계가 아니에요: " + hostID)
 		}
 		if inviter != p.Callsign {
 			return nil, Forbidden("그 중계를 초대한 owner 만")

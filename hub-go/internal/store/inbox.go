@@ -234,21 +234,21 @@ func (s *Store) InboxList(ctx Ctx, sessionID, state string) (map[string]any, err
 
 func (s *Store) withSessionCheck(p *Principal, sessionID string) error {
 	if !sessionIDPattern.MatchString(sessionID) {
-		return InvalidField("session", "S-YYYYMMDD-xxxxxxxx 꼴이어야 한다")
+		return InvalidField("session", "S-YYYYMMDD-xxxxxxxx 꼴이어야 해요")
 	}
 	var owner, status string
 	err := s.pool.QueryRow("SELECT callsign,status FROM session WHERE project_id=? AND id=?", p.ProjectID, sessionID).Scan(&owner, &status)
 	if errors.Is(err, sql.ErrNoRows) {
-		return NotFound("세션이 없다: " + sessionID)
+		return NotFound("세션이 없어요: " + sessionID)
 	}
 	if err != nil {
 		return err
 	}
 	if owner != p.Callsign {
-		return &HubError{Status: 403, Code: "session_not_yours", Message: "이 콜사인의 세션이 아니다", Detail: map[string]any{"session": sessionID}}
+		return &HubError{Status: 403, Code: "session_not_yours", Message: "이 콜사인의 세션이 아니에요", Detail: map[string]any{"session": sessionID}}
 	}
 	if status == "ended" {
-		return &HubError{Status: 410, Code: "session_ended", Message: "끝난 세션이다 — 세션 시작으로 새 세션을 연다", Detail: map[string]any{"session": sessionID}}
+		return &HubError{Status: 410, Code: "session_ended", Message: "끝난 세션이에요 — 세션 시작으로 새 세션을 열어요", Detail: map[string]any{"session": sessionID}}
 	}
 	return nil
 }
@@ -264,7 +264,7 @@ func (s *Store) InboxAck(ctx Ctx, sessionID, messageID, decision, reason, reques
 		return nil, InvalidField("decision", "accept · decline · seen 중 하나")
 	}
 	if !messageIDPattern.MatchString(messageID) {
-		return nil, InvalidField("message_id", "MSG-YYYYMMDD-xxxxxxxxxxxx 꼴이어야 한다")
+		return nil, InvalidField("message_id", "MSG-YYYYMMDD-xxxxxxxxxxxx 꼴이어야 해요")
 	}
 	if err := ScanSecrets(reason, "reason"); err != nil {
 		return nil, err
@@ -275,7 +275,7 @@ func (s *Store) InboxAck(ctx Ctx, sessionID, messageID, decision, reason, reques
 		}
 		m, err := scanInboxMessage(tx.QueryRow(inboxSelect+" WHERE project_id=? AND id=?", p.ProjectID, messageID))
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, NotFound("메시지가 없다: " + messageID)
+			return nil, NotFound("메시지가 없어요: " + messageID)
 		}
 		if err != nil {
 			return nil, err
@@ -291,31 +291,31 @@ func (s *Store) InboxAck(ctx Ctx, sessionID, messageID, decision, reason, reques
 			mine = n > 0
 		}
 		if !mine {
-			return nil, &HubError{Status: 403, Code: "message_not_yours", Message: "이 세션 · 콜사인 앞 메시지가 아니다"}
+			return nil, &HubError{Status: 403, Code: "message_not_yours", Message: "이 세션 · 콜사인 앞 메시지가 아니에요"}
 		}
 		if doc, ok := m.body.(map[string]any); ok && m.kind == "approval" && doc["request_type"] == "agent_confirmation" {
-			return nil, &HubError{Status: 403, Code: "human_decision_required", Message: "사람이 웹 허브 확인 요청 메뉴에서 결정해야 한다"}
+			return nil, &HubError{Status: 403, Code: "human_decision_required", Message: "사람이 웹 허브 확인 요청 메뉴에서 결정해야 해요"}
 		}
 		if m.state == "acked" || m.state == "declined" {
 			if m.state == target && m.ackBySession == sessionID {
 				return map[string]any{"message_id": messageID, "state": m.state, "unchanged": true}, nil
 			}
-			return nil, &HubError{Status: 409, Code: "already_acked", Message: "이미 확인한 메시지다", Detail: map[string]any{"state": m.state, "by_session": m.ackBySession}}
+			return nil, &HubError{Status: 409, Code: "already_acked", Message: "이미 확인한 메시지예요", Detail: map[string]any{"state": m.state, "by_session": m.ackBySession}}
 		}
 		if (m.state == "unacknowledged" || m.state == "expired") && !tidy {
-			return nil, &HubError{Status: 409, Code: "ack_too_late", Message: "확인 상한(10분)이 지난 메시지다 — 수락 · 거절은 못 하고 decision=seen 으로 정리만 한다", Detail: map[string]any{"state": m.state}}
+			return nil, &HubError{Status: 409, Code: "ack_too_late", Message: "확인 상한(10분)이 지난 메시지예요 — 수락 · 거절은 못 하고 decision=seen 으로 정리만 해요", Detail: map[string]any{"state": m.state}}
 		}
 		if m.kind == "assignment" && (decision == "accept" || decision == "decline") {
 			var taskID, assignmentSession, assignmentState string
 			err := tx.QueryRow("SELECT task_id,session_id,state FROM assignment WHERE project_id=? AND message_id=?", p.ProjectID, messageID).Scan(&taskID, &assignmentSession, &assignmentState)
 			if errors.Is(err, sql.ErrNoRows) {
-				return nil, &HubError{Status: 409, Code: "assignment_not_open", Message: "열린 배정이 아니다", Detail: map[string]any{"message_id": messageID}}
+				return nil, &HubError{Status: 409, Code: "assignment_not_open", Message: "열린 배정이 아니에요", Detail: map[string]any{"message_id": messageID}}
 			}
 			if err != nil {
 				return nil, err
 			}
 			if assignmentSession != sessionID || assignmentState != "offered" {
-				return nil, &HubError{Status: 409, Code: "assignment_not_open", Message: "이 세션 앞의 열린 배정이 아니다 (회수 · 되돌림 · 다른 세션)", Detail: map[string]any{"message_id": messageID}}
+				return nil, &HubError{Status: 409, Code: "assignment_not_open", Message: "이 세션 앞의 열린 배정이 아니에요 (회수 · 되돌림 · 다른 세션)", Detail: map[string]any{"message_id": messageID}}
 			}
 			if decision == "accept" {
 				if _, err := s.versionedUpdateIn(tx, ctx, p, taskID, nil, "claim", func(before map[string]any, principal *Principal, _ *sql.Tx) (map[string]any, error) {
@@ -358,7 +358,7 @@ func (s *Store) CloseMessage(ctx Ctx, messageID string) (map[string]any, error) 
 		var kind, state, raw string
 		err := tx.QueryRow("SELECT kind,state,body_json FROM inbox_message WHERE project_id=? AND id=?", p.ProjectID, messageID).Scan(&kind, &state, &raw)
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, NotFound("메시지가 없다: " + messageID)
+			return nil, NotFound("메시지가 없어요: " + messageID)
 		}
 		if err != nil {
 			return nil, err
@@ -368,10 +368,10 @@ func (s *Store) CloseMessage(ctx Ctx, messageID string) (map[string]any, error) 
 			return nil, err
 		}
 		if doc, ok := body.(map[string]any); ok && kind == "approval" && doc["request_type"] == "agent_confirmation" {
-			return nil, &HubError{Status: 403, Code: "human_decision_required", Message: "사람이 웹 허브의 확인 요청 메뉴에서 결정해야 한다"}
+			return nil, &HubError{Status: 403, Code: "human_decision_required", Message: "사람이 웹 허브의 확인 요청 메뉴에서 결정해야 해요"}
 		}
 		if state != "unacknowledged" {
-			return nil, &HubError{Status: 409, Code: "not_unacknowledged", Message: "미확인 상태의 메시지만 정리한다", Detail: map[string]any{"state": state}}
+			return nil, &HubError{Status: 409, Code: "not_unacknowledged", Message: "미확인 상태의 메시지만 정리해요", Detail: map[string]any{"state": state}}
 		}
 		if _, err := tx.Exec("UPDATE inbox_message SET state='acked',acked_at=?,ack_by_session=?,ack_reason=?,version=version+1 WHERE project_id=? AND id=?", db.FormatISO(ctx.Now), "web:"+p.Callsign, "소유자 정리", p.ProjectID, messageID); err != nil {
 			return nil, err
@@ -477,16 +477,16 @@ func (s *Store) WaitPoll(ctx Ctx, sessionID string, first bool) (map[string]any,
 	var allowWait, idleWaits, reviewIdeas int
 	err = s.pool.QueryRow("SELECT allow_wait,idle_waits,review_ideas FROM session WHERE project_id=? AND id=? AND callsign=? AND status='active'", p.ProjectID, sessionID, p.Callsign).Scan(&allowWait, &idleWaits, &reviewIdeas)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, &HubError{Status: 404, Code: "not_found", Message: "세션이 없다: " + sessionID}
+		return nil, &HubError{Status: 404, Code: "not_found", Message: "세션이 없어요: " + sessionID}
 	}
 	if err != nil {
 		return nil, err
 	}
 	if allowWait == 0 {
-		return nil, &HubError{Status: 409, Code: "wait_disabled", Message: "이 세션은 대기 도구가 꺼져 있다 — 사람이 보는 세션은 편승(M1)만 쓴다 (Q1). 일하는 세션은 kind=worker 로 시작한다", Detail: map[string]any{"session": sessionID}}
+		return nil, &HubError{Status: 409, Code: "wait_disabled", Message: "이 세션은 대기 도구가 꺼져 있어요 — 사람이 보는 세션은 편승(M1)만 써요 (Q1). 일하는 세션은 kind=worker 로 시작해요", Detail: map[string]any{"session": sessionID}}
 	}
 	if first && idleWaits >= 70 {
-		return nil, &HubError{Status: 409, Code: "wait_budget", Message: "일 없이 70번 연속 기다렸다 — 턴을 끝낸다", Detail: map[string]any{"session": sessionID, "idle_waits": idleWaits}}
+		return nil, &HubError{Status: 409, Code: "wait_budget", Message: "일 없이 70번 연속 기다렸어요 — 턴을 끝내요", Detail: map[string]any{"session": sessionID, "idle_waits": idleWaits}}
 	}
 	if _, err := s.pool.Exec("UPDATE session SET waiting_since=COALESCE(waiting_since,?),last_signal_at=? WHERE project_id=? AND id=?", db.FormatISO(ctx.Now), db.FormatISO(ctx.Now), p.ProjectID, sessionID); err != nil {
 		return nil, err
@@ -538,7 +538,7 @@ func (s *Store) Report(ctx Ctx, sessionID, taskID, summary, verification, reques
 		return nil, err
 	}
 	if strings.TrimSpace(summary) == "" {
-		return nil, InvalidField("summary", "비었다")
+		return nil, InvalidField("summary", "비었어요")
 	}
 	if err := ScanSecrets(map[string]any{"summary": summary, "verification": verification}, ""); err != nil {
 		return nil, err
@@ -550,13 +550,13 @@ func (s *Store) Report(ctx Ctx, sessionID, taskID, summary, verification, reques
 		var state string
 		err := tx.QueryRow("SELECT state FROM assignment WHERE project_id=? AND task_id=? AND session_id=?", p.ProjectID, taskID, sessionID).Scan(&state)
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, &HubError{Status: 409, Code: "assignment_not_accepted", Message: "이 세션이 수락한 배정이 아니다 — 먼저 hub_inbox_ack(accept)", Detail: map[string]any{"task_id": taskID}}
+			return nil, &HubError{Status: 409, Code: "assignment_not_accepted", Message: "이 세션이 수락한 배정이 아니에요 — 먼저 hub_inbox_ack(accept)", Detail: map[string]any{"task_id": taskID}}
 		}
 		if err != nil {
 			return nil, err
 		}
 		if state != "accepted" {
-			return nil, &HubError{Status: 409, Code: "assignment_not_accepted", Message: "이 세션이 수락한 배정이 아니다 — 먼저 hub_inbox_ack(accept)", Detail: map[string]any{"task_id": taskID}}
+			return nil, &HubError{Status: 409, Code: "assignment_not_accepted", Message: "이 세션이 수락한 배정이 아니에요 — 먼저 hub_inbox_ack(accept)", Detail: map[string]any{"task_id": taskID}}
 		}
 		report := map[string]any{"summary": summary, "verification": verification}
 		reportJSON, err := json.Marshal(report)

@@ -479,7 +479,7 @@ func wikiImportOKF(s *store.Store, ctx store.Ctx, raw any, summary, requestID st
 	}
 	got := importOKF(files)
 	if len(got.pages) == 0 {
-		return nil, &store.HubError{Status: 400, Code: "invalid_field", Message: "들일 페이지가 없다 (loose 들여오기가 하나도 받지 않았다)", Detail: map[string]any{"field": "files", "errors": []string{}}}
+		return nil, &store.HubError{Status: 400, Code: "invalid_field", Message: "들일 페이지가 없어요 (loose 들여오기가 하나도 받지 않았어요)", Detail: map[string]any{"field": "files", "errors": []string{}}}
 	}
 	pages := make([]any, 0, len(got.pages))
 	for _, page := range got.pages {

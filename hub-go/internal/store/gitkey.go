@@ -27,7 +27,7 @@ func invalidRemote(url, why string) *HubError {
 	return &HubError{
 		Status:  400,
 		Code:    "invalid_remote",
-		Message: fmt.Sprintf("git 원격 주소로 읽을 수 없다 (%s): '%s'", why, url),
+		Message: fmt.Sprintf("git 원격 주소로 읽을 수 없어요 (%s): '%s'", why, url),
 		Detail:  map[string]any{"remote_url": url},
 	}
 }

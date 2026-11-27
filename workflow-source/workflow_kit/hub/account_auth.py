@@ -45,11 +45,11 @@ class HubAccounts:
 
     def enroll(self, token: str, username: str, display_name: str, password: str, now: datetime) -> tuple[str, dict[str, Any]]:
         if not all(isinstance(value, str) for value in (username, display_name, password)):
-            raise invalid_field("account", "계정 이름·표시 이름·비밀번호는 문자열이어야 한다")
+            raise invalid_field("account", "계정 이름·표시 이름·비밀번호는 문자열이어야 해요")
         # 토큰 없이 가입할 수 있다 — 가입만으로는 어떤 프로젝트도 열리지 않는다 (연결은 토큰이나 참여 뒤 소유자 승인).
         principal = self.store.authenticate(token, now) if token else None
         if token and (not principal or principal.kind != "callsign" or principal.callsign_kind != "human" or not principal.human_approved):
-            raise forbidden("토큰을 넣으려면 승인된 사람 콜사인 토큰이어야 한다")
+            raise forbidden("토큰을 넣으려면 승인된 사람 콜사인 토큰이어야 해요")
         username = username.strip().lower()
         if not re.fullmatch(r"[a-z0-9][a-z0-9._-]{2,63}", username):
             raise invalid_field("username", "영문 소문자·숫자·._- 3~64자")
@@ -66,7 +66,7 @@ class HubAccounts:
                     self._signup_slot(conn, now)
                 elif conn.execute("SELECT 1 FROM hub_account_callsign WHERE project_id=? AND callsign=?",
                                   (principal.project_id, principal.callsign)).fetchone():
-                    raise HubError(409, "callsign_already_linked", "이 사람 콜사인은 이미 계정에 연결됐다")
+                    raise HubError(409, "callsign_already_linked", "이 사람 콜사인은 이미 계정에 연결됐어요")
                 conn.execute("INSERT INTO hub_account(id,username,display_name,password_hash,created_at) VALUES(?,?,?,?,?)",
                              (account_id, username, display_name, _password_hash(password), _iso(now)))
                 if principal is not None:
@@ -76,7 +76,7 @@ class HubAccounts:
                              (hash_token(session), account_id, _iso(now), _iso(now + timedelta(days=SESSION_DAYS))))
         except Exception as exc:
             if "UNIQUE" in str(exc).upper():
-                raise HubError(409, "username_taken", "이미 사용 중인 계정 이름이다") from exc
+                raise HubError(409, "username_taken", "이미 사용 중인 계정 이름이에요") from exc
             raise
         return session, {"id": account_id, "username": username, "display_name": display_name,
                          "callsign": principal.callsign if principal else None, "project_id": principal.project_id if principal else None}
@@ -89,7 +89,7 @@ class HubAccounts:
         fresh = row is not None and now - datetime.fromisoformat(row["window_started_at"]) < timedelta(hours=1)
         count = int(row["attempts"]) + 1 if fresh else 1
         if count > SIGNUPS_PER_HOUR:
-            raise HubError(429, "signup_rate_limited", "가입이 많다 — 잠시 뒤 다시 시도한다")
+            raise HubError(429, "signup_rate_limited", "가입이 많아요 — 잠시 뒤 다시 시도해요")
         conn.execute("INSERT INTO hub_account_login_attempt(username_hash,attempts,window_started_at,locked_until) VALUES(?,?,?,NULL) "
                      "ON CONFLICT(username_hash) DO UPDATE SET attempts=excluded.attempts,window_started_at=excluded.window_started_at",
                      (key, count, row["window_started_at"] if fresh else _iso(now)))
@@ -102,13 +102,13 @@ class HubAccounts:
         if not self.store.projects(pid):
             pid = self.store.lookup_project(pid).get("project_id") or ""
         if not pid:
-            raise not_found("프로젝트가 없다 — ID 나 git 주소를 확인한다")
+            raise not_found("프로젝트가 없어요 — ID 나 git 주소를 확인해요")
         moved = self.store.project_moved(pid)
         if moved:
-            raise HubError(410, "project_moved", "프로젝트가 다른 허브로 이동했다", {"project_id": pid, "to": moved})
+            raise HubError(410, "project_moved", "프로젝트가 다른 허브로 이동했어요", {"project_id": pid, "to": moved})
         with self.store.read() as conn:
             if conn.execute("SELECT 1 FROM hub_account_callsign WHERE account_id=? AND project_id=?", (account_id, pid)).fetchone():
-                raise HubError(409, "already_joined", "이 계정은 이미 그 프로젝트에 연결됐다")
+                raise HubError(409, "already_joined", "이 계정은 이미 그 프로젝트에 연결됐어요")
         ctx = Ctx(now=now, via="ui")
         self.store.register_callsign(ctx, pid, callsign.strip(), "human", "허브 계정 참여", "browser")
         with self.store.write() as conn:
@@ -118,7 +118,7 @@ class HubAccounts:
 
     def login(self, username: str, password: str, now: datetime) -> tuple[str, dict[str, Any]]:
         if not isinstance(username, str) or not isinstance(password, str):
-            raise unauthorized("계정 이름 또는 비밀번호가 맞지 않는다")
+            raise unauthorized("계정 이름 또는 비밀번호가 맞지 않아요")
         username = username.strip().lower()
         uname_hash = hashlib.sha256(username.encode()).hexdigest()
         denied = False
@@ -146,11 +146,11 @@ class HubAccounts:
                 else:
                     conn.execute("DELETE FROM hub_account_login_attempt WHERE username_hash=?", (uname_hash,))
         if rate_limited:
-            raise HubError(429, "login_rate_limited", "로그인 시도가 많다 — 잠시 뒤 다시 시도한다")
+            raise HubError(429, "login_rate_limited", "로그인 시도가 많아요 — 잠시 뒤 다시 시도해요")
         if denied:
-            raise unauthorized("계정 이름 또는 비밀번호가 맞지 않는다")
+            raise unauthorized("계정 이름 또는 비밀번호가 맞지 않아요")
         if row is None:
-            raise unauthorized("계정 이름 또는 비밀번호가 맞지 않는다")
+            raise unauthorized("계정 이름 또는 비밀번호가 맞지 않아요")
         session = self._open_session(row["id"], row["password_hash"], now)
         return session, {"id": row["id"], "username": row["username"], "display_name": row["display_name"]}
 
@@ -163,7 +163,7 @@ class HubAccounts:
                 "WHERE id=? AND password_hash=? AND active=1",
                 (hash_token(session), _iso(now), _iso(now + timedelta(days=SESSION_DAYS)), account_id, checked_hash)).rowcount
         if opened != 1:
-            raise unauthorized("계정 이름 또는 비밀번호가 맞지 않는다")
+            raise unauthorized("계정 이름 또는 비밀번호가 맞지 않아요")
         return session
 
     def reset_password(self, username: str, password: str, now: datetime) -> dict[str, Any]:
@@ -175,7 +175,7 @@ class HubAccounts:
         with self.store.write() as conn:
             row = conn.execute("SELECT id FROM hub_account WHERE username=? AND active=1", (username,)).fetchone()
             if row is None:
-                raise not_found(f"계정이 없다: {username}")
+                raise not_found(f"계정이 없어요: {username}")
             conn.execute("UPDATE hub_account SET password_hash=? WHERE id=?", (encoded, row["id"]))
             ended = conn.execute("DELETE FROM hub_account_session WHERE account_id=?", (row["id"],)).rowcount
             conn.execute("DELETE FROM hub_account_login_attempt WHERE username_hash=?", (hashlib.sha256(username.encode()).hexdigest(),))
@@ -186,10 +186,10 @@ class HubAccounts:
     def link(self, account_id: str, token: str, now: datetime) -> dict[str, Any]:
         principal = self.store.authenticate(token, now)
         if not principal or principal.kind != "callsign" or principal.callsign_kind != "human" or not principal.human_approved:
-            raise forbidden("승인된 사람 콜사인 토큰만 계정에 연결할 수 있다")
+            raise forbidden("승인된 사람 콜사인 토큰만 계정에 연결할 수 있어요")
         with self.store.write() as conn:
             if not conn.execute("SELECT 1 FROM hub_account WHERE id=? AND active=1", (account_id,)).fetchone():
-                raise unauthorized("허브 계정 세션이 만료됐다")
+                raise unauthorized("허브 계정 세션이 만료됐어요")
             linked = conn.execute("SELECT 1 FROM hub_account_callsign WHERE project_id=? AND callsign=?",
                                   (principal.project_id, principal.callsign)).fetchone()
             if linked:
@@ -197,7 +197,7 @@ class HubAccounts:
                                    (principal.project_id, principal.callsign)).fetchone()
                 if row["account_id"] == account_id:
                     return {"project_id": principal.project_id, "callsign": principal.callsign, "unchanged": True}
-                raise HubError(409, "callsign_already_linked", "이 사람 콜사인은 다른 허브 계정에 연결됐다")
+                raise HubError(409, "callsign_already_linked", "이 사람 콜사인은 다른 허브 계정에 연결됐어요")
             conn.execute("INSERT INTO hub_account_callsign(account_id,project_id,callsign,linked_at) VALUES(?,?,?,?)",
                          (account_id, principal.project_id, principal.callsign, _iso(now)))
         return {"project_id": principal.project_id, "callsign": principal.callsign}
@@ -231,7 +231,7 @@ class HubAccounts:
         with self.store.write() as conn:
             row = conn.execute("SELECT id,is_admin FROM hub_account WHERE username=? AND active=1", (username,)).fetchone()
             if row is None:
-                raise not_found(f"계정이 없다: {username}")
+                raise not_found(f"계정이 없어요: {username}")
             was = bool(row["is_admin"])
             if was != admin:
                 conn.execute("UPDATE hub_account SET is_admin=? WHERE id=?", (1 if admin else 0, row["id"]))

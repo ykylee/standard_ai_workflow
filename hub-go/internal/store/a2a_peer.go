@@ -174,7 +174,7 @@ func peerHalted(tx *sql.Tx, projectID string) (bool, error) {
 func peerNeedRunning(tx *sql.Tx, projectID string) error {
 	halted, err := peerHalted(tx, projectID)
 	if err == nil && halted {
-		err = &HubError{Status: 423, Code: "halted", Message: "오케스트레이션이 정지돼 있다"}
+		err = &HubError{Status: 423, Code: "halted", Message: "오케스트레이션이 정지돼 있어요"}
 	}
 	return err
 }
@@ -225,7 +225,7 @@ func (s *Store) peerSend(ctx Ctx, p *Principal, message map[string]any, spec any
 		var one int
 		err = tx.QueryRow("SELECT 1 FROM callsign WHERE project_id=? AND id=? AND revoked_at IS NULL", p.ProjectID, to).Scan(&one)
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, NotFound("콜사인이 없다: " + to)
+			return nil, NotFound("콜사인이 없어요: " + to)
 		}
 		if err != nil {
 			return nil, err

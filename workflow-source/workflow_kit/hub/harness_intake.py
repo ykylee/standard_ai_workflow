@@ -91,15 +91,15 @@ def normalize_setup_profile(raw: Any, report: dict[str, Any]) -> dict[str, str]:
     entry_file = _safe_relative_path(raw.get("entry_file"), "setup_profile.entry_file")
     config_path = _safe_relative_path(raw.get("mcp_config_path"), "setup_profile.mcp_config_path")
     if entry_file == config_path:
-        raise invalid_field("setup_profile", "진입 파일과 MCP JSON 설정 파일은 서로 달라야 한다")
+        raise invalid_field("setup_profile", "진입 파일과 MCP JSON 설정 파일은 서로 달라야 해요")
     if entry_file not in report.get("entry_file_candidates", []):
         raise invalid_field("setup_profile.entry_file", "제보된 entry_file_candidates 가운데 하나")
     if config_path not in report.get("mcp_config_candidates", []):
         raise invalid_field("setup_profile.mcp_config_path", "제보된 mcp_config_candidates 가운데 하나")
     if SETUP_PROFILE_KIND not in report.get("config_formats", []):
-        raise invalid_field("setup_profile", f"제보된 config_formats 에 {SETUP_PROFILE_KIND} 가 있어야 한다")
+        raise invalid_field("setup_profile", f"제보된 config_formats 에 {SETUP_PROFILE_KIND} 가 있어야 해요")
     if "streamable-http" not in report.get("mcp_transports", []):
-        raise invalid_field("setup_profile", "제보된 mcp_transports 에 streamable-http 가 있어야 한다")
+        raise invalid_field("setup_profile", "제보된 mcp_transports 에 streamable-http 가 있어야 해요")
     if not config_path.lower().endswith(".json"):
         raise invalid_field("setup_profile.mcp_config_path", ".json 설정 파일 경로")
     return {"kind": SETUP_PROFILE_KIND, "entry_file": entry_file, "mcp_config_path": config_path}
@@ -117,14 +117,14 @@ def registered_setup_profile(conn: Any, harness_id: str) -> dict[str, str] | Non
 def _callsign(ctx: Ctx) -> Principal:
     p = ctx.principal
     if p is None or p.kind != "callsign" or not p.project_id or not p.callsign:
-        raise unauthorized("프로젝트 콜사인 토큰이 필요하다")
+        raise unauthorized("프로젝트 콜사인 토큰이 필요해요")
     return p
 
 
 def _admin(ctx: Ctx) -> Principal:
     p = ctx.principal
     if p is None or p.kind != "admin":
-        raise HubError(403, "forbidden", "hub admin 토큰만 전역 하네스 제보를 검토할 수 있다")
+        raise HubError(403, "forbidden", "hub admin 토큰만 전역 하네스 제보를 검토할 수 있어요")
     return p
 
 
@@ -185,7 +185,7 @@ class HarnessIntake:
         if p is None or p.kind not in {"callsign", "admin"}:
             raise unauthorized()
         if include_inactive and p.kind != "admin":
-            raise HubError(403, "forbidden", "비활성 등록부 조회는 hub admin만 가능하다")
+            raise HubError(403, "forbidden", "비활성 등록부 조회는 hub admin만 가능해요")
         query = "SELECT harness_id,display_name,profile_json,source_report_id,version,active,registered_by,registered_at FROM harness_registry"
         if not include_inactive:
             query += " WHERE active=1"
@@ -243,24 +243,24 @@ class HarnessIntake:
         note = _bounded_text(note, "note", 1000)
         if decision == "approve":
             if not isinstance(owner_ids, list) or not owner_ids or len(owner_ids) > 20:
-                raise invalid_field("owner_ids", "승인 등록에 사람 담당자 1~20명을 지정해야 한다")
+                raise invalid_field("owner_ids", "승인 등록에 사람 담당자 1~20명을 지정해야 해요")
             if any(not isinstance(item, str) or not item for item in owner_ids) or len(set(owner_ids)) != len(owner_ids):
-                raise invalid_field("owner_ids", "등록된 사람 ID의 중복 없는 목록이어야 한다")
+                raise invalid_field("owner_ids", "등록된 사람 ID의 중복 없는 목록이어야 해요")
         with self.store.write() as conn:
             row = conn.execute(
                 "SELECT project_id,harness_id,report_json,status,submitted_by FROM harness_report WHERE id=?", (report_id,),
             ).fetchone()
             if row is None:
-                raise HubError(404, "not_found", f"하네스 제보가 없다: {report_id}")
+                raise HubError(404, "not_found", f"하네스 제보가 없어요: {report_id}")
             if row["status"] != "pending":
-                raise HubError(409, "version_conflict", "이미 검토가 끝난 제보다", {"status": row["status"]})
+                raise HubError(409, "version_conflict", "이미 검토가 끝난 제보예요", {"status": row["status"]})
             if decision == "approve":
                 placeholders = ",".join("?" for _ in owner_ids)
                 people = conn.execute(
                     f"SELECT id FROM harness_person WHERE active=1 AND id IN ({placeholders})", tuple(owner_ids),
                 ).fetchall()
                 if len(people) != len(owner_ids):
-                    raise invalid_field("owner_ids", "활성 사람 명부에서 담당자를 선택해야 한다")
+                    raise invalid_field("owner_ids", "활성 사람 명부에서 담당자를 선택해야 해요")
                 report = json.loads(row["report_json"])
                 setup_support = normalize_setup_profile(setup_profile, report)
                 registered_profile = {**report, "setup_support": setup_support}

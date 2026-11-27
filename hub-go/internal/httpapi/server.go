@@ -185,7 +185,7 @@ func (s *Server) handleToolHTTP(w http.ResponseWriter, r *http.Request) {
 			he := &store.HubError{
 				Status:  http.StatusBadRequest,
 				Code:    "invalid_json",
-				Message: fmt.Sprintf("본문이 JSON 이 아니다: %v", decErr),
+				Message: fmt.Sprintf("본문이 JSON 이 아니에요: %v", decErr),
 			}
 			writeJSONResponse(w, he.Status, he.Payload())
 			return
@@ -211,7 +211,7 @@ func (s *Server) handleToolHTTP(w http.ResponseWriter, r *http.Request) {
 
 	spec := tools.Tools[name]
 	if tok != "" && principal == nil && spec != nil && spec.Bundle != "bootstrap" {
-		he := store.Unauthorized("토큰이 틀렸거나 거둔 토큰이다")
+		he := store.Unauthorized("토큰이 틀렸거나 거둔 토큰이에요")
 		writeJSONResponse(w, he.Status, he.Payload())
 		return
 	}

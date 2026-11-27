@@ -273,21 +273,21 @@ def main() -> int:
                         f"theme={out['theme']} toggle={out['toggle']} ratio={ratio:.2f}")
                 _record(f"{tag} case 4 (종료 두 번 누름 — 무장은 POST 0 · 갱신 뒤 유지 · 둘째에 POST 1)",
                         out["armed"] == ["정말 종료", "취소"] and out["armedCount"] == 1 and out["posts1"] == [] and out["armedAfterPoll"] == ["정말 종료", "취소"]
-                        and out["posts2"] == ["/api/sessions/SR-0012/stop"] and stops == ["SR-0012"] and "종료했다" in out["msg"],
+                        and out["posts2"] == ["/api/sessions/SR-0012/stop"] and stops == ["SR-0012"] and "종료했어요" in out["msg"],
                         f"armed={out['armed']} posts1={out['posts1']} after={out['armedAfterPoll']} posts2={out['posts2']} "
                         f"stops={stops} msg={out['msg']!r}")
                 _record(f"{tag} case 7 (종료 안내 · 결과는 누른 단추의 카드 안 · 표 바로 아래, 머리 카드 알림 비어 있음)",
-                        out["near"][0] is True and 0 <= out["near"][1] <= 40 and out["topMsg"] == "" and "종료했다" in out["msg"],
+                        out["near"][0] is True and 0 <= out["near"][1] <= 40 and out["topMsg"] == "" and "종료했어요" in out["msg"],
                         f"near={out['near']} top={out['topMsg']!r} msg={out['msg']!r}")
                 f5, f4 = out["fail500"], out["fail404"]
                 _record(f"{tag} case 8 (종료 실패는 다음 행동을 말한다 — 500 로그 보고 다시 · 404 이미 끝남, 코드는 괄호 보조)",
-                        "bad" in f5[1] and "로그를 보고 다시 누른다" in f5[0] and "relay-state.json" in f5[0] and f5[0].endswith("(HTTP 500)")
-                        and "이미 끝났다" in f4[0] and "할 일은 없다" in f4[0] and f4[0].endswith("(HTTP 404)")
+                        "bad" in f5[1] and "로그를 보고 다시 눌러 주세요" in f5[0] and "relay-state.json" in f5[0] and f5[0].endswith("(HTTP 500)")
+                        and "이미 끝났어요" in f4[0] and "할 일은 없어요" in f4[0] and f4[0].endswith("(HTTP 404)")
                         and not re.fullmatch(r".*실패 — HTTP \d+", f5[0]), f"500={f5} 404={f4}")
                 iv = out["idle"]
                 _record(f"{tag} case 9 ('대기' 칩은 중립색 — 상태 없는 칩과 같은 배경 · 글자)", bool(iv) and iv[0] == iv[2] and iv[1] == iv[3], f"{iv}")
                 _record(f"{tag} case 5 (연결 끊김 — 1회는 조용 · 2회부터 aria-live 경보 · '확인 안 됨' · 마지막 확인)",
-                        out["connBefore"] == "" and out["connAfter1"] == "" and "중계에 닿지 않는다" in out["conn"][0]
+                        out["connBefore"] == "" and out["connAfter1"] == "" and "중계에 닿지 않아요" in out["conn"][0]
                         and out["conn"][1] == "assertive" and out["conn"][2] != "none" and out["status"] == "확인 안 됨"
                         and re.fullmatch(r"마지막 확인 \d\d:\d\d:\d\d", out["fresh"]) is not None,
                         f"before={out['connBefore']!r} after1={out['connAfter1']!r} conn={out['conn']} status={out['status']!r} "

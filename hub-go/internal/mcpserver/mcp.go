@@ -334,7 +334,7 @@ func (s *Server) handleOne(r *http.Request, msg map[string]any) (map[string]any,
 		}
 		spec := tools.Tools[toolName]
 		if sent && p == nil && spec != nil && spec.Bundle != "bootstrap" {
-			result := callToolErrorResult(store.Unauthorized("토큰이 틀렸거나 거둔 토큰이다"))
+			result := callToolErrorResult(store.Unauthorized("토큰이 틀렸거나 거둔 토큰이에요"))
 			if modern {
 				result = s.modernResult(result)
 			}

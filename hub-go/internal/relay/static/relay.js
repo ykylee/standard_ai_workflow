@@ -48,11 +48,11 @@
     // 실패는 코드만 보이지 않는다 — 무엇이 막혔는지와 다음에 할 일을 앞에, 코드는 괄호 안 보조로 (재채점 P2).
     function failText(label, r, stop) {
       var why;
-      if (!r.status) why = "중계에 닿지 않는다. 중계(hub relay serve)가 돌고 있는지 확인하고 다시 누른다.";
-      else if (r.status === 403) why = "이 화면에서 보낸 요청으로 확인되지 않아 막혔다. 이 창을 새로고침한 뒤 다시 누른다.";
-      else if (r.status === 404 && stop) why = "이 세션은 이미 끝났다. 목록이 곧 갱신된다 — 할 일은 없다.";
-      else if (r.status >= 500) why = "중계가 처리하다 실패했다" + (r.message ? " (" + r.message + ")" : "") + ". 아래 로그를 보고 다시 누른다.";
-      else why = (r.message ? r.message + ". " : "") + "다시 누르고, 계속되면 아래 로그를 본다.";
+      if (!r.status) why = "중계에 닿지 않아요. 중계(hub relay serve)가 돌고 있는지 확인하고 다시 눌러 주세요.";
+      else if (r.status === 403) why = "이 화면에서 보낸 요청으로 확인되지 않아 막혔어요. 이 창을 새로고침한 뒤 다시 눌러 주세요.";
+      else if (r.status === 404 && stop) why = "이 세션은 이미 끝났어요. 목록이 곧 갱신돼요 — 할 일은 없어요.";
+      else if (r.status >= 500) why = "중계가 처리하다 실패했어요" + (r.message ? " (" + r.message + ")" : "") + ". 아래 로그를 보고 다시 눌러 주세요.";
+      else why = (r.message ? r.message + ". " : "") + "다시 누르고, 계속되면 아래 로그를 확인해 주세요.";
       return label + " 실패 — " + why + (r.status ? " (HTTP " + r.status + ")" : "");
     }
 
@@ -61,8 +61,8 @@
       fresh.textContent = lastOk ? "마지막 확인 " + hhmmss(lastOk) : "";
       if (fails >= 2) {
         var ago = lastOk ? Math.round((Date.now() - lastOk.getTime()) / 1000) + "초 전" : "한 번도 못 받음";
-        var text = "중계에 닿지 않는다 — 마지막 확인 " + (lastOk ? hhmmss(lastOk) + " (" + ago + ")" : ago) +
-          ". 아래 내용은 그때 값이다. 중계(hub relay serve)가 돌고 있는지 확인한다.";
+        var text = "중계에 닿지 않아요 — 마지막 확인 " + (lastOk ? hhmmss(lastOk) + " (" + ago + ")" : ago) +
+          ". 아래 내용은 그때 값이에요. 중계(hub relay serve)가 돌고 있는지 확인해 주세요.";
         if (connEl.textContent !== text) connEl.textContent = text;
         var st = $("r-status");
         st.className = "chip stale";
@@ -183,7 +183,7 @@
         ul.appendChild(li);
       }
       var lp = s.last_poll || {};
-      $("poll-line").textContent = "승인은 중앙 허브 화면에서 owner 가 한다 · 마지막 폴링: 내줌 " +
+      $("poll-line").textContent = "승인은 중앙 허브 화면에서 owner 가 해요 · 마지막 폴링: 내줌 " +
         (lp.dispatch || 0) + " · 전달 " + (lp.deliver || 0);
       var logEl = $("log-box");
       var nextLog = (s.log || []).join("\n") || "—";
@@ -223,7 +223,7 @@
       var label = action === "pause" ? "일시정지" : "재개";
       toggleBtn.disabled = true;
       post("/api/" + action).then(function (r) {
-        say(r.ok ? label + "했다." : failText(label, r, false), r.ok ? "ok" : "bad");
+        say(r.ok ? label + "했어요." : failText(label, r, false), r.ok ? "ok" : "bad");
         return refresh();
       }).then(function () { if (fails < 2) toggleBtn.disabled = false; });
     });
@@ -244,7 +244,7 @@
       if (btn.dataset.step !== "confirm") {
         armed = { req: reqId, until: Date.now() + ARM_MS };
         rowsSig = "";
-        saySess(reqId + " 세션을 이 PC 에서 강제 종료하려면 '정말 종료' 를 한 번 더 누른다 (" + ARM_MS / 1000 + "초).", "info");
+        saySess(reqId + " 세션을 이 PC 에서 강제 종료하려면 '정말 종료' 를 한 번 더 눌러 주세요 (" + ARM_MS / 1000 + "초).", "info");
         if (last) renderSessions(last);
         var again = $("sess-body").querySelector('.stop-btn[data-req="' + CSS.escape(reqId) + '"]');
         if (again) again.focus();
@@ -260,7 +260,7 @@
       rowsSig = "";
       btn.disabled = true;
       post("/api/sessions/" + encodeURIComponent(reqId) + "/stop").then(function (r) {
-        saySess(r.ok ? reqId + " 세션을 로컬에서 종료했다." : failText(reqId + " 종료", r, true), r.ok ? "ok" : "bad");
+        saySess(r.ok ? reqId + " 세션을 로컬에서 종료했어요." : failText(reqId + " 종료", r, true), r.ok ? "ok" : "bad");
         return refresh();
       });
     });

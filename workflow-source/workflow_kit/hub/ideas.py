@@ -64,7 +64,7 @@ def _draft(value: Any) -> dict[str, Any] | None:
     done = _texts(value.get("done_criteria"), "draft.done_criteria", 500)
     # 로드맵 밖 초안은 사유까지 실어야 사람이 그대로 등록할 수 있다 — WBS 게이트가 사유 없는 exempt 를 거절한다
     if wbs.strip() == "exempt" and _blank(reason):
-        raise invalid_field("draft.wbs_exempt_reason", "draft.wbs 가 exempt 면 면제 사유가 필수다")
+        raise invalid_field("draft.wbs_exempt_reason", "draft.wbs 가 exempt 면 면제 사유가 필수예요")
     return {"title": title, "wbs": wbs, "wbs_exempt_reason": reason, "done_criteria": done}
 
 
@@ -79,7 +79,7 @@ class Ideas:
         p = ctx.principal
         if (p is None or p.kind != "callsign" or p.auth_mode != "account" or p.callsign_kind != "human"
                 or not p.human_approved or not p.project_id or not p.callsign):
-            raise forbidden("아이디어는 허브 계정으로 로그인한 승인된 사람이 적고 처리한다")
+            raise forbidden("아이디어는 허브 계정으로 로그인한 승인된 사람이 적고 처리해요")
         return p
 
     @staticmethod
@@ -105,7 +105,7 @@ class Ideas:
     def _row(cls, conn: sqlite3.Connection, pid: str, idea_id: str) -> Any:
         row = conn.execute(f"SELECT i.*, {cls.UNREAD_SQL} FROM idea i WHERE i.project_id=? AND i.id=?", (pid, idea_id)).fetchone()
         if row is None:
-            raise not_found(f"아이디어가 없다: {idea_id}")
+            raise not_found(f"아이디어가 없어요: {idea_id}")
         return row
 
     def _full(self, conn: sqlite3.Connection, pid: str, idea_id: str, now: str) -> dict[str, Any]:
@@ -129,7 +129,7 @@ class Ideas:
         cur = conn.execute(f"UPDATE idea SET {', '.join(k + '=?' for k in sets)}, version=version+1 "
                            "WHERE project_id=? AND id=? AND version=?", (*sets.values(), pid, row["id"], row["version"]))
         if cur.rowcount != 1:
-            raise HubError(409, "version_conflict", "그 사이 아이디어가 바뀌었다 — 다시 읽는다", {"id": row["id"]})
+            raise HubError(409, "version_conflict", "그 사이 아이디어가 바뀌었어요 — 다시 읽어요", {"id": row["id"]})
         self.store._event(conn, ctx, pid, "idea", row["id"], op, {"status": row["status"], "version": row["version"]},
                           {"status": values.get("status", row["status"]), "version": row["version"] + 1})
 
@@ -138,7 +138,7 @@ class Ideas:
         if not isinstance(expected, int) or isinstance(expected, bool):
             raise invalid_field("expected_version", "정수")
         if row["version"] != expected:
-            raise HubError(409, "version_conflict", f"version 이 다르다 — 지금 {row['version']}", {"current_version": row["version"]})
+            raise HubError(409, "version_conflict", f"version 이 달라요 — 지금 {row['version']}", {"current_version": row["version"]})
 
     # --- 적기 · 읽기 ---------------------------------------------------------------
 
@@ -242,9 +242,9 @@ class Ideas:
             row = self._row(conn, pid, idea_id)
             status = self._effective(row, now)
             if status == "reviewing":  # 같은 콜사인의 다른 세션도 겹쳐 검토하지 않는다
-                raise HubError(409, "idea_claimed", f"{row['claimed_by']} 가 검토하고 있다", {"claimed_by": row["claimed_by"], "claim_until": row["claim_until"]})
+                raise HubError(409, "idea_claimed", f"{row['claimed_by']} 가 검토하고 있어요", {"claimed_by": row["claimed_by"], "claim_until": row["claim_until"]})
             if status != "new":
-                raise HubError(409, "idea_not_waiting", f"검토 대기가 아니다: {status}", {"status": status})
+                raise HubError(409, "idea_not_waiting", f"검토 대기가 아니에요: {status}", {"status": status})
             self._move(conn, ctx, pid, row, "claim", status="reviewing", claimed_by=p.callsign,
                        claim_until=_iso(ctx.now + timedelta(hours=CLAIM_HOURS)))
             return {"idea": self._full(conn, pid, idea_id, now), "notice": NOTICE}
@@ -260,7 +260,7 @@ class Ideas:
             "scope": _text(a.get("scope"), "scope", 1000, False), "next": _text(a.get("next"), "next", 1000, False),
             "unverified": _text(a.get("unverified"), "unverified", 2000, False), "draft": _draft(a.get("draft"))}
         if not body["refs"] and _blank(body["unverified"]):
-            raise invalid_field("refs", "근거(refs)나 확인하지 않은 것(unverified) 가운데 하나는 적는다")
+            raise invalid_field("refs", "근거(refs)나 확인하지 않은 것(unverified) 가운데 하나는 적어요")
         # 이미 있는 task (사람이 시켜 따로 만든 것) · 비슷한 아이디어 — 회신에 실어 화면이 묶어 보인다
         body["task_id"] = _text(a.get("task_id"), "task_id", 100, False)
         related = _texts(a.get("related_ideas"), "related_ideas", 20)
@@ -273,9 +273,9 @@ class Ideas:
                 raise invalid_field("task_id", f"이 프로젝트에 없는 task: {body['task_id']}")
             for other in related:
                 if other == row["id"] or not conn.execute("SELECT 1 FROM idea WHERE project_id=? AND id=?", (pid, other)).fetchone():
-                    raise invalid_field("related_ideas", f"이 프로젝트의 다른 아이디어가 아니다: {other}")
+                    raise invalid_field("related_ideas", f"이 프로젝트의 다른 아이디어가 아니에요: {other}")
             if self._effective(row, _iso(ctx.now)) != "reviewing" or row["claimed_by"] != p.callsign:
-                raise HubError(409, "idea_not_claimed", "이 콜사인이 맡은 아이디어가 아니다 — hub_idea_claim 먼저",
+                raise HubError(409, "idea_not_claimed", "이 콜사인이 맡은 아이디어가 아니에요 — hub_idea_claim 먼저",
                                {"status": self._effective(row, _iso(ctx.now))})
             self._expect(row, a.get("expected_version"))
             self._append(conn, ctx, pid, row["id"], "reply", str(p.callsign), body)
@@ -301,7 +301,7 @@ class Ideas:
             row = self._row(conn, pid, idea_id)
             self._expect(row, b.get("expected_version"))
             if row["status"] == "adopted":
-                raise HubError(409, "idea_adopted", "이미 task 로 만든 아이디어다", {"task_id": row["task_id"]})
+                raise HubError(409, "idea_adopted", "이미 task 로 만든 아이디어예요", {"task_id": row["task_id"]})
             if action == "ask":
                 self._append(conn, ctx, pid, idea_id, "ask", str(p.callsign), {"body": text})
                 held = self._effective(row, _iso(ctx.now)) == "reviewing"
@@ -326,7 +326,7 @@ class Ideas:
             row = self._row(conn, pid, idea_id)
             self._expect(row, b.get("expected_version"))
             if row["status"] == "adopted":
-                raise HubError(409, "idea_adopted", "이미 task 로 만든 아이디어다", {"task_id": row["task_id"]})
+                raise HubError(409, "idea_adopted", "이미 task 로 만든 아이디어예요", {"task_id": row["task_id"]})
             if not conn.execute("SELECT 1 FROM task WHERE project_id=? AND id=?", (pid, task_id)).fetchone():
                 raise not_found(f"이 프로젝트에 없는 task: {task_id}")
             self._move(conn, ctx, pid, row, "link", status="adopted", task_id=task_id, claimed_by=None, claim_until=None)
@@ -348,7 +348,7 @@ class Ideas:
             row = self._row(conn, pid, idea_id)
             self._expect(row, b.get("expected_version"))
             if row["status"] == "adopted":
-                raise HubError(409, "idea_adopted", "이미 task 로 만든 아이디어다", {"task_id": row["task_id"]})
+                raise HubError(409, "idea_adopted", "이미 task 로 만든 아이디어예요", {"task_id": row["task_id"]})
             out = judge.prepare_create(conn, project_id, task_id, vals)
             first = conn.execute("SELECT body_json FROM idea_entry WHERE project_id=? AND idea_id=? AND seq=1", (pid, idea_id)).fetchone()
             self._move(conn, ctx, pid, row, "adopt", status="adopted", task_id=task_id, claimed_by=None, claim_until=None)

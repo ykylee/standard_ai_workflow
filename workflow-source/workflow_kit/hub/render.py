@@ -63,7 +63,7 @@ def standard_block() -> str:
 def entry_file(harness: str) -> str:
     if harness not in SUPPORTED_HARNESSES:
         raise HubError(400, "unsupported_harness",
-                       f"지원 하네스가 아니다: {harness!r} — {', '.join(SUPPORTED_HARNESSES)} (요구 R2.8)",
+                       f"지원 하네스가 아니에요: {harness!r} — {', '.join(SUPPORTED_HARNESSES)} (요구 R2.8)",
                        {"supported": list(SUPPORTED_HARNESSES)})
     files = spec_for(harness).entry_files
     if not files:
@@ -128,7 +128,7 @@ def render_region(harness: str, project_id: str, project_display: str, project_g
     if size > HUB_REGION_BUDGET_BYTES or lines > HUB_REGION_BUDGET_LINES:
         raise HubError(422, "entry_budget_exceeded",
                        f"{entry_path or entry_file(harness)} 렌더 영역 {size}B · {lines}줄 > 예산 {HUB_REGION_BUDGET_BYTES}B · "
-                       f"{HUB_REGION_BUDGET_LINES}줄 — 프로젝트 지침을 줄인다",
+                       f"{HUB_REGION_BUDGET_LINES}줄 — 프로젝트 지침을 줄여요",
                        {"size": size, "budget": HUB_REGION_BUDGET_BYTES, "lines": lines, "line_budget": HUB_REGION_BUDGET_LINES})
     return region, version
 

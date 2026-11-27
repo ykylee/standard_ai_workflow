@@ -52,7 +52,7 @@ func entryTime(raw any, field string) (string, error) {
 func validateMemoryEntry(raw any) (map[string]any, error) {
 	entry, ok := raw.(map[string]any)
 	if !ok {
-		return nil, InvalidField("entry", "객체여야 한다")
+		return nil, InvalidField("entry", "객체여야 해요")
 	}
 	if err := ScanSecrets(entry, "entry"); err != nil {
 		return nil, err
@@ -146,7 +146,7 @@ func (s *Store) MemoryEntryPut(ctx Ctx, raw any, expected int) (map[string]any, 
 			return nil, err
 		}
 		if expected != current {
-			return nil, &HubError{Status: 409, Code: "version_conflict", Message: fmt.Sprintf("version 이 다르다 — 지금 %d (새 entry 는 0)", current), Detail: map[string]any{"current_version": current, "id": id}}
+			return nil, &HubError{Status: 409, Code: "version_conflict", Message: fmt.Sprintf("version 이 달라요 — 지금 %d (새 entry 는 0)", current), Detail: map[string]any{"current_version": current, "id": id}}
 		}
 		if _, err := tx.Exec("INSERT INTO memory_entry (project_id,id,body_json,version,updated_by,updated_at) VALUES (?,?,?,1,?,?) ON CONFLICT(project_id,id) DO UPDATE SET body_json=excluded.body_json,version=memory_entry.version+1,updated_by=excluded.updated_by,updated_at=excluded.updated_at", p.ProjectID, id, encoded, p.Callsign, db.FormatISO(ctx.Now)); err != nil {
 			return nil, err
@@ -168,7 +168,7 @@ func (s *Store) MemoryEntryGet(ctx Ctx, id string) (map[string]any, error) {
 	var version int
 	err = s.pool.QueryRow("SELECT body_json,version,updated_by,updated_at FROM memory_entry WHERE project_id=? AND id=?", p.ProjectID, id).Scan(&raw, &version, &by, &at)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, &HubError{Status: 404, Code: "not_found", Message: "memory entry 가 없다: " + id, Detail: map[string]any{"id": id}}
+		return nil, &HubError{Status: 404, Code: "not_found", Message: "memory entry 가 없어요: " + id, Detail: map[string]any{"id": id}}
 	}
 	if err != nil {
 		return nil, err

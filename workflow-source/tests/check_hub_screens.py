@@ -301,7 +301,7 @@ def decide_cases(impl: str, exe: str, tmp: Path, port: int, hub: Hub, env: dict[
     order = [dq.find(f'id="dq-{k}"') for k in ("confirm", "session", "dcr", "guide")]
     _record(f"[{impl}] 결정 탭 — 확인 요청 · 세션 승인 · DCR · 지침 제안이 한 화면 · 한 카드 모양 · 수는 API 와 같다",
             got == want and all(want.values()) and len(shape) == sum(want.values()) and forms == sum(want.values())
-            and 0 < order[0] < order[1] < order[2] < order[3] and "owner-a 가 pc 에서 fake 세션을 띄우려 한다" in dq,
+            and 0 < order[0] < order[1] < order[2] < order[3] and "owner-a 가 pc 에서 fake 세션을 띄우려 해요" in dq,
             f"got={got} want={want} shape={len(shape)} forms={forms} order={order}")
     ndom = draw(exe, tmp, port, f"p/{pid}/decide", narrow=True, budget=12000)  # 속성값은 이스케이프된 채로 찾고 값만 푼다
     bar, act = re.search(r'data-bar="([^"]*)"', ndom), re.search(r'data-act="([^"]*)"', ndom)
@@ -420,7 +420,7 @@ def answer_cases(impl: str, exe: str, tmp: Path, port: int, hub: Hub, env: dict[
     dom = html.unescape(draw(exe, tmp, port, f"p/{pid}/t/{tid}", "응답 보내기", 12000))
     after = ui._req(hub.base, f"/api/projects/{pid}/tasks/{tid}", token=env["owner"])[1]["plan"]["responses"]
     _record(f"[{impl}] 결정 — 미리 고르지 않고, 고르지 않은 채 보내면 막는다", bool(radios) and not any(" checked" in r for r in radios)
-            and bool(boxes) and not any(" checked" in b for b in boxes) and "아직 답하지 않은 결정이 있다" in dom and after == before,
+            and bool(boxes) and not any(" checked" in b for b in boxes) and "아직 답하지 않은 결정이 있어요" in dom and after == before,
             f"radios={radios} boxes={boxes} responses {before}->{after}")
     direct = int(hub.base.rsplit(":", 1)[1].split("/")[0])
     out = html.unescape(draw(exe, tmp, direct, f"p/{pid}"))
@@ -454,11 +454,11 @@ def p2_cases(impl: str, exe: str, tmp: Path, port: int, hub: Hub, env: dict[str,
     rows = now.count('<td class="t-title">')
     _record(f"[{impl}] '지금' 0건 — 다음 비지 않은 필터(예정)로 떨어지고 알린다 · 그 탭이 켜지고 목록이 그 task",
             not counts.get("in_progress") and not counts.get("blocked") and 'data-fell-back="planned"' in now
-            and "지금 막히거나 진행 중인 task 가 없어 '예정' task 를 보인다" in now and bool(tab)
+            and "지금 막히거나 진행 중인 task 가 없어 '예정' task 를 보여요" in now and bool(tab)
             and rows == min(25, len(planned)) > 0 and all(t["title"] in now for t in planned[:25]),
             f"moved={moved} counts={counts} tab={bool(tab)} rows={rows} planned={len(planned)}")
     pick = html.unescape(draw(exe, tmp, port, f"p/{pid}?milestone=M-002"))
-    _record(f"[{impl}] '지금' 0건이어도 분류 필터를 고른 때는 떨어지지 않는다", "data-fell-back" not in pick and "지금 막히거나 진행 중인 task 가 없다" in pick, pick[-200:])
+    _record(f"[{impl}] '지금' 0건이어도 분류 필터를 고른 때는 떨어지지 않는다", "data-fell-back" not in pick and "지금 막히거나 진행 중인 task 가 없어요" in pick, pick[-200:])
 
 
 def p3_cases(impl: str, exe: str, tmp: Path, port: int, hub: Hub, env: dict[str, str], doms: dict[str, str]) -> None:
@@ -567,7 +567,7 @@ def measure(impl: str, cmd: list[str] | None, exe: str, tmp: Path) -> None:
         # 승인 카드 — "누가 어느 PC 에서 무엇을" 이 제목, ID 는 보조 줄 · 승인 대기가 리스 제어 위 (TASK-2026-11-26-claude-plex-017)
         text = html.unescape(orch)
         # 주어는 콜사인이어야 한다 — requested_by 는 오케스트레이터 세션 ID 라 문장 꼴만 보면 'S-… 가' 도 통과했다 (TASK-2026-11-26-claude-plex-023)
-        heads = re.findall(r'<strong class="exact">(owner-a 가 pc 에서 fake 세션을 띄우려 한다)</strong>', text)
+        heads = re.findall(r'<strong class="exact">(owner-a 가 pc 에서 fake 세션을 띄우려 해요)</strong>', text)
         ids = re.findall(r'<div class="row muted req-ids"><span class="mono">(SR-\d+)</span><span class="mono">PC (H-[^<]+)</span>', text)
         at_head, at_appr, at_lease = orch.find("<h1>오케스트레이션"), orch.find('id="approvals"'), orch.find("<h2>오케스트레이터</h2>")
         _record(f"[{impl}] 오케스트레이션 — 승인 카드 주어는 콜사인 · ID 는 보조 줄 · 머리(제목 · 탭) 맨 위, 승인 대기가 리스 제어 위",

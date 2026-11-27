@@ -69,7 +69,7 @@ func (s *Store) ConfirmationRequest(ctx Ctx, sessionID, title, question, details
 			return nil, err
 		}
 		if active["callsign"] != p.Callsign {
-			return nil, &HubError{Status: 403, Code: "session_not_yours", Message: "이 콜사인의 세션이 아니다"}
+			return nil, &HubError{Status: 403, Code: "session_not_yours", Message: "이 콜사인의 세션이 아니에요"}
 		}
 		id, params, err := s.createConfirmation(tx, ctx, p, title, question, details, action, sessionID)
 		if err != nil {
@@ -144,7 +144,7 @@ func (s *Store) ConfirmationDecide(ctx Ctx, requestID, decision, note string) (m
 		err := tx.QueryRow("SELECT from_callsign,body_json,state FROM inbox_message WHERE project_id=? AND id=? AND to_kind='callsign' AND to_id=? AND kind='approval'",
 			p.ProjectID, requestID, p.Callsign).Scan(&from, &raw, &old)
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, NotFound("확인 요청이 없다: " + requestID)
+			return nil, NotFound("확인 요청이 없어요: " + requestID)
 		}
 		if err != nil {
 			return nil, err
@@ -155,16 +155,16 @@ func (s *Store) ConfirmationDecide(ctx Ctx, requestID, decision, note string) (m
 		}
 		body, _ := parsed.(map[string]any) // 객체가 아니면 확인 요청이 아니다
 		if body["request_type"] != "agent_confirmation" {
-			return nil, NotFound("에이전트 확인 요청이 아니다: " + requestID)
+			return nil, NotFound("에이전트 확인 요청이 아니에요: " + requestID)
 		}
 		if old == "acked" || old == "declined" {
 			if old == target {
 				return map[string]any{"request": map[string]any{"id": requestID, "state": state}, "unchanged": true}, nil
 			}
-			return nil, &HubError{Status: 409, Code: "already_decided", Message: "이미 다른 결정을 내린 요청이다", Detail: map[string]any{"state": old}}
+			return nil, &HubError{Status: 409, Code: "already_decided", Message: "이미 다른 결정을 내린 요청이에요", Detail: map[string]any{"state": old}}
 		}
 		if old == "expired" {
-			return nil, &HubError{Status: 409, Code: "request_expired", Message: "만료된 확인 요청이다"}
+			return nil, &HubError{Status: 409, Code: "request_expired", Message: "만료된 확인 요청이에요"}
 		}
 		if err := decideApproval(tx, ctx, p, requestID, decision == "approve"); err != nil {
 			return nil, err

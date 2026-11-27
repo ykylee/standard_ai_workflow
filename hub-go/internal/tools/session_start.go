@@ -272,7 +272,7 @@ func normalizeRepoResults(raw any) (map[string]any, error) {
 			}
 			name, ok := row["name"].(string)
 			if !ok {
-				return nil, store.InvalidField(fmt.Sprintf("repo_results[%d].name", i), "문자열이어야 한다")
+				return nil, store.InvalidField(fmt.Sprintf("repo_results[%d].name", i), "문자열이어야 해요")
 			}
 			if _, exists := out[name]; exists {
 				return nil, store.InvalidField(fmt.Sprintf("repo_results[%d].name", i), "같은 이름이 두 번: "+name)

@@ -82,7 +82,7 @@ func Connect(dbPath string) (*sql.DB, error) {
 	if isPostgres(dbPath) {
 		if err := conn.Ping(); err != nil {
 			_ = conn.Close()
-			return nil, &Error{Status: 503, Code: "postgres_connection_failed", Message: "PostgreSQL 연결에 실패했다 — URL 자격 증명은 숨겼다"}
+			return nil, &Error{Status: 503, Code: "postgres_connection_failed", Message: "PostgreSQL 연결에 실패했어요 — URL 자격 증명은 숨겼어요"}
 		}
 		return conn, nil
 	}
@@ -136,13 +136,13 @@ func SchemaVersion(conn *sql.DB) (int, error) {
 // Backup performs a consistent SQLite online backup from srcPath to outPath (requiring outPath not to exist).
 func Backup(srcPath, outPath string) error {
 	if isPostgres(srcPath) {
-		return &Error{Status: 400, Code: "postgres_backup_external", Message: "PostgreSQL 백업은 서버 운영 도구(pg_dump 또는 managed snapshot)를 사용한다"}
+		return &Error{Status: 400, Code: "postgres_backup_external", Message: "PostgreSQL 백업은 서버 운영 도구(pg_dump 또는 managed snapshot)를 사용해요"}
 	}
 	if _, err := os.Stat(outPath); err == nil {
 		return &Error{
 			Status:  409,
 			Code:    "backup_target_exists",
-			Message: "백업 대상이 이미 있다: " + outPath,
+			Message: "백업 대상이 이미 있어요: " + outPath,
 		}
 	} else if !errors.Is(err, os.ErrNotExist) {
 		return err
@@ -203,7 +203,7 @@ func OpenDB(dbPath string, now time.Time) ([]string, error) {
 		}
 		latest := LatestVersion()
 		if current > latest {
-			return nil, &Error{Status: 500, Code: "db_newer_than_hub", Message: fmt.Sprintf("DB 판 %d 이 이 허브가 아는 최신 판 %d 보다 새롭다 — 허브를 올린다", current, latest), Detail: map[string]any{"db_version": current, "hub_version": latest}}
+			return nil, &Error{Status: 500, Code: "db_newer_than_hub", Message: fmt.Sprintf("DB 판 %d 이 이 허브가 아는 최신 판 %d 보다 새로워요 — 허브를 올려요", current, latest), Detail: map[string]any{"db_version": current, "hub_version": latest}}
 		}
 		for n := current + 1; n <= latest; n++ {
 			if err := applyPostgresMigration(dbPath, n, now); err != nil {
@@ -234,7 +234,7 @@ func OpenDB(dbPath string, now time.Time) ([]string, error) {
 		return nil, &Error{
 			Status:  500,
 			Code:    "db_newer_than_hub",
-			Message: fmt.Sprintf("DB 판 %d 이 이 허브가 아는 최신 판 %d 보다 새롭다 — 허브를 올린다", current, latest),
+			Message: fmt.Sprintf("DB 판 %d 이 이 허브가 아는 최신 판 %d 보다 새로워요 — 허브를 올려요", current, latest),
 			Detail:  map[string]any{"db_version": current, "hub_version": latest},
 		}
 	}

@@ -20,7 +20,7 @@ func (s *Store) relayHost(tx *sql.Tx, projectID, hostID string) (string, string,
 	var name, projects, harnesses string
 	err := tx.QueryRow("SELECT name,projects_json,harnesses_json FROM relay_host WHERE host_id=? AND revoked_at IS NULL", hostID).Scan(&name, &projects, &harnesses)
 	if err == sql.ErrNoRows {
-		return "", "", NotFound("이 프로젝트의 중계가 아니다: " + hostID)
+		return "", "", NotFound("이 프로젝트의 중계가 아니에요: " + hostID)
 	}
 	if err != nil {
 		return "", "", err
@@ -34,7 +34,7 @@ func (s *Store) relayHost(tx *sql.Tx, projectID, hostID string) (string, string,
 			return name, harnesses, nil
 		}
 	}
-	return "", "", NotFound("이 프로젝트의 중계가 아니다: " + hostID)
+	return "", "", NotFound("이 프로젝트의 중계가 아니에요: " + hostID)
 }
 
 func (s *Store) relayRequestCounter(tx *sql.Tx, ctx Ctx, projectID, name string, limit int) error {
@@ -47,7 +47,7 @@ func (s *Store) relayRequestCounter(tx *sql.Tx, ctx Ctx, projectID, name string,
 		return err
 	}
 	if n >= limit {
-		return &HubError{Status: 429, Code: "limit_reached", Message: fmt.Sprintf("오늘 %s 상한 %d — 사람에게 알린다", name, limit), Detail: map[string]any{"limit": limit, "name": name}}
+		return &HubError{Status: 429, Code: "limit_reached", Message: fmt.Sprintf("오늘 %s 상한 %d — 사람에게 알려요", name, limit), Detail: map[string]any{"limit": limit, "name": name}}
 	}
 	_, err := tx.Exec("UPDATE orch_counter SET n=n+1 WHERE project_id=? AND day=? AND name=?", projectID, day, name)
 	return err
@@ -68,7 +68,7 @@ func (s *Store) OrchRequestSession(ctx Ctx, session, hostID, dirAlias, harness, 
 		permissionMode = "default"
 	}
 	if permissionMode != "default" && permissionMode != "acceptEdits" && permissionMode != "plan" {
-		return nil, InvalidField("permission_mode", "default · acceptEdits · plan 중 하나 (bypass 계열은 받지 않는다)")
+		return nil, InvalidField("permission_mode", "default · acceptEdits · plan 중 하나 (bypass 계열은 받지 않아요)")
 	}
 	if err := ScanSecrets(map[string]any{"prompt": prompt, "dir_alias": dirAlias}, ""); err != nil {
 		return nil, err
@@ -79,7 +79,7 @@ func (s *Store) OrchRequestSession(ctx Ctx, session, hostID, dirAlias, harness, 
 			return nil, err
 		}
 		if l["halted"].(bool) {
-			return nil, &HubError{Status: 423, Code: "halted", Message: "오케스트레이션이 정지돼 있다"}
+			return nil, &HubError{Status: 423, Code: "halted", Message: "오케스트레이션이 정지돼 있어요"}
 		}
 		hostName, harnessJSON, err := s.relayHost(tx, p.ProjectID, hostID)
 		if err != nil {
@@ -96,7 +96,7 @@ func (s *Store) OrchRequestSession(ctx Ctx, session, hostID, dirAlias, harness, 
 			}
 		}
 		if !found {
-			return nil, &HubError{Status: 409, Code: "harness_not_on_host", Message: fmt.Sprintf("그 중계에 %s 어댑터가 없다", harness), Detail: map[string]any{"harnesses": allowed}}
+			return nil, &HubError{Status: 409, Code: "harness_not_on_host", Message: fmt.Sprintf("그 중계에 %s 어댑터가 없어요", harness), Detail: map[string]any{"harnesses": allowed}}
 		}
 		if err := s.relayRequestCounter(tx, ctx, p.ProjectID, "session_requests", 10); err != nil {
 			return nil, err
@@ -138,7 +138,7 @@ func (s *Store) OrchRequestStop(ctx Ctx, session, targetSession, reason string) 
 			return nil, err
 		}
 		if !host.Valid || host.String == "" {
-			return nil, &HubError{Status: 409, Code: "not_relay_session", Message: "중계가 띄운 세션이 아니다 — 사람이 보는 세션은 멈출 수 없다 (메시지로 release)"}
+			return nil, &HubError{Status: 409, Code: "not_relay_session", Message: "중계가 띄운 세션이 아니에요 — 사람이 보는 세션은 멈출 수 없어요 (메시지로 release)"}
 		}
 		rid, err := s.nextSessionRequestID(tx, p.ProjectID)
 		if err != nil {
@@ -174,13 +174,13 @@ func (s *Store) ApprovalDecide(ctx Ctx, requestID, decision, note string) (map[s
 		var old string
 		err := tx.QueryRow("SELECT state FROM session_request WHERE project_id=? AND id=?", p.ProjectID, requestID).Scan(&old)
 		if err == sql.ErrNoRows {
-			return nil, NotFound("요청이 없다: " + requestID)
+			return nil, NotFound("요청이 없어요: " + requestID)
 		}
 		if err != nil {
 			return nil, err
 		}
 		if old != "pending_approval" {
-			return nil, &HubError{Status: 409, Code: "request_not_pending", Message: "이미 " + old + " 인 요청이다", Detail: map[string]any{"state": old}}
+			return nil, &HubError{Status: 409, Code: "request_not_pending", Message: "이미 " + old + " 인 요청이에요", Detail: map[string]any{"state": old}}
 		}
 		if _, err := tx.Exec("UPDATE session_request SET state=?,decided_by=?,decided_at=?,version=version+1 WHERE project_id=? AND id=?", state, p.Callsign, db.FormatISO(ctx.Now), p.ProjectID, requestID); err != nil {
 			return nil, err
@@ -207,7 +207,7 @@ func (s *Store) LinkSpawnRequest(tx *sql.Tx, ctx Ctx, p *Principal, sessionID st
 	var state, host, result string
 	err := tx.QueryRow("SELECT state,host_id,result_json FROM session_request WHERE project_id=? AND id=? AND kind='spawn'", p.ProjectID, rid).Scan(&state, &host, &result)
 	if err == sql.ErrNoRows || (err == nil && state != "dispatched" && state != "done") {
-		return &HubError{Status: 409, Code: "spawn_request_invalid", Message: "실행 중인 세션 요청이 아니다", Detail: map[string]any{"request": rid}}
+		return &HubError{Status: 409, Code: "spawn_request_invalid", Message: "실행 중인 세션 요청이 아니에요", Detail: map[string]any{"request": rid}}
 	}
 	if err != nil {
 		return err
@@ -217,7 +217,7 @@ func (s *Store) LinkSpawnRequest(tx *sql.Tx, ctx Ctx, p *Principal, sessionID st
 		return err
 	}
 	if resultMap["session"] != "" && resultMap["session"] != nil {
-		return &HubError{Status: 409, Code: "spawn_request_used", Message: "이미 세션이 묶인 요청이다", Detail: map[string]any{"request": rid}}
+		return &HubError{Status: 409, Code: "spawn_request_used", Message: "이미 세션이 묶인 요청이에요", Detail: map[string]any{"request": rid}}
 	}
 	if _, err := tx.Exec("UPDATE session SET host_id=?,kind='worker',allow_wait=1 WHERE project_id=? AND id=?", host, p.ProjectID, sessionID); err != nil {
 		return err

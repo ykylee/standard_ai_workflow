@@ -78,7 +78,7 @@ func (s *Store) ProjectDocPut(ctx Ctx, name, body string, expected *int, approva
 			return nil, err
 		}
 	} else if p.CallsignKind != "human" || !p.HumanApproved {
-		return nil, Forbidden("프로젝트 문서는 승인된 human 콜사인이 쓰거나, action=project_doc_put 으로 로그인 승인받은 approval_id 가 필요하다")
+		return nil, Forbidden("프로젝트 문서는 승인된 human 콜사인이 쓰거나, action=project_doc_put 으로 로그인 승인받은 approval_id 가 필요해요")
 	}
 	return s.putProjectDoc(ctx, p, name, body, expected, approvalID)
 }
@@ -107,7 +107,7 @@ func (s *Store) putProjectDoc(ctx Ctx, p *Principal, name, body string, expected
 			return nil, err
 		}
 		if expected != nil && *expected != current {
-			return nil, &HubError{Status: 409, Code: "version_conflict", Message: fmt.Sprintf("version 이 다르다 — 지금 %d", current), Detail: map[string]any{"current_version": current}}
+			return nil, &HubError{Status: 409, Code: "version_conflict", Message: fmt.Sprintf("version 이 달라요 — 지금 %d", current), Detail: map[string]any{"current_version": current}}
 		}
 		if _, err := tx.Exec("INSERT INTO project_doc (project_id,name,body_md,version,updated_by,updated_at) VALUES (?,?,?,1,?,?) ON CONFLICT(project_id,name) DO UPDATE SET body_md=excluded.body_md,version=project_doc.version+1,updated_by=excluded.updated_by,updated_at=excluded.updated_at", p.ProjectID, name, body, p.Callsign, db.FormatISO(ctx.Now)); err != nil {
 			return nil, err
@@ -142,7 +142,7 @@ func (s *Store) HandoffGet(ctx Ctx, callsign string) (map[string]any, error) {
 	var revoked sql.NullString
 	err = s.pool.QueryRow("SELECT revoked_at FROM callsign WHERE project_id=? AND id=?", p.ProjectID, who).Scan(&revoked)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, NotFound("콜사인이 없다: " + who)
+		return nil, NotFound("콜사인이 없어요: " + who)
 	}
 	if err != nil {
 		return nil, err

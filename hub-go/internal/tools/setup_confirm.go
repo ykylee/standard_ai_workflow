@@ -100,10 +100,10 @@ func setupConfirm(s *store.Store, ctx store.Ctx, args map[string]any) (map[strin
 		return nil, err
 	}
 	if p == nil || p.Kind != "callsign" {
-		return nil, store.Unauthorized("토큰이 없거나 틀렸거나 거둔 토큰이다")
+		return nil, store.Unauthorized("토큰이 없거나 틀렸거나 거둔 토큰이에요")
 	}
 	if p.ProjectID != strArg(args, "project_id", "") {
-		return nil, store.Forbidden("이 토큰은 다른 프로젝트의 것이다")
+		return nil, store.Forbidden("이 토큰은 다른 프로젝트의 것이에요")
 	}
 	fileItems, err := confirmItems(args["files"], "files", "[{path, sha256}] 형태", "path", "sha256")
 	if err != nil {

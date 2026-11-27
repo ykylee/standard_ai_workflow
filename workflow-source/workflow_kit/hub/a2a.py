@@ -336,7 +336,7 @@ class A2A:
             if a2a_peer.state(row, ctx.now)[0] not in ("SUBMITTED", "WORKING"):
                 raise A2AError("UNSUPPORTED_OPERATION", "이미 끝난 Task 다 — 답은 한 번이다")
             if a2a_peer.halted(conn, p.project_id):
-                raise HubError(423, "halted", "오케스트레이션이 정지돼 있다")
+                raise HubError(423, "halted", "오케스트레이션이 정지돼 있어요")
             conn.execute("UPDATE a2a_peer SET reply_message_id = ?, reply_json = ?, replied_at = ? WHERE project_id = ? AND id = ?",
                          (message["messageId"], canon, _iso(ctx.now), p.project_id, task_id))
             self.store._event(conn, ctx, str(p.project_id), "a2a_peer", task_id, "reply", None, {"to": row["from_callsign"]})

@@ -46,7 +46,7 @@ def _prepare_doc(conn: sqlite3.Connection, project_id: str, raw: dict[str, Any])
     row = conn.execute("SELECT body_md, version FROM project_doc WHERE project_id = ? AND name = ?", (project_id, name)).fetchone()
     current = row["version"] if row else 0
     if expected != current:
-        raise HubError(409, "version_conflict", f"version 이 다르다 — 지금 {current}", {"current_version": current})
+        raise HubError(409, "version_conflict", f"version 이 달라요 — 지금 {current}", {"current_version": current})
     sha = doc_sha(body)
     return ({"type": "project_doc_put", "name": name, "expected_version": expected, "sha256": sha},
             {"name": name, "version": current, "sha256": sha, "base": row["body_md"] if row else "", "proposed": body})
@@ -82,7 +82,7 @@ def prepare(conn: sqlite3.Connection, project_id: str, raw: Any) -> tuple[dict[s
     row = conn.execute("SELECT status, plan_json, callsign FROM migration_1x WHERE project_id = ? AND id = ?",
                        (project_id, mig)).fetchone()
     if row is None:
-        raise not_found(f"전환 계획이 없다: {mig}")
+        raise not_found(f"전환 계획이 없어요: {mig}")
     detected = json.loads(row["plan_json"])["detected"]
     summary: dict[str, Any] = {"migration_id": mig, "planned_by": row["callsign"], "branch": detected.get("branch", ""),
                                "head": detected.get("head", ""), "uncommitted": len(detected.get("uncommitted", []))}
@@ -91,14 +91,14 @@ def prepare(conn: sqlite3.Connection, project_id: str, raw: Any) -> tuple[dict[s
         if not isinstance(kinds, list) or not kinds or any(k not in KINDS for k in kinds):
             raise invalid_field("action.kinds", " · ".join(KINDS) + " 가운데 하나 이상")
         if row["status"] == "done":
-            raise HubError(409, "already_done", f"{mig} 는 이미 끝난 전환이다")
+            raise HubError(409, "already_done", f"{mig} 는 이미 끝난 전환이에요")
         chosen = sorted(set(kinds))
         summary["files"] = {k: detected.get("counts", {}).get(k, 0) for k in chosen}
         return {"type": kind, "migration_id": mig, "kinds": chosen}, summary
     if raw["marker"] not in MARKER_SCOPE:
         raise invalid_field("action.marker", "issue · revert")
     if row["status"] != "done":
-        raise HubError(409, "migration_not_done", f"{mig} 가 아직 끝나지 않았다")
+        raise HubError(409, "migration_not_done", f"{mig} 가 아직 끝나지 않았어요")
     summary["marker"] = raw["marker"]
     return {"type": kind, "migration_id": mig, "marker": raw["marker"]}, summary
 
@@ -118,9 +118,9 @@ def decide(conn: sqlite3.Connection, ctx: Ctx, request_id: str, approve: bool) -
     if row is None:
         return False
     if approve and (ctx.via != "ui" or p.auth_mode != "account"):
-        raise HubError(403, "account_login_required", "실행을 여는 승인은 허브 계정으로 로그인한 화면에서만 한다")
+        raise HubError(403, "account_login_required", "실행을 여는 승인은 허브 계정으로 로그인한 화면에서만 해요")
     if row["state"] != "pending":
-        raise HubError(409, "already_decided", "이미 결정한 실행 승인이다", {"state": row["state"]})
+        raise HubError(409, "already_decided", "이미 결정한 실행 승인이에요", {"state": row["state"]})
     conn.execute("UPDATE approval_grant SET state = ?, decided_by = ?, decided_account = ?, decided_at = ?, expires_at = ? "
                  "WHERE project_id = ? AND id = ?",
                  ("approved" if approve else "rejected", p.callsign, p.account_name, _iso(ctx.now),
@@ -150,24 +150,24 @@ def authorize(store: Store, ctx: Ctx, approval_id: Any, action: str, **want: Any
     """승인 기록으로 이 호출을 허용하는가 — 요청한 콜사인 · 대상 · 만료 · 승인자 자격을 모두 본다."""
     p = store._need_callsign(ctx)
     if not isinstance(approval_id, str) or not approval_id:
-        raise forbidden("프로젝트 소유자(승인된 human)이거나, hub_approval_request(action=…) 로 받은 approval_id 가 필요하다")
+        raise forbidden("프로젝트 소유자(승인된 human)이거나, hub_approval_request(action=…) 로 받은 approval_id 가 필요해요")
     with store.read() as conn:
         row = conn.execute("SELECT * FROM approval_grant WHERE project_id = ? AND id = ?", (p.project_id, approval_id)).fetchone()
         owner = None if row is None or row["decided_by"] is None else conn.execute(
             "SELECT 1 FROM callsign WHERE project_id = ? AND id = ? AND revoked_at IS NULL AND role = 'owner' "
             "AND kind = 'human' AND human_approved = 1", (p.project_id, row["decided_by"])).fetchone()
     if row is None:
-        raise not_found(f"실행 승인 요청이 없다: {approval_id}")
+        raise not_found(f"실행 승인 요청이 없어요: {approval_id}")
     params = json.loads(row["params_json"])
     scope = {k: v for k, v in params.items() if k != "type"}
     if row["requested_by"] != p.callsign or row["action"] != action or scope != want:
-        raise HubError(403, "approval_mismatch", "승인한 콜사인 · 실행 · 대상과 다르다", {"approved": params})
+        raise HubError(403, "approval_mismatch", "승인한 콜사인 · 실행 · 대상과 달라요", {"approved": params})
     if row["state"] != "approved":
         raise HubError(403, f"approval_{row['state']}", f"실행 승인 상태: {row['state']}", {"state": row["state"]})
     if row["expires_at"] <= _iso(ctx.now):
-        raise HubError(403, "approval_expired", "승인한 지 24시간이 지났다 — 다시 요청한다")
+        raise HubError(403, "approval_expired", "승인한 지 24시간이 지났어요 — 다시 요청해요")
     if owner is None:
-        raise HubError(403, "approval_revoked", "승인한 사람이 더 이상 프로젝트 소유자가 아니다")
+        raise HubError(403, "approval_revoked", "승인한 사람이 더 이상 프로젝트 소유자가 아니에요")
     return p
 
 

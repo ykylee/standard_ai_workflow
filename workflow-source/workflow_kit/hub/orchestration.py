@@ -75,21 +75,21 @@ class Orchestration:
     def _callsign(ctx: Ctx) -> Principal:
         p = ctx.principal
         if p is None or p.kind != "callsign" or not p.project_id or not p.callsign:
-            raise forbidden("콜사인 토큰이 필요하다")
+            raise forbidden("콜사인 토큰이 필요해요")
         return p
 
     @staticmethod
     def _session_row(conn: sqlite3.Connection, p: Principal, session_id: Any) -> sqlite3.Row:
         if not isinstance(session_id, str) or not SESSION_ID.match(session_id):
-            raise invalid_field("session", "S-YYYYMMDD-xxxxxxxx 꼴이어야 한다")
+            raise invalid_field("session", "S-YYYYMMDD-xxxxxxxx 꼴이어야 해요")
         row: sqlite3.Row | None = conn.execute("SELECT * FROM session WHERE project_id = ? AND id = ?",
                                                (p.project_id, session_id)).fetchone()
         if row is None:
-            raise not_found(f"세션이 없다: {session_id}")
+            raise not_found(f"세션이 없어요: {session_id}")
         if row["callsign"] != p.callsign:
-            raise HubError(403, "session_not_yours", "이 콜사인의 세션이 아니다", {"session": session_id})
+            raise HubError(403, "session_not_yours", "이 콜사인의 세션이 아니에요", {"session": session_id})
         if row["status"] == "ended":
-            raise HubError(410, "session_ended", "끝난 세션이다 — 세션 시작으로 새 세션을 연다", {"session": session_id})
+            raise HubError(410, "session_ended", "끝난 세션이에요 — 세션 시작으로 새 세션을 열어요", {"session": session_id})
         return row
 
     # --- 세션 (스펙 §4 · §7.1) ----------------------------------------------------
@@ -106,7 +106,7 @@ class Orchestration:
         """``hub_session_start(session={…})`` — 세션을 만들거나 이어 붙인다 (스펙 §4-1)."""
         p = self._callsign(ctx)
         if not isinstance(spec, dict):
-            raise invalid_field("session", "객체여야 한다")
+            raise invalid_field("session", "객체여야 해요")
         extra = set(spec) - {"harness", "harness_session_id", "kind", "delivery", "resume", "guide_version", "spawn_request",
                              "review_ideas"}
         if extra:
@@ -130,7 +130,7 @@ class Orchestration:
         if not isinstance(review, bool):
             raise invalid_field("session.review_ideas", "true · false")
         if review and kind != "worker":
-            raise invalid_field("session.review_ideas", "kind=worker 세션만 — 아이디어 검토는 hub_wait 로 기다리는 세션이 받는다")
+            raise invalid_field("session.review_ideas", "kind=worker 세션만 — 아이디어 검토는 hub_wait 로 기다리는 세션이 받아요")
         now = _iso(ctx.now)
         with self.store.write() as conn:
             row = None
@@ -213,7 +213,7 @@ class Orchestration:
         p = self._callsign(ctx)
         values = {k: a[k] for k in ("kind", "allow_wait", "delivery", "harness_session_id") if k in a}
         if not values:
-            raise invalid_field("session", "고칠 칸이 없다 (kind · allow_wait · delivery · harness_session_id)")
+            raise invalid_field("session", "고칠 칸이 없어요 (kind · allow_wait · delivery · harness_session_id)")
         if "kind" in values and values["kind"] not in SESSION_KINDS:
             raise invalid_field("kind", f"{' · '.join(SESSION_KINDS)} 중 하나")
         if "delivery" in values and (not isinstance(values["delivery"], list)
@@ -221,7 +221,7 @@ class Orchestration:
             raise invalid_field("delivery", f"{' · '.join(DELIVERY_PATHS)} 의 목록")
         # 대기 켜기는 사람만 (Q1) — 에이전트 세션이 스스로 턴을 붙잡게 하지 않는다.
         if values.get("allow_wait") is True and not (p.callsign_kind == "human" and p.human_approved):
-            raise forbidden("대기 도구 켜기는 승인된 human 콜사인만 — 일하는 세션은 kind=worker 로 시작한다")
+            raise forbidden("대기 도구 켜기는 승인된 human 콜사인만 — 일하는 세션은 kind=worker 로 시작해요")
         scan_secrets(values)
         with self.store.write() as conn:
             row = self._session_row(conn, p, a["session"])
@@ -372,7 +372,7 @@ class Orchestration:
         if decision not in ACK_DECISIONS:
             raise invalid_field("decision", "accept · decline · seen 중 하나")
         if not isinstance(a["message_id"], str) or not MESSAGE_ID.match(a["message_id"]):
-            raise invalid_field("message_id", "MSG-YYYYMMDD-xxxxxxxxxxxx 꼴이어야 한다")
+            raise invalid_field("message_id", "MSG-YYYYMMDD-xxxxxxxxxxxx 꼴이어야 해요")
         reason = a.get("reason") or ""
         scan_secrets(reason, "reason")
         target = ACK_DECISIONS[decision]
@@ -382,7 +382,7 @@ class Orchestration:
             m = conn.execute("SELECT * FROM inbox_message WHERE project_id = ? AND id = ?",
                              (p.project_id, a["message_id"])).fetchone()
             if m is None:
-                raise not_found(f"메시지가 없다: {a['message_id']}")
+                raise not_found(f"메시지가 없어요: {a['message_id']}")
             mine = (m["to_kind"] == "session" and m["to_id"] == a["session"]) or \
                    (m["to_kind"] == "callsign" and m["to_id"] == p.callsign)
             tidy = m["state"] == "unacknowledged" and decision == "seen"
@@ -390,17 +390,17 @@ class Orchestration:
                 mine = conn.execute("SELECT 1 FROM session WHERE project_id = ? AND id = ? AND callsign = ? AND status = 'ended'",
                                     (p.project_id, m["to_id"], p.callsign)).fetchone() is not None
             if not mine:
-                raise HubError(403, "message_not_yours", "이 세션 · 콜사인 앞 메시지가 아니다")
+                raise HubError(403, "message_not_yours", "이 세션 · 콜사인 앞 메시지가 아니에요")
             message_body = json.loads(m["body_json"])
             if m["kind"] == "approval" and isinstance(message_body, dict) and message_body.get("request_type") == "agent_confirmation":
-                raise HubError(403, "human_decision_required", "사람이 웹 허브의 확인 요청 메뉴에서 결정해야 한다")
+                raise HubError(403, "human_decision_required", "사람이 웹 허브의 확인 요청 메뉴에서 결정해야 해요")
             if m["state"] in ("acked", "declined"):
                 if m["state"] == target and m["ack_by_session"] == a["session"]:
                     return {"message_id": m["id"], "state": m["state"], "unchanged": True}  # 멱등 (DO13)
-                raise HubError(409, "already_acked", "이미 확인한 메시지다",
+                raise HubError(409, "already_acked", "이미 확인한 메시지예요",
                                {"state": m["state"], "by_session": m["ack_by_session"]})
             if m["state"] in ("unacknowledged", "expired") and not tidy:
-                raise HubError(409, "ack_too_late", "확인 상한(10분)이 지난 메시지다 — 수락 · 거절은 못 하고 decision=seen 으로 정리만 한다",
+                raise HubError(409, "ack_too_late", "확인 상한(10분)이 지난 메시지예요 — 수락 · 거절은 못 하고 decision=seen 으로 정리만 해요",
                                {"state": m["state"]})
             if m["kind"] == "assignment" and decision in ("accept", "decline"):
                 self._ack_assignment(conn, ctx, p, m, a["session"], decision, reason)
@@ -421,12 +421,12 @@ class Orchestration:
         with self.store.write() as conn:
             m = conn.execute("SELECT * FROM inbox_message WHERE project_id = ? AND id = ?", (p.project_id, message_id)).fetchone()
             if m is None:
-                raise not_found(f"메시지가 없다: {message_id}")
+                raise not_found(f"메시지가 없어요: {message_id}")
             body = json.loads(m["body_json"])
             if m["kind"] == "approval" and isinstance(body, dict) and body.get("request_type") == "agent_confirmation":
-                raise HubError(403, "human_decision_required", "사람이 웹 허브의 확인 요청 메뉴에서 결정해야 한다")
+                raise HubError(403, "human_decision_required", "사람이 웹 허브의 확인 요청 메뉴에서 결정해야 해요")
             if m["state"] != "unacknowledged":
-                raise HubError(409, "not_unacknowledged", "미확인 상태의 메시지만 정리한다", {"state": m["state"]})
+                raise HubError(409, "not_unacknowledged", "미확인 상태의 메시지만 정리해요", {"state": m["state"]})
             conn.execute("UPDATE inbox_message SET state = 'acked', acked_at = ?, ack_by_session = ?, ack_reason = ?, "
                          "version = version + 1 WHERE project_id = ? AND id = ?",
                          (_iso(ctx.now), f"web:{p.callsign}", "소유자 정리", p.project_id, message_id))
@@ -462,10 +462,10 @@ class Orchestration:
             row = self._session_row(conn, p, session_id)
             if not row["allow_wait"]:
                 raise HubError(409, "wait_disabled",
-                               "이 세션은 대기 도구가 꺼져 있다 — 사람이 보는 세션은 편승(M1)만 쓴다 (Q1). "
-                               "일하는 세션은 kind=worker 로 시작한다", {"session": session_id})
+                               "이 세션은 대기 도구가 꺼져 있어요 — 사람이 보는 세션은 편승(M1)만 써요 (Q1). "
+                               "일하는 세션은 kind=worker 로 시작해요", {"session": session_id})
             if first and row["idle_waits"] >= WAIT_BUDGET:
-                raise HubError(409, "wait_budget", f"일 없이 {WAIT_BUDGET}번 연속 기다렸다 — 턴을 끝낸다",
+                raise HubError(409, "wait_budget", f"일 없이 {WAIT_BUDGET}번 연속 기다렸어요 — 턴을 끝내요",
                                {"session": session_id, "idle_waits": row["idle_waits"]})
             conn.execute("UPDATE session SET waiting_since = COALESCE(waiting_since, ?), last_signal_at = ? "
                          "WHERE project_id = ? AND id = ?", (_iso(ctx.now), _iso(ctx.now), p.project_id, session_id))
@@ -532,18 +532,18 @@ class Orchestration:
     def _need_owner(ctx: Ctx) -> Principal:
         p = ctx.principal
         if p is None or p.kind != "callsign" or p.role != "owner" or p.callsign_kind != "human" or not p.human_approved:
-            raise forbidden("승인된 human 소유자(owner)만 — 오케스트레이터 지정 · 인계 · 정지는 사람이 한다 (요구 R19.1)")
+            raise forbidden("승인된 human 소유자(owner)만 — 오케스트레이터 지정 · 인계 · 정지는 사람이 해요 (요구 R19.1)")
         return p
 
     def _active_session(self, conn: sqlite3.Connection, project_id: str, session_id: Any) -> sqlite3.Row:
         if not isinstance(session_id, str) or not SESSION_ID.match(session_id):
-            raise invalid_field("session", "S-YYYYMMDD-xxxxxxxx 꼴이어야 한다")
+            raise invalid_field("session", "S-YYYYMMDD-xxxxxxxx 꼴이어야 해요")
         row: sqlite3.Row | None = conn.execute("SELECT * FROM session WHERE project_id = ? AND id = ?",
                                                (project_id, session_id)).fetchone()
         if row is None:
-            raise not_found(f"세션이 없다: {session_id}")
+            raise not_found(f"세션이 없어요: {session_id}")
         if row["status"] == "ended":
-            raise HubError(410, "session_ended", "끝난 세션이다", {"session": session_id})
+            raise HubError(410, "session_ended", "끝난 세션이에요", {"session": session_id})
         return row
 
     def declare(self, ctx: Ctx, a: dict[str, Any]) -> dict[str, Any]:
@@ -552,7 +552,7 @@ class Orchestration:
         with self.store.write() as conn:
             target = self._active_session(conn, pid, a["session"])
             if self._lease(conn, ctx, pid) is not None:
-                raise HubError(409, "orchestrator_exists", "오케스트레이터가 이미 있다 — 바꾸려면 hub_orch_transfer")
+                raise HubError(409, "orchestrator_exists", "오케스트레이터가 이미 있어요 — 바꾸려면 hub_orch_transfer")
             conn.execute("INSERT INTO orchestrator_lease (project_id, session_id, callsign, declared_by, declared_at, "
                          "expires_at) VALUES (?, ?, ?, ?, ?, ?)",
                          (pid, target["id"], target["callsign"], p.callsign, _iso(ctx.now), _iso(ctx.now + LEASE_TTL)))
@@ -572,7 +572,7 @@ class Orchestration:
             target = self._active_session(conn, pid, a["session"])
             lease = self._lease(conn, ctx, pid)
             if lease is None:
-                raise HubError(409, "no_orchestrator", "지금 오케스트레이터가 없다 — hub_orch_declare 로 지정한다")
+                raise HubError(409, "no_orchestrator", "지금 오케스트레이터가 없어요 — hub_orch_declare 로 지정해요")
             conn.execute("UPDATE orchestrator_lease SET session_id = ?, callsign = ?, expires_at = ?, version = version + 1 "
                          "WHERE project_id = ?", (target["id"], target["callsign"], _iso(ctx.now + LEASE_TTL), pid))
             self.store._event(conn, ctx, pid, "orchestrator_lease", target["id"], "transfer",
@@ -594,7 +594,7 @@ class Orchestration:
                 return {"released": False, "note": "오케스트레이터가 없다"}
             is_owner = p.role == "owner" and p.callsign_kind == "human" and p.human_approved
             if not is_owner and a.get("session") != lease["session_id"]:
-                raise forbidden("owner 나 오케스트레이터 세션 자신만 lease 를 푼다")
+                raise forbidden("owner 나 오케스트레이터 세션 자신만 lease 를 풀어요")
             conn.execute("DELETE FROM orchestrator_lease WHERE project_id = ?", (pid,))
             self.store._event(conn, ctx, pid, "orchestrator_lease", lease["session_id"], "release",
                               {"session": lease["session_id"]}, None)
@@ -607,7 +607,7 @@ class Orchestration:
         on = bool(a["on"])
         with self.store.write() as conn:
             if self._lease(conn, ctx, pid) is None:
-                raise HubError(409, "no_orchestrator", "지금 오케스트레이터가 없다 — 멈출 것이 없다")
+                raise HubError(409, "no_orchestrator", "지금 오케스트레이터가 없어요 — 멈출 것이 없어요")
             conn.execute("UPDATE orchestrator_lease SET halted = ?, version = version + 1 WHERE project_id = ?",
                          (int(on), pid))
             self.store._event(conn, ctx, pid, "orchestrator_lease", pid, "halt" if on else "resume", None, {"halted": on})
@@ -626,7 +626,7 @@ class Orchestration:
         lease = self._lease(conn, ctx, str(p.project_id))
         if lease is None or not isinstance(session_id, str) or lease["session_id"] != session_id \
                 or lease["callsign"] != p.callsign:
-            raise HubError(403, "not_orchestrator", "지정된 오케스트레이터 세션만 — session 인자에 그 세션 ID 를 싣는다")
+            raise HubError(403, "not_orchestrator", "지정된 오케스트레이터 세션만 — session 인자에 그 세션 ID 를 실어요")
         return p, lease
 
     # --- 배정 · 회수 · 메시지 · 보고 (스펙 §8, 요구 R20) ---------------------------------
@@ -652,7 +652,7 @@ class Orchestration:
         a = conn.execute("SELECT * FROM assignment WHERE project_id = ? AND message_id = ? AND state = 'offered'",
                          (pid, m["id"])).fetchone()
         if a is None or a["session_id"] != session_id:
-            raise HubError(409, "assignment_not_open", "이 세션 앞의 열린 배정이 아니다 (회수 · 되돌림 · 다른 세션)",
+            raise HubError(409, "assignment_not_open", "이 세션 앞의 열린 배정이 아니에요 (회수 · 되돌림 · 다른 세션)",
                            {"message_id": m["id"]})
         if decision == "accept":
             self.store.versioned_update_in(conn, ctx, p, a["task_id"], None, "claim", self.store.claim_mutate)
@@ -671,17 +671,17 @@ class Orchestration:
             p, lease = self._need_orch(conn, ctx, a.get("session"))
             pid = str(p.project_id)
             if lease["halted"]:
-                raise HubError(423, "halted", "오케스트레이션이 정지돼 있다 (hub_orch_halt)")
+                raise HubError(423, "halted", "오케스트레이션이 정지돼 있어요 (hub_orch_halt)")
             task = self.store._get_task(conn, pid, a["task_id"])
             if task["status"] == "done":
-                raise HubError(409, "task_done", "닫힌 task 는 배정할 수 없다")
+                raise HubError(409, "task_done", "닫힌 task 는 배정할 수 없어요")
             target = self._active_session(conn, pid, a["to_session"])
             if target["id"] == lease["session_id"]:
-                raise HubError(409, "self_assignment", "오케스트레이터는 자기에게 배정하지 않는다 — 직접 hub_task_claim (Q3)")
+                raise HubError(409, "self_assignment", "오케스트레이터는 자기에게 배정하지 않아요 — 직접 hub_task_claim (Q3)")
             if not json.loads(target["delivery_json"]):
-                raise HubError(409, "no_delivery_path", "그 세션에 전달 경로가 없다", {"session": target["id"]})
+                raise HubError(409, "no_delivery_path", "그 세션에 전달 경로가 없어요", {"session": target["id"]})
             if task["assignee"] and task["assignee"] != target["callsign"]:
-                raise HubError(409, "already_claimed", f"{task['assignee']} 가 맡고 있다 — 그 콜사인의 세션에만 배정한다",
+                raise HubError(409, "already_claimed", f"{task['assignee']} 가 맡고 있어요 — 그 콜사인의 세션에만 배정해요",
                                {"assignee": task["assignee"]})
             mid = self.enqueue(conn, ctx, pid, to_kind="session", to_id=target["id"], kind="assignment",
                                ref_task=task["id"], from_callsign=str(p.callsign), from_session=lease["session_id"],
@@ -693,7 +693,7 @@ class Orchestration:
                              "offered_at) VALUES (?, ?, ?, ?, ?, 'offered', ?)",
                              (pid, task["id"], target["id"], target["callsign"], mid, _iso(ctx.now)))
             except sqlite3.IntegrityError as exc:
-                raise HubError(409, "assignment_taken", "이 task 에는 열린 배정이 있다 — 회수(hub_orch_recall) 뒤 다시",
+                raise HubError(409, "assignment_taken", "이 task 에는 열린 배정이 있어요 — 회수(hub_orch_recall) 뒤 다시",
                                {"task_id": task["id"]}) from exc
             self.store._event(conn, ctx, pid, "assignment", task["id"], "offer", None,
                               {"session": target["id"], "message_id": mid})
@@ -708,7 +708,7 @@ class Orchestration:
             row = conn.execute("SELECT * FROM assignment WHERE project_id = ? AND task_id = ? AND state IN ('offered', 'accepted')",
                                (pid, a["task_id"])).fetchone()
             if row is None:
-                raise HubError(409, "assignment_not_open", "열린 배정이 없다", {"task_id": a["task_id"]})
+                raise HubError(409, "assignment_not_open", "열린 배정이 없어요", {"task_id": a["task_id"]})
             self._return(conn, ctx, pid, a["task_id"], f"recall: {a.get('reason') or ''}"[:300])
             self.enqueue(conn, ctx, pid, to_kind="session", to_id=row["session_id"], kind="release", ref_task=a["task_id"],
                          body={"event": "assignment_recalled", "task_id": a["task_id"], "reason": a.get("reason") or "",
@@ -725,7 +725,7 @@ class Orchestration:
             p, lease = self._need_orch(conn, ctx, a.get("session"))
             pid = str(p.project_id)
             if lease["halted"] and kind != "release":
-                raise HubError(423, "halted", "오케스트레이션이 정지돼 있다 — release 만 보낼 수 있다")
+                raise HubError(423, "halted", "오케스트레이션이 정지돼 있어요 — release 만 보낼 수 있어요")
             to = a["to"]
             if isinstance(to, str) and SESSION_ID.match(to):
                 self._active_session(conn, pid, to)
@@ -733,7 +733,7 @@ class Orchestration:
             else:
                 if conn.execute("SELECT 1 FROM callsign WHERE project_id = ? AND id = ? AND revoked_at IS NULL",
                                 (pid, to)).fetchone() is None:
-                    raise not_found(f"세션 · 콜사인이 없다: {to}")
+                    raise not_found(f"세션 · 콜사인이 없어요: {to}")
                 to_kind = "callsign"
             mid = self.enqueue(conn, ctx, pid, to_kind=to_kind, to_id=str(to), kind=kind, body=a["body"],
                                from_callsign=str(p.callsign), from_session=lease["session_id"], from_orchestrator=True)
@@ -745,7 +745,7 @@ class Orchestration:
         p = self._callsign(ctx)
         summary = a["summary"]
         if not isinstance(summary, str) or not summary.strip():
-            raise invalid_field("summary", "비었다")
+            raise invalid_field("summary", "비었어요")
         scan_secrets({"summary": summary, "verification": a.get("verification")})
 
         def do(conn: sqlite3.Connection) -> dict[str, Any]:
@@ -754,7 +754,7 @@ class Orchestration:
             row = conn.execute("SELECT * FROM assignment WHERE project_id = ? AND task_id = ? AND session_id = ? "
                                "AND state = 'accepted'", (pid, a["task_id"], a["session"])).fetchone()
             if row is None:
-                raise HubError(409, "assignment_not_accepted", "이 세션이 수락한 배정이 아니다 — 먼저 hub_inbox_ack(accept)",
+                raise HubError(409, "assignment_not_accepted", "이 세션이 수락한 배정이 아니에요 — 먼저 hub_inbox_ack(accept)",
                                {"task_id": a["task_id"]})
             report = {"summary": summary, "verification": a.get("verification") or ""}
             conn.execute("UPDATE assignment SET state = 'reported', reported_at = ?, report_json = ?, version = version + 1 "

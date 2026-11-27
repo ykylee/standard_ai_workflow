@@ -43,7 +43,7 @@ func (s *Store) WikiImportDir(ctx Ctx, rawFiles any, summary string, overwrite b
 		}
 	}
 	if len(pages) == 0 && len(archived) == 0 {
-		return nil, InvalidField("files", "들일 위키 페이지가 없다")
+		return nil, InvalidField("files", "들일 위키 페이지가 없어요")
 	}
 	if overwrite {
 		current, err := s.wikiPages(p.ProjectID)

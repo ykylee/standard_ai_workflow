@@ -153,14 +153,14 @@ class Judge:
             milestone, issues = rm.parse_milestone_text(body, path)
             if milestone is None:
                 detail = [f"{i.code}: {i.detail}" for i in issues]
-                raise HubError(400, "invalid_field", "마일스톤을 읽을 수 없다 — " + " / ".join(detail),
+                raise HubError(400, "invalid_field", "마일스톤을 읽을 수 없어요 — " + " / ".join(detail),
                                {"field": "body", "issues": detail})
         with self.store.write() as conn:
             row = conn.execute("SELECT body_md, version FROM roadmap_doc WHERE project_id = ? AND path = ?",
                                (p.project_id, path)).fetchone()
             current = row["version"] if row else 0
             if expected_version is not None and expected_version != current:
-                raise HubError(409, "version_conflict", f"version 이 다르다 — 지금 {current}",
+                raise HubError(409, "version_conflict", f"version 이 달라요 — 지금 {current}",
                                {"current_version": current, "current": {"path": path, "body": row["body_md"] if row else None}})
             conn.execute(
                 "INSERT INTO roadmap_doc (project_id, path, body_md, version, updated_by, updated_at) VALUES (?, ?, ?, 1, ?, ?) "
@@ -221,7 +221,7 @@ class Judge:
         def do(conn: sqlite3.Connection) -> dict[str, Any]:
             before = self.store._get_task(conn, pid, task_id)
             if before["version"] != expected_version:
-                raise HubError(409, "version_conflict", f"version 이 다르다 — 지금 {before['version']}",
+                raise HubError(409, "version_conflict", f"version 이 달라요 — 지금 {before['version']}",
                                {"current_version": before["version"], "current": before})
             status, warns = determine_conservative_task_status("done", validation_result, "update", before["status"],
                                                                recorded_validation=None)
@@ -259,11 +259,11 @@ class Judge:
         # 결정에 답하는 것은 승인된 사람 콜사인이고, 응답자는 그 콜사인이다 (소유자 2026-11-21 · 요구 R4.6) —
         # 에이전트가 자기 계획의 결정을 닫거나 남의 이름으로 답하지 못하게.
         if p.callsign_kind != "human" or not p.human_approved:
-            raise forbidden("결정 응답은 승인된 human 콜사인만 보낸다")
+            raise forbidden("결정 응답은 승인된 human 콜사인만 보내요")
         data = body.encode("utf-8")
         parsed = plan_responses.parse_response(data)
         if parsed.responder != p.callsign:
-            raise HubError(403, "forbidden", f"responder 가 이 콜사인({p.callsign})이 아니다: {parsed.responder!r}",
+            raise HubError(403, "forbidden", f"responder 가 이 콜사인({p.callsign})이 아니에요: {parsed.responder!r}",
                            {"field": "responder"})
         with self.store.write() as conn:
             task = self.store._get_task(conn, pid, task_id)

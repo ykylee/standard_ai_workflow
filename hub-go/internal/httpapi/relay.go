@@ -44,12 +44,12 @@ func (s *Server) handleRelayPoll(w http.ResponseWriter, r *http.Request) {
 	}
 	args, ok := body.(map[string]any)
 	if !ok {
-		writeRelayError(w, store.InvalidField("arguments", "객체여야 한다"))
+		writeRelayError(w, store.InvalidField("arguments", "객체여야 해요"))
 		return
 	}
 	for key := range args {
 		if key != "wait_s" && key != "sessions" && key != "allow_digest" {
-			writeRelayError(w, &store.HubError{Status: 400, Code: "unknown_field", Message: "wait_s · sessions · allow_digest 만 받는다"})
+			writeRelayError(w, &store.HubError{Status: 400, Code: "unknown_field", Message: "wait_s · sessions · allow_digest 만 받아요"})
 			return
 		}
 	}
@@ -131,7 +131,7 @@ func (s *Server) relayHost(r *http.Request) (*store.RelayHost, error) {
 		return nil, err
 	}
 	if host == nil {
-		return nil, store.Unauthorized("중계 토큰이 없거나 틀렸거나 거둔 토큰이다")
+		return nil, store.Unauthorized("중계 토큰이 없거나 틀렸거나 거둔 토큰이에요")
 	}
 	return host, nil
 }
@@ -145,7 +145,7 @@ func readRelayBody(r *http.Request) (any, error) {
 		return nil, &store.HubError{Status: http.StatusRequestEntityTooLarge, Code: "payload_too_large", Message: "본문 상한 262144 바이트", Detail: map[string]any{"limit": MaxBody}}
 	}
 	if !utf8.Valid(raw) {
-		return nil, &store.HubError{Status: http.StatusBadRequest, Code: "invalid_json", Message: "본문이 JSON 이 아니다: UTF-8 이 아니다"}
+		return nil, &store.HubError{Status: http.StatusBadRequest, Code: "invalid_json", Message: "본문이 JSON 이 아니에요: UTF-8 이 아니에요"}
 	}
 	if len(strings.TrimSpace(string(raw))) == 0 {
 		return map[string]any{}, nil
@@ -154,11 +154,11 @@ func readRelayBody(r *http.Request) (any, error) {
 	dec := json.NewDecoder(strings.NewReader(string(raw)))
 	dec.UseNumber()
 	if err := dec.Decode(&body); err != nil {
-		return nil, &store.HubError{Status: http.StatusBadRequest, Code: "invalid_json", Message: "본문이 JSON 이 아니다: " + err.Error()}
+		return nil, &store.HubError{Status: http.StatusBadRequest, Code: "invalid_json", Message: "본문이 JSON 이 아니에요: " + err.Error()}
 	}
 	var extra any
 	if err := dec.Decode(&extra); err != io.EOF {
-		return nil, &store.HubError{Status: http.StatusBadRequest, Code: "invalid_json", Message: "본문이 JSON 이 아니다"}
+		return nil, &store.HubError{Status: http.StatusBadRequest, Code: "invalid_json", Message: "본문이 JSON 이 아니에요"}
 	}
 	return body, nil
 }

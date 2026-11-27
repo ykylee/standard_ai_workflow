@@ -122,7 +122,7 @@ func (s *Store) foreignKeyOrder(tx *sql.Tx, tables []string) ([]string, error) {
 			}
 		}
 		if len(ready) == 0 {
-			return nil, &HubError{Status: 409, Code: "bundle_schema_cycle", Message: "표 사이 외래 키 순환이 있어 이전할 수 없다"}
+			return nil, &HubError{Status: 409, Code: "bundle_schema_cycle", Message: "표 사이 외래 키 순환이 있어 이전할 수 없어요"}
 		}
 		sort.Strings(ready)
 		for _, t := range ready {
@@ -264,7 +264,7 @@ func (s *Store) ExportBundle(projectID string, now time.Time, publicURL string) 
 			return nil, err
 		}
 		if len(rows) == 0 {
-			return nil, NotFound("프로젝트가 없다: " + projectID)
+			return nil, NotFound("프로젝트가 없어요: " + projectID)
 		}
 		project := map[string]any{}
 		for i, c := range cols {
@@ -299,7 +299,7 @@ func projectSettings(tx *sql.Tx, projectID string) (map[string]any, error) {
 	var raw sql.NullString
 	err := tx.QueryRow("SELECT settings_json FROM project WHERE id=?", projectID).Scan(&raw)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, NotFound("프로젝트가 없다: " + projectID)
+		return nil, NotFound("프로젝트가 없어요: " + projectID)
 	}
 	if err != nil {
 		return nil, err
@@ -344,7 +344,7 @@ func (s *Store) setMoved(projectID, to string, now time.Time) (map[string]any, e
 // Seal marks a project as moved; every call on it then answers 410.
 func (s *Store) Seal(projectID, to string, now time.Time) (map[string]any, error) {
 	if to = strings.TrimSpace(to); to == "" {
-		return nil, &HubError{Status: 400, Code: "invalid_field", Message: "moved_to: 새 허브 주소가 필요하다"}
+		return nil, &HubError{Status: 400, Code: "invalid_field", Message: "moved_to: 새 허브 주소가 필요해요"}
 	}
 	return s.setMoved(projectID, to, now)
 }
@@ -571,7 +571,7 @@ func (s *Store) ImportBundle(raw any, now time.Time, guard func(tx *sql.Tx, proj
 func transferOwner(ctx Ctx) (string, error) {
 	p := ctx.Principal
 	if p == nil || p.Kind != "callsign" || p.Role != "owner" || p.CallsignKind != "human" || !p.HumanApproved {
-		return "", Forbidden("프로젝트 이전은 그 프로젝트의 소유자(승인된 human)가 한다")
+		return "", Forbidden("프로젝트 이전은 그 프로젝트의 소유자(승인된 human)가 해요")
 	}
 	return p.ProjectID, nil
 }
@@ -583,7 +583,7 @@ func (s *Store) ProjectExport(ctx Ctx, sealTo string) (map[string]any, error) {
 		return nil, err
 	}
 	if sealTo != "" && ctx.PublicURL != "" && strings.TrimRight(sealTo, "/") == strings.TrimRight(ctx.PublicURL, "/") {
-		return nil, &HubError{Status: 400, Code: "invalid_field", Message: "seal_to: 지금 허브와 같은 주소다"}
+		return nil, &HubError{Status: 400, Code: "invalid_field", Message: "seal_to: 지금 허브와 같은 주소예요"}
 	}
 	was, err := s.ProjectMoved(pid)
 	if err != nil {

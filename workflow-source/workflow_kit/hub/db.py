@@ -854,7 +854,7 @@ def connect(path: Path | str) -> Any:
             raise HubError(
                 503,
                 "postgres_connection_failed",
-                "PostgreSQL 연결에 실패했다 — URL 자격 증명은 숨겼다",
+                "PostgreSQL 연결에 실패했어요 — URL 자격 증명은 숨겼어요",
             ) from exc
     conn = sqlite3.connect(str(path), isolation_level=None, timeout=10.0)
     conn.row_factory = sqlite3.Row
@@ -885,10 +885,10 @@ def backup(src: Path, out: Path) -> None:
         raise HubError(
             400,
             "postgres_backup_external",
-            "PostgreSQL 백업은 서버 운영 도구(pg_dump 또는 managed snapshot)를 사용한다",
+            "PostgreSQL 백업은 서버 운영 도구(pg_dump 또는 managed snapshot)를 사용해요",
         )
     if out.exists():
-        raise HubError(409, "backup_target_exists", f"백업 대상이 이미 있다: {out}")
+        raise HubError(409, "backup_target_exists", f"백업 대상이 이미 있어요: {out}")
     source = sqlite3.connect(str(src), timeout=10.0)
     try:
         target = sqlite3.connect(str(out))
@@ -913,7 +913,7 @@ def open_db(path: Path | str, *, now: datetime) -> list[Path]:
             raise HubError(
                 500,
                 "db_newer_than_hub",
-                f"DB 판 {current} 이 이 허브가 아는 최신 판 {latest} 보다 새롭다 — 허브를 올린다",
+                f"DB 판 {current} 이 이 허브가 아는 최신 판 {latest} 보다 새로워요 — 허브를 올려요",
                 {"db_version": current, "hub_version": latest},
             )
         for n in range(current + 1, latest + 1):
@@ -932,7 +932,7 @@ def open_db(path: Path | str, *, now: datetime) -> list[Path]:
         raise HubError(
             500,
             "db_newer_than_hub",
-            f"DB 판 {current} 이 이 허브가 아는 최신 판 {latest} 보다 새롭다 — 허브를 올린다",
+            f"DB 판 {current} 이 이 허브가 아는 최신 판 {latest} 보다 새로워요 — 허브를 올려요",
             {"db_version": current, "hub_version": latest},
         )
     copies: list[Path] = []
@@ -990,7 +990,7 @@ def copy_sqlite_to_postgres(
                     raise HubError(
                         409,
                         "postgres_target_not_empty",
-                        "PostgreSQL 대상에 이미 데이터가 있다 — 빈 대상으로 다시 시도한다",
+                        "PostgreSQL 대상에 이미 데이터가 있어요 — 빈 대상으로 다시 시도해요",
                         {"table": table},
                     )
             dst.execute("BEGIN")
@@ -1038,7 +1038,7 @@ def copy_sqlite_to_postgres(
                     raise HubError(
                         500,
                         "postgres_import_mismatch",
-                        "SQLite와 PostgreSQL 데이터 검증이 맞지 않는다 — 이관을 롤백한다",
+                        "SQLite와 PostgreSQL 데이터 검증이 맞지 않아요 — 이관을 롤백해요",
                         {"table": table, "source_rows": source_count, "target_rows": target_count},
                     )
                 summary[table] = {"rows": source_count, "sha256": source_hash.hexdigest()}

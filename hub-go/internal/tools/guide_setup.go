@@ -345,13 +345,13 @@ func setupMCPJSONWith(existing, url, configPath string, headersHelper bool) (str
 	data := map[string]any{}
 	if strings.TrimSpace(existing) != "" {
 		if err := json.Unmarshal([]byte(existing), &data); err != nil {
-			return "", &store.HubError{Status: 409, Code: "invalid_existing_file", Message: configPath + " 이 JSON 이 아니다 — 손으로 고친 뒤 다시"}
+			return "", &store.HubError{Status: 409, Code: "invalid_existing_file", Message: configPath + " 이 JSON 이 아니에요 — 손으로 고친 뒤 다시"}
 		}
 	}
 	servers, ok := data["mcpServers"].(map[string]any)
 	if !ok {
 		if _, exists := data["mcpServers"]; exists {
-			return "", &store.HubError{Status: 409, Code: "invalid_existing_file", Message: configPath + " 의 mcpServers 가 객체가 아니다"}
+			return "", &store.HubError{Status: 409, Code: "invalid_existing_file", Message: configPath + " 의 mcpServers 가 객체가 아니에요"}
 		}
 		servers = map[string]any{}
 		data["mcpServers"] = servers
@@ -380,10 +380,10 @@ func setupPlan(s *store.Store, ctx store.Ctx, args map[string]any) (map[string]a
 		return nil, err
 	}
 	if p == nil || p.Kind != "callsign" {
-		return nil, store.Unauthorized("토큰이 없거나 틀렸거나 거둔 토큰이다")
+		return nil, store.Unauthorized("토큰이 없거나 틀렸거나 거둔 토큰이에요")
 	}
 	if p.ProjectID != pid {
-		return nil, store.Forbidden("이 토큰은 다른 프로젝트의 것이다")
+		return nil, store.Forbidden("이 토큰은 다른 프로젝트의 것이에요")
 	}
 	harnesses, ok := stringList(args["harnesses"])
 	if !ok || len(harnesses) == 0 {
@@ -404,7 +404,7 @@ func setupPlan(s *store.Store, ctx store.Ctx, args map[string]any) (map[string]a
 		if profile == nil {
 			return map[string]any{"stage": "harness_support", "steps": []any{}, "blocked": []any{map[string]any{
 				"id": "harness:" + h, "reason": "setup_profile_required",
-				"message":                h + " 는 셋업 프로필이 없다. hub_harness_report 로 지원 정보와 설정 후보를 제보하고 웹 허브 관리자 승인을 기다린다.",
+				"message":                h + " 는 셋업 프로필이 없어요. hub_harness_report 로 지원 정보와 설정 후보를 제보하고 웹 허브 관리자 승인을 기다려요.",
 				"report_tool":            "hub_harness_report",
 				"required_report_fields": []string{"entry_file_candidates", "mcp_config_candidates", "config_formats: mcp-http-json-v1", "mcp_transports: streamable-http"},
 			}}, "next": "hub_harness_report 제보 후 관리자 승인까지 프로젝트 파일을 수정하지 않는다"}, nil

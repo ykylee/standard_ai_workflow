@@ -22,7 +22,7 @@ class HubError(Exception):
         return {"error_code": self.code, "message": self.message, "detail": self.detail}
 
 
-def unauthorized(message: str = "토큰이 없거나 틀렸거나 거둔 토큰이다") -> HubError:
+def unauthorized(message: str = "토큰이 없거나 틀렸거나 거둔 토큰이에요") -> HubError:
     return HubError(401, "unauthorized", message)
 
 
@@ -44,6 +44,6 @@ def unknown_field(fields: list[str]) -> HubError:
 
 def version_conflict(current_version: int, current: dict[str, Any]) -> HubError:
     return HubError(
-        409, "version_conflict", f"version 이 다르다 — 지금 {current_version}",
+        409, "version_conflict", f"version 이 달라요 — 지금 {current_version}",
         {"current_version": current_version, "current": current},
     )

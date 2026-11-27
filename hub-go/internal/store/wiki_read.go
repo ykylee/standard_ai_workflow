@@ -104,7 +104,7 @@ func (s *Store) WikiSearch(ctx Ctx, query string, limit int) (map[string]any, er
 	}
 	words := strings.Fields(strings.ToLower(query))
 	if len(words) == 0 {
-		return nil, InvalidField("query", "비었다")
+		return nil, InvalidField("query", "비었어요")
 	}
 	items, err := s.wikiPages(pid)
 	if err != nil {
@@ -184,7 +184,7 @@ func (s *Store) WikiPageOf(pid, p string) (map[string]any, error) {
 	err := s.pool.QueryRow("SELECT body_md,version,updated_by,updated_at,last_ingest,source_repo_key,source_sha FROM wiki_page WHERE project_id=? AND path=?", pid, p).
 		Scan(&body, &version, &by, &at, &last, &repo, &sha)
 	if err == sql.ErrNoRows {
-		return nil, &HubError{Status: 404, Code: "not_found", Message: "위키 페이지가 없다: " + p, Detail: map[string]any{"path": p}}
+		return nil, &HubError{Status: 404, Code: "not_found", Message: "위키 페이지가 없어요: " + p, Detail: map[string]any{"path": p}}
 	}
 	if err != nil {
 		return nil, err

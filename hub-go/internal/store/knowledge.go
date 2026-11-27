@@ -35,7 +35,7 @@ func knowledgeActor(ctx Ctx, owner bool) (*Principal, string, error) {
 		return nil, "", err
 	}
 	if owner && (p.CallsignKind != "human" || !p.HumanApproved || p.Role != "owner") {
-		return nil, "", Forbidden("DCR 결정에는 승인된 human project owner가 필요하다")
+		return nil, "", Forbidden("DCR 결정에는 승인된 human project owner가 필요해요")
 	}
 	return p, p.ProjectID, nil
 }
@@ -56,14 +56,14 @@ func checkKnowledgeSource(q queryExec, pid string, rawID, rawRepo, raw any) (str
 	}
 	items, ok := raw.([]any)
 	if !ok || len(items) == 0 || len(items) > 500 {
-		return "", "", nil, InvalidField("allowlist", "허용할 markdown 경로가 하나 이상 필요하다")
+		return "", "", nil, InvalidField("allowlist", "허용할 markdown 경로가 하나 이상 필요해요")
 	}
 	paths := []string{}
 	seen := map[string]bool{}
 	for _, v := range items {
 		path, ok := v.(string)
 		if !ok || !knowledgePath.MatchString(path) || containsPathTraversal(path) {
-			return "", "", nil, InvalidField("allowlist", "안전한 상대 .md 경로가 필요하다")
+			return "", "", nil, InvalidField("allowlist", "안전한 상대 .md 경로가 필요해요")
 		}
 		if !seen[path] {
 			seen[path] = true
@@ -76,7 +76,7 @@ func checkKnowledgeSource(q queryExec, pid string, rawID, rawRepo, raw any) (str
 		return "", "", nil, err
 	}
 	if exists == 0 {
-		return "", "", nil, InvalidField("repo_key", "프로젝트에 등록된 저장소 키가 아니다")
+		return "", "", nil, InvalidField("repo_key", "프로젝트에 등록된 저장소 키가 아니에요")
 	}
 	var version int
 	err := q.QueryRow("SELECT version FROM knowledge_source WHERE project_id=? AND id=?", pid, id).Scan(&version)
@@ -90,7 +90,7 @@ func checkKnowledgeSource(q queryExec, pid string, rawID, rawRepo, raw any) (str
 	var taken string
 	err = q.QueryRow("SELECT id FROM knowledge_source WHERE project_id=? AND repo_key=?", pid, repo).Scan(&taken)
 	if err == nil {
-		return "", "", nil, &HubError{Status: 409, Code: "source_exists_for_repo", Message: "이 저장소에는 이미 지식 원본이 있다: " + taken, Detail: map[string]any{"source_id": taken}}
+		return "", "", nil, &HubError{Status: 409, Code: "source_exists_for_repo", Message: "이 저장소에는 이미 지식 원본이 있어요: " + taken, Detail: map[string]any{"source_id": taken}}
 	}
 	if !errors.Is(err, sql.ErrNoRows) {
 		return "", "", nil, err
@@ -115,7 +115,7 @@ func (s *Store) KnowledgeSourceRegister(ctx Ctx, rawID, rawRepo string, raw any,
 			return nil, err
 		}
 	} else if p.Kind != "callsign" || p.CallsignKind != "human" || !p.HumanApproved || p.Role != "owner" {
-		return nil, Forbidden("지식 원본 등록은 승인된 human 소유자가 하거나, hub_approval_request(action={type: knowledge_source_register, source_id, repo_key, allowlist}) 로 화면 승인을 받은 approval_id 가 필요하다")
+		return nil, Forbidden("지식 원본 등록은 승인된 human 소유자가 하거나, hub_approval_request(action={type: knowledge_source_register, source_id, repo_key, allowlist}) 로 화면 승인을 받은 approval_id 가 필요해요")
 	}
 	return s.withWriteTx(func(tx *sql.Tx) (map[string]any, error) {
 		id, repo, paths, cerr := checkKnowledgeSource(tx, pid, rawID, rawRepo, raw)
@@ -145,17 +145,17 @@ func (s *Store) KnowledgeSync(ctx Ctx, sourceID, commit string, raw any) (map[st
 		return nil, err
 	}
 	if !ShaPattern.MatchString(strings.ToLower(commit)) {
-		return nil, InvalidField("commit_sha", "40자리 이하 16진 커밋 SHA가 필요하다")
+		return nil, InvalidField("commit_sha", "40자리 이하 16진 커밋 SHA가 필요해요")
 	}
 	items, ok := raw.([]any)
 	if !ok || len(items) == 0 || len(items) > 500 {
-		return nil, InvalidField("documents", "문서가 1~500개 필요하다")
+		return nil, InvalidField("documents", "문서가 1~500개 필요해요")
 	}
 	var allowedJSON string
 	var repo string
 	err = s.DB().QueryRow("SELECT allowlist_json,repo_key FROM knowledge_source WHERE project_id=? AND id=? AND enabled=1", pid, sourceID).Scan(&allowedJSON, &repo)
 	if err == sql.ErrNoRows {
-		return nil, NotFound("knowledge source가 없다: " + sourceID)
+		return nil, NotFound("knowledge source가 없어요: " + sourceID)
 	}
 	if err != nil {
 		return nil, err
@@ -171,7 +171,7 @@ func (s *Store) KnowledgeSync(ctx Ctx, sourceID, commit string, raw any) (map[st
 	for i, v := range items {
 		m, ok := v.(map[string]any)
 		if !ok {
-			return nil, InvalidField(fmt.Sprintf("documents[%d]", i), "객체여야 한다")
+			return nil, InvalidField(fmt.Sprintf("documents[%d]", i), "객체여야 해요")
 		}
 		path, _ := m["path"].(string)
 		title, _ := m["title"].(string)
@@ -180,7 +180,7 @@ func (s *Store) KnowledgeSync(ctx Ctx, sourceID, commit string, raw any) (map[st
 			return nil, Forbidden("source allowlist에 없는 경로: " + path)
 		}
 		if strings.TrimSpace(title) == "" || strings.TrimSpace(body) == "" || len(body) > 192*1024 {
-			return nil, InvalidField("documents", "title/body가 비었거나 본문이 192KB를 넘는다")
+			return nil, InvalidField("documents", "title/body가 비었거나 본문이 192KB를 넘어요")
 		}
 		if err = ScanSecrets(body, "body"); err != nil {
 			return nil, err
@@ -250,7 +250,7 @@ func (s *Store) KnowledgeSync(ctx Ctx, sourceID, commit string, raw any) (map[st
 			var approved int
 			_ = tx.QueryRow("SELECT COUNT(*) FROM decision_change WHERE project_id=? AND status='approved_pending_export' AND adr_path=? AND adr_sha256=?", pid, d.path, digest).Scan(&approved)
 			if approved == 0 {
-				return nil, &HubError{Status: 409, Code: "adr_requires_dcr", Message: "기존 ADR은 DCR 승인으로만 새 판을 만든다: " + d.path}
+				return nil, &HubError{Status: 409, Code: "adr_requires_dcr", Message: "기존 ADR은 DCR 승인으로만 새 판을 만들어요: " + d.path}
 			}
 		}
 		if e == nil {
@@ -282,7 +282,7 @@ func (s *Store) KnowledgeSearch(ctx Ctx, query string, limit int) (map[string]an
 		return nil, err
 	}
 	if strings.TrimSpace(query) == "" {
-		return nil, InvalidField("query", "검색어가 비었다")
+		return nil, InvalidField("query", "검색어가 비었어요")
 	}
 	if limit < 1 {
 		limit = 20
@@ -427,7 +427,7 @@ func (s *Store) DCRCreate(ctx Ctx, title, rationale, proposal string, rawRefs an
 		return nil, err
 	}
 	if strings.TrimSpace(title) == "" || strings.TrimSpace(rationale) == "" || strings.TrimSpace(proposal) == "" {
-		return nil, InvalidField("DCR", "title, rationale, proposal이 필요하다")
+		return nil, InvalidField("DCR", "title, rationale, proposal이 필요해요")
 	}
 	if len(title)+len(rationale)+len(proposal) > 150*1024 {
 		return nil, InvalidField("DCR", "DCR 본문 합계는 150KB까지")
@@ -442,14 +442,14 @@ func (s *Store) DCRCreate(ctx Ctx, title, rationale, proposal string, rawRefs an
 		var ok bool
 		refs, ok = rawRefs.([]any)
 		if !ok {
-			return nil, InvalidField("target_refs", "문자열 배열이어야 한다")
+			return nil, InvalidField("target_refs", "문자열 배열이어야 해요")
 		}
 	}
 	bases := map[string]any{}
 	for _, raw := range refs {
 		ref, ok := raw.(string)
 		if !ok {
-			return nil, InvalidField("target_refs", "문자열 배열이어야 한다")
+			return nil, InvalidField("target_refs", "문자열 배열이어야 해요")
 		}
 		current, getErr := s.KnowledgeGet(ctx, ref)
 		if getErr != nil {
@@ -482,13 +482,13 @@ func (s *Store) DCRDecide(ctx Ctx, id string, expected int, outcome, rationale s
 		return nil, err
 	}
 	if outcome != "approve" && outcome != "reject" || strings.TrimSpace(rationale) == "" {
-		return nil, InvalidField("decision", "approve/reject와 판단 근거가 필요하다")
+		return nil, InvalidField("decision", "approve/reject와 판단 근거가 필요해요")
 	}
 	var status, title, context, proposal, targetRefs, baseRefs string
 	var version int
 	err = s.DB().QueryRow("SELECT status,version,title,rationale,proposal_md,target_refs_json,base_revisions_json FROM decision_change WHERE project_id=? AND id=?", pid, id).Scan(&status, &version, &title, &context, &proposal, &targetRefs, &baseRefs)
 	if err == sql.ErrNoRows {
-		return nil, NotFound("DCR이 없다: " + id)
+		return nil, NotFound("DCR이 없어요: " + id)
 	}
 	if err != nil {
 		return nil, err
@@ -497,7 +497,7 @@ func (s *Store) DCRDecide(ctx Ctx, id string, expected int, outcome, rationale s
 		return nil, VersionConflict(version, map[string]any{"status": status})
 	}
 	if status != "open" {
-		return nil, &HubError{Status: 409, Code: "invalid_dcr_transition", Message: "open 상태만 결정할 수 있다"}
+		return nil, &HubError{Status: 409, Code: "invalid_dcr_transition", Message: "open 상태만 결정할 수 있어요"}
 	}
 	if outcome == "approve" {
 		var bases map[string]map[string]any
@@ -514,7 +514,7 @@ func (s *Store) DCRDecide(ctx Ctx, id string, expected int, outcome, rationale s
 				var revision int
 				e := s.DB().QueryRow("SELECT version FROM wiki_page WHERE project_id=? AND path=?", pid, v[:i]).Scan(&revision)
 				if e != nil || base["revision"] != float64(revision) && base["revision"] != revision {
-					return nil, &HubError{Status: 409, Code: "stale_decision_base", Message: "DCR target가 바뀌었다: " + ref}
+					return nil, &HubError{Status: 409, Code: "stale_decision_base", Message: "DCR target가 바뀌었어요: " + ref}
 				}
 			} else {
 				v := strings.TrimPrefix(ref, "git:")
@@ -526,7 +526,7 @@ func (s *Store) DCRDecide(ctx Ctx, id string, expected int, outcome, rationale s
 				var sha, digest string
 				e := s.DB().QueryRow("SELECT r.commit_sha,r.content_sha256 FROM knowledge_revision r JOIN knowledge_source s ON s.project_id=r.project_id AND s.id=r.source_id WHERE r.project_id=? AND s.repo_key=? AND r.path=? AND r.status='active' ORDER BY r.revision DESC LIMIT 1", pid, v[:i], v[i+1:j]).Scan(&sha, &digest)
 				if e != nil || base["source_sha"] != sha || base["content_sha256"] != digest {
-					return nil, &HubError{Status: 409, Code: "stale_decision_base", Message: "DCR target가 바뀌었다: " + ref}
+					return nil, &HubError{Status: 409, Code: "stale_decision_base", Message: "DCR target가 바뀌었어요: " + ref}
 				}
 			}
 		}
@@ -638,7 +638,7 @@ func (s *Store) DCRDecide(ctx Ctx, id string, expected int, outcome, rationale s
 		}
 		n, _ := result.RowsAffected()
 		if n != 1 {
-			return nil, &HubError{Status: 409, Code: "version_conflict", Message: "DCR이 다른 요청에서 갱신됐다"}
+			return nil, &HubError{Status: 409, Code: "version_conflict", Message: "DCR이 다른 요청에서 갱신됐어요"}
 		}
 		if adrBody != "" {
 			written, we := s.wikiWritePages(tx, ctx, pid, p.Callsign, []wikiWrite{{path: adrPath, body: adrBody}}, adrIDOut+" — "+id+" 승인")

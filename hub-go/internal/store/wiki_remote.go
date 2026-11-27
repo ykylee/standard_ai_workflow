@@ -37,10 +37,10 @@ func (s *Store) WikiRemoteSet(ctx Ctx, fetchURL string) (map[string]any, error) 
 		return nil, err
 	}
 	if p.Role != "owner" {
-		return nil, Forbidden("위키 원격 읽기는 소유자만 켜고 끈다 — 허브가 외부에 접속하는 유일한 설정이다 (R3.7 · R8.4)")
+		return nil, Forbidden("위키 원격 읽기는 소유자만 켜고 꺼요 — 허브가 외부에 접속하는 유일한 설정이에요 (R3.7 · R8.4)")
 	}
 	if fetchURL != "" && !s.WikiRemoteAllowed {
-		return nil, &HubError{Status: 403, Code: "wiki_remote_disabled", Message: "바깥에 노출된 허브라 위키 원격 읽기가 꺼져 있다 — 운영자가 serve --allow-wiki-remote 로 켠다"}
+		return nil, &HubError{Status: 403, Code: "wiki_remote_disabled", Message: "바깥에 노출된 허브라 위키 원격 읽기가 꺼져 있어요 — 운영자가 serve --allow-wiki-remote 로 켜요"}
 	}
 	if fetchURL != "" && (!wikiFetchURL.MatchString(fetchURL) || strings.HasPrefix(fetchURL, "-")) {
 		return nil, InvalidField("fetch_url", "https:// · ssh:// · git@host:path · file:/// 만 (git 원격 도우미 주소는 거절)")

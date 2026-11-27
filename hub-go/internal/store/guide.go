@@ -27,7 +27,7 @@ func GuideRegionOverBudget(entry, region string) error {
 	size, lines := len([]byte(region)), strings.Count(region, "\n")
 	if size > GuideRegionBudgetBytes || lines > GuideRegionBudgetLines {
 		return &HubError{Status: 422, Code: "entry_budget_exceeded",
-			Message: fmt.Sprintf("%s 렌더 영역 %dB · %d줄 > 예산 %dB · %d줄 — 프로젝트 지침을 줄인다", entry, size, lines, GuideRegionBudgetBytes, GuideRegionBudgetLines),
+			Message: fmt.Sprintf("%s 렌더 영역 %dB · %d줄 > 예산 %dB · %d줄 — 프로젝트 지침을 줄여요", entry, size, lines, GuideRegionBudgetBytes, GuideRegionBudgetLines),
 			Detail:  map[string]any{"size": size, "budget": GuideRegionBudgetBytes, "lines": lines, "line_budget": GuideRegionBudgetLines}}
 	}
 	return nil
@@ -57,10 +57,10 @@ func (s *Store) GuidePropose(ctx Ctx, baseVersion int, body, note string) (map[s
 			return nil, err
 		}
 		if version != baseVersion {
-			return nil, &HubError{Status: 409, Code: "version_conflict", Message: fmt.Sprintf("지침 판이 그 사이 올랐다 — 지금 %d", version), Detail: map[string]any{"current_version": version, "current": current}}
+			return nil, &HubError{Status: 409, Code: "version_conflict", Message: fmt.Sprintf("지침 판이 그 사이 올랐어요 — 지금 %d", version), Detail: map[string]any{"current_version": version, "current": current}}
 		}
 		if body == current {
-			return nil, InvalidField("body", "지금 판과 같다")
+			return nil, InvalidField("body", "지금 판과 같아요")
 		}
 		var display string
 		if err := tx.QueryRow("SELECT display_name FROM project WHERE id=?", pid).Scan(&display); err != nil {
@@ -118,7 +118,7 @@ func (s *Store) GuideDecide(ctx Ctx, proposalID string, approve bool) (map[strin
 		return nil, err
 	}
 	if p.CallsignKind != "human" || !p.HumanApproved {
-		return nil, Forbidden("지침 제안의 승인 · 거절은 승인된 human 콜사인만 한다")
+		return nil, Forbidden("지침 제안의 승인 · 거절은 승인된 human 콜사인만 해요")
 	}
 	pid := p.ProjectID
 	var result map[string]any
@@ -127,13 +127,13 @@ func (s *Store) GuideDecide(ctx Ctx, proposalID string, approve bool) (map[strin
 		var body, status string
 		err := tx.QueryRow("SELECT base_version,body_md,status FROM guide_proposal WHERE project_id=? AND id=?", pid, proposalID).Scan(&base, &body, &status)
 		if err == sql.ErrNoRows {
-			return nil, NotFound("지침 제안이 없다: " + proposalID)
+			return nil, NotFound("지침 제안이 없어요: " + proposalID)
 		}
 		if err != nil {
 			return nil, err
 		}
 		if status != "open" {
-			return nil, &HubError{Status: 409, Code: "already_decided", Message: "이미 " + status + " 된 제안이다", Detail: map[string]any{"status": status}}
+			return nil, &HubError{Status: 409, Code: "already_decided", Message: "이미 " + status + " 된 제안이에요", Detail: map[string]any{"status": status}}
 		}
 		var applied any
 		if approve {
@@ -142,7 +142,7 @@ func (s *Store) GuideDecide(ctx Ctx, proposalID string, approve bool) (map[strin
 				return nil, err
 			}
 			if base != version {
-				return nil, &HubError{Status: 409, Code: "version_conflict", Message: fmt.Sprintf("제안의 기준 판 %d 이 지금 판 %d 이 아니다 — 새 판 위에서 다시 제안한다", base, version), Detail: map[string]any{"current_version": version, "current": current}}
+				return nil, &HubError{Status: 409, Code: "version_conflict", Message: fmt.Sprintf("제안의 기준 판 %d 이 지금 판 %d 이 아니에요 — 새 판 위에서 다시 제안해요", base, version), Detail: map[string]any{"current_version": version, "current": current}}
 			}
 			var display string
 			if err := tx.QueryRow("SELECT display_name FROM project WHERE id=?", pid).Scan(&display); err != nil {

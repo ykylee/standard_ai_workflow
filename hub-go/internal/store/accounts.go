@@ -78,7 +78,7 @@ func (s *Store) AccountEnroll(token, username, displayName, password string, now
 			return "", HubAccount{}, nil, err
 		}
 		if p == nil || p.Kind != "callsign" || p.CallsignKind != "human" || !p.HumanApproved {
-			return "", HubAccount{}, nil, Forbidden("토큰을 넣으려면 승인된 사람 콜사인 토큰이어야 한다")
+			return "", HubAccount{}, nil, Forbidden("토큰을 넣으려면 승인된 사람 콜사인 토큰이어야 해요")
 		}
 	}
 	username = strings.ToLower(strings.TrimSpace(username))
@@ -117,12 +117,12 @@ func (s *Store) AccountEnroll(token, username, displayName, password string, now
 				return nil, err
 			}
 			if linked > 0 {
-				return nil, &HubError{Status: 409, Code: "callsign_already_linked", Message: "이 사람 콜사인은 이미 계정에 연결됐다"}
+				return nil, &HubError{Status: 409, Code: "callsign_already_linked", Message: "이 사람 콜사인은 이미 계정에 연결됐어요"}
 			}
 		}
 		if _, err := tx.Exec("INSERT INTO hub_account(id,username,display_name,password_hash,created_at) VALUES(?,?,?,?,?)", account.ID, username, displayName, passwordHash, db.FormatISO(now)); err != nil {
 			if strings.Contains(strings.ToLower(err.Error()), "unique") {
-				return nil, &HubError{Status: 409, Code: "username_taken", Message: "이미 사용 중인 계정 이름이다"}
+				return nil, &HubError{Status: 409, Code: "username_taken", Message: "이미 사용 중인 계정 이름이에요"}
 			}
 			return nil, err
 		}
@@ -161,7 +161,7 @@ func signupSlot(tx *sql.Tx, now time.Time) error {
 		}
 	}
 	if count > signupsPerHour {
-		return &HubError{Status: 429, Code: "signup_rate_limited", Message: "가입이 많다 — 잠시 뒤 다시 시도한다"}
+		return &HubError{Status: 429, Code: "signup_rate_limited", Message: "가입이 많아요 — 잠시 뒤 다시 시도해요"}
 	}
 	_, err = tx.Exec("INSERT INTO hub_account_login_attempt(username_hash,attempts,window_started_at,locked_until) VALUES(?,?,?,NULL) ON CONFLICT(username_hash) DO UPDATE SET attempts=excluded.attempts,window_started_at=excluded.window_started_at", key, count, window)
 	return err
@@ -185,20 +185,20 @@ func (s *Store) AccountJoin(accountID, project, callsign string, now time.Time) 
 		pid, _ = found["project_id"].(string)
 	}
 	if pid == "" {
-		return nil, NotFound("프로젝트가 없다 — ID 나 git 주소를 확인한다")
+		return nil, NotFound("프로젝트가 없어요 — ID 나 git 주소를 확인해요")
 	}
 	moved, err := s.ProjectMoved(pid)
 	if err != nil {
 		return nil, err
 	}
 	if moved != "" {
-		return nil, &HubError{Status: 410, Code: "project_moved", Message: "프로젝트가 다른 허브로 이동했다", Detail: map[string]any{"project_id": pid, "to": moved}}
+		return nil, &HubError{Status: 410, Code: "project_moved", Message: "프로젝트가 다른 허브로 이동했어요", Detail: map[string]any{"project_id": pid, "to": moved}}
 	}
 	if err := s.pool.QueryRow("SELECT COUNT(*) FROM hub_account_callsign WHERE account_id=? AND project_id=?", accountID, pid).Scan(&n); err != nil {
 		return nil, err
 	}
 	if n > 0 {
-		return nil, &HubError{Status: 409, Code: "already_joined", Message: "이 계정은 이미 그 프로젝트에 연결됐다"}
+		return nil, &HubError{Status: 409, Code: "already_joined", Message: "이 계정은 이미 그 프로젝트에 연결됐어요"}
 	}
 	if _, err := s.RegisterCallsign(Ctx{Now: now, Via: "ui"}, pid, callsign, "human", "허브 계정 참여", "browser"); err != nil {
 		return nil, err
@@ -223,7 +223,7 @@ func (s *Store) AccountResetPassword(username, password string, now time.Time) (
 		var id string
 		err := tx.QueryRow("SELECT id FROM hub_account WHERE username=? AND active=1", username).Scan(&id)
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, NotFound("계정이 없다: " + username)
+			return nil, NotFound("계정이 없어요: " + username)
 		}
 		if err != nil {
 			return nil, err
@@ -280,7 +280,7 @@ func (s *Store) AccountSetAdmin(username string, admin bool, now time.Time, acto
 		var was int
 		err := tx.QueryRow("SELECT id,is_admin FROM hub_account WHERE username=? AND active=1", username).Scan(&id, &was)
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, NotFound("계정이 없다: " + username)
+			return nil, NotFound("계정이 없어요: " + username)
 		}
 		if err != nil {
 			return nil, err
@@ -352,10 +352,10 @@ func (s *Store) AccountLogin(username, password string, now time.Time) (string, 
 		return "", HubAccount{}, err
 	}
 	if limited {
-		return "", HubAccount{}, &HubError{Status: 429, Code: "login_rate_limited", Message: "로그인 시도가 많다 — 잠시 뒤 다시 시도한다"}
+		return "", HubAccount{}, &HubError{Status: 429, Code: "login_rate_limited", Message: "로그인 시도가 많아요 — 잠시 뒤 다시 시도해요"}
 	}
 	if denied {
-		return "", HubAccount{}, Unauthorized("계정 이름 또는 비밀번호가 맞지 않는다")
+		return "", HubAccount{}, Unauthorized("계정 이름 또는 비밀번호가 맞지 않아요")
 	}
 	session, err := s.openAccountSession(account.ID, encoded, now)
 	if err != nil {
@@ -378,7 +378,7 @@ func (s *Store) openAccountSession(accountID, checkedHash string, now time.Time)
 		if n, err := res.RowsAffected(); err != nil {
 			return nil, err
 		} else if n != 1 {
-			return nil, Unauthorized("계정 이름 또는 비밀번호가 맞지 않는다")
+			return nil, Unauthorized("계정 이름 또는 비밀번호가 맞지 않아요")
 		}
 		return nil, nil
 	})
@@ -394,7 +394,7 @@ func (s *Store) AccountLink(accountID, token string, now time.Time) (map[string]
 		return nil, err
 	}
 	if p == nil || p.Kind != "callsign" || p.CallsignKind != "human" || !p.HumanApproved {
-		return nil, Forbidden("승인된 사람 콜사인 토큰만 계정에 연결할 수 있다")
+		return nil, Forbidden("승인된 사람 콜사인 토큰만 계정에 연결할 수 있어요")
 	}
 	return s.withWriteTx(func(tx *sql.Tx) (map[string]any, error) {
 		var active int
@@ -402,7 +402,7 @@ func (s *Store) AccountLink(accountID, token string, now time.Time) (map[string]
 			return nil, err
 		}
 		if active == 0 {
-			return nil, Unauthorized("허브 계정 세션이 만료됐다")
+			return nil, Unauthorized("허브 계정 세션이 만료됐어요")
 		}
 		var linked string
 		err := tx.QueryRow("SELECT account_id FROM hub_account_callsign WHERE project_id=? AND callsign=?", p.ProjectID, p.Callsign).Scan(&linked)
@@ -410,7 +410,7 @@ func (s *Store) AccountLink(accountID, token string, now time.Time) (map[string]
 			if linked == accountID {
 				return map[string]any{"project_id": p.ProjectID, "callsign": p.Callsign, "unchanged": true}, nil
 			}
-			return nil, &HubError{Status: 409, Code: "callsign_already_linked", Message: "이 사람 콜사인은 다른 허브 계정에 연결됐다"}
+			return nil, &HubError{Status: 409, Code: "callsign_already_linked", Message: "이 사람 콜사인은 다른 허브 계정에 연결됐어요"}
 		}
 		if !errors.Is(err, sql.ErrNoRows) {
 			return nil, err

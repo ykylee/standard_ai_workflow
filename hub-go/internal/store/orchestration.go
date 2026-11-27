@@ -22,7 +22,7 @@ func needOwner(ctx Ctx) (*Principal, error) {
 		return nil, err
 	}
 	if p.Role != "owner" || p.CallsignKind != "human" || !p.HumanApproved {
-		return nil, Forbidden("승인된 human 소유자(owner)만 — 오케스트레이터 지정 · 인계 · 정지는 사람이 한다 (요구 R19.1)")
+		return nil, Forbidden("승인된 human 소유자(owner)만 — 오케스트레이터 지정 · 인계 · 정지는 사람이 해요 (요구 R19.1)")
 	}
 	return p, nil
 }
@@ -30,18 +30,18 @@ func needOwner(ctx Ctx) (*Principal, error) {
 func (s *Store) activeSession(tx *sql.Tx, projectID string, raw any) (map[string]any, error) {
 	id, ok := raw.(string)
 	if !ok || !orchestratorSessionID.MatchString(id) {
-		return nil, InvalidField("session", "S-YYYYMMDD-xxxxxxxx 꼴이어야 한다")
+		return nil, InvalidField("session", "S-YYYYMMDD-xxxxxxxx 꼴이어야 해요")
 	}
 	var callsign, delivery, status string
 	err := tx.QueryRow(`SELECT callsign,delivery_json,status FROM session WHERE project_id=? AND id=?`, projectID, id).Scan(&callsign, &delivery, &status)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, NotFound("세션이 없다: " + id)
+		return nil, NotFound("세션이 없어요: " + id)
 	}
 	if err != nil {
 		return nil, err
 	}
 	if status == "ended" {
-		return nil, &HubError{Status: 410, Code: "session_ended", Message: "끝난 세션이다", Detail: map[string]any{"session": id}}
+		return nil, &HubError{Status: 410, Code: "session_ended", Message: "끝난 세션이에요", Detail: map[string]any{"session": id}}
 	}
 	return map[string]any{"id": id, "callsign": callsign, "delivery_json": delivery, "status": status}, nil
 }
@@ -97,7 +97,7 @@ func (s *Store) needOrchestrator(tx *sql.Tx, ctx Ctx, session any) (*Principal, 
 	}
 	sid, ok := session.(string)
 	if l == nil || !ok || l["session_id"] != sid || l["callsign"] != p.Callsign {
-		return nil, nil, &HubError{Status: 403, Code: "not_orchestrator", Message: "지정된 오케스트레이터 세션만 — session 인자에 그 세션 ID 를 싣는다"}
+		return nil, nil, &HubError{Status: 403, Code: "not_orchestrator", Message: "지정된 오케스트레이터 세션만 — session 인자에 그 세션 ID 를 실어요"}
 	}
 	return p, l, nil
 }
@@ -117,7 +117,7 @@ func (s *Store) OrchDeclare(ctx Ctx, session string) (map[string]any, error) {
 			return nil, err
 		}
 		if lease != nil {
-			return nil, &HubError{Status: 409, Code: "orchestrator_exists", Message: "오케스트레이터가 이미 있다 — 바꾸려면 hub_orch_transfer"}
+			return nil, &HubError{Status: 409, Code: "orchestrator_exists", Message: "오케스트레이터가 이미 있어요 — 바꾸려면 hub_orch_transfer"}
 		}
 		expires := db.FormatISO(ctx.Now.Add(orchestratorLeaseTTL))
 		sid := target["id"].(string)
@@ -150,7 +150,7 @@ func (s *Store) OrchTransfer(ctx Ctx, session string) (map[string]any, error) {
 			return nil, err
 		}
 		if old == nil {
-			return nil, &HubError{Status: 409, Code: "no_orchestrator", Message: "지금 오케스트레이터가 없다 — hub_orch_declare 로 지정한다"}
+			return nil, &HubError{Status: 409, Code: "no_orchestrator", Message: "지금 오케스트레이터가 없어요 — hub_orch_declare 로 지정해요"}
 		}
 		sid := target["id"].(string)
 		call := target["callsign"].(string)
@@ -189,7 +189,7 @@ func (s *Store) OrchRelease(ctx Ctx, session string) (map[string]any, error) {
 		}
 		owner := p.Role == "owner" && p.CallsignKind == "human" && p.HumanApproved
 		if !owner && session != l["session_id"] {
-			return nil, Forbidden("owner 나 오케스트레이터 세션 자신만 lease 를 푼다")
+			return nil, Forbidden("owner 나 오케스트레이터 세션 자신만 lease 를 풀어요")
 		}
 		if _, err := tx.Exec("DELETE FROM orchestrator_lease WHERE project_id=?", p.ProjectID); err != nil {
 			return nil, err
@@ -212,7 +212,7 @@ func (s *Store) OrchHalt(ctx Ctx, on bool) (map[string]any, error) {
 			return nil, err
 		}
 		if l == nil {
-			return nil, &HubError{Status: 409, Code: "no_orchestrator", Message: "지금 오케스트레이터가 없다 — 멈출 것이 없다"}
+			return nil, &HubError{Status: 409, Code: "no_orchestrator", Message: "지금 오케스트레이터가 없어요 — 멈출 것이 없어요"}
 		}
 		if _, err := tx.Exec("UPDATE orchestrator_lease SET halted=?,version=version+1 WHERE project_id=?", boolInt(on), p.ProjectID); err != nil {
 			return nil, err
@@ -261,21 +261,21 @@ func (s *Store) OrchAssign(ctx Ctx, session, taskID, toSession, note, requestID 
 			return nil, err
 		}
 		if l["halted"].(bool) {
-			return nil, &HubError{Status: 423, Code: "halted", Message: "오케스트레이션이 정지돼 있다 (hub_orch_halt)"}
+			return nil, &HubError{Status: 423, Code: "halted", Message: "오케스트레이션이 정지돼 있어요 (hub_orch_halt)"}
 		}
 		task, err := s.GetTask(tx, p.ProjectID, taskID)
 		if err != nil {
 			return nil, err
 		}
 		if task["status"] == "done" {
-			return nil, &HubError{Status: 409, Code: "task_done", Message: "닫힌 task 는 배정할 수 없다"}
+			return nil, &HubError{Status: 409, Code: "task_done", Message: "닫힌 task 는 배정할 수 없어요"}
 		}
 		target, err := s.activeSession(tx, p.ProjectID, toSession)
 		if err != nil {
 			return nil, err
 		}
 		if target["id"] == l["session_id"] {
-			return nil, &HubError{Status: 409, Code: "self_assignment", Message: "오케스트레이터는 자기에게 배정하지 않는다 — 직접 hub_task_claim (Q3)"}
+			return nil, &HubError{Status: 409, Code: "self_assignment", Message: "오케스트레이터는 자기에게 배정하지 않아요 — 직접 hub_task_claim (Q3)"}
 		}
 		var delivery string
 		if err := tx.QueryRow("SELECT delivery_json FROM session WHERE project_id=? AND id=?", p.ProjectID, toSession).Scan(&delivery); err != nil {
@@ -286,11 +286,11 @@ func (s *Store) OrchAssign(ctx Ctx, session, taskID, toSession, note, requestID 
 			return nil, err
 		}
 		if len(paths) == 0 {
-			return nil, &HubError{Status: 409, Code: "no_delivery_path", Message: "그 세션에 전달 경로가 없다", Detail: map[string]any{"session": toSession}}
+			return nil, &HubError{Status: 409, Code: "no_delivery_path", Message: "그 세션에 전달 경로가 없어요", Detail: map[string]any{"session": toSession}}
 		}
 		assignee, _ := task["assignee"].(string)
 		if assignee != "" && assignee != target["callsign"] {
-			return nil, &HubError{Status: 409, Code: "already_claimed", Message: assignee + " 가 맡고 있다 — 그 콜사인의 세션에만 배정한다", Detail: map[string]any{"assignee": assignee}}
+			return nil, &HubError{Status: 409, Code: "already_claimed", Message: assignee + " 가 맡고 있어요 — 그 콜사인의 세션에만 배정해요", Detail: map[string]any{"assignee": assignee}}
 		}
 		var title string
 		if err := tx.QueryRow("SELECT title FROM task WHERE project_id=? AND id=?", p.ProjectID, taskID).Scan(&title); err != nil {
@@ -302,7 +302,7 @@ func (s *Store) OrchAssign(ctx Ctx, session, taskID, toSession, note, requestID 
 		}
 		if _, err := tx.Exec("INSERT INTO assignment(project_id,task_id,session_id,callsign,message_id,state,offered_at) VALUES(?,?,?,?,?,'offered',?)", p.ProjectID, taskID, toSession, target["callsign"], mid, db.FormatISO(ctx.Now)); err != nil {
 			if strings.Contains(strings.ToLower(err.Error()), "unique") {
-				return nil, &HubError{Status: 409, Code: "assignment_taken", Message: "이 task 에는 열린 배정이 있다 — 회수(hub_orch_recall) 뒤 다시", Detail: map[string]any{"task_id": taskID}}
+				return nil, &HubError{Status: 409, Code: "assignment_taken", Message: "이 task 에는 열린 배정이 있어요 — 회수(hub_orch_recall) 뒤 다시", Detail: map[string]any{"task_id": taskID}}
 			}
 			return nil, err
 		}
@@ -322,7 +322,7 @@ func (s *Store) OrchRecall(ctx Ctx, session, taskID, reason string) (map[string]
 		var sid string
 		err = tx.QueryRow("SELECT session_id FROM assignment WHERE project_id=? AND task_id=? AND state IN ('offered','accepted')", p.ProjectID, taskID).Scan(&sid)
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, &HubError{Status: 409, Code: "assignment_not_open", Message: "열린 배정이 없다", Detail: map[string]any{"task_id": taskID}}
+			return nil, &HubError{Status: 409, Code: "assignment_not_open", Message: "열린 배정이 없어요", Detail: map[string]any{"task_id": taskID}}
 		}
 		if err != nil {
 			return nil, err
@@ -359,7 +359,7 @@ func (s *Store) OrchMessage(ctx Ctx, session, to, kind string, body any, request
 			return nil, err
 		}
 		if l["halted"].(bool) && kind != "release" {
-			return nil, &HubError{Status: 423, Code: "halted", Message: "오케스트레이션이 정지돼 있다 — release 만 보낼 수 있다"}
+			return nil, &HubError{Status: 423, Code: "halted", Message: "오케스트레이션이 정지돼 있어요 — release 만 보낼 수 있어요"}
 		}
 		toKind := "callsign"
 		if orchestratorSessionID.MatchString(to) {
@@ -374,7 +374,7 @@ func (s *Store) OrchMessage(ctx Ctx, session, to, kind string, body any, request
 				return nil, err
 			}
 			if n == 0 {
-				return nil, NotFound("세션 · 콜사인이 없다: " + to)
+				return nil, NotFound("세션 · 콜사인이 없어요: " + to)
 			}
 		}
 		mid, err := s.EnqueueMessage(tx, ctx, p.ProjectID, toKind, to, kind, b, p.Callsign, session, true, "")

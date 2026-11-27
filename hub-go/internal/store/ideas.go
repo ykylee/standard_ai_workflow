@@ -233,7 +233,7 @@ func ideaDraft(v any) (any, error) {
 	}
 	// 로드맵 밖 초안은 사유까지 실어야 사람이 그대로 등록할 수 있다 — WBS 게이트가 사유 없는 exempt 를 거절한다
 	if strings.TrimSpace(wbs) == "exempt" && ideaIsBlank(reason) {
-		return nil, InvalidField("draft.wbs_exempt_reason", "draft.wbs 가 exempt 면 면제 사유가 필수다")
+		return nil, InvalidField("draft.wbs_exempt_reason", "draft.wbs 가 exempt 면 면제 사유가 필수예요")
 	}
 	return map[string]any{"title": title, "wbs": wbs, "wbs_exempt_reason": reason, "done_criteria": done}, nil
 }
@@ -241,7 +241,7 @@ func ideaDraft(v any) (any, error) {
 func needIdeaHuman(ctx Ctx) (*Principal, error) {
 	p := ctx.Principal
 	if p == nil || p.Kind != "callsign" || p.AuthMode != "account" || p.CallsignKind != "human" || !p.HumanApproved || p.ProjectID == "" || p.Callsign == "" {
-		return nil, Forbidden("아이디어는 허브 계정으로 로그인한 승인된 사람이 적고 처리한다")
+		return nil, Forbidden("아이디어는 허브 계정으로 로그인한 승인된 사람이 적고 처리해요")
 	}
 	return p, nil
 }
@@ -250,7 +250,7 @@ func ideaGetRow(q queryExec, pid, id string) (*ideaRow, error) {
 	r := &ideaRow{}
 	err := q.QueryRow("SELECT "+ideaCols+" FROM idea i WHERE i.project_id=? AND i.id=?", pid, id).Scan(r.dest()...)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, NotFound("아이디어가 없다: " + id)
+		return nil, NotFound("아이디어가 없어요: " + id)
 	}
 	return r, err
 }
@@ -304,7 +304,7 @@ func (s *Store) ideaMove(tx *sql.Tx, ctx Ctx, pid string, r *ideaRow, op, status
 	if n, err := res.RowsAffected(); err != nil {
 		return err
 	} else if n != 1 {
-		return &HubError{Status: 409, Code: "version_conflict", Message: "그 사이 아이디어가 바뀌었다 — 다시 읽는다", Detail: map[string]any{"id": r.id}}
+		return &HubError{Status: 409, Code: "version_conflict", Message: "그 사이 아이디어가 바뀌었어요 — 다시 읽어요", Detail: map[string]any{"id": r.id}}
 	}
 	return s.RecordEvent(tx, ctx, &pid, "idea", r.id, op, map[string]any{"status": r.status, "version": r.version},
 		map[string]any{"status": status, "version": r.version + 1}, nil)
@@ -316,7 +316,7 @@ func ideaExpect(r *ideaRow, expected any) error {
 		return InvalidField("expected_version", "정수")
 	}
 	if n != r.version {
-		return &HubError{Status: 409, Code: "version_conflict", Message: fmt.Sprintf("version 이 다르다 — 지금 %d", r.version), Detail: map[string]any{"current_version": r.version}}
+		return &HubError{Status: 409, Code: "version_conflict", Message: fmt.Sprintf("version 이 달라요 — 지금 %d", r.version), Detail: map[string]any{"current_version": r.version}}
 	}
 	return nil
 }
@@ -325,7 +325,7 @@ func ideaAdopted(r *ideaRow) error {
 	if r.status != "adopted" {
 		return nil
 	}
-	return &HubError{Status: 409, Code: "idea_adopted", Message: "이미 task 로 만든 아이디어다", Detail: map[string]any{"task_id": nullable(r.taskID, true)}}
+	return &HubError{Status: 409, Code: "idea_adopted", Message: "이미 task 로 만든 아이디어예요", Detail: map[string]any{"task_id": nullable(r.taskID, true)}}
 }
 
 // IdeaAdd stores one idea verbatim; web means a logged-in human wrote it.
@@ -500,11 +500,11 @@ func (s *Store) IdeaClaim(ctx Ctx, id string) (map[string]any, error) {
 		}
 		status := r.effective(now)
 		if status == "reviewing" { // 같은 콜사인의 다른 세션도 겹쳐 검토하지 않는다
-			return nil, &HubError{Status: 409, Code: "idea_claimed", Message: r.claimedBy.String + " 가 검토하고 있다",
+			return nil, &HubError{Status: 409, Code: "idea_claimed", Message: r.claimedBy.String + " 가 검토하고 있어요",
 				Detail: map[string]any{"claimed_by": r.claimedBy.String, "claim_until": r.claimUntil.String}}
 		}
 		if status != "new" {
-			return nil, &HubError{Status: 409, Code: "idea_not_waiting", Message: "검토 대기가 아니다: " + status, Detail: map[string]any{"status": status}}
+			return nil, &HubError{Status: 409, Code: "idea_not_waiting", Message: "검토 대기가 아니에요: " + status, Detail: map[string]any{"status": status}}
 		}
 		if err := s.ideaMove(tx, ctx, p.ProjectID, r, "claim", "reviewing", p.Callsign, db.FormatISO(ctx.Now.Add(ideaClaimFor)), nullable(r.taskID, true), r.asked); err != nil {
 			return nil, err
@@ -541,7 +541,7 @@ func (s *Store) IdeaReply(ctx Ctx, a map[string]any) (map[string]any, error) {
 		return nil, err
 	}
 	if len(body["refs"].([]string)) == 0 && ideaIsBlank(body["unverified"].(string)) {
-		return nil, InvalidField("refs", "근거(refs)나 확인하지 않은 것(unverified) 가운데 하나는 적는다")
+		return nil, InvalidField("refs", "근거(refs)나 확인하지 않은 것(unverified) 가운데 하나는 적어요")
 	}
 	// 이미 있는 task (사람이 시켜 따로 만든 것) · 비슷한 아이디어 — 회신에 실어 화면이 묶어 보인다
 	taskID, err := ideaText(a["task_id"], "task_id", 100, false)
@@ -572,11 +572,11 @@ func (s *Store) IdeaReply(ctx Ctx, a map[string]any) (map[string]any, error) {
 		for _, other := range related {
 			var one int
 			if other == r.id || tx.QueryRow("SELECT 1 FROM idea WHERE project_id=? AND id=?", p.ProjectID, other).Scan(&one) != nil {
-				return nil, InvalidField("related_ideas", "이 프로젝트의 다른 아이디어가 아니다: "+other)
+				return nil, InvalidField("related_ideas", "이 프로젝트의 다른 아이디어가 아니에요: "+other)
 			}
 		}
 		if r.effective(now) != "reviewing" || r.claimedBy.String != p.Callsign {
-			return nil, &HubError{Status: 409, Code: "idea_not_claimed", Message: "이 콜사인이 맡은 아이디어가 아니다 — hub_idea_claim 먼저", Detail: map[string]any{"status": r.effective(now)}}
+			return nil, &HubError{Status: 409, Code: "idea_not_claimed", Message: "이 콜사인이 맡은 아이디어가 아니에요 — hub_idea_claim 먼저", Detail: map[string]any{"status": r.effective(now)}}
 		}
 		if err := ideaExpect(r, a["expected_version"]); err != nil {
 			return nil, err

@@ -25,7 +25,7 @@ func (s *Server) handleUIAPI(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	s.writeHubHeaders(w)
 	if r.Method != http.MethodGet && r.Method != http.MethodPost {
-		writeJSONResponse(w, http.StatusMethodNotAllowed, map[string]any{"error_code": "method_not_allowed", "message": "GET · POST 만 지원한다", "detail": map[string]any{}})
+		writeJSONResponse(w, http.StatusMethodNotAllowed, map[string]any{"error_code": "method_not_allowed", "message": "GET · POST 만 지원해요", "detail": map[string]any{}})
 		return
 	}
 	now := s.cfg.Clock().UTC().Truncate(time.Second)
@@ -40,7 +40,7 @@ func (s *Server) handleUIAPI(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.Method == http.MethodPost && bearerToken(r.Header) == "" {
 		if _, cookieErr := r.Cookie("workflow_hub_session"); cookieErr == nil && !s.screenOrigin(r).ok {
-			writeScreenError(w, &store.HubError{Status: http.StatusForbidden, Code: "origin_mismatch", Message: "같은 출처의 브라우저 요청만 허용한다"})
+			writeScreenError(w, &store.HubError{Status: http.StatusForbidden, Code: "origin_mismatch", Message: "같은 출처의 브라우저 요청만 허용해요"})
 			return
 		}
 	}
@@ -116,7 +116,7 @@ func (s *Server) handleUIAPI(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if r.Method != http.MethodGet {
-			writeJSONResponse(w, http.StatusMethodNotAllowed, map[string]any{"error_code": "method_not_allowed", "message": "GET 만 지원한다", "detail": map[string]any{}})
+			writeJSONResponse(w, http.StatusMethodNotAllowed, map[string]any{"error_code": "method_not_allowed", "message": "GET 만 지원해요", "detail": map[string]any{}})
 			return
 		}
 		list, err := s.cfg.Store.AccountList()
@@ -131,7 +131,7 @@ func (s *Server) handleUIAPI(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if r.Method != http.MethodGet {
-			writeJSONResponse(w, http.StatusMethodNotAllowed, map[string]any{"error_code": "method_not_allowed", "message": "GET 만 지원한다", "detail": map[string]any{}})
+			writeJSONResponse(w, http.StatusMethodNotAllowed, map[string]any{"error_code": "method_not_allowed", "message": "GET 만 지원해요", "detail": map[string]any{}})
 			return
 		}
 		result, err := s.cfg.Store.HarnessReportList(store.Ctx{Now: now, Via: "ui", Principal: principal}, r.URL.Query().Get("status"), true)
@@ -162,7 +162,7 @@ func (s *Server) handleUIAPI(w http.ResponseWriter, r *http.Request) {
 		}
 		name, ok := body["display_name"].(string)
 		if !ok {
-			writeScreenError(w, store.InvalidField("display_name", "문자열이어야 한다"))
+			writeScreenError(w, store.InvalidField("display_name", "문자열이어야 해요"))
 			return
 		}
 		result, err := s.cfg.Store.HarnessPersonCreate(ctx, name)
@@ -178,7 +178,7 @@ func (s *Server) handleUIAPI(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if r.Method != http.MethodGet {
-			writeJSONResponse(w, http.StatusMethodNotAllowed, map[string]any{"error_code": "method_not_allowed", "message": "GET 만 지원한다", "detail": map[string]any{}})
+			writeJSONResponse(w, http.StatusMethodNotAllowed, map[string]any{"error_code": "method_not_allowed", "message": "GET 만 지원해요", "detail": map[string]any{}})
 			return
 		}
 		result, err := s.cfg.Store.HarnessRegistryList(store.Ctx{Now: now, Via: "ui", Principal: principal}, true)
@@ -217,7 +217,7 @@ func (s *Server) handleAccountAdminUIAPI(w http.ResponseWriter, r *http.Request,
 		return
 	}
 	if r.Method != http.MethodPost {
-		writeJSONResponse(w, http.StatusMethodNotAllowed, map[string]any{"error_code": "method_not_allowed", "message": "POST 만 지원한다", "detail": map[string]any{}})
+		writeJSONResponse(w, http.StatusMethodNotAllowed, map[string]any{"error_code": "method_not_allowed", "message": "POST 만 지원해요", "detail": map[string]any{}})
 		return
 	}
 	body, err := readScreenJSON(r)
@@ -267,7 +267,7 @@ func (s *Server) handleHarnessDecisionUIAPI(w http.ResponseWriter, r *http.Reque
 	}
 	decision, ok := body["decision"].(string)
 	if !ok {
-		writeScreenError(w, store.InvalidField("decision", "문자열이어야 한다"))
+		writeScreenError(w, store.InvalidField("decision", "문자열이어야 해요"))
 		return
 	}
 	note, _ := body["note"].(string)
@@ -275,13 +275,13 @@ func (s *Server) handleHarnessDecisionUIAPI(w http.ResponseWriter, r *http.Reque
 	if raw, exists := body["owner_ids"]; exists {
 		values, ok := raw.([]any)
 		if !ok {
-			writeScreenError(w, store.InvalidField("owner_ids", "문자열 목록이어야 한다"))
+			writeScreenError(w, store.InvalidField("owner_ids", "문자열 목록이어야 해요"))
 			return
 		}
 		for _, value := range values {
 			id, ok := value.(string)
 			if !ok {
-				writeScreenError(w, store.InvalidField("owner_ids", "문자열 목록이어야 한다"))
+				writeScreenError(w, store.InvalidField("owner_ids", "문자열 목록이어야 해요"))
 				return
 			}
 			ownerIDs = append(ownerIDs, id)
@@ -307,7 +307,7 @@ func (s *Server) handleProjectUIAPI(w http.ResponseWriter, r *http.Request, prin
 		return
 	}
 	if principal.Kind == "callsign" && principal.ProjectID != pid {
-		writeScreenError(w, store.Forbidden("이 토큰의 프로젝트가 아니다"))
+		writeScreenError(w, store.Forbidden("이 토큰의 프로젝트가 아니에요"))
 		return
 	}
 	moved, err := s.cfg.Store.ProjectMoved(pid)
@@ -316,7 +316,7 @@ func (s *Server) handleProjectUIAPI(w http.ResponseWriter, r *http.Request, prin
 		return
 	}
 	if moved != "" {
-		writeScreenError(w, &store.HubError{Status: http.StatusGone, Code: "project_moved", Message: "프로젝트가 다른 허브로 이동했다", Detail: map[string]any{"project_id": pid, "to": moved}})
+		writeScreenError(w, &store.HubError{Status: http.StatusGone, Code: "project_moved", Message: "프로젝트가 다른 허브로 이동했어요", Detail: map[string]any{"project_id": pid, "to": moved}})
 		return
 	}
 	projectRows, err := s.screenProjects(pid)
@@ -325,7 +325,7 @@ func (s *Server) handleProjectUIAPI(w http.ResponseWriter, r *http.Request, prin
 		return
 	}
 	if len(projectRows) == 0 {
-		writeScreenError(w, store.NotFound("프로젝트가 없다: "+pid))
+		writeScreenError(w, store.NotFound("프로젝트가 없어요: "+pid))
 		return
 	}
 	viewer := &store.Principal{Kind: "viewer", ProjectID: pid, Callsign: principal.Callsign, CallsignKind: principal.CallsignKind, HumanApproved: principal.HumanApproved, Role: principal.Role, Name: principal.Name}
@@ -403,11 +403,11 @@ func (s *Server) handleProjectUIAPI(w http.ResponseWriter, r *http.Request, prin
 	}
 	if len(parts) == 5 && parts[2] == "tasks" && parts[4] == "responses" && r.Method == http.MethodPost {
 		if principal.Kind != "callsign" {
-			writeScreenError(w, store.Forbidden("결정 답은 콜사인 토큰으로만 쓴다 (화면 공용 토큰은 읽기 · 등록만)"))
+			writeScreenError(w, store.Forbidden("결정 답은 콜사인 토큰으로만 써요 (화면 공용 토큰은 읽기 · 등록만)"))
 			return
 		}
 		if principal.ProjectID != pid {
-			writeScreenError(w, store.Forbidden("이 토큰의 프로젝트가 아니다"))
+			writeScreenError(w, store.Forbidden("이 토큰의 프로젝트가 아니에요"))
 			return
 		}
 		body, err := readScreenJSON(r)
@@ -451,15 +451,15 @@ func (s *Server) handleProjectUIAPI(w http.ResponseWriter, r *http.Request, prin
 		kind, ok2 := body["kind"].(string)
 		label, ok3 := body["label"].(string)
 		if _, exists := body["callsign"]; exists && !ok1 {
-			writeScreenError(w, store.InvalidField("callsign", "문자열이어야 한다"))
+			writeScreenError(w, store.InvalidField("callsign", "문자열이어야 해요"))
 			return
 		}
 		if _, exists := body["kind"]; exists && !ok2 {
-			writeScreenError(w, store.InvalidField("kind", "문자열이어야 한다"))
+			writeScreenError(w, store.InvalidField("kind", "문자열이어야 해요"))
 			return
 		}
 		if _, exists := body["label"]; exists && !ok3 {
-			writeScreenError(w, store.InvalidField("label", "문자열이어야 한다"))
+			writeScreenError(w, store.InvalidField("label", "문자열이어야 해요"))
 			return
 		}
 		ctxWrite := store.Ctx{Now: now, Via: "ui", Principal: principal, PublicURL: s.cfg.PublicURL}
@@ -473,7 +473,7 @@ func (s *Server) handleProjectUIAPI(w http.ResponseWriter, r *http.Request, prin
 	}
 	if len(parts) == 5 && parts[2] == "callsigns" && parts[4] == "delete" && r.Method == http.MethodPost {
 		if principal.Kind != "admin" {
-			writeScreenError(w, store.Forbidden("콜사인 삭제는 허브 관리자만 한다"))
+			writeScreenError(w, store.Forbidden("콜사인 삭제는 허브 관리자만 해요"))
 			return
 		}
 		body, err := readScreenJSON(r)
@@ -492,7 +492,7 @@ func (s *Server) handleProjectUIAPI(w http.ResponseWriter, r *http.Request, prin
 	}
 	if len(parts) == 5 && parts[2] == "callsigns" && parts[4] == "approve" && r.Method == http.MethodPost {
 		if principal.Kind != "callsign" || principal.ProjectID != pid {
-			writeScreenError(w, store.Forbidden("승인은 이 프로젝트의 소유자 콜사인 토큰으로만 한다"))
+			writeScreenError(w, store.Forbidden("승인은 이 프로젝트의 소유자 콜사인 토큰으로만 해요"))
 			return
 		}
 		if _, err := readScreenJSON(r); err != nil {
@@ -533,7 +533,7 @@ func (s *Server) handleProjectUIAPI(w http.ResponseWriter, r *http.Request, prin
 	}
 	if len(parts) == 3 && parts[2] == "guide" && r.Method == http.MethodPost {
 		if principal.Kind != "callsign" || principal.ProjectID != pid {
-			writeScreenError(w, store.Forbidden("쓰기는 이 프로젝트의 콜사인 토큰으로만 한다 (화면 공용 토큰은 읽기 · 등록만)"))
+			writeScreenError(w, store.Forbidden("쓰기는 이 프로젝트의 콜사인 토큰으로만 해요 (화면 공용 토큰은 읽기 · 등록만)"))
 			return
 		}
 		body, err := readScreenJSON(r)
@@ -575,7 +575,7 @@ func (s *Server) handleProjectUIAPI(w http.ResponseWriter, r *http.Request, prin
 	}
 	if len(parts) == 5 && parts[2] == "guide" && parts[3] == "proposals" && r.Method == http.MethodPost {
 		if principal.Kind != "callsign" || principal.ProjectID != pid {
-			writeScreenError(w, store.Forbidden("쓰기는 이 프로젝트의 콜사인 토큰으로만 한다 (화면 공용 토큰은 읽기 · 등록만)"))
+			writeScreenError(w, store.Forbidden("쓰기는 이 프로젝트의 콜사인 토큰으로만 해요 (화면 공용 토큰은 읽기 · 등록만)"))
 			return
 		}
 		body, err := readScreenJSON(r)
@@ -756,7 +756,7 @@ func (s *Server) handleProjectUIAPI(w http.ResponseWriter, r *http.Request, prin
 	if len(parts) == 5 && parts[2] == "dcr" && parts[4] == "decision" && r.Method == http.MethodPost {
 		// DCR 승인 · 거절 — hub_dcr_decide 와 같은 함수 (소유자만, 판단 근거 필수, 낡은 판 409).
 		if principal.Kind != "callsign" || principal.ProjectID != pid {
-			writeScreenError(w, store.Forbidden("쓰기는 이 프로젝트의 콜사인 토큰으로만 한다 (화면 공용 토큰은 읽기 · 등록만)"))
+			writeScreenError(w, store.Forbidden("쓰기는 이 프로젝트의 콜사인 토큰으로만 해요 (화면 공용 토큰은 읽기 · 등록만)"))
 			return
 		}
 		body, err := readScreenJSON(r)
@@ -812,14 +812,14 @@ func (s *Server) screenPlanResponse(pid, taskID string, body map[string]any, pri
 	lines, _ := tools.TaskLines(stringArg(task, "plan_md"), fields)
 	plan := judge.ParsePlan(lines)
 	if body["plan_digest"] != judge.PlanDigest(plan) {
-		return nil, &store.HubError{Status: 409, Code: "version_conflict", Message: "계획이 바뀌었다 — 다시 열어라", Detail: map[string]any{"current_digest": judge.PlanDigest(plan)}}
+		return nil, &store.HubError{Status: 409, Code: "version_conflict", Message: "계획이 바뀌었어요 — 다시 열어라", Detail: map[string]any{"current_digest": judge.PlanDigest(plan)}}
 	}
 	values, valuesOK := body["values"].(map[string]any)
 	opened, openedOK := body["opened"].(map[string]any)
 	comments, commentsOK := body["comments"].(map[string]any)
 	for key, ok := range map[string]bool{"values": valuesOK, "opened": openedOK, "comments": commentsOK} {
 		if _, present := body[key]; present && !ok {
-			return nil, store.InvalidField(key, "객체여야 한다")
+			return nil, store.InvalidField(key, "객체여야 해요")
 		}
 	}
 	if values == nil {
@@ -923,7 +923,7 @@ func (s *Server) screenCallsign(pid, callsign string, ctx store.Ctx) (map[string
 			var updated string
 			var revoked sql.NullString
 			if e := s.cfg.Store.DB().QueryRow("SELECT revoked_at FROM callsign WHERE project_id=? AND id=?", pid, callsign).Scan(&revoked); e == sql.ErrNoRows {
-				return nil, store.NotFound("콜사인이 없다: " + callsign)
+				return nil, store.NotFound("콜사인이 없어요: " + callsign)
 			} else if e != nil {
 				return nil, e
 			}
@@ -943,7 +943,7 @@ func (s *Server) screenCallsign(pid, callsign string, ctx store.Ctx) (map[string
 			return map[string]any{"guide_current": board["guide_current"], "callsign": item, "handoff": handoff}, nil
 		}
 	}
-	return nil, store.NotFound("콜사인이 없다: " + callsign)
+	return nil, store.NotFound("콜사인이 없어요: " + callsign)
 }
 
 func (s *Server) screenGuide(pid string, principal *store.Principal) (map[string]any, error) {
@@ -1041,7 +1041,7 @@ func (s *Server) screenWikiPage(pid, p string) (map[string]any, error) {
 func readScreenJSON(r *http.Request) (map[string]any, error) {
 	contentType := strings.ToLower(strings.TrimSpace(strings.Split(r.Header.Get("Content-Type"), ";")[0]))
 	if contentType != "application/json" {
-		return nil, &store.HubError{Status: http.StatusUnsupportedMediaType, Code: "unsupported_media_type", Message: "본문은 application/json 이어야 한다"}
+		return nil, &store.HubError{Status: http.StatusUnsupportedMediaType, Code: "unsupported_media_type", Message: "본문은 application/json 이어야 해요"}
 	}
 	raw, err := io.ReadAll(io.LimitReader(r.Body, MaxBody+1))
 	if err != nil {
@@ -1057,11 +1057,11 @@ func readScreenJSON(r *http.Request) (map[string]any, error) {
 	dec := json.NewDecoder(strings.NewReader(string(raw)))
 	dec.UseNumber()
 	if err := dec.Decode(&body); err != nil || body == nil {
-		return nil, &store.HubError{Status: http.StatusBadRequest, Code: "invalid_json", Message: "본문은 JSON 객체다"}
+		return nil, &store.HubError{Status: http.StatusBadRequest, Code: "invalid_json", Message: "본문은 JSON 객체예요"}
 	}
 	var extra any
 	if err := dec.Decode(&extra); err != io.EOF {
-		return nil, &store.HubError{Status: http.StatusBadRequest, Code: "invalid_json", Message: "본문은 JSON 객체다"}
+		return nil, &store.HubError{Status: http.StatusBadRequest, Code: "invalid_json", Message: "본문은 JSON 객체예요"}
 	}
 	return body, nil
 }
@@ -1074,7 +1074,7 @@ func (s *Server) screenTask(projectID, taskID string, ctx store.Ctx) (map[string
 	}
 	task, ok := taskResult["task"].(map[string]any)
 	if !ok {
-		return nil, store.NotFound("task 가 없다: " + taskID)
+		return nil, store.NotFound("task 가 없어요: " + taskID)
 	}
 	planMD, _ := task["plan_md"].(string)
 	fields, _ := task["fields"].(map[string]any)
@@ -1294,7 +1294,7 @@ func (s *Server) screenPrincipal(r *http.Request, now time.Time) (*store.Princip
 			return nil, err
 		}
 		if principal == nil {
-			return nil, store.Unauthorized("토큰이 틀렸거나 거둔 토큰이다 — 이 브라우저에서 지운 뒤 다시 등록한다")
+			return nil, store.Unauthorized("토큰이 틀렸거나 거둔 토큰이에요 — 이 브라우저에서 지운 뒤 다시 등록해요")
 		}
 		return principal, nil
 	}
@@ -1321,7 +1321,7 @@ func (s *Server) screenPrincipal(r *http.Request, now time.Time) (*store.Princip
 				if admin != nil {
 					return admin, nil
 				}
-				return nil, store.Forbidden("이 허브 계정에 해당 프로젝트의 사람 콜사인이 연결되어 있지 않다")
+				return nil, store.Forbidden("이 허브 계정에 해당 프로젝트의 사람 콜사인이 연결되어 있지 않아요")
 			}
 			if admin != nil {
 				return admin, nil
@@ -1338,17 +1338,17 @@ func (s *Server) screenPrincipal(r *http.Request, now time.Time) (*store.Princip
 			return principal, nil
 		}
 	}
-	return nil, store.Unauthorized("토큰이 없다 — 화면 공용 토큰이 꺼져 있다. 콜사인 토큰을 넣는다")
+	return nil, store.Unauthorized("토큰이 없어요 — 화면 공용 토큰이 꺼져 있어요. 콜사인 토큰을 넣어요")
 }
 
 func (s *Server) handleAccountAPI(w http.ResponseWriter, r *http.Request, now time.Time) {
 	if r.Method != http.MethodPost {
-		writeJSONResponse(w, http.StatusMethodNotAllowed, map[string]any{"error_code": "method_not_allowed", "message": "POST 만 지원한다"})
+		writeJSONResponse(w, http.StatusMethodNotAllowed, map[string]any{"error_code": "method_not_allowed", "message": "POST 만 지원해요"})
 		return
 	}
 	origin := s.screenOrigin(r)
 	if !origin.ok {
-		writeJSONResponse(w, http.StatusForbidden, map[string]any{"error_code": "origin_mismatch", "message": "같은 출처의 브라우저 요청만 허용한다"})
+		writeJSONResponse(w, http.StatusForbidden, map[string]any{"error_code": "origin_mismatch", "message": "같은 출처의 브라우저 요청만 허용해요"})
 		return
 	}
 	body, err := readScreenJSON(r)
@@ -1374,7 +1374,7 @@ func (s *Server) handleAccountAPI(w http.ResponseWriter, r *http.Request, now ti
 	case "link":
 		cookie, cookieErr := r.Cookie("workflow_hub_session")
 		if cookieErr != nil {
-			writeScreenError(w, store.Unauthorized("허브 계정에 로그인해야 콜사인을 연결할 수 있다"))
+			writeScreenError(w, store.Unauthorized("허브 계정에 로그인해야 콜사인을 연결할 수 있어요"))
 			return
 		}
 		accountPtr, accountErr := s.cfg.Store.AccountBySession(cookie.Value, now)
@@ -1383,7 +1383,7 @@ func (s *Server) handleAccountAPI(w http.ResponseWriter, r *http.Request, now ti
 			return
 		}
 		if accountPtr == nil {
-			writeScreenError(w, store.Unauthorized("허브 계정 세션이 만료됐다"))
+			writeScreenError(w, store.Unauthorized("허브 계정 세션이 만료됐어요"))
 			return
 		}
 		linked, linkErr := s.cfg.Store.AccountLink(accountPtr.ID, bearerToken(r.Header), now)
@@ -1396,12 +1396,12 @@ func (s *Server) handleAccountAPI(w http.ResponseWriter, r *http.Request, now ti
 	case "join":
 		cookie, cookieErr := r.Cookie("workflow_hub_session")
 		if cookieErr != nil {
-			writeScreenError(w, store.Unauthorized("허브 계정에 로그인해야 프로젝트에 참여할 수 있다"))
+			writeScreenError(w, store.Unauthorized("허브 계정에 로그인해야 프로젝트에 참여할 수 있어요"))
 			return
 		}
 		joiner, joinErr := s.cfg.Store.AccountBySession(cookie.Value, now)
 		if joinErr == nil && joiner == nil {
-			joinErr = store.Unauthorized("허브 계정 세션이 만료됐다")
+			joinErr = store.Unauthorized("허브 계정 세션이 만료됐어요")
 		}
 		if joinErr != nil {
 			writeScreenError(w, joinErr)
@@ -1419,7 +1419,7 @@ func (s *Server) handleAccountAPI(w http.ResponseWriter, r *http.Request, now ti
 			err = s.cfg.Store.AccountLogout(c.Value, now)
 		}
 	default:
-		writeJSONResponse(w, http.StatusNotFound, map[string]any{"error_code": "not_found", "message": "계정 API 경로가 없다"})
+		writeJSONResponse(w, http.StatusNotFound, map[string]any{"error_code": "not_found", "message": "계정 API 경로가 없어요"})
 		return
 	}
 	if err != nil {

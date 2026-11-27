@@ -828,7 +828,7 @@ func (j *JudgeBridge) RoadmapPut(ctx store.Ctx, path string, expectedVersion *in
 			return nil, &store.HubError{
 				Status:  400,
 				Code:    "invalid_field",
-				Message: "마일스톤을 읽을 수 없다 — " + strings.Join(detail, " / "),
+				Message: "마일스톤을 읽을 수 없어요 — " + strings.Join(detail, " / "),
 				Detail:  map[string]any{"field": "body", "issues": detail},
 			}
 		}
@@ -851,7 +851,7 @@ func (j *JudgeBridge) RoadmapPut(ctx store.Ctx, path string, expectedVersion *in
 			return nil, &store.HubError{
 				Status:  409,
 				Code:    "version_conflict",
-				Message: fmt.Sprintf("version 이 다르다 — 지금 %d", curVer),
+				Message: fmt.Sprintf("version 이 달라요 — 지금 %d", curVer),
 				Detail:  map[string]any{"current_version": curVer, "current": map[string]any{"path": path, "body": bodyVal}},
 			}
 		}
@@ -937,14 +937,14 @@ func (j *JudgeBridge) PlanRespond(ctx store.Ctx, taskID, body string) (map[strin
 		return nil, err
 	}
 	if p.CallsignKind != "human" || !p.HumanApproved {
-		return nil, store.Forbidden("결정 응답은 승인된 human 콜사인만 보낸다")
+		return nil, store.Forbidden("결정 응답은 승인된 human 콜사인만 보내요")
 	}
 	parsed := judge.ParseResponse([]byte(body), "hub-response.md")
 	if parsed.Responder() != p.Callsign {
 		return nil, &store.HubError{
 			Status:  403,
 			Code:    "forbidden",
-			Message: fmt.Sprintf("responder 가 이 콜사인(%s)이 아니다: %q", p.Callsign, parsed.Responder()),
+			Message: fmt.Sprintf("responder 가 이 콜사인(%s)이 아니에요: %q", p.Callsign, parsed.Responder()),
 			Detail:  map[string]any{"field": "responder"},
 		}
 	}

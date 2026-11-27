@@ -19,7 +19,7 @@ _URL = re.compile(r"^(?P<scheme>[a-zA-Z][a-zA-Z0-9+.-]*)://(?P<rest>.+)$")
 
 
 def invalid_remote(url: str, why: str) -> HubError:
-    return HubError(400, "invalid_remote", f"git 원격 주소로 읽을 수 없다 ({why}): {url!r}", {"remote_url": url})
+    return HubError(400, "invalid_remote", f"git 원격 주소로 읽을 수 없어요 ({why}): {url!r}", {"remote_url": url})
 
 
 def normalize(url: str) -> str:

@@ -70,7 +70,7 @@ func VersionConflict(currentVersion int, current map[string]any) *HubError {
 	return &HubError{
 		Status:  409,
 		Code:    "version_conflict",
-		Message: fmt.Sprintf("version 이 다르다 — 지금 %d", currentVersion),
+		Message: fmt.Sprintf("version 이 달라요 — 지금 %d", currentVersion),
 		Detail:  map[string]any{"current_version": currentVersion, "current": current},
 	}
 }

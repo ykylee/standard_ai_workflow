@@ -286,12 +286,12 @@ def scenario(impl: str, cmd: list[str] | None, tmp: Path) -> list[Any]:
         dom = scr.draw(exe, tmp, port, f"p/{pid}/ideas", "~아이디어=화면에서 적음|적어 두기", 8000)
         with sqlite3.connect(db) as c:
             row = c.execute("SELECT i.id,i.added_via,e.body_json FROM idea i JOIN idea_entry e ON e.idea_id=i.id AND e.seq=1 ORDER BY i.id DESC LIMIT 1").fetchone()
-        _record(f"case 6 (화면에서 적는다) [{impl}]", row[1] == "web" and json.loads(row[2])["body"] == "화면에서 적음" and "적어 두었다" in dom and "화면에서 적음" in dom, f"{row}")
+        _record(f"case 6 (화면에서 적는다) [{impl}]", row[1] == "web" and json.loads(row[2])["body"] == "화면에서 적음" and "적어 두었어요" in dom and "화면에서 적음" in dom, f"{row}")
         dom = scr.draw(exe, tmp, port, f"p/{pid}/ideas", "!아이디어=갱신 중에 쓴 글", 16000)
-        _record(f"case 6 (자동 갱신이 오가는 동안 쓴 글이 남는다) [{impl}]", 'data-kept="9"' in dom and "자동 새로고침을 잠시 멈췄다" in dom, dom[-400:])
+        _record(f"case 6 (자동 갱신이 오가는 동안 쓴 글이 남는다) [{impl}]", 'data-kept="9"' in dom and "자동 새로고침을 잠시 멈췄어요" in dom, dom[-400:])
         secret = "wfh_" + "b" * 30
         dom = scr.draw(exe, tmp, port, f"p/{pid}/ideas", f"~아이디어=앞 {secret} 뒤|적어 두기", 8000)
-        _record(f"case 6 (거절돼도 폼이 다시 그려지지 않는다) [{impl}]", "secret_in_payload" in dom and "적어 두었다" not in dom and f'data-kept="{len(secret) + 4}"' in dom, dom[-600:])
+        _record(f"case 6 (거절돼도 폼이 다시 그려지지 않는다) [{impl}]", "secret_in_payload" in dom and "적어 두었어요" not in dom and f'data-kept="{len(secret) + 4}"' in dom, dom[-600:])
         nid = row[0]
         hub.call("hub_idea_claim", {"id": nid}, bot)
         hub.call("hub_idea_reply", {**good, "id": nid, "expected_version": 2, "reason": "이\u200b유", "draft": {"title": "초\u202e안", "wbs": "M-001/WBS-1.1", "done_criteria": ["가", "나"]}}, bot)
@@ -312,7 +312,7 @@ def scenario(impl: str, cmd: list[str] | None, tmp: Path) -> list[Any]:
         dom = scr.draw(exe, tmp, port, f"p/{pid}/ideas/{oid}", "~WBS 면제 사유=|task 로 등록", 9000)
         held_o = hub.call("hub_idea_get", {"id": oid}, bot)[1]["idea"]
         _record(f"case 6 (사유 없는 exempt 는 보내지 않고 사유 칸을 가리킨다) [{impl}]", held_o["status"] == "replied" and held_o["version"] == v + 1
-                and "칸을 채운다 — 아직 보내지 않았다" in html.unescape(dom), dom[-500:])
+                and "칸을 채워 주세요 — 아직 보내지 않았어요" in html.unescape(dom), dom[-500:])
         dom = scr.draw(exe, tmp, port, f"p/{pid}/ideas/{oid}", "~WBS=|~WBS 면제 사유=|task 로 등록", 9000)
         _record(f"case 6 (게이트 거절을 화면의 칸 이름으로 말한다) [{impl}]", "'WBS' 칸에 M-NNN/WBS-N.N 을 적거나" in html.unescape(dom)
                 and "--wbs" not in html.unescape(dom), dom[-500:])

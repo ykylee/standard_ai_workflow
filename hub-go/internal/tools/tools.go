@@ -166,11 +166,11 @@ func checkPropType(val any, prop map[string]any) bool {
 func ValidateArgs(spec *ToolSpec, rawArgs any) (map[string]any, error) {
 	var args map[string]any
 	if rawArgs == nil {
-		return nil, store.InvalidField("arguments", "객체여야 한다")
+		return nil, store.InvalidField("arguments", "객체여야 해요")
 	}
 	m, ok := rawArgs.(map[string]any)
 	if !ok {
-		return nil, store.InvalidField("arguments", "객체여야 한다")
+		return nil, store.InvalidField("arguments", "객체여야 해요")
 	}
 	args = m
 
@@ -201,7 +201,7 @@ func ValidateArgs(spec *ToolSpec, rawArgs any) (map[string]any, error) {
 		}
 		prop := props[k]
 		if !checkPropType(v, prop) {
-			return nil, store.InvalidField(k, formatWantType(prop["type"])+" 이어야 한다")
+			return nil, store.InvalidField(k, formatWantType(prop["type"])+" 이어야 해요")
 		}
 	}
 
@@ -241,13 +241,13 @@ func Prepare(s *store.Store, name string, rawArgs any, ctx store.Ctx) (*ToolSpec
 		if ctx.Principal == nil {
 			return nil, nil, store.Unauthorized("")
 		}
-		return nil, nil, store.Forbidden("이 도구는 프로젝트 콜사인 토큰이 필요하다")
+		return nil, nil, store.Forbidden("이 도구는 프로젝트 콜사인 토큰이 필요해요")
 	}
 	if spec.Bundle == "hub_admin" && (ctx.Principal == nil || ctx.Principal.Kind != "admin") {
 		if ctx.Principal == nil {
 			return nil, nil, store.Unauthorized("")
 		}
-		return nil, nil, store.Forbidden("이 도구는 hub admin 토큰이 필요하다")
+		return nil, nil, store.Forbidden("이 도구는 hub admin 토큰이 필요해요")
 	}
 	clean, err := ValidateArgs(spec, rawArgs)
 	if err != nil {
@@ -269,7 +269,7 @@ func Prepare(s *store.Store, name string, rawArgs any, ctx store.Ctx) (*ToolSpec
 			return nil, nil, &store.HubError{
 				Status:  410,
 				Code:    "project_moved",
-				Message: fmt.Sprintf("프로젝트 %s 는 %s 로 이전되어 봉인됐다", pid, movedTo),
+				Message: fmt.Sprintf("프로젝트 %s 는 %s 로 이전되어 봉인됐어요", pid, movedTo),
 				Detail:  map[string]any{"project_id": pid, "moved_to": movedTo},
 			}
 		}
@@ -430,7 +430,7 @@ func Call(s *store.Store, name string, rawArgs any, ctx store.Ctx) (result map[s
 	case "hub_handoff_put":
 		handoff, ok := clean["handoff"].(map[string]any)
 		if !ok {
-			return nil, store.InvalidField("handoff", "객체여야 한다")
+			return nil, store.InvalidField("handoff", "객체여야 해요")
 		}
 		return s.HandoffPut(ctx, optIntArg(clean, "expected_version"), handoff)
 	case "hub_checkpoint_put":
@@ -657,7 +657,7 @@ func Call(s *store.Store, name string, rawArgs any, ctx store.Ctx) (result map[s
 	case "hub_session_end":
 		handoff, ok := clean["handoff"].(map[string]any)
 		if !ok {
-			return nil, store.InvalidField("handoff", "객체여야 한다")
+			return nil, store.InvalidField("handoff", "객체여야 해요")
 		}
 		var expected *int
 		if raw, exists := clean["expected_version"]; exists {
@@ -705,7 +705,7 @@ func Call(s *store.Store, name string, rawArgs any, ctx store.Ctx) (result map[s
 		return nil, &store.HubError{
 			Status:  501,
 			Code:    "not_implemented_in_go",
-			Message: fmt.Sprintf("%s 는 Go 허브에 아직 포팅되지 않았다 (S2-c/d)", name),
+			Message: fmt.Sprintf("%s 는 Go 허브에 아직 포팅되지 않았어요 (S2-c/d)", name),
 			Detail:  map[string]any{"tool": name},
 		}
 	}

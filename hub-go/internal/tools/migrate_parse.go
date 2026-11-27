@@ -143,7 +143,7 @@ func parseTaskFile(text string) (migTask, error) {
 	var t migTask
 	fm := migFrontmatter.FindStringSubmatch(text)
 	if fm == nil {
-		return t, store.InvalidField("task", "frontmatter 가 없다")
+		return t, store.InvalidField("task", "frontmatter 가 없어요")
 	}
 	meta := map[string]string{}
 	for _, m := range migMetaLine.FindAllStringSubmatch(fm[1], -1) {
@@ -151,7 +151,7 @@ func parseTaskFile(text string) (migTask, error) {
 	}
 	t.id = meta["id"]
 	if !strings.HasPrefix(t.id, "TASK-") {
-		return t, store.InvalidField("task", "frontmatter 에 id 가 없다")
+		return t, store.InvalidField("task", "frontmatter 에 id 가 없어요")
 	}
 	lines := judge.SplitLines(text)
 	first := func(key string) string {
@@ -174,7 +174,7 @@ func parseTaskFile(text string) (migTask, error) {
 		t.status = first("status")
 	}
 	if !taskStatuses[t.status] {
-		return t, store.InvalidField("status", "1.x 상태가 네 값 밖이다: "+strconv.Quote(t.status))
+		return t, store.InvalidField("status", "1.x 상태가 네 값 밖이에요: "+strconv.Quote(t.status))
 	}
 	if t.priority = first("priority"); t.priority != "high" && t.priority != "low" {
 		t.priority = "medium"

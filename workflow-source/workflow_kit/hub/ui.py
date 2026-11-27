@@ -123,19 +123,19 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
         headers = {**hub_headers(), **SCREEN_HEADERS, "Cache-Control": "no-store"}
         try:
             if request.method != "POST":
-                raise HubError(405, "method_not_allowed", "POST 만 지원한다")
+                raise HubError(405, "method_not_allowed", "POST 만 지원해요")
             allowed = screen_origin(request, public_url)
             if allowed is None:
-                raise HubError(403, "origin_mismatch", "같은 출처의 브라우저 요청만 허용한다")
+                raise HubError(403, "origin_mismatch", "같은 출처의 브라우저 요청만 허용해요")
             ctype = (request.headers.get("content-type") or "").split(";", 1)[0].strip().lower()
             if ctype != "application/json":
-                raise HubError(415, "unsupported_media_type", "본문은 application/json 이어야 한다")
+                raise HubError(415, "unsupported_media_type", "본문은 application/json 이어야 해요")
             raw = await request.body()
             if len(raw) > max_body:
                 raise HubError(413, "payload_too_large", f"본문 상한 {max_body} 바이트")
             payload = json.loads(raw.decode("utf-8")) if raw.strip() else {}
             if not isinstance(payload, dict):
-                raise HubError(400, "invalid_json", "본문은 JSON 객체다")
+                raise HubError(400, "invalid_json", "본문은 JSON 객체예요")
             now = clock()
             action = request.path_params["action"]
             cookie = request.cookies.get("workflow_hub_session")
@@ -147,20 +147,20 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
             elif action == "link":
                 linked_account = accounts.account(cookie, now)
                 if not linked_account:
-                    raise unauthorized("허브 계정에 로그인해야 콜사인을 연결할 수 있다")
+                    raise unauthorized("허브 계정에 로그인해야 콜사인을 연결할 수 있어요")
                 linked = accounts.link(linked_account["id"], _bearer(request) or "", now)
                 return JSONResponse({"account": linked_account, "linked": linked}, headers=headers)
             elif action == "join":
                 joiner = accounts.account(cookie, now)
                 if not joiner:
-                    raise unauthorized("허브 계정에 로그인해야 프로젝트에 참여할 수 있다")
+                    raise unauthorized("허브 계정에 로그인해야 프로젝트에 참여할 수 있어요")
                 joined = accounts.join(joiner["id"], payload.get("project", ""), payload.get("callsign", ""), now)
                 return JSONResponse({"account": joiner, "joined": joined}, headers=headers)
             elif action == "logout":
                 accounts.logout(cookie, now)
                 session, account = "", None
             else:
-                raise HubError(404, "not_found", "계정 API 경로가 없다")
+                raise HubError(404, "not_found", "계정 API 경로가 없어요")
             response = JSONResponse({"account": account}, headers=headers)
             secure, cookie_path = allowed
             if session:
@@ -172,14 +172,14 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
         except HubError as exc:
             return JSONResponse(exc.payload(), status_code=exc.status, headers=headers)
         except (UnicodeDecodeError, json.JSONDecodeError):
-            return JSONResponse(HubError(400, "invalid_json", "본문이 올바른 JSON이 아니다").payload(), status_code=400, headers=headers)
+            return JSONResponse(HubError(400, "invalid_json", "본문이 올바른 JSON이 아니에요").payload(), status_code=400, headers=headers)
 
     def resolve(request: Request, now: datetime) -> Principal:
         token = _bearer(request)
         if token:
             p = store.authenticate(token, now)
             if p is None:
-                raise unauthorized("토큰이 틀렸거나 거둔 토큰이다 — 이 브라우저에서 지운 뒤 다시 등록한다")
+                raise unauthorized("토큰이 틀렸거나 거둔 토큰이에요 — 이 브라우저에서 지운 뒤 다시 등록해요")
             return p
         account = accounts.account(request.cookies.get("workflow_hub_session"), now)
         if account:
@@ -193,20 +193,20 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
                     return linked
                 if admin:
                     return admin
-                raise forbidden("이 허브 계정에 해당 프로젝트의 사람 콜사인이 연결되어 있지 않다")
+                raise forbidden("이 허브 계정에 해당 프로젝트의 사람 콜사인이 연결되어 있지 않아요")
             return admin or Principal(kind="account", name=account["display_name"])
         if web_token_name:
             p = store.web_principal(web_token_name)
             if p is not None:
                 return p
-        raise unauthorized("토큰이 없다 — 화면 공용 토큰이 꺼져 있다. 콜사인 토큰을 넣는다")
+        raise unauthorized("토큰이 없어요 — 화면 공용 토큰이 꺼져 있어요. 콜사인 토큰을 넣어요")
 
     def scope(p: Principal, project_id: str) -> Principal:
         """프로젝트 하나로 좁힌 읽기 주체. 콜사인 토큰은 자기 프로젝트만 (R4.6 의 범위)."""
         if p.kind == "callsign" and p.project_id != project_id:
-            raise forbidden("이 토큰의 프로젝트가 아니다")
+            raise forbidden("이 토큰의 프로젝트가 아니에요")
         if not store.projects(project_id):
-            raise not_found(f"프로젝트가 없다: {project_id}")
+            raise not_found(f"프로젝트가 없어요: {project_id}")
         return Principal(kind="viewer", project_id=project_id, callsign=p.callsign, callsign_kind=p.callsign_kind,
                          human_approved=p.human_approved, role=p.role, name=p.name)
 
@@ -221,19 +221,19 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
                     # 공용 web 토큰이 켜진 허브에서 머리 없는 위조 POST 가 콜사인을 등록하지 못하게.
                     ctype = (request.headers.get("content-type") or "").split(";", 1)[0].strip().lower()
                     if ctype != "application/json":
-                        raise HubError(415, "unsupported_media_type", "본문은 application/json 이어야 한다")
+                        raise HubError(415, "unsupported_media_type", "본문은 application/json 이어야 해요")
                     raw = await request.body()
                     if len(raw) > max_body:
                         raise HubError(413, "payload_too_large", f"본문 상한 {max_body} 바이트")
                     try:
                         payload = json.loads(raw.decode("utf-8")) if raw.strip() else {}
                     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-                        raise HubError(400, "invalid_json", f"본문이 JSON 이 아니다: {exc}") from exc
+                        raise HubError(400, "invalid_json", f"본문이 JSON 이 아니에요: {exc}") from exc
                     if not isinstance(payload, dict):
-                        raise HubError(400, "invalid_json", "본문은 JSON 객체다")
+                        raise HubError(400, "invalid_json", "본문은 JSON 객체예요")
                     if request.cookies.get("workflow_hub_session") and not _bearer(request):
                         if screen_origin(request, public_url) is None:
-                            raise HubError(403, "origin_mismatch", "같은 출처의 브라우저 요청만 허용한다")
+                            raise HubError(403, "origin_mismatch", "같은 출처의 브라우저 요청만 허용해요")
                 now = clock()
 
                 def run() -> dict[str, Any]:
@@ -270,7 +270,7 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
 
     def _admin_only(p: Principal) -> None:
         if p.kind != "admin":
-            raise forbidden("허브 관리자(admin 토큰 또는 관리자 계정)만 할 수 있다")
+            raise forbidden("허브 관리자(admin 토큰 또는 관리자 계정)만 할 수 있어요")
 
     def _actor(p: Principal) -> str:
         return f"account:{p.account_name}" if p.auth_mode == "account" else f"admin:{p.name}"
@@ -369,7 +369,7 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
         try:
             limit, offset = int(q.get("limit") or 25), int(q.get("offset") or 0)
         except ValueError as exc:
-            raise invalid_field("limit", "limit · offset 는 정수여야 한다") from exc
+            raise invalid_field("limit", "limit · offset 는 정수여야 해요") from exc
         filters = {key: q.get(key, "") for key in
                    ("status", "roadmap", "milestone", "wbs", "category_level_1", "category_level_2", "category_level_3")}
         return store.task_list_page(Ctx(now=now, via="ui", principal=v), filters, limit=limit, offset=offset)
@@ -416,7 +416,7 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
         board = store.callsign_board(pid)
         row = next((c for c in board["callsigns"] if c["id"] == cs), None)
         if row is None:
-            raise not_found(f"콜사인이 없다: {cs}")
+            raise not_found(f"콜사인이 없어요: {cs}")
         handoff = memory.handoff_get(Ctx(now=now, via="ui", principal=v), cs)
         return {"guide_current": board["guide_current"], "callsign": row, "handoff": handoff}
 
@@ -624,7 +624,7 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
 
     def _own(p: Principal, pid: str) -> Principal:
         if p.kind != "callsign" or p.project_id != pid:
-            raise forbidden("쓰기는 이 프로젝트의 콜사인 토큰으로만 한다 (화면 공용 토큰은 읽기 · 등록만)")
+            raise forbidden("쓰기는 이 프로젝트의 콜사인 토큰으로만 해요 (화면 공용 토큰은 읽기 · 등록만)")
         return p
 
     def post_guide(request: Request, p: Principal, now: datetime, b: dict[str, Any]) -> dict[str, Any]:
@@ -655,14 +655,14 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
         """사람 콜사인 승인 — ``hub_callsign_approve`` 와 같은 함수 (승인된 human 소유자만)."""
         pid = request.path_params["pid"]
         if p.kind != "callsign" or p.project_id != pid:
-            raise forbidden("승인은 이 프로젝트의 소유자 콜사인 토큰으로만 한다")
+            raise forbidden("승인은 이 프로젝트의 소유자 콜사인 토큰으로만 해요")
         return store.approve_callsign(Ctx(now=now, via="ui", principal=p), request.path_params["cs"])
 
     def post_callsign_delete(request: Request, p: Principal, now: datetime, b: dict[str, Any]) -> dict[str, Any]:
         """콜사인 삭제 — 허브 관리자만, 활동 없는 콜사인만. ``confirm`` 은 콜사인 이름."""
         pid = request.path_params["pid"]
         if p.kind != "admin":
-            raise forbidden("콜사인 삭제는 허브 관리자만 한다")
+            raise forbidden("콜사인 삭제는 허브 관리자만 해요")
         scope(p, pid)
         return store.delete_callsign(Ctx(now=now, via="ui", principal=p), pid, request.path_params["cs"], str(b.get("confirm") or ""))
 
@@ -672,7 +672,7 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
         scope(p, pid)
         for key in ("callsign", "kind", "label"):
             if key in b and not isinstance(b[key], str):
-                raise invalid_field(key, "문자열이어야 한다")
+                raise invalid_field(key, "문자열이어야 해요")
         return store.register_callsign(Ctx(now=now, via="ui", principal=p), pid, b.get("callsign", ""),
                                        b.get("kind", ""), b.get("label", ""), "browser")
 
@@ -721,18 +721,18 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
         """결정 답 — 폼 값으로 response/1 본문을 만들어 :meth:`Judge.plan_respond` 에 넘긴다."""
         pid, tid = request.path_params["pid"], request.path_params["tid"]
         if p.kind != "callsign":
-            raise forbidden("결정 답은 콜사인 토큰으로만 쓴다 (화면 공용 토큰은 읽기 · 등록만)")
+            raise forbidden("결정 답은 콜사인 토큰으로만 써요 (화면 공용 토큰은 읽기 · 등록만)")
         if p.project_id != pid:
-            raise forbidden("이 토큰의 프로젝트가 아니다")
+            raise forbidden("이 토큰의 프로젝트가 아니에요")
         ctx = Ctx(now=now, via="ui", principal=p, client_version=CLIENT_TAG)
         task = store.task_get(ctx, tid)["task"]
         plan = plan_claims.parse_plan(task_lines(task["plan_md"], task["fields"])[0])
         if b.get("plan_digest") != plan_claims.plan_digest(plan):
-            raise HubError(409, "version_conflict", "계획이 바뀌었다 — 다시 열어라",
+            raise HubError(409, "version_conflict", "계획이 바뀌었어요 — 다시 열어라",
                            {"current_digest": plan_claims.plan_digest(plan)})
         values_in, opened_in, comments_in = b.get("values") or {}, b.get("opened") or {}, b.get("comments") or {}
         if not all(isinstance(x, dict) for x in (values_in, opened_in, comments_in)):
-            raise invalid_field("values", "values · opened · comments 는 객체다")
+            raise invalid_field("values", "values · opened · comments 는 객체예요")
         open_ids = set(judge.plan_status(ctx, tid)["open_decisions"])
         values: dict[str, str] = {}
         opened: dict[str, bool] = {}

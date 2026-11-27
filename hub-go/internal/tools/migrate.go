@@ -94,7 +94,7 @@ var migCommandOrder = []string{"branch", "default", "head", "ls_tracked", "ls_ig
 func migOwner(ctx store.Ctx) (*store.Principal, error) {
 	p := ctx.Principal
 	if p == nil || p.Kind != "callsign" || p.Role != "owner" || p.CallsignKind != "human" || !p.HumanApproved {
-		return nil, store.Forbidden("1.x 전환은 프로젝트 소유자(승인된 human)가 한다 (R14.2 — 등록자가 확인한 것만 들인다)")
+		return nil, store.Forbidden("1.x 전환은 프로젝트 소유자(승인된 human)가 해요 (R14.2 — 등록자가 확인한 것만 들여요)")
 	}
 	return p, nil
 }
@@ -189,7 +189,7 @@ func migratePlan(s *store.Store, ctx store.Ctx, rawScan any) (map[string]any, er
 		outputs[name], _ = m["output"].(string)
 	}
 	if rc, ok := rcs["ls_tracked"]; !ok || rc != 0 {
-		return nil, store.InvalidField("scan.ls_tracked", "git ls-files 결과가 필요하다 (rc 0)")
+		return nil, store.InvalidField("scan.ls_tracked", "git ls-files 결과가 필요해요 (rc 0)")
 	}
 	lines := func(name string) []string {
 		out := []string{}
@@ -482,7 +482,7 @@ func loadMigration(s *store.Store, pid, mig string) (migRow, error) {
 	var plan, report string
 	err := s.DB().QueryRow("SELECT at,callsign,status,plan_json,report_json FROM migration_1x WHERE project_id=? AND id=?", pid, mig).Scan(&r.at, &r.callsign, &r.status, &plan, &report)
 	if errors.Is(err, sql.ErrNoRows) {
-		return r, store.NotFound("전환 계획이 없다: " + mig)
+		return r, store.NotFound("전환 계획이 없어요: " + mig)
 	}
 	if err != nil {
 		return r, err
@@ -599,7 +599,7 @@ func migrateImport(s *store.Store, ctx store.Ctx, args map[string]any) (map[stri
 		return nil, err
 	}
 	if row.status == "done" {
-		return nil, &store.HubError{Status: 409, Code: "already_done", Message: mig + " 는 이미 끝난 전환이다"}
+		return nil, &store.HubError{Status: 409, Code: "already_done", Message: mig + " 는 이미 끝난 전환이에요"}
 	}
 	// 한 파일이 여러 종류에 속할 수 있다 — 현재 브랜치 handoff 는 보관 원문이자 콜사인 handoff 의 출처다.
 	kindsOf := map[string][]string{}
@@ -916,7 +916,7 @@ func (m *migImporter) wiki(items [][2]string) error {
 func decodeObject(kind, content string) (any, error) {
 	v, err := DecodeJSONValue([]byte(content))
 	if err != nil {
-		return nil, store.InvalidField(kind, "JSON 이 아니다: "+err.Error())
+		return nil, store.InvalidField(kind, "JSON 이 아니에요: "+err.Error())
 	}
 	return v, nil
 }
@@ -1122,7 +1122,7 @@ func migrateMarker(s *store.Store, ctx store.Ctx, args map[string]any) (map[stri
 		return nil, err
 	}
 	if row.status != "done" {
-		return nil, &store.HubError{Status: 409, Code: "migration_not_done", Message: mig + " 가 아직 끝나지 않았다 — 마지막 묶음을 final=true 로 보낸 뒤에 표식을 남긴다"}
+		return nil, &store.HubError{Status: 409, Code: "migration_not_done", Message: mig + " 가 아직 끝나지 않았어요 — 마지막 묶음을 final=true 로 보낸 뒤에 표식을 남겨요"}
 	}
 	doneAt, _ := row.report["done_at"].(string)
 	if doneAt == "" {

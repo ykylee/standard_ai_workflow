@@ -73,7 +73,7 @@ _PY_TYPES: dict[str, tuple[type, ...]] = {"string": (str,), "integer": (int,), "
 
 def validate_args(spec: ToolSpec, args: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(args, dict):
-        raise invalid_field("arguments", "객체여야 한다")
+        raise invalid_field("arguments", "객체여야 해요")
     props = spec.all_properties
     allowed = set(props) | {"contract"}
     extra = set(args) - allowed
@@ -88,7 +88,7 @@ def validate_args(spec: ToolSpec, args: dict[str, Any]) -> dict[str, Any]:
         want = props[name].get("type")
         types = _PY_TYPES.get(str(want))
         if types and (not isinstance(value, types) or (want == "integer" and isinstance(value, bool))):
-            raise invalid_field(name, f"{want} 이어야 한다")
+            raise invalid_field(name, f"{want} 이어야 해요")
     contract = args.get("contract")
     if contract is not None and contract != "hub/1":
         raise HubError(400, "unknown_contract", f"모르는 계약 판: {contract!r} — 이 허브는 hub/1", {"contract": contract})
@@ -533,11 +533,11 @@ def prepare(store: Store, name: str, args: dict[str, Any], ctx: Ctx) -> tuple[To
     if spec.bundle == "token" and (ctx.principal is None or ctx.principal.kind != "callsign"):
         if ctx.principal is None:
             raise unauthorized()
-        raise HubError(403, "forbidden", "이 도구는 프로젝트 콜사인 토큰이 필요하다")
+        raise HubError(403, "forbidden", "이 도구는 프로젝트 콜사인 토큰이 필요해요")
     if spec.bundle == "hub_admin" and (ctx.principal is None or ctx.principal.kind != "admin"):
         if ctx.principal is None:
             raise unauthorized()
-        raise HubError(403, "forbidden", "이 도구는 hub admin 토큰이 필요하다")
+        raise HubError(403, "forbidden", "이 도구는 hub admin 토큰이 필요해요")
     clean = validate_args(spec, args)
     # 봉인된(다른 허브로 옮긴) 프로젝트 — 조회 말고는 410 + 새 주소 (M-039 WBS-39.4). 셋업 도구는 인자로 프로젝트를 준다.
     pid = ctx.principal.project_id if ctx.principal is not None else clean.get("project_id")

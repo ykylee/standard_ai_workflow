@@ -102,10 +102,10 @@ class Guides:
         with self.store.write() as conn:
             current, current_body = self._current(conn, pid)
             if base_version != current:
-                raise HubError(409, "version_conflict", f"지침 판이 그 사이 올랐다 — 지금 {current}",
+                raise HubError(409, "version_conflict", f"지침 판이 그 사이 올랐어요 — 지금 {current}",
                                {"current_version": current, "current": current_body})
             if body == current_body:
-                raise invalid_field("body", "지금 판과 같다")
+                raise invalid_field("body", "지금 판과 같아요")
             display = conn.execute("SELECT display_name FROM project WHERE id = ?", (pid,)).fetchone()["display_name"]
             check_renderable(pid, display, body)
             n = conn.execute("SELECT COUNT(*) AS n FROM guide_proposal WHERE project_id = ?", (pid,)).fetchone()["n"] + 1
@@ -132,19 +132,19 @@ class Guides:
         p = self.store._need_callsign(ctx)
         pid = p.project_id or ""
         if not _is_editor(p):
-            raise forbidden("지침 제안의 승인 · 거절은 승인된 human 콜사인만 한다")
+            raise forbidden("지침 제안의 승인 · 거절은 승인된 human 콜사인만 해요")
         with self.store.write() as conn:
             row = conn.execute("SELECT * FROM guide_proposal WHERE project_id = ? AND id = ?", (pid, proposal_id)).fetchone()
             if row is None:
-                raise not_found(f"지침 제안이 없다: {proposal_id}")
+                raise not_found(f"지침 제안이 없어요: {proposal_id}")
             if row["status"] != "open":
-                raise HubError(409, "already_decided", f"이미 {row['status']} 된 제안이다", {"status": row["status"]})
+                raise HubError(409, "already_decided", f"이미 {row['status']} 된 제안이에요", {"status": row["status"]})
             applied = None
             if approve:
                 current, current_body = self._current(conn, pid)
                 if row["base_version"] != current:
                     raise HubError(409, "version_conflict",
-                                   f"제안의 기준 판 {row['base_version']} 이 지금 판 {current} 이 아니다 — 새 판 위에서 다시 제안한다",
+                                   f"제안의 기준 판 {row['base_version']} 이 지금 판 {current} 이 아니에요 — 새 판 위에서 다시 제안해요",
                                    {"current_version": current, "current": current_body})
                 display = conn.execute("SELECT display_name FROM project WHERE id = ?", (pid,)).fetchone()["display_name"]
                 check_renderable(pid, display, row["body_md"])

@@ -176,7 +176,7 @@ func (s *Store) RegisterSession(ctx Ctx, spec map[string]any) (map[string]any, e
 		reviewGiven = true
 	}
 	if review && kind != "worker" {
-		return nil, InvalidField("session.review_ideas", "kind=worker 세션만 — 아이디어 검토는 hub_wait 로 기다리는 세션이 받는다")
+		return nil, InvalidField("session.review_ideas", "kind=worker 세션만 — 아이디어 검토는 hub_wait 로 기다리는 세션이 받아요")
 	}
 	reviewInt := 0
 	if review {
@@ -187,7 +187,7 @@ func (s *Store) RegisterSession(ctx Ctx, spec map[string]any) (map[string]any, e
 		var valid bool
 		resume, valid = value.(string)
 		if !valid {
-			return nil, InvalidField("session.resume", "문자열 세션 ID 이어야 한다")
+			return nil, InvalidField("session.resume", "문자열 세션 ID 이어야 해요")
 		}
 	}
 	guideVersion, _ := spec["guide_version"].(string)
@@ -316,21 +316,21 @@ func sessionView(q interface {
 
 func (s *Store) checkOwnSession(tx *sql.Tx, p *Principal, id string) error {
 	if !sessionIDPattern.MatchString(id) {
-		return InvalidField("session", "S-YYYYMMDD-xxxxxxxx 꼴이어야 한다")
+		return InvalidField("session", "S-YYYYMMDD-xxxxxxxx 꼴이어야 해요")
 	}
 	var owner, status string
 	err := tx.QueryRow("SELECT callsign, status FROM session WHERE project_id=? AND id=?", p.ProjectID, id).Scan(&owner, &status)
 	if err == sql.ErrNoRows {
-		return NotFound("세션이 없다: " + id)
+		return NotFound("세션이 없어요: " + id)
 	}
 	if err != nil {
 		return err
 	}
 	if owner != p.Callsign {
-		return &HubError{Status: 403, Code: "session_not_yours", Message: "이 콜사인의 세션이 아니다", Detail: map[string]any{"session": id}}
+		return &HubError{Status: 403, Code: "session_not_yours", Message: "이 콜사인의 세션이 아니에요", Detail: map[string]any{"session": id}}
 	}
 	if status == "ended" {
-		return &HubError{Status: 410, Code: "session_ended", Message: "끝난 세션이다 — 세션 시작으로 새 세션을 연다", Detail: map[string]any{"session": id}}
+		return &HubError{Status: 410, Code: "session_ended", Message: "끝난 세션이에요 — 세션 시작으로 새 세션을 열어요", Detail: map[string]any{"session": id}}
 	}
 	return nil
 }
@@ -363,7 +363,7 @@ func (s *Store) SessionUpdate(ctx Ctx, id string, values map[string]any) (map[st
 		return nil, err
 	}
 	if len(values) == 0 {
-		return nil, InvalidField("session", "고칠 칸이 없다 (kind · allow_wait · delivery · harness_session_id)")
+		return nil, InvalidField("session", "고칠 칸이 없어요 (kind · allow_wait · delivery · harness_session_id)")
 	}
 	allowed := map[string]bool{"interactive": true, "worker": true}
 	if v, ok := values["kind"]; ok {
@@ -375,10 +375,10 @@ func (s *Store) SessionUpdate(ctx Ctx, id string, values map[string]any) (map[st
 	if v, ok := values["allow_wait"]; ok {
 		allow, valid := v.(bool)
 		if !valid {
-			return nil, InvalidField("allow_wait", "boolean 이어야 한다")
+			return nil, InvalidField("allow_wait", "boolean 이어야 해요")
 		}
 		if allow && !(p.CallsignKind == "human" && p.HumanApproved) {
-			return nil, Forbidden("대기 도구 켜기는 승인된 human 콜사인만 — 일하는 세션은 kind=worker 로 시작한다")
+			return nil, Forbidden("대기 도구 켜기는 승인된 human 콜사인만 — 일하는 세션은 kind=worker 로 시작해요")
 		}
 	}
 	if v, ok := values["delivery"]; ok {

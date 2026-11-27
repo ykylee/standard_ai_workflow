@@ -57,7 +57,7 @@ def check_path(path: Any, field: str = "path") -> str:
     if not isinstance(path, str) or not _PATH.match(path) or ".." in path.split("/"):
         raise invalid_field(field, "위키 안 상대 경로 · .md (예: concepts/foo.md)")
     if path in GENERATED:
-        raise invalid_field(field, f"{path} 는 허브가 생성한다 — 쓸 수 없다")
+        raise invalid_field(field, f"{path} 는 허브가 생성해요 — 쓸 수 없어요")
     return path
 
 
@@ -131,9 +131,9 @@ class Wiki:
         pid = p.project_id
         assert pid is not None
         if not isinstance(summary, str) or not summary.strip() or "\n" in summary.strip():
-            raise invalid_field("summary", "한 줄 요약이 필요하다")
+            raise invalid_field("summary", "한 줄 요약이 필요해요")
         if not isinstance(pages, list) or not pages:
-            raise invalid_field("pages", "페이지가 하나 이상 필요하다")
+            raise invalid_field("pages", "페이지가 하나 이상 필요해요")
         if len(pages) > MAX_PAGES:
             raise invalid_field("pages", f"한 묶음은 {MAX_PAGES} 페이지까지")
         clean: list[dict[str, Any]] = []
@@ -144,15 +144,15 @@ class Wiki:
                 raise invalid_field(f, "칸은 path · body · expected_version · delete · source")
             path = check_path(page.get("path"), f"{f}.path")
             if path in seen:
-                raise invalid_field(f"{f}.path", f"묶음 안에서 겹친다: {path}")
+                raise invalid_field(f"{f}.path", f"묶음 안에서 겹쳐요: {path}")
             seen.add(path)
             delete = page.get("delete") is True
             body = page.get("body")
             if delete:
                 if body is not None:
-                    raise invalid_field(f"{f}.body", "delete 와 body 를 같이 줄 수 없다")
+                    raise invalid_field(f"{f}.body", "delete 와 body 를 같이 줄 수 없어요")
             elif not isinstance(body, str) or not body.strip():
-                raise invalid_field(f"{f}.body", "본문이 비었다")
+                raise invalid_field(f"{f}.body", "본문이 비었어요")
             elif len(body.encode("utf-8")) > MAX_BODY:
                 raise invalid_field(f"{f}.body", f"{MAX_BODY} 바이트까지")
             else:
@@ -165,7 +165,7 @@ class Wiki:
                 if delete or not isinstance(source, dict) or set(source) != {"repo_key", "sha"} \
                         or not isinstance(source["repo_key"], str) or not isinstance(source["sha"], str) \
                         or not _SHA.match(source["sha"].lower()):
-                    raise invalid_field(f"{f}.source", "{repo_key, sha(16진 7~40)} — 삭제에는 줄 수 없다")
+                    raise invalid_field(f"{f}.source", "{repo_key, sha(16진 7~40)} — 삭제에는 줄 수 없어요")
                 source = {"repo_key": source["repo_key"], "sha": source["sha"].lower()}
             clean.append({"path": path, "body": body, "expected_version": ev, "delete": delete, "source": source})
         summary = summary.strip()
@@ -175,7 +175,7 @@ class Wiki:
             keys = {r["key"] for r in conn.execute("SELECT key FROM project_alias WHERE project_id = ?", (pid,))}
             for i, page in enumerate(clean):
                 if page["source"] and page["source"]["repo_key"] not in keys:
-                    raise invalid_field(f"pages[{i}].source.repo_key", f"이 프로젝트의 저장소 키가 아니다 (등록된 키: {sorted(keys)})")
+                    raise invalid_field(f"pages[{i}].source.repo_key", f"이 프로젝트의 저장소 키가 아니에요 (등록된 키: {sorted(keys)})")
             return self.write_pages(conn, ctx, pid, str(p.callsign), clean, summary)
 
         return self.store.idempotent(ctx, request_id, do)
@@ -199,7 +199,7 @@ class Wiki:
         if conflicts:
             # 하나라도 어긋나면 묶음 전체를 거절 — 트랜잭션이 되돌린다 (부분 반영 0, 요구 R8.2).
             raise HubError(409, "version_conflict",
-                           f"묶음 안 {len(conflicts)} 페이지의 version 이 다르다 — 묶음 전체를 거절했다",
+                           f"묶음 안 {len(conflicts)} 페이지의 version 이 달라요 — 묶음 전체를 거절했어요",
                            {"conflicts": conflicts})
         seq = conn.execute("SELECT COALESCE(MAX(seq), 0) + 1 AS n FROM wiki_ingest WHERE project_id = ?",
                            (pid,)).fetchone()["n"]
@@ -256,7 +256,7 @@ class Wiki:
                 "SELECT path, body_md, version, updated_by, updated_at, last_ingest, source_repo_key, source_sha "
                 "FROM wiki_page WHERE project_id = ? AND path = ?", (pid, path)).fetchone()
         if row is None:
-            raise HubError(404, "not_found", f"위키 페이지가 없다: {path}", {"path": path})
+            raise HubError(404, "not_found", f"위키 페이지가 없어요: {path}", {"path": path})
         return {"path": row["path"], "body": row["body_md"], "version": row["version"], "updated_by": row["updated_by"],
                 "updated_at": row["updated_at"], "last_ingest": row["last_ingest"],
                 "source": {"repo_key": row["source_repo_key"], "sha": row["source_sha"]}}
@@ -272,7 +272,7 @@ class Wiki:
     def search(self, ctx: Ctx, query: str, limit: int = 20) -> dict[str, Any]:
         pid = self._read_pid(ctx)
         if not isinstance(query, str) or not query.strip():
-            raise invalid_field("query", "비었다")
+            raise invalid_field("query", "비었어요")
         words = [w.lower() for w in query.split()]
         hits = []
         with self.store.read() as conn:
@@ -319,7 +319,7 @@ class Wiki:
             else:
                 pages.append({"path": check_path(path, f"files[{i}].path"), "body": f["content"]})
         if not pages and not archived:
-            raise invalid_field("files", "들일 위키 페이지가 없다")
+            raise invalid_field("files", "들일 위키 페이지가 없어요")
         if overwrite:
             with self.store.read() as conn:
                 cur = {r["path"]: r["version"] for r in conn.execute(
@@ -421,7 +421,7 @@ class Wiki:
             rep = import_okf_bundle(bundle, staging=staging, mode="loose")
             staged = sorted((q.relative_to(staging).as_posix(), q.read_text(encoding="utf-8")) for q in staging.rglob("*.md"))
         if not staged:
-            raise HubError(400, "invalid_field", "들일 페이지가 없다 (loose 들여오기가 하나도 받지 않았다)",
+            raise HubError(400, "invalid_field", "들일 페이지가 없어요 (loose 들여오기가 하나도 받지 않았어요)",
                            {"field": "files", "errors": list(rep.errors)})
         result = self.ingest(ctx, [{"path": path, "body": body} for path, body in staged], summary, request_id)
         result.update({"okf_version": rep.okf_version, "pages_total": rep.pages_total, "pages_staged": rep.pages_staged,
@@ -438,7 +438,7 @@ class Wiki:
         pid = p.project_id
         assert pid is not None
         if not isinstance(entry, dict):
-            raise invalid_field("entry", "객체여야 한다")
+            raise invalid_field("entry", "객체여야 해요")
         scan_secrets(entry, "entry")
         try:
             model = MemoryEntry.model_validate(entry)
@@ -451,7 +451,7 @@ class Wiki:
             row = conn.execute("SELECT version FROM memory_entry WHERE project_id = ? AND id = ?", (pid, model.id)).fetchone()
             cur = row["version"] if row else 0
             if (expected_version or 0) != cur:
-                raise HubError(409, "version_conflict", f"version 이 다르다 — 지금 {cur} (새 entry 는 0)",
+                raise HubError(409, "version_conflict", f"version 이 달라요 — 지금 {cur} (새 entry 는 0)",
                                {"current_version": cur, "id": model.id})
             conn.execute(
                 "INSERT INTO memory_entry (project_id, id, body_json, version, updated_by, updated_at) VALUES (?, ?, ?, 1, ?, ?) "
@@ -467,7 +467,7 @@ class Wiki:
             row = conn.execute("SELECT body_json, version, updated_by, updated_at FROM memory_entry "
                                "WHERE project_id = ? AND id = ?", (pid, entry_id)).fetchone()
         if row is None:
-            raise HubError(404, "not_found", f"memory entry 가 없다: {entry_id}", {"id": entry_id})
+            raise HubError(404, "not_found", f"memory entry 가 없어요: {entry_id}", {"id": entry_id})
         return {"id": entry_id, "entry": json.loads(row["body_json"]), "version": row["version"],
                 "updated_by": row["updated_by"], "updated_at": row["updated_at"]}
 
@@ -485,9 +485,9 @@ class Wiki:
         pid = p.project_id
         assert pid is not None
         if p.role != "owner":
-            raise forbidden("위키 원격 읽기는 소유자만 켜고 끈다 — 허브가 외부에 접속하는 유일한 설정이다 (R3.7 · R8.4)")
+            raise forbidden("위키 원격 읽기는 소유자만 켜고 꺼요 — 허브가 외부에 접속하는 유일한 설정이에요 (R3.7 · R8.4)")
         if fetch_url and not self.store.wiki_remote_allowed:
-            raise HubError(403, "wiki_remote_disabled", "바깥에 노출된 허브라 위키 원격 읽기가 꺼져 있다 — 운영자가 serve --allow-wiki-remote 로 켠다")
+            raise HubError(403, "wiki_remote_disabled", "바깥에 노출된 허브라 위키 원격 읽기가 꺼져 있어요 — 운영자가 serve --allow-wiki-remote 로 켜요")
         if fetch_url:
             try:
                 wiki_remote.check_fetch_url(fetch_url)

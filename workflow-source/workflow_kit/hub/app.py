@@ -100,7 +100,7 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
             raise HubError(400, "invalid_field", "timeout_s: 1 이상", {"field": "timeout_s"})
         timeout = min(timeout, WAIT_CAP_S)
         if waiting["n"] >= WAIT_CAPACITY:
-            raise HubError(429, "wait_capacity", f"허브의 동시 대기 상한 {WAIT_CAPACITY} — 잠시 뒤 다시 부른다",
+            raise HubError(429, "wait_capacity", f"허브의 동시 대기 상한 {WAIT_CAPACITY} — 잠시 뒤 다시 불러요",
                            {"limit": WAIT_CAPACITY})
         orch = Orchestration(store)
         sid = clean["session"]
@@ -135,7 +135,7 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
             principal, sent = principal_from_request(req)
             spec = hubtools.TOOLS.get(name)
             if sent and principal is None and spec is not None and spec.bundle != "bootstrap":
-                raise HubError(401, "unauthorized", "토큰이 틀렸거나 거둔 토큰이다")
+                raise HubError(401, "unauthorized", "토큰이 틀렸거나 거둔 토큰이에요")
             ctx = Ctx(now=clock(), via="mcp", principal=principal, public_url=public_url)
             return hubtools.call(store, name, arguments or {}, ctx)
 
@@ -143,7 +143,7 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
             if name == "hub_wait":
                 principal, sent = await run_in_threadpool(principal_from_request, req)
                 if sent and principal is None:
-                    raise HubError(401, "unauthorized", "토큰이 틀렸거나 거둔 토큰이다")
+                    raise HubError(401, "unauthorized", "토큰이 틀렸거나 거둔 토큰이에요")
                 result = await wait_async(principal, arguments or {}, "mcp", None)
             else:
                 result = await run_in_threadpool(run)
@@ -231,7 +231,7 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
             try:
                 args = json.loads(body.decode("utf-8")) if body.strip() else {}
             except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-                raise HubError(400, "invalid_json", f"본문이 JSON 이 아니다: {exc}") from exc
+                raise HubError(400, "invalid_json", f"본문이 JSON 이 아니에요: {exc}") from exc
             token = _bearer(request.headers)
             now = clock()
 
@@ -239,7 +239,7 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
                 principal = store.authenticate(token, now, request.headers.get("x-hub-client")) if token else None
                 spec = hubtools.TOOLS.get(name)
                 if token and principal is None and spec is not None and spec.bundle != "bootstrap":
-                    raise HubError(401, "unauthorized", "토큰이 틀렸거나 거둔 토큰이다")
+                    raise HubError(401, "unauthorized", "토큰이 틀렸거나 거둔 토큰이에요")
                 ctx = Ctx(now=now, via="http", principal=principal,
                           client_version=request.headers.get("x-hub-client"), public_url=public_url)
                 return hubtools.call(store, name, args, ctx)
@@ -248,7 +248,7 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
                 principal = await run_in_threadpool(
                     lambda: store.authenticate(token, now, request.headers.get("x-hub-client")) if token else None)
                 if token and principal is None:
-                    raise HubError(401, "unauthorized", "토큰이 틀렸거나 거둔 토큰이다")
+                    raise HubError(401, "unauthorized", "토큰이 틀렸거나 거둔 토큰이에요")
                 result = await wait_async(principal, args, "http", request.headers.get("x-hub-client"))
             else:
                 result = await run_in_threadpool(run)
@@ -279,12 +279,12 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
             def context(now: datetime) -> Ctx:
                 p = store.authenticate(token, now, request.headers.get("x-hub-client")) if token else None
                 if p is None:
-                    raise HubError(401, "unauthorized", "콜사인 토큰이 필요하다")
+                    raise HubError(401, "unauthorized", "콜사인 토큰이 필요해요")
                 if p.kind != "callsign" or not p.project_id:
-                    raise HubError(403, "forbidden", "콜사인 토큰이 필요하다")
+                    raise HubError(403, "forbidden", "콜사인 토큰이 필요해요")
                 to = store.project_moved(p.project_id)
                 if to:
-                    raise HubError(410, "project_moved", "프로젝트가 다른 허브로 이동했다", {"project_id": p.project_id, "to": to})
+                    raise HubError(410, "project_moved", "프로젝트가 다른 허브로 이동했어요", {"project_id": p.project_id, "to": to})
                 return Ctx(now=now, via="a2a", principal=p, client_version=request.headers.get("x-hub-client"), public_url=public_url)
 
             ctx = await run_in_threadpool(context, now)
@@ -293,7 +293,7 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
                 return JSONResponse(await run_in_threadpool(a2a.handle, ctx, raw, version.strip()), headers=headers)
             who = (str(ctx.principal.project_id), str(ctx.principal.callsign)) if ctx.principal else ("", "")
             if sum(streams.values()) >= hub_a2a.STREAM_CAPACITY or streams.get(who, 0) >= hub_a2a.STREAM_PER_CALLSIGN:
-                raise HubError(429, "stream_capacity", "동시 스트림 상한 — 잠시 뒤 다시 구독한다")
+                raise HubError(429, "stream_capacity", "동시 스트림 상한 — 잠시 뒤 다시 구독해요")
             first = await run_in_threadpool(a2a.handle, ctx, raw, version.strip())
             if "error" in first:
                 return JSONResponse(first, headers=headers)
@@ -334,12 +334,12 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
         try:
             return json.loads(body.decode("utf-8")) if body.strip() else {}
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-            raise HubError(400, "invalid_json", f"본문이 JSON 이 아니다: {exc}") from exc
+            raise HubError(400, "invalid_json", f"본문이 JSON 이 아니에요: {exc}") from exc
 
     async def _relay_host(request: Request) -> Any:
         host = await run_in_threadpool(relays.authenticate, _bearer(request.headers))
         if host is None:
-            raise HubError(401, "unauthorized", "중계 토큰이 없거나 틀렸거나 거둔 토큰이다")
+            raise HubError(401, "unauthorized", "중계 토큰이 없거나 틀렸거나 거둔 토큰이에요")
         return host
 
     async def relay_register(request: Request) -> Response:
@@ -359,7 +359,7 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
             host = await _relay_host(request)
             args = await _relay_body(request)
             if not isinstance(args, dict) or set(args) - {"wait_s", "sessions", "allow_digest"}:
-                raise HubError(400, "unknown_field", "wait_s · sessions · allow_digest 만 받는다")
+                raise HubError(400, "unknown_field", "wait_s · sessions · allow_digest 만 받아요")
             wait_s = args.get("wait_s", POLL_CAP_S)
             if not isinstance(wait_s, int) or isinstance(wait_s, bool) or wait_s < 0:
                 raise HubError(400, "invalid_field", "wait_s: 0 이상 정수", {"field": "wait_s"})

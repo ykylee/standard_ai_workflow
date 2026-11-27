@@ -45,7 +45,7 @@ func Call(requestCtx context.Context, st *store.Store, args any, base store.Ctx,
 	case slots <- struct{}{}:
 		defer func() { <-slots }()
 	default:
-		return nil, &store.HubError{Status: 429, Code: "wait_capacity", Message: "허브의 동시 대기 상한 64 — 잠시 뒤 다시 부른다", Detail: map[string]any{"limit": capacity}}
+		return nil, &store.HubError{Status: 429, Code: "wait_capacity", Message: "허브의 동시 대기 상한 64 — 잠시 뒤 다시 불러요", Detail: map[string]any{"limit": capacity}}
 	}
 	sessionID, _ := clean["session"].(string)
 	current := base

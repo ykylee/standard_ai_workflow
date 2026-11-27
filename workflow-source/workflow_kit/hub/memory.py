@@ -41,7 +41,7 @@ def check_doc(name: Any, body: Any) -> None:
 
 def _validate_sections(sections: Any) -> dict[str, Any]:
     if not isinstance(sections, dict):
-        raise invalid_field("handoff", "객체여야 한다")
+        raise invalid_field("handoff", "객체여야 해요")
     extra = set(sections) - set(_LIST_KEYS) - set(_STR_KEYS)
     if extra:
         raise HubError(400, "unknown_field", f"handoff 의 모르는 칸: {', '.join(sorted(extra))}", {"fields": sorted(extra)})
@@ -59,7 +59,7 @@ def _validate_sections(sections: Any) -> dict[str, Any]:
     for k in ("in_progress", "blocked", "recent_done"):
         bad = [x for x in out[k] if not x.startswith("TASK-")]
         if bad:
-            raise invalid_field(f"handoff.{k}", f"항목은 TASK- 로 시작한다 (R6.2): {bad[0]!r}")
+            raise invalid_field(f"handoff.{k}", f"항목은 TASK- 로 시작해요 (R6.2): {bad[0]!r}")
     scan_secrets(out, "handoff")
     return out
 
@@ -91,14 +91,14 @@ class Memory:
             approval_grants.authorize(self.store, ctx, approval_id, "project_doc_put", name=name,
                                       expected_version=expected_version, sha256=approval_grants.doc_sha(body))
         elif conn is None and (p.callsign_kind != "human" or not p.human_approved):
-            raise forbidden("프로젝트 문서는 승인된 human 콜사인이 쓰거나, action=project_doc_put 으로 로그인 승인받은 approval_id 가 필요하다")
+            raise forbidden("프로젝트 문서는 승인된 human 콜사인이 쓰거나, action=project_doc_put 으로 로그인 승인받은 approval_id 가 필요해요")
         scan_secrets(body, "body")
 
         def do(c: sqlite3.Connection) -> dict[str, Any]:
             row = c.execute("SELECT version FROM project_doc WHERE project_id = ? AND name = ?", (p.project_id, name)).fetchone()
             current = row["version"] if row else 0
             if expected_version is not None and expected_version != current:
-                raise HubError(409, "version_conflict", f"version 이 다르다 — 지금 {current}", {"current_version": current})
+                raise HubError(409, "version_conflict", f"version 이 달라요 — 지금 {current}", {"current_version": current})
             c.execute("INSERT INTO project_doc (project_id, name, body_md, version, updated_by, updated_at) VALUES (?, ?, ?, 1, ?, ?) "
                       "ON CONFLICT(project_id, name) DO UPDATE SET body_md = excluded.body_md, version = project_doc.version + 1, "
                       "updated_by = excluded.updated_by, updated_at = excluded.updated_at",
@@ -127,7 +127,7 @@ class Memory:
                                (p.project_id, who)).fetchone()
             cs = conn.execute("SELECT revoked_at FROM callsign WHERE project_id = ? AND id = ?", (p.project_id, who)).fetchone()
         if cs is None:
-            raise not_found(f"콜사인이 없다: {who}")
+            raise not_found(f"콜사인이 없어요: {who}")
         if row is None:
             return {"callsign": who, "handoff": None, "version": 0, "archived": cs["revoked_at"] is not None}
         return {"callsign": who, "handoff": json.loads(row["sections_json"]), "version": row["version"],
@@ -139,7 +139,7 @@ class Memory:
                            (p.project_id, p.callsign)).fetchone()
         current = row["version"] if row else 0
         if expected_version is not None and expected_version != current:
-            raise HubError(409, "version_conflict", f"version 이 다르다 — 지금 {current}",
+            raise HubError(409, "version_conflict", f"version 이 달라요 — 지금 {current}",
                            {"current_version": current, "current": json.loads(row["sections_json"]) if row else None})
         moved = sections["recent_done"][RECENT_DONE_MAX:]
         sections = {**sections, "recent_done": sections["recent_done"][:RECENT_DONE_MAX]}
@@ -160,7 +160,7 @@ class Memory:
     def handoff_put(self, ctx: Ctx, expected_version: int | None, sections: Any, callsign: str | None = None) -> dict[str, Any]:
         p = self.store._need_callsign(ctx)
         if callsign and callsign != p.callsign:
-            raise forbidden("다른 콜사인의 handoff 는 쓸 수 없다 (G3)")
+            raise forbidden("다른 콜사인의 handoff 는 쓸 수 없어요 (G3)")
         clean = _validate_sections(sections)
         with self.store.write() as conn:
             return self._put(conn, ctx, expected_version, clean)

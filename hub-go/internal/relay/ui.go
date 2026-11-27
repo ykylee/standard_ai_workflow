@@ -236,7 +236,7 @@ func StartUI(r *Relay, port int) (*http.Server, int, error) {
 				if h == nil || !h.Alive() {
 					sendJSON(w, http.StatusNotFound, map[string]any{
 						"error_code": "not_found",
-						"message":    "실행 중인 세션이 없다",
+						"message":    "실행 중인 세션이 없어요",
 					})
 					return
 				}
@@ -305,7 +305,7 @@ func StartUI(r *Relay, port int) (*http.Server, int, error) {
 				if err := json.Unmarshal(raw, &s); err != nil || s == nil {
 					sendJSON(w, http.StatusBadRequest, map[string]any{
 						"error_code": "invalid_json",
-						"message":    "JSON 객체가 필요하다",
+						"message":    "JSON 객체가 필요해요",
 					})
 					return
 				}

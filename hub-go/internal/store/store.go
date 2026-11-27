@@ -109,7 +109,7 @@ func ScanSecrets(value any, p string) error {
 			return &HubError{
 				Status:  400,
 				Code:    "secret_in_payload",
-				Message: "토큰으로 보이는 문자열이 있다: " + where,
+				Message: "토큰으로 보이는 문자열이 있어요: " + where,
 				Detail:  map[string]any{"field": p},
 			}
 		}
@@ -377,7 +377,7 @@ func (s *Store) IssueHubToken(role, name string, now time.Time) (string, error) 
 		var dummy int
 		err := tx.QueryRow("SELECT 1 FROM hub_token WHERE name = ?", name).Scan(&dummy)
 		if err == nil {
-			return nil, &HubError{Status: 409, Code: "token_name_taken", Message: "이미 쓰는 토큰 이름이다: " + name}
+			return nil, &HubError{Status: 409, Code: "token_name_taken", Message: "이미 쓰는 토큰 이름이에요: " + name}
 		}
 		if !errors.Is(err, sql.ErrNoRows) {
 			return nil, err
@@ -408,7 +408,7 @@ func (s *Store) RevokeHubToken(name string, now time.Time) error {
 		}
 		n, _ := res.RowsAffected()
 		if n == 0 {
-			return nil, NotFound("거둘 토큰이 없다: " + name)
+			return nil, NotFound("거둘 토큰이 없어요: " + name)
 		}
 		hubCS := "hub"
 		if err := s.RecordEvent(tx, Ctx{Now: now, Via: "admin"}, nil, "hub_token", name, "revoke", nil, nil, &hubCS); err != nil {
@@ -472,10 +472,10 @@ func (s *Store) LookupProject(remoteURL string) (map[string]any, error) {
 
 func CheckCallsign(callsign, kind string) error {
 	if ReservedCallsigns[callsign] {
-		return InvalidField("callsign", fmt.Sprintf("예약한 이름이다: '%s'", callsign))
+		return InvalidField("callsign", fmt.Sprintf("예약한 이름이에요: '%s'", callsign))
 	}
 	if !CallsignPattern.MatchString(callsign) {
-		return InvalidField("callsign", "소문자 · 숫자 · '-' 3~32 자, 글자로 시작하고 '-' 로 끝나지 않는다 (예: claude-macmini)")
+		return InvalidField("callsign", "소문자 · 숫자 · '-' 3~32 자, 글자로 시작하고 '-' 로 끝나지 않아요 (예: claude-macmini)")
 	}
 	if kind != "human" && kind != "agent" {
 		return InvalidField("kind", "human · agent 가운데 하나")
@@ -499,7 +499,7 @@ func (s *Store) RegisterProject(ctx Ctx, remoteURL, displayName, callsign, kind,
 		return nil, err
 	}
 	if strings.TrimSpace(displayName) == "" {
-		return nil, InvalidField("display_name", "비었다")
+		return nil, InvalidField("display_name", "비었어요")
 	}
 	token, err := NewToken()
 	if err != nil {
@@ -518,7 +518,7 @@ func (s *Store) RegisterProject(ctx Ctx, remoteURL, displayName, callsign, kind,
 			return nil, &HubError{
 				Status:  409,
 				Code:    "project_exists",
-				Message: "이미 등록된 프로젝트다 — hub_callsign_register 로 합류한다",
+				Message: "이미 등록된 프로젝트예요 — hub_callsign_register 로 합류해요",
 				Detail:  map[string]any{"project_id": existingPID, "key": key},
 			}
 		}
@@ -572,7 +572,7 @@ func (s *Store) BindRemote(ctx Ctx, remoteURL string) (map[string]any, error) {
 		return nil, err
 	}
 	if p.Role != "owner" || p.CallsignKind != "human" || !p.HumanApproved {
-		return nil, Forbidden("원격 묶기는 승인된 human 소유자만 한다")
+		return nil, Forbidden("원격 묶기는 승인된 human 소유자만 해요")
 	}
 	key, err := NormalizeGitRemote(remoteURL)
 	if err != nil {
@@ -588,7 +588,7 @@ func (s *Store) BindRemote(ctx Ctx, remoteURL string) (map[string]any, error) {
 			return nil, &HubError{
 				Status:  409,
 				Code:    "alias_taken",
-				Message: "다른 프로젝트가 이 저장소 주소로 등록돼 있다 — 묶지 않는다. 두 프로젝트를 합치는 길은 없다: 사람이 어느 쪽을 쓸지 정한다",
+				Message: "다른 프로젝트가 이 저장소 주소로 등록돼 있어요 — 묶지 않아요. 두 프로젝트를 합치는 길은 없어요: 사람이 어느 쪽을 쓸지 정해요",
 				Detail:  map[string]any{"key": key},
 			}
 		}
@@ -620,7 +620,7 @@ func (s *Store) RegisterCallsign(ctx Ctx, projectID, callsign, kind, label, host
 		var dummy int
 		err := tx.QueryRow("SELECT 1 FROM project WHERE id = ?", projectID).Scan(&dummy)
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, NotFound("프로젝트가 없다: " + projectID)
+			return nil, NotFound("프로젝트가 없어요: " + projectID)
 		}
 		if err != nil {
 			return nil, err
@@ -632,7 +632,7 @@ func (s *Store) RegisterCallsign(ctx Ctx, projectID, callsign, kind, label, host
 				return nil, &HubError{
 					Status:  409,
 					Code:    "callsign_taken",
-					Message: fmt.Sprintf("이미 쓰는 콜사인이다: %s — 그 환경의 .workflow-hub/env 를 찾거나 다른 이름을 쓴다", callsign),
+					Message: fmt.Sprintf("이미 쓰는 콜사인이에요: %s — 그 환경의 .workflow-hub/env 를 찾거나 다른 이름을 써요", callsign),
 					Detail:  map[string]any{"callsign": callsign},
 				}
 			}
@@ -643,7 +643,7 @@ func (s *Store) RegisterCallsign(ctx Ctx, projectID, callsign, kind, label, host
 					return nil, err
 				}
 				if n > 0 {
-					return nil, &HubError{Status: 409, Code: "callsign_taken", Message: "기록이 남은 거둔 콜사인이다: " + callsign + " — 다른 이름을 쓴다", Detail: map[string]any{"callsign": callsign}}
+					return nil, &HubError{Status: 409, Code: "callsign_taken", Message: "기록이 남은 거둔 콜사인이에요: " + callsign + " — 다른 이름을 써요", Detail: map[string]any{"callsign": callsign}}
 				}
 			}
 			if err := removeCallsignRows(tx, projectID, callsign); err != nil {
@@ -679,7 +679,7 @@ func (s *Store) ApproveCallsign(ctx Ctx, callsign string) (map[string]any, error
 		return nil, err
 	}
 	if p.Role != "owner" || p.CallsignKind != "human" || !p.HumanApproved {
-		return nil, Forbidden("콜사인 승인은 승인된 human 소유자만 한다")
+		return nil, Forbidden("콜사인 승인은 승인된 human 소유자만 해요")
 	}
 	return s.withWriteTx(func(tx *sql.Tx) (map[string]any, error) {
 		var kind string
@@ -687,13 +687,13 @@ func (s *Store) ApproveCallsign(ctx Ctx, callsign string) (map[string]any, error
 		err := tx.QueryRow("SELECT kind, human_approved FROM callsign WHERE project_id = ? AND id = ? AND revoked_at IS NULL",
 			p.ProjectID, callsign).Scan(&kind, &approved)
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, NotFound("콜사인이 없다: " + callsign)
+			return nil, NotFound("콜사인이 없어요: " + callsign)
 		}
 		if err != nil {
 			return nil, err
 		}
 		if kind != "human" {
-			return nil, InvalidField("callsign", "agent 콜사인은 승인 대상이 아니다")
+			return nil, InvalidField("callsign", "agent 콜사인은 승인 대상이 아니에요")
 		}
 		if approved != 0 {
 			return map[string]any{"callsign": callsign, "human_approved": true, "changed": false}, nil
@@ -722,7 +722,7 @@ func (s *Store) RevokeCallsign(ctx Ctx, projectID, callsign string) (map[string]
 		}
 		n, _ := res.RowsAffected()
 		if n == 0 {
-			return nil, NotFound(fmt.Sprintf("거둘 콜사인이 없다: %s/%s", projectID, callsign))
+			return nil, NotFound(fmt.Sprintf("거둘 콜사인이 없어요: %s/%s", projectID, callsign))
 		}
 		rows, err := tx.Query("SELECT id FROM task WHERE project_id = ? AND assignee = ? AND status != 'done'", projectID, callsign)
 		if err != nil {
@@ -762,7 +762,7 @@ func (s *Store) RevokeCallsign(ctx Ctx, projectID, callsign string) (map[string]
 func NeedCallsign(ctx Ctx) (*Principal, error) {
 	p := ctx.Principal
 	if p == nil || p.Kind != "callsign" || p.ProjectID == "" || p.Callsign == "" {
-		return nil, Forbidden("콜사인 토큰이 필요하다")
+		return nil, Forbidden("콜사인 토큰이 필요해요")
 	}
 	return p, nil
 }
@@ -770,7 +770,7 @@ func NeedCallsign(ctx Ctx) (*Principal, error) {
 func NeedReader(ctx Ctx) (*Principal, error) {
 	p := ctx.Principal
 	if p == nil || (p.Kind != "callsign" && p.Kind != "viewer") || p.ProjectID == "" {
-		return nil, Forbidden("콜사인 토큰이 필요하다")
+		return nil, Forbidden("콜사인 토큰이 필요해요")
 	}
 	return p, nil
 }
@@ -832,7 +832,7 @@ func (s *Store) GetTask(qe queryExec, projectID, taskID string) (map[string]any,
 	row := qe.QueryRow("SELECT "+taskSelectCols+" FROM task WHERE project_id = ? AND id = ?", projectID, taskID)
 	t, err := scanTaskRow(row)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, NotFound("task 가 없다: " + taskID)
+		return nil, NotFound("task 가 없어요: " + taskID)
 	}
 	if err != nil {
 		return nil, err
@@ -844,7 +844,7 @@ func ValidateTaskFields(values map[string]any) error {
 	if rawTitle, has := values["title"]; has {
 		title, ok := rawTitle.(string)
 		if !ok || strings.TrimSpace(title) == "" {
-			return InvalidField("title", "비었다")
+			return InvalidField("title", "비었어요")
 		}
 		if rc := utf8.RuneCountInString(title); rc > TitleMax {
 			return InvalidField("title", fmt.Sprintf("String should have at most %d characters (지금 %d)", TitleMax, rc))
@@ -859,7 +859,7 @@ func ValidateTaskFields(values map[string]any) error {
 			return &HubError{
 				Status:  422,
 				Code:    "gate_denied",
-				Message: "done 은 done 게이트를 거치는 hub_task_close 로만 닫는다",
+				Message: "done 은 done 게이트를 거치는 hub_task_close 로만 닫아요",
 				Detail:  map[string]any{"kit_error_code": "done_requires_gate"},
 			}
 		}
@@ -873,7 +873,7 @@ func ValidateTaskFields(values map[string]any) error {
 	if rawFields, has := values["fields"]; has && rawFields != nil {
 		fm, ok := rawFields.(map[string]any)
 		if !ok {
-			return InvalidField("fields", "객체여야 한다")
+			return InvalidField("fields", "객체여야 해요")
 		}
 		var extra []string
 		for k := range fm {
@@ -893,19 +893,19 @@ func ValidateTaskFields(values map[string]any) error {
 		if raw, has := fm["category"]; has {
 			cat, ok := raw.(map[string]any)
 			if !ok || len(cat) != 3 {
-				return InvalidField("fields.category", "level_1 · level_2 · level_3 문자열이 모두 필요하다")
+				return InvalidField("fields.category", "level_1 · level_2 · level_3 문자열이 모두 필요해요")
 			}
 			for _, level := range []string{"level_1", "level_2", "level_3"} {
 				v, ok := cat[level].(string)
 				if !ok || strings.TrimSpace(v) == "" {
-					return InvalidField("fields.category", "level_1 · level_2 · level_3 문자열이 모두 필요하다")
+					return InvalidField("fields.category", "level_1 · level_2 · level_3 문자열이 모두 필요해요")
 				}
 			}
 		}
 		if raw, has := fm["tests"]; has {
 			tests, ok := raw.([]any)
 			if !ok {
-				return InvalidField("fields.tests", "테스트 정의 배열이어야 한다")
+				return InvalidField("fields.tests", "테스트 정의 배열이어야 해요")
 			}
 			seen := map[string]bool{}
 			for _, item := range tests {
@@ -914,18 +914,18 @@ func ValidateTaskFields(values map[string]any) error {
 				name, nameOK := test["name"].(string)
 				_, requiredOK := test["required"].(bool)
 				if !ok || !idOK || strings.TrimSpace(id) == "" || !nameOK || strings.TrimSpace(name) == "" || !requiredOK || seen[id] {
-					return InvalidField("fields.tests", "각 테스트는 고유한 id, name, required가 필요하다")
+					return InvalidField("fields.tests", "각 테스트는 고유한 id, name, required가 필요해요")
 				}
 				seen[id] = true
 				runs, _ := test["runs"].([]any)
 				if _, hasRuns := test["runs"]; hasRuns && runs == nil {
-					return InvalidField("fields.tests.runs", "status는 passed · failed · skipped 중 하나여야 한다")
+					return InvalidField("fields.tests.runs", "status는 passed · failed · skipped 중 하나여야 해요")
 				}
 				for _, rawRun := range runs {
 					run, ok := rawRun.(map[string]any)
 					status, statusOK := run["status"].(string)
 					if !ok || !statusOK || (status != "passed" && status != "failed" && status != "skipped") {
-						return InvalidField("fields.tests.runs", "status는 passed · failed · skipped 중 하나여야 한다")
+						return InvalidField("fields.tests.runs", "status는 passed · failed · skipped 중 하나여야 해요")
 					}
 				}
 			}
@@ -934,7 +934,7 @@ func ValidateTaskFields(values map[string]any) error {
 	for _, k := range []string{"branch", "wbs", "wbs_exempt_reason", "description", "plan_md"} {
 		if raw, has := values[k]; has {
 			if _, ok := raw.(string); !ok {
-				return InvalidField(k, "문자열이어야 한다")
+				return InvalidField(k, "문자열이어야 해요")
 			}
 		}
 	}
@@ -1371,7 +1371,7 @@ func ClaimMutate(before map[string]any, p *Principal) (map[string]any, error) {
 		return nil, &HubError{
 			Status:  409,
 			Code:    "already_claimed",
-			Message: assignee + " 가 맡고 있다",
+			Message: assignee + " 가 맡고 있어요",
 			Detail:  map[string]any{"assignee": assignee, "current_version": before["version"]},
 		}
 	}
@@ -1379,7 +1379,7 @@ func ClaimMutate(before map[string]any, p *Principal) (map[string]any, error) {
 		return nil, &HubError{
 			Status:  409,
 			Code:    "task_done",
-			Message: "닫힌 task 는 맡을 수 없다",
+			Message: "닫힌 task 는 맡을 수 없어요",
 		}
 	}
 	out := map[string]any{"assignee": p.Callsign}
@@ -1401,7 +1401,7 @@ func (s *Store) TaskRelease(ctx Ctx, taskID, requestID string) (map[string]any, 
 			return map[string]any{}, nil
 		}
 		if before["assignee"] != p.Callsign && p.Role != "owner" {
-			return nil, Forbidden("맡은 콜사인이나 프로젝트 소유자만 놓을 수 있다")
+			return nil, Forbidden("맡은 콜사인이나 프로젝트 소유자만 놓을 수 있어요")
 		}
 		return map[string]any{"assignee": nil}, nil
 	}, requestID)
@@ -1412,7 +1412,7 @@ func (s *Store) TaskProgress(ctx Ctx, taskID, note, requestID string) (map[strin
 		return nil, err
 	}
 	if strings.TrimSpace(note) == "" {
-		return nil, InvalidField("note", "비었다")
+		return nil, InvalidField("note", "비었어요")
 	}
 	stamp := ctx.Now.Format("2006-01-02 15:04")
 	return s.versionedUpdate(ctx, taskID, nil, "progress", func(_ map[string]any, _ *Principal, _ *sql.Tx) (map[string]any, error) {

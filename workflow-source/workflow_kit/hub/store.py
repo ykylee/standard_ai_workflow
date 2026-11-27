@@ -100,7 +100,7 @@ def scan_secrets(value: Any, path: str = "") -> None:
     """토큰 모양의 문자열이 있으면 거절한다 (요구 R0.5)."""
     if isinstance(value, str):
         if TOKEN_SHAPE.search(value):
-            raise HubError(400, "secret_in_payload", f"토큰으로 보이는 문자열이 있다: {path or '값'}", {"field": path})
+            raise HubError(400, "secret_in_payload", f"토큰으로 보이는 문자열이 있어요: {path or '값'}", {"field": path})
     elif isinstance(value, dict):
         for k, v in value.items():
             scan_secrets(v, f"{path}.{k}" if path else str(k))
@@ -242,7 +242,7 @@ class Store:
         token = new_token()
         with self.write() as conn:
             if conn.execute("SELECT 1 FROM hub_token WHERE name = ?", (name,)).fetchone():
-                raise HubError(409, "token_name_taken", f"이미 쓰는 토큰 이름이다: {name}")
+                raise HubError(409, "token_name_taken", f"이미 쓰는 토큰 이름이에요: {name}")
             conn.execute(
                 "INSERT INTO hub_token (token_hash, role, name, created_at) VALUES (?, ?, ?, ?)",
                 (hash_token(token), role, name, _iso(now)),
@@ -256,7 +256,7 @@ class Store:
                 "UPDATE hub_token SET revoked_at = ? WHERE name = ? AND revoked_at IS NULL", (_iso(now), name)
             )
             if cur.rowcount == 0:
-                raise not_found(f"거둘 토큰이 없다: {name}")
+                raise not_found(f"거둘 토큰이 없어요: {name}")
             self._event(conn, Ctx(now=now, via="admin"), None, "hub_token", name, "revoke", None, None, "hub")
 
     # --- 프로젝트 · 콜사인 (WBS-33.2) ---------------------------------------------
@@ -288,9 +288,9 @@ class Store:
     @staticmethod
     def _check_callsign(callsign: str, kind: str) -> None:
         if callsign in RESERVED_CALLSIGNS:
-            raise invalid_field("callsign", f"예약한 이름이다: {callsign!r}")
+            raise invalid_field("callsign", f"예약한 이름이에요: {callsign!r}")
         if not CALLSIGN_PATTERN.match(callsign):
-            raise invalid_field("callsign", "소문자 · 숫자 · '-' 3~32 자, 글자로 시작하고 '-' 로 끝나지 않는다 (예: claude-macmini)")
+            raise invalid_field("callsign", "소문자 · 숫자 · '-' 3~32 자, 글자로 시작하고 '-' 로 끝나지 않아요 (예: claude-macmini)")
         if kind not in ("human", "agent"):
             raise invalid_field("kind", "human · agent 가운데 하나")
 
@@ -302,13 +302,13 @@ class Store:
         key = gitkey.local_key() if local else gitkey.normalize(remote_url)
         self._check_callsign(callsign, kind)
         if not display_name.strip():
-            raise invalid_field("display_name", "비었다")
+            raise invalid_field("display_name", "비었어요")
         token = new_token()
         project_id = f"P-{ctx.now.strftime('%Y%m%d')}-{secrets.token_hex(4)}"
         with self.write() as conn:
             existing = conn.execute("SELECT project_id FROM project_alias WHERE key = ?", (key,)).fetchone()
             if existing:
-                raise HubError(409, "project_exists", "이미 등록된 프로젝트다 — hub_callsign_register 로 합류한다",
+                raise HubError(409, "project_exists", "이미 등록된 프로젝트예요 — hub_callsign_register 로 합류해요",
                                {"project_id": existing["project_id"], "key": key})
             conn.execute(
                 "INSERT INTO project (id, display_name, owner_callsign, created_at) VALUES (?, ?, ?, ?)",
@@ -342,7 +342,7 @@ class Store:
         """
         p = self._need_callsign(ctx)
         if p.role != "owner" or p.callsign_kind != "human" or not p.human_approved:
-            raise forbidden("원격 묶기는 승인된 human 소유자만 한다")
+            raise forbidden("원격 묶기는 승인된 human 소유자만 해요")
         key = gitkey.normalize(remote_url)
         with self.write() as conn:
             row = conn.execute("SELECT project_id FROM project_alias WHERE key = ?", (key,)).fetchone()
@@ -350,8 +350,8 @@ class Store:
                 return {"project_id": p.project_id, "key": key, "already": True}
             if row:
                 raise HubError(409, "alias_taken",
-                               "다른 프로젝트가 이 저장소 주소로 등록돼 있다 — 묶지 않는다. 두 프로젝트를 합치는 길은 없다: "
-                               "사람이 어느 쪽을 쓸지 정한다", {"key": key})
+                               "다른 프로젝트가 이 저장소 주소로 등록돼 있어요 — 묶지 않아요. 두 프로젝트를 합치는 길은 없어요: "
+                               "사람이 어느 쪽을 쓸지 정해요", {"key": key})
             conn.execute(
                 "INSERT INTO project_alias (key, project_id, kind, added_by, added_at) VALUES (?, ?, 'alias', ?, ?)",
                 (key, p.project_id, p.callsign, _iso(ctx.now)),
@@ -365,19 +365,19 @@ class Store:
         token = new_token()
         with self.write() as conn:
             if not conn.execute("SELECT 1 FROM project WHERE id = ?", (project_id,)).fetchone():
-                raise not_found(f"프로젝트가 없다: {project_id}")
+                raise not_found(f"프로젝트가 없어요: {project_id}")
             row = conn.execute(
                 "SELECT revoked_at FROM callsign WHERE project_id = ? AND id = ?", (project_id, callsign)
             ).fetchone()
             if row and row["revoked_at"] is None:
                 raise HubError(409, "callsign_taken",
-                               f"이미 쓰는 콜사인이다: {callsign} — 그 환경의 .workflow-hub/env 를 찾거나 다른 이름을 쓴다",
+                               f"이미 쓰는 콜사인이에요: {callsign} — 그 환경의 .workflow-hub/env 를 찾거나 다른 이름을 써요",
                                {"callsign": callsign})
             if row:
                 # 거둔 콜사인의 기록(handoff · 계정 연결)을 새 등록자가 이어받지 않는다
                 for table in ("handoff", "hub_account_callsign"):
                     if conn.execute(f"SELECT 1 FROM {table} WHERE project_id = ? AND callsign = ?", (project_id, callsign)).fetchone():
-                        raise HubError(409, "callsign_taken", f"기록이 남은 거둔 콜사인이다: {callsign} — 다른 이름을 쓴다",
+                        raise HubError(409, "callsign_taken", f"기록이 남은 거둔 콜사인이에요: {callsign} — 다른 이름을 써요",
                                        {"callsign": callsign})
                 conn.execute("DELETE FROM setup_step WHERE project_id = ? AND callsign = ?", (project_id, callsign))
                 conn.execute("DELETE FROM callsign WHERE project_id = ? AND id = ?", (project_id, callsign))
@@ -434,16 +434,16 @@ class Store:
         """사람 콜사인 승인 (요구 Q3 · R7.7) — 승인된 human 소유자만. 승인 전 human 은 agent 권한이다."""
         p = self._need_callsign(ctx)
         if p.role != "owner" or p.callsign_kind != "human" or not p.human_approved:
-            raise forbidden("콜사인 승인은 승인된 human 소유자만 한다")
+            raise forbidden("콜사인 승인은 승인된 human 소유자만 해요")
         with self.write() as conn:
             row = conn.execute(
                 "SELECT kind, human_approved FROM callsign WHERE project_id = ? AND id = ? AND revoked_at IS NULL",
                 (p.project_id, callsign),
             ).fetchone()
             if row is None:
-                raise not_found(f"콜사인이 없다: {callsign}")
+                raise not_found(f"콜사인이 없어요: {callsign}")
             if row["kind"] != "human":
-                raise invalid_field("callsign", "agent 콜사인은 승인 대상이 아니다")
+                raise invalid_field("callsign", "agent 콜사인은 승인 대상이 아니에요")
             if row["human_approved"]:
                 return {"callsign": callsign, "human_approved": True, "changed": False}
             conn.execute(
@@ -463,7 +463,7 @@ class Store:
                 (_iso(ctx.now), project_id, callsign),
             )
             if cur.rowcount == 0:
-                raise not_found(f"거둘 콜사인이 없다: {project_id}/{callsign}")
+                raise not_found(f"거둘 콜사인이 없어요: {project_id}/{callsign}")
             released = [r["id"] for r in conn.execute(
                 "SELECT id FROM task WHERE project_id = ? AND assignee = ? AND status != 'done'", (project_id, callsign)
             )]
@@ -491,20 +491,20 @@ class Store:
     def delete_callsign(self, ctx: Ctx, project_id: str, callsign: str, confirm: str) -> dict[str, Any]:
         """관리자 삭제 — 등록 · 셋업 말고 활동이 없는 콜사인만. 활동이 있으면 409 (이력은 지우지 않는다)."""
         if ctx.via != "admin" and (ctx.principal is None or ctx.principal.kind != "admin"):
-            raise forbidden("콜사인 삭제는 허브 관리자만 한다")
+            raise forbidden("콜사인 삭제는 허브 관리자만 해요")
         if confirm != callsign:
-            raise invalid_field("confirm", "지울 콜사인 이름을 그대로 적는다")
+            raise invalid_field("confirm", "지울 콜사인 이름을 그대로 적어요")
         with self.write() as conn:
             row = conn.execute("SELECT role, kind FROM callsign WHERE project_id = ? AND id = ?", (project_id, callsign)).fetchone()
             if row is None:
-                raise not_found(f"콜사인이 없다: {project_id}/{callsign}")
+                raise not_found(f"콜사인이 없어요: {project_id}/{callsign}")
             owner = conn.execute("SELECT 1 FROM project WHERE id = ? AND owner_callsign = ?", (project_id, callsign)).fetchone()
             if owner or row["role"] == "owner":
-                raise HubError(409, "callsign_is_owner", f"프로젝트 소유자 콜사인은 지울 수 없다: {callsign}", {"callsign": callsign})
+                raise HubError(409, "callsign_is_owner", f"프로젝트 소유자 콜사인은 지울 수 없어요: {callsign}", {"callsign": callsign})
             used = {name: n for name, sql in self.CALLSIGN_USE
                     if (n := conn.execute(sql, (project_id, callsign)).fetchone()[0])}
             if used:
-                raise HubError(409, "callsign_in_use", f"활동 기록이 있어 지우지 않는다: {callsign} — 거두기(callsign revoke)를 쓴다",
+                raise HubError(409, "callsign_in_use", f"활동 기록이 있어 지우지 않아요: {callsign} — 거두기(callsign revoke)를 써요",
                                {"callsign": callsign, "used": used})
             conn.execute("DELETE FROM setup_step WHERE project_id = ? AND callsign = ?", (project_id, callsign))
             conn.execute("DELETE FROM callsign WHERE project_id = ? AND id = ?", (project_id, callsign))
@@ -524,7 +524,7 @@ class Store:
     def _get_task(self, conn: sqlite3.Connection, project_id: str, task_id: str) -> dict[str, Any]:
         row = conn.execute("SELECT * FROM task WHERE project_id = ? AND id = ?", (project_id, task_id)).fetchone()
         if not row:
-            raise not_found(f"task 가 없다: {task_id}")
+            raise not_found(f"task 가 없어요: {task_id}")
         return self._task_row(row)
 
     @staticmethod
@@ -532,20 +532,20 @@ class Store:
         if "title" in values:
             title = values["title"]
             if not isinstance(title, str) or not title.strip():
-                raise invalid_field("title", "비었다")
+                raise invalid_field("title", "비었어요")
             if len(title) > TITLE_MAX:
                 raise invalid_field("title", f"String should have at most {TITLE_MAX} characters (지금 {len(title)})")
         if "status" in values and values["status"] not in STATUSES:
             raise invalid_field("status", f"{' · '.join(STATUSES)} 가운데 하나")
         if values.get("status") == "done":
-            raise HubError(422, "gate_denied", "done 은 done 게이트를 거치는 hub_task_close 로만 닫는다",
+            raise HubError(422, "gate_denied", "done 은 done 게이트를 거치는 hub_task_close 로만 닫아요",
                            {"kit_error_code": "done_requires_gate"})
         if "priority" in values and values["priority"] not in PRIORITIES:
             raise invalid_field("priority", f"{' · '.join(PRIORITIES)} 가운데 하나")
         fields = values.get("fields")
         if fields is not None:
             if not isinstance(fields, dict):
-                raise invalid_field("fields", "객체여야 한다")
+                raise invalid_field("fields", "객체여야 해요")
             extra = set(fields) - TASK_FIELD_KEYS
             if extra:
                 raise HubError(400, "unknown_field", f"fields 의 모르는 칸: {', '.join(sorted(extra))}",
@@ -556,35 +556,35 @@ class Store:
                 if not isinstance(category, dict) or set(category) != set(levels) or any(
                     not isinstance(category.get(level), str) or not category[level].strip() for level in levels
                 ):
-                    raise invalid_field("fields.category", "level_1 · level_2 · level_3 문자열이 모두 필요하다")
+                    raise invalid_field("fields.category", "level_1 · level_2 · level_3 문자열이 모두 필요해요")
             if "tests" in fields:
                 tests = fields["tests"]
                 if not isinstance(tests, list):
-                    raise invalid_field("fields.tests", "테스트 정의 배열이어야 한다")
+                    raise invalid_field("fields.tests", "테스트 정의 배열이어야 해요")
                 seen: set[str] = set()
                 for test in tests:
                     if not isinstance(test, dict) or not isinstance(test.get("id"), str) or not test["id"].strip():
-                        raise invalid_field("fields.tests", "각 테스트에 id가 필요하다")
+                        raise invalid_field("fields.tests", "각 테스트에 id가 필요해요")
                     if test["id"] in seen:
                         raise invalid_field("fields.tests", f"중복 테스트 id: {test['id']}")
                     seen.add(test["id"])
                     if not isinstance(test.get("name"), str) or not test["name"].strip() or not isinstance(test.get("required"), bool):
-                        raise invalid_field("fields.tests", "각 테스트에 name 문자열과 required 불리언이 필요하다")
+                        raise invalid_field("fields.tests", "각 테스트에 name 문자열과 required 불리언이 필요해요")
                     runs = test.get("runs", [])
                     if not isinstance(runs, list) or any(
                         not isinstance(run, dict) or run.get("status") not in ("passed", "failed", "skipped")
                         for run in runs
                     ):
-                        raise invalid_field("fields.tests.runs", "status는 passed · failed · skipped 중 하나여야 한다")
+                        raise invalid_field("fields.tests.runs", "status는 passed · failed · skipped 중 하나여야 해요")
         for key in ("branch", "wbs", "wbs_exempt_reason", "description", "plan_md"):
             if key in values and not isinstance(values[key], str):
-                raise invalid_field(key, "문자열이어야 한다")
+                raise invalid_field(key, "문자열이어야 해요")
 
     @staticmethod
     def _need_callsign(ctx: Ctx) -> Principal:
         p = ctx.principal
         if p is None or p.kind != "callsign" or not p.project_id or not p.callsign:
-            raise forbidden("콜사인 토큰이 필요하다")
+            raise forbidden("콜사인 토큰이 필요해요")
         return p
 
     @staticmethod
@@ -592,7 +592,7 @@ class Store:
         """읽기 — 콜사인 토큰 또는 화면의 viewer (프로젝트로 좁힌 web · admin · 콜사인)."""
         p = ctx.principal
         if p is None or p.kind not in ("callsign", "viewer") or not p.project_id:
-            raise forbidden("콜사인 토큰이 필요하다")
+            raise forbidden("콜사인 토큰이 필요해요")
         return p
 
     def task_create(self, ctx: Ctx, values: dict[str, Any], request_id: str | None = None,
@@ -802,10 +802,10 @@ class Store:
         if before["assignee"] == p.callsign:
             return {}
         if before["assignee"]:
-            raise HubError(409, "already_claimed", f"{before['assignee']} 가 맡고 있다",
+            raise HubError(409, "already_claimed", f"{before['assignee']} 가 맡고 있어요",
                            {"assignee": before["assignee"], "current_version": before["version"]})
         if before["status"] == "done":
-            raise HubError(409, "task_done", "닫힌 task 는 맡을 수 없다")
+            raise HubError(409, "task_done", "닫힌 task 는 맡을 수 없어요")
         # 맡는 순간 시작이다 — planned 면 in_progress 로 (소유자 2026-11-21, 테스트베드 실측). blocked 는 그대로.
         return {"assignee": p.callsign, **({"status": "in_progress"} if before["status"] == "planned" else {})}
 
@@ -817,7 +817,7 @@ class Store:
             if before["assignee"] is None:
                 return {}
             if before["assignee"] != p.callsign and p.role != "owner":
-                raise forbidden("맡은 콜사인이나 프로젝트 소유자만 놓을 수 있다")
+                raise forbidden("맡은 콜사인이나 프로젝트 소유자만 놓을 수 있어요")
             return {"assignee": None}
 
         return self._versioned_update(ctx, task_id, None, "release", mutate, request_id)
@@ -825,7 +825,7 @@ class Store:
     def task_progress(self, ctx: Ctx, task_id: str, note: str, request_id: str | None = None) -> dict[str, Any]:
         scan_secrets(note, "note")
         if not isinstance(note, str) or not note.strip():
-            raise invalid_field("note", "비었다")
+            raise invalid_field("note", "비었어요")
         stamp = ctx.now.strftime("%Y-%m-%d %H:%M")
 
         def mutate(_before: dict[str, Any], _p: Principal, _c: sqlite3.Connection) -> dict[str, Any]:

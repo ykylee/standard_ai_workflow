@@ -62,7 +62,7 @@ func prepareDocPut(tx *sql.Tx, projectID string, action map[string]any) (map[str
 		return nil, nil, err
 	}
 	if expected != current {
-		return nil, nil, &HubError{Status: 409, Code: "version_conflict", Message: fmt.Sprintf("version 이 다르다 — 지금 %d", current), Detail: map[string]any{"current_version": current}}
+		return nil, nil, &HubError{Status: 409, Code: "version_conflict", Message: fmt.Sprintf("version 이 달라요 — 지금 %d", current), Detail: map[string]any{"current_version": current}}
 	}
 	sha := docSHA(body)
 	return map[string]any{"type": "project_doc_put", "name": name, "expected_version": expected, "sha256": sha},
@@ -118,7 +118,7 @@ func prepareApproval(tx *sql.Tx, projectID string, raw any) (map[string]any, map
 	var status, planRaw, plannedBy string
 	err := tx.QueryRow("SELECT status,plan_json,callsign FROM migration_1x WHERE project_id=? AND id=?", projectID, mig).Scan(&status, &planRaw, &plannedBy)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, nil, NotFound("전환 계획이 없다: " + mig)
+		return nil, nil, NotFound("전환 계획이 없어요: " + mig)
 	}
 	if err != nil {
 		return nil, nil, err
@@ -153,7 +153,7 @@ func prepareApproval(tx *sql.Tx, projectID string, raw any) (map[string]any, map
 			return nil, nil, InvalidField("action.kinds", "전환 종류 가운데 하나 이상")
 		}
 		if status == "done" {
-			return nil, nil, &HubError{Status: 409, Code: "already_done", Message: mig + " 는 이미 끝난 전환이다"}
+			return nil, nil, &HubError{Status: 409, Code: "already_done", Message: mig + " 는 이미 끝난 전환이에요"}
 		}
 		kinds, files := []string{}, map[string]any{}
 		for k := range set {
@@ -169,7 +169,7 @@ func prepareApproval(tx *sql.Tx, projectID string, raw any) (map[string]any, map
 		return nil, nil, InvalidField("action.marker", "issue · revert")
 	}
 	if status != "done" {
-		return nil, nil, &HubError{Status: 409, Code: "migration_not_done", Message: mig + " 가 아직 끝나지 않았다"}
+		return nil, nil, &HubError{Status: 409, Code: "migration_not_done", Message: mig + " 가 아직 끝나지 않았어요"}
 	}
 	summary["marker"] = marker
 	return map[string]any{"type": kind, "migration_id": mig, "marker": marker}, summary, nil
@@ -187,10 +187,10 @@ func decideApproval(tx *sql.Tx, ctx Ctx, p *Principal, requestID string, approve
 		return err
 	}
 	if approve && (ctx.Via != "ui" || p.AuthMode != "account") {
-		return &HubError{Status: 403, Code: "account_login_required", Message: "실행을 여는 승인은 허브 계정으로 로그인한 화면에서만 한다"}
+		return &HubError{Status: 403, Code: "account_login_required", Message: "실행을 여는 승인은 허브 계정으로 로그인한 화면에서만 해요"}
 	}
 	if state != "pending" {
-		return &HubError{Status: 409, Code: "already_decided", Message: "이미 결정한 실행 승인이다", Detail: map[string]any{"state": state}}
+		return &HubError{Status: 409, Code: "already_decided", Message: "이미 결정한 실행 승인이에요", Detail: map[string]any{"state": state}}
 	}
 	next := "rejected"
 	var expires, account any
@@ -260,7 +260,7 @@ func (s *Store) ApprovalAuthorize(ctx Ctx, approvalID, action string, want map[s
 	err = s.pool.QueryRow("SELECT action,params_json,requested_by,state,decided_by,expires_at FROM approval_grant WHERE project_id=? AND id=?", p.ProjectID, approvalID).
 		Scan(&kind, &raw, &by, &state, &decidedBy, &expires)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, NotFound("실행 승인 요청이 없다: " + approvalID)
+		return nil, NotFound("실행 승인 요청이 없어요: " + approvalID)
 	}
 	if err != nil {
 		return nil, err
@@ -274,20 +274,20 @@ func (s *Store) ApprovalAuthorize(ctx Ctx, approvalID, action string, want map[s
 		return nil, err
 	}
 	if by != p.Callsign || kind != action || !reflect.DeepEqual(params, expect) {
-		return nil, &HubError{Status: 403, Code: "approval_mismatch", Message: "승인한 콜사인 · 실행 · 대상과 다르다", Detail: map[string]any{"approved": params}}
+		return nil, &HubError{Status: 403, Code: "approval_mismatch", Message: "승인한 콜사인 · 실행 · 대상과 달라요", Detail: map[string]any{"approved": params}}
 	}
 	if state != "approved" {
 		return nil, &HubError{Status: 403, Code: "approval_" + state, Message: "실행 승인 상태: " + state, Detail: map[string]any{"state": state}}
 	}
 	if expires.String <= db.FormatISO(ctx.Now) {
-		return nil, &HubError{Status: 403, Code: "approval_expired", Message: "승인한 지 24시간이 지났다 — 다시 요청한다"}
+		return nil, &HubError{Status: 403, Code: "approval_expired", Message: "승인한 지 24시간이 지났어요 — 다시 요청해요"}
 	}
 	var n int
 	if err := s.pool.QueryRow("SELECT COUNT(*) FROM callsign WHERE project_id=? AND id=? AND revoked_at IS NULL AND role='owner' AND kind='human' AND human_approved=1", p.ProjectID, decidedBy.String).Scan(&n); err != nil {
 		return nil, err
 	}
 	if n == 0 {
-		return nil, &HubError{Status: 403, Code: "approval_revoked", Message: "승인한 사람이 더 이상 프로젝트 소유자가 아니다"}
+		return nil, &HubError{Status: 403, Code: "approval_revoked", Message: "승인한 사람이 더 이상 프로젝트 소유자가 아니에요"}
 	}
 	return p, nil
 }

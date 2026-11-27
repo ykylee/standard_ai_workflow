@@ -55,7 +55,7 @@ class Relays:
     def register(self, now: datetime, a: Any) -> dict[str, Any]:
         """중계 등록 — 초대 코드 → host_id · 중계 토큰 (토큰은 이 응답에만)."""
         if not isinstance(a, dict) or set(a) - {"invite", "name", "harnesses"}:
-            raise HubError(400, "unknown_field", "invite · name · harnesses 만 받는다")
+            raise HubError(400, "unknown_field", "invite · name · harnesses 만 받아요")
         code, name, harnesses = a.get("invite"), a.get("name"), a.get("harnesses") or []
         if not isinstance(code, str) or not code:
             raise invalid_field("invite", "필수")
@@ -70,7 +70,7 @@ class Relays:
         with self.store.write() as conn:
             row = conn.execute("SELECT * FROM relay_invite WHERE code_hash = ?", (hash_token(code),)).fetchone()
             if row is None or row["used_at"] or row["expires_at"] <= _iso(now):
-                raise HubError(403, "invite_invalid", "초대 코드가 없거나 · 썼거나 · 만료됐다")
+                raise HubError(403, "invite_invalid", "초대 코드가 없거나 · 썼거나 · 만료됐어요")
             conn.execute("UPDATE relay_invite SET used_at = ?, host_id = ? WHERE code_hash = ?",
                          (_iso(now), host_id, row["code_hash"]))
             conn.execute("INSERT INTO relay_host (host_id, name, token_hash, owner_callsign, projects_json, harnesses_json, "
@@ -106,7 +106,7 @@ class Relays:
         row: sqlite3.Row | None = conn.execute("SELECT * FROM relay_host WHERE host_id = ? AND revoked_at IS NULL",
                                                (host_id,)).fetchone()
         if row is None or project_id not in json.loads(row["projects_json"]):
-            raise not_found(f"이 프로젝트의 중계가 아니다: {host_id}")
+            raise not_found(f"이 프로젝트의 중계가 아니에요: {host_id}")
         return row
 
     def _next_request_id(self, conn: sqlite3.Connection, project_id: str) -> str:
@@ -120,7 +120,7 @@ class Relays:
         n = conn.execute("SELECT n FROM orch_counter WHERE project_id = ? AND day = ? AND name = ?",
                          (project_id, day, name)).fetchone()[0]
         if n >= limit:
-            raise HubError(429, "limit_reached", f"오늘 {name} 상한 {limit} — 사람에게 알린다", {"limit": limit, "name": name})
+            raise HubError(429, "limit_reached", f"오늘 {name} 상한 {limit} — 사람에게 알려요", {"limit": limit, "name": name})
         conn.execute("UPDATE orch_counter SET n = n + 1 WHERE project_id = ? AND day = ? AND name = ?",
                      (project_id, day, name))
 
@@ -132,7 +132,7 @@ class Relays:
     def request_session(self, ctx: Ctx, a: dict[str, Any]) -> dict[str, Any]:
         mode = a.get("permission_mode") or "default"
         if mode not in PERMISSION_MODES:
-            raise invalid_field("permission_mode", f"{' · '.join(PERMISSION_MODES)} 중 하나 (bypass 계열은 받지 않는다)")
+            raise invalid_field("permission_mode", f"{' · '.join(PERMISSION_MODES)} 중 하나 (bypass 계열은 받지 않아요)")
         prompt = a.get("prompt") or ""
         scan_secrets({"prompt": prompt, "dir_alias": a["dir_alias"]})
 
@@ -140,10 +140,10 @@ class Relays:
             p, lease = self.orch._need_orch(conn, ctx, a.get("session"))
             pid = str(p.project_id)
             if lease["halted"]:
-                raise HubError(423, "halted", "오케스트레이션이 정지돼 있다")
+                raise HubError(423, "halted", "오케스트레이션이 정지돼 있어요")
             host = self._host_for(conn, pid, a["host_id"])
             if a["harness"] not in json.loads(host["harnesses_json"]):
-                raise HubError(409, "harness_not_on_host", f"그 중계에 {a['harness']} 어댑터가 없다",
+                raise HubError(409, "harness_not_on_host", f"그 중계에 {a['harness']} 어댑터가 없어요",
                                {"harnesses": json.loads(host["harnesses_json"])})
             self._count(conn, pid, ctx.now, "session_requests", SESSION_REQUESTS_PER_DAY)
             rid = self._next_request_id(conn, pid)
@@ -165,7 +165,7 @@ class Relays:
             pid = str(p.project_id)
             target = self.orch._active_session(conn, pid, a["target_session"])
             if not target["host_id"]:
-                raise HubError(409, "not_relay_session", "중계가 띄운 세션이 아니다 — 사람이 보는 세션은 멈출 수 없다 (메시지로 release)")
+                raise HubError(409, "not_relay_session", "중계가 띄운 세션이 아니에요 — 사람이 보는 세션은 멈출 수 없어요 (메시지로 release)")
             rid = self._next_request_id(conn, pid)
             conn.execute("INSERT INTO session_request (project_id, id, kind, host_id, target_json, requested_by, state, "
                          "created_at) VALUES (?, ?, 'stop', ?, ?, ?, 'pending_approval', ?)",
@@ -184,9 +184,9 @@ class Relays:
         with self.store.write() as conn:
             row = conn.execute("SELECT * FROM session_request WHERE project_id = ? AND id = ?", (pid, a["request_id"])).fetchone()
             if row is None:
-                raise not_found(f"요청이 없다: {a['request_id']}")
+                raise not_found(f"요청이 없어요: {a['request_id']}")
             if row["state"] != "pending_approval":
-                raise HubError(409, "request_not_pending", f"이미 {row['state']} 인 요청이다", {"state": row["state"]})
+                raise HubError(409, "request_not_pending", f"이미 {row['state']} 인 요청이에요", {"state": row["state"]})
             conn.execute("UPDATE session_request SET state = ?, decided_by = ?, decided_at = ?, version = version + 1 "
                          "WHERE project_id = ? AND id = ?", (state, p.callsign, _iso(ctx.now), pid, row["id"]))
             self.store._event(conn, ctx, pid, "session_request", row["id"], a["decision"], {"state": row["state"]},
@@ -249,7 +249,7 @@ class Relays:
 
     def result(self, now: datetime, host: sqlite3.Row, a: Any) -> dict[str, Any]:
         if not isinstance(a, dict) or set(a) - {"project_id", "request", "state", "result"}:
-            raise HubError(400, "unknown_field", "project_id · request · state · result 만 받는다")
+            raise HubError(400, "unknown_field", "project_id · request · state · result 만 받아요")
         if a.get("state") not in ("done", "refused_by_host", "failed"):
             raise invalid_field("state", "done · refused_by_host · failed 중 하나")
         scan_secrets(a.get("result"), "result")
@@ -258,9 +258,9 @@ class Relays:
             row = conn.execute("SELECT * FROM session_request WHERE project_id = ? AND id = ? AND host_id = ?",
                                (a.get("project_id"), a.get("request"), host["host_id"])).fetchone()
             if row is None:
-                raise not_found("이 중계 앞 요청이 아니다")
+                raise not_found("이 중계 앞 요청이 아니에요")
             if row["state"] != "dispatched":
-                raise HubError(409, "request_not_dispatched", f"{row['state']} 인 요청이다", {"state": row["state"]})
+                raise HubError(409, "request_not_dispatched", f"{row['state']} 인 요청이에요", {"state": row["state"]})
             merged = {**json.loads(row["result_json"]), **(a.get("result") or {})}
             conn.execute("UPDATE session_request SET state = ?, result_json = ?, version = version + 1 "
                          "WHERE project_id = ? AND id = ?", (a["state"], _json(merged), row["project_id"], row["id"]))
@@ -279,9 +279,9 @@ class Relays:
         row = conn.execute("SELECT * FROM session_request WHERE project_id = ? AND id = ? AND kind = 'spawn'",
                            (p.project_id, request_id)).fetchone()
         if row is None or row["state"] not in ("dispatched", "done"):
-            raise HubError(409, "spawn_request_invalid", "실행 중인 세션 요청이 아니다", {"request": request_id})
+            raise HubError(409, "spawn_request_invalid", "실행 중인 세션 요청이 아니에요", {"request": request_id})
         if json.loads(row["result_json"]).get("session"):
-            raise HubError(409, "spawn_request_used", "이미 세션이 묶인 요청이다", {"request": request_id})
+            raise HubError(409, "spawn_request_used", "이미 세션이 묶인 요청이에요", {"request": request_id})
         conn.execute("UPDATE session SET host_id = ?, kind = 'worker', allow_wait = 1 WHERE project_id = ? AND id = ?",
                      (row["host_id"], p.project_id, session_id))
         conn.execute("UPDATE session_request SET result_json = ?, version = version + 1 WHERE project_id = ? AND id = ?",

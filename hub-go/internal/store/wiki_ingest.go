@@ -25,21 +25,21 @@ func (s *Store) WikiIngest(ctx Ctx, rawPages any, summary, requestID string) (ma
 	}
 	pid := p.ProjectID
 	if strings.TrimSpace(summary) == "" || strings.ContainsAny(strings.TrimSpace(summary), "\r\n") {
-		return nil, InvalidField("summary", "한 줄 요약이 필요하다")
+		return nil, InvalidField("summary", "한 줄 요약이 필요해요")
 	}
 	if err = ScanSecrets(summary, "summary"); err != nil {
 		return nil, err
 	}
 	items, ok := rawPages.([]any)
 	if !ok || len(items) == 0 || len(items) > 200 {
-		return nil, InvalidField("pages", "페이지가 1~200개 필요하다")
+		return nil, InvalidField("pages", "페이지가 1~200개 필요해요")
 	}
 	pages := []wikiWrite{}
 	seen := map[string]bool{}
 	for i, raw := range items {
 		m, ok := raw.(map[string]any)
 		if !ok {
-			return nil, InvalidField(fmt.Sprintf("pages[%d]", i), "객체여야 한다")
+			return nil, InvalidField(fmt.Sprintf("pages[%d]", i), "객체여야 해요")
 		}
 		for key := range m {
 			switch key {
@@ -50,10 +50,10 @@ func (s *Store) WikiIngest(ctx Ctx, rawPages any, summary, requestID string) (ma
 		}
 		path, _ := m["path"].(string)
 		if !wikiPagePath.MatchString(path) || path == "index.md" || path == "log.md" || containsPathTraversal(path) {
-			return nil, InvalidField("path", "안전한 위키 상대 .md 경로가 필요하다")
+			return nil, InvalidField("path", "안전한 위키 상대 .md 경로가 필요해요")
 		}
 		if seen[path] {
-			return nil, InvalidField("path", "묶음 안에서 경로가 중복됐다")
+			return nil, InvalidField("path", "묶음 안에서 경로가 중복됐어요")
 		}
 		seen[path] = true
 		body, _ := m["body"].(string)
@@ -74,10 +74,10 @@ func (s *Store) WikiIngest(ctx Ctx, rawPages any, summary, requestID string) (ma
 		}
 		if del {
 			if _, has := m["body"]; has {
-				return nil, InvalidField("body", "delete 와 body 를 같이 줄 수 없다")
+				return nil, InvalidField("body", "delete 와 body 를 같이 줄 수 없어요")
 			}
 		} else if strings.TrimSpace(body) == "" || len(body) > 192*1024 {
-			return nil, InvalidField("body", "본문이 비었거나 192KB를 넘는다")
+			return nil, InvalidField("body", "본문이 비었거나 192KB를 넘어요")
 		}
 		if !del {
 			if err = ScanSecrets(body, "body"); err != nil {
@@ -87,23 +87,23 @@ func (s *Store) WikiIngest(ctx Ctx, rawPages any, summary, requestID string) (ma
 		repo, sha := "", ""
 		if src, exists := m["source"]; exists && src != nil {
 			if del {
-				return nil, InvalidField("source", "삭제에는 줄 수 없다")
+				return nil, InvalidField("source", "삭제에는 줄 수 없어요")
 			}
 			sm, ok := src.(map[string]any)
 			if !ok || len(sm) != 2 {
-				return nil, InvalidField("source", "repo_key · sha 객체여야 한다")
+				return nil, InvalidField("source", "repo_key · sha 객체여야 해요")
 			}
 			repo, _ = sm["repo_key"].(string)
 			sha, _ = sm["sha"].(string)
 			if repo == "" || !ShaPattern.MatchString(strings.ToLower(sha)) {
-				return nil, InvalidField("source", "등록된 repo_key · 16진 sha가 필요하다")
+				return nil, InvalidField("source", "등록된 repo_key · 16진 sha가 필요해요")
 			}
 			var n int
 			if err = s.DB().QueryRow("SELECT COUNT(*) FROM project_alias WHERE project_id=? AND key=?", pid, repo).Scan(&n); err != nil {
 				return nil, err
 			}
 			if n == 0 {
-				return nil, InvalidField("source.repo_key", "이 프로젝트에 등록된 저장소 키가 아니다")
+				return nil, InvalidField("source.repo_key", "이 프로젝트에 등록된 저장소 키가 아니에요")
 			}
 		}
 		pages = append(pages, wikiWrite{path: path, body: body, repo: repo, sha: strings.ToLower(sha), expected: expected, delete: del})
@@ -132,7 +132,7 @@ func (s *Store) wikiWritePages(tx *sql.Tx, ctx Ctx, pid, callsign string, pages 
 		}
 	}
 	if len(conflicts) > 0 {
-		return nil, &HubError{Status: 409, Code: "version_conflict", Message: "위키 page version이 다르다 — 묶음 전체를 거절했다", Detail: map[string]any{"conflicts": conflicts}}
+		return nil, &HubError{Status: 409, Code: "version_conflict", Message: "위키 page version이 달라요 — 묶음 전체를 거절했어요", Detail: map[string]any{"conflicts": conflicts}}
 	}
 	var seq int
 	if err := tx.QueryRow("SELECT COALESCE(MAX(seq),0)+1 FROM wiki_ingest WHERE project_id=?", pid).Scan(&seq); err != nil {

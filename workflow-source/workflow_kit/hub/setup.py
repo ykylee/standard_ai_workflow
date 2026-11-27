@@ -49,7 +49,7 @@ def principal_for(store: Store, project_id: str, token: str, ctx: Ctx) -> Princi
     if p is None or p.kind != "callsign":
         raise unauthorized()
     if p.project_id != project_id:
-        raise HubError(403, "forbidden", "이 토큰은 다른 프로젝트의 것이다")
+        raise HubError(403, "forbidden", "이 토큰은 다른 프로젝트의 것이에요")
     return p
 
 
@@ -74,12 +74,12 @@ def _mcp_json(existing: str | None, url: str, path: str = MCP_JSON, headers_help
     try:
         data = json.loads(existing) if existing and existing.strip() else {}
     except json.JSONDecodeError as exc:
-        raise HubError(409, "invalid_existing_file", f"{path} 이 JSON 이 아니다 — 손으로 고친 뒤 다시: {exc}") from exc
+        raise HubError(409, "invalid_existing_file", f"{path} 이 JSON 이 아니에요 — 손으로 고친 뒤 다시: {exc}") from exc
     if not isinstance(data, dict):
-        raise HubError(409, "invalid_existing_file", f"{path} 의 최상위가 객체가 아니다")
+        raise HubError(409, "invalid_existing_file", f"{path} 의 최상위가 객체가 아니에요")
     servers = data.setdefault("mcpServers", {})
     if not isinstance(servers, dict):
-        raise HubError(409, "invalid_existing_file", f"{path} 의 mcpServers 가 객체가 아니다")
+        raise HubError(409, "invalid_existing_file", f"{path} 의 mcpServers 가 객체가 아니에요")
     server: dict[str, Any] = {
         "type": "http",
         "url": url,
@@ -164,7 +164,7 @@ class Setup:
                     "stage": "harness_support",
                     "steps": [],
                     "blocked": [{"id": f"harness:{h}", "reason": "setup_profile_required",
-                                 "message": f"{h} 는 아직 셋업 프로필이 없다. hub_harness_report 로 하네스 정보와 mcp-http-json-v1 설정 후보를 제보하고 허브 관리자의 승인을 기다린다.",
+                                 "message": f"{h} 는 아직 셋업 프로필이 없어요. hub_harness_report 로 하네스 정보와 mcp-http-json-v1 설정 후보를 제보하고 허브 관리자의 승인을 기다려요.",
                                  "report_tool": "hub_harness_report",
                                  "required_report_fields": ["entry_file_candidates", "mcp_config_candidates",
                                                              "config_formats (mcp-http-json-v1)", "mcp_transports (streamable-http)"]}],
@@ -416,7 +416,7 @@ class Setup:
         """프로젝트 지침 새 판 (로컬 admin — 제안 · 승인 흐름은 M-037)."""
         with self.store.write() as conn:
             if not conn.execute("SELECT 1 FROM project WHERE id = ?", (project_id,)).fetchone():
-                raise HubError(404, "not_found", f"프로젝트가 없다: {project_id}")
+                raise HubError(404, "not_found", f"프로젝트가 없어요: {project_id}")
             from workflow_kit.hub.guide import check_renderable
 
             display = conn.execute("SELECT display_name FROM project WHERE id = ?", (project_id,)).fetchone()["display_name"]

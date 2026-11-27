@@ -28,16 +28,16 @@ func removeCallsignRows(tx *sql.Tx, projectID, callsign string) error {
 // Only a hub admin may; anything with history must be revoked instead.
 func (s *Store) DeleteCallsign(ctx Ctx, projectID, callsign, confirm string) (map[string]any, error) {
 	if ctx.Via != "admin" && (ctx.Principal == nil || ctx.Principal.Kind != "admin") {
-		return nil, Forbidden("콜사인 삭제는 허브 관리자만 한다")
+		return nil, Forbidden("콜사인 삭제는 허브 관리자만 해요")
 	}
 	if confirm != callsign {
-		return nil, InvalidField("confirm", "지울 콜사인 이름을 그대로 적는다")
+		return nil, InvalidField("confirm", "지울 콜사인 이름을 그대로 적어요")
 	}
 	return s.withWriteTx(func(tx *sql.Tx) (map[string]any, error) {
 		var role, kind string
 		err := tx.QueryRow("SELECT role,kind FROM callsign WHERE project_id=? AND id=?", projectID, callsign).Scan(&role, &kind)
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, NotFound("콜사인이 없다: " + projectID + "/" + callsign)
+			return nil, NotFound("콜사인이 없어요: " + projectID + "/" + callsign)
 		}
 		if err != nil {
 			return nil, err
@@ -47,7 +47,7 @@ func (s *Store) DeleteCallsign(ctx Ctx, projectID, callsign, confirm string) (ma
 			return nil, err
 		}
 		if owned > 0 || role == "owner" {
-			return nil, &HubError{Status: 409, Code: "callsign_is_owner", Message: "프로젝트 소유자 콜사인은 지울 수 없다: " + callsign, Detail: map[string]any{"callsign": callsign}}
+			return nil, &HubError{Status: 409, Code: "callsign_is_owner", Message: "프로젝트 소유자 콜사인은 지울 수 없어요: " + callsign, Detail: map[string]any{"callsign": callsign}}
 		}
 		used := map[string]any{}
 		for _, q := range callsignUse {
@@ -60,7 +60,7 @@ func (s *Store) DeleteCallsign(ctx Ctx, projectID, callsign, confirm string) (ma
 			}
 		}
 		if len(used) > 0 {
-			return nil, &HubError{Status: 409, Code: "callsign_in_use", Message: "활동 기록이 있어 지우지 않는다: " + callsign + " — 거두기(callsign revoke)를 쓴다", Detail: map[string]any{"callsign": callsign, "used": used}}
+			return nil, &HubError{Status: 409, Code: "callsign_in_use", Message: "활동 기록이 있어 지우지 않아요: " + callsign + " — 거두기(callsign revoke)를 써요", Detail: map[string]any{"callsign": callsign, "used": used}}
 		}
 		if err := removeCallsignRows(tx, projectID, callsign); err != nil {
 			return nil, err

@@ -24,7 +24,7 @@ type RelayHost struct {
 func (s *Store) RelayRegister(now time.Time, raw any) (map[string]any, error) {
 	a, ok := raw.(map[string]any)
 	if !ok {
-		return nil, InvalidField("arguments", "객체여야 한다")
+		return nil, InvalidField("arguments", "객체여야 해요")
 	}
 	allowed := map[string]bool{"invite": true, "name": true, "harnesses": true}
 	unknown := false
@@ -34,7 +34,7 @@ func (s *Store) RelayRegister(now time.Time, raw any) (map[string]any, error) {
 		}
 	}
 	if unknown {
-		return nil, &HubError{Status: 400, Code: "unknown_field", Message: "invite · name · harnesses 만 받는다"}
+		return nil, &HubError{Status: 400, Code: "unknown_field", Message: "invite · name · harnesses 만 받아요"}
 	}
 	code, ok := a["invite"].(string)
 	if !ok || code == "" {
@@ -79,13 +79,13 @@ func (s *Store) RelayRegister(now time.Time, raw any) (map[string]any, error) {
 		var cp, co string
 		err := tx.QueryRow("SELECT for_project,owner_callsign,used_at,expires_at,host_id FROM relay_invite WHERE code_hash=?", HashToken(code)).Scan(&cp, &co, &used, &expires, &host)
 		if err == sql.ErrNoRows {
-			return nil, &HubError{Status: 403, Code: "invite_invalid", Message: "초대 코드가 없거나 · 썼거나 · 만료됐다"}
+			return nil, &HubError{Status: 403, Code: "invite_invalid", Message: "초대 코드가 없거나 · 썼거나 · 만료됐어요"}
 		}
 		if err != nil {
 			return nil, err
 		}
 		if used.Valid || expires <= db.FormatISO(now) {
-			return nil, &HubError{Status: 403, Code: "invite_invalid", Message: "초대 코드가 없거나 · 썼거나 · 만료됐다"}
+			return nil, &HubError{Status: 403, Code: "invite_invalid", Message: "초대 코드가 없거나 · 썼거나 · 만료됐어요"}
 		}
 		projectID, owner = cp, co
 		if _, err := tx.Exec("UPDATE relay_invite SET used_at=?,host_id=? WHERE code_hash=?", db.FormatISO(now), hostID, HashToken(code)); err != nil {
@@ -141,7 +141,7 @@ type relaySession struct{ projectID, id, callsign string }
 // RelayPollOnce updates host/session signals, dispatches approved requests, and delivers inbox work.
 func (s *Store) RelayPollOnce(now time.Time, host *RelayHost, a map[string]any) (map[string]any, error) {
 	if host == nil {
-		return nil, Unauthorized("중계 토큰이 없거나 틀렸거나 거둔 토큰이다")
+		return nil, Unauthorized("중계 토큰이 없거나 틀렸거나 거둔 토큰이에요")
 	}
 	projects := host.Projects
 	dispatch := []map[string]any{}
@@ -339,11 +339,11 @@ func (s *Store) relayEndSession(ctx Ctx, projectID, sessionID, callsign string) 
 // RelayResult records a host's result for one of its dispatched requests.
 func (s *Store) RelayResult(now time.Time, host *RelayHost, raw any) (map[string]any, error) {
 	if host == nil {
-		return nil, Unauthorized("중계 토큰이 없거나 틀렸거나 거둔 토큰이다")
+		return nil, Unauthorized("중계 토큰이 없거나 틀렸거나 거둔 토큰이에요")
 	}
 	a, ok := raw.(map[string]any)
 	if !ok {
-		return nil, InvalidField("arguments", "객체여야 한다")
+		return nil, InvalidField("arguments", "객체여야 해요")
 	}
 	allowed := map[string]bool{"project_id": true, "request": true, "state": true, "result": true}
 	unknown := false
@@ -353,7 +353,7 @@ func (s *Store) RelayResult(now time.Time, host *RelayHost, raw any) (map[string
 		}
 	}
 	if unknown {
-		return nil, &HubError{Status: 400, Code: "unknown_field", Message: "project_id · request · state · result 만 받는다"}
+		return nil, &HubError{Status: 400, Code: "unknown_field", Message: "project_id · request · state · result 만 받아요"}
 	}
 	projectID, _ := a["project_id"].(string)
 	requestID, _ := a["request"].(string)
@@ -366,7 +366,7 @@ func (s *Store) RelayResult(now time.Time, host *RelayHost, raw any) (map[string
 		var ok bool
 		result, ok = rawResult.(map[string]any)
 		if !ok {
-			return nil, InvalidField("result", "객체여야 한다")
+			return nil, InvalidField("result", "객체여야 해요")
 		}
 	}
 	if err := ScanSecrets(result, "result"); err != nil {
@@ -377,16 +377,16 @@ func (s *Store) RelayResult(now time.Time, host *RelayHost, raw any) (map[string
 		var hostID, oldState, oldResult string
 		err := tx.QueryRow("SELECT host_id,state,result_json FROM session_request WHERE project_id=? AND id=?", projectID, requestID).Scan(&hostID, &oldState, &oldResult)
 		if err == sql.ErrNoRows {
-			return nil, NotFound("이 중계 앞 요청이 아니다")
+			return nil, NotFound("이 중계 앞 요청이 아니에요")
 		}
 		if err != nil {
 			return nil, err
 		}
 		if hostID != host.ID {
-			return nil, NotFound("이 중계 앞 요청이 아니다")
+			return nil, NotFound("이 중계 앞 요청이 아니에요")
 		}
 		if oldState != "dispatched" {
-			return nil, &HubError{Status: 409, Code: "request_not_dispatched", Message: oldState + " 인 요청이다", Detail: map[string]any{"state": oldState}}
+			return nil, &HubError{Status: 409, Code: "request_not_dispatched", Message: oldState + " 인 요청이에요", Detail: map[string]any{"state": oldState}}
 		}
 		merged := map[string]any{}
 		if err := json.Unmarshal([]byte(oldResult), &merged); err != nil {

@@ -112,7 +112,7 @@ def _foreign_key_order(conn: Any, tables: set[str]) -> list[str]:
             raise HubError(
                 409,
                 "bundle_schema_cycle",
-                "표 사이 외래 키 순환이 있어 이 PostgreSQL backend에서 이전할 수 없다",
+                "표 사이 외래 키 순환이 있어 이 PostgreSQL backend에서 이전할 수 없어요",
             )
         ordered.extend(ready)
         pending.difference_update(ready)
@@ -142,8 +142,8 @@ def moved_error(project_id: str, to: str) -> HubError:
     return HubError(
         410,
         "project_moved",
-        f"이 프로젝트는 다른 허브로 옮겨졌다: {to} — 환경의 허브 주소를 바꾸고(토큰은 그대로) 새 허브에서 "
-        "hub_setup_plan 으로 .workflow-hub/env · .mcp.json 을 다시 쓴다",
+        f"이 프로젝트는 다른 허브로 옮겨졌어요: {to} — 환경의 허브 주소를 바꾸고(토큰은 그대로) 새 허브에서 "
+        "hub_setup_plan 으로 .workflow-hub/env · .mcp.json 을 다시 써요",
         {"project_id": project_id, "moved_to": to},
     )
 
@@ -156,7 +156,7 @@ class Transfer:
         with self.store.read() as conn:
             prow = conn.execute("SELECT * FROM project WHERE id = ?", (project_id,)).fetchone()
             if prow is None:
-                raise not_found(f"프로젝트가 없다: {project_id}")
+                raise not_found(f"프로젝트가 없어요: {project_id}")
             project = dict(prow)
             tables: dict[str, Any] = {}
             for name in project_tables(conn):
@@ -186,13 +186,13 @@ class Transfer:
 
     def import_bundle(self, bundle: dict[str, Any], now: datetime) -> dict[str, Any]:
         if not isinstance(bundle, dict) or bundle.get("format") != BUNDLE_FORMAT:
-            raise HubError(400, "invalid_bundle", f"묶음 형식이 {BUNDLE_FORMAT} 이 아니다")
+            raise HubError(400, "invalid_bundle", f"묶음 형식이 {BUNDLE_FORMAT} 이 아니에요")
         project, tables = bundle.get("project"), bundle.get("tables")
         if not isinstance(project, dict) or not isinstance(tables, dict):
-            raise HubError(400, "invalid_bundle", "project · tables 가 없다")
+            raise HubError(400, "invalid_bundle", "project · tables 가 없어요")
         if _digest(project, tables) != bundle.get("digest"):
             raise HubError(
-                400, "bundle_digest_mismatch", "묶음 내용이 digest 와 다르다 — 바뀌었거나 잘렸다"
+                400, "bundle_digest_mismatch", "묶음 내용이 digest 와 달라요 — 바뀌었거나 잘렸어요"
             )
         # 예전 묶음에 실린 허브 전역 표(계정 연결 · 승인 기록)는 들이지 않는다 — 남의 승인이 이 허브에서 열리면 안 된다
         skipped = sorted(set(tables) & HUB_SCOPED_TABLES)
@@ -202,7 +202,7 @@ class Transfer:
             raise HubError(
                 409,
                 "bundle_newer_than_hub",
-                f"묶음의 DB 판 {src_db} 이 이 허브가 아는 {hubdb.latest_version()} 보다 새롭다 — 허브를 올린다",
+                f"묶음의 DB 판 {src_db} 이 이 허브가 아는 {hubdb.latest_version()} 보다 새로워요 — 허브를 올려요",
                 {"bundle_db_version": src_db, "hub_db_version": hubdb.latest_version()},
             )
         pid = str(project.get("id") or "")
@@ -227,7 +227,7 @@ class Transfer:
                     raise HubError(
                         409,
                         "project_exists",
-                        f"이 허브에 같은 프로젝트가 이미 있다: {pid} (봉인되지 않음)",
+                        f"이 허브에 같은 프로젝트가 이미 있어요: {pid} (봉인되지 않음)",
                         {"project_id": pid},
                     )
                 # 되옮기기 — 이 허브의 봉인된 사본을 새 묶음으로 바꾼다 (봉인된 사본은 정본이 아니다)
@@ -280,7 +280,7 @@ class Transfer:
                 for row in spec.get("rows", []):
                     if at < 0 or len(row) != len(spec["columns"]) or row[at] != pid:
                         # 묶음의 줄은 그 프로젝트 것이어야 한다 — 다른 프로젝트에 줄을 심지 못하게
-                        raise HubError(400, "invalid_bundle", f"{name} 의 줄이 이 프로젝트의 것이 아니다")
+                        raise HubError(400, "invalid_bundle", f"{name} 의 줄이 이 프로젝트의 것이 아니에요")
                     conn.execute(sql, [row[i] for i in idx])
                 counts[name] = len(spec.get("rows", []))
             self.store._event(
@@ -308,13 +308,13 @@ class Transfer:
 
     def seal(self, project_id: str, to: str, now: datetime) -> dict[str, Any]:
         if not to.strip():
-            raise HubError(400, "invalid_field", "moved_to: 새 허브 주소가 필요하다")
+            raise HubError(400, "invalid_field", "moved_to: 새 허브 주소가 필요해요")
         with self.store.write() as conn:
             row = conn.execute(
                 "SELECT settings_json FROM project WHERE id = ?", (project_id,)
             ).fetchone()
             if row is None:
-                raise not_found(f"프로젝트가 없다: {project_id}")
+                raise not_found(f"프로젝트가 없어요: {project_id}")
             settings = json.loads(row["settings_json"] or "{}")
             settings["moved"] = {"to": to.strip(), "at": _iso(now)}
             conn.execute(
@@ -340,7 +340,7 @@ class Transfer:
                 "SELECT settings_json FROM project WHERE id = ?", (project_id,)
             ).fetchone()
             if row is None:
-                raise not_found(f"프로젝트가 없다: {project_id}")
+                raise not_found(f"프로젝트가 없어요: {project_id}")
             settings = json.loads(row["settings_json"] or "{}")
             was = settings.pop("moved", None)
             conn.execute(
@@ -374,7 +374,7 @@ def _owner(ctx: Ctx) -> str:
         or not p.human_approved
     ):
         raise HubError(
-            403, "forbidden", "프로젝트 이전은 그 프로젝트의 소유자(승인된 human)가 한다"
+            403, "forbidden", "프로젝트 이전은 그 프로젝트의 소유자(승인된 human)가 해요"
         )
     return p.project_id or ""
 
@@ -383,7 +383,7 @@ def tool_export(store: Store, ctx: Ctx, seal_to: str | None) -> dict[str, Any]:
     """소유자가 자기 프로젝트를 뜬다 — ``seal_to`` 가 있으면 먼저 봉인 (그 뒤 쓰기를 막는다)."""
     pid = _owner(ctx)
     if seal_to and ctx.public_url and seal_to.rstrip("/") == ctx.public_url.rstrip("/"):
-        raise HubError(400, "invalid_field", "seal_to: 지금 허브와 같은 주소다")
+        raise HubError(400, "invalid_field", "seal_to: 지금 허브와 같은 주소예요")
     t = Transfer(store)
     was = store.project_moved(pid)  # 이미 봉인돼 있었나 — 실패 복구 때 이 실행이 건 봉인만 푼다
     sealed = t.seal(pid, seal_to, ctx.now) if seal_to else None
@@ -436,24 +436,24 @@ def tool_import(store: Store, ctx: Ctx, invite: str, bundle: Any) -> dict[str, A
     from workflow_kit.hub.store import hash_token  # noqa: PLC0415
 
     if not isinstance(bundle, dict):
-        raise HubError(400, "invalid_bundle", "bundle 이 객체가 아니다")
+        raise HubError(400, "invalid_bundle", "bundle 이 객체가 아니에요")
     h = hash_token(str(invite or ""))
     with store.read() as conn:
         row = conn.execute(
             "SELECT for_project, expires_at, used_at FROM hub_invite WHERE code_hash = ?", (h,)
         ).fetchone()
     if row is None:
-        raise HubError(403, "invalid_invite", "초대 코드가 없다")
+        raise HubError(403, "invalid_invite", "초대 코드가 없어요")
     if row["used_at"]:
-        raise HubError(403, "invite_used", "이미 쓴 초대 코드다")
+        raise HubError(403, "invite_used", "이미 쓴 초대 코드예요")
     if row["expires_at"] <= _iso(ctx.now):
-        raise HubError(403, "invite_expired", "초대 코드가 만료됐다")
+        raise HubError(403, "invite_expired", "초대 코드가 만료됐어요")
     pid = str((bundle.get("project") or {}).get("id") or "")
     if pid != row["for_project"]:
         raise HubError(
             403,
             "invite_wrong_project",
-            f"이 초대 코드는 {row['for_project']} 용이다 (묶음: {pid})",
+            f"이 초대 코드는 {row['for_project']} 용이에요 (묶음: {pid})",
             {"invite_project": row["for_project"], "bundle_project": pid},
         )
     out = Transfer(store).import_bundle(bundle, ctx.now)

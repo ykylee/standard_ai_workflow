@@ -95,7 +95,7 @@ func CopySQLiteToPostgres(sourcePath, targetURL string, now time.Time) (ImportSu
 			return ImportSummary{}, err
 		}
 		if count > 0 {
-			return ImportSummary{}, &Error{Status: 409, Code: "postgres_target_not_empty", Message: "PostgreSQL 대상에 이미 데이터가 있다 — 빈 대상으로 다시 시도한다", Detail: map[string]any{"table": table}}
+			return ImportSummary{}, &Error{Status: 409, Code: "postgres_target_not_empty", Message: "PostgreSQL 대상에 이미 데이터가 있어요 — 빈 대상으로 다시 시도해요", Detail: map[string]any{"table": table}}
 		}
 	}
 	tx, err := dst.Begin()
@@ -211,7 +211,7 @@ func CopySQLiteToPostgres(sourcePath, targetURL string, now time.Time) (ImportSu
 		}
 		verifyRows.Close()
 		if count != verifyCount || !equalBytes(hash.Sum(nil), verifyHash.Sum(nil)) {
-			return ImportSummary{}, &Error{Status: 500, Code: "postgres_import_mismatch", Message: "SQLite와 PostgreSQL 데이터 검증이 맞지 않는다 — 이관을 롤백한다", Detail: map[string]any{"table": table, "source_rows": count, "target_rows": verifyCount}}
+			return ImportSummary{}, &Error{Status: 500, Code: "postgres_import_mismatch", Message: "SQLite와 PostgreSQL 데이터 검증이 맞지 않아요 — 이관을 롤백해요", Detail: map[string]any{"table": table, "source_rows": count, "target_rows": verifyCount}}
 		}
 		summary.Tables[table] = ImportTable{Rows: count, SHA256: hex.EncodeToString(hash.Sum(nil))}
 	}

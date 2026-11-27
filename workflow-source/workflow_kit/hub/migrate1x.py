@@ -132,17 +132,17 @@ def parse_task_file(text: str) -> dict[str, Any]:
     """1.x task 파일 → 허브 task 칸. 못 읽으면 ``invalid_field`` (미분류로 보고한다 — 조용히 버리지 않는다)."""
     fm = _FRONTMATTER.match(text)
     if not fm:
-        raise invalid_field("task", "frontmatter 가 없다")
+        raise invalid_field("task", "frontmatter 가 없어요")
     meta = dict(re.findall(r"^(\w+):\s*(.*?)\s*$", fm.group(1), re.M))
     task_id = meta.get("id", "")
     if not task_id.startswith("TASK-"):
-        raise invalid_field("task", "frontmatter 에 id 가 없다")
+        raise invalid_field("task", "frontmatter 에 id 가 없어요")
     lines = text.splitlines()
     header = next((m for m in _HEADER.finditer(text) if m.group(1) == task_id), None)
     title = header.group(2).strip() if header else task_id
     status = meta.get("status") or _first(lines, "status")
     if status not in STATUSES:
-        raise invalid_field("status", f"1.x 상태가 네 값 밖이다: {status!r}")
+        raise invalid_field("status", f"1.x 상태가 네 값 밖이에요: {status!r}")
     priority = _first(lines, "priority") or "medium"
     plan_md = _section(text, "🧭 Plan") or _section(text, "Plan")
     fields: dict[str, Any] = {
@@ -249,7 +249,7 @@ class Migrator:
     def _owner(ctx: Ctx) -> Principal:
         p = ctx.principal
         if p is None or p.kind != "callsign" or p.role != "owner" or p.callsign_kind != "human" or not p.human_approved:
-            raise forbidden("1.x 전환은 프로젝트 소유자(승인된 human)가 한다 (R14.2 — 등록자가 확인한 것만 들인다)")
+            raise forbidden("1.x 전환은 프로젝트 소유자(승인된 human)가 해요 (R14.2 — 등록자가 확인한 것만 들여요)")
         return p
 
     def plan(self, ctx: Ctx, scan: dict[str, Any] | None) -> dict[str, Any]:
@@ -268,7 +268,7 @@ class Migrator:
         unmeasured = [n for n in COMMANDS if _out(scan, n) is None]
         ls = _out(scan, "ls_tracked")
         if ls is None or ls[0] != 0:
-            raise invalid_field("scan.ls_tracked", "git ls-files 결과가 필요하다 (rc 0)")
+            raise invalid_field("scan.ls_tracked", "git ls-files 결과가 필요해요 (rc 0)")
         tracked = _lines(ls[1])
         ignored = _lines((_out(scan, "ls_ignored") or (1, ""))[1])
         times = parse_times((_out(scan, "times") or (1, ""))[1])
@@ -416,7 +416,7 @@ class Migrator:
     def _load(self, conn: sqlite3.Connection, pid: str, mig: str) -> sqlite3.Row:
         row = conn.execute("SELECT * FROM migration_1x WHERE project_id = ? AND id = ?", (pid, mig)).fetchone()
         if row is None:
-            raise not_found(f"전환 계획이 없다: {mig}")
+            raise not_found(f"전환 계획이 없어요: {mig}")
         found: sqlite3.Row = row
         return found
 
@@ -441,7 +441,7 @@ class Migrator:
         with self.store.read() as conn:
             row = self._load(conn, pid, mig)
         if row["status"] == "done":
-            raise HubError(409, "already_done", f"{mig} 는 이미 끝난 전환이다")
+            raise HubError(409, "already_done", f"{mig} 는 이미 끝난 전환이에요")
         plan = json.loads(row["plan_json"])
         report: dict[str, Any] = json.loads(row["report_json"]) or {}
         # 한 파일이 여러 종류에 속할 수 있다 — 현재 브랜치 handoff 는 보관(원문)이자 콜사인 handoff 의 출처다.
@@ -517,7 +517,7 @@ class Migrator:
         with self.store.read() as conn:
             row = self._load(conn, pid, mig)
         if row["status"] != "done":
-            raise HubError(409, "migration_not_done", f"{mig} 가 아직 끝나지 않았다 — 마지막 묶음을 final=true 로 보낸 뒤에 표식을 남긴다")
+            raise HubError(409, "migration_not_done", f"{mig} 가 아직 끝나지 않았어요 — 마지막 묶음을 final=true 로 보낸 뒤에 표식을 남겨요")
         plan, report = json.loads(row["plan_json"]), json.loads(row["report_json"])
         state: dict[str, Any] = report.get("marker") or {}
         content = marker_content(ctx.public_url, pid, mig, report.get("done_at") or row["at"],
@@ -713,7 +713,7 @@ class Migrator:
         try:
             entry = json.loads(content)
         except json.JSONDecodeError as exc:
-            raise invalid_field("memory_index", f"JSON 이 아니다: {exc}") from exc
+            raise invalid_field("memory_index", f"JSON 이 아니에요: {exc}") from exc
         w = Wiki(self.store)
         have = {e["id"] for e in w.memory_list(ctx).get("entries", [])}
         if isinstance(entry, dict) and entry.get("id") in have:
@@ -726,7 +726,7 @@ class Migrator:
         try:
             body = json.loads(content)
         except json.JSONDecodeError as exc:
-            raise invalid_field("checkpoint", f"JSON 이 아니다: {exc}") from exc
+            raise invalid_field("checkpoint", f"JSON 이 아니에요: {exc}") from exc
         allowed = {"next", "unverified", "verified", "rejected", "tasks", "branch"}
         if not isinstance(body, dict):
             raise invalid_field("checkpoint", "객체")

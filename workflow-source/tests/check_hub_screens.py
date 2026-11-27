@@ -10,6 +10,7 @@ Chrome headless 의 ``--dump-dom`` 으로 그린다 (Python 허브 · Go 허브 
 3. 로드맵 — 열린 마일스톤이 먼저, 완료는 접기 안
 5. 확인 요청 — 문서 차이가 줄마다 맞고, 보이지 않는 문자를 드러내고, 낡은 요청의 승인 단추를 끈다 · 미확인 메시지 정리
 4. 오케스트레이션 — 미확인 메시지 본문(객체 · 문자열), 계정 로그인 소유자의 승인 · 정지 · 거두기 · lease · 초대 버튼이 실제로 동작
+8. 넓은 폭(1280 · 1920) 운영 규모 · 긴 이름 진척 띠 넘침 0 · 탭 사이 제목 · 탭 막대 자리 같음 (2026-11-27 소유자 보고)
 7. 재채점 P3 — 탭 aria-current · 현재 마일스톤 이름표 · 단추 44px(넓은 · 좁은 폭) · 용어집이 개요 밖에도
 6. 재채점 P2 — 진척 띠와 로드맵 화면의 마일스톤 순서가 같다 · DCR 이름 하나 · '지금' 0건이면 다음 필터로 떨어지고 알린다
 """
@@ -71,6 +72,10 @@ PROBE = """<script>
 window.addEventListener('error',e=>document.documentElement.dataset.err=(document.documentElement.dataset.err||'')+e.message+';');
 window.addEventListener('unhandledrejection',e=>document.documentElement.dataset.err=(document.documentElement.dataset.err||'')+String(e.reason)+';');
 window.confirm=()=>true;
+setInterval(()=>{const D=document.documentElement;D.dataset.wover=D.scrollWidth-D.clientWidth;
+D.dataset.wout=[...document.querySelectorAll('main *')].filter(e=>{const r=e.getBoundingClientRect();return r.width>0&&r.right>D.clientWidth+1}).length;
+const h1=document.querySelector('main h1'),nv=document.querySelector('main .nav-links');if(h1&&nv){const a=h1.getBoundingClientRect(),b=nv.getBoundingClientRect();
+D.dataset.head=[a.left,a.top,b.left,b.top,b.width].map(Math.round).join(',');}},400);
 setInterval(()=>{const bh=[...document.querySelectorAll('main button,main .admin-entry-button')].filter(e=>e.checkVisibility()).map(e=>[Math.round(e.getBoundingClientRect().height),(e.textContent||'').trim().slice(0,12)]).sort((a,b)=>a[0]-b[0]);
 if(bh.length)document.documentElement.dataset.btnh=bh[0][0]+':'+bh[0][1];},400);
 setInterval(()=>{const x=[...document.querySelectorAll('.exact')].map(e=>getComputedStyle(e).unicodeBidi+'/'+getComputedStyle(e).whiteSpace);
@@ -167,7 +172,7 @@ def proxy(hub: Hub, cookie: str) -> ThreadingHTTPServer:
     return srv
 
 
-def draw(exe: str, tmp: Path, port: int, route: str, acts: str = "", budget: int = 9500, narrow: bool = False) -> str:
+def draw(exe: str, tmp: Path, port: int, route: str, acts: str = "", budget: int = 9500, narrow: bool = False, size: str = "") -> str:
     from urllib.parse import quote
 
     url = f"http://127.0.0.1:{port}/ui/{'?acts=' + quote(acts) if acts else ''}#/{route}"
@@ -176,7 +181,7 @@ def draw(exe: str, tmp: Path, port: int, route: str, acts: str = "", budget: int
     with tempfile.TemporaryDirectory(prefix="chrome-", dir=tmp, ignore_cleanup_errors=True) as prof:
         r = subprocess.run([exe, "--headless=new", "--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage", "--no-first-run",
                             "--password-store=basic", "--disable-background-networking", "--no-proxy-server",  # 키링(D-Bus) 25초 대기를 피한다
-                            f"--user-data-dir={prof}", f"--virtual-time-budget={budget}", "--dump-dom", url],
+                            f"--user-data-dir={prof}", f"--virtual-time-budget={budget}", *([f"--window-size={size}"] if size else []), "--dump-dom", url],
                            capture_output=True, encoding="utf-8", errors="replace", timeout=90)
     return r.stdout
 
@@ -480,6 +485,11 @@ def p3_cases(impl: str, exe: str, tmp: Path, port: int, hub: Hub, env: dict[str,
         m = re.search(r'data-btnh="(-?\d+)"', draw(exe, tmp, port, route.format(**env), narrow=True, budget=12000))
         narrow[route] = int(m[1]) if m else None
     _record(f"[{impl}] 좁은 폭 — 보이는 단추 높이 44px 이상", all(x is not None and x >= 44 for x in narrow.values()), f"{narrow}")
+    heads = {}
+    for route in ("p/{pid}", "p/{pid}/decide", "p/{pid}/orch", "p/{pid}/roadmap", "p/{pid}/dcr", "p/{pid}/ideas", "p/{pid}/events"):
+        m = re.search(r'data-head="([^"]*)"', draw(exe, tmp, port, route.format(**env), size="1280,900"))
+        heads[route.rsplit("/", 1)[-1].format(**env)[:12]] = m[1] if m else None
+    _record(f"[{impl}] 탭을 옮겨도 제목 · 탭 막대 자리가 같다 (1280 · 짧은 화면 · 긴 화면)", None not in heads.values() and len(set(heads.values())) == 1, f"{heads}")
     gl = {v: 'data-keep="glossary"' in doms[v] for v in ("viewProject", "viewDecisions", "viewOrchestration", "viewRoadmap")}
     _record(f"[{impl}] 용어집 — 개요 · 결정 · 오케스트레이션 · 로드맵에서 연다", all(gl.values()), f"{gl}")
 
@@ -488,7 +498,8 @@ def many_milestones(impl: str, exe: str, tmp: Path, port: int, hub: Hub, env: di
     """운영 허브처럼 마일스톤이 수십 개면 진척 띠가 휴대폰 화면 밖으로 넘쳤다 — 접어서 7칸 이하로 (2026-11-26 소유자 보고).
     맨 끝에서 돈다 — 마일스톤을 늘리면 앞 case 들의 4칸 전제가 깨진다."""
     pid, owner = env["pid"], env["owner"]
-    extra = [(f"M-{n:03d}", f"추가 마일스톤 {n}") for n in range(5, 35)]
+    # 이름 길이도 운영처럼 — 짧은 이름만 두면 넓은 폭에서 띠가 이름 길이만큼 늘어 넘치는 것을 못 본다 (2026-11-27 소유자 보고)
+    extra = [(f"M-{n:03d}", f"추가 마일스톤 {n} — 주장 트리 계획 implementation 단계의 원격 동기화 검증과 잠금 정리") for n in range(5, 35)]
     st, got, _ = hub.call("hub_roadmap_get", {}, owner)
     assert st == 200, got
     cur = next(d for d in got["docs"] if d["path"] == "index.md")
@@ -511,6 +522,14 @@ def many_milestones(impl: str, exe: str, tmp: Path, port: int, hub: Hub, env: di
             n >= 30 and 0 < len(segs) <= 7 and bool(rail) and "남은 마일스톤" in rail[1] and rail[1].count(' current"') == 1
             and bool(w) and w[1] == w[2] and bool(out_n) and out_n[1] == "0",
             f"n={n} segs={len(segs)} w={w and w.groups()} out={out_n and out_n[1]}")
+    wide_bad = {}
+    for size in ("1280,1000", "1920,1100"):
+        for route in (f"p/{pid}", f"p/{pid}/roadmap"):
+            wd = draw(exe, tmp, port, route, size=size)
+            ov, wo = re.search(r'data-wover="(-?\d+)"', wd), re.search(r'data-wout="(\d+)"', wd)
+            if not (ov and wo and int(ov[1]) <= 0 and wo[1] == "0"):
+                wide_bad[f"{size.split(',')[0]} {route.rsplit('/', 1)[-1]}"] = (ov and ov[1], wo and wo[1])
+    _record(f"[{impl}] 마일스톤 {n}개 · 긴 이름 — 넓은 폭(1280 · 1920) 개요 · 로드맵 가로 넘침 0 · 화면 밖 요소 0", not wide_bad, f"{wide_bad}")
     rdom = draw(exe, tmp, port, f"p/{pid}/roadmap", narrow=True, budget=12000)
     rw, rout = re.search(r'data-w="(\d+)/(\d+)"', rdom), re.search(r'data-out="(\d+)"', rdom)
     _record(f"[{impl}] 마일스톤 {n}개 — 로드맵 화면 360px 에서 화면 밖으로 넘치지 않는다", bool(rw and rout) and rw[1] == rw[2] and rout[1] == "0",

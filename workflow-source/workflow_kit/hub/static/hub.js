@@ -778,9 +778,10 @@
       : el("details", { class: "account", "data-keep": "account", open: true }, el("summary", {}, "이 브라우저의 콜사인"), registerForm(pid, route), tokenForm(() => route()));
     render(
       el("section", { class: "card project-head" },
+        // 제목 바로 아래 탭 — 다른 탭 화면과 탭 막대 자리가 같아야 옮길 때 화면이 흔들리지 않는다. 프로젝트 정보 줄은 탭 아래로.
         el("h1", {}, project.display_name),
-        el("div", { class: "meta" }, el("span", { class: "mono" }, project.id), el("span", {}, `소유자 ${project.owner_callsign}`)),
         projectNav(pid, "tasks"),
+        el("div", { class: "meta" }, el("span", { class: "mono" }, project.id), el("span", {}, `소유자 ${project.owner_callsign}`)),
         glossary(),
         who),
       ...attention,

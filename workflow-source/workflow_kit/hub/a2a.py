@@ -16,6 +16,7 @@ from workflow_kit import __version__ as HUB_VERSION
 from workflow_kit.hub import a2a_peer, approval_grants
 from workflow_kit.hub.confirmations import Confirmations
 from workflow_kit.hub.errors import HubError
+from workflow_kit.hub.jsonbody import loads_body
 from workflow_kit.hub.store import Ctx, Principal, Store, _iso
 
 PROTOCOL_VERSION = "1.0"
@@ -165,7 +166,7 @@ class A2A:
         rid: Any = None
         try:
             try:
-                req = json.loads(raw.decode("utf-8"))
+                req = loads_body(raw)
             except (UnicodeDecodeError, json.JSONDecodeError) as exc:
                 raise A2AError("PARSE_ERROR", "JSON 이 아니다") from exc
             if not isinstance(req, dict) or req.get("jsonrpc") != "2.0" or not isinstance(req.get("method"), str):

@@ -21,6 +21,7 @@ from workflow_kit.hub.confirmations import Confirmations
 from workflow_kit.hub.guide import Guides
 from workflow_kit.hub.harness_intake import HarnessIntake
 from workflow_kit.hub.ideas import Ideas
+from workflow_kit.hub.jsonbody import scrub_surrogates
 from workflow_kit.hub.judge import Judge
 from workflow_kit.hub.knowledge import Knowledge
 from workflow_kit.hub.memory import Memory
@@ -74,6 +75,7 @@ _PY_TYPES: dict[str, tuple[type, ...]] = {"string": (str,), "integer": (int,), "
 def validate_args(spec: ToolSpec, args: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(args, dict):
         raise invalid_field("arguments", "객체여야 해요")
+    args = scrub_surrogates(args)  # HTTP · MCP 공통 입구 — Go encoding/json 과 같은 치환
     props = spec.all_properties
     allowed = set(props) | {"contract"}
     extra = set(args) - allowed

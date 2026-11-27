@@ -35,6 +35,7 @@ from workflow_kit.hub.confirmations import Confirmations
 from workflow_kit.hub.guide import Guides
 from workflow_kit.hub.harness_intake import HarnessIntake
 from workflow_kit.hub.ideas import Ideas
+from workflow_kit.hub.jsonbody import loads_body
 from workflow_kit.hub.judge import _NO_TREE, INDEX, Judge, task_lines
 from workflow_kit.hub.knowledge import Knowledge
 from workflow_kit.hub.memory import Memory
@@ -133,7 +134,7 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
             raw = await request.body()
             if len(raw) > max_body:
                 raise HubError(413, "payload_too_large", f"본문 상한 {max_body} 바이트")
-            payload = json.loads(raw.decode("utf-8")) if raw.strip() else {}
+            payload = loads_body(raw) if raw.strip() else {}
             if not isinstance(payload, dict):
                 raise HubError(400, "invalid_json", "본문은 JSON 객체예요")
             now = clock()
@@ -226,7 +227,7 @@ def build_routes(store: Store, *, clock: Callable[[], datetime], web_token_name:
                     if len(raw) > max_body:
                         raise HubError(413, "payload_too_large", f"본문 상한 {max_body} 바이트")
                     try:
-                        payload = json.loads(raw.decode("utf-8")) if raw.strip() else {}
+                        payload = loads_body(raw) if raw.strip() else {}
                     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
                         raise HubError(400, "invalid_json", f"본문이 JSON 이 아니에요: {exc}") from exc
                     if not isinstance(payload, dict):

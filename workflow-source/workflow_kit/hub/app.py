@@ -25,12 +25,13 @@ from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, JSONResponse, Response, StreamingResponse
 from starlette.routing import Route
-from starlette.types import Receive, Scope, Send
+from starlette.types import Message, Receive, Scope, Send
 
 from workflow_kit import __version__ as HUB_VERSION
 from workflow_kit.hub import CONTRACT, KIT_COMPAT_VERSION
 from workflow_kit.hub import tools as hubtools
 from workflow_kit.hub import a2a as hub_a2a
+from workflow_kit.hub.jsonbody import loads_body, scrub_json_bytes
 from workflow_kit.hub.a2a import A2A, agent_card
 from workflow_kit.hub.errors import HubError
 from workflow_kit.hub.orchestration import WAIT_CAP_S, Orchestration
@@ -187,7 +188,34 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
         """클래스 인스턴스라 Starlette 가 ASGI 앱으로 부른다 (함수면 요청 처리기로 본다)."""
 
         async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+            if scope.get("type") == "http" and scope.get("method") == "POST":
+                scope, receive = await _scrubbed_body(scope, receive)
             await manager.handle_request(scope, receive, send)
+
+    async def _scrubbed_body(scope: Scope, receive: Receive) -> tuple[Scope, Receive]:
+        """`/mcp` 본문의 홀로 선 서로게이트를 SDK 앞에서 U+FFFD 로 — Go 허브와 같은 응답 (TASK-2026-11-24-claude-plex-003)."""
+        read: list[Message] = []
+        chunks: list[bytes] = []
+        while True:
+            msg = await receive()
+            read.append(msg)
+            if msg["type"] != "http.request":
+                break  # 연결 끊김 — 읽은 그대로 넘긴다
+            chunks.append(msg.get("body", b""))
+            if not msg.get("more_body", False):
+                break
+        if read[-1]["type"] == "http.request":
+            raw = b"".join(chunks)
+            body = scrub_json_bytes(raw)
+            if body is not raw:
+                headers = [(k, v) for k, v in scope.get("headers", []) if k.lower() != b"content-length"]
+                scope = {**scope, "headers": [*headers, (b"content-length", str(len(body)).encode("ascii"))]}
+            read = [{"type": "http.request", "body": body, "more_body": False}]
+
+        async def replay() -> Message:
+            return read.pop(0) if read else await receive()
+
+        return scope, replay
 
     async def guide_page(request: Request) -> Response:
         from workflow_kit.hub.guide_page import render_page
@@ -332,7 +360,7 @@ def build_app(store: Store, *, public_url: str, exposure: str = "loopback", cloc
         if len(body) > MAX_BODY:
             raise HubError(413, "payload_too_large", f"본문 상한 {MAX_BODY} 바이트", {"limit": MAX_BODY})
         try:
-            return json.loads(body.decode("utf-8")) if body.strip() else {}
+            return loads_body(body) if body.strip() else {}
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
             raise HubError(400, "invalid_json", f"본문이 JSON 이 아니에요: {exc}") from exc
 

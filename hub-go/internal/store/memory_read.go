@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"unicode"
 
 	"github.com/ykylee/standard_ai_workflow/hub-go/internal/db"
 )
@@ -29,11 +30,17 @@ func checkDocName(name string) error {
 	return nil
 }
 
+// isBlankPy reports whether s is empty after Python str.strip(): unicode.IsSpace plus U+001C–001F,
+// the only code points where Python str.isspace() and Go unicode.IsSpace disagree.
+func isBlankPy(s string) bool {
+	return strings.TrimFunc(s, func(r rune) bool { return unicode.IsSpace(r) || r >= 0x1c && r <= 0x1f }) == ""
+}
+
 func checkDoc(name, body string) error {
 	if err := checkDocName(name); err != nil {
 		return err
 	}
-	if strings.TrimSpace(body) == "" || len(body) > projectDocMax {
+	if isBlankPy(body) || len(body) > projectDocMax {
 		return InvalidField("body", "비지 않은 문자열 · 192KB 이하")
 	}
 	return nil

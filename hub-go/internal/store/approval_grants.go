@@ -69,14 +69,13 @@ func prepareDocPut(tx *sql.Tx, projectID string, action map[string]any) (map[str
 		map[string]any{"name": name, "version": current, "sha256": sha, "base": base, "proposed": body}, nil
 }
 
+// wholeNumber takes JSON integers only — 4.0 is a float and is refused, as the Python hub refuses it.
 func wholeNumber(v any) (int, bool) {
 	switch n := v.(type) {
 	case int:
 		return n, true
 	case int64:
 		return int(n), true
-	case float64:
-		return int(n), n == float64(int(n))
 	case json.Number:
 		i, err := n.Int64()
 		return int(i), err == nil

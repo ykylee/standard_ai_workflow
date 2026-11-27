@@ -3,9 +3,9 @@
 - 문서 목적: Standard AI Workflow 릴리스 절차 (버전 박기 → 빌드 → 스모크 → GitHub Release attach) 를 한 자리에 정리한다.
 - 범위: 채널 정책, 사전 점검, 빌드, 로컬 smoke, GitHub Release 생성, 트러블슈팅, 회귀 표
 - 대상 독자: 저장소 maintainer (`ykylee`), 릴리스 매니저
-- 상태: beta (v3.12.1 기준 pre-release 발행 · HomeLab pilot 운영 중; 절차 자체는 v0.5.7+ 부터 정식 도입된 정책 유지)
-- 현재 package version: 3.12.1 (`workflow-source/pyproject.toml`)
-- 최종 수정일: 2026-11-26
+- 상태: beta (v3.12.2 기준 pre-release 발행 · HomeLab pilot 운영 중; 절차 자체는 v0.5.7+ 부터 정식 도입된 정책 유지)
+- 현재 package version: 3.12.2 (`workflow-source/pyproject.toml`)
+- 최종 수정일: 2026-11-27
 - 관련 문서: [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md), [./INSTALLATION_AND_USAGE.md](./INSTALLATION_AND_USAGE.md), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md), [workflow-source/releases/](https://github.com/ykylee/standard_ai_workflow/tree/main/workflow-source/releases/)
 
 > **최종 갱신**: 2026-07-18 (회귀 표를 v0.15.15 까지 확장하고 `release_pipeline.py` 자동화 경로 반영)
@@ -67,6 +67,7 @@
 - **3.11.0**은 화면 정리 pilot minor다 — 허브 탭을 다섯으로 줄이고 사람이 승인할 것(확인 요청 · 세션 승인 · DCR · 지침 제안)을 '결정' 한 큐 · 한 카드로 모으고, 휴대폰에서는 탭을 아래 막대로 · 승인 단추를 오른쪽 아래로 옮겼다. 워크벤치는 허브로 옮긴 저장소에서 읽기 전용이 되고, 표준 블록(2.5)이 도구 카탈로그를 접두사로 줄여 프로젝트 지침 자리가 약 2.8KB 생겼다(진입 영역이 다시 렌더된다). DB 판은 22 그대로다.
 - **3.12.0**은 진입 렌더 영역 예산 pilot minor다 — 영역 하나의 상한을 8KB 에서 **12KiB · 120줄**(둘 다 본다)로 바꿨다. 8KB 는 1.x 생성 진입 파일 전체 상한을 옮겨 쓴 값이었고, 새 값은 Claude Code 200줄 권고 · Codex AGENTS.md 합계 32KiB 잘림에 맞춘다. 프로젝트 지침 자리가 약 6.8KB 가 된다. DB 판은 22 그대로다.
 - **3.12.1**은 화면 pilot patch다 — 화면 재채점(3.10.0)에 남은 P2 · P3 를 닫았다. 허브: 진척 띠와 로드맵의 마일스톤 순서를 한 정렬로, DCR 이름을 `결정 변경(DCR)` 하나로, 기본 필터 '지금' 이 비면 다음 필터로 떨어지고 알림, 단추 44px, 용어집을 결정 · 오케스트레이션 · 로드맵에도. PC 중계: 종료 안내 · 결과를 세션 표 바로 아래로, 실패 문구에 다음 행동, '대기' 칩 중립색, 세션 상한을 말로. 서버 API · DB 판(22) 변경 없음.
+- **3.12.2**는 화면 pilot patch다 — 넓은 화면(1280 이상)에서 진척 띠가 긴 마일스톤 이름만큼 늘어 화면 밖으로 넘치던 것(운영 1280 에서 578px)을 고치고, 개요 · 다른 탭 사이에 제목 · 탭 막대 자리가 움직이던 것(개요 44px · 스크롤바 7px)을 맞췄다. 사람이 보는 화면 문구와 화면에 뜨는 서버 오류 메시지(Python · Go 652곳)를 해요체로 바꿨다 — `error_code` 는 그대로, `message` 문장만 바뀐다. DB 판(22) 변경 없음.
 - **같은 날 두 줄을 낼 때 (2.0.0 + 1.30.0)**: 1.x 를 먼저 낸다 — 그때는 원격에 2.x 가 없어 1.30.0 이 잠시 latest 가
   된다. 이어 2.0.0 이 latest 를 가져간다. 순서를 바꾸면 1.30.0 은 처음부터 `--latest=false` 다. 어느 쪽이든 끝 상태는
   같다 — 끝난 뒤 `gh release list` 로 latest 가 2.x 인지 본다.
@@ -558,7 +559,7 @@ gh release edit "v<X>.<Y>.<Z>" --repo "$REPO" --draft=false
 
 - [릴리스 노트 디렉토리](https://github.com/ykylee/standard_ai_workflow/tree/main/workflow-source/releases/)
 - [릴리스 노트 v3.2.0](./../workflow-source/releases/Beta-v3.2.0.md)
-- [현재 릴리스 노트 v3.12.1](./../workflow-source/releases/Beta-v3.12.1.md)
+- [현재 릴리스 노트 v3.12.2](./../workflow-source/releases/Beta-v3.12.2.md)
 - [이전 릴리스 노트 v3.1.0](./../workflow-source/releases/Beta-v3.1.0.md)
 - [Python wheel 릴리스 자산 v3.2.0](https://github.com/ykylee/standard_ai_workflow/releases/tag/v3.2.0)
 - [Maturity Matrix](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/maturity_matrix.json)

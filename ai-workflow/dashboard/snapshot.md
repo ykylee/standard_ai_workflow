@@ -1,20 +1,20 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-11-26T23:33:43Z`
-- tool_version: `3.12.1`
+- generated_at: `2026-11-27T01:07:07Z`
+- tool_version: `3.12.2`
 - workspace_root: `/home/yklee/repos/standard_ai_workflow`
 
 ## Panel 1 — Drift Prevention Status
 
 - guard_status: `pass`
 - guard_cases: `7 / 7`
-- maturity_last_updated: `2026-11-26`
+- maturity_last_updated: `2026-11-27`
 - maturity_surface_changed_at: `2026-11-26`
 - maturity_stale: `False` (source: `maturity_surface_commit`)
 - harness_supported_count: `10`
-- head_commit_date: `2026-11-26`
+- head_commit_date: `2026-11-27`
 - last_updated_delta_days: `0`
-- silent_failing_cycles_count: `0` (측정 cycle 73건)
+- silent_failing_cycles_count: `0` (측정 cycle 74건)
 
 ## Panel 2 — Maturity Distribution
 
@@ -75,20 +75,20 @@
 
 ## Panel 4 — Smoke Trend
 
-- cumulative_total: `362`
-- cumulative_pass: `362`
+- cumulative_total: `363`
+- cumulative_pass: `363`
 - cumulative_pass_rate: `1.0000`
-- smoke_files_count: `362`
+- smoke_files_count: `363`
 
 ### Recent release smoke counts
 
 | version | pass | total |
 |---|---|---|
+| Beta-v3.12.2 | 363 | 363 |
 | Beta-v3.12.1 | 362 | 362 |
 | Beta-v3.12.0 | 362 | 362 |
 | Beta-v3.11.0 | 362 | 362 |
 | Beta-v3.10.0 | 362 | 362 |
-| Beta-v3.9.2 | 362 | 362 |
 
 ## Panel 5 — Recent Release Cycle
 

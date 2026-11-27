@@ -71,3 +71,4 @@
 {"version": "3.11.0", "recorded_at": "2026-11-26T13:49:03Z", "manual_required_count": 0, "manual_required": [], "auto_recovered_count": 0, "re_check_status": "pass"}
 {"version": "3.12.0", "recorded_at": "2026-11-26T14:49:23Z", "manual_required_count": 0, "manual_required": [], "auto_recovered_count": 0, "re_check_status": "pass"}
 {"version": "3.12.1", "recorded_at": "2026-11-26T23:33:31Z", "manual_required_count": 0, "manual_required": [], "auto_recovered_count": 0, "re_check_status": "pass"}
+{"version": "3.12.2", "recorded_at": "2026-11-27T01:06:57Z", "manual_required_count": 0, "manual_required": [], "auto_recovered_count": 0, "re_check_status": "pass"}

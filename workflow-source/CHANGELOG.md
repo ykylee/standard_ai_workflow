@@ -4,7 +4,7 @@
 - 범위: git log 에서 추출한 release 별 Added / Changed / Fixed 항목.
 - 대상 독자: maintainer, 릴리스 매니저, 외부 consumer
 - 상태: stable (자동 생성물)
-- 최종 수정일: 2026-11-26
+- 최종 수정일: 2026-11-27
 - 관련 문서: [`./releases/`](./releases/) (release note), [`../docs/RELEASE.md`](../docs/RELEASE.md) (릴리스 절차)
 
 All notable changes to this project will be documented in this file.
@@ -12,7 +12,7 @@ All notable changes to this project will be documented in this file.
 본 파일은 `tools/release_pipeline.py changelog-gen` 으로 자동 생성됩니다 (v0.7.14+).
 수동 편집은 다음 생성 시 덮어써진다 — 형식/metadata 변경은 생성기를 고칠 것.
 
-## [Unreleased] - 2026-11-26
+## [Unreleased] - 2026-11-27
 
 ### Added
 
@@ -296,6 +296,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- chore(release): prepare 3.12.2 (64f87e55)
+- chore(release): keep the files generated while publishing 3.12.1 (e4a659bf)
 - chore(release): prepare 3.12.1 (3585628e)
 - chore(entry): move shared rules into the hub project guide (GP-0005) (09298c51)
 - chore(entry): move AGENTS.md (Codex) to the hub — drop 1.x rules, add the rendered hub region (9d7f4592)
@@ -952,6 +954,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- fix(hub,relay): screen copy and on-screen server messages speak in 해요체 (5a7f9bd6)
+- fix(hub): rail no longer overflows wide screens; title and tab bar stay put across tabs (0afd7b9e)
 - fix(hub,relay): rescore P3 — 44px buttons, glossary on every head, current milestone label, neutral idle chip, session cap in words (42cfce7f)
 - fix(hub,relay): rescore P2 — one milestone order, one DCR name, empty 'now' falls back, relay results near the button (96dd6a8e)
 - fix(workbench): read-only once the repository moved to the hub; Korean status words; drop accent stripes (1311ab06)
